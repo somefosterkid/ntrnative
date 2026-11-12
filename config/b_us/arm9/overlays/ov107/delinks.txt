@@ -1,0 +1,75 @@
+    .text       start:0x021ee740 end:0x021f6af8 kind:code align:32
+    .rodata     start:0x021f6af8 end:0x021f6d40 kind:rodata align:4
+    .ctor       start:0x021f6d40 end:0x021f6d40 kind:rodata align:4
+    .data       start:0x021f6d60 end:0x021f6ea0 kind:data align:32
+    .bss        start:0x021f6ea0 end:0x021f7020 kind:bss align:32
+
+src/ov107/mb_util_msg.c:
+    complete
+    .text       start:0x021f1404 end:0x021f1b3c
+    .data       start:0x021f6e38 end:0x021f6e48
+
+src/ov107/mb_comm_sys.c:
+    complete
+    .text       start:0x021f0de8 end:0x021f1404
+    .rodata     start:0x021f6c7c end:0x021f6d04
+    .data       start:0x021f6e28 end:0x021f6e38
+    .bss        start:0x021f6ee8 end:0x021f6eec
+
+src/ov107/mbp.c:
+    complete
+    .text       start:0x021f0754 end:0x021f0de8
+    .data       start:0x021f6e1c end:0x021f6e28
+    .bss        start:0x021f6eac end:0x021f6ee8
+
+src/ov107/mb_parent_sys.c:
+    complete
+    .text       start:0x021ee740 end:0x021f0754
+    .rodata     start:0x021f6af8 end:0x021f6c7c
+    .data       start:0x021f6d60 end:0x021f6e1c
+    .bss        start:0x021f6ea0 end:0x021f6eac
+
+lib/nitro/src/mb/mb_parent.c:
+    complete
+    .text       start:0x021f1b3c end:0x021f2f1c
+    .data       start:0x021f6e48 end:0x021f6e50
+    .bss        start:0x021f6eec end:0x021f6ef0
+
+lib/nitro/src/mb/mb_fileinfo.c:
+    complete
+    .text       start:0x021f2f1c end:0x021f3c80
+    .rodata     start:0x021f6d04 end:0x021f6d40
+    .data       start:0x021f6e50 end:0x021f6e58
+    .bss        start:0x021f6ef0 end:0x021f6ef4
+
+lib/nitro/src/mb/mb_common.c:
+    complete
+    .text       start:0x021f3c80 end:0x021f3d04
+
+lib/nitro/src/mb/mb_gameinfo.c:
+    complete
+    .text       start:0x021f3d04 end:0x021f4560
+    .bss        start:0x021f6ef4 end:0x021f6f90
+
+lib/nitro/src/mb/mb_wm_base.c:
+    complete
+    .text       start:0x021f4560 end:0x021f636c
+    .data       start:0x021f6e58 end:0x021f6ea0
+    .bss        start:0x021f6f90 end:0x021f7004
+
+lib/nitro/src/mb/mb_child.c:
+    complete
+
+lib/nitro/src/mb/mb_cache.c:
+    complete
+    .text       start:0x021f636c end:0x021f6480
+
+lib/nitro/src/mb/mb_task.c:
+    complete
+    .text       start:0x021f6480 end:0x021f6804
+    .bss        start:0x021f7004 end:0x021f7008
+
+lib/nitro/src/mb/mb_block.c:
+    complete
+    .text       start:0x021f6804 end:0x021f6af8
+    .bss        start:0x021f7008 end:0x021f7020

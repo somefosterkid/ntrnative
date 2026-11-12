@@ -1,0 +1,45 @@
+# Nintendo's DWC utility (libdwcutil), the Wi-Fi Connection settings, in Black's overlay 16 from 0x021b61b0. Its files
+# are the objects of NitroDWC's libdwcutil.a as it ships prebuilt, in the archive's
+# order and with the names of their debug line tables, which share most of Black's code: 619 of its 1,108 functions
+# byte for byte. The prebuilt's .comment sections give two builds:
+# - Nintendo's own files (anime.c to task.c), ARM code. The prebuilt's are MWCC 2.0/sp2p2's (3.0.0.137) but Black's were
+#   built again with the game's compiler: of the functions that differ from the prebuilt, 262 matched with dsi/1.1p1
+#   and not 2.0/sp2p2 in one file, 30 with both. The flags here are the ones those matched with.
+# - The third parties' AOSS and Aterm setups and the WCM wrapper (aoss.c, aosslink.c, apc.c, atermset.c), Thumb code
+#   that Black has as the prebuilt has it, built with MWCC 2.0 (3.0.0.126, 2.0/sp1p2) without -ipa file: dwc_aoss.c,
+#   dwc_aoss_ap.c and dwc_wcm.c are pokebw2's names for aoss.c, aosslink.c and apc.c (pokebw2's lib/dwcutil, GPL-3.0,
+#   https://github.com/fuddlesworth/pokebw2). A static's address is reloaded each time under 2.0 where dsi/1.1p1 keeps
+#   it in a register.
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-inline on,noauto",   # Only inline functions marked inline
+    "-ipa file",           # Interprocedural analysis within each file
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# The Thumb files, the build of their objects in the prebuilt
+[file_compiler]
+"dwc_aoss.c" = "2.0/sp1p2"
+"dwc_aoss_ap.c" = "2.0/sp1p2"
+"dwc_wcm.c" = "2.0/sp1p2"
+"atermset.c" = "2.0/sp1p2"
+
+[file_flags]
+"dwc_aoss.c" = ["-thumb", "-ipa file"]
+"dwc_aoss_ap.c" = ["-thumb"]  # aosslink.c reaches its .bss from one base, as -ipa file does
+"dwc_wcm.c" = ["-thumb", "-ipa function"]
+"atermset.c" = ["-thumb", "-ipa file"]

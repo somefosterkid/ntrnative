@@ -1,0 +1,233 @@
+#ifndef POKEBW2_NITROWIFI_SOC_H
+#define POKEBW2_NITROWIFI_SOC_H
+
+#include "types.h"
+#include "nitrowifi/cps.h"
+
+// NitroWiFi's socket layer, SOCL, over CPS, in overlay 11, and the BSD-style SOC calls over it. The ROM names none of
+// it. Its files and names follow NitroWiFi's objects as pret's pokediamond links them (socl_startup.o, socl_command.o
+// and so on, with every function named), matched to this newer version (NitroWiFi 3.3, by its signature in the main
+// module) by what each function does.
+
+// What SOCL_Startup takes
+typedef struct SOCLConfig {
+    BOOL use_dhcp; // Ask DHCP for an address, or use host_ip
+    struct {
+        CPSInAddr my_ip;
+        CPSInAddr net_mask;
+        CPSInAddr gateway_ip;
+        CPSInAddr dns_ip[2];
+    } host_ip;
+    void *(*alloc)(u32 size);
+    void (*free)(void *ptr);
+    u32 cmd_packet_max;  // How many command packets the sockets can have waiting
+    u32 lan_buffer_size; // 0 for SOCLiDefaultLanBufferSize
+    void *lan_buffer;    // NULL to allocate lan_buffer_size bytes
+    s32 cps_thread_prio; // 0 for 11
+    s32 mtu;             // 0 for 576, and kept between 576 and 1500
+    s32 rwin;            // TCP's receive window, 0 for 0x10c0
+} SOCLConfig;
+
+// The thread of a socket's command pipe, and how many packets it queues
+typedef struct SOCLSocketCommandPipeParam {
+    u16 stack_size; // Bytes
+    u8 priority;
+    u8 queue_length; // Message count
+} SOCLSocketCommandPipeParam;
+
+// How a socket is created: SOCLSocketParamTCP, SOCLSocketParamUDP and SOCLSocketParamUDPSend (soc.c). A socket has a
+// receive pipe when rcvbuf_size is not 0 and a send pipe when sndbuf_size is not 0; without one it uses the UDP send
+// socket's.
+typedef struct SOCLSocketParam {
+    s8 flag_mode;
+    s8 flag_block;
+    // Buffer sizes and the consume threshold count bytes.
+    struct {
+        u16 rcvbuf_size;
+        u16 rcvbuf_consume_min;
+        u16 sndbuf_size;
+        u16 rcvbuf_aux_size;
+        u16 sndbuf_aux_size;
+        u16 sndpipe_buf_size;
+        u16 rcvpipe_unk_e;
+    } buffer;
+    SOCLSocketCommandPipeParam rcv_pipe;
+    SOCLSocketCommandPipeParam snd_pipe;
+} SOCLSocketParam;
+
+extern SOCLSocketParam SOCLSocketParamUDP;
+extern SOCLSocketParam SOCLSocketParamTCP;
+extern SOCLSocketParam SOCLSocketParamUDPSend;
+
+// SOCL's errors, as negative return values (BSD's numbers)
+#define SOCL_EAGAIN (-6)
+#define SOCL_EALREADY (-7)
+#define SOCL_ECANCELED (-11) // What the commands still queued in a pipe that is freed get
+#define SOCL_ECONNRESET (-15)
+#define SOCL_EINPROGRESS (-26)
+#define SOCL_EINVAL (-28)
+#define SOCL_EMFILE (-33)
+#define SOCL_EMSGSIZE (-35) // A datagram that is more than a packet holds
+#define SOCL_EISCONN (-30)
+#define SOCL_ENETRESET (-39) // SOCL has not been started
+#define SOCL_ENOMEM (-49)
+#define SOCL_ENOTCONN (-56)
+#define SOCL_ETIMEDOUT (-76)
+
+// The BSD-style calls over SOCL (soc.c). A socket is the handle that SOC_Socket returns (SOCL's socket, which the
+// calls take as an int), and they return negative SOCL_E* codes. The address and port of a socket address are in
+// network order, and its first byte is its size
+#define SOC_AF_INET 2
+#define SOC_SOCK_STREAM 1
+#define SOC_SHUT_RDWR 2
+#define SOC_EWOULDBLOCK (-6)
+#define SOC_EINPROGRESS (-26)
+#define SOC_EISCONN (-30)
+#define SOC_ETIMEDOUT (-76)
+
+// Network order (big-endian) to the host's and back
+#define SOC_NtoHl(netlong)                                                                                             \
+    ((u32)((((u32)(netlong) >> 24) & 0x000000ff) | (((u32)(netlong) >> 8) & 0x0000ff00) |                              \
+           (((u32)(netlong) << 8) & 0x00ff0000) | (((u32)(netlong) << 24) & 0xff000000)))
+#define SOC_NtoHs(netshort) ((u16)((((u16)(netshort) >> 8) & 0x00ff) | (((u16)(netshort) << 8) & 0xff00)))
+#define SOC_HtoNl(hostlong)                                                                                            \
+    ((u32)((((u32)(hostlong) >> 24) & 0x000000ff) | (((u32)(hostlong) >> 8) & 0x0000ff00) |                            \
+           (((u32)(hostlong) << 8) & 0x00ff0000) | (((u32)(hostlong) << 24) & 0xff000000)))
+#define SOC_HtoNs(hostshort) ((u16)((((u16)(hostshort) >> 8) & 0x00ff) | (((u16)(hostshort) << 8) & 0xff00)))
+
+// An address (in network order) passed by value
+typedef struct SOCInAddr {
+    u32 addr;
+} SOCInAddr;
+
+typedef struct SOCSockAddrIn {
+    u8 len;
+    u8 family;
+    u16 port;
+    SOCInAddr addr;
+} SOCSockAddrIn;
+// A socket address of any family, which an address in network order (SOCSockAddrIn) is one of
+typedef struct SOCSockAddr {
+    u8 len;
+    u8 family;
+    u8 data[6];
+} SOCSockAddr;
+typedef struct SOCHostEnt {
+    char *name;
+    char **aliases;
+    s16 addrType;
+    s16 addrLength;
+    u8 **addrList;
+} SOCHostEnt;
+// A poll descriptor, and the configuration that SOC_Startup takes (its addresses are in network order)
+typedef struct SOCPollFD {
+    int fd;
+    s16 events;
+    s16 revents;
+} SOCPollFD;
+typedef void *(*SocAllocFunc)(u32 name, s32 size);
+typedef void (*SocFreeFunc)(u32 name, void *ptr, s32 size);
+#define SOC_VENDOR_NINTENDO 0x0000
+#define SOC_VERSION 0x0100
+#define SOC_FLAG_DHCP 0x0001 // SOCConfig's flag: get the addresses by DHCP
+typedef struct SOCConfig {
+    u16 vendor;         // 0x00, SOC_VENDOR_NINTENDO
+    u16 version;        // 0x02, SOC_VERSION
+    SocAllocFunc alloc; // 0x04
+    SocFreeFunc free;   // 0x08
+    u32 flag;           // 0x0c, SOC_FLAG_*
+    SOCInAddr addr;     // 0x10
+    SOCInAddr netmask;  // 0x14
+    SOCInAddr router;   // 0x18
+    SOCInAddr dns1;     // 0x1c
+    SOCInAddr dns2;     // 0x20
+    s32 timeWaitBuffer;
+    s32 reassemblyBuffer;
+    s32 mtu;  // 0x2c: SOCLConfig's mtu
+    s32 rwin; // 0x30: SOCLConfig's rwin
+    s64 r2;   // 0x34
+    const char *peerid;
+    const char *passwd;
+    const char *serviceName;
+    const char *hostName; // 0x48
+    s32 rdhcp;
+    s32 udpSendBuff;
+    s32 udpRecvBuff;
+} SOCConfig;
+
+// Only type selects the transport: 1 creates TCP, every other value UDP. domain/protocol are ignored.
+int SOC_Socket(int domain, int type, int protocol);
+// Address fields are read during the call, not retained: Bind uses port, Connect uses port/addr; len/family ignored.
+// TCP Bind records the local port for a later connect; UDP may queue a bind. Errors need not roll back endpoint/state.
+int SOC_Bind(int sock, const void *sockAddr);
+// A fresh TCP attempt waits for the callback with flag_block==1; other modes map admission to EINPROGRESS.
+// UDP only stores the peer; repeated TCP attempts report existing connection/pending state.
+int SOC_Connect(int sock, const void *sockAddr);
+// Receive sizes are byte capacities. UDP returns the full datagram length even when fewer bytes fit; ordinary
+// TCP/SSL reads return the copied count. Read flag 2 retains UDP/plain-CPS data, but SSL reads still consume it.
+int SOC_Recv(int sock, void *buffer, int size, int flags);
+// On a nonnegative result, only from->port/addr are written when from is nonnull; len/family are unchanged.
+// SSL command reads do not supply peer outputs, so this wrapper does not establish a valid peer on that path.
+int SOC_RecvFrom(int sock, void *buffer, int size, int flags, void *from);
+// Copies caller data into the send ring before return; SendTo also copies destination scalars without retaining to.
+// Positive results count admitted payload bytes, not transmission completion. Nonblocking sends can return a prefix;
+// a later admission failure can return an error after an earlier prefix was queued.
+int SOC_Send(int sock, const void *buffer, int size, int flags);
+int SOC_SendTo(int sock, const void *buffer, int size, int flags, const void *sockTo);
+// Ignores how; the TCP callback requests send-half shutdown without freeing the socket. flag_block==1 waits for it;
+// other modes report queue admission. A missing send pipe can return zero without issuing a command.
+int SOC_Shutdown(int sock, int how);
+// Zero does not establish close-callback completion or allocation release; an absent positive handle also returns zero.
+// A socket with a close request already set, or still in trash, returns EINPROGRESS. Scavenging reclaims its storage.
+int SOC_Close(int sock);
+// Returns shared static result/name/address storage, overwritten by later successful lookups; do not free it.
+SOCHostEnt *SOC_GetHostByName(const char *host);
+int SOC_GetSockName(int sock, void *sockAddr);
+long SOC_GetHostID(void);
+// Sets the DNS servers, despite the name (the SDK's; pokediamond's is the same)
+int SOC_SetResolver(const SOCInAddr *dns1, const SOCInAddr *dns2);
+// Command 3 returns zero for flag_block==1, otherwise 4. Command 4 stores mode 0 for flags&4, otherwise mode 1.
+// Other commands return zero without changing mode.
+// A zero handle returns -1.
+int SOC_Fcntl(int sock, int command, int flags);
+// Copies selected configuration fields and allocator callbacks into static storage; does not retain config itself.
+int SOC_Startup(const SOCConfig *config);
+int SOC_Cleanup(void);
+// Returns a shared 16-byte static formatting buffer, overwritten by the next call; do not free it.
+char *SOC_InetNtoA(SOCInAddr addr);
+int SOC_InetAtoN(const char *text, SOCInAddr *address);
+// AF_INET only: reads four address bytes and needs at least 16 writable buffer bytes; returns buffer or NULL.
+const char *SOC_InetNtoP(int family, const void *address, char *buffer, unsigned int size);
+void SOC_U32to4U8(u32 value, u8 *bytes);
+// count counts descriptors; each scan replaces revents and always checks status bits 0xe0 as well as requested events.
+// -1 disables the timeout budget; other nonpositive values scan once. Positive ticks decrease by 523 per delay;
+// this loop does not measure an absolute deadline. Returns the number of descriptors with nonzero revents.
+int SOC_Poll(SOCPollFD *fds, unsigned int count, OSTick timeout);
+// Borrows mutable connection storage on a created TCP-mode socket whose binding-state bit is clear. Keep nonnull
+// sslInfo alive while installed and through SSL operations/close using it. Success confirms the change, not a
+// handshake. NULL detaches/selects plain TCP; it does not reset/free the old context or perform SSL shutdown. The state
+// gate also applies to detachment, so this is not an unrestricted cleanup operation for an already binding socket.
+int SOCL_EnableSsl(int sock, void *sslInfo);
+void SOCLi_TrashSocket(void);
+
+// Successful initial startup retains config for later callbacks and cleanup. Keep it alive until cleanup succeeds;
+// an already active layer ignores the new pointer. SOC_Startup instead supplies its own static SOCLConfig.
+int SOCL_Startup(const SOCLConfig *config);
+// The config SOCL_Startup was given, NULL while SOCL is down
+extern const SOCLConfig *SOCLiConfigPtr;
+// The wait between CPS's yields, which DWC's AC sets to 4 before SOC_Startup
+extern u32 SOCLiYieldWait;
+// TRUE for a handle that is no socket of the list and not in the trash, or that is a socket SOCL_Close has not run on
+// (closesocketsure, SOC_Close's caller in DWC's GameSpy code, asks it after a failed close; no counterpart in
+// pokediamond's NitroWiFi)
+BOOL SOCL_IsNotClosing(int socket);
+// The address of the host (socl_cleanup.c), which DWC's GameSpy code also gives as the local host's
+CPSInAddr SOCL_GetHostID(void);
+// Asks the sockets to close; SOCL_EINPROGRESS (nonzero) while it has not finished
+int SOCL_CalmDown(void);
+// Reads param synchronously without retaining its pointer. Owned buffer/pipe storage is in the socket allocation;
+// a UDP receive socket instead borrows its shared send pipe.
+// The final command result is ignored, so a returned allocation handle alone does not prove CREATED/registration.
+int SOCL_CreateSocket(const SOCLSocketParam *param);
+
+#endif // POKEBW2_NITROWIFI_SOC_H

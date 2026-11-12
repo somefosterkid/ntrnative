@@ -1,0 +1,24 @@
+GimmickDT9_Setup kind:function(thumb,size=0xd0) addr:0x021eecc0
+GimmickDT9_End kind:function(thumb,size=0x1c) addr:0x021eed90
+GimmickDT9_Update kind:function(thumb,size=0xc) addr:0x021eedac
+GimmickDT9_CreateReleaseEvent kind:function(thumb,size=0x94) addr:0x021eedb8
+GimmickDT9_ReleaseEvent kind:function(thumb,size=0x124) addr:0x021eee4c
+GimmickDT9_CreateThrowEvent kind:function(thumb,size=0xd4) addr:0x021eef70
+GimmickDT9_PlayThrown kind:function(thumb,size=0x7c) addr:0x021ef044
+GimmickDT9_CreateWaitFifthFrameEvent kind:function(thumb,size=0x1c) addr:0x021ef0c0
+GimmickDT9_CreateWaitThrownDoneEvent kind:function(thumb,size=0x1c) addr:0x021ef0dc
+GimmickDT9_ThrowEvent kind:function(thumb,size=0xb2) addr:0x021ef0f8
+GimmickDT9_PastFifthFrameEvent kind:function(thumb,size=0x2a) addr:0x021ef1ac
+GimmickDT9_ThrownDoneEvent kind:function(thumb,size=0x2a) addr:0x021ef1d8
+sThrownAnimations kind:data(any) addr:0x021ef204
+sReleaseAnimations kind:data(any) addr:0x021ef210
+sSceneSetupBlack2 kind:data(any) addr:0x021ef220
+sSceneSetupWhite2 kind:data(any) addr:0x021ef230
+sActors kind:data(any) addr:0x021ef240
+data_ov132_021ef211 kind:data(any) addr:0x021ef251 ambiguous
+sResourcesWhite2 kind:data(any) addr:0x021ef260
+data_ov132_021ef231 kind:data(any) addr:0x021ef271 ambiguous
+data_ov132_021ef289 kind:data(any) addr:0x021ef2c9 ambiguous
+sResourcesBlack2 kind:data(any) addr:0x021ef2cc
+data_ov132_021ef29d kind:data(any) addr:0x021ef2dd ambiguous
+data_ov132_021ef2e1 kind:data(any) addr:0x021ef321 ambiguous

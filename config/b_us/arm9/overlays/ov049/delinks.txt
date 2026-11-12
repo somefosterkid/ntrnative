@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f386c kind:code align:32
+    .rodata     start:0x021f386c end:0x021f3a0c kind:rodata align:4
+    .ctor       start:0x021f3a0c end:0x021f3a0c kind:rodata align:4
+    .bss        start:0x021f3a20 end:0x021f3a20 kind:bss align:32
+
+src/ov049/gimmick_league_statue.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f386c
+    .rodata     start:0x021f386c end:0x021f3a0c

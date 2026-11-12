@@ -1,0 +1,9 @@
+    .text       start:0x021eecc0 end:0x021ef0cc kind:code align:32
+    .rodata     start:0x021ef0cc end:0x021ef92c kind:rodata align:4
+    .ctor       start:0x021ef92c end:0x021ef92c kind:rodata align:4
+    .bss        start:0x021ef940 end:0x021ef940 kind:bss align:32
+
+src/ov100/gym_virbank.c:
+    complete
+    .text       start:0x021eecc0 end:0x021ef0cc
+    .rodata     start:0x021ef0cc end:0x021ef92c

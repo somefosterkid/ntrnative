@@ -1,0 +1,26 @@
+SkyarrowBridge_Setup kind:function(thumb,size=0x74) addr:0x021eec80
+SkyarrowBridge_End kind:function(thumb,size=0x44) addr:0x021eecf4
+SkyarrowBridge_Update kind:function(thumb,size=0xae) addr:0x021eed38
+SkyarrowBridge_Init kind:function(thumb,size=0x14e) addr:0x021eede8
+SkyarrowBridge_LoadWaitRanges kind:function(thumb,size=0x44) addr:0x021eef38
+SkyarrowBridge_LoadBGMParams kind:function(thumb,size=0x14) addr:0x021eef7c
+SkyarrowBridge_SaveFrames kind:function(thumb,size=0x32) addr:0x021eef90
+SkyarrowBridge_LoadFrames kind:function(thumb,size=0x32) addr:0x021eefc4
+SkyarrowBridge_StartWait kind:function(thumb,size=0x22) addr:0x021eeff8
+SkyarrowBridge_RestartObj kind:function(thumb,size=0x10) addr:0x021ef01c
+SkyarrowBridge_ApplyBGMVolume kind:function(thumb,size=0x10) addr:0x021ef02c
+SkyarrowBridge_UpdateBGMVolume kind:function(thumb,size=0x24) addr:0x021ef03c
+SkyarrowBridge_GetTargetBGMVolume kind:function(thumb,size=0x70) addr:0x021ef060
+SkyarrowBridge_RaiseBGMVolume kind:function(thumb,size=0xe) addr:0x021ef0d0
+SkyarrowBridge_LowerBGMVolume kind:function(thumb,size=0xe) addr:0x021ef0e0
+PassingSE_Init kind:function(thumb,size=0x10) addr:0x021ef0f0
+PassingSE_Update kind:function(thumb,size=0x17c) addr:0x021ef100
+sAnimations kind:data(any) addr:0x021ef27c
+sResources kind:data(any) addr:0x021ef280
+data_ov109_021ef289 kind:data(any) addr:0x021ef289 ambiguous
+data_ov109_021ef29d kind:data(any) addr:0x021ef29d ambiguous
+data_ov109_021ef2b0 kind:data(any) addr:0x021ef2b0
+sActors kind:data(any) addr:0x021ef2c4
+data_ov109_021ef2e1 kind:data(any) addr:0x021ef2e1 ambiguous
+sSceneSetup kind:data(any) addr:0x021ef320
+data_ov109_021ef335 kind:data(any) addr:0x021ef335 ambiguous

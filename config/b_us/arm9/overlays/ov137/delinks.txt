@@ -1,0 +1,28 @@
+    .text       start:0x021dc860 end:0x021e1a2c kind:code align:32
+    .rodata     start:0x021e1a2c end:0x021e2250 kind:rodata align:4
+    .ctor       start:0x021e2250 end:0x021e2250 kind:rodata align:4
+    .data       start:0x021e2260 end:0x021e22e0 kind:data align:32
+    .bss        start:0x021e22e0 end:0x021e22e0 kind:bss align:32
+
+src/ov137/guru2_main.c:
+    complete
+    .text       start:0x021de7fc end:0x021e1a2c
+    .rodata     start:0x021e1c90 end:0x021e2250
+    .data       start:0x021e2278 end:0x021e22e0
+
+src/ov137/guru2_receipt.c:
+    complete
+    .text       start:0x021dce10 end:0x021de7fc
+    .rodata     start:0x021e1ae8 end:0x021e1c90
+
+src/ov137/guru2_comm.c:
+    complete
+    .text       start:0x021dcafc end:0x021dce10
+    .rodata     start:0x021e1a68 end:0x021e1ae8
+    .data       start:0x021e2268 end:0x021e2278
+
+src/ov137/guru2.c:
+    complete
+    .text       start:0x021dc860 end:0x021dcafc
+    .rodata     start:0x021e1a2c end:0x021e1a68
+    .data       start:0x021e2260 end:0x021e2268

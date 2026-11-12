@@ -1,0 +1,71 @@
+// resort_layout.c: the Join Avenue's fixed layout, its zones and where its people and shops stand. The name is a
+// descriptive guess: no string names the file. It is a file of its own, between resonance_resort_data.c and
+// resort_binary.c, because its .rodata starts the sizes over: MWCC lays out a file's data by size, and this 6-byte
+// table follows resonance_resort_data.c's tables of 16 to 49 bytes. Our names
+#include "types.h"
+#include "system/resort_layout.h"
+
+// A place on the grid and the direction faced there
+typedef struct {
+    u16 x;
+    u16 z;
+    u32 dir;
+} ResortPlace;
+
+typedef struct {
+    u16 x;
+    u16 y;
+} ResortOffset;
+
+// Zone 0 and the avenue's two zones
+static const u16 sZones[RESORT_ZONE_COUNT] = { 0, 490, 491 };
+
+static const u32 sUnk[4] = { 1, 1, 1, 2 };
+
+static const ResortPlace sPlaces2[4] = {
+#include "asset/resort_layout_sPlaces2.inc"
+};
+
+static const ResortOffset sShopOffsets[48] = {
+#include "asset/resort_layout_sShopOffsets.inc"
+};
+
+static const ResortPlace sPlaces[48] = {
+#include "asset/resort_layout_sPlaces.inc"
+};
+
+u16 ResortLayout_GetZoneId(u32 index) {
+    return sZones[index];
+}
+
+u32 ResortLayout_GetZoneIndex(u16 zoneId) {
+    int i;
+
+    for (i = 0; i < RESORT_ZONE_COUNT; i++) {
+        if (zoneId == sZones[i]) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+void ResortLayout_GetOccupantPlace(u16 index, u16 *x, u16 *z, u16 *dir) {
+    *x = sPlaces[index].x;
+    *z = sPlaces[index].z;
+    *dir = sPlaces[index].dir;
+}
+
+void ResortLayout_GetShopOffset(u16 index, u16 *x, u16 *y) {
+    *x = sShopOffsets[index].x;
+    *y = sShopOffsets[index].y;
+}
+
+void ResortLayout_GetRecordPlace(u16 index, u16 *x, u16 *z, u16 *dir) {
+    *x = sPlaces2[index].x;
+    *z = sPlaces2[index].z;
+    *dir = sPlaces2[index].dir;
+}
+
+u32 ResortLayout_GetSlotRow(u32 index) {
+    return sUnk[index];
+}

@@ -1,0 +1,22 @@
+    .text       start:0x021f57e0 end:0x021f7118 kind:code align:32
+    .rodata     start:0x021f7118 end:0x021f73c0 kind:rodata align:4
+    .ctor       start:0x021f73c0 end:0x021f73c0 kind:rodata align:4
+    .data       start:0x021f73e0 end:0x021f7420 kind:data align:32
+    .bss        start:0x021f7420 end:0x021f7420 kind:bss align:32
+
+src/ov215/egg_demo_graphic.c:
+    complete
+    .text       start:0x021f6328 end:0x021f66c8
+    .rodata     start:0x021f7154 end:0x021f72fc
+    .data       start:0x021f73e0 end:0x021f73f4
+
+src/ov215/egg_demo_view.c:
+    complete
+    .text       start:0x021f66c8 end:0x021f7118
+    .rodata     start:0x021f72fc end:0x021f73c0
+    .data       start:0x021f73f4 end:0x021f7420
+
+src/ov215/egg_demo.c:
+    complete
+    .text       start:0x021f57e0 end:0x021f6328
+    .rodata     start:0x021f7118 end:0x021f7154

@@ -1,0 +1,6 @@
+# game: black
+# from: boot
+# reaches: the first rival battle (Cheren's Snivy) at about f23500: the intro with A every 90 frames, the starter choice (down at f12700). The frame varies by hundreds between runs (the RTC), check final.png
+# end: f23500
+keys start@f600 start@f900 start@f1300 a@f1700 down@f12700
+walk 2200 90 a*240/90

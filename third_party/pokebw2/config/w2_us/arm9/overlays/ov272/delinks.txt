@@ -1,0 +1,11 @@
+    .text       start:0x021f7fc0 end:0x021f82f8 kind:code align:32
+    .rodata     start:0x021f82f8 end:0x021f8324 kind:rodata align:4
+    .ctor       start:0x021f8324 end:0x021f8324 kind:rodata align:4
+    .data       start:0x021f8340 end:0x021f8380 kind:data align:32
+    .bss        start:0x021f8380 end:0x021f8380 kind:bss align:32
+
+src/ov272/br_main.c:
+    complete
+    .text       start:0x021f7fc0 end:0x021f82f8
+    .rodata     start:0x021f82f8 end:0x021f8324
+    .data       start:0x021f8340 end:0x021f8380

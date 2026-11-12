@@ -1,0 +1,21 @@
+    .text       start:0x021b6100 end:0x021b7380 kind:code align:32
+    .rodata     start:0x021b7380 end:0x021b7498 kind:rodata align:4
+    .ctor       start:0x021b7498 end:0x021b7498 kind:rodata align:4
+    .data       start:0x021b74a0 end:0x021b74e0 kind:data align:32
+    .bss        start:0x021b74e0 end:0x021b74e0 kind:bss align:32
+
+src/ov174/ov174_021b6100.c:
+    complete
+    .text       start:0x021b6100 end:0x021b6994
+    .rodata     start:0x021b7380 end:0x021b7480
+
+src/ov174/local_tvt_sys.c:
+    complete
+    .text       start:0x021b6994 end:0x021b6c70
+    .data       start:0x021b74a0 end:0x021b74bc
+
+src/ov174/local_tvt_chara.c:
+    complete
+    .text       start:0x021b6c70 end:0x021b7380
+    .rodata     start:0x021b7480 end:0x021b7498
+    .data       start:0x021b74bc end:0x021b74e0

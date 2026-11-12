@@ -1,0 +1,59 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -259,6 +259,17 @@
+ static SIM_FrameRendererGLFn sFrameRendererGL;
+ extern "C" void SIM_SetFrameRendererGL(SIM_FrameRendererGLFn fn) { sFrameRendererGL = fn; }
+ extern "C" void *SIM_GLGetProc(const char *name) { return (void *)SDL_GL_GetProcAddress(name); }
++
++// bw-port (libntr-glselect.patch): which GL library the window's context comes from is the program's choice
++// (port/src/gl_select.c: the system's, or a bundled Mesa on a machine without a usable GL). pre runs before the window is
++// created (its argument: 1 when the picture is Renderer=vcore's, whose present wants Mesa's llvmpipe at few threads),
++// post once the context is current.
++static void (*sGLPre)(int) = NULL;
++static void (*sGLPost)(void) = NULL;
++extern "C" void SIM_SetGLHooks(void (*pre)(int), void (*post)(void)) {
++  sGLPre = pre;
++  sGLPost = post;
++}
+ extern "C" void SIM_SetFrameRenderer(SIM_FrameRendererFn fn) { sFrameRenderer = fn; }
+ extern "C" int SIM_HasFrameRenderer(void) { return sFrameRenderer != NULL; }
+ extern "C" int SIM_FrameRendererActive(void) { return sFrameRendererDrew; }
+@@ -462,7 +473,9 @@
+   // several times the quad's own work (28 threads: 5 cores at 300 fps, 0.6 cores at the 60 fps cap): 4 threads at most.
+   // Before the GL context exists (Mesa reads it at its first context); a user's own LP_NUM_THREADS stands, a real GPU
+   // driver ignores it, and Renderer=gpu / libntr (the N x 3D or libntr's 3D on the software GL) keep Mesa's default.
+-  if (s_SIM_config.renderer == SIM_CONFIG_RENDERER_VCORE && sFrameRenderer != NULL && getenv("LP_NUM_THREADS") == NULL) {
++  if (sGLPre != NULL) {
++    sGLPre(s_SIM_config.renderer == SIM_CONFIG_RENDERER_VCORE && sFrameRenderer != NULL);   // the program sets it (and picks the GL)
++  } else if (s_SIM_config.renderer == SIM_CONFIG_RENDERER_VCORE && sFrameRenderer != NULL && getenv("LP_NUM_THREADS") == NULL) {
+     int n = SDL_GetCPUCount();
+     n = n > 4 ? 4 : (n < 1 ? 1 : n);
+     char nbuf[8];
+@@ -482,6 +495,17 @@
+       #endif
+     );
+   context = SDL_GL_CreateContext(window);
++  if (context == NULL) {
++    // no 4.2 core context: say so, not a crash in the first GL call
++    const char *err = SDL_GetError();
++    fprintf(stderr, "libntr: no OpenGL 4.2 core context: %s\n", err);
++    printf("libntr: no OpenGL 4.2 core context: %s\n", err);
++    fflush(stdout);
++    if (getenv("BWPORT_NOPAUSE") == NULL)
++      SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "libntr",
++                             "No OpenGL 4.2 core context could be created. Install or update the graphics driver.", NULL);
++    _Exit(1);   // not exit(): the game's exit() (port/src/boot_exit.c) returns
++  }
+ 
+   if(s_SIM_config.fullScreen) {
+     SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+@@ -491,6 +515,9 @@
+   //OpenGL is static linked on PS5
+   gladLoadGLLoader(SDL_GL_GetProcAddress);
+   #endif
++  if (sGLPost != NULL) {
++    sGLPost();
++  }
+ 
+   glViewport(0, 0, windowWidth, windowHeight);
+ 

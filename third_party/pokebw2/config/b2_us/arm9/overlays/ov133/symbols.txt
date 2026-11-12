@@ -1,0 +1,16 @@
+GimmickNuvema_Init kind:function(thumb,size=0x104) addr:0x021eec80
+GimmickNuvema_End kind:function(thumb,size=0x18) addr:0x021eed84
+GimmickNuvema_Update kind:function(thumb,size=0x80) addr:0x021eed9c
+GimmickNuvema_PlayModel kind:function(thumb,size=0x60) addr:0x021eee1c
+GimmickNuvema_CreateWaitEvent kind:function(thumb,size=0x14) addr:0x021eee7c
+GimmickNuvema_WaitEvent kind:function(thumb,size=0x1e) addr:0x021eee90
+sAnimations kind:data(any) addr:0x021eeeb0
+sDaySceneSetup kind:data(any) addr:0x021eeeb8
+data_ov133_021eeec0 kind:data(any) addr:0x021eeec0 ambiguous
+sActors kind:data(any) addr:0x021eeec8
+data_ov133_021eeec9 kind:data(any) addr:0x021eeec9 ambiguous
+sNightSceneSetup kind:data(any) addr:0x021eeed8
+sDayResources kind:data(any) addr:0x021eeee8
+sNightResources kind:data(any) addr:0x021eef0c
+data_ov133_021eef29 kind:data(any) addr:0x021eef29 ambiguous
+data_ov133_021eef30 kind:data(any) addr:0x021eef30

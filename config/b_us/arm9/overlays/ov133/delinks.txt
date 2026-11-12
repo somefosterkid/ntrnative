@@ -1,0 +1,16 @@
+    .text       start:0x021b6100 end:0x021ba3d8 kind:code align:32
+    .rodata     start:0x021ba3d8 end:0x021ba5e0 kind:rodata align:4
+    .ctor       start:0x021ba5e0 end:0x021ba5e0 kind:rodata align:4
+    .data       start:0x021ba600 end:0x021ba640 kind:data align:32
+    .bss        start:0x021ba640 end:0x021ba640 kind:bss align:32
+
+src/ov133/dup_fitting.c:
+    complete
+    .text       start:0x021b6100 end:0x021ba0cc
+    .rodata     start:0x021ba3d8 end:0x021ba5e0
+    .data       start:0x021ba600 end:0x021ba610
+
+src/ov133/dup_fitting_item.c:
+    complete
+    .text       start:0x021ba0cc end:0x021ba3d8
+    .data       start:0x021ba610 end:0x021ba640

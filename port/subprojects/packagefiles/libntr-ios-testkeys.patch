@@ -1,0 +1,43 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -997,6 +997,7 @@
+ static void BenchDone(void);
+ static void BenchCancel(void);
+ struct CfgStep { u32 frame; bool rel; char text[256]; };  // (libntr-ios-cfglen.patch: was 96; a 110-character settings step lost its last keys)
++static int sTestNoSide, sTestPump;   // libntr-ios-testkeys.patch: cfgscript side=0 / pump=1 (measurement only, off unless set)
+ static std::vector<CfgStep> sCfgSteps;
+ static size_t sCfgNext = 0;
+ static SIM_config_type sCfgSaved;
+@@ -1249,6 +1250,12 @@
+         PerfTestRestore();
+         BenchDone();
+         fprintf(stderr, "perftest: settings restored\n");
++      } else if (strcmp(kv, "side") == 0) {  // libntr-ios-testkeys.patch: side=0 does not draw the side panel (the picture is wrong)
++        sTestNoSide = atoi(v) == 0;
++      } else if (strcmp(kv, "pump") == 0) {  // pump=1 polls SDL's events only on a tick after a presented one
++        sTestPump = atoi(v) != 0;
++      } else if (strcmp(kv, "soundquality") == 0) {  // 0 = DS (exact), 1 = Enhanced
++        s_SIM_config.soundQuality = (u8)(atoi(v) != 0);
+       } else if (strcmp(kv, "framerate") == 0) {
+         u8 r = strcmp(v, "unlimited") == 0 ? SIM_CONFIG_DISPLAYCAP_UNLIMITED : strcmp(v, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+              : atoi(v) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
+@@ -3931,7 +3938,9 @@
+     if (sTouchLatch && (sTouchSamples != sTouchLatchAt || ++sTouchLatchFrames > 4)) {
+       sTouchLatch = 0;
+     }
+-    while (SDL_PollEvent(&Event)) {
++    // libntr-ios-testkeys.patch: pump=1 polls on a tick after a presented one only
++    int pumpNow = !sTestPump || sTickPresent;
++    while (pumpNow && SDL_PollEvent(&Event)) {
+       // bw-port (libntr-ios-touch.patch): the fingers (sim_touch.cpp)
+       if (touchMode && SimTouch_Event(&Event)) {
+         continue;
+@@ -4270,7 +4279,7 @@
+       }
+       if (!((xy >> 10) & 1)) lit |= 1u << 2;
+       if (!((xy >> 11) & 1)) lit |= 1u << 3;
+-      SIM::GUI::DrawSide((float)panelPxX, (float)viewTop, (float)panelPxW, (float)viewHeight, lit,
++      if (!sTestNoSide) SIM::GUI::DrawSide((float)panelPxX, (float)viewTop, (float)panelPxW, (float)viewHeight, lit,
+                          s_SIM_config.showMetrics, s_SIM_config.showInputPanel);
+     }
+     SIM::GUI::Main(); // after the side's windows: the settings windows are in front of them

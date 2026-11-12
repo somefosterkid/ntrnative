@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup for Android 11 and older (android:fullBackupContent): only the player's own files, never the extracted ROM (hundreds of MB,
+     over the 25 MB quota, and the user's game data). "external" is the app's external files directory (getExternalFilesDir), where the
+     game keeps them (port/src/android_main.c); the launcher's game folders hold the same names one level down. -->
+<full-backup-content>
+    <include domain="external" path="save.bin" />
+    <include domain="external" path="sim_config.ini" />
+    <include domain="external" path="Pokemon Black/save.bin" />
+    <include domain="external" path="Pokemon Black/sim_config.ini" />
+    <include domain="external" path="launcher.ini" />
+</full-backup-content>

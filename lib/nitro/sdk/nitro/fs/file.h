@@ -1,0 +1,399 @@
+// From libntr (MIT, https://github.com/cybervisi0n/libntr) at 1555d91: include/nitro/fs/file.h, as it is (tools/port_lib.py)
+#if !defined(NITRO_FS_FILE_H_)
+#define NITRO_FS_FILE_H_
+
+#if SDK_VERSION_MAJOR == 4
+#include <nitro/misc.h>
+#include <nitro/types.h>
+#include <nitro/mi.h>
+#include <nitro/card.h>
+#endif
+#include <nitro/fs/archive.h>
+
+#ifdef SDK_PORT
+#include <stdio.h>
+#include <stdlib.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#if SDK_VERSION_MAJOR == 4
+#define FS_FILE_NAME_MAX    127
+
+#define FS_DMA_NOT_USE      ((u32) ~0)
+
+typedef enum {
+	FS_SEEK_SET,
+	FS_SEEK_CUR,
+	FS_SEEK_END
+} FSSeekFileMode;
+
+#define FS_FILE_STATUS_BUSY                 0x00000001
+#define FS_FILE_STATUS_CANCEL               0x00000002
+#define FS_FILE_STATUS_SYNC                 0x00000004
+#define FS_FILE_STATUS_ASYNC                0x00000008
+#define FS_FILE_STATUS_IS_FILE              0x00000010
+#define FS_FILE_STATUS_IS_DIR               0x00000020
+#define FS_FILE_STATUS_OPERATING            0x00000040
+
+#define FS_FILE_STATUS_USER_RESERVED_BIT    0x00010000
+#define FS_FILE_STATUS_USER_RESERVED_MASK   0xFFFF0000
+
+struct FSFile;
+
+typedef struct {
+	struct FSArchive * arc;
+	u16 own_id;
+	u16 index;
+	u32 pos;
+} FSDirPos;
+
+typedef struct {
+	struct FSArchive * arc;
+	u32 file_id;
+} FSFileID;
+
+typedef struct {
+	union {
+		FSFileID file_id;
+		FSDirPos dir_id;
+	};
+	u32 is_directory;
+	u32 name_len;
+	char name[FS_FILE_NAME_MAX + 1];
+} FSDirEntry;
+
+typedef struct {
+	FSDirPos pos;
+} FSSeekDirInfo;
+
+typedef struct {
+	FSDirEntry * p_entry;
+	BOOL skip_string;
+} FSReadDirInfo;
+
+typedef struct {
+	FSDirPos pos;
+	const char * path;
+	BOOL find_directory;
+	union {
+		FSFileID * file;
+		FSDirPos * dir;
+	}
+	result;
+} FSFindPathInfo;
+
+typedef struct {
+	u8 * buf;
+	u32 buf_len;
+	u16 total_len;
+	u16 dir_id;
+} FSGetPathInfo;
+
+typedef struct {
+	FSFileID id;
+} FSOpenFileFastInfo;
+
+typedef struct {
+	u32 top;
+	u32 bottom;
+	u32 index;
+} FSOpenFileDirectInfo;
+
+typedef struct {
+	u32 reserved;
+} FSCloseFileInfo;
+
+typedef struct {
+	void * dst;
+	u32 len_org;
+	u32 len;
+} FSReadFileInfo;
+
+typedef struct {
+	const void * src;
+	u32 len_org;
+	u32 len;
+} FSWriteFileInfo;
+#endif
+
+typedef struct FSFile {
+#if SDK_VERSION_MAJOR == 4
+	FSFileLink link;
+	struct FSArchive * arc;
+	u32 stat;
+	FSCommandType command;
+	FSResult error;
+#ifndef SDK_THREAD_INFINITY
+	OSThreadQueue queue[4 / sizeof(OSThreadQueue)];
+#else
+	OSThreadQueue queue[1];
+#endif
+	union {
+		struct {
+			u32 own_id;
+			u32 top;
+			u32 bottom;
+			u32 pos;
+		} file;
+
+		struct {
+			FSDirPos pos;
+			u32 parent;
+		} dir;
+	}
+	prop;
+	union {
+		FSReadFileInfo readfile;
+		FSWriteFileInfo writefile;
+		FSSeekDirInfo seekdir;
+		FSReadDirInfo readdir;
+		FSFindPathInfo findpath;
+		FSGetPathInfo getpath;
+		FSOpenFileFastInfo openfilefast;
+		FSOpenFileDirectInfo openfiledirect;
+		FSCloseFileInfo closefile;
+	} arg;
+#elif SDK_VERSION_MAJOR == 5
+  	struct FSFile *next;
+  	void *userdata;
+  	struct FSArchive *arc;
+  	u32 stat;
+  	void *argument;
+  	FSResult error;
+  	OSThreadQueue queue[1];
+
+  	union {
+  	  u8 reserved1[16];
+  	  FSROMFATProperty prop;
+  	};
+  	union {
+  	  u8 reserved2[24];
+  	  FSROMFATCommandInfo arg;
+  	};
+#endif
+
+	#ifdef SDK_PORT
+	FILE* pcFilePtr;
+	#endif
+} FSFile;
+
+#if SDK_VERSION_MAJOR == 4
+void FS_Init(u32 default_dma_no);
+BOOL FS_IsAvailable(void);
+void FS_End(void);
+
+u32 FS_GetDefaultDMA(void);
+u32 FS_SetDefaultDMA(u32 dma_no);
+u32 FS_TryLoadTable(void * p_mem, u32 size);
+
+
+static inline u32 FS_GetTableSize (void)
+{
+	return FS_TryLoadTable(NULL, 0);
+}
+
+static inline BOOL FS_LoadTable (void * p_mem, u32 size)
+{
+	return (FS_TryLoadTable(p_mem, size) <= size) ? TRUE : FALSE;
+}
+
+static inline void * FS_UnloadTable (void)
+{
+	FSArchive * const p_arc = FS_FindArchive("rom", 3);
+	return FS_UnloadArchiveTables(p_arc);
+}
+#endif
+
+static inline BOOL FS_IsBusy (volatile const FSFile * p_file)
+{
+	return (p_file->stat & FS_FILE_STATUS_BUSY) ? TRUE : FALSE;
+}
+
+static inline BOOL FS_IsCanceling (volatile const FSFile * p_file)
+{
+	return (p_file->stat & FS_FILE_STATUS_CANCEL) ? TRUE : FALSE;
+}
+
+static inline BOOL FS_IsSucceeded (volatile const FSFile * p_file)
+{
+	return (p_file->error == FS_RESULT_SUCCESS) ? TRUE : FALSE;
+}
+
+static inline BOOL FS_IsFile (volatile const FSFile * p_file)
+{
+	return (p_file->stat & FS_FILE_STATUS_IS_FILE) ? TRUE : FALSE;
+}
+
+static inline BOOL FS_IsDir (volatile const FSFile * p_file)
+{
+	return (p_file->stat & FS_FILE_STATUS_IS_DIR) ? TRUE : FALSE;
+}
+
+#if SDK_VERSION_MAJOR == 4
+static inline BOOL FS_IsFileSyncMode (const volatile FSFile * p)
+{
+	return (p->stat & FS_FILE_STATUS_SYNC) ? TRUE : FALSE;
+}
+#endif
+
+static inline FSResult FS_GetResultCode (volatile const FSFile * p_file)
+{
+	return p_file->error;
+}
+
+void FS_InitFile(FSFile * p_file);
+
+BOOL FS_OpenFile(FSFile * p_file, const char * path);
+BOOL FS_OpenFileFast(FSFile * p_file, FSFileID file_id);
+BOOL FS_ConvertPathToFileID(FSFileID * p_file_id, const char * path);
+BOOL FS_CloseFile(FSFile * p_file);
+BOOL FS_GetPathName(FSFile * p_file, char * buf, u32 len);
+
+s32 FS_GetPathLength(FSFile * p_file);
+
+#if SDK_VERSION_MAJOR == 5
+BOOL FS_CreateFile(const char *path, u32 permit);
+BOOL FS_DeleteFile(const char *path);
+BOOL FS_RenameFile(const char *src, const char *dst);
+BOOL FS_GetPathInfo(const char *path, FSPathInfo *info);
+BOOL FS_SetPathInfo(const char *path, const FSPathInfo *info);
+BOOL FS_CreateDirectory(const char *path, u32 permit);
+BOOL FS_DeleteDirectory(const char *path);
+BOOL FS_RenameDirectory(const char *src, const char *dst);
+BOOL FS_CreateFileAuto(const char *path, u32 permit);
+BOOL FS_DeleteFileAuto(const char *path);
+BOOL FS_RenameFileAuto(const char *src, const char *dst);
+BOOL FS_CreateDirectoryAuto(const char *path, u32 permit);
+BOOL FS_DeleteDirectoryAuto(const char *path);
+BOOL FS_RenameDirectoryAuto(const char *src, const char *dst);
+BOOL FS_GetArchiveResource(const char *path, FSArchiveResource *resource);
+u32 FSi_GetSpaceToCreateDirectoryEntries(const char *path,
+                                         const u32 bytesPerCluster);
+BOOL FS_HasEnoughSpaceToCreateFile(FSArchiveResource *resource,
+                                   const char *path, u32 size);
+BOOL FS_IsArchiveReady(const char *path);
+BOOL FS_OpenFileEx(FSFile *file, const char *path, u32 mode);
+u32 FS_GetFileLength(FSFile *file);
+FSResult FS_SetFileLength(FSFile *file, u32 length);
+u32 FS_GetFilePosition(FSFile *file);
+u32 FS_GetSeekCacheSize(const char *path);
+BOOL FS_SetSeekCache(FSFile *file, void *buf, u32 buf_size);
+FSResult FS_FlushFile(FSFile *file);
+BOOL FS_OpenDirectory(FSFile *file, const char *path, u32 mode);
+BOOL FS_CloseDirectory(FSFile *file);
+BOOL FS_ReadDirectory(FSFile *file, FSDirectoryEntryInfo *info);
+BOOL FS_OpenFileExW(FSFile *file, const u16 *path, u32 mode);
+BOOL FS_OpenDirectoryW(FSFile *file, const u16 *path, u32 mode);
+BOOL FS_ReadDirectoryW(FSFile *file, FSDirectoryEntryInfoW *info);
+#endif
+
+#if SDK_VERSION_MAJOR == 4
+static inline u32 FS_GetLength (const FSFile * p_file)
+{
+	return p_file->prop.file.bottom - p_file->prop.file.top;
+}
+
+static inline u32 FS_GetPosition (const FSFile * p_file)
+{
+	return p_file->prop.file.pos - p_file->prop.file.top;
+}
+#endif
+#if SDK_VERSION_MAJOR == 5
+u32 FS_GetLength(FSFile *file);
+u32 FS_GetPosition(FSFile *file);
+#endif
+#if SDK_VERSION_MAJOR == 4
+// Black's (TwlSDK 5's): the open with a mode and the length and position by function (mb_gameinfo.c and
+// mb_fileinfo.c call them; fs_file.c has them, the position as s32)
+s32 FS_GetFilePosition(FSFile *file);
+#endif
+
+s32 FS_ReadFile(FSFile * p_file, void * dst, s32 len);
+s32 FS_ReadFileAsync(FSFile * p_file, void * dst, s32 len);
+s32 FS_WriteFile(FSFile * p_file, const void * src, s32 len);
+
+s32 FS_WriteFileAsync(FSFile * p_file, const void * src, s32 len);
+
+BOOL FS_WaitAsync(FSFile * p_file);
+
+void FS_CancelFile(FSFile * p_file);
+
+#if SDK_VERSION_MAJOR == 5
+static inline void FS_SetFileHandle(FSFile *file, FSArchive *arc, void *userdata) {
+  file->stat |= FS_FILE_STATUS_IS_FILE;
+  file->stat &= ~FS_FILE_STATUS_IS_DIR;
+  file->arc = arc;
+  file->userdata = userdata;
+}
+
+static inline void FS_SetDirectoryHandle(FSFile *file, FSArchive *arc,
+                                      void *userdata) {
+  file->stat |= FS_FILE_STATUS_IS_DIR;
+  file->stat &= ~FS_FILE_STATUS_IS_FILE;
+  file->arc = arc;
+  file->userdata = userdata;
+}
+
+static inline void FS_DetachHandle(FSFile *file) {
+  file->userdata = NULL;
+  file->stat &= ~(FS_FILE_STATUS_IS_FILE | FS_FILE_STATUS_IS_DIR);
+}
+
+static inline void *FS_GetFileUserData(const FSFile *file) {
+  return file->userdata;
+}
+#endif
+
+BOOL FS_SeekFile(FSFile * p_file, s32 offset, FSSeekFileMode origin);
+
+static inline BOOL FS_SeekFileToBegin (FSFile * p_file)
+{
+	return FS_SeekFile(p_file, 0, FS_SEEK_SET);
+}
+
+static inline BOOL FS_SeekFileToEnd (FSFile * p_file)
+{
+	return FS_SeekFile(p_file, 0, FS_SEEK_END);
+}
+
+BOOL FS_ChangeDir(const char * path);
+BOOL FS_FindDir(FSFile * p_dir, const char * path);
+BOOL FS_ReadDir(FSFile * p_dir, FSDirEntry * p_entry);
+BOOL FS_TellDir(const FSFile * p_dir, FSDirPos * p_pos);
+BOOL FS_SeekDir(FSFile * p_dir, const FSDirPos * p_pos);
+BOOL FS_RewindDir(FSFile * p_dir);
+
+BOOL FS_OpenFileDirect(FSFile * p_file, FSArchive * p_arc,
+                       u32 image_top, u32 image_bottom, u32 file_index);
+
+static inline FSArchive * FS_GetAttachedArchive (const FSFile * p_file)
+{
+	return p_file->arc;
+}
+
+#if SDK_VERSION_MAJOR == 4
+// Black's: TwlSDK 5's FS_GetFileImageTop is a function (fs_proc_default.c), which MB_ReadSegment calls
+u32 FS_GetFileImageTop(const FSFile * p_file);
+
+static inline u32 FS_GetFileImageBottom (const FSFile * p_file)
+{
+	return p_file->prop.file.bottom;
+}
+#endif
+
+BOOL FS_CreateFileFromRom(FSFile * p_file, u32 offset, u32 size);
+BOOL FS_CreateFileFromMemory(FSFile * p_file, void * buf, u32 size);
+
+static inline void FS_CreateReadServerThread (u32 priority)
+{
+	(void)CARD_SetThreadPriority(priority);
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

@@ -1,0 +1,24 @@
+AspertiaCity_Init kind:function(thumb,size=0x36) addr:0x021eecc0
+AspertiaCity_End kind:function(thumb,size=0x26) addr:0x021eecf8
+AspertiaCity_Update kind:function(thumb,size=0x24) addr:0x021eed20
+AspertiaCity_PlaySeasonModel kind:function(thumb,size=0x40) addr:0x021eed44
+AspertiaCity_RequestBG kind:function(thumb,size=0x1a) addr:0x021eed84
+AspertiaCity_LoadBG kind:function(thumb,size=0xa0) addr:0x021eeda0
+AspertiaCity_FreeBG kind:function(thumb,size=0xc) addr:0x021eee40
+AspertiaCity_LoadModels kind:function(thumb,size=0xbc) addr:0x021eee4c
+AspertiaCity_FreeScene kind:function(thumb,size=0xc) addr:0x021eef08
+AspertiaCity_StepAnimations kind:function(thumb,size=0xc) addr:0x021eef14
+AspertiaCity_ShowSeasonModel kind:function(thumb,size=0x78) addr:0x021eef20
+sSummerAnimations kind:data(any) addr:0x021eef98
+sAutumnAnimations kind:data(any) addr:0x021eefa0
+sSpringAnimations kind:data(any) addr:0x021eefa8
+sWinterAnimations kind:data(any) addr:0x021eefb0
+sSceneSetup kind:data(any) addr:0x021eefb8
+data_ov112_021eef85 kind:data(any) addr:0x021eefc5 ambiguous
+sAnimationCounts kind:data(any) addr:0x021eefc8
+data_ov112_021eef98 kind:data(any) addr:0x021eefd8
+data_ov112_021eef99 kind:data(any) addr:0x021eefd9 ambiguous
+sActors kind:data(any) addr:0x021eeff8
+data_ov112_021eefe1 kind:data(any) addr:0x021ef021 ambiguous
+sResources kind:data(any) addr:0x021ef038
+data_ov112_021ef011 kind:data(any) addr:0x021ef051 ambiguous

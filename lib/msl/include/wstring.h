@@ -1,0 +1,22 @@
+// From zeldaret-st (CC0-1.0, https://github.com/zeldaret/st) at 4fca7f3: libs/c/include/wstring.h
+#ifndef _C_WSTRING_H
+#define _C_WSTRING_H
+
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct mbstate_t {};
+
+size_t wcslen(const wchar_t *str);
+wchar_t *wcscpy(wchar_t *dest, const wchar_t *src);
+wchar_t *wcsncpy(wchar_t *dest, const wchar_t *src, size_t n);
+const wchar_t *wcschr(const wchar_t *str, wchar_t chr);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

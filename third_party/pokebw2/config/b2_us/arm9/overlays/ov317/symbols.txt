@@ -1,0 +1,33 @@
+SubwayMap_Init kind:function(thumb,size=0x168) addr:0x0219ce80
+SubwayMap_Exit kind:function(thumb,size=0x70) addr:0x0219cfe8
+SubwayMap_Main kind:function(thumb,size=0x98) addr:0x0219d058
+SubwayMap_VBlank kind:function(thumb,size=0x2) addr:0x0219d0f0
+SubwayMap_LoadGraphics kind:function(thumb,size=0x74) addr:0x0219d0f4
+SubwayMap_Unused kind:function(thumb,size=0x2) addr:0x0219d168
+SubwayMapGraphic_G3DInit kind:function(thumb,size=0xa4) addr:0x0219d16c
+SubwayMapGraphic_Create kind:function(thumb,size=0xa8) addr:0x0219d210
+SubwayMapGraphic_Free kind:function(thumb,size=0x5c) addr:0x0219d2b8
+SubwayMapGraphic_Update kind:function(thumb,size=0x12) addr:0x0219d314
+SubwayMapGraphic_VBlank kind:function(thumb,size=0x12) addr:0x0219d328
+SubwayMapBG_Init kind:function(thumb,size=0x60) addr:0x0219d33c
+SubwayMapBG_Free kind:function(thumb,size=0x38) addr:0x0219d39c
+SubwayMapBG_Update kind:function(thumb,size=0x2) addr:0x0219d3d4
+SubwayMapBG_VBlank kind:function(thumb,size=0x8) addr:0x0219d3d8
+SubwayMapClAct_Init kind:function(thumb,size=0x40) addr:0x0219d3e0
+SubwayMapClAct_Free kind:function(thumb,size=0x1a) addr:0x0219d420
+SubwayMapClAct_Update kind:function(thumb,size=0x8) addr:0x0219d43c
+SubwayMapClAct_VBlank kind:function(thumb,size=0x8) addr:0x0219d444
+SubwayMapG3dSys_Init kind:function(thumb,size=0x6c) addr:0x0219d44c
+SubwayMapG3dSys_Free kind:function(thumb,size=0xe) addr:0x0219d4b8
+SUBWAY_MAP_PROC_FUNCTIONS kind:data(any) addr:0x0219d4c8 ambiguous
+sSubBGSetups kind:data(any) addr:0x0219d4d4
+data_ov317_0219d4f5 kind:data(any) addr:0x0219d4f5 ambiguous
+sSubwayMapCameraUpVector kind:data(any) addr:0x0219d500
+sSubwayMapCameraPosition kind:data(any) addr:0x0219d50c
+sSubwayMapCameraTarget kind:data(any) addr:0x0219d518
+sSubwayMapLCDConfig kind:data(any) addr:0x0219d524
+sSubwayMapClActSetup kind:data(any) addr:0x0219d534
+sSubwayMapLights kind:data(any) addr:0x0219d550
+sSubwayMapVRAMConfig kind:data(any) addr:0x0219d570
+sSubwayMapBGSetups kind:data(any) addr:0x0219d5a0
+data_ov317_0219d600 kind:data(any) addr:0x0219d600

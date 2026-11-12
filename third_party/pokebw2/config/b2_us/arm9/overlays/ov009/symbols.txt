@@ -1,0 +1,3 @@
+EventWifiBSubway_CreateFromArgs kind:function(thumb,size=0xc) addr:0x0214f500
+EventWifiBSubway_Create kind:function(thumb,size=0x44) addr:0x0214f50c
+EventWifiBSubway_Callback kind:function(thumb,size=0xc4) addr:0x0214f550

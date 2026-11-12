@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f38d0 kind:code align:32
+    .rodata     start:0x021f38d0 end:0x021f3914 kind:rodata align:4
+    .ctor       start:0x021f3914 end:0x021f3914 kind:rodata align:4
+    .bss        start:0x021f3920 end:0x021f3920 kind:bss align:32
+
+src/ov040/gym_nacrene.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f38d0
+    .rodata     start:0x021f38d0 end:0x021f3914

@@ -1,0 +1,11 @@
+MIi_DmaSetParameters kind:function(arm,size=0xd0) addr:0x01ff8020
+func_01ff80f0 kind:function(arm,size=0x58) addr:0x01ff80f0
+OS_IrqHandler_ThreadSwitch kind:function(arm,size=0x160) addr:0x01ff8148
+OSi_VerifyHmac kind:function(thumb,size=0xc4) addr:0x01ff82a8
+OSi_VerifyRomBlocks kind:function(arm,size=0xa8) addr:0x01ff836c
+OSi_DoResetSystem kind:function(arm,size=0x4c) addr:0x01ff8414
+OSi_StartProgram kind:function(arm,size=0xcc) addr:0x01ff8460
+OSi_Clear32 kind:function(arm,size=0x14) addr:0x01ff852c
+OSi_LoadProgram kind:function(arm,size=0x1c0) addr:0x01ff8540
+func_01ff8700 kind:function(arm,size=0xd4) addr:0x01ff8700
+func_01ff87d4 kind:function(arm,size=0x30) addr:0x01ff87d4

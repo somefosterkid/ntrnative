@@ -1,0 +1,143 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -111,6 +111,7 @@
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+     u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
++    u8 textSpeed; /* bw-port (libntr-ios-textspeed.patch): the text printers' speed, 0 = the game's own (Options), 1 = Faster (4 characters a frame), 2 = Fastest (8), 3 = Instant (TextSpeed=game|faster|fastest|instant, default game; BWPORT_TEXTSPEED); port/extern/src/system/text_speed.c reads it */
+     u8 battleSpeed; /* bw-port (libntr-ios-battlespeed.patch): the Game speed while a battle runs, 1..4 (BattleSpeed=1..4, default 1 = off; BWPORT_BATTLESPEED); the higher of it and the Game speed applies */
+     u32 audioRate; /* bw-port (libntr-ios-ablate.patch): the rate asked of SDL's audio device (AudioRate=48000); 0 = 44100 as before. A phone whose device runs at 48 kHz then skips SDL's second resample (a test of that cost; off by default) */
+     u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -32,6 +32,18 @@
+  * afterwards unless the new key was in the file (FinishOldKeys); only the new keys are written. */
+ static int sOldCapOff, sOldSpeed, sOldDisplayCap = -1, sOldInterp = -1;
+ static int sSeenGameSpeed, sSeenFrameRate, sSeenRestore, sSeenSmooth, sSeenFFSpeed;
++/* bw-port (libntr-ios-textspeed.patch): a setting's value by name (any case) or by its index; -1 when neither */
++static int SpOptIndex(const char *v, const char * const *names, int n) {
++    int i;
++    for(i = 0; i < n; i++) {
++        const char *a = v, *b = names[i];
++        while(*a != 0 && (*a | 0x20) == *b) { a++; b++; }
++        if(*a == 0 && *b == 0) return i;
++    }
++    i = v[0] >= '0' && v[0] <= '9' ? atoi(v) : -1;
++    return i < n ? i : -1;
++}
++static const char * const sTextSpeedNames[] = {"game", "faster", "fastest", "instant"};
+ static u8 FrameRateFromString(const char * v);
+ static int OnOffFromString(const char * v);
+ static const char * FrameRateToString(u8 r);
+@@ -198,6 +210,10 @@
+         sSeenFFSpeed = 1;
+         config->ffSpeed = (u8)(strcmp(value, "max") == 0 || strcmp(value, "Max") == 0 ? 5 : n < 2 ? 2 : n > 4 ? 4 : n);
+     }
++    if(MATCH("General", "TextSpeed")) { /* bw-port (libntr-ios-textspeed.patch) */
++        int i = SpOptIndex(value, sTextSpeedNames, 4);
++        config->textSpeed = (u8)(i < 0 ? 0 : i);
++    }
+     if(MATCH("General", "BattleSpeed")) { /* bw-port (libntr-ios-battlespeed.patch) */
+         int n = atoi(value);
+         config->battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+@@ -593,6 +609,11 @@
+         int n = atoi(e);
+         aConfig->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
++    e = getenv("BWPORT_TEXTSPEED");   /* bw-port (libntr-ios-textspeed.patch): game|faster|fastest|instant or 0..3 */
++    if(e != NULL && *e) {
++        int i = SpOptIndex(e, sTextSpeedNames, 4);
++        aConfig->textSpeed = (u8)(i < 0 ? 0 : i);
++    }
+     e = getenv("BWPORT_BATTLESPEED");   /* bw-port (libntr-ios-battlespeed.patch): 1..4 */
+     if(e != NULL && *e) {
+         int n = atoi(e);
+@@ -724,6 +745,7 @@
+     aConfig->speed = 1;
+     aConfig->ffSpeed = 4;
+     aConfig->battleSpeed = 1;
++    aConfig->textSpeed = 0;   /* bw-port (libntr-ios-textspeed.patch) */
+     aConfig->soundQuality = 1;
+     aConfig->musicNormalSpeed = 1;
+     aConfig->overlay = 1;
+@@ -878,6 +900,7 @@
+         if(aConfig == SIM_GetConfigPtr()) sp = SIM_SpeedForFile(sp);
+         fprintf(configFile, "GameSpeed=%d\n", sp);
+     }
++    fprintf(configFile, "TextSpeed=%s\n", sTextSpeedNames[aConfig->textSpeed < 4 ? aConfig->textSpeed : 0]);   /* bw-port (libntr-ios-textspeed.patch) */
+     fprintf(configFile, "BattleSpeed=%d\n", aConfig->battleSpeed < 1 ? 1 : aConfig->battleSpeed > 4 ? 4 : aConfig->battleSpeed);
+     fprintf(configFile, "FastForwardSpeed=%s\n", aConfig->ffSpeed >= 5 ? "max" : aConfig->ffSpeed == 3 ? "3" : aConfig->ffSpeed == 4 ? "4" : "2");
+     fprintf(configFile, "SoundQuality=%s\n", aConfig->soundQuality ? "enhanced" : "ds");
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1273,6 +1273,9 @@
+       } else if (strcmp(kv, "battlespeed") == 0) {  // libntr-ios-battlespeed.patch: BattleSpeed 1..4
+         int n = atoi(v);
+         s_SIM_config.battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++      } else if (strcmp(kv, "textspeed") == 0) {  // libntr-ios-textspeed.patch: TextSpeed 0..3 (game, faster, fastest, instant)
++        int n = atoi(v);
++        s_SIM_config.textSpeed = (u8)(n < 0 ? 0 : n > 3 ? 3 : n);
+       } else if (strcmp(kv, "frameskip") == 0) {
+         s_SIM_config.frameSkip = strcmp(v, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(atoi(v) < 0 ? 0 : atoi(v) > 3 ? 3 : atoi(v));
+       } else if (strcmp(kv, "smooth") == 0) {
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -580,6 +580,20 @@
+ static void SetBattleSpeed(int i) {
+     if (i != BattleSpeedIndex()) {
+         C()->battleSpeed = (u8)(i + 1);
++        Dirty();
++    }
++}
++
++// libntr-ios-textspeed.patch: Text speed (Game = the player's own in Options; Faster, Fastest, Instant beyond it)
++static const char * const TextSpeedTip = "how fast text prints. Game = the speed chosen in the game's Options; Faster = 4 letters a frame, Fastest = 8, Instant = a whole box at once. Messages still wait for a press to go on";
++static const char * const TextSpeedNames[] = {"Game", "Faster", "Fastest", "Instant"};
++static int TextSpeedIndex() {
++    SIM_config_type * c = C();
++    return c->textSpeed > 3 ? 0 : c->textSpeed;
++}
++static void SetTextSpeed(int i) {
++    if (i != TextSpeedIndex()) {
++        C()->textSpeed = (u8)i;
+         Dirty();
+     }
+ }
+@@ -879,6 +893,9 @@
+         FormRow("Battle speed", BattleSpeedTip);   // libntr-ios-battlespeed.patch
+         int bsp = BattleSpeedIndex();
+         if (ComboIndex("##abspd", &bsp, BattleSpeedNames, 4)) { SetBattleSpeed(bsp); }
++        FormRow("Text speed", TextSpeedTip);   // libntr-ios-textspeed.patch
++        int tsp = TextSpeedIndex();
++        if (ComboIndex("##atspd", &tsp, TextSpeedNames, 4)) { SetTextSpeed(tsp); }
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+@@ -2387,6 +2404,11 @@
+             int bsp = BattleSpeedIndex();
+             if (ComboIndex("##qbspeed", &bsp, BattleSpeedNames, 4)) { SetBattleSpeed(bsp); }
+         }
++        FormRow("Text speed", TextSpeedTip);   // libntr-ios-textspeed.patch
++        {
++            int tsp = TextSpeedIndex();
++            if (ComboIndex("##qtspeed", &tsp, TextSpeedNames, 4)) { SetTextSpeed(tsp); }
++        }
+         FormRow("Music, normal speed", MusicNormalTip);
+         {
+             bool mn = c->musicNormalSpeed != 0;
+@@ -2771,6 +2793,7 @@
+     if (!strcmp(k, "soundquality")) return c->soundQuality != 0;
+     if (!strcmp(k, "frameskip")) return FrameSkipIndex();
+     if (!strcmp(k, "ffspeed")) return c->ffSpeed < 2 ? 2 : c->ffSpeed > 5 ? 5 : c->ffSpeed;   // libntr-ios-speedui.patch
++    if (!strcmp(k, "textspeed")) return TextSpeedIndex();   // libntr-ios-textspeed.patch: 0 (game) .. 3 (instant)
+     if (!strcmp(k, "battlespeed")) return BattleSpeedIndex() + 1;   // libntr-ios-battlespeed.patch: 1 (off) .. 4
+     if (!strcmp(k, "skipslow")) return c->frameSkip != 0;
+     if (!strcmp(k, "volume")) return (int)((c->masterVolume * 100 + 63) / 127);
+@@ -2807,6 +2830,7 @@
+     else if (!strcmp(k, "soundquality")) c->soundQuality = (u8)(v != 0);
+     else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
+     else if (!strcmp(k, "ffspeed")) c->ffSpeed = (u8)(v < 2 ? 2 : v > 5 ? 5 : v);   // libntr-ios-speedui.patch: 2..4 or 5 = Max
++    else if (!strcmp(k, "textspeed")) c->textSpeed = (u8)(v < 0 ? 0 : v > 3 ? 3 : v);   // libntr-ios-textspeed.patch
+     else if (!strcmp(k, "battlespeed")) c->battleSpeed = (u8)(v < 1 ? 1 : v > 4 ? 4 : v);   // libntr-ios-battlespeed.patch
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);
+     else if (!strcmp(k, "volume") || !strcmp(k, "volumelive")) {

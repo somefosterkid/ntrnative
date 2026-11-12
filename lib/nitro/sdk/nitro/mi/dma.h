@@ -1,0 +1,606 @@
+// From libntr (MIT, https://github.com/cybervisi0n/libntr) at 1555d91: include/nitro/mi/dma.h, as it is (tools/port_lib.py)
+#ifndef NITRO_MI_DMA_H_
+#define NITRO_MI_DMA_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <nitro/misc.h>
+#include <nitro/types.h>
+#if SDK_VERSION_MAJOR == 4
+#include <nitro/memorymap.h>
+#elif SDK_VERSION_MAJOR == 5
+#ifndef SDK_TWL
+#include <nitro/memorymap.h>
+#endif
+#endif
+
+#define MI_DMA_MAX_NUM             3
+
+#if SDK_VERSION_MAJOR == 5
+#define MI_DMA_CHANNEL_MASK 0x00000003UL
+#define MI_DMA_NOT_USE 0xFFFFFFFFUL
+#define MI_DMA_USING_NEW 0x00000010UL
+#define MI_DMA_USING_FORMER 0x00000000UL
+#endif
+
+#define MI_DMA_ENABLE              (1UL << REG_MI_DMA0CNT_E_SHIFT)
+#define MI_DMA_IF_ENABLE           (1UL << REG_MI_DMA0CNT_I_SHIFT)
+#if SDK_VERSION_MAJOR == 5
+#define MI_DMA_DISABLE (0UL << REG_MI_DMA0CNT_E_SHIFT)
+#define MI_DMA_IF_DISABLE (0UL << REG_MI_DMA0CNT_I_SHIFT)
+#endif
+
+#if defined(SDK_ARM9) || defined(SDK_PORT)
+    #define MI_DMA_TIMING_MASK         (REG_MI_DMA0CNT_MODE_MASK)
+    #define MI_DMA_TIMING_SHIFT        (REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_IMM          (0UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_V_BLANK      (1UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_H_BLANK      (2UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_DISP         (3UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_DISP_MMEM    (4UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_CARD         (5UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_CARTRIDGE    (6UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_GXFIFO       (7UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MIi_DMA_TIMING_ANY         (u32)(~0)
+#endif
+#ifdef SDK_ARM7
+    #define MI_DMA_TIMING_MASK         (REG_MI_DMA0CNT_TIMING_MASK)
+    #define MI_DMA_TIMING_SHIFT        (REG_MI_DMA0CNT_TIMING_SHIFT)
+    #define MI_DMA_TIMING_IMM          (0UL << REG_MI_DMA0CNT_TIMING_SHIFT)
+    #define MI_DMA_TIMING_V_BLANK      (1UL << REG_MI_DMA0CNT_TIMING_SHIFT)
+    #define MI_DMA_TIMING_CARD         (2UL << REG_MI_DMA0CNT_TIMING_SHIFT)
+    #define MI_DMA_TIMING_WIRELESS     (3UL << REG_MI_DMA0CNT_TIMING_SHIFT)
+    #define MI_DMA_TIMING_CARTRIDGE    MI_DMA_TIMING_WIRELESS
+#endif
+#ifdef SDK_AARCH64
+    #define MI_DMA_TIMING_MASK         (REG_MI_DMA0CNT_MODE_MASK)
+    #define MI_DMA_TIMING_SHIFT        (REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_IMM          (0UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_V_BLANK      (1UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_H_BLANK      (2UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_DISP         (3UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_DISP_MMEM    (4UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_CARD         (5UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_CARTRIDGE    (6UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MI_DMA_TIMING_GXFIFO       (7UL << REG_MI_DMA0CNT_MODE_SHIFT)
+    #define MIi_DMA_TIMING_ANY         (u32)(~0)
+#endif
+
+#define MI_DMA_16BIT_BUS           (0UL << REG_MI_DMA0CNT_SB_SHIFT)
+#define MI_DMA_32BIT_BUS           (1UL << REG_MI_DMA0CNT_SB_SHIFT)
+
+#define MI_DMA_CONTINUOUS_OFF      (0UL << REG_MI_DMA0CNT_CM_SHIFT)
+#define MI_DMA_CONTINUOUS_ON       (1UL << REG_MI_DMA0CNT_CM_SHIFT)
+
+#define MI_DMA_SRC_INC             (0UL << REG_MI_DMA0CNT_SAR_SHIFT)
+#define MI_DMA_SRC_DEC             (1UL << REG_MI_DMA0CNT_SAR_SHIFT)
+#define MI_DMA_SRC_FIX             (2UL << REG_MI_DMA0CNT_SAR_SHIFT)
+#define MI_DMA_DEST_INC            (0UL << REG_MI_DMA0CNT_DAR_SHIFT)
+#define MI_DMA_DEST_DEC            (1UL << REG_MI_DMA0CNT_DAR_SHIFT)
+#define MI_DMA_DEST_FIX            (2UL << REG_MI_DMA0CNT_DAR_SHIFT)
+#define MI_DMA_DEST_RELOAD         (3UL << REG_MI_DMA0CNT_DAR_SHIFT)
+
+#define MI_DMA_COUNT_MASK          (REG_MI_DMA0CNT_WORDCNT_MASK)
+#define MI_DMA_COUNT_SHIFT         (REG_MI_DMA0CNT_WORDCNT_SHIFT)
+
+#if SDK_VERSION_MAJOR == 5
+#define MI_DMA_NUM_WOFFSET(ndmaNo) (ndmaNo * 3)
+#define MI_DMA_REG_SAD_WOFFSET 0
+#define MI_DMA_REG_DAD_WOFFSET 1
+#define MI_DMA_REG_CNT_WOFFSET 2
+
+#define MI_DMA_REGADDR(dmaNo, reg)                                             \
+  (((vu32 *)REG_DMA0SAD_ADDR) + MI_DMA_NUM_WOFFSET(dmaNo) + (reg))
+#define MI_DMA_REG(dmaNo, reg) (*(MI_DMA_REGADDR(dmaNo, reg)))
+#endif
+
+#define MI_DMA_SINC_DINC_16        (MI_DMA_SRC_INC | MI_DMA_DEST_INC | MI_DMA_16BIT_BUS)
+#define MI_DMA_SFIX_DINC_16        (MI_DMA_SRC_FIX | MI_DMA_DEST_INC | MI_DMA_16BIT_BUS)
+#define MI_DMA_SINC_DFIX_16        (MI_DMA_SRC_INC | MI_DMA_DEST_FIX | MI_DMA_16BIT_BUS)
+#define MI_DMA_SFIX_DFIX_16        (MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | MI_DMA_16BIT_BUS)
+#define MI_DMA_SINC_DINC_32        (MI_DMA_SRC_INC | MI_DMA_DEST_INC | MI_DMA_32BIT_BUS)
+#define MI_DMA_SFIX_DINC_32        (MI_DMA_SRC_FIX | MI_DMA_DEST_INC | MI_DMA_32BIT_BUS)
+#define MI_DMA_SINC_DFIX_32        (MI_DMA_SRC_INC | MI_DMA_DEST_FIX | MI_DMA_32BIT_BUS)
+#define MI_DMA_SFIX_DFIX_32        (MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | MI_DMA_32BIT_BUS)
+
+#define MI_DMA_IMM16ENABLE         (MI_DMA_ENABLE | MI_DMA_TIMING_IMM | MI_DMA_16BIT_BUS)
+#if SDK_VERSION_MAJOR == 5
+#define MI_DMA_IMM16DISABLE        (MI_DMA_DISABLE | MI_DMA_TIMING_IMM | MI_DMA_16BIT_BUS)
+#endif
+#define MI_DMA_IMM32ENABLE         (MI_DMA_ENABLE | MI_DMA_TIMING_IMM | MI_DMA_32BIT_BUS)
+#if SDK_VERSION_MAJOR == 5
+#define MI_DMA_IMM32DISABLE        (MI_DMA_DISABLE | MI_DMA_TIMING_IMM | MI_DMA_32BIT_BUS)
+#endif
+
+#define MI_CNT_CLEAR16(size)       (MI_DMA_IMM16ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_CLEAR32(size)       (MI_DMA_IMM32ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_CLEAR16_IF(size)    (MI_CNT_CLEAR16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_CLEAR32_IF(size)    (MI_CNT_CLEAR32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_COPY16(size)        (MI_DMA_IMM16ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_COPY32(size)        (MI_DMA_IMM32ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_COPY16_IF(size)     (MI_CNT_COPY16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_COPY32_IF(size)     (MI_CNT_COPY32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SEND16(size)        (MI_DMA_IMM16ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 2))
+#define MI_CNT_SEND32(size)        (MI_DMA_IMM32ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 4))
+#define MI_CNT_SEND16_IF(size)     (MI_CNT_SEND16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SEND32_IF(size)     (MI_CNT_SEND32((size)) | MI_DMA_IF_ENABLE)
+
+#if SDK_VERSION_MAJOR == 5
+#define MI_CNT_SET_CLEAR16(size)                                               \
+  (MI_DMA_IMM16DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_SET_CLEAR32(size)                                               \
+  (MI_DMA_IMM32DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_SET_CLEAR16_IF(size)                                            \
+  (MI_CNT_SET_CLEAR16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SET_CLEAR32_IF(size)                                            \
+  (MI_CNT_SET_CLEAR32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_COPY16(size)                                                    \
+  (MI_DMA_IMM16ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_COPY32(size)                                                    \
+  (MI_DMA_IMM32ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_COPY16_IF(size) (MI_CNT_COPY16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_COPY32_IF(size) (MI_CNT_COPY32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SET_COPY16(size)                                                \
+  (MI_DMA_IMM16DISABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_SET_COPY32(size)                                                \
+  (MI_DMA_IMM32DISABLE | MI_DMA_SRC_INC | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_SET_COPY16_IF(size)                                             \
+  (MI_CNT_SET_COPY16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SET_COPY32_IF(size)                                             \
+  (MI_CNT_SET_COPY32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SEND16(size)                                                    \
+  (MI_DMA_IMM16ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 2))
+#define MI_CNT_SEND32(size)                                                    \
+  (MI_DMA_IMM32ENABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 4))
+#define MI_CNT_SEND16_IF(size) (MI_CNT_SEND16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SEND32_IF(size) (MI_CNT_SEND32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SET_SEND16(size)                                                \
+  (MI_DMA_IMM16DISABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 2))
+#define MI_CNT_SET_SEND32(size)                                                \
+  (MI_DMA_IMM32DISABLE | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | ((size) / 4))
+#define MI_CNT_SET_SEND16_IF(size)                                             \
+  (MI_CNT_SET_SEND16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SET_SEND32_IF(size)                                             \
+  (MI_CNT_SET_SEND32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_RECV16(size)                                                    \
+  (MI_DMA_IMM16ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_RECV32(size)                                                    \
+  (MI_DMA_IMM32ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_RECV16_IF(size) (MI_CNT_RECV16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_RECV32_IF(size) (MI_CNT_RECV32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SET_RECV16(size)                                                \
+  (MI_DMA_IMM16DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 2))
+#define MI_CNT_SET_RECV32(size)                                                \
+  (MI_DMA_IMM32DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | ((size) / 4))
+#define MI_CNT_SET_RECV16_IF(size)                                             \
+  (MI_CNT_SET_RECV16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SET_RECV32_IF(size)                                             \
+  (MI_CNT_SET_RECV32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_PIPE16(size)                                                    \
+  (MI_DMA_IMM16ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | ((size) / 2))
+#define MI_CNT_PIPE32(size)                                                    \
+  (MI_DMA_IMM32ENABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | ((size) / 4))
+#define MI_CNT_PIPE16_IF(size) (MI_CNT_PIPE16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_PIPE32_IF(size) (MI_CNT_PIPE32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_SET_PIPE16(size)                                                \
+  (MI_DMA_IMM16DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | ((size) / 2))
+#define MI_CNT_SET_PIPE32(size)                                                \
+  (MI_DMA_IMM32DISABLE | MI_DMA_SRC_FIX | MI_DMA_DEST_FIX | ((size) / 4))
+#define MI_CNT_SET_PIPE16_IF(size)                                             \
+  (MI_CNT_SET_PIPE16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_SET_PIPE32_IF(size)                                             \
+  (MI_CNT_SET_PIPE32((size)) | MI_DMA_IF_ENABLE)
+#endif
+
+#if defined(SDK_ARM9) || defined(SDK_PORT)
+    #define MI_CNT_HBCOPY16(size)    (MI_DMA_ENABLE | MI_DMA_TIMING_H_BLANK | MI_DMA_SRC_INC | MI_DMA_DEST_RELOAD | MI_DMA_CONTINUOUS_ON | MI_DMA_16BIT_BUS | ((size) / 2))
+    #define MI_CNT_HBCOPY32(size)    (MI_DMA_ENABLE | MI_DMA_TIMING_H_BLANK | MI_DMA_SRC_INC | MI_DMA_DEST_RELOAD | MI_DMA_CONTINUOUS_ON | MI_DMA_32BIT_BUS | ((size) / 4))
+    #define MI_CNT_HBCOPY16_IF(size) (MI_CNT_HBCOPY16((size)) | MI_DMA_IF_ENABLE)
+    #define MI_CNT_HBCOPY32_IF(size) (MI_CNT_HBCOPY32((size)) | MI_DMA_IF_ENABLE)
+#endif
+
+#define MI_CNT_VBCOPY16(size)      (MI_DMA_ENABLE | MI_DMA_TIMING_V_BLANK | MI_DMA_SRC_INC | MI_DMA_DEST_INC | MI_DMA_16BIT_BUS | ((size) / 2))
+#define MI_CNT_VBCOPY32(size)      (MI_DMA_ENABLE | MI_DMA_TIMING_V_BLANK | MI_DMA_SRC_INC | MI_DMA_DEST_INC | MI_DMA_32BIT_BUS | ((size) / 4))
+#define MI_CNT_VBCOPY16_IF(size)   (MI_CNT_VBCOPY16((size)) | MI_DMA_IF_ENABLE)
+#define MI_CNT_VBCOPY32_IF(size)   (MI_CNT_VBCOPY32((size)) | MI_DMA_IF_ENABLE)
+
+#define MI_CNT_CARDRECV32(size)    (MI_DMA_ENABLE | MI_DMA_TIMING_CARD | MI_DMA_SRC_FIX | MI_DMA_DEST_INC | MI_DMA_32BIT_BUS | ((size) / 4))
+
+#if defined(SDK_ARM9) || defined(SDK_PORT)
+    #define MI_CNT_MMCOPY(size)      (MI_DMA_ENABLE | MI_DMA_TIMING_DISP_MMEM | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | MI_DMA_CONTINUOUS_ON | MI_DMA_32BIT_BUS | (4))
+#endif
+
+#if defined(SDK_ARM9) || defined(SDK_PORT)
+    #define MI_CNT_GXCOPY(size)      (MI_DMA_ENABLE | MI_DMA_TIMING_GXFIFO | MI_DMA_SRC_INC | MI_DMA_DEST_FIX | MI_DMA_32BIT_BUS | ((size) / 4))
+    #define MI_CNT_GXCOPY_IF(size)   (MI_CNT_GXCOPY(size) | MI_DMA_IF_ENABLE)
+#endif
+
+typedef void (*MIDmaCallback) (void *);
+
+#if SDK_VERSION_MAJOR == 4
+void MI_DmaFill32(u32 dmaNo, void * dest, u32 data, u32 size);
+void MI_DmaCopy32(u32 dmaNo, const void * src, void * dest, u32 size);
+// Black's (TwlSDK 5's): MI_DmaFill32's body, which also takes whether to start the DMA, and the fill by the DSi's
+// new DMA channels (gx.c and g3x.c call them; main_020821c0.c and lib/twl's mi_ndma.c have them)
+void MIi_DmaFill32(u32 dmaNo, void * dest, u32 data, u32 size, BOOL dmaEnable);
+void MI_NDmaFill(u32 dmaNo, void * dest, u32 data, u32 size);
+
+static inline void MI_DmaClear32 (u32 dmaNo, void * dest, u32 size)
+{
+	MI_DmaFill32(dmaNo, dest, 0, size);
+}
+
+void MI_DmaSend32(u32 dmaNo, const void * src, volatile void * dest, u32 size);
+void MI_DmaFill16(u32 dmaNo, void * dest, u16 data, u32 size);
+// Black's (TwlSDK 5's): MI_DmaCopy16 is an inline over MIi_DmaCopy16, which also takes whether to start the DMA
+// (mb_wm_base.c's MBi_ChildCallback passes TRUE); libntr's SDK 4 has it as a function
+void MIi_DmaCopy16(u32 dmaNo, const void * src, void * dest, u32 size, BOOL dmaEnable);
+static inline void MI_DmaCopy16 (u32 dmaNo, const void * src, void * dest, u32 size)
+{
+	MIi_DmaCopy16(dmaNo, src, dest, size, TRUE);
+}
+
+static inline void MI_DmaClear16 (u32 dmaNo, void * dest, u32 size)
+{
+	MI_DmaFill16(dmaNo, dest, 0, size);
+}
+
+void MI_DmaSend16(u32 dmaNo, const void * src, volatile void * dest, u32 size);
+void MI_DmaFill32Async(u32 dmaNo, void * dest, u32 data, u32 size, MIDmaCallback callback, void * arg);
+// Black's (TwlSDK 5's): MI_DmaFill32Async's body, which also takes whether to start the DMA (g3x.c's
+// G3X_InitMtxStack calls it; main_020821c0.c has it)
+void MIi_DmaFill32Async(u32 dmaNo, void * dest, u32 data, u32 size, MIDmaCallback callback, void * arg, BOOL dmaEnable);
+void MI_DmaCopy32Async(u32 dmaNo, const void * src, void * dest, u32 size, MIDmaCallback callback, void * arg);
+
+static inline void MI_DmaClear32Async (u32 dmaNo, void * dest, u32 size, MIDmaCallback callback, void * arg)
+{
+	MI_DmaFill32Async(dmaNo, dest, 0, size, callback, arg);
+}
+
+void MI_DmaSend32Async(u32 dmaNo, const void * src, volatile void * dest, u32 size, MIDmaCallback callback, void * arg);
+void MI_DmaFill16Async(u32 dmaNo, void * dest, u16 data, u32 size, MIDmaCallback callback, void * arg);
+void MI_DmaCopy16Async(u32 dmaNo, const void * src, void * dest, u32 size, MIDmaCallback callback, void * arg);
+
+static inline void MI_DmaClear16Async (u32 dmaNo, void * dest, u32 size, MIDmaCallback callback, void * arg)
+{
+	MI_DmaFill16Async(dmaNo, dest, 0, size, callback, arg);
+}
+
+void MI_DmaSend16Async(u32 dmaNo, const void * src, volatile void * dest, u32 size, MIDmaCallback callback, void * arg);
+void MI_HBlankDmaCopy32(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_HBlankDmaCopy16(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_HBlankDmaCopy32If(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_HBlankDmaCopy16If(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_VBlankDmaCopy32(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_VBlankDmaCopy16(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_VBlankDmaCopy32Async(u32 dmaNo, const void * src, void * dest, u32 size, MIDmaCallback callback, void * arg);
+void MI_VBlankDmaCopy16Async(u32 dmaNo, const void * src, void * dest, u32 size, MIDmaCallback callback, void * arg);
+void MIi_CardDmaCopy32(u32 dmaNo, const void * src, void * dest, u32 size);
+void MI_DispMemDmaCopy(u32 dmaNo, const void * src);
+void MI_SendGXCommand(u32 dmaNo, const void * src, u32 commandLength);
+void MI_SendGXCommandAsync(u32 dmaNo, const void * src, u32 commandLength, MIDmaCallback callback, void * arg);
+void MI_SendGXCommandFast(u32 dmaNo, const void * src, u32 commandLength);
+void MI_SendGXCommandAsyncFast(u32 dmaNo, const void * src, u32 commandLength, MIDmaCallback callback, void * arg);
+
+BOOL MI_IsDmaBusy(u32 dmaNo);
+
+void MI_WaitDma(u32 dmaNo);
+void MI_StopDma(u32 dmaNo);
+#elif SDK_VERSION_MAJOR == 5
+void MIi_DmaFill32(u32 dmaNo, void *dest, u32 data, u32 size, BOOL dmaEnable);
+static inline void MI_DmaFill32(u32 dmaNo, void *dest, u32 data, u32 size) {
+  MIi_DmaFill32(dmaNo, dest, data, size, TRUE);
+}
+static inline void MI_DmaFill32_SetUp(u32 dmaNo, void *dest, u32 data,
+                                      u32 size) {
+  MIi_DmaFill32(dmaNo, dest, data, size, FALSE);
+}
+
+void MIi_DmaCopy32(u32 dmaNo, const void *src, void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaCopy32(u32 dmaNo, const void *src, void *dest,
+                                u32 size) {
+  MIi_DmaCopy32(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaCopy32_SetUp(u32 dmaNo, const void *src, void *dest,
+                                      u32 size) {
+  MIi_DmaCopy32(dmaNo, src, dest, size, FALSE);
+}
+
+static inline void MI_DmaClear32(u32 dmaNo, void *dest, u32 size) {
+  MIi_DmaFill32(dmaNo, dest, 0, size, TRUE);
+}
+static inline void MI_DmaClear32_SetUp(u32 dmaNo, void *dest, u32 size) {
+  MIi_DmaFill32(dmaNo, dest, 0, size, FALSE);
+}
+
+void MIi_DmaSend32(u32 dmaNo, const void *src, volatile void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaSend32(u32 dmaNo, const void *src, volatile void *dest,
+                                u32 size) {
+  MIi_DmaSend32(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaSend32_SetUp(u32 dmaNo, const void *src,
+                                      volatile void *dest, u32 size) {
+  MIi_DmaSend32(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaRecv32(u32 dmaNo, volatile const void *src, void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaRecv32(u32 dmaNo, volatile const void *src, void *dest,
+                                u32 size) {
+  MIi_DmaRecv32(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaRecv32_SetUp(u32 dmaNo, volatile const void *src,
+                                      void *dest, u32 size) {
+  MIi_DmaRecv32(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaPipe32(u32 dmaNo, volatile const void *src, volatile void *dest,
+                   u32 size, BOOL dmaEnable);
+static inline void MI_DmaPipe32(u32 dmaNo, volatile const void *src,
+                                volatile void *dest, u32 size) {
+  MIi_DmaPipe32(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaPipe32_SetUp(u32 dmaNo, volatile const void *src,
+                                      volatile void *dest, u32 size) {
+  MIi_DmaPipe32(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaFill16(u32 dmaNo, void *dest, u16 data, u32 size, BOOL dmaEnable);
+static inline void MI_DmaFill16(u32 dmaNo, void *dest, u16 data, u32 size) {
+  MIi_DmaFill16(dmaNo, dest, data, size, TRUE);
+}
+static inline void MI_DmaFill16_SetUp(u32 dmaNo, void *dest, u16 data,
+                                      u32 size) {
+  MIi_DmaFill16(dmaNo, dest, data, size, FALSE);
+}
+
+void MIi_DmaCopy16(u32 dmaNo, const void *src, void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaCopy16(u32 dmaNo, const void *src, void *dest,
+                                u32 size) {
+  MIi_DmaCopy16(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaCopy16_SetUp(u32 dmaNo, const void *src, void *dest,
+                                      u32 size) {
+  MIi_DmaCopy16(dmaNo, src, dest, size, FALSE);
+}
+
+static inline void MI_DmaClear16(u32 dmaNo, void *dest, u32 size) {
+  MIi_DmaFill16(dmaNo, dest, 0, size, TRUE);
+}
+static inline void MI_DmaClear16_SetUp(u32 dmaNo, void *dest, u32 size) {
+  MIi_DmaFill16(dmaNo, dest, 0, size, FALSE);
+}
+
+void MIi_DmaSend16(u32 dmaNo, const void *src, volatile void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaSend16(u32 dmaNo, const void *src, volatile void *dest,
+                                u32 size) {
+  MIi_DmaSend16(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaSend16_SetUp(u32 dmaNo, const void *src,
+                                      volatile void *dest, u32 size) {
+  MIi_DmaSend16(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaRecv16(u32 dmaNo, volatile const void *src, void *dest, u32 size,
+                   BOOL dmaEnable);
+static inline void MI_DmaRecv16(u32 dmaNo, volatile const void *src, void *dest,
+                                u32 size) {
+  MIi_DmaRecv16(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaRecv16_SetUp(u32 dmaNo, volatile const void *src,
+                                      void *dest, u32 size) {
+  MIi_DmaRecv16(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaPipe16(u32 dmaNo, volatile const void *src, volatile void *dest,
+                   u32 size, BOOL dmaEnable);
+static inline void MI_DmaPipe16(u32 dmaNo, volatile const void *src,
+                                volatile void *dest, u32 size) {
+  MIi_DmaPipe16(dmaNo, src, dest, size, TRUE);
+}
+static inline void MI_DmaPipe16_SetUp(u32 dmaNo, volatile const void *src,
+                                      volatile void *dest, u32 size) {
+  MIi_DmaPipe16(dmaNo, src, dest, size, FALSE);
+}
+
+void MIi_DmaFill32Async(u32 dmaNo, void *dest, u32 data, u32 size,
+                        MIDmaCallback callback, void *arg, BOOL dmaEnable);
+static inline void MI_DmaFill32Async(u32 dmaNo, void *dest, u32 data, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaFill32Async(dmaNo, dest, data, size, callback, arg, TRUE);
+}
+static inline void MI_DmaFill32Async_SetUp(u32 dmaNo, void *dest, u32 data,
+                                           u32 size, MIDmaCallback callback,
+                                           void *arg) {
+  MIi_DmaFill32Async(dmaNo, dest, data, size, callback, arg, FALSE);
+}
+
+void MIi_DmaCopy32Async(u32 dmaNo, const void *src, void *dest, u32 size,
+                        MIDmaCallback callback, void *arg, BOOL dmaEnable);
+static inline void MI_DmaCopy32Async(u32 dmaNo, const void *src, void *dest,
+                                     u32 size, MIDmaCallback callback,
+                                     void *arg) {
+  MIi_DmaCopy32Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaCopy32Async_SetUp(u32 dmaNo, const void *src,
+                                           void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaCopy32Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+static inline void MI_DmaClear32Async(u32 dmaNo, void *dest, u32 size,
+                                      MIDmaCallback callback, void *arg) {
+  MIi_DmaFill32Async(dmaNo, dest, 0, size, callback, arg, TRUE);
+}
+static inline void MI_DmaClear32Async_SetUp(u32 dmaNo, void *dest, u32 size,
+                                            MIDmaCallback callback, void *arg) {
+  MIi_DmaFill32Async(dmaNo, dest, 0, size, callback, arg, FALSE);
+}
+
+void MIi_DmaSend32Async(u32 dmaNo, const void *src, volatile void *dest,
+                        u32 size, MIDmaCallback callback, void *arg,
+                        BOOL dmaEnable);
+static inline void MI_DmaSend32Async(u32 dmaNo, const void *src,
+                                     volatile void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaSend32Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaSend32Async_SetUp(u32 dmaNo, const void *src,
+                                           volatile void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaSend32Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MIi_DmaRecv32Async(u32 dmaNo, volatile const void *src, void *dest,
+                        u32 size, MIDmaCallback callback, void *arg,
+                        BOOL dmaEnable);
+static inline void MI_DmaRecv32Async(u32 dmaNo, volatile const void *src,
+                                     void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaRecv32Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaRecv32Async_SetUp(u32 dmaNo, volatile const void *src,
+                                           void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaRecv32Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MIi_DmaPipe32Async(u32 dmaNo, volatile const void *src,
+                        volatile void *dest, u32 size, MIDmaCallback callback,
+                        void *arg, BOOL dmaEnable);
+static inline void MI_DmaPipe32Async(u32 dmaNo, volatile const void *src,
+                                     volatile void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaPipe32Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaPipe32Async_SetUp(u32 dmaNo, volatile const void *src,
+                                           volatile void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaPipe32Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MIi_DmaFill16Async(u32 dmaNo, void *dest, u16 data, u32 size,
+                        MIDmaCallback callback, void *arg, BOOL dmaEnable);
+static inline void MI_DmaFill16Async(u32 dmaNo, void *dest, u16 data, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaFill16Async(dmaNo, dest, data, size, callback, arg, TRUE);
+}
+static inline void MI_DmaFill16Async_SetUp(u32 dmaNo, void *dest, u16 data,
+                                           u32 size, MIDmaCallback callback,
+                                           void *arg) {
+  MIi_DmaFill16Async(dmaNo, dest, data, size, callback, arg, FALSE);
+}
+
+void MIi_DmaCopy16Async(u32 dmaNo, const void *src, void *dest, u32 size,
+                        MIDmaCallback callback, void *arg, BOOL dmaEnable);
+static inline void MI_DmaCopy16Async(u32 dmaNo, const void *src, void *dest,
+                                     u32 size, MIDmaCallback callback,
+                                     void *arg) {
+  MIi_DmaCopy16Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaCopy16Async_SetUp(u32 dmaNo, const void *src,
+                                           void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaCopy16Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+static inline void MI_DmaClear16Async(u32 dmaNo, void *dest, u32 size,
+                                      MIDmaCallback callback, void *arg) {
+  MIi_DmaFill16Async(dmaNo, dest, 0, size, callback, arg, TRUE);
+}
+static inline void MI_DmaClear16Async_SetUp(u32 dmaNo, void *dest, u32 size,
+                                            MIDmaCallback callback, void *arg) {
+  MIi_DmaFill16Async(dmaNo, dest, 0, size, callback, arg, FALSE);
+}
+
+void MIi_DmaSend16Async(u32 dmaNo, const void *src, volatile void *dest,
+                        u32 size, MIDmaCallback callback, void *arg,
+                        BOOL dmaEnable);
+static inline void MI_DmaSend16Async(u32 dmaNo, const void *src,
+                                     volatile void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaSend16Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaSend16Async_SetUp(u32 dmaNo, const void *src,
+                                           volatile void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaSend16Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MIi_DmaRecv16Async(u32 dmaNo, volatile const void *src, void *dest,
+                        u32 size, MIDmaCallback callback, void *arg,
+                        BOOL dmaEnable);
+static inline void MI_DmaRecv16Async(u32 dmaNo, volatile const void *src,
+                                     void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaRecv16Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaRecv16Async_SetUp(u32 dmaNo, volatile const void *src,
+                                           void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaRecv16Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MIi_DmaPipe16Async(u32 dmaNo, volatile const void *src,
+                        volatile void *dest, u32 size, MIDmaCallback callback,
+                        void *arg, BOOL dmaEnable);
+static inline void MI_DmaPipe16Async(u32 dmaNo, volatile const void *src,
+                                     volatile void *dest, u32 size,
+                                     MIDmaCallback callback, void *arg) {
+  MIi_DmaPipe16Async(dmaNo, src, dest, size, callback, arg, TRUE);
+}
+static inline void MI_DmaPipe16Async_SetUp(u32 dmaNo, volatile const void *src,
+                                           volatile void *dest, u32 size,
+                                           MIDmaCallback callback, void *arg) {
+  MIi_DmaPipe16Async(dmaNo, src, dest, size, callback, arg, FALSE);
+}
+
+void MI_HBlankDmaCopy32(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_HBlankDmaCopy16(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_HBlankDmaCopy32If(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_HBlankDmaCopy16If(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_VBlankDmaCopy32(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_VBlankDmaCopy16(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_VBlankDmaCopy32Async(u32 dmaNo, const void *src, void *dest, u32 size,
+                             MIDmaCallback callback, void *arg);
+void MI_VBlankDmaCopy16Async(u32 dmaNo, const void *src, void *dest, u32 size,
+                             MIDmaCallback callback, void *arg);
+void MIi_CardDmaCopy32(u32 dmaNo, const void *src, void *dest, u32 size);
+void MI_DispMemDmaCopy(u32 dmaNo, const void *src);
+void MI_SendGXCommand(u32 dmaNo, const void *src, u32 commandLength);
+void MI_SendGXCommandAsync(u32 dmaNo, const void *src, u32 commandLength,
+                           MIDmaCallback callback, void *arg);
+void MI_SendGXCommandFast(u32 dmaNo, const void *src, u32 commandLength);
+void MI_SendGXCommandAsyncFast(u32 dmaNo, const void *src, u32 commandLength,
+                               MIDmaCallback callback, void *arg);
+void MI_StopAllDma(void);
+void MI_DmaRestart(u32 dmaNo);
+void MIi_SetDmaSrc16(u32 dmaNo, void *src);
+void MIi_SetDmaSrc32(u32 dmaNo, void *src);
+void MIi_SetDmaDest16(u32 dmaNo, void *dest);
+void MIi_SetDmaDest32(u32 dmaNo, void *dest);
+void MIi_SetDmaSize16(u32 dmaNo, u32 size);
+void MIi_SetDmaSize32(u32 dmaNo, u32 size);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

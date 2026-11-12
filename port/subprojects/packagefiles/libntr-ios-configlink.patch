@@ -1,0 +1,63 @@
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -15,6 +15,9 @@
+ #include <SDL2/SDL.h>
+ 
+ #include <stdlib.h>
++#ifndef _WIN32
++#include <unistd.h>   /* readlink (libntr-ios-configlink.patch) */
++#endif
+ 
+ #ifdef SDK_BUILD_PROSPERO
+ #define SIM_CONFIG_FILE_PATH "/app0/sim_config.ini"
+@@ -742,12 +745,31 @@
+ 
+ // libntr-ios-appfix.patch: written to a temporary file and renamed over the old one, the open and the write checked: a full disk or
+ // a read-only folder leaves the old sim_config.ini (it used to crash on the open and truncate the file on a failed write)
++/* bw-port (libntr-ios-configlink.patch): the file a save replaces. On iOS sim_config.ini is a link to Documents/sim_config.ini
++ * (port/src/main_start.c, so the Files app shows it), and renaming the new file over the link replaced the link itself: the
++ * next start put the link back and every change made in the app was gone (the maintainer's Graphics API = Metal among them). A link
++ * is followed, so the new file goes next to its target and replaces the target. */
++static const char * ConfigSavePath(char * buf, size_t n)
++{
++#ifndef _WIN32
++    ssize_t k = readlink(SIM_CONFIG_FILE_PATH, buf, n - 1);
++    if (k > 0) {
++        buf[k] = 0;
++        return buf;
++    }
++#endif
++    return SIM_CONFIG_FILE_PATH;
++}
++
+ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+ {
+     if (s_SIM_configNoSave) {
+         return;
+     }
+-    FILE * configFile = fopen(SIM_CONFIG_FILE_PATH ".tmp", "w");
++    char savePathBuf[1100], tmpPath[1110];
++    const char * savePath = ConfigSavePath(savePathBuf, sizeof savePathBuf);
++    snprintf(tmpPath, sizeof tmpPath, "%s.tmp", savePath);
++    FILE * configFile = fopen(tmpPath, "w");
+     if (configFile == NULL) {
+         fprintf(stderr, "bwport: sim_config.ini: cannot write (%s); the old file stays\n", strerror(errno));
+         return;
+@@ -882,13 +904,13 @@
+     
+     if (ferror(configFile) | (fclose(configFile) != 0)) {
+         fprintf(stderr, "bwport: sim_config.ini: write failed (%s); the old file stays\n", strerror(errno));
+-        remove(SIM_CONFIG_FILE_PATH ".tmp");
++        remove(tmpPath);
+         return;
+     }
+ #ifdef _WIN32
+-    remove(SIM_CONFIG_FILE_PATH);   // (rename does not replace there)
++    remove(savePath);   // (rename does not replace there)
+ #endif
+-    if (rename(SIM_CONFIG_FILE_PATH ".tmp", SIM_CONFIG_FILE_PATH) != 0) {
++    if (rename(tmpPath, savePath) != 0) {
+         fprintf(stderr, "bwport: sim_config.ini: rename failed (%s)\n", strerror(errno));
+     }
+ }

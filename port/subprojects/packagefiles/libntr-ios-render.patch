@@ -1,0 +1,44 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -2500,6 +2500,9 @@
+       if (SpHashWanted()) sPresentHash = SpHashTex(tex, tw, th);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+       sFrameRendererDrew = 1;
++      // libntr-ios-render.patch: vcore drew the frame before (Renderer=gpu fell back: GL errors, a failed setup): it gives
++      // back its states and in-between pictures again (they stayed, and its last in-between came back at empty slots)
++      if (sActive == 1 && sIdleHook[1] != NULL) sIdleHook[1]();
+       sActive = 2;
+       sPicW = tw;
+       sPicH = th;
+@@ -3360,6 +3363,7 @@
+         for (int r = 1; r < sPace.count; r++) {
+           GLuint midTex = 0;
+           int tw = 0, th = 0;
++          if (touchMode && SimTouch_Background()) break;  // (libntr-ios-render.patch: before the in-between's GL passes too; the run loop turned in the waits)
+           if (sInterpTex != NULL && s_SIM_config.interpolation) { // the GPU path's in-between: drawn now, shown at the slot
+             long long left = (long long)SpSlotAbs(sPace.first + r) - (long long)SpNowNs();
+             midTex = (GLuint)sInterpTex(r, &tw, &th, left);
+@@ -3373,7 +3377,7 @@
+             sPresentMid = 1;
+             if (SpHashWanted()) sPresentHash = SpHashTex(midTex, tw, th);
+           }
+-          if (midTex == 0 && sInterpPic != NULL && s_SIM_config.interpolation) { // an in-between picture of the renderer's bridge for this slot
++          if (midTex == 0 && sInterpPic != NULL && s_SIM_config.interpolation && sActive == 1) {  // (only vcore's own tick: libntr-ios-render.patch) // an in-between picture of the renderer's bridge for this slot
+             int mw = 0, mh = 0;
+             const unsigned char *mid = sInterpPic(r, &mw, &mh);
+             if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent()) {
+@@ -3429,9 +3433,11 @@
+ #endif
+ 
+     s_numG3CommandsThisFrame = 0;
+-    // the window's next frame
+-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+-    glClear(GL_COLOR_BUFFER_BIT);
++    // the window's next frame (libntr-ios-render.patch: not in the background, iOS allows no GL there)
++    if (!(touchMode && SimTouch_Background())) {
++      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
++      glClear(GL_COLOR_BUFFER_BIT);
++    }
+     s_curPolygonAttr.alpha = 1.0f;
+ 
+     // bw-port (libntr-soundclock.patch): the sound side advances by this frame (not while the game is paused)

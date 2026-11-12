@@ -1,0 +1,70 @@
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -94,6 +94,11 @@
+ }
+ 
+ 
++// bw-port: the polygon attributes as last sent, and as latched by the last BEGIN_VTXS (the DS's box test clips with
++// the latched ones: a face past the far plane makes the face count as outside unless they ask for far clipping)
++static u32 s_g3RawPolygonAttr;
++static u32 s_g3BeginPolygonAttr;
++
+ void ClipSegment(fx32* outbuf, fx32 * vin, fx32 * vout, int comp, s32 plane, BOOL attribs)
+ {
+     s64 factor_num = (s32)vin[3] - (plane * (s32)vin[comp]);
+@@ -143,17 +148,20 @@
+         fx32 vtx[4];
+         vtx[0] = verts[i][0]; vtx[1] = verts[i][1]; vtx[2] = verts[i][2]; vtx[3] = verts[i][3];
+         if(vtx[comp] > vtx[3]) {
+-            //if ((comp == 2) && (!(gpu.CurPolygonAttr & (1<<12)))) return 0;  //I think this is the W buffering thing
++            // bw-port: past the far plane without the far clipping attribute: the DS drops the polygon (melonDS)
++            if ((comp == 2) && (!(s_g3BeginPolygonAttr & (1<<12)))) return 0;
+ 
++            // bw-port: the clipped vertices are computed (they were commented out: the count went up and the vertex
++            // was whatever the stack held, so the box test answered from garbage: Nuvema Town's map culled, stop 24)
+             fx32 * vprev = verts[prev];
+             if(vprev[comp] <= vprev[3]) {
+-                //ClipSegment((fx32*)&temp[c], &vtx[0], vprev, comp, 1, attribs);
++                ClipSegment((fx32*)&temp[c], &vtx[0], vprev, comp, 1, attribs);
+                 c++;
+             }
+ 
+             fx32 * vnext = verts[next];
+             if(vnext[comp] <= vnext[3]) {
+-                //ClipSegment((fx32*)&temp[c], &vtx[0], vnext, comp, 1, attribs);
++                ClipSegment((fx32*)&temp[c], &vtx[0], vnext, comp, 1, attribs);
+                 c++;
+             }
+         } else {
+@@ -172,13 +180,13 @@
+         if(vtx[comp] < -vtx[3]) {
+             fx32 * vprev = temp[prev];
+             if(vprev[comp] >= -vprev[3]) {
+-                //ClipSegment((fx32*)&verts[c], &vtx[0], vprev, comp, -1, attribs);
++                ClipSegment((fx32*)&verts[c], &vtx[0], vprev, comp, -1, attribs);
+                 c++;
+             }
+ 
+             fx32 * vnext = temp[next];
+             if(vnext[comp] >= -vnext[3]) {
+-                //ClipSegment((fx32*)&verts[c], &vtx[0], vnext, comp, -1, attribs);
++                ClipSegment((fx32*)&verts[c], &vtx[0], vnext, comp, -1, attribs);
+                 c++;
+             }
+         } else {
+@@ -420,6 +428,7 @@
+ 
+     glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 1337, GL_DEBUG_SEVERITY_NOTIFICATION, 50, debugMessage);
+     s_primType = type;
++    s_g3BeginPolygonAttr = s_g3RawPolygonAttr;
+     s_G3numInPoly = 0;
+     s_G3drawPoly = 0;
+     s_G3triStripTriNum = 0;
+@@ -1447,6 +1456,7 @@
+         }
+     }
+ 
++    s_g3RawPolygonAttr = data;
+     s_curPolygonAttr.lightFlag = lightFlag;
+     s_curPolygonAttr.cullMode = cullMode;
+     s_curPolygonAttr.polygonMode = polygonMode;

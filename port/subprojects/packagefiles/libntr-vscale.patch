@@ -1,0 +1,54 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -201,6 +201,14 @@
+   sGLPost = post;
+ }
+ extern "C" void SIM_SetFrameRenderer(SIM_FrameRendererFn fn) { sFrameRenderer = fn; }
++// libntr-vscale.patch: the software renderer's picture at N x (port/vcore with Resolution above 1): the sized variant returns
++// the pixels (RGBA8, w x h, the top screen in the upper half) and their size (256 x 384 at 1x); it takes the place of
++// sFrameRenderer's fixed 256x384 picture when registered (port/bridge/vcore_bridge.c registers both), the frame texture is
++// reallocated when the size changes, and the picture size the status line reports (sPicW, sPicH) is the real one.
++typedef const unsigned char *(*SIM_FrameRendererSizedFn)(int *w, int *h);
++static SIM_FrameRendererSizedFn sFrameRendererSized;
++static int sFrameTexW = SIM_NDS_SCREEN_WIDTH, sFrameTexH = SIM_NDS_SCREEN_HEIGHT * 2;
++extern "C" void SIM_SetFrameRendererSized(SIM_FrameRendererSizedFn fn) { sFrameRendererSized = fn; }
+ extern "C" int SIM_HasFrameRenderer(void) { return sFrameRenderer != NULL; }
+ extern "C" int SIM_FrameRendererActive(void) { return sFrameRendererDrew; }
+ // bw-port (libntr-onerender.patch): the one renderer and the one resolution (sim_config.ini Renderer=auto|vcore|gpu,
+@@ -817,7 +825,8 @@
+   if (sFrameRenderer == NULL) {
+     return false;
+   }
+-  const unsigned char *rgba = sFrameRenderer();
++  int pw = SIM_NDS_SCREEN_WIDTH, ph = SIM_NDS_SCREEN_HEIGHT * 2;
++  const unsigned char *rgba = sFrameRendererSized != NULL ? sFrameRendererSized(&pw, &ph) : sFrameRenderer();
+   if (rgba == NULL) {
+     return false;
+   }
+@@ -827,8 +836,13 @@
+   glActiveTexture(GL_TEXTURE0);
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+   glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+-  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, GL_RGBA,
+-                  GL_UNSIGNED_BYTE, rgba);
++  if (pw != sFrameTexW || ph != sFrameTexH) {
++    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
++    sFrameTexW = pw;
++    sFrameTexH = ph;
++  } else {
++    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pw, ph, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
++  }
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+   SIM_DrawFrameTexture(s_frameTexture);
+@@ -836,8 +850,8 @@
+   s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+   sFrameRendererDrew = 1;
+   sActive = 1;
+-  sPicW = SIM_NDS_SCREEN_WIDTH;
+-  sPicH = SIM_NDS_SCREEN_HEIGHT * 2;
++  sPicW = pw;
++  sPicH = ph;
+   return true;
+ }
+ 

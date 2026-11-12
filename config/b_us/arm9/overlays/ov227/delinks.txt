@@ -1,0 +1,11 @@
+    .text       start:0x021b95a0 end:0x021b98a4 kind:code align:32
+    .rodata     start:0x021b98a4 end:0x021b98b0 kind:rodata align:4
+    .ctor       start:0x021b98b0 end:0x021b98b0 kind:rodata align:4
+    .data       start:0x021b98c0 end:0x021b98e0 kind:data align:32
+    .bss        start:0x021b98e0 end:0x021b98e0 kind:bss align:32
+
+src/ov227/event_pdc_return.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b98a4
+    .rodata     start:0x021b98a4 end:0x021b98b0
+    .data       start:0x021b98c0 end:0x021b98e0

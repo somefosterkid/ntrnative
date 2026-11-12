@@ -1,0 +1,38 @@
+# Metrowerks' Standard Library (MSL C, with its fdlibm math) and runtime, as CodeWarrior links them into Black's ARM9
+# main after NitroSDK: built apart from the game, as ARM code. zeldaret-st's libs/c (CC0) compiled as C with these
+# flags gives the bytes of Black's copy with dsi/1.2 to 1.3p1: dsi/1.1, 1.1p1, 1.6sp1 and 2.0/sp2p2 miss
+# __ieee754_pow, and 2.0/sp2p2 and 1.2/base miss strcpy, fflush and __two_exp too (tools/lib_twins.py). The exact one is
+# a guess: dsi/1.2p1, as zeldaret-st builds its MSL. -ipa file or not gives the same code. Its headers (include/, from
+# zeldaret-st's) come before the game's: the game has a stddef.h, stdarg.h and math.h of its own.
+compiler = "dsi/1.2p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char unsigned",      # char is unsigned: printf.c loads its format characters so
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-inline on,noauto",   # Only inline functions marked inline
+    "-ipa file",           # Interprocedural analysis within each file
+    "-sym on",             # Debug info
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+    "-i lib/msl/include",  # MSL's headers ahead of the game's
+]
+
+# exit lies in an object of its own before MSL's abort_exit_arm.c (pokebw2 has no file for it either), built with MWCC 2.0:
+# every 2.0 compiler gives its bytes, dsi/1.2p1 gives `mov r1, #1` for `movne r1, #1` (tools/flag_search.py)
+[file_compiler]
+"exit.c" = "2.0/sp2p2"
+
+# MSL's runtime is built with C++ exceptions on, as pokebw2's: MWCC then gives each function with a stack frame an
+# exception index entry (.exceptix), which Black has at main's .rodata start, 0x0209d870-0x0209d8a0 (__register_atexit,
+# __read_console, __write_console, __call_static_initializers); the code is the same
+[file_flags]
+"runtime/runtime.c" = ["-Cpp_exceptions on"]

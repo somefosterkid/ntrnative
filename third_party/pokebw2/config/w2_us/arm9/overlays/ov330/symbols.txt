@@ -1,0 +1,8 @@
+EventPdcReturn_CreateParam kind:function(thumb,size=0x28) addr:0x0219cec0
+EventPdcReturn_FreeParam kind:function(thumb,size=0x8) addr:0x0219cee8
+EventPdcReturn_Init kind:function(thumb,size=0x3e) addr:0x0219cef0
+EventPdcReturn_Exit kind:function(thumb,size=0x2c) addr:0x0219cf30
+EventPdcReturn_Main kind:function(thumb,size=0x298) addr:0x0219cf5c
+EVENT_PDC_RETURN_PROC_FUNCTIONS kind:data(any) addr:0x0219d1f4
+data_ov330_0219d1e0 kind:data(any) addr:0x0219d220
+data_ov330_0219d1fd kind:data(any) addr:0x0219d23d ambiguous

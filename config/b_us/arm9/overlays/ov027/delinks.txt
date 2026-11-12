@@ -1,0 +1,11 @@
+    .text       start:0x021ee740 end:0x021eeb48 kind:code align:32
+    .rodata     start:0x021eeb48 end:0x021eeb88 kind:rodata align:4
+    .ctor       start:0x021eeb88 end:0x021eeb88 kind:rodata align:4
+    .data       start:0x021eeba0 end:0x021eec40 kind:data align:32
+    .bss        start:0x021eec40 end:0x021eec40 kind:bss align:32
+
+src/ov027/weather_sandstorm.c:
+    complete
+    .text       start:0x021ee740 end:0x021eeb48
+    .rodata     start:0x021eeb48 end:0x021eeb88
+    .data       start:0x021eeba0 end:0x021eec40

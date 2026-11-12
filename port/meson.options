@@ -1,0 +1,15 @@
+# libntr's own options (yield: true there, so these values reach the libntr subproject).
+# Black is a TWL hybrid on TwlSDK 5; the PC build runs it as an original DS (OS_IsRunOnTwl is FALSE on PC).
+option('build_target', type: 'combo', choices: ['arm', 'win64', 'linux', 'nx', 'prospero'], value: 'linux',
+       description: 'libntr target: linux or win64 (the others are not set up for the game)', yield: true)
+option('sdk_version_major', type: 'integer', value: 5, description: 'libntr SDK: 5 (TwlSDK), Black\'s', yield: true)
+option('hardware_type', type: 'combo', choices: ['ntr', 'twl_hyb', 'twl_ltd'], value: 'twl_hyb',
+       description: 'libntr hardware type: twl_hyb, as Black is built', yield: true)
+option('tracy_enable', type: 'boolean', value: false, yield: true)
+# The PC build's own
+option('rom_build_dir', type: 'string', value: '',
+       description: 'the ROM build dir that holds asset/*.inc (written by ninja from the base ROM); default <repo>/build')
+option('allow_undefined', type: 'boolean', value: true,
+       description: 'link the exe even with undefined symbols (they resolve to address 0: a call to one faults)')
+option('white', type: 'feature', value: 'auto',
+       description: 'Pokemon White in the exe (docs/white.md): auto = when <rom build>/w_us/asset exists (Apple: when the White ROM is beside the Black one)')

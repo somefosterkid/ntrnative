@@ -1,0 +1,25 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -556,7 +556,10 @@
+   int bs = s_SIM_config.battleSpeed < 1 ? 1 : s_SIM_config.battleSpeed > 4 ? 4 : s_SIM_config.battleSpeed;
+   int want = sBtlOn && bs > user ? bs : 0;
+   if (sTrSpeed > user && sTrSpeed > want) want = sTrSpeed;  // libntr-ios-transitions.patch
+-  if (sSvSpeed > user && sSvSpeed > want) want = sSvSpeed;  // libntr-ios-savespeed.patch
++  // libntr-ios-savespeed.patch; libntr-ios-savemax.patch: never with fast forward at Max on. Max (uncapped) is already the highest,
++  // and the window's 2x/4x on top of it only put the sound's time-stretch at 4x over an uncapped game (the maintainer's "only the
++  // highest, never the two together, for saves"); Max off again and the window applies as before
++  if (sSvSpeed > user && sSvSpeed > want && !sFastForward) want = sSvSpeed;
+   static const char *sWinName = "battle";  // libntr-ios-savespeed.patch: the window that set the speed, named at its on and its off
+   if (want) sWinName = sBtlOn ? "battle" : want == sSvSpeed ? "save" : "transition";
+   if (want != sBtlApplied) fprintf(stderr, "bwport: %s speed %s (game speed %d)\n", sWinName, want ? "on" : "off", want ? want : user);
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -727,6 +727,8 @@
+     return 1;
+ }
+ int SimTouch_Background(void) { return sBackground; }
++// libntr-ios-savemax.patch: the same for C (bw-port's port/src/hang_watch.c holds its watch while the app is in the background)
++extern "C" int SIM_InBackground(void) { return sBackground; }
+ 
+ // libntr-ios-stuckinput.patch (port/src/ios_input.m, main thread): UIKit has dispatched a touch's end or cancel. SDL's view turns it
+ // into the finger up inside that dispatch, so a finger the layer still holds now had its end held back from the view (a gesture

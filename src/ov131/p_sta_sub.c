@@ -1,0 +1,967 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), src/ov207/p_sta_sub.c, ported by tools/port_file.py.
+// The names are Black's; pokebw2's own guesses are in the comments.
+#include "constants/pokemon.h"
+#include "constants/species.h"
+#include "gfl/arc_util.h"
+#include "gfl/bg_sys.h"
+#include "gfl/heap.h"
+#include "gfl/str.h"
+#include "gfl/touchpanel.h"
+#include "nitro/fx/fx.h"
+#include "nitro/fx/fx_const.h"
+#include "nitro/fx/fx_trig.h"
+#include "nitro/fx/fx_vec.h"
+#include "p_status_local.h"
+#include "pml/personal.h"
+#include "pml/poke_party.h"
+#include "system/app_menu_common.h"
+#include "app/p_status.h"
+#include "gfl/bmpwin.h"
+#include "gfl/clact.h"
+#include "gfl/g3d.h"
+#include "gfl/msg.h"
+#include "system/mcss.h"
+#include "system/printsys.h"
+#include "system/wordset.h"
+
+// The bottom screen of the summary screen: the Pokémon's sprite, which turns around when touched and bounces, hops or
+// spins after a swipe or a circle drawn on it, its name, level, held item, ball, markings and status. The names of the
+// fields and functions are guesses
+
+// The icons below the sprite: the markings, then the shiny star and the Pokérus face
+#define MARKING_COUNT 6
+enum {
+    PSTA_SUB_ICON_SHINY = MARKING_COUNT,
+    PSTA_SUB_ICON_POKERUS,
+    PSTA_SUB_ICON_COUNT,
+};
+
+// The direction of a circle drawn on the sprite
+enum {
+    PSTA_SUB_CIRCLE_NONE,
+    PSTA_SUB_CIRCLE_CLOCKWISE,
+    PSTA_SUB_CIRCLE_COUNTERCLOCKWISE,
+};
+
+// What the sprite is doing
+enum {
+    PSTA_SUB_FRONT,
+    PSTA_SUB_TURN_TO_BACK,
+    PSTA_SUB_BACK,
+    PSTA_SUB_TURN_TO_FRONT,
+};
+
+// The animations a gesture starts
+enum {
+    PSTA_SUB_ANIM_NONE,
+    PSTA_SUB_ANIM_SWIPE_X,
+    PSTA_SUB_ANIM_SWIPE_Y,
+    PSTA_SUB_ANIM_CIRCLE,
+    PSTA_SUB_ANIM_SWIPE_X_END,
+    PSTA_SUB_ANIM_SWIPE_Y_END,
+    PSTA_SUB_ANIM_CIRCLE_END,
+};
+
+// The directions of a stroke
+enum {
+    PSTA_SUB_DIR_NONE,
+    PSTA_SUB_DIR_RIGHT,
+    PSTA_SUB_DIR_DOWN,
+    PSTA_SUB_DIR_LEFT,
+    PSTA_SUB_DIR_UP,
+};
+
+#define LAP_COUNT 5
+
+// A gesture drawn on the sprite: how many strokes, how long the current one has taken, where it began and which way
+// it goes
+typedef struct {
+    u8 count;
+    u8 frames;
+    u8 startX;
+    u8 startY;
+    u32 dir;
+} PStaSubGesture;
+
+struct PStaSubWork {
+    MCSS *mcss[2];
+    u32 state;
+    BOOL frontShown;
+    BOOL noBounce;
+    u32 weight;
+    BmpWin *nameWindow;
+    BmpWin *itemWindow;
+    ClActor *ballIcon;
+    // The six markings, the shiny star and the Pokérus mark
+    ClActor *icons[PSTA_SUB_ICON_COUNT];
+    ClActor *pokerusIcon;
+    ClActor *statusIcon;
+    VecFx32 bounceOffset;
+    BOOL gestureDone;
+    u32 anim;
+    u16 animTimeout;
+    u16 animFrame;
+    u16 animStep;
+    u16 spinSpeed;
+    u16 spinTarget;
+    BOOL isTouching;
+    u32 lastTouchX;
+    u32 lastTouchY;
+    PStaSubGesture swipeX;
+    PStaSubGesture swipeY;
+    PStaSubGesture circle;
+    u32 circleDir;
+    u8 lapFrames[LAP_COUNT];
+    u8 lapTimer;
+    u8 lapIndex;
+    u8 turnTimer;
+};
+
+static void func_ov131_021d6d18(PStatusWork *wk, PStaSubWork *sub, BoxPkm *pkm);
+static void func_ov131_021d6f54(PStatusWork *wk, PStaSubWork *sub);
+static void func_ov131_021d703c(PStatusWork *wk, PStaSubWork *sub);
+static BOOL func_ov131_021d7060(PStatusWork *wk, PStaSubWork *sub, PStaSubGesture *gesture);
+static BOOL func_ov131_021d708c(PStatusWork *wk, PStaSubWork *sub);
+BOOL func_ov131_021d7248(PStatusWork *wk, PStaSubWork *sub);
+static BOOL func_ov131_021d72e8(PStatusWork *wk, PStaSubWork *sub, BOOL spinning);
+void func_ov131_021d7460(PStatusWork *wk, PStaSubWork *sub);
+void func_ov131_021d75a4(PStatusWork *wk, PStaSubWork *sub);
+void func_ov131_021d77e8(PStaSubGesture *gesture, u32 x, u32 y);
+void func_ov131_021d77f8(PStaSubGesture *gesture, u32 x, u32 y, u32 dir);
+void func_ov131_021d7810(PStatusWork *wk, PStaSubWork *sub, BOOL lap);
+void func_ov131_021d785c(PStatusWork *wk, PStaSubWork *sub, BoxPkm *boxPkm);
+static void func_ov131_021d797c(PStatusWork *wk, PStaSubWork *sub);
+static void func_ov131_021d79a8(PStatusWork *wk, PStaSubWork *sub, fx32 bounce);
+static void func_ov131_021d7a1c(PStatusWork *wk, PStaSubWork *sub, const VecFx32 *pos);
+void func_ov131_021d7a44(PStatusWork *wk, PStaSubWork *sub, VecFx32 *size, VecFx32 *scale);
+void func_ov131_021d6cdc(PStatusWork *wk, PStaSubWork *sub);
+
+
+// pokebw2's PStaSub_Create
+PStaSubWork *func_ov131_021d65d8(PStatusWork *wk) {
+    PStaSubWork *sub = GFL_HeapAllocate(wk->heapId, sizeof(PStaSubWork), TRUE, "p_sta_sub.c", 269);
+
+    sub->mcss[0] = NULL;
+    sub->mcss[1] = NULL;
+    sub->isTouching = FALSE;
+    sub->frontShown = TRUE;
+    sub->state = PSTA_SUB_FRONT;
+    sub->anim = PSTA_SUB_ANIM_NONE;
+    return sub;
+}
+
+// pokebw2's PStaSub_Free
+void func_ov131_021d6608(PStatusWork *wk, PStaSubWork *sub) {
+    GFL_HeapFree(sub);
+}
+
+void func_ov131_021d6614(PStatusWork *wk, PStaSubWork *sub) {
+    static const fx32 turnShift = FX32_CONST(25);
+    if (sub->state == PSTA_SUB_FRONT || sub->state == PSTA_SUB_BACK) {
+        func_ov131_021d7460(wk, sub);
+        func_ov131_021d6f54(wk, sub);
+    } else if (sub->state == PSTA_SUB_TURN_TO_FRONT) {
+        VecFx32 target = { FX32_CONST(-41), 0, FX32_CONST(101) };
+        VecFx32 scale = { FX32_ONE, FX32_CONST(2.2), FX32_ONE };
+        VecFx32 offset = { 0, 0, 0 };
+
+        sub->turnTimer++;
+        if (sub->turnTimer > 5 && sub->frontShown == FALSE) {
+            func_02015eb0(sub->mcss[0]);
+            func_02015ea0(sub->mcss[1]);
+            sub->frontShown = TRUE;
+        }
+        if (sub->turnTimer >= 10) {
+            func_ov131_021d79a8(wk, sub, 0);
+            sub->state = PSTA_SUB_FRONT;
+        } else {
+            target.x = turnShift * sub->turnTimer / 10 - FX32_CONST(66);
+            offset.y = FX_SinIdx((u16)(sub->turnTimer * 0x8000 / 10)) * 32;
+            if (sub->noBounce == TRUE) {
+                offset.y = 0;
+            }
+            func_ov131_021d79a8(wk, sub, offset.y);
+        }
+        func_02015c78(sub->mcss[0], &offset);
+        func_02015c78(sub->mcss[1], &offset);
+        func_02015d30(sub->mcss[0], &scale);
+        GFL_G3DCameraSetLookatPos(wk->camera, &target);
+        GFL_G3DCameraFlush(wk->camera);
+    } else if (sub->state == PSTA_SUB_TURN_TO_BACK) {
+        VecFx32 target = { FX32_CONST(-66), 0, FX32_CONST(101) };
+        VecFx32 scale = { FX32_CONST(1.8), FX32_CONST(2.5), FX32_ONE };
+
+        sub->turnTimer++;
+        if (sub->turnTimer < 3) {
+            fx32 scaleXs[2] = { FX32_CONST(1.2), FX32_CONST(1.4) };
+            fx32 scaleYs[2] = { FX32_CONST(2.2), FX32_CONST(2.3) };
+            fx32 targetXs[2] = { FX32_CONST(-57), FX32_CONST(-60) };
+            u8 frame = sub->turnTimer - 1;
+
+            scale.x = scaleXs[frame];
+            scale.y = scaleYs[frame];
+            target.x = targetXs[frame];
+            GFL_G3DCameraSetLookatPos(wk->camera, &target);
+            GFL_G3DCameraFlush(wk->camera);
+            func_02015d30(sub->mcss[0], &scale);
+        } else {
+            func_02015ea0(sub->mcss[0]);
+            func_02015eb0(sub->mcss[1]);
+            func_02015d30(sub->mcss[1], &scale);
+            GFL_G3DCameraSetLookatPos(wk->camera, &target);
+            GFL_G3DCameraFlush(wk->camera);
+            sub->frontShown = FALSE;
+            sub->state = PSTA_SUB_BACK;
+            sub->isTouching = FALSE;
+        }
+    }
+}
+
+
+// pokebw2's PStaSub_LoadResources
+void func_ov131_021d67ec(PStatusWork *wk, PStaSubWork *sub, ArcTool *arc) {
+    loadBGScrToVramByFileNoReserveNegAlign(arc, 62, 2, 0, 0, FALSE, wk->heapId);
+}
+
+void func_ov131_021d6808(PStatusWork *wk, PStaSubWork *sub) {
+    func_ov131_021d6cdc(wk, sub);
+}
+
+static const u8 data_ov131_021dc158[PSTA_SUB_ICON_COUNT] = { 208, 216, 224, 232, 240, 248, 164, 176 };
+
+// The markings, the shiny star and the Pokérus mark
+static const u8 data_ov131_021dc160[PSTA_SUB_ICON_COUNT] = { 0, 2, 4, 6, 8, 10, 12, 13 };
+
+void func_ov131_021d6810(PStatusWork *wk, PStaSubWork *sub) {
+    static const u8 iconY = 128;
+    static const u8 defaultSequence = 0;
+    ClActorSetup ballSetup;
+    ClActorSetup iconSetup;
+    ClActorSetup pokerusSetup;
+    ClActorSetup statusSetup;
+    u8 i;
+
+    ballSetup.x = 168;
+    ballSetup.y = 8;
+    ballSetup.priority = 10;
+    ballSetup.bgPriority = 1;
+    ballSetup.sequence = defaultSequence;
+    sub->ballIcon = func_0204b294(wk->actorUnit, wk->unk98[14], wk->unk98[1], wk->unk98[27], &ballSetup, 0, wk->heapId);
+    func_0204b3dc(sub->ballIcon, FALSE);
+    iconSetup.y = iconY;
+    iconSetup.priority = 10;
+    iconSetup.bgPriority = 1;
+    for (i = 0; i < PSTA_SUB_ICON_COUNT; i++) {
+        iconSetup.x = data_ov131_021dc158[i];
+        iconSetup.sequence = data_ov131_021dc160[i];
+        sub->icons[i] = func_0204b294(wk->actorUnit, wk->unk98[15], wk->unk98[2], wk->unk98[28], &iconSetup, 0, wk->heapId);
+        func_0204b3dc(sub->icons[i], TRUE);
+    }
+    pokerusSetup.x = 236;
+    pokerusSetup.y = 26;
+    pokerusSetup.priority = 10;
+    pokerusSetup.bgPriority = 1;
+    pokerusSetup.sequence = defaultSequence;
+    sub->pokerusIcon = func_0204b294(wk->actorUnit, wk->unk98[22], wk->unk98[9], wk->unk98[34], &pokerusSetup, 0, wk->heapId);
+    func_0204b3dc(sub->pokerusIcon, FALSE);
+    statusSetup.x = 241;
+    statusSetup.y = 31;
+    statusSetup.priority = 10;
+    statusSetup.bgPriority = 1;
+    statusSetup.sequence = defaultSequence;
+    sub->statusIcon = func_0204b294(wk->actorUnit, wk->unk98[23], wk->unk98[10], wk->unk98[35], &statusSetup, 0, wk->heapId);
+    func_0204b3dc(sub->statusIcon, FALSE);
+}
+
+
+
+// pokebw2's PStaSub_FreeActors
+void func_ov131_021d694c(PStatusWork *wk, PStaSubWork *sub) {
+    u8 i;
+
+    func_0204b3b4(sub->statusIcon);
+    func_0204b3b4(sub->pokerusIcon);
+    for (i = 0; i < PSTA_SUB_ICON_COUNT; i++) {
+        func_0204b3b4(sub->icons[i]);
+    }
+    func_0204b3b4(sub->ballIcon);
+}
+
+void func_ov131_021d697c(PStatusWork *wk, PStaSubWork *sub) {
+    BoxPkm *pkm = func_ov131_021d6064(wk);
+    u32 species;
+    void *personal;
+
+    if (wk->param->dataType == PSTATUS_DATA_PARTY) {
+        sub->frontShown = PokeParty_GetSlotExists(wk->param->party, wk->partyIndex);
+    } else {
+        sub->frontShown = TRUE;
+    }
+    if (wk->isEgg == FALSE) {
+        species = PML_PkmGetParam(pkm, PKM_PARAM_SPECIES, NULL);
+        personal = PML_PersonalLoad(species, PML_PkmGetParam(pkm, PKM_PARAM_FORM, NULL), wk->heapId);
+        if (PML_PersonalGetParam(personal, PERSONAL_NO_BOUNCE) == TRUE) {
+            sub->noBounce = TRUE;
+        } else {
+            sub->noBounce = FALSE;
+        }
+        sub->weight = PML_PersonalGetParam(personal, PERSONAL_WEIGHT);
+        PML_PersonalFree(personal);
+    } else {
+        sub->noBounce = FALSE;
+        sub->weight = 0;
+    }
+    sub->nameWindow = BmpWin_CreateDynamic(1, 19, 0, 13, 4, 14, 1);
+    sub->itemWindow = BmpWin_CreateDynamic(1, 19, 17, 13, 4, 14, 1);
+    func_ov131_021d6d18(wk, sub, pkm);
+}
+
+void func_ov131_021d6a38(PStatusWork *wk, PStaSubWork *sub) {
+    BoxPkm *boxPkm = func_ov131_021d6064(wk);
+    PartyPkm *pkm = func_ov131_021d60a4(wk);
+    BmpWin *window;
+    u32 ball;
+    void *file;
+    NNSG2dPaletteData *palette;
+    NNSG2dCharacterData *chars;
+    u32 markings;
+    u8 i;
+    u8 bit;
+
+    func_ov131_021d785c(wk, sub, boxPkm);
+    window = sub->nameWindow;
+    BmpWin_FlushChar(window);
+    BmpWin_FlushMap(window);
+    GFL_BGSysQueueScrLoad(BmpWin_GetBGIndex(window));
+    window = sub->itemWindow;
+    BmpWin_FlushChar(window);
+    BmpWin_FlushMap(window);
+    GFL_BGSysQueueScrLoad(BmpWin_GetBGIndex(window));
+
+    ball = PML_PkmGetParam(boxPkm, PKM_PARAM_POKEBALL, NULL);
+    file = GFL_G2DIOReadNCLR(getUINarcIdx(), func_02027720(ball), &palette, wk->heapId);
+    func_0204adec(wk->unk98[1], palette, 1);
+    GFL_HeapFree(file);
+    file = GFL_G2DIOReadBGNCGR(getUINarcIdx(), func_0202772c(ball), FALSE, &chars, wk->heapId);
+    func_0204a9d0(wk->unk98[14], chars);
+    GFL_HeapFree(file);
+    func_0204b3dc(sub->ballIcon, TRUE);
+
+    markings = PML_PkmGetParam(boxPkm, PKM_PARAM_MARKINGS, NULL);
+    for (i = 0, bit = 1; i < MARKING_COUNT; bit <<= 1, i++) {
+        if (markings & bit) {
+            func_0204b878(sub->icons[i], i * 2 + 1);
+        } else {
+            func_0204b878(sub->icons[i], i * 2);
+        }
+    }
+    if (doesPokeHavePokerus(boxPkm) == TRUE) {
+        func_0204b3dc(sub->icons[PSTA_SUB_ICON_POKERUS], TRUE);
+    } else {
+        func_0204b3dc(sub->icons[PSTA_SUB_ICON_POKERUS], FALSE);
+    }
+    if (PML_PkmIsRare(boxPkm) == TRUE && wk->isEgg == FALSE) {
+        func_0204b3dc(sub->icons[PSTA_SUB_ICON_SHINY], TRUE);
+    } else {
+        func_0204b3dc(sub->icons[PSTA_SUB_ICON_SHINY], FALSE);
+    }
+
+    if (sub->frontShown == TRUE) {
+        VecFx32 target = { FX32_CONST(-41), 0, FX32_CONST(101) };
+        VecFx32 scale = { FX32_ONE, FX32_CONST(2.2), FX32_ONE };
+        VecFx32 offset = { 0, 0, 0 };
+        VecFx32 pos = { FX32_CONST(4.7), 0, FX32_CONST(-32) };
+
+        func_02015c78(sub->mcss[0], &offset);
+        func_ov131_021d7a1c(wk, sub, &pos);
+        func_02015d30(sub->mcss[0], &scale);
+        GFL_G3DCameraSetLookatPos(wk->camera, &target);
+        GFL_G3DCameraFlush(wk->camera);
+        sub->state = PSTA_SUB_FRONT;
+    } else {
+        VecFx32 target = { FX32_CONST(-66), 0, FX32_CONST(101) };
+        VecFx32 scale = { FX32_CONST(1.8), FX32_CONST(2.5), FX32_ONE };
+        VecFx32 offset = { 0, 0, 0 };
+        VecFx32 pos = { FX32_CONST(4.7), 0, FX32_CONST(-32) };
+
+        func_02015c78(sub->mcss[0], &offset);
+        func_ov131_021d7a1c(wk, sub, &pos);
+        func_02015d30(sub->mcss[1], &scale);
+        GFL_G3DCameraSetLookatPos(wk->camera, &target);
+        GFL_G3DCameraFlush(wk->camera);
+        sub->state = PSTA_SUB_BACK;
+    }
+
+    if ((u8)GetStatusCond(pkm) != 0) {
+        func_0204b878(sub->statusIcon, (u16)func_020276c4(pkm));
+        func_0204b3dc(sub->statusIcon, TRUE);
+        func_0204b3dc(sub->pokerusIcon, FALSE);
+    } else {
+        func_0204b3dc(sub->statusIcon, FALSE);
+        if (doesPokerusHaveDuration(boxPkm) == TRUE) {
+            func_0204b3dc(sub->pokerusIcon, TRUE);
+        } else {
+            func_0204b3dc(sub->pokerusIcon, FALSE);
+        }
+    }
+
+    {
+        VecFx32 offset = { 0, 0, 0 };
+
+        func_02015c78(sub->mcss[0], &offset);
+        func_02015c78(sub->mcss[1], &offset);
+    }
+    sub->swipeX.count = 0;
+    sub->swipeX.frames = 0;
+    sub->swipeY.count = 0;
+    sub->swipeY.frames = 0;
+    sub->circle.count = 0;
+    sub->isTouching = FALSE;
+    sub->anim = PSTA_SUB_ANIM_NONE;
+    sub->circle.frames = 0;
+}
+
+
+void func_ov131_021d6cdc(PStatusWork *wk, PStaSubWork *sub) {
+    if (wk->param->dataType == PSTATUS_DATA_PARTY) {
+        PokeParty_SetSlotExists(wk->param->party, wk->shownPartyIndex, sub->frontShown);
+    }
+    BmpWin_Free(sub->itemWindow);
+    BmpWin_Free(sub->nameWindow);
+}
+
+
+
+// pokebw2's PStaSub_Clear
+void func_ov131_021d6d04(PStatusWork *wk, PStaSubWork *sub) {
+    func_ov131_021d797c(wk, sub);
+    func_0204b3dc(sub->ballIcon, FALSE);
+}
+
+static void func_ov131_021d6d18(PStatusWork *wk, PStaSubWork *sub, BoxPkm *pkm) {
+    WordSet *wordSet = GFL_WordSetSystemCreateDefault(wk->heapId);
+    StrBuf *str = GFL_StrBufCreate(32, wk->heapId);
+    StrBuf *name = GFL_StrBufCreate(32, wk->heapId);
+    StrBuf *format;
+    u32 sex;
+
+    PML_PkmGetParam(pkm, PKM_PARAM_NICKNAME, name);
+    func_0201ee0c(wordSet, 0, name, 0, 1, 2);
+    format = GFL_MsgDataLoadStrbufNew(wk->msgData, 0);
+    GFL_WordSetFormatStrbuf(wordSet, str, format);
+    func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->nameWindow), 25, 1, str, wk->font, PRINT_COLOR(1, 2, 0));
+    GFL_StrBufFree(name);
+    GFL_StrBufFree(format);
+    GFL_StrBufFree(str);
+    GFL_WordSetSystemFree(wordSet);
+
+    if (wk->isEgg == FALSE && PML_PkmGetParam(pkm, PKM_PARAM_SHOW_SEX, NULL) == TRUE) {
+        sex = PML_PkmGetParam(pkm, PKM_PARAM_SEX, NULL);
+        if (sex == GENDER_MALE) {
+            str = GFL_MsgDataLoadStrbufNew(wk->msgData, 1);
+            func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->nameWindow), 89, 1, str, wk->font,
+                          PRINT_COLOR(5, 6, 0));
+            GFL_StrBufFree(str);
+        } else if (sex == GENDER_FEMALE) {
+            str = GFL_MsgDataLoadStrbufNew(wk->msgData, 2);
+            func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->nameWindow), 89, 1, str, wk->font,
+                          PRINT_COLOR(3, 4, 0));
+            GFL_StrBufFree(str);
+        }
+    }
+
+    if (wk->isEgg == FALSE) {
+        wordSet = GFL_WordSetSystemCreateDefault(wk->heapId);
+        str = GFL_StrBufCreate(16, wk->heapId);
+        WordSetNumber(wordSet, 0, PML_PkmGetLevel(pkm), 3, 0, 1);
+        format = GFL_MsgDataLoadStrbufNew(wk->msgData, 3);
+        GFL_WordSetFormatStrbuf(wordSet, str, format);
+        func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->nameWindow), 9, 17, str, wk->font, PRINT_COLOR(1, 2, 0));
+        GFL_StrBufFree(format);
+        GFL_StrBufFree(str);
+        GFL_WordSetSystemFree(wordSet);
+    }
+
+    str = GFL_MsgDataLoadStrbufNew(wk->msgData, 4);
+    func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->itemWindow), 10, 1, str, wk->font, PRINT_COLOR(1, 2, 0));
+    GFL_StrBufFree(str);
+
+    wordSet = GFL_WordSetSystemCreateDefault(wk->heapId);
+    str = GFL_StrBufCreate(16, wk->heapId);
+    loadItemNameToStrbuf(wordSet, 0, PML_PkmGetParam(pkm, PKM_PARAM_ITEM, NULL));
+    format = GFL_MsgDataLoadStrbufNew(wk->msgData, 5);
+    GFL_WordSetFormatStrbuf(wordSet, str, format);
+    func_0201c724(wk->printQueue, BmpWin_GetBitmap(sub->itemWindow), 6, 17, str, wk->font, PRINT_COLOR(1, 2, 0));
+    GFL_StrBufFree(format);
+    GFL_StrBufFree(str);
+    GFL_WordSetSystemFree(wordSet);
+}
+
+
+// pokebw2's PStaSub_UpdateAnim
+static void func_ov131_021d6f54(PStatusWork *wk, PStaSubWork *sub) {
+    switch (sub->anim) {
+    case PSTA_SUB_ANIM_NONE:
+        if (sub->swipeX.count > 10) {
+            sub->anim = PSTA_SUB_ANIM_SWIPE_X;
+            func_ov131_021d703c(wk, sub);
+        }
+        if (sub->swipeY.count > 10) {
+            sub->anim = PSTA_SUB_ANIM_SWIPE_Y;
+            func_ov131_021d703c(wk, sub);
+        }
+        if (sub->circle.count > 20) {
+            sub->anim = PSTA_SUB_ANIM_CIRCLE;
+            func_ov131_021d703c(wk, sub);
+        }
+        break;
+    case PSTA_SUB_ANIM_SWIPE_X:
+        func_ov131_021d708c(wk, sub);
+        if (func_ov131_021d7060(wk, sub, &sub->swipeX) == FALSE) {
+            sub->anim = PSTA_SUB_ANIM_SWIPE_X_END;
+        }
+        break;
+    case PSTA_SUB_ANIM_SWIPE_X_END:
+        if (func_ov131_021d708c(wk, sub) == TRUE) {
+            sub->anim = PSTA_SUB_ANIM_NONE;
+        }
+        break;
+    case PSTA_SUB_ANIM_SWIPE_Y:
+        func_ov131_021d7248(wk, sub);
+        if (func_ov131_021d7060(wk, sub, &sub->swipeY) == FALSE) {
+            sub->anim = PSTA_SUB_ANIM_SWIPE_Y_END;
+        }
+        break;
+    case PSTA_SUB_ANIM_SWIPE_Y_END:
+        if (func_ov131_021d7248(wk, sub) == TRUE) {
+            sub->anim = PSTA_SUB_ANIM_NONE;
+        }
+        break;
+    case PSTA_SUB_ANIM_CIRCLE:
+        func_ov131_021d72e8(wk, sub, TRUE);
+        if (func_ov131_021d7060(wk, sub, &sub->circle) == FALSE) {
+            sub->anim = PSTA_SUB_ANIM_CIRCLE_END;
+        }
+        break;
+    case PSTA_SUB_ANIM_CIRCLE_END:
+        if (func_ov131_021d72e8(wk, sub, FALSE) == TRUE) {
+            func_02015e4c(sub->mcss[0]);
+            sub->anim = PSTA_SUB_ANIM_NONE;
+        }
+        break;
+    }
+}
+
+// pokebw2's PStaSub_StartAnim
+static void func_ov131_021d703c(PStatusWork *wk, PStaSubWork *sub) {
+    sub->gestureDone = TRUE;
+    sub->animStep = 0;
+    sub->spinTarget = 0;
+    sub->animFrame = 0;
+    sub->spinSpeed = 0;
+    sub->animTimeout = 0;
+}
+
+// pokebw2's PStaSub_CheckGesture
+static BOOL func_ov131_021d7060(PStatusWork *wk, PStaSubWork *sub, PStaSubGesture *gesture) {
+    if (gesture->count < 10) {
+        sub->animTimeout++;
+        if (sub->animTimeout > 24) {
+            return FALSE;
+        }
+    } else {
+        sub->animTimeout = 0;
+    }
+    return TRUE;
+}
+
+static BOOL func_ov131_021d708c(PStatusWork *wk, PStaSubWork *sub) {
+    VecFx32 pos = { FX32_CONST(216), FX32_CONST(72), 0 };
+    VecFx32 offset = { 0, 0, 0 };
+    s16 sin;
+    u8 width;
+    int dist;
+
+    if (sub->noBounce == FALSE) {
+        sin = FX_SinIdx((u16)(sub->animFrame * 0x8000 / 15));
+        offset.y = sin * 16 + FX32_CONST(wk->happiness >> 6);
+        func_ov131_021d79a8(wk, sub, offset.y);
+    } else {
+        offset.y = 0;
+        func_ov131_021d79a8(wk, sub, 0);
+    }
+    width = (wk->happiness >> 6) + 16;
+    dist = sub->animFrame * width / 15;
+    switch (sub->animStep) {
+    case 0:
+        pos.x += FX32_CONST(dist);
+        break;
+    case 1:
+        pos.x += FX32_CONST(width - dist);
+        break;
+    case 2:
+        pos.x -= FX32_CONST(dist);
+        break;
+    case 3:
+        pos.x -= FX32_CONST(width - dist);
+        break;
+    }
+    func_02015c48(sub->mcss[0], &pos);
+    func_02015c78(sub->mcss[0], &offset);
+    sub->animFrame++;
+    if (sub->animFrame > 15) {
+        sub->animFrame = 0;
+        sub->animStep++;
+        if (sub->animStep > 3) {
+            sub->animStep = 0;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+
+BOOL func_ov131_021d7248(PStatusWork *wk, PStaSubWork *sub) {
+    VecFx32 offset = { 0, 0, 0 };
+    s16 sin;
+
+    if (sub->noBounce == FALSE) {
+        sin = FX_SinIdx((u16)(sub->animFrame * 0x8000 / 20));
+        offset.y = sin * 32 + FX32_CONST(wk->happiness >> 6);
+        func_ov131_021d79a8(wk, sub, offset.y);
+    }
+    func_02015c78(sub->mcss[0], &offset);
+    sub->animFrame++;
+    if (sub->animFrame > 20) {
+        sub->animFrame = 0;
+        return TRUE;
+    }
+    return FALSE;
+}
+
+
+// pokebw2's PStaSub_AnimCircle
+static BOOL func_ov131_021d72e8(PStatusWork *wk, PStaSubWork *sub, BOOL spinning) {
+    static const u16 spinRange = 0x1800;
+    VecFx32 offset = { 0, 0, 0 };
+    u32 lap;
+    u8 i;
+
+    if (sub->noBounce == TRUE) {
+        return TRUE;
+    }
+    if (spinning == TRUE) {
+        lap = 0;
+        for (i = 0; i < LAP_COUNT; i++) {
+            lap += sub->lapFrames[i];
+        }
+        lap /= LAP_COUNT;
+        if (lap < 10) {
+            lap = 10;
+        }
+        if (lap > 20) {
+            lap = 20;
+        }
+        sub->spinTarget = (u16)(20 - lap) * spinRange / 10 + 0x800;
+        offset.y += FX_SinIdx(sub->animFrame * 0x222) * 4;
+        sub->animFrame++;
+        if (sub->animFrame > 120) {
+            sub->animFrame = 0;
+        }
+    } else {
+        sub->spinTarget = 0;
+    }
+    if (sub->spinSpeed < sub->spinTarget) {
+        sub->spinSpeed++;
+    }
+    if (sub->spinSpeed > sub->spinTarget) {
+        if (spinning == FALSE) {
+            if (sub->spinSpeed >= 32) {
+                sub->spinSpeed -= 32;
+            } else {
+                sub->spinSpeed = 0;
+            }
+        } else {
+            sub->spinSpeed--;
+        }
+    }
+    offset.y += FX32_CONST(sub->spinSpeed) / 16;
+    func_ov131_021d79a8(wk, sub, offset.y);
+    func_02015c78(sub->mcss[0], &offset);
+    func_02015e04(sub->mcss[0]);
+    if (sub->spinSpeed == 0 && sub->spinTarget == 0) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void func_ov131_021d7460(PStatusWork *wk, PStaSubWork *sub) {
+    TouchRect rects[3] = {
+        { 0, 152, 160, 255 },
+        { 0, 152, 120, 255 },
+        { TOUCH_RECT_END, 0, 0, 0 },
+    };
+    u32 x;
+    u32 y;
+    BOOL pressed;
+    BOOL held;
+    s32 hit;
+    u8 i;
+
+    func_02035cb8(&x, &y);
+    if (wk->isEgg) {
+        return;
+    }
+    pressed = func_02035c60();
+    held = func_02035c38();
+    hit = func_02035ba4(rects);
+    if (sub->state == PSTA_SUB_FRONT) {
+        if (hit == 0 || (hit == 1 && pressed == FALSE)) {
+            if (pressed == TRUE) {
+                sub->isTouching = TRUE;
+                sub->gestureDone = FALSE;
+                func_ov131_021d77e8(&sub->swipeX, x, y);
+                func_ov131_021d77e8(&sub->swipeY, x, y);
+                func_ov131_021d77e8(&sub->circle, x, y);
+                for (i = 0; i < LAP_COUNT; i++) {
+                    sub->lapFrames[i] = 0;
+                }
+                sub->lapTimer = 0;
+                sub->lapIndex = 0;
+                sub->circleDir = PSTA_SUB_CIRCLE_NONE;
+            } else if (held == TRUE && sub->isTouching == TRUE) {
+                func_ov131_021d75a4(wk, sub);
+            }
+            sub->lastTouchX = x;
+            sub->lastTouchY = y;
+        } else {
+            if (sub->isTouching == TRUE && sub->gestureDone == FALSE && sub->anim == PSTA_SUB_ANIM_NONE) {
+                sub->state = PSTA_SUB_TURN_TO_BACK;
+                sub->turnTimer = 0;
+            }
+            func_ov131_021d77e8(&sub->swipeX, x, y);
+            func_ov131_021d77e8(&sub->swipeY, x, y);
+            func_ov131_021d77e8(&sub->circle, x, y);
+            sub->isTouching = FALSE;
+        }
+    } else if (sub->state == PSTA_SUB_BACK) {
+        if (hit == 0 || (hit == 1 && pressed == FALSE)) {
+            if (pressed == TRUE) {
+                sub->isTouching = TRUE;
+            }
+        } else if (sub->isTouching == TRUE) {
+            sub->isTouching = FALSE;
+            sub->state = PSTA_SUB_TURN_TO_FRONT;
+            sub->turnTimer = 0;
+        }
+    }
+}
+
+
+// pokebw2's PStaSub_TrackGestures
+void func_ov131_021d75a4(PStatusWork *wk, PStaSubWork *sub) {
+    u32 x;
+    u32 y;
+    s8 dx;
+    s8 dy;
+    u32 dir;
+    BOOL lap;
+
+    func_02035cb8(&x, &y);
+
+    dx = x - sub->swipeX.startX;
+    dy = y - sub->swipeX.startY;
+    if ((sub->swipeX.dir == PSTA_SUB_DIR_NONE || sub->swipeX.dir == PSTA_SUB_DIR_LEFT) && dx > 16) {
+        func_ov131_021d77f8(&sub->swipeX, x, y, PSTA_SUB_DIR_RIGHT);
+    }
+    if ((sub->swipeX.dir == PSTA_SUB_DIR_NONE || sub->swipeX.dir == PSTA_SUB_DIR_RIGHT) && dx < -16) {
+        func_ov131_021d77f8(&sub->swipeX, x, y, PSTA_SUB_DIR_LEFT);
+    }
+    if (dy > 16 || dy < -16 || sub->swipeX.frames > 20) {
+        func_ov131_021d77e8(&sub->swipeX, x, y);
+    }
+    sub->swipeX.frames++;
+
+    dx = x - sub->swipeY.startX;
+    dy = y - sub->swipeY.startY;
+    if ((sub->swipeY.dir == PSTA_SUB_DIR_NONE || sub->swipeY.dir == PSTA_SUB_DIR_UP) && dy > 16) {
+        func_ov131_021d77f8(&sub->swipeY, x, y, PSTA_SUB_DIR_DOWN);
+    }
+    if ((sub->swipeY.dir == PSTA_SUB_DIR_NONE || sub->swipeY.dir == PSTA_SUB_DIR_DOWN) && dy < -16) {
+        func_ov131_021d77f8(&sub->swipeY, x, y, PSTA_SUB_DIR_UP);
+    }
+    if (dx > 16 || dx < -16 || sub->swipeY.frames > 20) {
+        func_ov131_021d77e8(&sub->swipeY, x, y);
+    }
+    sub->swipeY.frames++;
+
+    dx = x - sub->circle.startX;
+    dy = y - sub->circle.startY;
+    dir = PSTA_SUB_DIR_NONE;
+    lap = FALSE;
+    if (dx > 16) {
+        dir = PSTA_SUB_DIR_RIGHT;
+    } else if (dx < -16) {
+        dir = PSTA_SUB_DIR_LEFT;
+    } else if (dy > 16) {
+        dir = PSTA_SUB_DIR_DOWN;
+    } else if (dy < -16) {
+        dir = PSTA_SUB_DIR_UP;
+    }
+    if (dir != PSTA_SUB_DIR_NONE && dir != sub->circle.dir) {
+        if (sub->circle.dir + 1 == dir || (sub->circle.dir == PSTA_SUB_DIR_UP && dir == PSTA_SUB_DIR_RIGHT)) {
+            if (sub->circleDir == PSTA_SUB_CIRCLE_NONE || sub->circleDir == PSTA_SUB_CIRCLE_CLOCKWISE) {
+                sub->circleDir = PSTA_SUB_CIRCLE_CLOCKWISE;
+                func_ov131_021d77f8(&sub->circle, x, y, dir);
+                if (sub->circle.dir == PSTA_SUB_DIR_UP) {
+                    lap = TRUE;
+                }
+            } else {
+                sub->circleDir = PSTA_SUB_CIRCLE_NONE;
+                func_ov131_021d77e8(&sub->circle, x, y);
+            }
+        } else if (sub->circle.dir - 1 == dir || (sub->circle.dir == PSTA_SUB_DIR_RIGHT && dir == PSTA_SUB_DIR_UP)) {
+            if (sub->circleDir == PSTA_SUB_CIRCLE_COUNTERCLOCKWISE || sub->circleDir == PSTA_SUB_CIRCLE_NONE) {
+                sub->circleDir = PSTA_SUB_CIRCLE_COUNTERCLOCKWISE;
+                func_ov131_021d77f8(&sub->circle, x, y, dir);
+                if (sub->circle.dir == PSTA_SUB_DIR_UP) {
+                    lap = TRUE;
+                }
+            } else {
+                sub->circleDir = PSTA_SUB_CIRCLE_NONE;
+                func_ov131_021d77e8(&sub->circle, x, y);
+            }
+        } else if (sub->circle.dir == PSTA_SUB_DIR_NONE) {
+            sub->circle.dir = dir;
+        }
+    }
+    if (sub->circle.frames > 20) {
+        sub->circleDir = PSTA_SUB_CIRCLE_NONE;
+        func_ov131_021d77e8(&sub->circle, x, y);
+    }
+    func_ov131_021d7810(wk, sub, lap);
+    sub->circle.frames++;
+}
+
+// pokebw2's PStaSub_ResetGesture
+void func_ov131_021d77e8(PStaSubGesture *gesture, u32 x, u32 y) {
+    gesture->count = 0;
+    gesture->dir = PSTA_SUB_DIR_NONE;
+    gesture->frames = 0;
+    gesture->startX = x;
+    gesture->startY = y;
+}
+
+// pokebw2's PStaSub_AdvanceGesture
+void func_ov131_021d77f8(PStaSubGesture *gesture, u32 x, u32 y, u32 dir) {
+    gesture->count++;
+    gesture->dir = dir;
+    gesture->frames = 0;
+    gesture->startX = x;
+    gesture->startY = y;
+}
+
+// pokebw2's PStaSub_CountLap
+void func_ov131_021d7810(PStatusWork *wk, PStaSubWork *sub, BOOL lap) {
+    if (lap == TRUE) {
+        sub->lapFrames[sub->lapIndex] = sub->lapTimer;
+        sub->lapTimer = 0;
+        sub->lapIndex++;
+        if (sub->lapIndex >= LAP_COUNT) {
+            sub->lapIndex = 0;
+        }
+    }
+    sub->lapTimer++;
+}
+
+void func_ov131_021d785c(PStatusWork *wk, PStaSubWork *sub, BoxPkm *boxPkm) {
+    VecFx32 size = { FX32_CONST(16), FX32_CONST(16), FX32_ONE };
+    VecFx32 scale = { FX32_ONE, FX32_CONST(2.2), FX32_ONE };
+    VecFx32 backScale = { FX32_CONST(1.8), FX32_CONST(2.5), FX32_ONE };
+    VecFx32 pos = { FX32_CONST(4.7), 0, FX32_CONST(-32) };
+    PartyPkm *pkm = func_ov131_021d60a4(wk);
+
+    func_ov131_021d7a44(wk, sub, &size, &scale);
+    sub->mcss[0] = func_02017270(wk->mcssSys, pkm, 0, FX32_CONST(216), FX32_CONST(72), 0);
+    func_02015fd4(sub->mcss[0], 2);
+    func_02015d80(sub->mcss[0], DEG_TO_IDX(300));
+    func_02015d30(sub->mcss[0], &scale);
+    func_020173b4(sub->mcss[0]);
+    func_02015cdc(sub->mcss[0], &size);
+    sub->mcss[1] = func_02017270(wk->mcssSys, pkm, 1, FX32_CONST(216), FX32_CONST(72), 0);
+    func_02015fd4(sub->mcss[1], 2);
+    func_02015d80(sub->mcss[1], DEG_TO_IDX(300));
+    func_02015d30(sub->mcss[1], &backScale);
+    func_020173b4(sub->mcss[1]);
+    func_02015cdc(sub->mcss[1], &size);
+    func_ov131_021d79a8(wk, sub, 0);
+    func_ov131_021d7a1c(wk, sub, &pos);
+    if (sub->frontShown == TRUE) {
+        func_02015eb0(sub->mcss[0]);
+        func_02015ea0(sub->mcss[1]);
+    } else {
+        func_02015eb0(sub->mcss[1]);
+        func_02015ea0(sub->mcss[0]);
+    }
+}
+
+
+static void func_ov131_021d797c(PStatusWork *wk, PStaSubWork *sub) {
+    func_02015ea0(sub->mcss[0]);
+    func_02015ea0(sub->mcss[1]);
+    func_02015ba4(wk->mcssSys, sub->mcss[0]);
+    func_02015ba4(wk->mcssSys, sub->mcss[1]);
+    sub->mcss[0] = NULL;
+    sub->mcss[1] = NULL;
+}
+
+
+// pokebw2's PStaSub_SetBounce
+static void func_ov131_021d79a8(PStatusWork *wk, PStaSubWork *sub, fx32 bounce) {
+    VecFx32 pos = { FX32_CONST(4.7), 0, FX32_CONST(-32) };
+
+    sub->bounceOffset.x = FX_Mul(FX_SinIdx(DEG_TO_IDX(300)), bounce);
+    sub->bounceOffset.y = FX_Mul(FX_CosIdx(DEG_TO_IDX(300)), bounce);
+    sub->bounceOffset.z = 0;
+    func_ov131_021d7a1c(wk, sub, &pos);
+}
+
+// pokebw2's PStaSub_SetSpritePosition
+static void func_ov131_021d7a1c(PStatusWork *wk, PStaSubWork *sub, const VecFx32 *pos) {
+    VecFx32 sum;
+
+    VEC_Add(pos, &sub->bounceOffset, &sum);
+    func_02015d94(sub->mcss[0], &sum);
+    func_02015d94(sub->mcss[1], &sum);
+}
+
+void func_ov131_021d7a44(PStatusWork *wk, PStaSubWork *sub, VecFx32 *size, VecFx32 *scale) {
+    u32 species = PML_PkmGetParam(func_ov131_021d6064(wk), PKM_PARAM_SPECIES, NULL);
+
+    if (species == SPECIES_CHARMELEON) {
+        scale->y = FX32_CONST(2.6);
+        size->y = FX32_CONST(15.3);
+    } else if (species == SPECIES_VULPIX) {
+        size->y = FX32_CONST(15.7);
+    } else if (species == SPECIES_SEEL) {
+        size->y = size->x = FX32_CONST(16.4);
+    } else if (species == SPECIES_CYNDAQUIL) {
+        size->x = FX32_CONST(15.9);
+        size->y = FX32_CONST(15.7);
+    } else if (species == SPECIES_MAREEP) {
+        size->y = size->x = FX32_CONST(16.2);
+    } else if (species == SPECIES_DELIBIRD) {
+        size->y = size->x = FX32_CONST(15.8);
+    } else if (species == SPECIES_TYRANITAR) {
+        size->y = size->x = FX32_CONST(15.8);
+    } else if (species == SPECIES_MANECTRIC) {
+        size->y = size->x = FX32_CONST(15.5);
+    } else if (species == SPECIES_PLUSLE) {
+        size->y = size->x = FX32_CONST(15.7);
+    } else if (species == SPECIES_MONFERNO) {
+        size->x = FX32_CONST(15.7);
+        size->y = FX32_CONST(15.6);
+    }
+}
+
+

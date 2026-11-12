@@ -1,0 +1,9 @@
+    .text       start:0x0214f540 end:0x0214f91c kind:code align:32
+    .ctor       start:0x0214f91c end:0x0214f91c kind:rodata align:4
+    .data       start:0x0214f920 end:0x0214f940 kind:data align:32
+    .bss        start:0x0214f940 end:0x0214f940 kind:bss align:32
+
+src/ov001/event_gtsnego.c:
+    complete
+    .text       start:0x0214f540 end:0x0214f91c
+    .data       start:0x0214f920 end:0x0214f940

@@ -1,0 +1,69 @@
+#ifndef POKEBW2_DWC_EXT_H
+#define POKEBW2_DWC_EXT_H
+
+#include "types.h"
+#include "dwc/darray.h"
+#include "dwc/dwc_ghttp.h"
+#include "dwc/error.h"
+// GameSpy's common code in overlay 11, which the HTTP code and the rest of GameSpy's code call
+#include "dwc/gsAvailable.h"
+#include "dwc/gsCore.h"
+#include "dwc/gsDebug.h"
+#include "dwc/gsMemory.h"
+#include "dwc/gsPlatformSocket.h"
+#include "dwc/gsPlatformUtil.h"
+#include "dwc/gsSoap.h"
+#include "dwc/sake.h"
+#include "dwc/screen.h"
+#include "dwc/soap.h"
+#include "nitro/os.h"
+#include "system/rtc.h"
+#include <ctype.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+// For CPS's address (CPSMyIp), which is set once the library has started
+#include "nitrowifi/cps.h"
+#include "nitrowifi/soc.h"
+
+// What the DWC code of overlay 260 (GameSpy's Sake, the competition client and Nintendo's Gdb) calls in the main
+// module and in overlays 11 and 189. The ROM names none of it, so these are the addresses with a word on what each
+// does, read off the callers
+
+// The C library's string functions that the main module links, not taken from <string.h>: MWCC builds them in place
+// (memset and memcpy of a size it knows, strcpy of a literal, strcmp and strlen) when <string.h> declares them,
+// where the ROM calls them. MWCC goes by the first declaration it sees, and these have <string.h>'s types, so a file
+// whose ROM builds one in place, as AuthService.c's memset, includes <string.h> before this header
+void *memset(void *dest, int value, size_t size);
+void *memcpy(void *dest, const void *src, size_t size);
+void *memmove(void *dest, const void *src, size_t size);
+int memcmp(const void *a, const void *b, size_t size);
+char *strcpy(char *dest, const char *src);
+char *strncpy(char *dest, const char *src, size_t size);
+char *strcat(char *dest, const char *src);
+int strcmp(const char *a, const char *b);
+int strncmp(const char *a, const char *b, size_t size);
+size_t strcspn(const char *s, const char *set);
+size_t strlen(const char *s);
+char *strchr(const char *s, int c);
+char *strstr(const char *s, const char *find);
+// The rest is in the C headers above (MSL's)
+
+// What overlay 189's HTTP code (the NHTTP client and the GameSpy HTTP code) calls in the main module and overlay 11.
+// NitroSDK's thread library, which it also calls, is in nitro/os.h
+// NitroSDK's STD functions are in nitro/std.h, CPS's in nitrowifi/cps.h, and GameSpy's common code of overlay 11 in
+// the dwc/gs*.h headers above
+
+// The formatted texts of NitroSDK's OS (OS_SPrintf, OS_SNPrintf and OS_VSNPrintf) are in nitro/os.h,
+// NitroSDK's STD's (STD_TSNPrintf) in nitro/std.h, and the Wi-Fi library's one error in dwc/error.h
+
+// Gets the token and the challenge that the player logs in to the authentication service with, returning FALSE (and
+// leaving them) while the player isn't logged in
+BOOL DWCi_GetAuthInfo(char **authToken, char **challenge);
+
+// The login ticket of the player's profile, which the Wi-Fi library keeps; returns FALSE if it has none
+BOOL DWCi_GetLoginTicket(SakeLoginTicket *ticket);
+// DWC's use of the GameSpy HTTP client is in dwc/dwc_ghttp.h
+
+#endif // POKEBW2_DWC_EXT_H

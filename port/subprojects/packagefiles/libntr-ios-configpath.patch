@@ -1,0 +1,15 @@
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -22,7 +22,10 @@
+ #ifdef SDK_BUILD_PROSPERO
+ #define SIM_CONFIG_FILE_PATH "/app0/sim_config.ini"
+ #else
+-#define SIM_CONFIG_FILE_PATH "./sim_config.ini"
++/* bw-port (libntr-ios-configpath.patch): the file's path, set before main() by port/src/main_start.c: the launcher's root,
++ * absolute, so the game's working directory can be its own folder (docs/launcher.md, section 4) */
++char bwport_sim_config_path[1100] = "./sim_config.ini";
++#define SIM_CONFIG_FILE_PATH bwport_sim_config_path
+ #endif
+ 
+ static int sResolutionKey; /* the file has Resolution=: the old Scale= is ignored */

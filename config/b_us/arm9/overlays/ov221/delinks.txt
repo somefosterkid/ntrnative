@@ -1,0 +1,17 @@
+    .text       start:0x021b95a0 end:0x021ba140 kind:code align:32
+    .rodata     start:0x021ba140 end:0x021ba2a8 kind:rodata align:4
+    .ctor       start:0x021ba2a8 end:0x021ba2a8 kind:rodata align:4
+    .data       start:0x021ba2c0 end:0x021ba320 kind:data align:32
+    .bss        start:0x021ba320 end:0x021ba320 kind:bss align:32
+
+src/ov221/chihou_zukan_award.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9dd4
+    .rodata     start:0x021ba140 end:0x021ba1b0
+    .data       start:0x021ba2c0 end:0x021ba2f0
+
+src/ov221/ov221_021b9dd4.c:
+    complete
+    .text       start:0x021b9dd4 end:0x021ba140
+    .rodata     start:0x021ba1b0 end:0x021ba2a8
+    .data       start:0x021ba2f0 end:0x021ba320

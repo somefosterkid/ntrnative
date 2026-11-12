@@ -1,0 +1,276 @@
+--- a/include/simulator/sim_audio.h
++++ b/include/simulator/sim_audio.h
+@@ -27,7 +27,16 @@
+     // start, 33513982 Hz) and writes the DS-rate frames (32728.5 Hz, interleaved s16 L R, no master volume) that
+     // time produced into aStereo (room for aMaxFrames); returns their number. May be NULL (the device clock only).
+     int (*run)(u64 aToCycle, s16 * aStereo, int aMaxFrames);
++    // bw-port (libntr-mu83.patch): the music bus. A backend that has one (all three or none) lets the music players run on
++    // the real-time clock while the rest follows the game's speed: busSplit(1) takes the music players off the run() clock
++    // (run() then makes everything else), busRun makes aFrames DS-rate frames of the music alone on the music clock (the
++    // frames are as real time needs them), busSlot(aSlot, aMusic) says what the next sequence started on a driver slot is.
++    void (*busSplit)(int aOn);
++    int (*busRun)(s16 * aStereo, int aFrames);
++    void (*busSlot)(int aSlot, int aMusic);
+ } SIM_SoundBackend;
++// libntr-mu83.patch: snd_interface.c tells the backend which driver slot starts a music sequence
++void SIM_Audio_SlotMusic(int aSlot, int aMusic);
+ extern const SIM_SoundBackend * SIM_soundBackend;
+ extern int SIM_soundBackendOn;
+ 
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -97,7 +97,9 @@
+ 
+ static int s_frameClock = 0;
+ static int s_musicSlow = 1; // the factor the music's tempo is lowered by (libntr-sp76.patch)
++static int s_split = 0; // libntr-mu83.patch: the backend's music bus is split off (the music is not in the samples RingPush gets)
+ extern "C" void SIM_Snd_SetMusicSlow(int aSlow); // libraries/snd/src/snd_interface.c
++extern "C" int SIM_FastForwarding(void); // sim_main.cpp (libntr-mu83.patch): Space held or the frame rate unlimited
+ static u64 s_sndCyc = 0; // the sound's time: ARM7 cycles
+ static u64 s_frameCyc = 0; // the games's frames x 560190
+ static u64 s_nextTick = SND_CYC_TICK;
+@@ -170,15 +172,15 @@
+ // one DS-rate frame for the ring (after the time-stretch)
+ static void RingOut(s16 l, s16 r)
+ {
+-    if(s_wav) {
+-        s16 f[2] = {l, r};
+-        fwrite(f, 4, 1, s_wav);
+-        s_wavFrames++;
+-    }
+     if(s_ringWr - s_ringRd >= SND_RING - 1) {
+         s_ringDropped++;
+         return;
+     }
++    if(s_wav) { // libntr-mu83.patch: what the ring takes (a frame dropped at fast forward is not in the file)
++        s16 f[2] = {l, r};
++        fwrite(f, 4, 1, s_wav);
++        s_wavFrames++;
++    }
+     s_ring[s_ringWr % SND_RING][0] = l;
+     s_ring[s_ringWr % SND_RING][1] = r;
+     s_ringWr++;
+@@ -277,6 +279,55 @@
+     st_nom = st_prevPos + (s64)aS * ST_HS;
+ }
+ 
++// ---- bw-port (libntr-mu83.patch): the music bus ----
++// With the backend's music bus split off (Speed > 1 or fast forward, Music at normal speed) the samples RingPush gets hold no
++// music: the music players run on a clock of their own and the backend makes their frames as the output needs them. Every
++// output frame the ring takes gets the next music frame added (the music is never stretched), so the music plays in real
++// time whatever the game does: a frame the ring drops (Space, Tab: the game runs faster than the device plays) takes no
++// music frame with it. MusNeed tops the FIFO up to what the loop that follows plays (that is exact when nothing is
++// dropped: no music frame is made and left unplayed).
++#define MUS_MAX 4096
++static s16 s_mus[MUS_MAX][2];
++static int s_musN = 0, s_musRd = 0;
++
++static void MusNeed(int aN)
++{
++    if(!s_split || aN <= 0) {
++        s_musN = 0;
++        s_musRd = 0;
++        return;
++    }
++    int have = s_musN - s_musRd;
++    if(have >= aN) {
++        return;
++    }
++    if(s_musRd > 0) {
++        memmove(&s_mus[0][0], &s_mus[s_musRd][0], (size_t)have * sizeof s_mus[0]);
++        s_musN = have;
++        s_musRd = 0;
++    }
++    int want = aN - have;
++    if(have + want > MUS_MAX) {
++        want = MUS_MAX - have;
++    }
++    s_musN += SIM_soundBackend->busRun(&s_mus[have][0], want);
++}
++
++static void RingOutM(s16 l, s16 r)
++{
++    if(s_split && s_ringWr - s_ringRd < SND_RING - 1) { // the ring takes this frame: its music frame goes with it
++        if(s_musRd >= s_musN) {
++            MusNeed(1);
++        }
++        if(s_musRd < s_musN) {
++            l = (s16)ClampS16((s32)l + s_mus[s_musRd][0]);
++            r = (s16)ClampS16((s32)r + s_mus[s_musRd][1]);
++            s_musRd++;
++        }
++    }
++    RingOut(l, r);
++}
++
+ // the time-stretched blocks the input allows
+ static void StRun(void)
+ {
+@@ -311,10 +362,11 @@
+             hi = (s64)st_inN - ST_N;
+         }
+         s64 c = StBestMatch(lo, hi, st_prevPos + ST_HS, st_nom);
++        MusNeed(ST_HS);
+         for(int i = 0; i < ST_HS; i++) {
+             float l = st_pend[i][0] + st_win[i] * (float)StIn(c + i, 0);
+             float r = st_pend[i][1] + st_win[i] * (float)StIn(c + i, 1);
+-            RingOut(StClamp(l), StClamp(r));
++            RingOutM(StClamp(l), StClamp(r));
+             st_pend[i][0] = st_win[ST_HS + i] * (float)StIn(c + ST_HS + i, 0);
+             st_pend[i][1] = st_win[ST_HS + i] * (float)StIn(c + ST_HS + i, 1);
+         }
+@@ -341,18 +393,23 @@
+         }
+         s64 c = (s64)st_inN >= lo + ST_HS ? StBestMatch(lo, hi, st_prevPos + ST_HS, hi) : lo;
+         if((s64)st_inN >= c + ST_HS) {
++            MusNeed(ST_HS);
+             for(int i = 0; i < ST_HS; i++) {
+                 float l = st_pend[i][0] + st_win[i] * (float)StIn(c + i, 0);
+                 float r = st_pend[i][1] + st_win[i] * (float)StIn(c + i, 1);
+-                RingOut(StClamp(l), StClamp(r));
++                RingOutM(StClamp(l), StClamp(r));
+             }
+             from = c + ST_HS;
+         } else {
+             from = (s64)st_inN;
+         }
+     }
+-    for(s64 k = from; k < (s64)st_inN; k++) {
+-        RingOut(StIn(k, 0), StIn(k, 1));
++    for(s64 k = from; k < (s64)st_inN;) {
++        s64 n = (s64)st_inN - k;
++        MusNeed(n > MUS_MAX ? MUS_MAX : (int)n);
++        for(s64 e = k + (n > MUS_MAX ? MUS_MAX : n); k < e; k++) {
++            RingOutM(StIn(k, 0), StIn(k, 1));
++        }
+     }
+     st_S = 1;
+ }
+@@ -366,6 +423,10 @@
+         st_inN++;
+         return;
+     }
++    if(s_split) {
++        RingOutM(l, r); // fast forward at Speed 1 with the music bus split off
++        return;
++    }
+     RingOut(l, r);
+ }
+ 
+@@ -430,6 +491,16 @@
+ 
+ extern "C" int SIM_Audio_FrameClock(void) { return s_frameClock; }
+ 
++// the frames BWPORT_AUDIO_WAV holds so far (BWPORT_SNDLOG prints it with each sequence start, to find the music in the WAV)
++extern "C" u64 SIM_Audio_WavFrames(void) { return s_wavFrames; }
++
++extern "C" void SIM_Audio_SlotMusic(int aSlot, int aMusic)
++{
++    if(SIM_soundBackendOn && SIM_soundBackend != NULL && SIM_soundBackend->busSlot != NULL) {
++        SIM_soundBackend->busSlot(aSlot, aMusic);
++    }
++}
++
+ extern "C" void SIM_Audio_FrameTick(void)
+ {
+     if(!s_frameClock) {
+@@ -441,19 +512,37 @@
+         // libntr-sp76.patch: Speed > 1: the samples are time-stretched back to real time; the music's tempo is lowered by the
+         // same factor (the sound effects keep the speed)
+         int want = sConfigPtr->speed < 1 ? 1 : sConfigPtr->speed > 4 ? 4 : sConfigPtr->speed;
+-        int slow = (sConfigPtr->musicNormalSpeed && want > 1) ? want : 1;
++        // a backend with a music bus keeps the music at its normal speed by running it on the real-time clock (libntr-mu83.patch);
++        // without one (sim7) the music's tempo is lowered by the speed (libntr-sp76.patch, sp77)
++        static int busEnv = -1; // BWPORT_MUSICBUS=off: no bus (the sp76 tempo division), for measuring the before
++        if(busEnv < 0) {
++            const char * e = getenv("BWPORT_MUSICBUS");
++            busEnv = (e != NULL && (!strcmp(e, "off") || !strcmp(e, "0"))) ? 0 : 1;
++        }
++        int busOk = busEnv && SIM_soundBackendOn && SIM_soundBackend->busRun != NULL && SIM_soundBackend->busSplit != NULL;
++        int wantSplit = (sConfigPtr->musicNormalSpeed && (want > 1 || SIM_FastForwarding()) && busOk) ? 1 : 0;
++        int slow = (sConfigPtr->musicNormalSpeed && want > 1 && !busOk) ? want : 1;
+         if(slow != s_musicSlow) {
+             s_musicSlow = slow;
+             SIM_Snd_SetMusicSlow(slow);
+         }
+         SDL_LockAudio();
+-        if(want != st_S) {
+-            if(st_S == 1) {
+-                StEngage(want);
+-            } else if(want == 1) {
+-                StDisengage();
+-            } else {
+-                st_S = want;
++        if(want != st_S || wantSplit != s_split) {
++            if(st_S > 1 && (want == 1 || wantSplit != s_split)) {
++                StDisengage(); // with the bus as it was: the tail it plays has the music added
++            }
++            if(wantSplit != s_split) {
++                s_split = wantSplit;
++                s_musN = 0; // the frames the old split left in the FIFO are not the new one's
++                s_musRd = 0;
++                SIM_soundBackend->busSplit(wantSplit);
++            }
++            if(want > 1) {
++                if(st_S == 1) {
++                    StEngage(want);
++                } else {
++                    st_S = want;
++                }
+             }
+         }
+     }
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1516,6 +1516,10 @@
+   if (sPresentLog != NULL) fprintf(sPresentLog, "T %llu %llu\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n);
+ }
+ 
++// bw-port (libntr-mu83.patch): the game runs without the pacing (Space held, or the frame rate unlimited): the sound side asks
++// whether to keep the music on its real-time clock
++extern "C" int SIM_FastForwarding(void) { return s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED || sFastForward; }
++
+ // wait for the first slot of the tick (before the swap)
+ static void SpWaitSlot(void) {
+   if (!sPace.on || sPace.forced) return;
+--- a/libraries/snd/src/snd_interface.c
++++ b/libraries/snd/src/snd_interface.c
+@@ -40,6 +40,8 @@
+ }
+ static int sMusicSlow = 1;
+ static int sGameRatio[32];
++extern void SIM_Audio_SlotMusic(int aSlot, int aMusic); /* sim_audio.cpp (libntr-mu83.patch) */
++extern unsigned long long SIM_Audio_WavFrames(void); /* sim_audio.cpp (libntr-mu84 part of libntr-mu83.patch) */
+ /* the sound driver's players (slots) are handed out by the NitroSystem layer (libntrsystem's NNSi_SndPlayerStartSeq tells
+  * which NitroSystem player, the game's 0..5 and 6, starts on a slot just before SND_PrepareSeq): the slot a sequence runs
+  * on changes from one start to the next, so what is music is decided by the NitroSystem player of the slot's last start */
+@@ -98,7 +100,8 @@
+ static void MusicStarted(int playerNo)
+ {
+     if (getenv("BWPORT_SNDLOG") != NULL) {
+-        fprintf(stderr, "snd: start slot %d nns-player %d\n", playerNo, playerNo >= 0 && playerNo < 32 ? sSlotPlayer[playerNo] : -1);
++        fprintf(stderr, "snd: start slot %d nns-player %d wav %llu\n", playerNo, playerNo >= 0 && playerNo < 32 ? sSlotPlayer[playerNo] : -1,
++                (unsigned long long)SIM_Audio_WavFrames());
+     }
+     if (playerNo >= 0 && playerNo < 32) {
+         sGameRatio[playerNo] = 0;
+@@ -115,6 +118,9 @@
+     SDK_NULL_ASSERT(base);
+     SDK_NULL_ASSERT(bank);
+ 
++#ifdef SDK_PORT
++    SIM_Audio_SlotMusic(playerNo, MusicPlayer(playerNo));
++#endif
+     PushCommand(SND_COMMAND_START_SEQ, playerNo, base, offset, bank);
+ #ifdef SDK_PORT
+     MusicStarted(playerNo);
+@@ -133,6 +139,9 @@
+     SDK_NULL_ASSERT(base);
+     SDK_NULL_ASSERT(bank);
+ 
++#ifdef SDK_PORT
++    SIM_Audio_SlotMusic(playerNo, MusicPlayer(playerNo));
++#endif
+     PushCommand(SND_COMMAND_PREPARE_SEQ, playerNo, base, offset, bank);
+ #ifdef SDK_PORT
+     MusicStarted(playerNo);

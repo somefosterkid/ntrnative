@@ -1,0 +1,9 @@
+    .text       start:0x02154ca0 end:0x0215513c kind:code align:32
+    .rodata     start:0x0215513c end:0x02155148 kind:rodata align:4
+    .ctor       start:0x02155148 end:0x02155148 kind:rodata align:4
+    .bss        start:0x02155160 end:0x02155160 kind:bss align:32
+
+src/ov008/event_make.c:
+    complete
+    .text       start:0x02154ca0 end:0x0215513c
+    .rodata     start:0x0215513c end:0x02155148

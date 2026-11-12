@@ -1,0 +1,136 @@
+# Nintendo's NitroSDK, as TwlSDK links it into Black's ARM9 main after the game's own code: built apart from the game,
+# as ARM code. From pokebw2's lib/nitro/library.toml (GPL-3.0). fx/fx_vec.c matches with every dsi compiler from 1.1 to
+# 1.6sp2 alike, and with none of the 2.0 or 1.2 builds, so the exact one is a guess.
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-sym on",             # Debug info
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# Files ported as they are from libntr (MIT, https://github.com/cybervisi0n/libntr) by tools/port_lib.py build as
+# tools/lib_twins.py built their twins: with its headers (sdk/) ahead of the game's, and its defines for a final ROM.
+# -ipa file, as the SDK was built: the code is the same without it, but the static local of the unused
+# inline GX_SetVCount (gx.h) then stays in each object's .bss, where Black's link dropped it
+[sdk]
+flags = [
+    "-i lib/nitro/sdk",
+    "-d SDK_CW_FORCE_EXPORT_SUPPORT",
+    "-d SDK_TS",
+    "-d SDK_4M",
+    "-d SDK_FINALROM",
+    "-d NNS_FINALROM",
+    "-d SDK_ARM9",
+    "-d SDK_CW",
+    "-d SDK_BUILD_ARM",
+    "-d SDK_32BIT",
+    "-d SDK_NITRO",
+    "-d SDK_VERSION_MAJOR=4UL",
+    "-d SDK_CODE_ARM",
+    "-ipa file",
+    "-inline on,noauto",
+]
+# the SDK defines some functions without a prototype before them (OSi_InsertThreadToList)
+without = ["-requireprotos"]
+files = [
+    "gx/g3x.c",
+    "gx/gx_vramcnt.c",
+    "fx/fx_mtx44.c",
+    "fx/fx_mtx43.c",
+    "fx/fx_mtx33.c",
+    "gx/gx_bgcnt.c",
+    "os/os_thread.c",
+    "os/os_alarm.c",
+    "os/os_valarm.c",
+    "rtc/convert.c",
+    "os/os_alloc.c",
+    "math/crc.c",
+    "mi/mi_memory.c",
+    "snd/snd_interface.c",
+    "wm/wm_ds.c",
+    "spi/tp.c",
+    "wm/wm_mp.c",
+    "snd/snd_bank.c",
+    "wm/wm_sync.c",
+    "wm/wm_standard.c",
+    "wm/wm_etc.c",
+    "math/qsort.c",
+    "os/os_message.c",
+    "fx/fx_cp.c",
+    "snd/snd_work.c",
+    "wm/wm_dcf.c",
+    "gx/g3_util.c",
+    "spi/mic.c",
+    "os/os_spinLock.c",
+    "fx/fx_atanidx.c",
+    "fx/fx_sincos.c",
+    "std/std_sprintf.c",
+    "os/os_arena.c",
+    "os/os_tick.c",
+    "pxi/pxi_fifo.c",
+    "gx/g2.c",
+    "os/os_interrupt.c",
+    "os/os_system.c",
+    "std/std_string.c",
+    "mi/mi_uncompress.c",
+    "mi/mi_swap.c",
+    "snd/snd_alarm.c",
+    "spi/pm.c",
+    "os/os_cache.c",
+    "os/os_context.c",
+    "os/os_vramExclusive.c",
+    "rtc/external.c",
+    "os/os_exception.c",
+    "fx/fx_mtx22.c",
+    "fx/fx_asinacosidx.c",
+    "snd/snd_main.c",
+    "snd/snd_util.c",
+    "rtc/internal.c",
+    "math/math.c",
+    "os/os_mutex.c",
+    "fx/fx.c",
+    "os/os_timer.c",
+    "os/os_init.c",
+    "os/os_protectionUnit.c",
+    "wm/wm_ks.c",
+    "os/os_tcm.c",
+    "mi/mi_wram.c",
+    "snd/snd_command.c",
+    "gx/g3imm.c",
+    "wm/wm_system.c",
+    "gx/gx.c",
+    "mb/mb_parent.c",
+    "mb/mb_fileinfo.c",
+    "mb/mb_common.c",
+    "mb/mb_gameinfo.c",
+    "mb/mb_wm_base.c",
+    "mb/mb_child.c",
+    "mb/mb_cache.c",
+    "mb/mb_task.c",
+    "mb/mb_block.c",
+]
+
+# Files built with other flags, each replacing the library's flag of the same option. The SDK's CARD library was built
+# with -ipa file, as pokebw2's lib/nitro/library.toml builds card_pull_out.c: card_rom.c and card_pullOut.c reach each
+# of their statics from one base (cardi_rom_base, 0x02150840 in Black, and the three words at 0x02150b00), where the
+# game's flags load a literal for each
+[file_flags]
+"card/card_rom.c" = ["-ipa file"]
+"card/card_pullOut.c" = ["-ipa file"]
+# The cartridge library's files in the game's flags, as pokebw2 builds them (Thumb, with the game's functions in ARM by pragma)
+"ctrdg/ctrdg.c" = ["-thumb", "-ipa file", "-inline on,noauto"]
+"ctrdg/ctrdg_proc.c" = ["-thumb", "-ipa file", "-inline on,noauto"]
+# TwlSDK 5's os_emulator.c, built as the SDK was: its statics are reached from their section's base
+"os/os_emulator.c" = ["-ipa file", "-inline on,noauto"]

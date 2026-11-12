@@ -1,0 +1,23 @@
+GimmickLeagueLift_Init kind:function(thumb,size=0x2a) addr:0x021eec80
+GimmickLeagueLift_End kind:function(thumb,size=0x1a) addr:0x021eecac
+GimmickLeagueLift_Update kind:function(thumb,size=0xc) addr:0x021eecc8
+GimmickLeagueLift_PlayLiftAnim kind:function(thumb,size=0x2e) addr:0x021eecd4
+GimmickLeagueLift_StopLiftAnim kind:function(thumb,size=0x14) addr:0x021eed04
+GimmickLeagueLift_IsLiftAnimDone kind:function(thumb,size=0x30) addr:0x021eed18
+GimmickLeagueLift_HideArrivalModel kind:function(thumb,size=0x30) addr:0x021eed48
+GimmickLeagueLift_PlayArrivalModel kind:function(thumb,size=0x4e) addr:0x021eed78
+GimmickLeagueLift_IsArrivalModelDone kind:function(thumb,size=0x32) addr:0x021eedc8
+GimmickLeagueLift_LoadScene kind:function(thumb,size=0x54) addr:0x021eedfc
+GimmickLeagueLift_DummyInit kind:function(thumb,size=0x2) addr:0x021eee50
+GimmickLeagueLift_DummyEnd kind:function(thumb,size=0x2) addr:0x021eee54
+sAnimations01 kind:data(any) addr:0x021eee58
+sAnimations03 kind:data(any) addr:0x021eee5c
+data_ov106_021eee61 kind:data(any) addr:0x021eee61 ambiguous
+sSceneSetup kind:data(any) addr:0x021eee64
+sActorPositions kind:data(any) addr:0x021eee74
+data_ov106_021eee81 kind:data(any) addr:0x021eee81 ambiguous
+sActors kind:data(any) addr:0x021eee8c
+data_ov106_021eee9d kind:data(any) addr:0x021eee9d ambiguous
+sResources kind:data(any) addr:0x021eeeac
+data_ov106_021eeec0 kind:data(any) addr:0x021eeec0 ambiguous
+data_ov106_021eeec9 kind:data(any) addr:0x021eeec9 ambiguous

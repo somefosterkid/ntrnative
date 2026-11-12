@@ -1,0 +1,762 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), lib/nitrowifi/src/wcm/wcm_dsi.c, ported by tools/port_file.py.
+// NitroWiFi's WCM, its backend for the DSi's wireless (mode 2), in the LTD autoload's .ltdmain: the steps that
+// wcm_system.c's calls take through TwlSDK's NWM where the DS's take them through WM, and NWM's callbacks, which move
+// WCM's state machine and notify WCM's user. It mirrors wcm_wmif.c, the WM backend, step for step. The ROM names none
+// of it: the file's name is descriptive, and the functions keep their default names.
+#include "nitrowifi/wcm_dsi.h"
+#include "nitro/math.h"
+#include "nitro/mi.h"
+#include "nitro/os.h"
+#include "nitrowifi/wcm.h"
+#include "twl/nwm.h"
+#include "wcm_internal.h"
+
+// The index of the command 8's connection, from the access point's capability bits
+
+void func_02731f14(void);
+static void func_027320d0(void *arg);
+static void func_027323a8(void *arg);
+static void func_02732648(void *arg);
+static void func_02732874(void *arg);
+static void func_02732944(void *arg);
+static void func_02732a64(void *arg);
+static void func_02732b70(const u8 *bssid, const u8 *essid, u32 option);
+static void func_02732cac(void *arg);
+static void func_02732cec(void *arg);
+
+// clang-format off
+// TwlSDK's section for the DSi-only code that the LTD autoload's .ltdmain holds
+#pragma define_section LTDMAIN ".ltdmain" ".ltdmain.bss" ".ltdmain" abs32 RWX
+// clang-format on
+#pragma section LTDMAIN begin
+
+// The startup's first step: sets NWM up in the work and loads the device
+s32 func_0273199c_unk(void) {
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (func_02702434(work->nwmSystemBuffer, 0x3000, work->dmaNo)) {
+    case 0:
+        break;
+    case 3:
+        func_ov009_02165a4c(11);
+        return 7;
+    case 4:
+        return 5;
+    case 5:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    work->nwmConnectionFailureReason = 0;
+    switch (func_02702b08(func_027320d0)) {
+    case 2:
+        func_ov009_02165a4c(2);
+        work->pendingNotify = 1;
+        break;
+    case 6:
+        func_ov009_02165a4c(12);
+        return 1;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+s32 func_02731a84_unk(void) {
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (func_02702fe8(func_027320d0)) {
+    case 2:
+        func_ov009_02165a4c(4);
+        work->pendingNotify = 2;
+        break;
+    case 6:
+        return 4;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+s32 func_02731af0_unk(const u8 *bssid, const u8 *essid, u32 option) {
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (work->state) {
+    case 5:
+        func_02732b70(bssid, essid, option);
+        return 2;
+    case 6:
+        func_02732b70(bssid, essid, option);
+        return 0;
+    case 3:
+        break;
+    default:
+        return 1;
+    }
+    func_02732b70(bssid, essid, option);
+    DC_InvalidateRange(work->nwmScanRequest.scanBuf, work->nwmScanRequest.scanBufSize);
+    work->nwmScanCount++;
+    switch (func_02703088(func_027323a8, &work->nwmScanRequest)) {
+    case 2:
+        func_ov009_02165a4c(5);
+        work->pendingNotify = 3;
+        break;
+    case 6:
+        return 4;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+s32 func_02731bf8_unk(void) {
+    NWMWpaParam pmk;
+    WCMWork *work = func_ov009_021657c8();
+    s32 result;
+
+    switch (work->connectionStorage.mode) {
+    case 0:
+    case 1:
+    case 2:
+    case 3: {
+        u16 authMode = 0; // Open system, or 1 for a shared key
+
+        if ((work->searchOption & WCM_OPTION_AUTH_SHAREDKEY) == WCM_OPTION_AUTH_SHAREDKEY) {
+            authMode = 1;
+        }
+        result = func_027034c0(func_027320d0, work->connectionStorage.mode, work->connectionStorage.argument,
+                               work->connectionStorage.data, authMode);
+        break;
+    }
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+        MI_CpuCopy8(work->connectionStorage.data, pmk.psk, sizeof(pmk.psk));
+        pmk.auth = work->connectionStorage.mode;
+        result = func_02703960(func_027320d0, &pmk);
+        break;
+    }
+    switch (result) {
+    case 2:
+        func_ov009_02165a4c(8);
+        work->pendingNotify = 5;
+        break;
+    case 6:
+        return 4;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+s32 func_02731cfc_unk(void) {
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (func_02703854(func_02732a64, 0)) {
+    case 2:
+        func_ov009_02165a4c(10);
+        work->pendingNotify = 6;
+        break;
+    case 6:
+        return 4;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+// Brings NWM back down from the state it is in, one command at a time
+s32 func_02731d6c_unk(void) {
+    WCMWork *work = func_ov009_021657c8();
+    s32 result;
+
+    switch (func_027028b0()) {
+    case 1:
+        result = func_02702a98();
+        if (result == 0) {
+            func_ov009_02165a4c(1);
+            work->pendingNotify = 0;
+            return 0;
+        }
+        break;
+    case 2:
+        result = func_02702bfc(func_027320d0);
+        break;
+    case 3:
+        result = func_02702fe8(func_027320d0);
+        break;
+    case 4:
+        result = func_02703424(func_02732874);
+        break;
+    default:
+        work->resetPending = 1;
+        result = 4;
+        break;
+    }
+    switch (result) {
+    case 2:
+        func_ov009_02165a4c(13);
+        work->pendingNotify = 9;
+        break;
+    case 6:
+        return 4;
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        return 7;
+    }
+    return 3;
+}
+
+s32 func_02731e50_unk(const u8 *dst, const void *buffer, u16 byteLength, void (*completion)(s32 result)) {
+    WCMCpsifWork *global = func_ov009_02166378();
+    NWMRetCode result;
+
+    if (completion == NULL) {
+        result = func_027036a0(func_02732cac, dst, buffer, byteLength);
+    } else {
+        global->sendCompletion = completion;
+        result = func_027036a0(func_02732cec, dst, buffer, byteLength);
+    }
+    switch (result) {
+    case 2:
+        break;
+    case 3:
+    case 5:
+    case 6:
+    default:
+        return -5;
+    }
+    if (completion == NULL) {
+        OS_SleepThread(&global->sendQueue);
+        switch (global->sendStatus) {
+        case 0:
+            break;
+        case 1:
+        default:
+            return -5;
+        }
+    }
+    return byteLength;
+}
+
+// The channels that the DSi's wireless allows, from bit 0 for channel 1
+s32 func_02731f00_unk(void) {
+    return (u16)(func_02702980() >> 1);
+}
+
+// What wcm_wmif.c's reset request and its completion do, at once, since NWM has no reset command: ends the operation of
+// the state WCM is in
+void func_02731f14(void) {
+    WCMWork *work = func_ov009_021657c8();
+
+    if (work->resetPending == 0) {
+        // The reset is requested and completes here
+        work->resetPending = 1;
+        work->resetPending = 0;
+        work->nwmAssociationId = 0;
+        switch (work->state) {
+        case 5:
+        case 6:
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(1, NULL, 0, 0x29b);
+            break;
+        case 7:
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, NULL, 0, 0x2a1);
+            break;
+        case 8: {
+            u16 reason = work->nwmConnectionFailureReason;
+
+            work->nwmConnectionFailureReason = 0;
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(1, &work->connectBss, reason, 0x2ab);
+            break;
+        }
+        case 9:
+        case 12:
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, &work->connectBss, 1, 0x2b3);
+            break;
+        case 10:
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, &work->connectBss, 0, 0x2ba);
+            break;
+        case 13:
+            switch (func_02702fe8(func_027320d0)) {
+            case 2:
+                break;
+            case 6:
+                func_ov009_02165a4c(12);
+                func_ov009_021659b4(1, NULL, 0, 0x2c8);
+                break;
+            case 3:
+            default:
+                func_ov009_02165a4c(11);
+                func_ov009_021659b4(7, NULL, 0, 0x2d1);
+                break;
+            }
+            break;
+        default:
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, NULL, work->state, 0x2d7);
+            break;
+        }
+    }
+}
+
+// The callback of NWM's device and connection commands, which takes the startup, the cleanup and the connection on
+// to their next command
+static void func_027320d0(void *arg) {
+    const struct NWMCallback *event = arg;
+    s32 result = 13;
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (event->retcode) {
+    case 0:
+        switch (event->apiid) {
+        case 3:
+            result = func_02702f38(func_027320d0);
+            break;
+        case 4:
+            result = func_02702a98();
+            switch (result) {
+            case 0:
+                func_ov009_02165a4c(1);
+                func_ov009_021659b4(0, NULL, 0, 0x300);
+                break;
+            case 4:
+            default:
+                func_ov009_02165a4c(11);
+                func_ov009_021659b4(7, NULL, 0, 0x309);
+                break;
+            }
+            return;
+        case 5: {
+            u8 mac[6];
+
+            OS_GetMacAddress(mac);
+            func_ov009_021665cc(mac);
+        }
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, NULL, 0, 0x316);
+            return;
+        case 6:
+            result = func_02702bfc(func_027320d0);
+            break;
+        case 13:
+        case 18:
+            result = func_027035f4(func_027320d0,
+                                          (work->searchOption & WCM_OPTION_POWER_ACTIVE) == WCM_OPTION_POWER_ACTIVE
+                                              ? NWM_POWERMODE_ACTIVE
+                                              : NWM_POWERMODE_STANDARD);
+            break;
+        case 14:
+            result = func_0270379c(func_02732944, work->ioBuffer.nwm, sizeof(work->ioBuffer.nwm), 0);
+            break;
+        }
+        switch (result) {
+        case 2:
+            break;
+        case 6:
+            func_ov009_02165a4c(12);
+            func_ov009_021659b4(1, work->pendingNotify == WCM_NOTIFY_CONNECT ? &work->connectBss : NULL, 0, 0x34a);
+            break;
+        case 3:
+        default:
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, work->pendingNotify == WCM_NOTIFY_CONNECT ? &work->connectBss : NULL, 0, 0x353);
+            break;
+        }
+        break;
+    case 1:
+        func_ov009_02165a4c(12);
+        func_ov009_021659b4(1, work->pendingNotify == WCM_NOTIFY_CONNECT ? &work->connectBss : NULL, 0, 0x372);
+        break;
+    case 10:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, work->pendingNotify == WCM_NOTIFY_CONNECT ? &work->connectBss : NULL, 0, 0x378);
+        break;
+    case 3:
+    case 4:
+    default:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, work->pendingNotify == WCM_NOTIFY_CONNECT ? &work->connectBss : NULL, 0, 0x385);
+        break;
+    }
+}
+
+// The scan's callback: reports the access points found and scans the next channel, until the search stops
+static void func_027323a8(void *arg) {
+    const NWMStartScanCallback *event = arg;
+    s32 result = 13;
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (event->header.retcode) {
+    case 0:
+        if (work->state == 5) {
+            func_ov009_02165a4c(6);
+            func_ov009_021659b4(0, NULL, 0, 0x3a3);
+        }
+        switch (work->state) {
+        case 6:
+            work->pendingNotify = 7;
+            if (event->bssDescCount != 0) {
+                int i;
+
+                DC_InvalidateRange(work->nwmScanRequest.scanBuf, work->nwmScanRequest.scanBufSize);
+                for (i = 0; i < event->bssDescCount; i++) {
+                    func_ov009_02165d04((const WMBssDesc *)event->bssDesc[i], event->linkLevel[i]);
+                    func_ov009_021659f8(7, 0, (s32)event->bssDesc[i], arg, 0x3b9);
+                }
+            }
+            if ((work->searchOption & 0xc00000) == 0xc00000) {
+                u32 count = MATH_CountPopulation(work->searchOption & 0x3ffe);
+
+                if (count > 0) {
+                    if (work->nwmScanCount % count == 0) {
+                        func_ov009_021659f8(8, 0, work->nwmScanCount, NULL, 0x3c7);
+                    }
+                }
+            }
+            work->nwmScanRequest.channelList =
+                (u16)((1 << func_ov009_02165918((u16)(32 - MATH_CountLeadingZeros(event->channelList)))) >> 1);
+            DC_StoreRange(work->nwmScanRequest.scanBuf, work->nwmScanRequest.scanBufSize);
+            work->nwmScanCount++;
+            result = func_02703088(func_027323a8, &work->nwmScanRequest);
+            break;
+        case 7:
+            result = 2;
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, NULL, 0, 0x3d7);
+            break;
+        case 13:
+            func_02731f14();
+            return;
+        }
+        switch (result) {
+        case 2:
+            break;
+        case 6:
+            func_ov009_02165a4c(12);
+            func_ov009_021659b4(1, NULL, 0, 0x3f3);
+            break;
+        case 3:
+        default:
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, NULL, 0, 0x3fc);
+            break;
+        }
+        break;
+    case 1:
+        func_02731f14();
+        break;
+    case 3:
+    case 4:
+    default:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, NULL, 0, 0x40d);
+        break;
+    }
+}
+
+// The callback of the command 8: the connection made, or why it failed
+static void func_02732648(void *arg) {
+    const NWMConnectCallback *event = arg;
+    WCMWork *work = func_ov009_021657c8();
+    u16 nwmState = func_027028b0();
+
+    switch (event->header.retcode) {
+    case 0:
+        if (nwmState == 4) {
+            if (work->state == 12) {
+                func_ov009_02165a4c(8);
+                func_02731f14();
+                return;
+            }
+            work->nwmAssociationId = event->aid;
+            func_ov009_02165a4c(9);
+            func_ov009_021659b4(0, &work->connectBss, 0, 0x436);
+        } else {
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, &work->connectBss, 0, 0x43c);
+        }
+        break;
+    case 1:
+        switch (event->reason) {
+        case 1:
+        case 2:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+        case 12:
+        case 13:
+            switch (work->state) {
+            case 9:
+            case 10:
+                work->pendingNotify = 6;
+            case 8:
+                work->nwmAssociationId = 0;
+                switch (event->reason) {
+                case 5:
+                    work->nwmConnectionFailureReason = 13;
+                    break;
+                case 10:
+                case 11:
+                    work->nwmConnectionFailureReason = 15;
+                    break;
+                case 7:
+                    work->nwmConnectionFailureReason = 17;
+                    break;
+                }
+            case 12:
+                func_02731f14();
+                break;
+            }
+            break;
+        case 3:
+            if (work->state == 8) {
+                work->nwmAssociationId = 0;
+                func_02731f14();
+            }
+            break;
+        default:
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, &work->connectBss, event->reason, 0x481);
+            break;
+        }
+        break;
+    case 5:
+        func_ov009_02165a4c(8);
+        func_02731f14();
+        break;
+    case 3:
+    case 4:
+    default:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, &work->connectBss, 0, 0x495);
+        break;
+    }
+}
+
+// The disconnection's callback
+static void func_02732874(void *arg) {
+    const struct NWMCallback *event = arg;
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (event->retcode) {
+    case 0:
+        if (work->state == 12) {
+            func_ov009_02165a4c(10);
+            func_02731f14();
+        } else if (work->state == 13) {
+            func_02731f14();
+        } else {
+            work->nwmAssociationId = 0;
+            func_ov009_02165a4c(3);
+            func_ov009_021659b4(0, &work->connectBss, 0, 0x4bd);
+        }
+        break;
+    case 1:
+    case 3:
+        func_ov009_02165a4c(10);
+        func_02731f14();
+        break;
+    case 4:
+    default:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, &work->connectBss, 0, 0x4cf);
+        break;
+    }
+}
+
+// The callback of the receive buffer: once it is set, connects to the access point; then hands WCM each frame received
+static void func_02732944(void *arg) {
+    u8 index;
+    const NWMReceivingFrameCallback *event = arg;
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (event->header.retcode) {
+    case 0:
+        if (work->state == 12) {
+            func_ov009_02165a4c(8);
+            func_02731f14();
+            return;
+        }
+        if (work->connectBss.capaInfo & 2) {
+            index = 1;
+        } else {
+            index = 0;
+        }
+        switch (func_027032e0(func_02732648, index, (const NWMBlockParam *)&work->connectBss)) {
+        case 2:
+            break;
+        case 6:
+            func_ov009_02165a4c(12);
+            func_ov009_021659b4(1, &work->connectBss, 0, 0x506);
+            break;
+        case 3:
+        default:
+            func_ov009_02165a4c(11);
+            func_ov009_021659b4(7, &work->connectBss, 0, 0x50f);
+            break;
+        }
+        break;
+    case 11: {
+        s32 rssi;
+
+        DC_InvalidateRange(event->recvBuf, 0x620);
+        rssi = event->rssi;
+        if (rssi < 0) {
+            rssi = 0;
+        }
+        if (rssi > 0x100) {
+            rssi = 0xff;
+        }
+        func_ov009_02166804((u8)rssi);
+        func_ov009_02166358(event->recvBuf->sa, event->recvBuf->da, event->recvBuf->frame, event->length - 14);
+        break;
+    }
+    }
+}
+
+// The callback of the command 0xc, which readies the disconnection: disconnects
+static void func_02732a64(void *arg) {
+    const struct NWMCallback *event = arg;
+    WCMWork *work = func_ov009_021657c8();
+
+    switch (event->retcode) {
+    case 0:
+        if (work->state == 12) {
+            func_ov009_02165a4c(10);
+            func_02731f14();
+        } else {
+            switch (func_02703424(func_02732874)) {
+            case 2:
+                func_ov009_02165a4c(10);
+                work->pendingNotify = 6;
+                break;
+            case 6:
+                func_ov009_02165a4c(12);
+                func_ov009_021659b4(1, &work->connectBss, 0, 0x555);
+                break;
+            case 3:
+                func_ov009_02165a4c(10);
+                func_02731f14();
+                break;
+            default:
+                func_ov009_02165a4c(11);
+                func_ov009_021659b4(7, &work->connectBss, 0, 0x562);
+                break;
+            }
+        }
+        break;
+    case 1:
+    case 3:
+    default:
+        func_ov009_02165a4c(11);
+        func_ov009_021659b4(7, &work->connectBss, 0, 0x56e);
+        break;
+    }
+}
+
+// Fills in the scan request of a search
+static void func_02732b70(const u8 *bssid, const u8 *essid, u32 option) {
+    WCMWork *work = func_ov009_021657c8();
+    u16 channelTime;
+
+    func_ov009_021656d0(option);
+    work->nwmScanRequest.scanBuf = (NWMBssDesc *)work->ioBuffer.nwm;
+    work->nwmScanRequest.scanBufSize = sizeof(work->ioBuffer.nwm);
+    work->nwmScanRequest.channelList = (u16)((1 << func_ov009_02165918(0)) >> 1);
+    work->nwmScanRequest.scanType = (work->searchOption & 0x300000) == 0x300000;
+    channelTime = work->scanChannelTime;
+    if (channelTime == 0) {
+        channelTime = func_02702998(work->nwmScanRequest.scanType);
+    }
+    work->nwmScanRequest.channelDwellTime = channelTime;
+    if (bssid == NULL) {
+        MI_CpuCopy8(WCM_Bssid_Any, work->nwmScanRequest.bssid, 6);
+    } else {
+        MI_CpuCopy8(bssid, work->nwmScanRequest.bssid, 6);
+    }
+    if (essid == NULL || essid == WCM_Essid_Any) {
+        MI_CpuCopy8(WCM_Essid_Any, work->nwmScanRequest.ssid, 0x20);
+        work->nwmScanRequest.ssidLength = 0;
+        work->nwmScanRequest.ssidMatchLength = 0;
+    } else {
+        s32 i;
+
+        MI_CpuCopy8(essid, work->nwmScanRequest.ssid, 0x20);
+        for (i = 0; i < 0x20; i++) {
+            if (essid[i] == 0) {
+                break;
+            }
+        }
+        work->nwmScanRequest.ssidLength = (u16)i;
+        work->nwmScanRequest.ssidMatchLength = (u16)i;
+    }
+    work->nwmScanCount = 0;
+}
+
+// The callback of a frame sent while the sender waits for it
+static void func_02732cac(void *arg) {
+    WCMCpsifWork *global = func_ov009_02166378();
+    const struct NWMCallback *event = arg;
+
+    if (event->apiid != 11) {
+        return;
+    }
+    global->sendStatus = event->retcode;
+    if (event->retcode == 0) {
+        func_ov009_02165af4();
+    }
+    OS_WakeupThread(&global->sendQueue);
+}
+
+// The callback of a frame sent with a completion function, which it runs
+static void func_02732cec(void *arg) {
+    WCMCpsifWork *global = func_ov009_02166378();
+    const struct NWMCallback *event = arg;
+    s32 status;
+    void (*completion)(s32);
+
+    if (event->apiid != 11) {
+        return;
+    }
+    global->sendStatus = event->retcode;
+    if (event->retcode == 0) {
+        func_ov009_02165af4();
+    }
+    switch (global->sendStatus) {
+    case 0:
+        status = 0;
+        break;
+    case 1:
+    default:
+        status = -5;
+        break;
+    }
+    completion = global->sendCompletion;
+    global->sendCompletion = NULL;
+    func_ov009_02166594(&global->mutex);
+    completion(status);
+}
+
+#pragma section LTDMAIN end

@@ -1,0 +1,37 @@
+    .text       start:0x021b95a0 end:0x021bd3d4 kind:code align:32
+    .rodata     start:0x021bd3d4 end:0x021bd9e0 kind:rodata align:4
+    .ctor       start:0x021bd9e0 end:0x021bd9e0 kind:rodata align:4
+    .data       start:0x021bda00 end:0x021bda20 kind:data align:32
+    .bss        start:0x021bda20 end:0x021bda40 kind:bss align:32
+
+src/ov088/save_control_intr.c:
+    complete
+    .text       start:0x021bd25c end:0x021bd3d4
+    .data       start:0x021bda0c end:0x021bda20
+
+src/ov088/boot_screens.c:
+    complete
+    .text       start:0x021bc9c0 end:0x021bcccc
+    .rodata     start:0x021bd8e8 end:0x021bd974
+
+src/ov088/delete_save.c:
+    complete
+    .text       start:0x021bcccc end:0x021bd25c
+    .rodata     start:0x021bd974 end:0x021bd9e0
+    .bss        start:0x021bda20 end:0x021bda40
+
+src/ov088/startmenu.c:
+    complete
+    .text       start:0x021b9f94 end:0x021bc0e4
+    .rodata     start:0x021bd5d4 end:0x021bd818
+    .data       start:0x021bda00 end:0x021bda0c
+
+src/ov088/game_start.c:
+    complete
+    .text       start:0x021bc0e4 end:0x021bc9c0
+    .rodata     start:0x021bd818 end:0x021bd8e8
+
+src/ov088/title.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9f94
+    .rodata     start:0x021bd3d4 end:0x021bd5d4

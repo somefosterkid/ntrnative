@@ -1,0 +1,2 @@
+# lab: walk, A, menu
+down*f16@f10 down*f16@f30 up*f16@f50 up*f16@f70 a*f4@f100 a*f4@f140 x*f4@f180 b*f4@f220

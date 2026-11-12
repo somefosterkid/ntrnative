@@ -1,0 +1,142 @@
+// From libntr (MIT, https://github.com/cybervisi0n/libntr) at 1555d91: include/nitro/types.h, as it is (tools/port_lib.py)
+#ifndef NITRO_TYPES_H_
+#define NITRO_TYPES_H_
+
+#ifdef __MWERKS__
+    #pragma enumsalwaysint on
+#endif
+
+#define SDK_LITTLE_ENDIAN
+#define SDK_IS_LITTLE_ENDIAN    1
+#define SDK_IS_BIG_ENDIAN       0
+
+#ifdef SDK_ASM
+#else
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef SDK_BUILD_NX
+#include "switch.h"
+#endif
+
+#ifndef SDK_BUILD_NX
+typedef unsigned char u8;
+typedef unsigned short int u16;
+
+#if defined(SDK_BUILD_LINUX) || defined(SDK_BUILD_NX)
+typedef unsigned int u32;
+#else
+typedef unsigned long u32;
+#endif
+
+#ifdef SDK_HAS_NO_LONG_LONG_INT_
+    typedef unsigned __int64 u64;
+#else
+    typedef unsigned long long int u64;
+#endif
+
+typedef signed char s8;
+typedef signed short int s16;
+#if defined(SDK_BUILD_LINUX) || defined(SDK_BUILD_NX)
+typedef signed int s32;
+#else
+typedef signed long s32;
+#endif
+
+#ifdef SDK_HAS_NO_LONG_LONG_INT_
+    typedef signed __int64 s64;
+#else
+    typedef signed long long int s64;
+#endif
+
+typedef volatile u8 vu8;
+typedef volatile u16 vu16;
+typedef volatile u32 vu32;
+typedef volatile u64 vu64;
+
+typedef volatile s8 vs8;
+typedef volatile s16 vs16;
+typedef volatile s32 vs32;
+typedef volatile s64 vs64;
+#endif
+
+/*
+* uPtr Type
+*
+* This was not originally in the SDK. Use it wherever pointer data is being stored
+* as u32. It will always be the correct size to store pointers, and should be equivalent to u32 on ARM.
+*/
+#ifdef SDK_32BIT
+typedef u32 uPtr;
+#endif
+#ifdef SDK_64BIT
+typedef u64 uPtr;
+#endif
+
+typedef float f32;
+typedef volatile f32 vf32;
+
+typedef u8 REGType8;
+typedef u16 REGType16;
+typedef u32 REGType32;
+typedef u64 REGType64;
+
+typedef vu8 REGType8v;
+typedef vu16 REGType16v;
+typedef vu32 REGType32v;
+typedef vu64 REGType64v;
+
+#ifndef SDK_BOOL_ALREADY_DEFINED_
+    #ifndef BOOL
+        typedef int BOOL;
+    #endif
+#endif
+
+#ifndef TRUE
+    #define TRUE     1
+#endif
+
+#ifndef FALSE
+    #define FALSE    0
+#endif
+
+#ifndef NULL
+    #ifdef  __cplusplus
+        #define NULL    0
+    #else
+        #define NULL    ((void *)0)
+    #endif
+#endif
+
+#if defined(SDK_CW) || defined(__MWERKS__)
+    #ifndef ATTRIBUTE_ALIGN
+        #define ATTRIBUTE_ALIGN(num) __attribute__ ((aligned(num)))
+    #endif
+#endif
+
+#if defined(SDK_CW) || defined(__MWERKS__)
+    #define SDK_WEAK_SYMBOL __declspec(weak)
+#elif defined(SDK_PRODG)
+    #define SDK_WEAK_SYMBOL
+#elif defined(SDK_PORT)
+    #define SDK_WEAK_SYMBOL
+#endif
+
+#ifdef SDK_CW_FORCE_EXPORT_SUPPORT
+    #define SDK_FORCE_EXPORT __declspec(force_export)
+#else
+    #define SDK_FORCE_EXPORT
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#define SDK_INLINE      static inline
+#define SDK_DECL_INLINE static
+
+#endif

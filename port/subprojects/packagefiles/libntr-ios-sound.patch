@@ -1,0 +1,505 @@
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -4,6 +4,7 @@
+ #include <simulator/config/sim_config.h>
+ #include <SDL2/SDL.h>
+ #include <math.h>
++#include <time.h>
+ 
+ #include "blip_buf.h"
+ 
+@@ -168,24 +169,51 @@
+     }
+ }
+ 
+-// one DS-rate frame for the ring (after the time-stretch)
+-static void RingOut(s16 l, s16 r)
++// measuring switches (libntr-ios-sound.patch): BWPORT_AUDIO_TONE=HZ replaces every frame the ring takes by a sine (phase continuous
++// in the frames taken, as the music bus is), so BWPORT_AUDIO_OUT shows what the ring and its rate control do to a steady pitch;
++// BWPORT_AUDIO_MUTE=1 plays silence (BWPORT_AUDIO_OUT still gets the real output); BWPORT_AUDIO_SLOW=PCT makes the frame tick
++// PCT percent slower than the DS's 59.8261 Hz (a device that cannot keep up)
++static double s_toneInc = 0.0, s_tonePh = 0.0, s_tonePushInc = 0.0, s_tonePushPh = 0.0;
++static int s_mute = 0;
++static double s_slowPct = 0.0;
++
++static s32 ClampS16(s32 v) { return v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
++
++// ---- bw-port (libntr-ios-sound.patch): the ring's fill ----
++// The producer (a game frame's 547 samples at once, or a time-stretched block) and the callback (~171 DS frames every 5 ms)
++// meet in the ring. The fill is held near SND_TARGET by the callback's playback rate (RateUpdate, slow and small: it was the
++// raw fill times 6 %, which wobbled the pitch of everything by +-25 cents with the frame rhythm and pinned it 85 cents sharp
++// at +5 % while the ring was full). What the rate cannot absorb is cut: when the fill reaches SND_CAP (the game runs uncapped:
++// Max fast forward, Frame rate Unlimited; or the device stopped taking samples) the incoming frames are skipped until the fill
++// is back at SND_RESUME, and the first SND_XF frames after a skip are cross-faded into the last ones in the ring, so the
++// sound is pieces of ~60 ms joined smoothly (single frames used to be dropped: 5 ms slices with hard joins, a buzz). The
++// music bus (s_split) takes a frame only for a frame appended, so the music stays continuous through the skips.
++#define SND_CAP 3100u
++#define SND_RESUME 1100u
++#define SND_XF 128
++static s16 s_ringDry[SND_RING][2]; // each ring frame without the music bus's share (what a cross-fade fades out)
++static int s_skip = 0;             // frames are being skipped
++static int s_xf = 0;               // frames of cross-fade left
++static u64 s_skips = 0;
++
++// whether the next frame goes into the ring (appended or cross-faded)
++static int RingTakes(void)
+ {
+-    if(s_ringWr - s_ringRd >= SND_RING - 1) {
+-        s_ringDropped++;
+-        return;
+-    }
+-    if(s_wav) { // libntr-mu83.patch: what the ring takes (a frame dropped at fast forward is not in the file)
+-        s16 f[2] = {l, r};
+-        fwrite(f, 4, 1, s_wav);
+-        s_wavFrames++;
++    u64 fill = s_ringWr - s_ringRd;
++    if(!s_skip && fill >= SND_CAP) {
++        s_skip = 1;
++        s_skips++;
+     }
+-    s_ring[s_ringWr % SND_RING][0] = l;
+-    s_ring[s_ringWr % SND_RING][1] = r;
+-    s_ringWr++;
++    if(s_skip && fill <= SND_RESUME) {
++        s_skip = 0;
++        s_xf = SND_XF;
++    }
++    return !s_skip && fill < SND_RING - 1;
+ }
+ 
+-static s32 ClampS16(s32 v) { return v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
++// one DS-rate frame for the ring (after the time-stretch); aMus: the music bus's frame goes with it
++static void RingOutX(s16 l, s16 r, int aMus);
++static void RingOut(s16 l, s16 r) { RingOutX(l, r, 0); }
+ 
+ // ---- bw-port (libntr-sp76.patch): Speed > 1 ----
+ // At Speed S the game ticks S times as fast, so the sound side makes S times as many samples a second as the device
+@@ -312,9 +340,44 @@
+     s_musN += SIM_soundBackend->busRun(&s_mus[have][0], want);
+ }
+ 
+-static void RingOutM(s16 l, s16 r)
++static void RingOutM(s16 l, s16 r) { RingOutX(l, r, s_split); }
++
++static void RingOutX(s16 l, s16 r, int aMus)
+ {
+-    if(s_split && s_ringWr - s_ringRd < SND_RING - 1) { // the ring takes this frame: its music frame goes with it
++    if(!RingTakes()) {
++        s_ringDropped++;
++        return;
++    }
++    if(s_toneInc > 0.0) { // (the tone stands for the music: continuous in the frames appended, no cross-fade)
++        if(s_xf > 0) {
++            s_xf--;
++            return;
++        }
++        l = r = (s16)lrint(8000.0 * sin(s_tonePh));
++        s_tonePh += s_toneInc;
++        if(s_tonePh > 6.283185307179586) {
++            s_tonePh -= 6.283185307179586;
++        }
++        aMus = 0;
++    }
++    if(s_xf > 0) {
++        u64 j = s_ringWr - (u64)s_xf;
++        if(j > s_ringRd) { // (frames the callback already took are not faded)
++            int i = SND_XF - s_xf;
++            float w = 0.5f - 0.5f * cosf(3.14159265f * ((float)i + 0.5f) / (float)SND_XF);
++            s16 * o = s_ring[j % SND_RING];
++            s16 * d = s_ringDry[j % SND_RING];
++            o[0] = (s16)ClampS16((s32)lrintf((float)o[0] + w * (float)(l - d[0])));
++            o[1] = (s16)ClampS16((s32)lrintf((float)o[1] + w * (float)(r - d[1])));
++            d[0] = (s16)lrintf((float)d[0] + w * (float)(l - d[0]));
++            d[1] = (s16)lrintf((float)d[1] + w * (float)(r - d[1]));
++            s_xf--;
++            return;
++        }
++        s_xf = 0;
++    }
++    s16 dl = l, dr = r;
++    if(aMus) { // the ring takes this frame: its music frame goes with it
+         if(s_musRd >= s_musN) {
+             MusNeed(1);
+         }
+@@ -324,7 +387,16 @@
+             s_musRd++;
+         }
+     }
+-    RingOut(l, r);
++    if(s_wav) { // libntr-mu83.patch: what the ring takes (a frame dropped at fast forward is not in the file)
++        s16 f[2] = {l, r};
++        fwrite(f, 4, 1, s_wav);
++        s_wavFrames++;
++    }
++    s_ring[s_ringWr % SND_RING][0] = l;
++    s_ring[s_ringWr % SND_RING][1] = r;
++    s_ringDry[s_ringWr % SND_RING][0] = dl;
++    s_ringDry[s_ringWr % SND_RING][1] = dr;
++    s_ringWr++;
+ }
+ 
+ // the time-stretched blocks the input allows
+@@ -416,6 +488,13 @@
+ // one DS-rate frame made by the sound side
+ static void RingPush(s16 l, s16 r)
+ {
++    if(s_tonePushInc > 0.0) { // BWPORT_AUDIO_TONEPUSH=HZ: the sine in the game's time, before the stretch and the ring's cuts
++        l = r = (s16)lrint(8000.0 * sin(s_tonePushPh));
++        s_tonePushPh += s_tonePushInc;
++        if(s_tonePushPh > 6.283185307179586) {
++            s_tonePushPh -= 6.283185307179586;
++        }
++    }
+     if(st_S > 1) {
+         st_in[st_inN % ST_BUF][0] = l;
+         st_in[st_inN % ST_BUF][1] = r;
+@@ -488,6 +567,71 @@
+     }
+ }
+ 
++// libntr-ios-sound.patch: the playback rate's correction, from the fill after each frame tick (the audio locked). The fill is
++// low-passed (two poles at 0.2 s: the frame rhythm's 547-frame sawtooth is 70 dB down at 60 Hz) and drives a PI controller:
++// the proportional part at most +-0.25 % (4 cents), the integral part follows a producer that is really slower or faster
++// (a device that cannot hold 60 fps) by at most 0.3 % a second (and 0.1 % for a dry ring while the game ran), up to +-3 %. So
++// the pitch never moves faster than a slow glide; a fill far off is cut (SND_CAP above) or played dry (the callback's fade
++// below) instead of being corrected by pitch.
++static double s_rateAdj = 0.0, s_rateI = 0.0, s_lp1 = 0.0, s_lp2 = 0.0, s_tickT = 0.0;
++static int s_wasUnpaced = 0;
++#define SND_TPOST (SND_TARGET + 273.0) // the fill right after a frame's samples (the target is the mean)
++
++static void RateUpdate(void)
++{
++    struct timespec ts;
++    clock_gettime(CLOCK_MONOTONIC, &ts);
++    double now = (double)ts.tv_sec + ts.tv_nsec * 1e-9;
++    double dt = s_tickT > 0.0 ? now - s_tickT : 1.0;
++    s_tickT = now;
++    double fill = (double)(s_ringWr - s_ringRd);
++    int unpaced = SIM_FastForwarding();
++    static u64 sUnder = 0;
++    if(s_ringUnderruns != sUnder) { // dry while the game ran at its pace (not a pause, not one long stall): it is slower than the rate
++        sUnder = s_ringUnderruns;
++        if(!unpaced && dt < 0.1 && s_rateI > -0.03) {
++            s_rateI -= 0.001;
++        }
++    }
++    dt = dt < 0.0 ? 0.0 : dt > 0.1 ? 0.1 : dt;
++    if(s_wasUnpaced && !unpaced && fill > SND_TPOST + 300.0 && !s_skip) { // back from Max: down to the target at once
++        s_skip = 1;
++        s_skips++;
++    }
++    s_wasUnpaced = unpaced;
++    static int sMode = -1; // a speed change starts the integral afresh (what it learnt is the old speed's shortfall: after a
++    int mode = sConfigPtr->speed * 2 + unpaced; // 4x the game could not hold it glided back for seconds)
++    if(mode != sMode) {
++        sMode = mode;
++        s_rateI = 0.0;
++    }
++    if(unpaced || s_skip) { // (the fill says nothing about the rates now)
++        s_lp1 = s_lp2 = fill;
++        s_rateAdj = s_rateI;
++        return;
++    }
++    if(!s_ringPrimed) {
++        s_rateAdj = s_rateI;
++        return;
++    }
++    double a = dt / 0.2;
++    a = a > 1.0 ? 1.0 : a;
++    s_lp1 += a * (fill - s_lp1);
++    s_lp2 += a * (s_lp1 - s_lp2);
++    if(s_lp2 > SND_TPOST + 600.0) { // lastingly too full (a burst after a stall): cut it rather than play it fast for seconds
++        s_skip = 1;
++        s_skips++;
++        return;
++    }
++    double e = (s_lp2 - SND_TPOST) / SND_TARGET;
++    e = e > 1.0 ? 1.0 : e < -1.0 ? -1.0 : e;
++    s_rateI += 0.003 * e * dt;
++    s_rateI = s_rateI > 0.03 ? 0.03 : s_rateI < -0.03 ? -0.03 : s_rateI;
++    double p = 0.018 * e;
++    p = p > 0.0025 ? 0.0025 : p < -0.0025 ? -0.0025 : p;
++    s_rateAdj = s_rateI + p;
++}
++
+ extern "C" int SIM_Audio_FrameClock(void) { return s_frameClock; }
+ 
+ // the frames BWPORT_AUDIO_WAV holds so far (BWPORT_SNDLOG prints it with each sequence start, to find the music in the WAV)
+@@ -502,9 +646,26 @@
+ 
+ extern "C" void SIM_Audio_FrameTick(void)
+ {
++    struct timespec lockT0, lockT1; // BWPORT_AUDIOLOG: the longest the audio was locked by a frame tick, each second
++    static double sLockMax = 0.0;
+     if(!s_frameClock) {
+         return;
+     }
++    if(s_slowPct > 0.0) { // BWPORT_AUDIO_SLOW: ticks no closer than the slowed period (deadlines, so the game's own work is inside it)
++        static double sNext = 0.0;
++        struct timespec ts;
++        clock_gettime(CLOCK_MONOTONIC, &ts);
++        double now = (double)ts.tv_sec + ts.tv_nsec * 1e-9, per = (1.0 + s_slowPct / 100.0) / 59.8261;
++        if(sNext > now && sNext - now < 1.0) {
++            double w = sNext - now;
++            ts.tv_sec = (time_t)w;
++            ts.tv_nsec = (long)((w - (double)ts.tv_sec) * 1e9);
++            nanosleep(&ts, NULL);
++            sNext += per;
++        } else {
++            sNext = now + per;
++        }
++    }
+     SIM_PxiDrain();
+     s_frameCyc += SND_CYC_FRAME;
+     {
+@@ -521,11 +682,18 @@
+         int busOk = busEnv && SIM_soundBackendOn && SIM_soundBackend->busRun != NULL && SIM_soundBackend->busSplit != NULL;
+         int wantSplit = (sConfigPtr->musicNormalSpeed && (want > 1 || SIM_FastForwarding()) && busOk) ? 1 : 0;
+         int slow = (sConfigPtr->musicNormalSpeed && want > 1 && !busOk) ? want : 1;
++        static int sMode = -1; // BWPORT_AUDIOLOG: where each speed change lands in BWPORT_AUDIO_OUT
++        int mode = want * 2 + (SIM_FastForwarding() ? 1 : 0);
++        if(s_audioLog > 0 && mode != sMode) {
++            fprintf(stderr, "audio: mode speed %d unpaced %d at out frame %llu\n", want, mode & 1, (unsigned long long)s_outFrames);
++        }
++        sMode = mode;
+         if(slow != s_musicSlow) {
+             s_musicSlow = slow;
+             SIM_Snd_SetMusicSlow(slow);
+         }
+         SDL_LockAudio();
++        clock_gettime(CLOCK_MONOTONIC, &lockT0);
+         if(want != st_S || wantSplit != s_split) {
+             if(st_S > 1 && (want == 1 || wantSplit != s_split)) {
+                 StDisengage(); // with the bus as it was: the tail it plays has the music added
+@@ -557,13 +725,19 @@
+         }
+     }
+     SoundAdvance(s_frameCyc); // nothing when a wait for a command (WaitPump) ran the sound ahead of the frames
++    RateUpdate();
+     if(s_audioLog < 0) {
+         s_audioLog = getenv("BWPORT_AUDIOLOG") != NULL;
+     }
++    clock_gettime(CLOCK_MONOTONIC, &lockT1);
++    double lockMs = (double)(lockT1.tv_sec - lockT0.tv_sec) * 1e3 + (double)(lockT1.tv_nsec - lockT0.tv_nsec) * 1e-6;
++    sLockMax = lockMs > sLockMax ? lockMs : sLockMax;
+     if(s_audioLog && (s_frameCyc / SND_CYC_FRAME) % 60 == 0) {
+-        fprintf(stderr, "audio: frame %llu ring %llu dropped %llu underruns %llu\n",
++        fprintf(stderr, "audio: frame %llu ring %llu dropped %llu underruns %llu skips %llu rate %+.3f%% (i %+.3f%%) locked %.2f ms\n",
+                 (unsigned long long)(s_frameCyc / SND_CYC_FRAME), (unsigned long long)(s_ringWr - s_ringRd),
+-                (unsigned long long)s_ringDropped, (unsigned long long)s_ringUnderruns);
++                (unsigned long long)s_ringDropped, (unsigned long long)s_ringUnderruns, (unsigned long long)s_skips,
++                s_rateAdj * 100.0, s_rateI * 100.0, sLockMax);
++        sLockMax = 0.0;
+     }
+     SDL_UnlockAudio();
+ }
+@@ -658,43 +832,94 @@
+     }
+ }
+ 
+-// the callback, frame clock: the ring played at the device's rate (SDL holds the audio lock)
++// the callback, frame clock: the ring played at the device's rate (SDL holds the audio lock).
++// libntr-ios-sound.patch: the rate is RateUpdate's. A dry ring used to cut to zero mid-buffer and, refilled, replay the 64
++// samples the interpolator held from before the gap: now the output fades from its last value to zero in 1.5 ms, the
++// interpolator restarts from silence and the output fades in over 3 ms (s_gain). SIM_Audio_Pause fades out and in the same way.
++static float s_gain = 1.0f, s_gainTarget = 1.0f; // the output's gain, moving to the target by 1/128 a sample
++static float s_lastOut[2] = {0.0f, 0.0f};        // the last frame played (before the volume)
++static int s_dryLeft = 0;                        // samples of the fade after a dry ring left
++
++static void RingSilence(s16 * aOut, int aFrom, int aFrames)
++{
++    for(int i = aFrom; i < aFrames; i++) {
++        float g = s_dryLeft > 0 ? (float)s_dryLeft-- / 65.0f : 0.0f;
++        aOut[2 * i] = (s16)lrintf(s_lastOut[0] * g);
++        aOut[2 * i + 1] = (s16)lrintf(s_lastOut[1] * g);
++    }
++}
++
+ static void PlayRing(s16 * aOut, int aFrames, int aVolume)
+ {
+     if(!s_sqReady) {
+         SqInit();
+     }
+-    double fill = (double)(s_ringWr - s_ringRd);
+-    double adj = (fill - SND_TARGET) / SND_TARGET * 0.06;
+-    adj = adj > 0.05 ? 0.05 : adj < -0.05 ? -0.05 : adj;
+-    double step = SND_DS_RATE / (double)s_devRate * (1.0 + adj);
++    double step = SND_DS_RATE / (double)s_devRate * (1.0 + s_rateAdj);
++    float vol = aVolume >= 127 ? 1.0f : (float)aVolume / 127.0f;
+ 
+     if(!s_ringPrimed) {
+         if(s_ringWr - s_ringRd >= SND_PRIME) {
+             s_ringPrimed = 1;
++            memset(s_sqHist, 0, sizeof s_sqHist);
++            s_ringFrac = 1.0;
++            s_gain = 0.0f;
+         } else {
+-            memset(aOut, 0, (size_t)aFrames * 4);
++            RingSilence(aOut, 0, aFrames);
+             return;
+         }
+     }
+     for(int i = 0; i < aFrames; i++) {
+         while(s_ringFrac >= 1.0) {
+             if(s_ringRd >= s_ringWr) {
+-                // dry: silence until the ring has filled again
++                // dry: the fade, then silence until the ring has filled again
+                 s_ringPrimed = 0;
+                 s_ringUnderruns++;
+-                memset(aOut + 2 * i, 0, (size_t)(aFrames - i) * 4);
++                s_dryLeft = 64;
++                RingSilence(aOut, i, aFrames);
+                 return;
+             }
+             SqPush(s_ring[s_ringRd % SND_RING][0], s_ring[s_ringRd % SND_RING][1]);
+             s_ringRd++;
+             s_ringFrac -= 1.0;
+         }
+-        SqOut(s_ringFrac, aVolume >= 127 ? 1.0f : (float)aVolume / 127.0f, aOut + 2 * i);
++        if(s_gain != s_gainTarget) {
++            s_gain += s_gain < s_gainTarget ? 1.0f / 128.0f : -1.0f / 128.0f;
++            if(fabsf(s_gain - s_gainTarget) < 0.5f / 128.0f) {
++                s_gain = s_gainTarget;
++            }
++        }
++        SqOut(s_ringFrac, vol * s_gain, aOut + 2 * i);
++        s_lastOut[0] = (float)aOut[2 * i];
++        s_lastOut[1] = (float)aOut[2 * i + 1];
+         s_ringFrac += step;
+     }
+ }
+ 
++// libntr-ios-sound.patch: SDL_PauseAudio with a fade (the settings sheet, the background): pausing mid-waveform clicked
++extern "C" void SIM_Audio_Pause(int aPause)
++{
++    if(!aPause) {
++        SDL_LockAudio();
++        s_gainTarget = 1.0f;
++        SDL_UnlockAudio();
++        SDL_PauseAudio(0);
++        return;
++    }
++    SDL_LockAudio();
++    s_gainTarget = 0.0f;
++    SDL_UnlockAudio();
++    for(int t = 0; s_frameClock && t < 40 && SDL_GetAudioStatus() == SDL_AUDIO_PLAYING; t++) { // (a callback or two)
++        SDL_LockAudio();
++        int done = s_gain <= 0.0f || !s_ringPrimed;
++        SDL_UnlockAudio();
++        if(done) {
++            break;
++        }
++        SDL_Delay(1);
++    }
++    SDL_PauseAudio(1);
++}
++
+ void SIM_Audio_Init(int aAudioFrequency)
+ {
+     sConfigPtr = SIM_GetConfigPtr();
+@@ -732,6 +957,12 @@
+         if(getenv("BWPORT_SNDPHASE")) {
+             s_nextTick += (u64)atoll(getenv("BWPORT_SNDPHASE"));
+         }
++        const char * tn = getenv("BWPORT_AUDIO_TONE");
++        s_toneInc = tn != NULL ? atof(tn) * 6.283185307179586 / SND_DS_RATE : 0.0;
++        s_mute = getenv("BWPORT_AUDIO_MUTE") != NULL;
++        tn = getenv("BWPORT_AUDIO_TONEPUSH");
++        s_tonePushInc = tn != NULL ? atof(tn) * 6.283185307179586 / SND_DS_RATE : 0.0;
++        s_slowPct = getenv("BWPORT_AUDIO_SLOW") != NULL ? atof(getenv("BWPORT_AUDIO_SLOW")) : 0.0;
+         const char * ow = getenv("BWPORT_AUDIO_OUT");
+         if(s_frameClock && ow != NULL && *ow != 0 && (s_outWav = fopen(ow, "wb")) != NULL) {
+             WavHeaderR(s_outWav, 0, s_devRate);
+@@ -751,7 +982,38 @@
+         SDL_AudioQuit();
+         SDL_AudioInit("dummy");
+     }
+-    if(SDL_OpenAudio(&s_requestedAudioSpec, NULL) < 0) {
++    // libntr-ios-sound.patch: with the frame clock the ring's resampler goes straight to the device's own rate. Opened at a
++    // fixed 44.1 kHz, SDL converted again on a 48 kHz route (iPhones, Bluetooth, most Macs) with its own resampler: two
++    // conversions in a row. Ask for the default device's rate and take the rate SDL gives (iOS: the session's); a device
++    // that would change the format or the channels is opened as before (SDL converts).
++    int opened = -1;
++    if(s_frameClock) {
++#if SDL_VERSION_ATLEAST(2, 24, 0)
++        SDL_AudioSpec d;
++        if(SDL_GetDefaultAudioInfo(NULL, &d, 0) == 0 && d.freq >= 22050 && d.freq <= 192000) {
++            s_requestedAudioSpec.freq = d.freq;
++            s_requestedAudioSpec.samples = (Uint16)(((int)((double)d.freq * 0.005215419) + 1) & ~1);
++        }
++#endif
++        opened = SDL_OpenAudio(&s_requestedAudioSpec, &s_actualAudioSpec);
++        if(opened == 0 && (s_actualAudioSpec.format != AUDIO_S16LSB || s_actualAudioSpec.channels != 2 ||
++                           s_actualAudioSpec.freq < 8000)) {
++            SDL_CloseAudio();
++            opened = -1;
++        }
++        if(opened == 0) {
++            s_devRate = (unsigned)s_actualAudioSpec.freq;
++            if(s_outWav) {
++                WavHeaderR(s_outWav, 0, s_devRate);
++            }
++        } else {
++            s_requestedAudioSpec.freq = aAudioFrequency;
++            s_requestedAudioSpec.samples = (Uint16)(((int)((double)aAudioFrequency * 0.005215419) + 1) & ~1);
++        }
++        printf("audio: device %d Hz, %d frames a callback\n", opened == 0 ? s_actualAudioSpec.freq : aAudioFrequency,
++               opened == 0 ? s_actualAudioSpec.samples : s_requestedAudioSpec.samples);
++    }
++    if(opened != 0 && SDL_OpenAudio(&s_requestedAudioSpec, NULL) < 0) {
+         printf("SDL Error %s\n", SDL_GetError());
+         // bw-port: no output device (a server, a remote session without audio). The sound driver runs inside this
+         // callback, so without it the game waits forever on a cry or a jingle; SDL's dummy driver calls it at the
+@@ -785,6 +1047,9 @@
+                 WavHeaderR(s_outWav, s_outFrames, s_devRate);
+                 fflush(s_outWav);
+             }
++        }
++        if(s_mute) {
++            memset(stream, 0, (size_t)len);
+         }
+         return;
+     }
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -2665,18 +2665,20 @@
+   }
+   sTouchPadPrev = now;
+ }
++
++extern "C" void SIM_Audio_Pause(int aPause); // sim_audio.cpp (libntr-ios-sound.patch): SDL_PauseAudio with a fade
+ 
+ // bw-port (libntr-ios-touch.patch): the app is in the background (iOS kills an app that issues OpenGL ES commands there): no
+ // drawing, the game and the sound stand still until it is back
+ static void SimTouchBackgroundWait(void) {
+   if (!SimTouch_Active() || !SimTouch_Background()) return;
+   fprintf(stderr, "bwport: in the background: paused\n");
+-  SDL_PauseAudio(1);
++  SIM_Audio_Pause(1);
+   while (SimTouch_Background()) {
+     SDL_PumpEvents();
+     SDL_Delay(50);
+   }
+-  SDL_PauseAudio(0);
++  SIM_Audio_Pause(0);
+   fprintf(stderr, "bwport: back in the foreground\n");
+ }
+ 
+@@ -2696,7 +2698,7 @@
+   if (bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
+   if (!SimTouch_MenuOpen()) return;
+   fprintf(stderr, "bwport: settings open: paused\n");
+-  SDL_PauseAudio(1);
++  SIM_Audio_Pause(1);
+   bwport_ios_settings_present();
+   while (bwport_ios_settings_is_open() && !SimTouch_Background()) {
+     bwport_ios_settings_run(0.1);  // the run loop, asleep between its events (was a pump every 10 ms: the sheet judders)
+@@ -2708,7 +2710,7 @@
+   }
+   SDL_FlushEvents(SDL_FINGERDOWN, SDL_FINGERMOTION);
+   SimTouch_MenuClose();
+-  SDL_PauseAudio(0);
++  SIM_Audio_Pause(0);
+   fprintf(stderr, "bwport: settings closed: resumed\n");
+ #else
+   if (SimTouch_MenuOpen()) SimTouch_MenuClose();

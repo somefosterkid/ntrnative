@@ -1,0 +1,240 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -327,6 +327,112 @@
+ static double sSwCost, sSwPrevCost;
+ static int sSwActive, sSwW, sSwH;
+ 
++// (rz68): what a step also measures. The picture's mean (a black picture fails: the maintainer's "screen goes black
++// after several Resolution changes"), the process memory, the live GL objects of the context (every id is asked with
++// glIs*, so a leak anywhere counts, ours or libntr's) and the bytes of the live textures. A step whose renderer and
++// Resolution were seen before must not cost more, hold more memory or more GL objects than the first time did.
++static int sSwStart = 60;    // BWPORT_SWITCH_START=N: frames the game runs before the first step (to reach a bright screen)
++static double sSwRefMean = -1; // the first step's picture mean
++static bool sSwMeanWanted;   // the next picture drawn is measured
++static double sSwMean = -1;  // mean of R, G, B over the last measured picture (0..255); -1: none
++static long sSwPicPx;
++static void SwMeanRgba(const unsigned char *p, int w, int h) {
++  unsigned long long sum = 0, n = 0;
++  size_t total = (size_t)w * h;
++  for (size_t i = 0; i < total; i += 3) {  // every third pixel
++    sum += p[i * 4] + p[i * 4 + 1] + p[i * 4 + 2];
++    n += 3;
++  }
++  sSwMean = n ? (double)sum / n : 0;
++  sSwPicPx = (long)total;
++}
++static void SwMeanTex(unsigned tex, int w, int h) {
++  if (w <= 0 || h <= 0) return;
++  unsigned char *buf = (unsigned char *)malloc((size_t)w * h * 4);
++  if (buf == NULL) return;
++  GLint prevRead = 0;
++  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
++  GLuint fbo = 0;
++  glGenFramebuffers(1, &fbo);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
++  glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
++  GLint prevPack = 4;
++  glGetIntegerv(GL_PACK_ALIGNMENT, &prevPack);
++  glPixelStorei(GL_PACK_ALIGNMENT, 1);
++  if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
++    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, buf);
++    SwMeanRgba(buf, w, h);
++  }
++  glPixelStorei(GL_PACK_ALIGNMENT, prevPack);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)prevRead);
++  glDeleteFramebuffers(1, &fbo);
++  free(buf);
++}
++
++static void SwMemory(double *rssMB, double *privMB) {
++  *rssMB = *privMB = 0;
++#ifdef SDK_BUILD_WIN64
++  struct PMC { DWORD cb, faults; SIZE_T peak, ws, qpp, qp, qnpp, qnp, pf, ppf; } pmc;
++  memset(&pmc, 0, sizeof pmc);
++  pmc.cb = sizeof pmc;
++  typedef BOOL (WINAPI *Fn)(HANDLE, void *, DWORD);
++  Fn fn = (Fn)GetProcAddress(GetModuleHandleA("kernel32.dll"), "K32GetProcessMemoryInfo");
++  if (fn != NULL && fn(GetCurrentProcess(), &pmc, sizeof pmc)) {
++    *rssMB = pmc.ws / 1048576.0;
++    *privMB = pmc.pf / 1048576.0;
++  }
++#else
++  FILE *f = fopen("/proc/self/statm", "r");
++  if (f != NULL) {
++    long size = 0, res = 0;
++    if (fscanf(f, "%ld %ld", &size, &res) == 2) {
++      *privMB = size * 4096.0 / 1048576.0;
++      *rssMB = res * 4096.0 / 1048576.0;
++    }
++    fclose(f);
++  }
++#endif
++}
++
++struct SwGLCensus { int tex, fbo, buf, prog, vao, rbo; double texMB; };
++static SwGLCensus SwCensus(void) {
++  SwGLCensus c = {};
++  while (glGetError() != GL_NO_ERROR) {}
++  GLint prevTex = 0;
++  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++  // ids are small numbers in every driver we run on (the context's own count); 8192 is far past what the game makes
++  for (GLuint id = 1; id < 8192; id++) {
++    if (glIsTexture(id)) {
++      c.tex++;
++      glBindTexture(GL_TEXTURE_2D, id);
++      GLint w = 0, h = 0, bits = 0, v = 0;
++      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
++      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
++      static const GLenum sizes[] = {GL_TEXTURE_RED_SIZE, GL_TEXTURE_GREEN_SIZE, GL_TEXTURE_BLUE_SIZE, GL_TEXTURE_ALPHA_SIZE,
++                                     GL_TEXTURE_DEPTH_SIZE, GL_TEXTURE_STENCIL_SIZE};
++      for (GLenum s : sizes) {
++        v = 0;
++        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, s, &v);
++        bits += v;
++      }
++      c.texMB += (double)w * h * (bits / 8.0) / 1048576.0;
++    }
++    if (glIsFramebuffer(id)) c.fbo++;
++    if (glIsBuffer(id)) c.buf++;
++    if (glIsProgram(id)) c.prog++;
++    if (glIsVertexArray(id)) c.vao++;
++    if (glIsRenderbuffer(id)) c.rbo++;
++  }
++  glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++  while (glGetError() != GL_NO_ERROR) {}
++  return c;
++}
++
++struct SwSeen { double cost, rss, texMB; int objs; };
++static std::vector<std::pair<int, SwSeen>> sSwSeen;
++struct SwHist { int res; double rss; };
++static std::vector<SwHist> sSwHist;  // every step's Resolution and resident memory
++
+ static void SwOut(const char *fmt, ...) {
+   char line[400];
+   va_list ap;
+@@ -348,6 +454,7 @@
+   sSwFrame = 0;
+   sSwN = 0;
+   sSwCost = 0;
++  sSwMean = -1;
+ }
+ 
+ static void SIM_SwitchTest(void) {
+@@ -371,6 +478,7 @@
+       sSwSteps.push_back(st);
+     }
+     free(dup);
++    if (getenv("BWPORT_SWITCH_START") != NULL && atoi(getenv("BWPORT_SWITCH_START")) > 0) sSwStart = atoi(getenv("BWPORT_SWITCH_START"));
+     if (sSwSteps.empty()) return;
+     remove("switch_test.txt");
+     sSwIdx = -1;
+@@ -379,8 +487,9 @@
+   }
+   if (sSwIdx == -3) return;
+   sSwFrame++;
++  sSwMeanWanted = sSwIdx >= 0 && sSwFrame >= sSwFrames - 2;
+   if (sSwIdx == -1) { // the game runs a while before the first step
+-    if (sSwFrame >= 60) { sSwIdx = 0; SwApply(0); }
++    if (sSwFrame >= sSwStart) { sSwIdx = 0; SwApply(0); }
+     return;
+   }
+   if (sSwFrame > sSwFrames / 3) { // the first third of a step settles (a renderer starting up takes long frames)
+@@ -396,11 +505,47 @@
+   int wantActive = want == SIM_CONFIG_RENDERER_GPU ? 2 : 1;
+   double cost = sSwN > 0 ? sSwCost / sSwN : 0;
+   bool ok = sSwActive == wantActive && sSwW == 256 * st.res && sSwH == 384 * st.res && cost > 0;
++  double rssMB, privMB;
++  SwMemory(&rssMB, &privMB);
++  SwGLCensus gc = SwCensus();
++  int objs = gc.tex + gc.fbo + gc.buf + gc.prog + gc.vao + gc.rbo;
++  char why[200] = "";
++  if (sSwRefMean < 0 && sSwMean >= 0) sSwRefMean = sSwMean;
++  // black: nothing at all, or far darker than the first step's picture (a scene that stands still; the game itself may
++  // fade, so start it on a bright screen: BWPORT_SWITCH_START and a save)
++  if (ok && sSwMean >= 0 && (sSwMean < 1.0 || (sSwRefMean >= 10 && sSwMean < sSwRefMean * 0.25))) {
++    ok = false;
++    snprintf(why, sizeof why, " (BLACK picture, mean %.2f, the first step's %.2f)", sSwMean, sSwRefMean);
++  }
++  // drift: the same renderer and Resolution as an earlier step must not cost, hold or own more than it did then
++  int key = st.renderer * 16 + st.res;
++  SwSeen *seen = NULL;
++  for (auto &e : sSwSeen) if (e.first == key) seen = &e.second;
++  if (ok && seen != NULL) {
++    if (cost > seen->cost * 2.0 + 2.0)
++      ok = false, snprintf(why, sizeof why, " (DRIFT: %.2f ms, first time %.2f)", cost, seen->cost);
++    else if (objs > seen->objs + 2)
++      ok = false, snprintf(why, sizeof why, " (DRIFT: %d GL objects, first time %d)", objs, seen->objs);
++    else if (gc.texMB > seen->texMB + 8.0)
++      ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB of textures, first time %.0f)", gc.texMB, seen->texMB);
++  }
++  // memory: a step may not hold more than the most any earlier step of the same or a higher Resolution held (the
++  // allocator keeps some freed memory, so a margin); a leak per change grows past it within a few steps
++  if (ok) {
++    double env = -1;
++    for (auto &h : sSwHist) if (h.res >= st.res && h.rss > env) env = h.rss;
++    if (env >= 0 && rssMB > env + 64.0 + env * 0.1)
++      ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB resident, no earlier step at %dx or more held over %.0f)", rssMB, st.res, env);
++  }
++  sSwHist.push_back({st.res, rssMB});
++  if (seen == NULL) sSwSeen.push_back({key, {cost, rssMB, gc.texMB, objs}});
+   if (!ok) sSwFails++;
+   SwOut("switch-test step %d: %s:%d -> %s drew %dx%d (want %dx%d), render %.2f ms (was %.2f): %s\n", sSwIdx,
+         st.renderer == SIM_CONFIG_RENDERER_GPU ? "gpu" : st.renderer == SIM_CONFIG_RENDERER_VCORE ? "vcore" : "auto",
+         st.res, sSwActive == 2 ? "gpu" : sSwActive == 1 ? "vcore" : "nothing", sSwW, sSwH, 256 * st.res, 384 * st.res, cost,
+         sSwPrevCost, ok ? "ok" : "FAIL");
++  SwOut("    mem %.0f MB resident %.0f MB virtual; GL: %d textures (%.1f MB) %d fbo %d buffers %d programs %d vao %d rbo; picture mean %.1f%s\n",
++        rssMB, privMB, gc.tex, gc.texMB, gc.fbo, gc.buf, gc.prog, gc.vao, gc.rbo, sSwMean, why);
+   sSwPrevCost = cost;
+   if (++sSwIdx >= (int)sSwSteps.size()) {
+     SwOut("switch-test: %s\n", sSwFails == 0 ? "PASS" : "FAIL");
+@@ -804,13 +949,41 @@
+   }
+ }
+ 
++// bw-port (rz68): a renderer that is no longer the wanted one gives back what it holds (the GPU path's textures and
++// framebuffers, vcore's N x frames: ~180 MB a slot at 8x). SIM_SetRendererIdle(1 vcore / 2 gpu, fn): fn runs once, on
++// the render thread with the GL context current, at the first frame the other renderer is wanted.
++typedef void (*SIM_RendererIdleFn)(void);
++static SIM_RendererIdleFn sIdleHook[3];
++extern "C" void SIM_SetRendererIdle(int which, SIM_RendererIdleFn fn) {
++  if (which >= 1 && which <= 2) sIdleHook[which] = fn;
++}
++
+ static bool SIM_DrawFrameRenderer(void) {
+   sFrameRendererDrew = 0;
+   bool gpu = SIM_RendererWanted() == SIM_CONFIG_RENDERER_GPU;
++  {
++    static int sWasWanted;
++    int now = gpu ? 2 : 1;
++    if (now != sWasWanted) {
++      int was = sWasWanted;
++      sWasWanted = now;
++      if (was != 0 && sIdleHook[was] != NULL) sIdleHook[was]();
++      if (was == 1 && s_frameTexture != 0) { // the presenting texture back to nothing (a vcore frame specifies it again)
++        GLint prevTex = 0;
++        glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++        glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
++        sFrameTexW = 1;
++        sFrameTexH = 1;
++        glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++      }
++    }
++  }
+   if (gpu && sFrameRendererGL != NULL) {
+     int tw = 0, th = 0;
+     GLuint tex = (GLuint)sFrameRendererGL(&tw, &th);
+     if (tex != 0) {
++      if (sSwMeanWanted) SwMeanTex(tex, tw, th);
+       SIM_FrameInit();
+       SIM_DrawFrameTexture(tex);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+@@ -830,6 +1003,7 @@
+   if (rgba == NULL) {
+     return false;
+   }
++  if (sSwMeanWanted) SwMeanRgba(rgba, pw, ph);
+   SIM_FrameInit();
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);

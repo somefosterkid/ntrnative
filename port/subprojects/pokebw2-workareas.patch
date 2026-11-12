@@ -1,0 +1,298 @@
+pokebw2-workareas.patch (tools/pokebw2_fetch.sh, the maintainers' notes): the areas that works with pointers fill, twice their DS
+size on a PC target (Black's include/work_area.h, WORK_AREA_SIZE, which port/meson.build -includes for Black 2): the
+heap system's root and child heaps (heapsys.c) and heap 9's OS block (gfl_use.c), the field's and the trade screen's
+static heap memory, the sound heap (its block headers are 0x60 bytes on a 64-bit host, 0x20 on the DS) and the particle
+systems' 0x4800-byte works (the SPL manager's emitters and particles hold pointers: Black's NEW GAME crash) and the wireless helper's WM
+buffer (wih.c: WM_SYSTEM_BUF_SIZE is 0x1e00 on a PC target, and WM_Init wants the buffer 32-byte aligned, which the
+work's fields before it no longer give: Black 2's C-Gear YES to the wireless failed WM_Init and crashed in the beacon
+search). Black's
+commits 91c2113ab, 769422881, 46946af9e, 5713cae22 for Black's files.
+
+diff --git a/include/app/musical/sta_act_effect.h b/include/app/musical/sta_act_effect.h
+index e679a66f9..5c89f8cab 100644
+--- a/include/app/musical/sta_act_effect.h
++++ b/include/app/musical/sta_act_effect.h
+@@ -19,7 +19,7 @@ typedef struct {
+ 
+ struct StaActEffect {
+     BOOL active;
+-    u8 ptcWork[0x4800];
++    u8 ptcWork[WORK_AREA_SIZE(0x4800)];
+     ParticleSystem *ptc;
+     StaActEffectEmitter emitters[STA_ACT_EFFECT_EMITTER_MAX];
+ };
+diff --git a/include/demo/demo_particle.h b/include/demo/demo_particle.h
+index 683c721a2..8f58f461b 100644
+--- a/include/demo/demo_particle.h
++++ b/include/demo/demo_particle.h
+@@ -7,7 +7,7 @@
+ // The particles of the evolution and egg hatching demos (ov284 and ov307). Each overlay has its own copy of the
+ // functions over this layout, which emit particles at set frames through the particle system of gfl/particle.h
+ 
+-#define DEMO_PARTICLE_BUFFER_SIZE 0x4800
++#define DEMO_PARTICLE_BUFFER_SIZE WORK_AREA_SIZE(0x4800)
+ #define DEMO_PARTICLE_UNIT_COUNT 1
+ 
+ // Particles to emit at a frame, from an emitter of a unit
+diff --git a/include/demo/hall_of_fame_demo_main.h b/include/demo/hall_of_fame_demo_main.h
+index c309735c5..1b53ff004 100644
+--- a/include/demo/hall_of_fame_demo_main.h
++++ b/include/demo/hall_of_fame_demo_main.h
+@@ -108,7 +108,7 @@ enum {
+     HALL_OF_FAME_DEMO_PTC_COUNT,
+ };
+ 
+-#define HALL_OF_FAME_DEMO_PTC_WORK_SIZE 0x4800
++#define HALL_OF_FAME_DEMO_PTC_WORK_SIZE WORK_AREA_SIZE(0x4800)
+ #define HALL_OF_FAME_DEMO_POKE_MAX 6
+ // The steps of a shake, after which the actor is back in place
+ #define HALL_OF_FAME_DEMO_SHAKE_COUNT 8
+diff --git a/include/field/field_internal.h b/include/field/field_internal.h
+index fb062814c..abc02f3c0 100644
+--- a/include/field/field_internal.h
++++ b/include/field/field_internal.h
+@@ -97,6 +97,6 @@ UnionEffect *Field_GetUnionEff(Field *field);
+ void Field_InitCommonWork(FieldGimmickWorkBlock *block);
+ 
+ // The memory of the field's heap 0x89, in overlay 36's .bss (which file defines it isn't known yet)
+-extern u8 g_FieldHeapMemory[0x10000];
++extern u8 g_FieldHeapMemory[WORK_AREA_SIZE(0x10000)];   // (the port: twice on a PC target, fieldmap_proc.c)
+ 
+ #endif // POKEBW2_FIELD_FIELD_INTERNAL_H
+diff --git a/src/gfl/heapsys.c b/src/gfl/heapsys.c
+index 212865719..148a02047 100644
+--- a/src/gfl/heapsys.c
++++ b/src/gfl/heapsys.c
+@@ -1,5 +1,12 @@
+ #include "types.h"
+ #include "gfl/heapsys.h"
++#include "work_area.h"
++
++// A heap's bytes: the size the game asks for, twice that on a PC target (work_area.h), where the works with pointers
++// that fill it and the expanded heap's block headers are bigger. The root heaps (GFL_MemInit's) and the child heaps
++// are scaled alike, so each child still fits its parent; a root heap of the caller's memory (GFL_HeapAddRoot) is the
++// caller's to scale
++#define HEAP_AREA_SIZE(size) WORK_AREA_SIZE(size)
+ #include "nitro/os.h"
+ #include "nnsys/fnd.h"
+ 
+@@ -95,10 +102,10 @@ BOOL GFL_HeapMgrInit(const HeapDef *defs, u16 rootCount, u16 maxHeapIds, u32 res
+     sHeapMgr.heapCount = heapCount;
+     sHeapMgr.lastResult = HEAP_RESULT_OK;
+     for (i = 0; i < rootCount; i++) {
+-        void *memory = OS_AllocFromArenaLo(OS_ARENA_MAIN, defs[i].size, 4);
++        void *memory = OS_AllocFromArenaLo(OS_ARENA_MAIN, HEAP_AREA_SIZE(defs[i].size), 4);
+ 
+         if (memory != NULL) {
+-            sHeapMgr.heaps[i].handle = NNS_FndCreateExpHeapEx(memory, defs[i].size, 0);
++            sHeapMgr.heaps[i].handle = NNS_FndCreateExpHeapEx(memory, HEAP_AREA_SIZE(defs[i].size), 0);
+             sHeapMgr.indices[i] = i;
+         } else {
+             sHeapMgr.lastResult = i;
+@@ -123,9 +130,9 @@ BOOL GFL_HeapAddChild(HeapID parentHeapId, HeapID heapId, u32 size) {
+         sHeapMgr.lastResult = HEAP_RESULT_1;
+     } else if ((parent = GFL_HeapGetBase(parentHeapId & (HEAPID_TAIL_BIT - 1))) == NULL) {
+         sHeapMgr.lastResult = HEAP_RESULT_2;
+-    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, size, alignment)) == NULL) {
++    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, HEAP_AREA_SIZE(size), alignment)) == NULL) {
+         sHeapMgr.lastResult = HEAP_RESULT_3;
+-    } else if (GFL_HeapAdd(parent, heapId, memory, size)) {
++    } else if (GFL_HeapAdd(parent, heapId, memory, HEAP_AREA_SIZE(size))) {
+         return TRUE;
+     }
+     return FALSE;
+diff --git a/src/ov030/wih.c b/src/ov030/wih.c
+--- a/src/ov030/wih.c
++++ b/src/ov030/wih.c
+@@ -17,8 +17,9 @@
+ typedef struct {
+     WMParentParam sParentParam;
+     u8 unk_38[8];
+-    // The buffer that WM works in
+-    u8 sWmBuf[0xf00];
++    // The buffer that WM works in, WM_SYSTEM_BUF_SIZE (its structs hold pointers: libntr's is 0x1e00 on a PC target). WM wants
++    // it 32-byte aligned, which the fields before it (pointers too) no longer give on a PC target
++    u8 sWmBuf[WORK_AREA_SIZE(0xf00)] ATTRIBUTE_ALIGN(32);
+     // The copy of the beacon that the scan is looking at
+     WMBssDesc sBssDesc;
+     u8 sScanBuf[0x400];
+diff --git a/src/ov036/fieldmap_proc.c b/src/ov036/fieldmap_proc.c
+index e05d70041..44a4b5a40 100644
+--- a/src/ov036/fieldmap_proc.c
++++ b/src/ov036/fieldmap_proc.c
+@@ -15,7 +15,9 @@
+ 
+ // The field menu's heap, which the field map's heap leaves room for, and the cell actors' heap, in memory of its own
+ #define FIELD_MENU_HEAP_SIZE 0xf000
+-#define FIELD_CLACT_HEAP_SIZE 0x10000
++#include "work_area.h"
++// Twice the size on a PC target (work_area.h), as the heap system makes the child heaps in it
++#define FIELD_CLACT_HEAP_SIZE WORK_AREA_SIZE(0x10000)
+ 
+ // The steps of FieldmapProc_Init
+ enum {
+diff --git a/src/ov036/fld_particle.c b/src/ov036/fld_particle.c
+index be900012b..a1560f5b7 100644
+--- a/src/ov036/fld_particle.c
++++ b/src/ov036/fld_particle.c
+@@ -136,7 +136,7 @@ FieldParticle *FieldParticle_Create(HeapID heapId) {
+ 
+     particle->heapId = heapId;
+     Particle_Init(heapId);
+-    particle->work = GFL_HeapAllocate(heapId, 0x4800, TRUE, "fld_particle.c", 52);
++    particle->work = GFL_HeapAllocate(heapId, WORK_AREA_SIZE(0x4800), TRUE, "fld_particle.c", 52);
+     return particle;
+ }
+ 
+@@ -145,7 +145,7 @@ ParticleSystem *FieldParticle_CreateSystem(FieldParticle *particle) {
+     fx32 zNear;
+     fx32 zFar;
+ 
+-    particle->system = Particle_CreateSystem(particle->work, 0x4800, TRUE, particle->heapId);
++    particle->system = Particle_CreateSystem(particle->work, WORK_AREA_SIZE(0x4800), TRUE, particle->heapId);
+     camera = Particle_GetCamera(particle->system);
+     zNear = FX32_ONE;
+     zFar = FX32_CONST(900);
+diff --git a/src/ov168/btlv_effvm.c b/src/ov168/btlv_effvm.c
+index 520b379ab..abd69203d 100644
+--- a/src/ov168/btlv_effvm.c
++++ b/src/ov168/btlv_effvm.c
+@@ -1136,10 +1136,10 @@ static BOOL BtlvEffvm_CmdParticleLoad(VM *vm, void *env) {
+     BtlvEffvmParticleVBlankWork *vblank;
+ 
+     if (BtlvEffvm_FindOrAddParticleId(wk, fileId, &index) == TRUE) {
+-        work = GFL_HeapAllocate(HEAPID_TAIL(wk->heapId), 0x4800, FALSE, "btlv_effvm.c", 1912);
++        work = GFL_HeapAllocate(HEAPID_TAIL(wk->heapId), WORK_AREA_SIZE(0x4800), FALSE, "btlv_effvm.c", 1912);
+         resource = Particle_ReadResource(ARCID_BTLV_EFFVM_PARTICLES, fileId, HEAPID_TAIL(wk->heapId));
+         if (work != NULL && resource != NULL) {
+-            wk->particles[index] = Particle_CreateSystemEx(work, 0x4800, FALSE, 5, 6, 54, HEAPID_TAIL(wk->heapId));
++            wk->particles[index] = Particle_CreateSystemEx(work, WORK_AREA_SIZE(0x4800), FALSE, 5, 6, 54, HEAPID_TAIL(wk->heapId));
+             if (wk->particles[index] != NULL) {
+                 Particle_SetResourceNoUpload(wk->particles[index], resource);
+                 vblank = GFL_HeapAllocate(HEAPID_TAIL(wk->heapId), sizeof(BtlvEffvmParticleVBlankWork), FALSE,
+diff --git a/src/ov194/pokemontrade_3d.c b/src/ov194/pokemontrade_3d.c
+index 64a00822a..5eac9b1ae 100644
+--- a/src/ov194/pokemontrade_3d.c
++++ b/src/ov194/pokemontrade_3d.c
+@@ -26,7 +26,7 @@
+ // their slots
+ 
+ // The work that each particle system draws in
+-#define PARTICLE_WORK_SIZE 0x4800
++#define PARTICLE_WORK_SIZE WORK_AREA_SIZE(0x4800)
+ 
+ // The cubes' textures, 32 by 32 pixels of 16 colours, from this address of texture VRAM on, and their palette
+ #define CUBE_TEX_SIZE 0x200
+diff --git a/src/ov194/pokemontrade_proc.c b/src/ov194/pokemontrade_proc.c
+index 3d87e8800..83b380819 100644
+--- a/src/ov194/pokemontrade_proc.c
++++ b/src/ov194/pokemontrade_proc.c
+@@ -258,7 +258,8 @@ static const NetCommand sNetCommands[] = {
+ };
+ 
+ // The memory of the trade's heap
+-static u8 sHeapMemory[0xc000];
++#include "work_area.h"
++static u8 sHeapMemory[WORK_AREA_SIZE(0xc000)];   // twice on a PC target (work_area.h)
+ 
+ void PokemonTrade_ResetTouchbarBackButton(PokemonTradeWork *wk) {
+     TouchBar_Reset(wk->touchBar, TOUCHBAR_ICON_RETURN);
+diff --git a/src/ov197/mystery.c b/src/ov197/mystery.c
+index 8c147b7af..6b5ab5309 100644
+--- a/src/ov197/mystery.c
++++ b/src/ov197/mystery.c
+@@ -490,8 +490,8 @@ static void MysteryActors_ResetPalAnim(MysteryActors *actors) {
+ static void MysteryParticle_Init(MysteryParticle *particle, HeapID heapId) {
+     MI_CpuFill8(particle, 0, sizeof(MysteryParticle));
+     particle->active = TRUE;
+-    particle->work = GFL_HeapAllocate(heapId, 0x4800, FALSE, "mystery.c", 1154);
+-    particle->sys = Particle_CreateSystem(particle->work, 0x4800, TRUE, heapId);
++    particle->work = GFL_HeapAllocate(heapId, WORK_AREA_SIZE(0x4800), FALSE, "mystery.c", 1154);
++    particle->sys = Particle_CreateSystem(particle->work, WORK_AREA_SIZE(0x4800), TRUE, heapId);
+ }
+ 
+ static void MysteryParticle_Exit(MysteryParticle *particle) {
+diff --git a/src/ov294/intro_particle.c b/src/ov294/intro_particle.c
+index 803889a62..331f07af2 100644
+--- a/src/ov294/intro_particle.c
++++ b/src/ov294/intro_particle.c
+@@ -5,7 +5,7 @@
+ 
+ // The particles of the intro
+ 
+-#define INTRO_PARTICLE_BUFFER_SIZE 0x4800
++#define INTRO_PARTICLE_BUFFER_SIZE WORK_AREA_SIZE(0x4800)
+ 
+ struct IntroParticle {
+     HeapID heapId;
+diff --git a/src/ov305/comm_btl_demo.c b/src/ov305/comm_btl_demo.c
+index 787e6126f..7aa95c44b 100644
+--- a/src/ov305/comm_btl_demo.c
++++ b/src/ov305/comm_btl_demo.c
+@@ -46,7 +46,7 @@
+ // The Poké Balls of a trainer in a battle of four
+ #define BALL_MAX_MULTI 3
+ #define SIDE_COUNT 2
+-#define PARTICLE_WORK_SIZE 0x4800
++#define PARTICLE_WORK_SIZE WORK_AREA_SIZE(0x4800)
+ 
+ // The scenes of the screen, steps of sCommBtlDemoSteps
+ enum {
+diff --git a/src/ov332/key_system_util.c b/src/ov332/key_system_util.c
+index 374ec0628..185c7eab1 100644
+--- a/src/ov332/key_system_util.c
++++ b/src/ov332/key_system_util.c
+@@ -143,7 +143,7 @@ struct KeySystemScrollList {
+     BOOL started;
+ };
+ 
+-#define PARTICLE_WORK_SIZE 0x4800
++#define PARTICLE_WORK_SIZE WORK_AREA_SIZE(0x4800)
+ 
+ struct KeySystemParticle {
+     ParticleSystem *system;
+diff --git a/src/system/gfl_use.c b/src/system/gfl_use.c
+index 6d091392d..583bbaac2 100644
+--- a/src/system/gfl_use.c
++++ b/src/system/gfl_use.c
+@@ -31,6 +31,7 @@
+ #define HBLANK_TCB_COUNT 4
+ #define VBLANK_TCB_COUNT 16
+ // The size of heap 9, which a DS takes from the main arena's OS heap and a DSi from heap 1
++#include "work_area.h"
+ #define EXTRA_HEAP_SIZE 0x3f00
+ 
+ // The bits of the console type (OS_GetConsoleType) that have a failed assert show its message
+@@ -112,7 +113,7 @@ void GFLAppInit(void) {
+         start = OS_InitAlloc(OS_ARENA_MAIN, start, end, 1);
+         OS_SetArenaLo(OS_ARENA_MAIN, start);
+         sOSHeap = OS_CreateExtraHeap(OS_ARENA_MAIN);
+-        sExtraHeapMemory = OS_AllocFromHeap(OS_ARENA_MAIN, sOSHeap, EXTRA_HEAP_SIZE);
++        sExtraHeapMemory = OS_AllocFromHeap(OS_ARENA_MAIN, sOSHeap, WORK_AREA_SIZE(EXTRA_HEAP_SIZE));
+     }
+ 
+     if (OS_IsRunOnTwl()) {
+@@ -123,7 +124,7 @@ void GFLAppInit(void) {
+     GFL_HeapDTCMInit(0x2000);
+     GFL_HeapCreateChild(1, 7, 0x27000);
+     if (!OS_IsRunOnTwl()) {
+-        GFL_HeapCreateRoot(sExtraHeapMemory, EXTRA_HEAP_SIZE, 9);
++        GFL_HeapCreateRoot(sExtraHeapMemory, WORK_AREA_SIZE(EXTRA_HEAP_SIZE), 9);
+     } else {
+         GFL_HeapCreateChild(1, 9, EXTRA_HEAP_SIZE);
+     }
+diff --git a/src/system/snd_sys.c b/src/system/snd_sys.c
+index e33444d88..a9b0fe04d 100644
+--- a/src/system/snd_sys.c
++++ b/src/system/snd_sys.c
+@@ -18,7 +18,9 @@
+ #define SND_TRACK_COUNT 16
+ #define SND_THREAD_STACK_SIZE 0x400
+ #define SND_THREAD_PRIORITY 17
+-#define SND_HEAP_SIZE 0x9d000
++#include "work_area.h"
++// (WORK_AREA_SIZE: its block headers hold pointers, 0x60 bytes each on a PC target, 0x20 on the DS)
++#define SND_HEAP_SIZE WORK_AREA_SIZE(0x9d000)
+ // What NNS_SndArcSetLoadBlockSize reads at a time while a thread loads the next BGM
+ #define SND_LOAD_BLOCK_SIZE 0x1300
+ // The player of BGM2, which plays over the BGM's

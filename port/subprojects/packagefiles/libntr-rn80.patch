@@ -1,0 +1,667 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -20,6 +20,7 @@
+ #define SIM_CONFIG_DISPLAYCAP_60 0
+ #define SIM_CONFIG_DISPLAYCAP_120 1
+ #define SIM_CONFIG_DISPLAYCAP_MONITOR 2
++#define SIM_CONFIG_DISPLAYCAP_UNLIMITED 3 /* no cap, VSync off (the old 'frame cap off'); Tab toggles it */
+ 
+ /* bw-port (libntr-acore.patch): what plays the sound */
+ typedef enum {
+@@ -79,7 +80,7 @@
+     SIM_config_screen_layout_type screenLayout; /* DS screen layout */
+     BOOL swapScreens; /* Swap screen positions */
+     u8 vsyncInterval; /* Vertical sync interval. Set to 0 to disable vsync, 1 every vblank, 2 every second vblank etc*/
+-    u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
++    u8 displayCapBack; /* bw-port (libntr-rn80.patch): the finite Frame rate (DISPLAYCAP_60/_120/_MONITOR) that Tab returns to from Unlimited (FrameRateRestore=) */
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+     u8 showMetrics; /* bw-port (libntr-ui68.patch): the metrics at the top of the right side (sim_config.ini ShowMetrics) */
+     u8 showMenuBar; /* the menu bar at the top of the window, windowed (`; ShowMenuBar); fullscreen: out on the mouse at the top edge or Alt */
+@@ -99,8 +100,8 @@
+                      cap on. sim_config.ini FrameSkip=0|1|2|3|auto; BWPORT_FRAMESKIP=N (draw one frame in N) or auto overrides */
+     u8 speed; /* bw-port (libntr-sp76.patch): the game's speed, 1..4 (sim_config.ini Speed=1|2|3|4, BWPORT_SPEED): the game ticks 60 x Speed times a second; the sound is time-stretched back to its pitch */
+     u8 musicNormalSpeed; /* 1 (default): at Speed > 1 the music (BGM, fanfares) keeps its tempo while sound effects and cries follow the speed (MusicNormalSpeed=on|off, BWPORT_MUSICNORMAL) */
+-    u8 displayCap; /* SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second (DisplayCap=60|120|monitor, BWPORT_DISPLAYCAP) */
+-    u8 interpolation; /* bw-port (libntr-ib78.patch): 1 = in-between pictures (real renders of the 3D between two keyframes) in the present slots a keyframe leaves free (Interpolation=off|on, BWPORT_INTERP=on|off); default 0 */
++    u8 displayCap; /* Frame rate: SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second; _UNLIMITED: no cap (FrameRate=60|120|monitor|unlimited, BWPORT_FRAMERATE; old keys DisplayCap=, CapFrameRate= still load) */
++    u8 interpolation; /* Smooth motion (libntr-ib78.patch, renamed by rn80): 1 = in-between pictures (real renders of the 3D between two keyframes) in the present slots a keyframe leaves free (SmoothMotion=off|on, BWPORT_SMOOTH=on|off; old key Interpolation=, BWPORT_INTERP); default 0 */
+     u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -19,6 +19,15 @@
+ 
+ static int sResolutionKey; /* the file has Resolution=: the old Scale= is ignored */
+ 
++/* bw-port (libntr-rn80.patch): renamed Speed -> GameSpeed, DisplayCap + CapFrameRate -> FrameRate (60|120|monitor|unlimited,
++ * plus FrameRateRestore), Interpolation -> SmoothMotion. The old keys load into these while the file is read and are applied
++ * afterwards unless the new key was in the file (FinishOldKeys); only the new keys are written. */
++static int sOldCapOff, sOldSpeed, sOldDisplayCap = -1, sOldInterp = -1;
++static int sSeenGameSpeed, sSeenFrameRate, sSeenRestore, sSeenSmooth;
++static u8 FrameRateFromString(const char * v);
++static int OnOffFromString(const char * v);
++static const char * FrameRateToString(u8 r);
++
+ static int IniHandler(void* user, const char* section, const char* name,
+                    const char* value);
+ static const char * BoolToString(BOOL arg);
+@@ -64,7 +73,8 @@
+         config->vsyncInterval = atoi(value);
+     }
+     if(MATCH("General", "CapFrameRate")) {
+-        config->capFrameRate = StringToBool(value);
++        /* the old key (before libntr-rn80.patch): off = Unlimited. Applied after the file is read; FrameRate= wins */
++        sOldCapOff = !StringToBool(value);
+     }
+     if(MATCH("General", "ShowInputPanel")) {
+         config->showInputPanel = StringToBool(value);
+@@ -125,19 +135,37 @@
+         int n = atoi(value);
+         config->frameSkip = strcmp(value, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(n < 0 ? 0 : n > 60 ? 60 : n);
+     }
+-    if(MATCH("General", "Speed")) {
++    if(MATCH("General", "Speed")) { /* the old key of GameSpeed */
++        int n = atoi(value);
++        sOldSpeed = n < 1 ? 1 : n > 4 ? 4 : n;
++    }
++    if(MATCH("General", "GameSpeed")) {
+         int n = atoi(value);
++        sSeenGameSpeed = 1;
+         config->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
+     if(MATCH("General", "MusicNormalSpeed")) {
+         config->musicNormalSpeed = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
+     }
+-    if(MATCH("General", "DisplayCap")) {
+-        config->displayCap = strcmp(value, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+-                           : atoi(value) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
+-    }
+-    if(MATCH("General", "Interpolation")) {
+-        config->interpolation = strcmp(value, "on") == 0 || strcmp(value, "1") == 0 || strcmp(value, "true") == 0;
++    if(MATCH("General", "DisplayCap")) { /* the old key: the finite part of FrameRate */
++        u8 r = FrameRateFromString(value);
++        sOldDisplayCap = r == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? SIM_CONFIG_DISPLAYCAP_60 : r;
++    }
++    if(MATCH("General", "FrameRate")) {
++        sSeenFrameRate = 1;
++        config->displayCap = FrameRateFromString(value);
++    }
++    if(MATCH("General", "FrameRateRestore")) { /* the finite rate Tab returns to from Unlimited */
++        u8 r = FrameRateFromString(value);
++        sSeenRestore = 1;
++        config->displayCapBack = r == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? SIM_CONFIG_DISPLAYCAP_60 : r;
++    }
++    if(MATCH("General", "Interpolation")) { /* the old key of SmoothMotion */
++        sOldInterp = OnOffFromString(value);
++    }
++    if(MATCH("General", "SmoothMotion")) {
++        sSeenSmooth = 1;
++        config->interpolation = OnOffFromString(value);
+     }
+     if(MATCH("General", "Filter")) {
+         config->gpuFilter = strcmp(value, "bilinear") == 0;
+@@ -464,8 +492,10 @@
+     if(e != NULL) {
+         aConfig->gpuFilter = strcmp(e, "bilinear") == 0;
+     }
+-    // bw-port (libntr-sp76.patch): BWPORT_SPEED=1..4, BWPORT_DISPLAYCAP=60|120|monitor
+-    e = getenv("BWPORT_SPEED");
++    // bw-port (libntr-sp76.patch, names: libntr-rn80.patch): BWPORT_GAMESPEED (or BWPORT_SPEED)=1..4, BWPORT_FRAMERATE (or
++    // BWPORT_DISPLAYCAP)=60|120|monitor|unlimited
++    e = getenv("BWPORT_GAMESPEED");
++    if(e == NULL || !*e) e = getenv("BWPORT_SPEED");
+     if(e != NULL && *e) {
+         int n = atoi(e);
+         aConfig->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+@@ -474,13 +504,15 @@
+     if(e != NULL && *e) {
+         aConfig->musicNormalSpeed = strcmp(e, "off") != 0 && strcmp(e, "0") != 0;
+     }
+-    e = getenv("BWPORT_DISPLAYCAP");
++    e = getenv("BWPORT_FRAMERATE");
++    if(e == NULL || !*e) e = getenv("BWPORT_DISPLAYCAP");
+     if(e != NULL && *e) {
+-        aConfig->displayCap = strcmp(e, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+-                            : atoi(e) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
++        aConfig->displayCap = FrameRateFromString(e);
++        if(aConfig->displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED) aConfig->displayCapBack = aConfig->displayCap;
+     }
+-    // bw-port (libntr-ib78.patch): BWPORT_INTERP=on|off
+-    e = getenv("BWPORT_INTERP");
++    // bw-port (libntr-ib78.patch, name: libntr-rn80.patch): BWPORT_SMOOTH (or BWPORT_INTERP)=on|off
++    e = getenv("BWPORT_SMOOTH");
++    if(e == NULL || !*e) e = getenv("BWPORT_INTERP");
+     if(e != NULL && *e) {
+         aConfig->interpolation = strcmp(e, "on") == 0 || strcmp(e, "1") == 0;
+     }
+@@ -494,10 +526,46 @@
+     }
+ }
+ 
++static u8 FrameRateFromString(const char * v)
++{
++    if(strcmp(v, "unlimited") == 0 || strcmp(v, "off") == 0) return SIM_CONFIG_DISPLAYCAP_UNLIMITED;
++    if(strcmp(v, "monitor") == 0) return SIM_CONFIG_DISPLAYCAP_MONITOR;
++    return atoi(v) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
++}
++
++static const char * FrameRateToString(u8 r)
++{
++    return r == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? "unlimited" : r == SIM_CONFIG_DISPLAYCAP_MONITOR ? "monitor"
++         : r == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60";
++}
++
++static int OnOffFromString(const char * v)
++{
++    return strcmp(v, "on") == 0 || strcmp(v, "1") == 0 || strcmp(v, "true") == 0;
++}
++
++/* the old keys of a file that has no new key for the same setting (defaults and the file's other keys are already in aConfig) */
++static void FinishOldKeys(SIM_config_type * aConfig)
++{
++    if(!sSeenGameSpeed && sOldSpeed > 0) aConfig->speed = (u8)sOldSpeed;
++    if(!sSeenSmooth && sOldInterp >= 0) aConfig->interpolation = (u8)sOldInterp;
++    if(!sSeenFrameRate) {
++        if(sOldCapOff) aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_UNLIMITED;
++        else if(sOldDisplayCap >= 0) aConfig->displayCap = (u8)sOldDisplayCap;
++    }
++    if(!sSeenRestore) {
++        if(sOldDisplayCap >= 0) aConfig->displayCapBack = (u8)sOldDisplayCap;
++        else if(aConfig->displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED) aConfig->displayCapBack = aConfig->displayCap;
++    }
++}
++
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig)
+ {
+     sResolutionKey = 0;
++    sOldCapOff = 0; sOldSpeed = 0; sOldDisplayCap = -1; sOldInterp = -1;
++    sSeenGameSpeed = 0; sSeenFrameRate = 0; sSeenRestore = 0; sSeenSmooth = 0;
+     BOOL ok = (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
++    FinishOldKeys(aConfig);
+     RendererFromEnv(aConfig);
+     SoundFromEnv(aConfig);
+     return ok;
+@@ -518,7 +586,6 @@
+     aConfig->screenLayout = SIM_CONFIG_SCREEN_LAYOUT_VERTICAL;
+     aConfig->swapScreens = FALSE;
+     aConfig->vsyncInterval = 1;
+-    aConfig->capFrameRate = TRUE;
+     aConfig->showInputPanel = TRUE;
+     aConfig->showMetrics = TRUE;
+     aConfig->showMenuBar = TRUE;
+@@ -537,6 +604,7 @@
+     aConfig->speed = 1;
+     aConfig->musicNormalSpeed = 1;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
++    aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+     aConfig->sound = SIM_CONFIG_SOUND_ACORE; /* bw-port (libntr-sounddefault.patch, owner 10-29): our sound core by default */
+     aConfig->masterVolume = 127;
+@@ -619,7 +687,6 @@
+     fprintf(configFile, "ScreenLayout=%s\n", screenLayoutString);
+     fprintf(configFile, "SwapScreens=%s\n", BoolToString(aConfig->swapScreens));
+     fprintf(configFile, "VsyncInterval=%d\n", aConfig->vsyncInterval);
+-    fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
+     fprintf(configFile, "ShowMetrics=%s\n", BoolToString(aConfig->showMetrics));
+     fprintf(configFile, "ShowMenuBar=%s\n", BoolToString(aConfig->showMenuBar));
+@@ -640,11 +707,11 @@
+     fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+-    fprintf(configFile, "Speed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
++    fprintf(configFile, "GameSpeed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
+-    fprintf(configFile, "Interpolation=%s\n", aConfig->interpolation ? "on" : "off");
+-    fprintf(configFile, "DisplayCap=%s\n", aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? "monitor"
+-                                         : aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60");
++    fprintf(configFile, "SmoothMotion=%s\n", aConfig->interpolation ? "on" : "off");
++    fprintf(configFile, "FrameRate=%s\n", FrameRateToString(aConfig->displayCap));
++    fprintf(configFile, "FrameRateRestore=%s\n", FrameRateToString(aConfig->displayCapBack > SIM_CONFIG_DISPLAYCAP_MONITOR ? SIM_CONFIG_DISPLAYCAP_60 : aConfig->displayCapBack));
+     if(aConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
+         fprintf(configFile, "FrameSkip=auto\n");
+     } else {
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -320,6 +320,7 @@
+ static int sFailWanted;           // the renderer it was for
+ static u32 sLogAt;                // the V-blank count to log the status at (0: none)
+ static u32 sStatusUntil;          // the V-blank count until which the overlay shows
++static u32 sRateOverlayUntil;     // rn80: the same for the Frame rate line after Tab
+ static double sCostMs;            // render work per frame, smoothed
+ static std::string sBaseTitle;
+ static std::string sShownTitle;
+@@ -431,14 +432,31 @@
+     int ok = sActive == (want == SIM_CONFIG_RENDERER_GPU ? 2 : 1);
+     char aat[16] = "";
+     if (SIM_AntialiasWanted() > 1) snprintf(aat, sizeof aat, " AA%dx", sAAUsed > 0 && sAAUsed < SIM_AntialiasWanted() ? sAAUsed : SIM_AntialiasWanted());
+-    snprintf(t, sizeof t, "%s - %s %dx%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
+-             ok || sActive == 0 ? "" : (sActive == 2 ? " (gpu drawing)" : " (vcore drawing)"));
++    snprintf(t, sizeof t, "%s - %s %dx%s%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
++             ok || sActive == 0 ? "" : (sActive == 2 ? " (gpu drawing)" : " (vcore drawing)"),
++             s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? " - Frame rate: Unlimited" : "");
+     if (sShownTitle != t) {
+       sShownTitle = t;
+       SDL_SetWindowTitle(window, t);
+     }
+   }
+-  if (frame < sStatusUntil) SIM::GUI::DrawStatus(SIM_RendererStatus());
++  {
++    char rate[64] = "";
++    if ((s32)(sRateOverlayUntil - frame) > 0) { // rn80: what Tab switched to
++      u8 d = s_SIM_config.displayCap;
++      snprintf(rate, sizeof rate, "Frame rate: %s", d == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? "Unlimited" : d == SIM_CONFIG_DISPLAYCAP_MONITOR ? "Monitor"
++                                                                  : d == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60");
++    }
++    if (frame < sStatusUntil && rate[0]) {
++      char both[480];
++      snprintf(both, sizeof both, "%s  |  %s", SIM_RendererStatus(), rate);
++      SIM::GUI::DrawStatus(both);
++    } else if (frame < sStatusUntil) {
++      SIM::GUI::DrawStatus(SIM_RendererStatus());
++    } else if (rate[0]) {
++      SIM::GUI::DrawStatus(rate);
++    }
++  }
+ }
+ 
+ // BWPORT_SWITCH_TEST=renderer:N,renderer:N,...[/FRAMES]: the live switch test. Each step sets the renderer (auto, vcore,
+@@ -899,7 +917,7 @@
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+-  SDL_GL_SetSwapInterval(s_SIM_config.vsyncInterval);
++  SDL_GL_SetSwapInterval(s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? 1 : 0);
+ 
+   u32 windowHeight;
+   u32 windowWidth;
+@@ -1183,7 +1201,7 @@
+   bool draw = true;
+   if (can && fs != 0 && !force && !(s_reg_GX_DISPCAPCNT & 0x80000000u) && sFSRun < 4 + (fs != SIM_CONFIG_FRAMESKIP_AUTO ? 100 : 0)) {
+     if (fs == SIM_CONFIG_FRAMESKIP_AUTO) {
+-      if (s_SIM_config.capFrameRate && !sFastForward && sFSBusyDrawn > 0) {
++      if (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward && sFSBusyDrawn > 0) {
+         // no skipped frame seen yet: skip one only when a drawn frame took more than the frame time
+         draw = sFSBusySkipped == 0 ? sFSBusyDrawn <= kFrame : sFSCredit + kFrame >= sFSBusyDrawn;
+       }
+@@ -1383,7 +1401,7 @@
+     if (next < n && tick >= at[next]) s_SIM_config.speed = (u8)sp[next++];
+     tick++;
+   }
+-  bool capped = s_SIM_config.capFrameRate && !sFastForward;
++  bool capped = s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward;
+   static int sLogInit;
+   if (!sLogInit) {
+     sLogInit = 1;
+@@ -1394,6 +1412,7 @@
+     }
+   }
+   if (!capped) {
++    if (sPresentLog != NULL) fprintf(sPresentLog, "U %llu\n", (unsigned long long)(SpNowNs() / 1000)); // rn80: an uncapped frame (Unlimited, fast forward)
+     sPace.on = false;
+     sPace.count = 1;
+     sPace.waited = 0;
+@@ -1476,7 +1495,7 @@
+ extern "C" void SIM_SetInterpPicture(SIM_InterpPicFn fn) { sInterpPic = fn; }
+ extern "C" int SIM_InterpWanted(void) { return s_SIM_config.interpolation != 0; }
+ extern "C" int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next) {
+-  if (!s_SIM_config.interpolation || !sPace.on || sPace.forced || sPace.count <= 0 || !s_SIM_config.capFrameRate || sFastForward) return 0;
++  if (!s_SIM_config.interpolation || !sPace.on || sPace.forced || sPace.count <= 0 || s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED || sFastForward) return 0;
+   long long due = (long long)SpTickDue(sPace.n);
+   *serial = (long long)sPace.t0;
+   *nominal = due;
+@@ -1893,16 +1912,19 @@
+           s_SIM_config.showInputPanel = !s_SIM_config.showInputPanel;
+           SIM_Config_SaveConfigFile(&s_SIM_config);
+         } else if (keyRead == s_SIM_config.padSettings.frameCapToggleKey) {
+-          // Toggle Frame Cap
+-          if (s_SIM_config.capFrameRate) {
+-            s_SIM_config.capFrameRate = false;
+-            s_SIM_config.vsyncInterval = 0; // VSync Off
+-          } else {
+-            s_SIM_config.capFrameRate = true;
+-            s_SIM_config.vsyncInterval = 1; // Every V-Blank
++          // bw-port (libntr-rn80.patch): Tab = Frame rate Unlimited, and again = the Frame rate it had before (FrameRateRestore;
++          // a finite rate picked in the UI is remembered too). Not for a key held down. The swap interval follows in SIM_Render.
++          if (!Event.key.repeat) {
++            if (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED) {
++              s_SIM_config.displayCapBack = s_SIM_config.displayCap;
++              s_SIM_config.displayCap = SIM_CONFIG_DISPLAYCAP_UNLIMITED;
++            } else {
++              s_SIM_config.displayCap = s_SIM_config.displayCapBack > SIM_CONFIG_DISPLAYCAP_MONITOR ? SIM_CONFIG_DISPLAYCAP_60
++                                                                                                    : s_SIM_config.displayCapBack;
++            }
++            sRateOverlayUntil = *((u32 *)HW_VBLANK_COUNT_BUF) + 120;
++            SIM_Config_SaveConfigFile(&s_SIM_config);
+           }
+-
+-          SDL_GL_SetSwapInterval(s_SIM_config.vsyncInterval);
+           
+         } else if(keyRead == s_SIM_config.padSettings.frameCapKey) {
+           sFastForward = true;
+@@ -1950,8 +1972,7 @@
+           // Select button
+           s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000100;
+         } else if(keyRead == s_SIM_config.padSettings.frameCapKey) {
+-          sFastForward = false;
+-          SDL_GL_SetSwapInterval(s_SIM_config.vsyncInterval);
++          sFastForward = false; // (the swap interval is set each frame in SIM_Render)
+         }
+       }
+       if (Event.type == SDL_JOYBUTTONDOWN) {
+@@ -2171,8 +2192,8 @@
+     // on Windows: 16 ms a frame, half speed)
+     {
+       // libntr-sp76.patch: VSync only for DisplayCap=monitor (its swap waits for the V-blank, SpWaitSlot comes just before)
+-      int wantInterval = (s_SIM_config.capFrameRate && !sFastForward) ? (s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? 1 : 0)
+-                                                                       : s_SIM_config.vsyncInterval;
++      // (rn80: Unlimited and fast forward: VSync off; the old VsyncInterval key no longer matters)
++      int wantInterval = (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward && s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR) ? 1 : 0;
+       if (SDL_GL_GetSwapInterval() != wantInterval) {
+         SDL_GL_SetSwapInterval(wantInterval);
+       }
+@@ -2220,7 +2241,7 @@
+     // bw-port (libntr-sp76.patch): the cap. A tick of 1x at DisplayCap=120 shows its picture a second time at the second slot
+     // (an in-between picture can be slotted in here); then the wait for the next tick's due time (absolute, so the speed
+     // holds whatever one tick cost). Windows' sleeps: SpSleepUntil.
+-    if (sPace.on && s_SIM_config.capFrameRate && !sFastForward) {
++    if (sPace.on && s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward) {
+       if (sTickPresent && !SIM_NoPresent()) {
+         for (int r = 1; r < sPace.count; r++) {
+           GLuint midTex = 0;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -160,7 +160,7 @@
+ }
+ 
+ static float sSideRect[4];
+-static float sItemRect[13][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items, qaa, qcap, qspeed, qdcap, qmusic)
++static float sItemRect[13][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items, qaa, qrate, qspeed, qmusic, qsmooth)
+ static int sJoyClicks;
+ static void ItemRect(int i) {
+     ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+@@ -435,7 +435,6 @@
+     "Off (draw every frame)", "1 (draw every 2nd frame)", "2 (draw every 3rd frame)", "3 (draw every 4th frame)",
+     "Auto (only when too slow for 60 fps)"
+ };
+-static const char * const VsyncNames[] = {"Off", "Every V-Blank", "Every second V-Blank"};
+ static const int UiScales[] = {0, 100, 125, 150, 175, 200, 250};
+ 
+ static void LayoutSize(int * w, int * h) {
+@@ -472,29 +471,16 @@
+     Dirty();
+ }
+ 
+-static void ApplyVsync(int v) {
+-    C()->vsyncInterval = (u8)v;
+-    if (v != SDL_GL_GetSwapInterval()) {
+-        SDL_GL_SetSwapInterval(v);
+-    }
+-    Dirty();
+-}
+-
+-// the frame cap, as the Tab key does it (sim_main.cpp): the cap and VSync together (on = capped, VSync every V-blank)
+-static void ApplyCap(bool on) {
+-    C()->capFrameRate = on;
+-    C()->vsyncInterval = on ? 1 : 0;
+-    SDL_GL_SetSwapInterval(C()->vsyncInterval);
+-    Dirty();
+-}
+-
+-// bw-port (libntr-sp77.patch): the game's Speed (1..4), the display cap (60 / 120 / the monitor's refresh), the music's tempo at Speed > 1
++// bw-port (libntr-sp77.patch, names and the folded cap: libntr-rn80.patch): Game speed (1..4), Frame rate (60 / 120 / Monitor / Unlimited;
++// Unlimited = no cap and VSync off, the Tab key toggles it and back), the music's tempo at Game speed > 1
+ static const char * const SpeedNames[] = {"1x (normal)", "2x", "3x", "4x"};
+ static const char * const SpeedShort[] = {"1x", "2x", "3x", "4x"};
+-static const char * const DisplayCapNames[] = {"60 per second", "120 per second", "The monitor's refresh rate"};
+-static const char * const DisplayCapShort[] = {"60", "120", "monitor"};
+-static const char * const SpeedTip = "how fast the game runs: sound effects and cries follow, the music keeps its tempo (Audio: Music at normal speed). Needs the frame cap on";
+-static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120 or the monitor's refresh rate (the game runs on its own clock, Speed). Needs the frame cap on";
++static const char * const DisplayCapNames[] = {"60 per second", "120 per second", "Monitor's refresh rate", "Unlimited (Tab)"};
++static const char * const DisplayCapShort[] = {"60", "120", "Monitor", "Unlimited"};
++static const char * const SpeedTip = "how fast the game runs: sound effects and cries follow, the music keeps its tempo (Audio: Music at normal speed). No effect at Unlimited";
++static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120, the monitor's refresh rate, or Unlimited (no cap, no VSync: as fast as the computer can; Tab switches to Unlimited and back). The game runs on its own clock (Game speed)";
++static const char * const NoEffectTip = "no effect at Unlimited";
++static bool FrameRateUnlimited() { return C()->displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED; }
+ static const char * const MusicNormalTip = "at Speed 2x-4x the music (the background music and jingles) keeps its normal tempo while sound effects and cries follow the speed";
+ 
+ static int SpeedIndex() {
+@@ -509,15 +495,22 @@
+     }
+ }
+ 
+-static const char * const InterpTip = "in-between pictures: with the display cap above the game's picture rate the window shows the game's own 3D drawn at positions between two of its frames (real renders, not blended pictures). The 3D then shows one game frame later in 30 fps scenes. Needs the frame cap on and a Display cap above 60, or a 30 fps scene";
++static const char * const InterpTip = "real in-between frames of the game's 3D when the game makes fewer frames than the Frame rate (the game's own 3D drawn at positions between two of its frames, not blended pictures). The 3D then shows one game frame later in 30 fps scenes. Needs a Frame rate above the game's picture rate (60 does it in 30 fps scenes, 120 more); no effect at Unlimited";
+ 
+ static int DisplayCapIndex() {
+-    return C()->displayCap > 2 ? 0 : C()->displayCap;
++    return C()->displayCap > 3 ? 0 : C()->displayCap;
+ }
+ 
++// a finite Frame rate is remembered (displayCapBack) for the Tab key to return to from Unlimited
+ static void SetDisplayCap(int i) {
+     if (i != DisplayCapIndex()) {
+-        C()->displayCap = (u8)i;
++        SIM_config_type * c = C();
++        if (i == SIM_CONFIG_DISPLAYCAP_UNLIMITED) {
++            if (c->displayCap < SIM_CONFIG_DISPLAYCAP_UNLIMITED) { c->displayCapBack = c->displayCap; }
++        } else {
++            c->displayCapBack = (u8)i;
++        }
++        c->displayCap = (u8)i;
+         Dirty();
+     }
+ }
+@@ -705,18 +698,15 @@
+         FormRow("Frame skip");
+         int fk = FrameSkipIndex();
+         if (ComboIndex("##fk", &fk, FrameSkipNames, 5)) { SetFrameSkip(fk); }
+-        FormRow("VSync");
+-        int vs = c->vsyncInterval > 2 ? 2 : c->vsyncInterval;
+-        if (ComboIndex("##vs", &vs, VsyncNames, 3)) { ApplyVsync(vs); }
+-        FormRow("Cap at 60 fps (Tab)");
+-        bool cap = c->capFrameRate;
+-        if (ImGui::Checkbox("##cap", &cap)) { ApplyCap(cap); }
+-        FormRow("Display cap", DisplayCapTip);
++        FormRow("Frame rate", DisplayCapTip);
+         int dc = DisplayCapIndex();
+-        if (ComboIndex("##dcap", &dc, DisplayCapNames, 3)) { SetDisplayCap(dc); }
+-        FormRow("Interpolation", InterpTip);
++        if (ComboIndex("##dcap", &dc, DisplayCapNames, 4)) { SetDisplayCap(dc); }
++        FormRow("Smooth motion", InterpTip);
++        ImGui::BeginDisabled(FrameRateUnlimited());
+         bool ip = c->interpolation != 0;
+         if (ImGui::Checkbox("##interp", &ip)) { c->interpolation = ip; Dirty(); }
++        ImGui::EndDisabled();
++        if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         ImGui::EndTable();
+     }
+     ImGui::End();
+@@ -744,9 +734,12 @@
+         ImGui::EndTable();
+     }
+     if (BeginForm("##aus")) {
+-        FormRow("Speed (Game menu)");
++        FormRow("Game speed (Game menu)", SpeedTip);
++        ImGui::BeginDisabled(FrameRateUnlimited());
+         int sp = SpeedIndex();
+         if (ComboIndex("##aspd", &sp, SpeedNames, 4)) { SetSpeed(sp); }
++        ImGui::EndDisabled();
++        if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+@@ -815,7 +808,7 @@
+                 ImGui::TableSetupColumn("n", ImGuiTableColumnFlags_WidthFixed, 200.0f * sUiScale);
+                 ImGui::TableSetupColumn("k");
+                 KeyRow("Menu bar on/off", &p.guiKey, false);
+-                KeyRow("Frame cap on/off", &p.frameCapToggleKey, false);
++                KeyRow("Frame rate Unlimited on/off", &p.frameCapToggleKey, false);
+                 KeyRow("Fast forward (hold)", &p.frameCapKey, false);
+                 ImGui::EndTable();
+             }
+@@ -1051,12 +1044,14 @@
+     ItemRect(3);
+     if (mgame) {
+         ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
+-        if (ImGui::BeginMenu("Speed")) {
++        if (ImGui::BeginMenu("Game speed")) {
++            ImGui::BeginDisabled(FrameRateUnlimited());
+             for (int i = 0; i < 4; i++) {
+                 if (MenuRadio(SpeedNames[i], SpeedIndex() == i)) { SetSpeed(i); }
+             }
++            ImGui::EndDisabled();
+             ImGui::Separator();
+-            ImGui::TextDisabled(c->capFrameRate ? "Sound effects follow the speed" : "Needs the frame cap (Tab)");
++            ImGui::TextDisabled(FrameRateUnlimited() ? "No effect at Unlimited (Frame rate)" : "Sound effects follow the speed");
+             ImGui::EndMenu();
+         }
+         if (RestartSupported() && ImGui::MenuItem("Reset...")) {
+@@ -1153,17 +1148,17 @@
+             }
+             ImGui::EndMenu();
+         }
+-        if (ImGui::BeginMenu("Display cap")) {
+-            for (int i = 0; i < 3; i++) {
++        if (ImGui::BeginMenu("Frame rate")) {
++            for (int i = 0; i < 4; i++) {
+                 if (MenuRadio(DisplayCapNames[i], DisplayCapIndex() == i)) { SetDisplayCap(i); }
+             }
+             ImGui::Separator();
+-            ImGui::TextDisabled(c->capFrameRate ? "Pictures a second the window shows" : "Needs the frame cap (Tab)");
++            ImGui::TextDisabled("Pictures a second the window shows");
+             ImGui::EndMenu();
+         }
+         {
+             bool ip = c->interpolation != 0;
+-            if (ImGui::MenuItem("Interpolation", nullptr, &ip)) { c->interpolation = ip; Dirty(); }
++            if (ImGui::MenuItem("Smooth motion", nullptr, &ip, !FrameRateUnlimited())) { c->interpolation = ip; Dirty(); }
+         }
+         ImGui::EndMenu();
+     }
+@@ -1811,34 +1806,35 @@
+             if (ComboIndex("##qaa", &aa, aaShort, 3)) { c->antialias = (u8)(aa == 2 ? 4 : aa == 1 ? 2 : 1); Dirty(); }
+             ItemRect(8);
+         }
+-        FormRow("Frame cap (Tab)", "capped at 60 fps with VSync; off runs as fast as it can");
++        FormRow("Frame rate (Tab)", DisplayCapTip);
+         {
+-            bool cap = c->capFrameRate;
+-            if (ImGui::Checkbox("##qcap", &cap)) { ApplyCap(cap); }
++            int dc = DisplayCapIndex();
++            if (ComboIndex("##qdcap", &dc, DisplayCapShort, 4)) { SetDisplayCap(dc); }
+             ItemRect(9);
+         }
+-        FormRow("Speed", SpeedTip);
++        FormRow("Game speed", SpeedTip);
+         {
++            ImGui::BeginDisabled(FrameRateUnlimited());
+             int sp = SpeedIndex();
+             if (ComboIndex("##qspeed", &sp, SpeedShort, 4)) { SetSpeed(sp); }
+             ItemRect(10);
+-        }
+-        FormRow("Display cap", DisplayCapTip);
+-        {
+-            int dc = DisplayCapIndex();
+-            if (ComboIndex("##qdcap", &dc, DisplayCapShort, 3)) { SetDisplayCap(dc); }
+-            ItemRect(11);
++            ImGui::EndDisabled();
++            if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         }
+         FormRow("Music, normal speed", MusicNormalTip);
+         {
+             bool mn = c->musicNormalSpeed != 0;
+             if (ImGui::Checkbox("##qmusic", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+-            ItemRect(12);
++            ItemRect(11);
+         }
+-        FormRow("Interpolation", InterpTip);
++        FormRow("Smooth motion", InterpTip);
+         {
++            ImGui::BeginDisabled(FrameRateUnlimited());
+             bool ip = c->interpolation != 0;
+             if (ImGui::Checkbox("##qinterp", &ip)) { c->interpolation = ip; Dirty(); }
++            ItemRect(12);
++            ImGui::EndDisabled();
++            if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         }
+         ImGui::EndTable();
+     }
+@@ -1939,7 +1935,7 @@
+ 
+     // the program's own keys
+     const std::string hints[] = {
+-        "F1  hide this panel", KeyLabel(pad.frameCapToggleKey) + "  frame cap on/off",
++        "F1  hide this panel", KeyLabel(pad.frameCapToggleKey) + "  unlimited frame rate on/off",
+         KeyLabel(pad.frameCapKey) + "  hold: fast forward", KeyLabel(pad.guiKey) + "  menu bar",
+     };
+     {
+@@ -1979,7 +1975,7 @@
+ void RectsString(char * buf, int n) {
+     int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
+                      sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
+-    static const char * const itemNames[13] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb", "qaa", "qcap", "qspeed", "qdcap", "qmusic"};
++    static const char * const itemNames[13] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb", "qaa", "qrate", "qspeed", "qmusic", "qsmooth"};
+     k += snprintf(buf + k, n - k, " joyn %d", sJoyClicks);
+     for (int i = 0; i < 13 && k < n - 80; i++) {
+         if (sItemRect[i][2] > 0.0f) {
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -45,10 +45,11 @@
+     "Auto (only when too slow for 60 fps)"
+ };
+ 
+-static constexpr const char * VblankStrings[] = {
+-    "Off",
+-    "Every V-Blank",
+-    "Every second V-Blank"
++static constexpr const char * FrameRateStrings[] = {
++    "60 per second",
++    "120 per second",
++    "Monitor's refresh rate",
++    "Unlimited (Tab)"
+ };
+ 
+ void AppConfigInit() {
+@@ -59,8 +60,7 @@
+     bool configChanged = false;
+     int screenLayout = sConfig->screenLayout;
+     bool swapScreens = sConfig->swapScreens;
+-    int vSyncInterval = sConfig->vsyncInterval;
+-    bool frameLimit = sConfig->capFrameRate;
++    int frameRate = sConfig->displayCap > SIM_CONFIG_DISPLAYCAP_UNLIMITED ? 0 : sConfig->displayCap;
+     bool fullScreen = sConfig->fullScreen;
+     bool integerScale = sConfig->integerScale;
+     bool showPanel = sConfig->showInputPanel;
+@@ -119,10 +119,7 @@
+     if(ImGui::Checkbox("Swap Screens", &swapScreens)) {
+         configChanged = true;
+     }
+-    if(ImGui::Combo("VSync", &vSyncInterval, VblankStrings, 3, 3)) {
+-        configChanged = true;
+-    }
+-    if(ImGui::Checkbox("Cap framerate", &frameLimit)) {
++    if(ImGui::Combo("Frame rate", &frameRate, FrameRateStrings, 4, 4)) {
+         configChanged = true;
+     }
+ 
+@@ -155,11 +152,14 @@
+         } else {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), 0);
+         }
+-        sConfig->vsyncInterval = vSyncInterval;
+-        if(vSyncInterval != SDL_GL_GetSwapInterval()) {
+-            SDL_GL_SetSwapInterval(vSyncInterval);
++        if(frameRate != sConfig->displayCap) { // (the swap interval follows each frame in SIM_Render)
++            if(frameRate == SIM_CONFIG_DISPLAYCAP_UNLIMITED) {
++                if(sConfig->displayCap < SIM_CONFIG_DISPLAYCAP_UNLIMITED) { sConfig->displayCapBack = sConfig->displayCap; }
++            } else {
++                sConfig->displayCapBack = (u8)frameRate;
++            }
++            sConfig->displayCap = (u8)frameRate;
+         }
+-        sConfig->capFrameRate = frameLimit;
+ 
+         SIM_Config_SaveConfigFile(sConfig);
+     }

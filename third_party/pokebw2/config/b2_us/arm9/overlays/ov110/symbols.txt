@@ -1,0 +1,14 @@
+TubelineBridge_Setup kind:function(thumb,size=0x44) addr:0x021eec80
+TubelineBridge_End kind:function(thumb,size=0x38) addr:0x021eecc4
+TubelineBridge_Update kind:function(thumb,size=0x76) addr:0x021eecfc
+TubelineBridge_Init kind:function(thumb,size=0xbe) addr:0x021eed74
+TubelineBridge_LoadWaitRanges kind:function(thumb,size=0x3c) addr:0x021eee34
+TubelineBridge_SaveFrames kind:function(thumb,size=0x32) addr:0x021eee70
+TubelineBridge_LoadFrames kind:function(thumb,size=0x32) addr:0x021eeea4
+TubelineBridge_StartWait kind:function(thumb,size=0x22) addr:0x021eeed8
+TubelineBridge_RestartTrain kind:function(thumb,size=0x10) addr:0x021eeefc
+data_ov110_021eef0c kind:data(any) addr:0x021eef0c
+sResources kind:data(any) addr:0x021eef14
+sActors kind:data(any) addr:0x021eef20
+data_ov110_021eef29 kind:data(any) addr:0x021eef29 ambiguous
+sSceneSetup kind:data(any) addr:0x021eef60

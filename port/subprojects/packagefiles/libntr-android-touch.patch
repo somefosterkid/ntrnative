@@ -1,0 +1,339 @@
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+index 79a8498..3047fe2 100644
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -38,6 +38,7 @@ void SimTouch_MenuClose(void);
+ void SimTouch_Draw(void);
+ void SimTouch_Screens(float * r);
+ void SimTouch_Safe(float * s);
++float SimTouch_Unit(void);   // libntr-android-touch.patch: pixels per point / dp
+ }
+ 
+ namespace SIM::GUI {
+@@ -2472,8 +2473,9 @@ static void TouchOverlay() {
+         }
+     }
+     ImFont * font = ImGui::GetFont();
+-    float fs = 9.5f;
+-    float pad = 5.0f, gap = 2.0f;
++    const float u = SimTouch_Unit();   // (Android: the window is in pixels; 1 elsewhere)
++    float fs = 9.5f * u;
++    float pad = 5.0f * u, gap = 2.0f * u;
+     int lines = l3[0] ? (l7[0] ? 9 : 6) : 1;
+     const char * ls[9] = {l1, l2, l3, l4, l5, l6, l7, l8, l9};
+     float w = 0.0f;
+@@ -2482,9 +2484,9 @@ static void TouchOverlay() {
+     }
+     float h = (float)lines * fs + (float)(lines - 1) * gap;
+     float bw = w + 2.0f * pad, bh = h + 2.0f * pad;
+-    float x = c->overlayCorner ? scr[0] + scr[2] - 4.0f - bw : scr[0] + 4.0f, y = scr[1] + 4.0f;
++    float x = c->overlayCorner ? scr[0] + scr[2] - 4.0f * u - bw : scr[0] + 4.0f * u, y = scr[1] + 4.0f * u;
+     ImDrawList * dl = ImGui::GetForegroundDrawList();
+-    dl->AddRectFilled(ImVec2(x, y), ImVec2(x + bw, y + bh), IM_COL32(0, 0, 0, 120), 5.0f);
++    dl->AddRectFilled(ImVec2(x, y), ImVec2(x + bw, y + bh), IM_COL32(0, 0, 0, 120), 5.0f * u);
+     // green: the game keeps its speed (Game speed or fast forward); yellow / red: it falls behind
+     float keep = SIM_GameSpeedNow() / (float)(SpeedIndex() + 1);
+     ImU32 fc = keep >= 0.95f ? IM_COL32(140, 255, 140, 255) : keep >= 0.5f ? IM_COL32(255, 220, 90, 255) : IM_COL32(255, 110, 90, 255);
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index c49dce8..0c8b1b3 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1959,6 +1959,11 @@ static bool LagReady(void) {
+ #if SIM_IOS
+ extern "C" int bwport_ios_vsync(unsigned long long *lastNs, unsigned long long *periodNs);  // port/src/ios_input.m
+ #endif
++#if SIM_ANDROID
++// libntr-android-touch.patch: the Choreographer's refreshes (BwportActivity.java's frame callback, port/src/android_main.c), the
++// CLOCK_MONOTONIC clock SpNowNs reads: the Android display link
++extern "C" int bwport_android_vsync(unsigned long long *lastNs, unsigned long long *periodNs);
++#endif
+ // libntr-ios-ffpace.patch: the display link: iOS's CADisplayLink; elsewhere, with BWPORT_PANELHZ=N, a pretended one (refreshes every
+ // 1/N s on the clock, the swaps no longer wait for the V-blank), so the iOS present path (slots locked to the link, the panel model
+ // and its drops) runs on a desktop for tests. 0: no link (the swap waits for the V-blank as before).
+@@ -1974,6 +1979,17 @@ static int SpLink(u64 *vs, u64 *per) {
+   *vs = a;
+   *per = b;
+   return ok;
++#elif SIM_ANDROID
++  unsigned long long a = 0, b = 0;
++  if (SpPanelEnvHz() <= 0) {
++    int ok = bwport_android_vsync(&a, &b);
++    *vs = a;
++    *per = b;
++    return ok;
++  }
++  *per = 1000000000ull / (u64)SpPanelEnvHz();
++  *vs = SpNowNs() / *per * *per;
++  return 1;
+ #else
+   if (SpPanelEnvHz() <= 0) return 0;
+   *per = 1000000000ull / (u64)SpPanelEnvHz();
+@@ -1993,6 +2009,7 @@ extern "C" float SIM_DisplayShown(int *waiting, float *hz) {
+   return sShownMean;
+ }
+ static void LagShown(u64 submit, u64 done) {
++  if (SIM_ANDROID) return;  // (libntr-android-touch.patch: the swap waits for the refresh itself; the model would only drift ahead of it)
+   u64 vs = 0, per = 0;
+   if (!SpLink(&vs, &per) || per < 2000000 || per > 50000000) return;
+   sVsPeriod = per;
+@@ -2098,7 +2115,7 @@ static bool LagSubmit(void) {
+   if (sLagN == 16) LagDone(SpNowNs(), SpNowNs());  // (no bound and the GPU 16 frames behind: forget the oldest)
+   {
+     static int sDrop = -1;
+-    if (sDrop < 0) sDrop = getenv("BWPORT_PRESENTDROP") == NULL || atoi(getenv("BWPORT_PRESENTDROP")) != 0;
++    if (sDrop < 0) sDrop = getenv("BWPORT_PRESENTDROP") == NULL ? !SIM_ANDROID : atoi(getenv("BWPORT_PRESENTDROP")) != 0;   // (Android: the swap waits for the refresh itself, no drops unless asked)
+     int w = LagWaiting(SpNowNs());
+     if (w > sSc.maxWait) sSc.maxWait = w;
+     if (sDrop && w >= 2) {
+@@ -2351,9 +2368,9 @@ static u64 SpMonitorNs(void) {
+   static int calls, sEnvHz = -1, sLoggedHz;
+   if (sEnvHz < 0) sEnvHz = getenv("BWPORT_PANELHZ") != NULL ? atoi(getenv("BWPORT_PANELHZ")) : 0;
+   int panelHz = sEnvHz > 0 ? sEnvHz : 0;
+-#if SIM_IOS
++#if SIM_IOS || SIM_ANDROID
+   u64 vs = 0, per = 0;
+-  if (panelHz == 0 && bwport_ios_vsync(&vs, &per) && per >= 4000000 && per <= 50000000) {
++  if (panelHz == 0 && SpLink(&vs, &per) && per >= 4000000 && per <= 50000000) {
+     // libntr-ios-pacefix.patch: a new rate is followed once it has held half a second. Every change restarts the pace timeline
+     // (the slots, Smooth motion's pairing of pictures); a ProMotion panel moving inside the link's 80-120 range, or one odd link
+     // period, restarted it on each flip
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+index 8f5c99f..80576cf 100644
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -34,6 +34,12 @@ extern "C" int bwport_ios_touch_state(unsigned long long finger, unsigned long l
+ #else
+ #define SIM_TOUCH_IOS 0
+ #endif
++#ifdef __ANDROID__
++// libntr-android-touch.patch: port/src/android_main.c. The density (pixels per dp, 2.625 on a 420 dpi phone) and the display's
++// insets in pixels (the cutout and the system bars; the Java activity reports them)
++extern "C" float bwport_android_density(void);
++extern "C" int bwport_android_insets(float * l, float * t, float * r, float * b);
++#endif
+ // libntr-ios-inputprio.patch: when the key script (port/src/keys_script.c) let go of its finger (its pushed fingers' "hardware time")
+ extern "C" unsigned long long bwport_keys_touch_ns(long long finger);
+ 
+@@ -152,11 +158,28 @@ void PressTime(const SDL_Event * e) {
+     sPendGate = 0;
+ }
+ 
++// libntr-android-touch.patch: pixels per layout unit. The layout below is in points (iOS: the window's own unit, 1 pt = 1/163 in) or
++// dp (Android: 1/160 in); an Android window is in pixels, so everything is laid out in dp and scaled by the density (BWPORT_TOUCH_SCALE=N
++// pretends a density on a desktop test). 1 everywhere else: nothing changes on iOS, macOS, Windows, Linux.
++float sU = 1.0f;
++float Unit() {
++    float u = 1.0f;
++#ifdef __ANDROID__
++    u = bwport_android_density();
++#endif
++    const char * e = getenv("BWPORT_TOUCH_SCALE");
++    if (e != NULL && atof(e) > 0.0) u = (float)atof(e);
++    return u >= 0.5f && u <= 8.0f ? u : 1.0f;
++}
++
+ void ReadInsets(float * s) {
+     s[0] = s[1] = s[2] = s[3] = 0;
+     bool ok = false;
+ #if SIM_TOUCH_IOS
+     ok = bwport_ios_safe_area(sWindow, &s[0], &s[1], &s[2], &s[3]) != 0;
++#endif
++#ifdef __ANDROID__
++    ok = bwport_android_insets(&s[0], &s[1], &s[2], &s[3]) != 0;   // (pixels)
+ #endif
+     const char * e = getenv("BWPORT_TOUCH_INSETS");
+     if (e != NULL && sscanf(e, "%f,%f,%f,%f", &s[0], &s[1], &s[2], &s[3]) == 4) {
+@@ -165,7 +188,26 @@ void ReadInsets(float * s) {
+     (void)ok;
+ }
+ 
++void ComputeUnits(int W, int H, const float * safe);
++// the layout in points / dp (ComputeUnits), then every length in pixels: the window (W, H) and the insets are pixels
+ void Compute(int W, int H, const float * safe) {
++    const float u = sU;
++    float s[4] = {safe[0] / u, safe[1] / u, safe[2] / u, safe[3] / u};
++    ComputeUnits((int)((float)W / u + 0.5f), (int)((float)H / u + 0.5f), s);
++    Layout & L = sL;
++    if (u != 1.0f) {
++        auto sc = [u](float * v, int n) { for (int i = 0; i < n; i++) v[i] *= u; };
++        sc(L.safe, 4); sc(L.scr, 4); sc(L.bottom, 4);
++        for (Btn & b : L.btn) sc(&b.x, 4);
++        sc(&L.menu.x, 4); sc(&L.ff.x, 4);
++        L.dcx *= u; L.dcy *= u; L.dc *= u;
++    }
++    L.winW = W;
++    L.winH = H;
++    L.landscape = W > H;
++}
++
++void ComputeUnits(int W, int H, const float * safe) {
+     Layout & L = sL;
+     memset(&L, 0, sizeof L);
+     L.winW = W;
+@@ -194,6 +236,9 @@ void Compute(int W, int H, const float * safe) {
+         float top = rowY + rowH + 6.0f, bot = zb;
+         float ch = bot - top;
+         c = fminf(48.0f, ch / 3.0f);
++        // libntr-android-touch.patch: a window narrower than an iPhone Pro Max (Android: 360-411 dp) has no room for the D-pad, the middle
++        // column and the diamond side by side at 48: the Y button covered SELECT. The cells shrink to fit (only where the unit is not 1)
++        if (sU != 1.0f) c = fminf(c, fminf(((float)W * 0.5f - 62.0f) / 3.0f, ((float)W * 0.5f - 60.0f) / 3.4f));
+         float my = top + ch * 0.5f;
+         L.dc = c;
+         L.dcx = zl + 1.5f * c + 4.0f;
+@@ -257,8 +302,8 @@ int HitTest(float x, float y, int * idx) {
+         if (b.round) {
+             float cx = b.x + b.w * 0.5f, cy = b.y + b.h * 0.5f;
+             float d = hypotf(x - cx, y - cy);
+-            if (d <= b.w * 0.5f + 7.0f && d < best) { best = d; bi = i; }
+-        } else if (x >= b.x - 6 && x < b.x + b.w + 6 && y >= b.y - 6 && y < b.y + b.h + 6) {
++            if (d <= b.w * 0.5f + 7.0f * sU && d < best) { best = d; bi = i; }
++        } else if (x >= b.x - 6 * sU && x < b.x + b.w + 6 * sU && y >= b.y - 6 * sU && y < b.y + b.h + 6 * sU) {
+             float d = hypotf(x - (b.x + b.w * 0.5f), y - (b.y + b.h * 0.5f));
+             if (d < best) { best = d; bi = i; }
+         }
+@@ -267,7 +312,7 @@ int HitTest(float x, float y, int * idx) {
+     if (!hide && hypotf(x - L.dcx, y - L.dcy) <= L.dc * 2.0f) return K_DPAD;
+     const Btn * t[2] = {&L.menu, &L.ff};
+     for (int i = 0; i < 2; i++) {
+-        if (x >= t[i]->x - 6 && x < t[i]->x + t[i]->w + 6 && y >= t[i]->y - 6 && y < t[i]->y + t[i]->h + 6) {
++        if (x >= t[i]->x - 6 * sU && x < t[i]->x + t[i]->w + 6 * sU && y >= t[i]->y - 6 * sU && y < t[i]->y + t[i]->h + 6 * sU) {
+             *idx = i;
+             return K_TOGGLE;
+         }
+@@ -532,9 +577,12 @@ void SimTouch_Window(SDL_Window * w) {
+ void SimTouch_Layout(int winW, int winH, float * x, float * y, float * w, float * h) {
+     static int pw, ph;
+     static float pins[4];
++    static float pu;
+     float cur[4];
+     ReadInsets(cur);
+-    if (winW != pw || winH != ph || memcmp(cur, pins, sizeof cur) != 0 || sL.winW == 0) {
++    float unit = Unit();
++    if (winW != pw || winH != ph || unit != pu || memcmp(cur, pins, sizeof cur) != 0 || sL.winW == 0) {
++        pu = sU = unit;
+         pw = winW;
+         ph = winH;
+         memcpy(pins, cur, sizeof cur);
+@@ -542,7 +590,7 @@ void SimTouch_Layout(int winW, int winH, float * x, float * y, float * w, float
+         memcpy(s, cur, sizeof s);
+         if (sForceW > 0 && getenv("BWPORT_TOUCH_INSETS") == NULL) {
+             // the test window: an iPhone 16 Pro Max's insets
+-            if (winW > winH) { s[0] = s[2] = 62; s[3] = 21; } else { s[1] = 62; s[3] = 34; }
++            if (winW > winH) { s[0] = s[2] = 62 * sU; s[3] = 21 * sU; } else { s[1] = 62 * sU; s[3] = 34 * sU; }
+         }
+         bool wasLandscape = sL.landscape;
+         Compute(winW, winH, s);
+@@ -557,6 +605,7 @@ void SimTouch_Layout(int winW, int winH, float * x, float * y, float * w, float
+ #if SIM_TOUCH_IOS
+         bwport_ios_touch_setup(sWindow);   // libntr-ios-inputprio.patch: (again: a rotation may bring new recognizers)
+ #endif
++        fprintf(stderr, "bwport: touch scale %.3f px per point (dp)\n", sU);
+         fprintf(stderr, "bwport: touch layout %dx%d %s, safe area %.0f %.0f %.0f %.0f, screens %.0f %.0f %.0f %.0f\n", winW, winH,
+                 sL.landscape ? "landscape" : "portrait", sL.safe[0], sL.safe[1], sL.safe[2], sL.safe[3], sL.scr[0], sL.scr[1],
+                 sL.scr[2], sL.scr[3]);
+@@ -694,6 +743,9 @@ void SimTouch_UIKitCancel(unsigned long long finger) {
+                 SIM_PadNames(HeldBy(*f), nm), f->kind, (NowNs() - f->downAt) / 1e6);
+ }
+ 
++// libntr-android-touch.patch: pixels per point / dp, for the overlay
++float SimTouch_Unit(void) { return sU; }
++
+ // the safe area (l, t, r, b), for the settings window
+ void SimTouch_Safe(float * s) { memcpy(s, sL.safe, sizeof sL.safe); }
+ 
+@@ -711,6 +763,7 @@ void SimTouch_Draw(void) {
+     const Layout & L = sL;
+     unsigned m = sPressed;
+     const bool hide = Hidden();
++    const float u = sU;   // (the lengths below are in points / dp)
+ 
+     for (int i = 0; i < B_UP && !hide; i++) {
+         const Btn & b = L.btn[i];
+@@ -720,18 +773,18 @@ void SimTouch_Draw(void) {
+         float fs;
+         if (b.round) {
+             ImVec2 ctr(b.x + b.w * 0.5f, b.y + b.h * 0.5f);
+-            dl->AddCircleFilled(ImVec2(ctr.x, ctr.y + 2), b.w * 0.5f, shade, 32);
++            dl->AddCircleFilled(ImVec2(ctr.x, ctr.y + 2 * u), b.w * 0.5f, shade, 32);
+             dl->AddCircleFilled(ctr, b.w * 0.5f, on ? lit : body, 32);
+-            dl->AddCircle(ctr, b.w * 0.5f, edge, 32, 2.0f);
++            dl->AddCircle(ctr, b.w * 0.5f, edge, 32, 2.0f * u);
+             fs = b.w * 0.5f;
+         } else {
+             float r = b.h * 0.5f;
+             // L and R are slabs; the middle buttons are pills
+-            if (i == B_L || i == B_R) r = 14.0f;
+-            dl->AddRectFilled(ImVec2(p0.x, p0.y + 2), ImVec2(p1.x, p1.y + 2), shade, r);
++            if (i == B_L || i == B_R) r = 14.0f * u;
++            dl->AddRectFilled(ImVec2(p0.x, p0.y + 2 * u), ImVec2(p1.x, p1.y + 2 * u), shade, r);
+             dl->AddRectFilled(p0, p1, on ? lit : body, r);
+-            dl->AddRect(p0, p1, edge, r, 0, 2.0f);
+-            fs = (i == B_L || i == B_R) ? 22.0f : 14.0f;
++            dl->AddRect(p0, p1, edge, r, 0, 2.0f * u);
++            fs = ((i == B_L || i == B_R) ? 22.0f : 14.0f) * u;
+         }
+         ImVec2 ts = font->CalcTextSizeA(fs, 1000.0f, 0.0f, b.label);
+         dl->AddText(font, fs, ImVec2(b.x + (b.w - ts.x) * 0.5f, b.y + (b.h - ts.y) * 0.5f), on ? inkLit : ink, b.label);
+@@ -753,16 +806,16 @@ void SimTouch_Draw(void) {
+                 pts[2 * i + 1] = ImVec2(x + vx[i] + nx / nl * r, y + vy[i] + ny / nl * r);
+             }
+             ImVec2 sh[24];
+-            for (int i = 0; i < 24; i++) sh[i] = ImVec2(pts[i].x, pts[i].y + 2);
++            for (int i = 0; i < 24; i++) sh[i] = ImVec2(pts[i].x, pts[i].y + 2 * u);
+             dl->AddConcavePolyFilled(sh, 24, shade);
+             dl->AddConcavePolyFilled(pts, 24, body);
+-            dl->AddPolyline(pts, 24, edge, ImDrawFlags_Closed, 2.0f);
++            dl->AddPolyline(pts, 24, edge, ImDrawFlags_Closed, 2.0f * u);
+         }
+         struct Arm { int bit; float dx, dy; } arms[4] = {{B_UP, 0, -1}, {B_DOWN, 0, 1}, {B_LEFT, -1, 0}, {B_RIGHT, 1, 0}};
+         for (const Arm & a : arms) {
+             bool on = (m >> a.bit) & 1;
+             float cx = x + a.dx * c, cy = y + a.dy * c;
+-            if (on) dl->AddRectFilled(ImVec2(cx - 0.5f * c + 3, cy - 0.5f * c + 3), ImVec2(cx + 0.5f * c - 3, cy + 0.5f * c - 3), lit, rr * 0.7f);
++            if (on) dl->AddRectFilled(ImVec2(cx - 0.5f * c + 3 * u, cy - 0.5f * c + 3 * u), ImVec2(cx + 0.5f * c - 3 * u, cy + 0.5f * c - 3 * u), lit, rr * 0.7f);
+             float t = c * 0.22f;
+             ImVec2 tip(cx + a.dx * t, cy + a.dy * t), b1(cx - a.dx * t + a.dy * t * 1.2f, cy - a.dy * t + a.dx * t * 1.2f),
+                 b2(cx - a.dx * t - a.dy * t * 1.2f, cy - a.dy * t - a.dx * t * 1.2f);
+@@ -774,32 +827,32 @@ void SimTouch_Draw(void) {
+     {
+         const Btn & b = L.menu;
+         ImVec2 p0(b.x, b.y), p1(b.x + b.w, b.y + b.h);
+-        dl->AddRectFilled(p0, p1, body, 12.0f);
+-        dl->AddRect(p0, p1, edge, 12.0f, 0, 2.0f);
++        dl->AddRectFilled(p0, p1, body, 12.0f * u);
++        dl->AddRect(p0, p1, edge, 12.0f * u, 0, 2.0f * u);
+         for (int i = 0; i < 3; i++) {
+-            float yy = b.y + b.h * 0.5f + (i - 1) * 8.0f;
+-            dl->AddRectFilled(ImVec2(b.x + 12, yy - 1.5f), ImVec2(b.x + b.w - 12, yy + 1.5f), ink, 1.5f);
++            float yy = b.y + b.h * 0.5f + (i - 1) * 8.0f * u;
++            dl->AddRectFilled(ImVec2(b.x + 12 * u, yy - 1.5f * u), ImVec2(b.x + b.w - 12 * u, yy + 1.5f * u), ink, 1.5f * u);
+         }
+         // the fast-forward button: a pill like SELECT / START, two arrows and the speed it gives ("4x", "MAX"), lit while on
+         const Btn & f = L.ff;
+         ImVec2 q0(f.x, f.y), q1(f.x + f.w, f.y + f.h);
+         float fr = f.h * 0.5f;
+-        dl->AddRectFilled(ImVec2(q0.x, q0.y + 2), ImVec2(q1.x, q1.y + 2), shade, fr);
++        dl->AddRectFilled(ImVec2(q0.x, q0.y + 2 * u), ImVec2(q1.x, q1.y + 2 * u), shade, fr);
+         dl->AddRectFilled(q0, q1, sFF ? lit : body, fr);
+-        dl->AddRect(q0, q1, edge, fr, 0, 2.0f);
++        dl->AddRect(q0, q1, edge, fr, 0, 2.0f * u);
+         int sp = SIM_UISettingGet("ffspeed");
+         char lab[8];
+         snprintf(lab, sizeof lab, sp >= 5 ? "MAX" : "%dx", sp);
+-        float fs = f.h > 40.0f ? 16.0f : 14.0f;
++        float fs = (f.h > 40.0f * u ? 16.0f : 14.0f) * u;
+         ImVec2 ts = font->CalcTextSizeA(fs, 1000.0f, 0.0f, lab);
+-        float ah = f.h * 0.22f, aw = ah * 0.9f, total = 2 * aw + 3.0f + 6.0f + ts.x;
++        float ah = f.h * 0.22f, aw = ah * 0.9f, total = 2 * aw + 9.0f * u + ts.x;
+         float x0 = f.x + (f.w - total) * 0.5f, cy = f.y + f.h * 0.5f;
+         ImU32 col = sFF ? inkLit : ink;
+         for (int i = 0; i < 2; i++) {
+-            float ox = x0 + i * (aw + 3.0f);
++            float ox = x0 + i * (aw + 3.0f * u);
+             dl->AddTriangleFilled(ImVec2(ox, cy - ah), ImVec2(ox, cy + ah), ImVec2(ox + aw, cy), col);
+         }
+-        dl->AddText(font, fs, ImVec2(x0 + 2 * aw + 3.0f + 6.0f, cy - ts.y * 0.5f), col, lab);
++        dl->AddText(font, fs, ImVec2(x0 + 2 * aw + 9.0f * u, cy - ts.y * 0.5f), col, lab);
+     }
+ }
+ 

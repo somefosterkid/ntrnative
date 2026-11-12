@@ -1,0 +1,130 @@
+# From pokebw2's lib/dwc/library.toml (GPL-3.0, https://github.com/fuddlesworth/pokebw2), for Black's copy of the library.
+# Nintendo's DWC (Wi-Fi Connection), built apart from the game with the game's compiler, dsi/1.1p1. Black 2 links most
+# of DWC as Thumb code; Black's is ARM code throughout: NitroDWC and GameSpy in overlay 9 (NitroDWC's source compiled
+# with dsi/1.1p1 gives 313 twins as ARM, 1 as Thumb), the voice chat library libVCT (overlay 13, vct/) and the
+# signature check (overlay 114, crypt/). Probed on libVCT in all of dsi/1.1 to dsi/1.6sp2, 2.0/* and 1.2/*: dsi/1.1 to
+# dsi/1.6sp2 compile it alike and best (41 of its first 96 functions matched at dsi/1.1p1, 31 at 2.0/*, 17 at 1.2/sp3
+# and sp4, 10 at 1.2/base), -O4,s and -O2 match 28 and 27, and -inline made no gain. Other parts that differ take
+# their own file_flags entry.
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# libVCT is ARM code; vct.c also reaches its two objects from one base, as -ipa file does
+[file_flags]
+"vct/vct_audio.c" = ["-ipa file"]
+"vct/vct_session.c" = ["-ipa file"]
+# GameSpy's sockets (gsPlatformSocket.c, a part of the older SDK's nonport.c) reach their statics from one base, as
+# -ipa file does; gsPlatformThread.c and gsPlatformUtil.c are built without it, as pokebw2 has them (Util's tables
+# then come out in Black's order)
+"gscommon/gsPlatformSocket.c" = ["-ipa file"]
+"base/dwc_friend_base.c" = ["-ipa file"]
+# vct.c reaches its two objects from one base, as -ipa file does
+"vct/vct.c" = ["-ipa file"]
+# udp_buffer.c, vad.c and fir.c (libVCT's objects that were glued as vct_dsp.c) reach their data from one base each,
+# as -ipa file does (libVCT's meson.build builds every file with it)
+"vct/udp_buffer.c" = ["-ipa file"]
+"vct/vad.c" = ["-ipa file"]
+"vct/fir.c" = ["-ipa file"]
+# NHTTP (Black 2's overlay 189) reaches the statics of its common file from one base, as -ipa file does
+"nhttp/d_nhttp_common.c" = ["-ipa file"]
+# So does the HTTP client's comm thread: its 76-byte content type string has a section of its own (4-aligned after
+# the 50-byte one), which only -ipa file gives an object of 64 bytes or more
+"nhttp/nhttp_thread.c" = ["-ipa file"]
+# The game statistics client (DWC's dwc_encsession.o) reaches its 0xa0-byte client by its own address: only -ipa file
+# gives an object of 64 bytes or more a section of its own
+"gamestats/gamestats.c" = ["-ipa file"]
+# So does the file of DWC that wraps the GameSpy HTTP client (Black 2's overlay 189)
+"ghttp/dwc_ghttp.c" = ["-ipa file"]
+# The files of overlay 9 whose twins in NitroDWC are more with -ipa file (tools/port_lib.py's variants)
+"base/dwc_common.c" = ["-ipa file", "-inline on,noauto"]
+"gs/available.c" = ["-ipa file", "-inline on,noauto"]
+"gs/gstats/gstats.c" = ["-ipa file", "-inline on,noauto"]
+"gs/gt2/gt2Utility.c" = ["-ipa file", "-inline on,noauto"]
+"gs/serverbrowsing/sb_server.c" = ["-ipa file", "-inline on,noauto"]
+"gs/serverbrowsing/sb_serverlist.c" = ["-ipa file"]
+
+# dwc_match.c reaches its small statics (the match control, the added filter) from one base, as -ipa file does
+"base/dwc_match.c" = ["-ipa file"]
+# The send pool (its own file before dwc_transport.c) reaches its head and size from one base, as -ipa file does;
+# dwc_transport.c its one static, sTransInfo
+"base/dwc_sendpool.c" = ["-ipa file"]
+"base/dwc_transport.c" = ["-ipa file"]
+# The download library (nd.c) and DWC's wrapper of it (dwc_nd.c, its own file before it) reach their statics from one
+# base each, as -ipa file does
+"base/dwc_nd.c" = ["-ipa file"]
+"nd/nd.c" = ["-ipa file"]
+# NATify.c reaches its bool statics and the address buffers' index from one base, as -ipa file does
+"natneg/NATify.c" = ["-ipa file"]
+# natneg.c reaches its statics (the negotiations, the servers, the NAT detection) from one base, as -ipa file does
+"gs/natneg/natneg.c" = ["-ipa file"]
+# qr2.c lays its .bss out by size (num_local_ips, local_ip_list[5]; qr2_hostname[64] and qr2_check_queries' static
+# indata[256] in sections of their own), as -ipa file does: without it indata comes second
+"gs/qr2/qr2.c" = ["-ipa file"]
+
+# The auth files lay their uninitialised statics out in size order (the work, the WiFi info; the login state, the
+# parameters, the HTTP handle), as -ipa file does
+"auth/dwc_auth.c" = ["-ipa file"]
+# dwc_prof.c's region keys (a local initializer) and their strings come before the strings of its first function, as
+# -ipa file lays them out (pokebw2's dwc_profanity.c)
+"auth/dwc_prof.c" = ["-ipa file"]
+# The root certificates (data only): each name of under 64 bytes sorts with its exponent, as -ipa file lays them out
+# (pokebw2's dwc_rootcert_*.c)
+"auth/dwc_ca_baltimore_cybertrust.c" = ["-ipa file"]
+"auth/dwc_ca_globalsign.c" = ["-ipa file"]
+"auth/dwc_ca_gte_cybertrust_global.c" = ["-ipa file"]
+"auth/dwc_ca_cybertrust_gteroot.c" = ["-ipa file"]
+"auth/dwc_ca_globalsign_rootcar2.c" = ["-ipa file"]
+"auth/dwc_ca_nas_self.c" = ["-ipa file"]
+"auth/dwc_ca_nintendo_class2.c" = ["-ipa file"]
+"auth/dwc_ca_thawte_premiumserver.c" = ["-ipa file"]
+"auth/dwc_ca_thawte_server.c" = ["-ipa file"]
+"auth/dwc_ca_verisign_class3_g2.c" = ["-ipa file"]
+"auth/dwc_ca_verisign_class3_g3.c" = ["-ipa file"]
+"auth/dwc_ca_verisign_class3.c" = ["-ipa file"]
+"auth/dwc_ca_verisign_secureserver.c" = ["-ipa file"]
+"auth/dwc_authlogin.c" = ["-ipa file"]
+
+# ARM9 main's DWC: dwc_nvram.c reaches its three statics from one base, as -ipa file does
+"bm/dwc_nvram.c" = ["-ipa file"]
+# dwc_init.c reaches its two statics (the game code, the started flag) from one base, as -ipa file does
+"account/dwc_init.c" = ["-ipa file"]
+
+# The GameSpy web service files of overlay 175 (sake, competition, the record database, the auth service), once glued
+# as one game file: built as NitroDWC builds every file (its meson.build), -ipa file and -inline on,noauto
+"sake/sakeMain.c" = ["-ipa file", "-inline on,noauto"]
+"sake/sakeRequest.c" = ["-ipa file", "-inline on,noauto"]
+"sake/sakeRequestModify.c" = ["-ipa file", "-inline on,noauto"]
+"sake/sakeRequestRead.c" = ["-ipa file", "-inline on,noauto"]
+"sc/dwc_sc.c" = ["-ipa file", "-inline on,noauto"]
+"sc/sciInterface.c" = ["-ipa file", "-inline on,noauto"]
+"sc/sciMain.c" = ["-ipa file", "-inline on,noauto"]
+"sc/sciReport.c" = ["-ipa file", "-inline on,noauto"]
+"sc/sciSerialize.c" = ["-ipa file", "-inline on,noauto"]
+"sc/sciWebServices.c" = ["-ipa file", "-inline on,noauto"]
+"gdb/gdb.c" = ["-ipa file", "-inline on,noauto"]
+"auth/AuthService.c" = ["-ipa file", "-inline on,noauto"]
+
+# dwc_account.c: every dsi compiler from 1.2 on matches its 52nd function, 1.1p1 differs by a register (tools/flag_search.py)
+[file_compiler]
+"account/dwc_account.c" = "dsi/1.2"
+# nd.c: DWCi_Ndi_intToStrFigure loads powersOfTen[i]'s low word through its own indexed address (the table base
+# loaded again) only from dsi/1.2 on, as the original does; the file's other matched functions compile alike
+"nd/nd.c" = "dsi/1.2"
+# dwc_nd.c, split from it, matched under dsi/1.2 in it
+"base/dwc_nd.c" = "dsi/1.2"

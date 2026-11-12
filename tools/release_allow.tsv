@@ -1,0 +1,45 @@
+# tools/release_allow.tsv: runs of ROM bytes a release package may hold because they are not the game's: public standard
+# tables that the ROM's code has too, and chance matches of third-party data (fonts, lookup tables) with ROM file bytes.
+# tools/rom_leak_check.py --package matches a run by the sha1 of its bytes (the --detail tsv's sixth column), so a
+# changed library shows up again and is looked at. sha1, length, what it is and why it is not the game's. Never the
+# game's own data: that comes from the player's ROM at start (tools/port_romfill.py).
+# Linux exe (strip --strip-debug), 2026-11-07:
+e326b08e12b2f33fb4282f1603f46bd9fd3709d8	66	stb_image (port/src/launcher_cover.c, the launcher's cover art): stbi__depth_scale_table and the zlib tables after it; the ROM's JPEG/zlib code (ov172) has the same standard tables
+a274ab48539f20f1075648558b0529140b5942e2	49	stb_image: stbi__zlength_base (RFC 1951 length bases), equal by chance to bytes of the ROM file a/0/0/6
+5ff8dcf13c658d535333a171505803f5231079f2	67	stb_image: stbi__zdist_extra (RFC 1951 distance extra bits); the ROM's inflate code has the same table
+7c344a77c0bb73edf09998b3441f8f4ffe5140a5	165	stb_image_write: std_ac_luminance_values, the JPEG standard Huffman table (ITU-T T.81 Annex K.3); the ROM's JPEG code (ov172) has it too
+ac80f9fdf1a27760cb87a8ae450d0df4847d7fd5	177	stb_image_write: std_ac_chrominance_values, the JPEG standard Huffman table (ITU-T T.81 Annex K.3); the ROM's JPEG code (ov172) has it too
+a4a7e8260187c4bcf628e32c404eab67464b30e5	65	port/gpu SMAA kArea (the SMAA area lookup, Jimenez et al.), equal by chance to bytes of the ROM file a/0/0/1 (mostly zeros)
+06d12f6dd1f8452b4ae45f943b9ddc74211f862e	51	Dear ImGui: proggy_forever_minimal_ttf_compressed_data (its built-in font), equal by chance to bytes of a ROM file (a/0/4/7, a/0/8/5, a/0/7/0, titledemo.narc)
+4ff0868876bdc0b7b4f80f6bc5329ec74b82c293	89	Dear ImGui: proggy_forever_minimal_ttf_compressed_data (its built-in font), equal by chance to bytes of a ROM file (a/0/4/7, a/0/8/5, a/0/7/0, titledemo.narc)
+dabbd3fbddb30436bff31c1106ecac70f0878fc6	58	Dear ImGui: proggy_clean_ttf_compressed_data (its built-in font), equal by chance to bytes of a ROM file (a/0/4/7, a/0/8/5, a/0/7/0, titledemo.narc)
+36488695f3fa0f07cb7f054748471396e1b4e013	67	Dear ImGui: proggy_clean_ttf_compressed_data (its built-in font), equal by chance to bytes of a ROM file (a/0/4/7, a/0/8/5, a/0/7/0, titledemo.narc)
+738e17b257422ffc3b676b25372bdbcb2c6d75e1	59	Dear ImGui: proggy_clean_ttf_compressed_data (its built-in font), equal by chance to bytes of a ROM file (a/0/4/7, a/0/8/5, a/0/7/0, titledemo.narc)
+9aef51867a8dcd29031408db821a7824633adc29	180	libntr sim_audio.cpp s_ADPCMTable: the IMA ADPCM step table (IMA/DVI ADPCM standard); the ROM's sound code (ov013) has it too
+47d93fa76160a32c9ac407915b84e77e6cb687f9	53	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+260e13698fb5b70c45ae920283c7c5b2a7652d22	166	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+46182a94de62b93966e1e8ada2c0b976b79287ff	69	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+65a6f7c3121354238c597c9b7de60099de1249af	68	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+7daa6a7cb87266c5a2f9187785328c50e695ddcf	52	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+8df545a2216855a9a59b7f0c12a068a9eb60c5fc	52	libntr std_unicode.c unicode2sjis_array (Unicode to Shift-JIS, JIS X 0208 order): equal by chance to bytes of the ROM file a/0/1/1 (graphics data)
+c4f5a76b621f387250556f1b97c9c3dbeb6a068f	53	libntr std_unicode.c sjis2unicode_array (Shift-JIS to Unicode): equal by chance to bytes of the ROM file a/1/6/0
+# win64 exe (x86_64-w64-mingw32-strip --strip-debug), 2026-11-07: the runs above, and
+4e86f00a9c914e8ce5554b4994ef9d026bdf2ea8	64	mingw-w64 libmingwex mingw_sformat.o (printf): a switch jump table of 32-bit offsets, equal by chance to ARM9 bytes
+# Third-party files as built from their own public sources (file, sha256 of the whole file, name, what): every run in
+# such a file is that library's data (byte ramps 0..255, 16-bit code point ramps, 256-entry lookup and CRC tables, mostly
+# zero tables, text), equal to ROM bytes because the ROM has the same generic tables or by chance. A new build of the
+# library has another sha256 and is looked at again. win64 folder (tools/port_win64.sh deploy), 2026-11-07:
+file	53e8fa7e9ed43c30bd650c39396f0d9d2067d2fff0b926c9433b75202592e4aa	SDL2.dll	SDL 2 (MINGW prefix, docs/libntr/build.md): 21 runs, 5276 bytes: byte ramps, u16 ramps, 256-entry tables
+file	1e1793ec10aa096d8f2ba4dfddbd05b8ea8cfa432aaefa03424581977ffeb512	enet.dll	enet 1.3 (MINGW prefix): 1 run, 152 bytes: a lookup table
+file	db1a0fc43ab2f0f8d9c87712567f79601b5f868b9bed514d3335f9016de692ec	libwinpthread-1.dll	mingw-w64 winpthreads (Ubuntu's package): 4 runs, 519 bytes: u16 ramps
+file	0c32697ae88bd07f3d74d9e702d4a1ac13d608c0068832a1c241e06364895071	libgallium_wgl.dll	Mesa 26.2.4 llvmpipe (mesa-dist-win, the software GL fallback): 360 runs, 31554 bytes: u16 ramps 17.9 KB, mostly-zero tables 4.7 KB, byte ramps 4.2 KB, format and lookup tables, text
+file	b275a57f58642083696b57514a63d0c54cc112489942d54baf2cef6338a1f10a	opengl32.dll	Mesa 26.2.4 opengl32 (mesa-dist-win): 5 runs, 1009 bytes: a 256-entry table, u16 ramps
+# APK (tools/android_package.sh), 2026-11-07: the runs above in the x86_64 libmain.so, and
+8dc6d983d99b8ece950c5c8387f565d6ac782b99	181	arm64 libmain.so, stb_image_write: std_ac_luminance_values, the JPEG standard Huffman table (ITU-T T.81 Annex K.3); the ROM's JPEG code (ov172) has it too
+d97478f98e7b45fe2c06df19b84f4d121097b2bc	182	arm64 libmain.so, stb_image_write: std_ac_chrominance_values, the JPEG standard Huffman table (ITU-T T.81 Annex K.3); the ROM's JPEG code (ov172) has it too
+082d4cea9049b247f93f73bd39f412e300d27f09	178	arm64 libmain.so, libntr sim_audio.cpp s_ADPCMTable: the IMA ADPCM step table; the ROM's sound code (ov013) has it too
+87595208cda99718f935da4b93dbe1de244f0339	49	classes.dex: an int[] of the powers of two (bit masks) in the app's Java, equal to a bit-mask table of White's ov172
+file	f0c0443e487064a12dffa761cc06a16b71da4b01ada1628375018d74f642f4c4	libSDL2.so	arm64-v8a SDL 2.32.10 (tools/android_deps.sh, NDK r30): 3 runs, 1088 bytes: SDL_mixer.c mix8 (the 8-bit mixing clamp table) twice in a row with the YUV tables after it, and a run of a ROM file by chance
+file	865b53f85851e430f1f0a37119052a5d009a3bb04cfd8557ecf80b28be1c6eb6	libSDL2.so	x86_64 SDL 2.32.10 (tools/android_deps.sh, NDK r30): 3 runs, 1108 bytes: SDL_mixer.c mix8 (the 8-bit mixing clamp table) twice in a row with the YUV tables after it, and a run of a ROM file by chance
+file	b5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f	libc++_shared.so	arm64-v8a NDK r30 libc++: no run beyond the listed public ones (charconv tables)
+file	39faf2d59346e65a18980f207794fab2f1faff8a8de3f087b8319a181fa16fbd	libc++_shared.so	x86_64 NDK r30 libc++: 1 run, 51 bytes: a digit/charconv table, equal by chance to a ROM file

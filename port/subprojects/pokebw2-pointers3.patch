@@ -1,0 +1,157 @@
+pokebw2-pointers3.patch (tools/pokebw2_fetch.sh, the maintainers' notes): more u32s that carry a pointer, pointer-wide
+(uintptr_t), after pokebw2-pointers.patch and pokebw2-pointers2.patch; found by the int-to-pointer scan in the maintainers' notes.
+A 64-bit pointer passed through a u32 loses its top half and the cast back faults. The values that are not pointers
+are the same zero-extended, so the DS build's code is the same.
+- the C-Gear beacon view's wait events (src/ov084/beacon_view_setup.c: the menu button passed as the event's param)
+  and the Entralink mission view's (src/ov085/fmission_view_setup.c, the same);
+- the beacon mission's value (src/system/game_beacon.c GameBeaconSendSlot_SetMission/Ex: a name StrBuf for 0x67);
+- the Union Room's self state (src/ov028/union_comm.c UnionComm_SetSelf: the target beacon entry);
+- the Pokestar Studios movie field (src/system/pokewood_rec.c Pokewood_GetLoadedMovieField: the PartyPkm to fill).
+
+diff --git a/include/field/union_comm.h b/include/field/union_comm.h
+index d706a3b1a..d133efba6 100644
+--- a/include/field/union_comm.h
++++ b/include/field/union_comm.h
+@@ -318,7 +318,7 @@ enum {
+ };
+ 
+ // Sets a part of this machine's state, UNION_SELF_*
+-void UnionComm_SetSelf(UnionSystem *sys, u32 which, u32 value);
++void UnionComm_SetSelf(UnionSystem *sys, u32 which, uintptr_t value);
+ // Resets a group, with this machine as its first member
+ void UnionGroup_ResetTargets(UnionGroup *group);
+ void UnionGroup_Init(UnionSystem *sys, UnionGroup *group);
+diff --git a/include/save/pokewood.h b/include/save/pokewood.h
+index 371b7c724..af99e7fd4 100644
+--- a/include/save/pokewood.h
++++ b/include/save/pokewood.h
+@@ -154,7 +154,7 @@ u32 Pokewood_LoadDownloadedMovie(SaveControl *save, HeapID heapId, u32 slot);
+ BOOL Pokewood_IsLoadedMovieValid(void);
+ PokewoodBlock *getPokewoodBlock(void);
+ // A field of the loaded movie
+-u32 Pokewood_GetLoadedMovieField(u32 field, u32 a1);
++u32 Pokewood_GetLoadedMovieField(u32 field, uintptr_t a1);
+ // Loads the default movie into the Pokewood block and checks its checksum, whatever the arguments are
+ u32 loadPokewoodAndCheck(SaveControl *save, HeapID heapId, u32 slot);
+ // Copies the Pokewood block to dest
+diff --git a/include/system/game_beacon.h b/include/system/game_beacon.h
+index 9cb05b3c0..16694a738 100644
+--- a/include/system/game_beacon.h
++++ b/include/system/game_beacon.h
+@@ -209,8 +209,8 @@ u16 GameBeaconSys_GetAge(u16 trainerId);
+ void GameBeaconSendSlot_Reset(GameBeaconSendSlot *slot);
+ void GameBeaconSendSlot_ResetB2W2Only(GameBeaconSendSlot *slot);
+ // Set a Funfest mission beacon of type, if its priority allows; for type 0x67, value is a StrBuf
+-void GameBeaconSendSlot_SetMission(GameBeaconSendSlot *slot, u16 type, u32 value);
+-void GameBeaconSendSlot_SetMissionEx(GameBeaconSendSlot *slot, u16 type, u32 value, u32 extra);
++void GameBeaconSendSlot_SetMission(GameBeaconSendSlot *slot, u16 type, uintptr_t value);
++void GameBeaconSendSlot_SetMissionEx(GameBeaconSendSlot *slot, u16 type, uintptr_t value, u32 extra);
+ // Whether the beacon's type is a Funfest mission's, 0x3c to 0x67
+ BOOL GameBeacon_IsMissionType(const GameBeacon *beacon);
+ // Whether the beacon's type is 0x3c to 0x66
+diff --git a/src/ov028/union_comm.c b/src/ov028/union_comm.c
+index 38e363fe2..2d7977c12 100644
+--- a/src/ov028/union_comm.c
++++ b/src/ov028/union_comm.c
+@@ -571,7 +571,7 @@ void UnionComm_FreeResources(UnionSystem *unisys) {
+     }
+ }
+ 
+-void UnionComm_SetSelf(UnionSystem *unisys, u32 which, u32 value) {
++void UnionComm_SetSelf(UnionSystem *unisys, u32 which, uintptr_t value) {
+     UnionSelf *self = &unisys->situ;
+ 
+     switch (which) {
+diff --git a/src/ov084/beacon_view_setup.c b/src/ov084/beacon_view_setup.c
+index b79e8649d..a0bb620d3 100644
+--- a/src/ov084/beacon_view_setup.c
++++ b/src/ov084/beacon_view_setup.c
+@@ -74,7 +74,7 @@ typedef struct {
+     BeaconViewWork *work;
+     GameEvent *next;
+     u32 wait;
+-    u32 param;
++    uintptr_t param;
+ } BeaconViewEvent;
+ 
+ // The files of a set of OAM resources: how many of each kind, and the first
+@@ -94,7 +94,7 @@ typedef struct {
+     u8 bgPriority : 3;
+ } BeaconViewActorSetup;
+ 
+-static GameEvent *BeaconView_CreateWaitEvent(BeaconViewWork *work, GameEvent *next, u32 wait, u32 param);
++static GameEvent *BeaconView_CreateWaitEvent(BeaconViewWork *work, GameEvent *next, u32 wait, uintptr_t param);
+ static GameEventReturnCode BeaconView_WaitEvent(GameEvent *event, u32 *state, void *data);
+ static BOOL BeaconView_WaitButton(BeaconViewWork *work, BeaconViewEvent *event);
+ static BOOL BeaconView_WaitTasks(BeaconViewWork *work, BeaconViewEvent *event);
+@@ -288,7 +288,7 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+     return event;
+ }
+ 
+-static GameEvent *BeaconView_CreateWaitEvent(BeaconViewWork *work, GameEvent *next, u32 wait, u32 param) {
++static GameEvent *BeaconView_CreateWaitEvent(BeaconViewWork *work, GameEvent *next, u32 wait, uintptr_t param) {
+     GameEvent *event = GameEvent_Create(work->gsys, NULL, BeaconView_WaitEvent, sizeof(BeaconViewEvent));
+     BeaconViewEvent *data = GameEvent_GetData(event);
+ 
+diff --git a/src/ov085/fmission_view_setup.c b/src/ov085/fmission_view_setup.c
+index a98d35666..0f43685dd 100644
+--- a/src/ov085/fmission_view_setup.c
++++ b/src/ov085/fmission_view_setup.c
+@@ -78,7 +78,7 @@ typedef struct {
+     GameEvent *next;
+     int type;
+     // A FMISSION_VIEW_BUTTON_ for CALL_BUTTON, an AppTaskMenuWin for CALL_MENU_BUTTON
+-    u32 param;
++    uintptr_t param;
+ } FMissionViewCallEvent;
+ 
+ // How many resources of a kind there are, and the first one's file
+@@ -92,7 +92,7 @@ typedef struct {
+     u8 y;
+ } FMissionViewButtonPos;
+ 
+-static GameEvent *FMissionViewSetup_CreateCallEvent(FMissionView *view, GameEvent *next, int type, u32 param);
++static GameEvent *FMissionViewSetup_CreateCallEvent(FMissionView *view, GameEvent *next, int type, uintptr_t param);
+ static GameEventReturnCode FMissionViewSetup_CallEvent(GameEvent *event, u32 *state, void *data);
+ static BOOL FMissionViewSetup_CallButton(FMissionView *view, FMissionViewCallEvent *call);
+ static BOOL FMissionViewSetup_CallTasks(FMissionView *view, FMissionViewCallEvent *call);
+@@ -267,7 +267,7 @@ GameEvent *FMissionViewSetup_CheckEvent(FMissionView *view, BOOL enabled) {
+     return event;
+ }
+ 
+-static GameEvent *FMissionViewSetup_CreateCallEvent(FMissionView *view, GameEvent *next, int type, u32 param) {
++static GameEvent *FMissionViewSetup_CreateCallEvent(FMissionView *view, GameEvent *next, int type, uintptr_t param) {
+     GameEvent *event = GameEvent_Create(view->gsys, NULL, FMissionViewSetup_CallEvent, sizeof(FMissionViewCallEvent));
+     FMissionViewCallEvent *call = GameEvent_GetData(event);
+ 
+diff --git a/src/system/game_beacon.c b/src/system/game_beacon.c
+index a97037ce5..2f2fc55f5 100644
+--- a/src/system/game_beacon.c
++++ b/src/system/game_beacon.c
+@@ -808,11 +808,11 @@ void GameBeaconSendSlot_ResetB2W2Only(GameBeaconSendSlot *slot) {
+     GameBeaconSendSlot_ResetHeader(slot, 0xfc);
+ }
+ 
+-void GameBeaconSendSlot_SetMission(GameBeaconSendSlot *slot, u16 type, u32 value) {
++void GameBeaconSendSlot_SetMission(GameBeaconSendSlot *slot, u16 type, uintptr_t value) {
+     GameBeaconSendSlot_SetMissionEx(slot, type, value, 0);
+ }
+ 
+-void GameBeaconSendSlot_SetMissionEx(GameBeaconSendSlot *slot, u16 type, u32 value, u32 extra) {
++void GameBeaconSendSlot_SetMissionEx(GameBeaconSendSlot *slot, u16 type, uintptr_t value, u32 extra) {
+     LinkFestival *festival;
+     FestMissionConfig *config;
+     GameBeaconSendSlot newSlot;
+diff --git a/src/system/pokewood_rec.c b/src/system/pokewood_rec.c
+index 09c429ca8..c1777415b 100644
+--- a/src/system/pokewood_rec.c
++++ b/src/system/pokewood_rec.c
+@@ -125,7 +125,7 @@ PokewoodBlock *getPokewoodBlock(void) {
+     return sBlock;
+ }
+ 
+-u32 Pokewood_GetLoadedMovieField(u32 field, u32 a1) {
++u32 Pokewood_GetLoadedMovieField(u32 field, uintptr_t a1) {
+     switch (field) {
+     case POKEWOOD_BLOCK_FIELD_MOVIE:
+         return sBlock->info.movie;

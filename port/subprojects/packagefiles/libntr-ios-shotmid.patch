@@ -1,0 +1,41 @@
+bw-port: BWPORT_SHOTMID=1 (a test aid, Metal present only): a cfgscript shot= is taken at the next Smooth motion
+in-between's present instead of the tick's (those are presented in the slot loop, never through SIM_ShotMaybe).
+Without the env nothing changes.
+
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -99,6 +99,7 @@
+ #if SIM_METAL
+ static int sMtlVp[4];          // Metal: the screens' viewport in drawable pixels (origin top left)
+ static char sMtlShot[640];     // Metal: a screenshot's path, written at the next present (SIM_ShotMaybe)
++static char sMtlShotMid[640];  // libntr-ios-shotmid.patch: BWPORT_SHOTMID=1: a cfgscript shot waits for the next in-between's present
+ #endif
+ 
+ // bw-port (libntr-ios-touch.patch): the phone's on-screen controls (sim_touch.cpp)
+@@ -1563,7 +1564,10 @@
+   int w = 0, h = 0;
+ #if SIM_METAL
+   if (sMetal) {  // libntr-ios-metal.patch: the present reads its frame back (SIM_Swap)
+-    if (now) snprintf(sMtlShot, sizeof sMtlShot, "%s/%s.png", dir, sCfgShot);
++    static int midShot = -1;   // libntr-ios-shotmid.patch (a test aid: Smooth motion's in-betweens are presented outside this call)
++    if (midShot < 0) midShot = getenv("BWPORT_SHOTMID") != NULL;
++    if (now && midShot) snprintf(sMtlShotMid, sizeof sMtlShotMid, "%s/%s.png", dir, sCfgShot);
++    else if (now) snprintf(sMtlShot, sizeof sMtlShot, "%s/%s.png", dir, sCfgShot);
+     else snprintf(sMtlShot, sizeof sMtlShot, "%s/s%03d.png", dir, (int)at[next]);
+     if (now) sCfgShot[0] = 0;
+     else next++;
+@@ -4599,7 +4603,13 @@
+             if (sPresentMid) sPc.ipDrop++;  // libntr-ios-smoothfix.patch
+             SIM_SwapDropped();
+             continue;
++          }
++#if SIM_METAL
++          if (sPresentMid && sMtlShotMid[0] != 0) {  // libntr-ios-shotmid.patch: the in-between's own picture
++            memcpy(sMtlShot, sMtlShotMid, sizeof sMtlShot);
++            sMtlShotMid[0] = 0;
+           }
++#endif
+           u64 call = SpNowNs();
+           SIM_Swap();
+           PacePresented(SpNowNs() - call);

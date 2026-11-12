@@ -1,0 +1,4 @@
+# game: black
+# from: town
+# reaches: outside the lab door, Cheren's talk (README: left5 up8, then A)
+walk 300 48 left5 up8 a

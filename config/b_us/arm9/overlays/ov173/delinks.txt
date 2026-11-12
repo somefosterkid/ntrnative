@@ -1,0 +1,9 @@
+    .text       start:0x021b6100 end:0x021b81d0 kind:code align:32
+    .rodata     start:0x021b81d0 end:0x021b8848 kind:rodata align:4
+    .ctor       start:0x021b8848 end:0x021b8848 kind:rodata align:4
+    .bss        start:0x021b8860 end:0x021b8860 kind:bss align:32
+
+src/ov173/waza_oshie_main.c:
+    complete
+    .text       start:0x021b6100 end:0x021b81d0
+    .rodata     start:0x021b81d0 end:0x021b8848

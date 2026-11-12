@@ -1,0 +1,488 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -9,6 +9,12 @@
+     SIM_CONFIG_SCREEN_LAYOUT_LARGE /* One large screen and one small screen next to it */
+ } SIM_config_screen_layout_type;
+ 
++/* bw-port (libntr-vbridge.patch): what draws the picture */
++typedef enum {
++    SIM_CONFIG_RENDERER_VCORE, /* the in-process frame renderer (bw-port's port/vcore), when the program has one */
++    SIM_CONFIG_RENDERER_LIBNTR /* libntr's own 2D and 3D */
++} SIM_config_renderer_type;
++
+ #define SIM_CONFIG_JOY_HAT_MASK (0x10000)
+ #define SIM_CONFIG_JOY_AXIS_PLUS_MASK (0x20000)
+ #define SIM_CONFIG_JOY_AXIS_MINUS_MASK (0x40000)
+@@ -62,6 +68,7 @@
+     u8 vsyncInterval; /* Vertical sync interval. Set to 0 to disable vsync, 1 every vblank, 2 every second vblank etc*/
+     u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
++    u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=vcore|libntr (BWPORT_RENDERER overrides it) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -66,6 +66,9 @@
+     if(MATCH("General", "ShowInputPanel")) {
+         config->showInputPanel = StringToBool(value);
+     }
++    if(MATCH("General", "Renderer")) {
++        config->renderer = strcmp(value, "libntr") == 0 ? SIM_CONFIG_RENDERER_LIBNTR : SIM_CONFIG_RENDERER_VCORE;
++    }
+ 
+     if(MATCH("General", "MacAddr")) {
+         char * pos = value;
+@@ -337,9 +340,22 @@
+ 
+ 
+ // Loads the configuration file. If it does not exist, return false
++// bw-port: BWPORT_RENDERER=vcore|libntr overrides sim_config.ini's Renderer for a run
++static void RendererFromEnv(SIM_config_type * aConfig)
++{
++    const char * e = getenv("BWPORT_RENDERER");
++    if(e != NULL && strcmp(e, "libntr") == 0) {
++        aConfig->renderer = SIM_CONFIG_RENDERER_LIBNTR;
++    } else if(e != NULL && strcmp(e, "vcore") == 0) {
++        aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
++    }
++}
++
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig)
+ {
+-    return (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
++    BOOL ok = (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
++    RendererFromEnv(aConfig);
++    return ok;
+ }
+ 
+ // Initialize a SIM_config_type to default values
+@@ -360,6 +376,7 @@
+     aConfig->vsyncInterval = 1;
+     aConfig->capFrameRate = TRUE;
+     aConfig->showInputPanel = TRUE;
++    aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
+     aConfig->masterVolume = 127;
+ 
+     aConfig->padSettings.joyAxisDeadzone = 32767 / 4;
+@@ -442,6 +459,7 @@
+     fprintf(configFile, "VsyncInterval=%d\n", aConfig->vsyncInterval);
+     fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
++    fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_LIBNTR ? "libntr" : "vcore");
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+                                                               aConfig->macAddr[2],
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -25,6 +25,12 @@
+     "Large Screen"
+ };
+ 
++// bw-port (libntr-vbridge.patch): SIM_config_renderer_type's order
++static constexpr const char * RendererStrings[] = {
++    "vcore (port/vcore)",
++    "libntr"
++};
++
+ static constexpr const char * VblankStrings[] = {
+     "Off",
+     "Every V-Blank",
+@@ -43,6 +49,7 @@
+     bool frameLimit = sConfig->capFrameRate;
+     bool fullScreen = sConfig->fullScreen;
+     bool showPanel = sConfig->showInputPanel;
++    int renderer = sConfig->renderer;
+     
+     ImGui::Begin("Config", openState);
+ 
+@@ -56,6 +63,10 @@
+         configChanged = true;
+     }
+ 
++    if(ImGui::Combo("Renderer", &renderer, RendererStrings, 2, 2)) {
++        configChanged = true;
++    }
++
+     if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
+         configChanged = true;
+     }
+@@ -83,6 +94,7 @@
+         sConfig->screenLayout = static_cast<SIM_config_screen_layout_type>(screenLayout);
+         sConfig->swapScreens = swapScreens;
+         sConfig->showInputPanel = showPanel;
++        sConfig->renderer = (u8)renderer;
+         sConfig->fullScreen = fullScreen;
+         if(sConfig->fullScreen) {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), SDL_WINDOW_FULLSCREEN_DESKTOP);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -241,6 +241,19 @@
+ extern "C" void SIM_VCapFrameBegin(void);
+ extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical);
+ 
++// bw-port (libntr-vbridge.patch): an in-process frame renderer that draws the two screens instead of libntr's 2D
++// engines: port/vcore (bw-port's DS video core), which port/bridge/vcore_bridge.c registers. It gathers the frame's
++// video state (sim_vcapture.cpp's SIM_VCapGather), renders it and returns both screens as one 256x384 RGBA8 picture,
++// top screen first (or NULL: libntr draws this frame). sim_config.ini's Renderer=vcore|libntr and the Config window
++// choose it; BWPORT_RENDERER=vcore|libntr overrides the file. libntr's 3D still runs (the game reads its results).
++typedef const unsigned char *(*SIM_FrameRendererFn)(void);
++static SIM_FrameRendererFn sFrameRenderer;
++static int sFrameRendererDrew;
++extern "C" void SIM_SetFrameRenderer(SIM_FrameRendererFn fn) { sFrameRenderer = fn; }
++extern "C" int SIM_HasFrameRenderer(void) { return sFrameRenderer != NULL; }
++extern "C" int SIM_FrameRendererActive(void) { return sFrameRendererDrew; }
++static bool SIM_DrawFrameRenderer(void);
++
+ static u8 s_numG3CommandsThisFrame = 0;
+ 
+ // Vcount stuff
+@@ -1137,6 +1150,91 @@
+ #endif
+ }
+ 
++// bw-port (libntr-vbridge.patch): the frame renderer's picture, a 256x384 RGBA8 texture (top screen in its first
++// rows) drawn with the window's screen quads (sim_screenquads.c: the layout and the swap), which sample the top screen
++// from the upper half of t: t is flipped for the picture's rows, which go down
++static const char *kFrameVertexShader = R""(
++#version 420 core
++layout (location = 0) in vec3 position;
++layout (location = 1) in vec2 texCoord;
++smooth out vec2 fragTexCoord;
++void main()
++{
++    gl_Position = vec4(position.x, position.y, position.z, 1.);
++    fragTexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
++}
++)"";
++static const char *kFrameFragmentShader = R""(
++#version 420 core
++smooth in vec2 fragTexCoord;
++out vec4 fragColor;
++uniform sampler2D frameTexture;
++void main()
++{
++    fragColor = vec4(texture(frameTexture, fragTexCoord).rgb, 1.0);
++}
++)"";
++static GLuint s_frameProgram, s_frameTexture;
++
++static GLuint SIM_FrameShader(GLenum kind, const char *src) {
++  GLuint id = glCreateShader(kind);
++  GLint status = GL_FALSE;
++  glShaderSource(id, 1, &src, NULL);
++  glCompileShader(id);
++  glGetShaderiv(id, GL_COMPILE_STATUS, &status);
++  if (status != GL_TRUE) {
++    char log[1024] = {0};
++    glGetShaderInfoLog(id, sizeof log - 1, NULL, log);
++    printf("bwport: the frame renderer's shader: %s\n", log);
++  }
++  return id;
++}
++
++static bool SIM_DrawFrameRenderer(void) {
++  sFrameRendererDrew = 0;
++  if (sFrameRenderer == NULL || s_SIM_config.renderer != SIM_CONFIG_RENDERER_VCORE) {
++    return false;
++  }
++  const unsigned char *rgba = sFrameRenderer();
++  if (rgba == NULL) {
++    return false;
++  }
++  GLint prevTex = 0, prevUnit = 0;
++  glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
++  glActiveTexture(GL_TEXTURE0);
++  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++  if (s_frameProgram == 0) {
++    glGenTextures(1, &s_frameTexture);
++    glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, 0, GL_RGBA,
++                 GL_UNSIGNED_BYTE, NULL);
++    GLuint vs = SIM_FrameShader(GL_VERTEX_SHADER, kFrameVertexShader);
++    GLuint fs = SIM_FrameShader(GL_FRAGMENT_SHADER, kFrameFragmentShader);
++    s_frameProgram = glCreateProgram();
++    glAttachShader(s_frameProgram, vs);
++    glAttachShader(s_frameProgram, fs);
++    glLinkProgram(s_frameProgram);
++    glProgramUniform1i(s_frameProgram, glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
++  }
++  glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, GL_RGBA,
++                  GL_UNSIGNED_BYTE, rgba);
++  glUseProgram(s_frameProgram);
++  DrawScreenQuad();
++  glUseProgram(g2shaderProgramID);
++  glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++  glActiveTexture((GLenum)prevUnit);
++  // the DS clears DISPCAPCNT's enable bit when the captured frame ends; the renderer has stored the capture in its
++  // bank (libntr's own capture, in DrawEngine, does the same)
++  s_reg_GX_DISPCAPCNT &= ~0x80000000u;
++  sFrameRendererDrew = 1;
++  return true;
++}
++
+ static void HandleJoystickKeyDown(int aKey) {
+   if (aKey == s_SIM_config.padSettings.aJoyKey) {
+     // A Button
+@@ -1632,11 +1730,14 @@
+ 
+     SIM_VCapFrameBegin();
+ 
+-    // Draw MAIN engine
+-    DrawEngine(FALSE);
++    // bw-port: the in-process frame renderer (port/vcore) draws both screens when it is chosen
++    if (!SIM_DrawFrameRenderer()) {
++      // Draw MAIN engine
++      DrawEngine(FALSE);
+ 
+-    // SUB engine
+-    DrawEngine(TRUE);
++      // SUB engine
++      DrawEngine(TRUE);
++    }
+ 
+     // the main engine's 3D rows in the 3D framebuffer: the top half when it shows on the top screen (POWCNT bit 15)
+     SIM_VCapFrameEnd(viewX, viewY, viewWidth, viewHeight, g3DisplayFrameBuffer, s_SIM_config.internalResolutionScale,
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -12,6 +12,7 @@
+ // SIM_Render's drawing of the two screens, GXi_SimVramBankHome (gx_vramcnt.c) for the banks.
+ #include <simulator/sim_opengl.h>
+ 
++#include <stdint.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -225,9 +226,19 @@
+ static bool sSkipVtx16; // the VTX16 libntr makes of a VTX_10/XY/XZ/YZ/DIFF it was given
+ static u32 sLastNormal, sLastTexcoord; // the last NORMAL / TEXCOORD recorded
+ 
++// bw-port (libntr-vbridge.patch): port/vcore draws the picture in-process from the state SIM_VCapGather gathers each
++// frame, so the commands are followed whenever a frame renderer is registered (sim_main.cpp's SIM_SetFrameRenderer),
++// the file capture or not
++extern "C" int SIM_HasFrameRenderer(void);
++extern "C" int SIM_FrameRendererActive(void);
++static bool sFollow;
++
+ static void ParseEnv() {
+   const char *e = getenv("BWPORT_VCAPTURE");
+   sEnabled = 0;
++  G3Reset(sG3);
++  sCur.start = sG3;
++  sFollow = SIM_HasFrameRenderer() != 0;
+   if (e == NULL || !*e) return;
+   std::string s(e);
+   size_t c = s.find(',');
+@@ -248,14 +259,19 @@
+     }
+     sFrames.push_back(r);
+   }
+-  G3Reset(sG3);
+-  sCur.start = sG3;
+   sEnabled = 1;
+   fprintf(stderr, "bwport: BWPORT_VCAPTURE: %zu frame ranges into %s\n", sFrames.size(), sDir.c_str());
+ }
+ 
++// the commands followed (the file capture or the in-process renderer)
+ static inline bool On() {
+   if (sEnabled < 0) ParseEnv();
++  return sEnabled > 0 || sFollow;
++}
++
++// the file capture
++static inline bool FileOn() {
++  if (sEnabled < 0) ParseEnv();
+   return sEnabled > 0;
+ }
+ 
+@@ -274,9 +290,12 @@
+   G3Apply(sG3, op, p);
+   if (op == G3OP_SWAP_BUFFERS) {
+     sCur.swapFrame = *(u32 *)HW_VBLANK_COUNT_BUF;
+-    sDone = std::move(sCur);
++    // the finished stream becomes the shown one; the old one's buffer takes the next (no reallocation each frame)
++    std::swap(sDone, sCur);
+     sDoneValid = true;
+-    sCur = Stream();
++    sCur.words.clear();
++    sCur.commands = 0;
++    sCur.swapFrame = 0;
+     sCur.start = sG3;
+   }
+ }
+@@ -295,7 +314,7 @@
+ }
+ 
+ extern "C" void SIM_VCapSuppress(int delta) {
+-  if (sEnabled > 0) sSuppress += delta;
++  if (On()) sSuppress += delta;
+ }
+ 
+ // a raw command list (packed command words, then each command's parameters), as MI_SendGXCommand sends it; its
+@@ -398,7 +417,7 @@
+   return false;
+ }
+ 
+-template <typename T> static void Put(std::vector<u8> &io, u32 ofs, T v) { memcpy(&io[ofs], &v, sizeof(T)); }
++template <typename T> static void Put(u8 *io, u32 ofs, T v) { memcpy(&io[ofs], &v, sizeof(T)); }
+ 
+ static void Emit(std::vector<u32> &out, u32 &count, u32 op, const u32 *p, u32 n) {
+   out.push_back(op | (n << 8) | (FLAG_PROLOGUE << 16));
+@@ -471,14 +490,11 @@
+   Emit(out, count, G3OP_MTX_MODE, p, 1);
+ }
+ 
+-static void TakeSnapshot(u32 frame) {
+-  Snapshot &s = sSnap;
+-  s = Snapshot();
+-  s.taken = true;
+-  s.frame = frame;
++// the registers: engine A's and the system ones as 0x04000000-0x040006FF (io, 0x700 bytes), engine B's as
++// 0x04001000-0x0400106F (ib, 0x70 bytes)
++static void FillRegs(u8 *io, u8 *ib) {
+   // engine A's registers and the system ones, as 0x04000000-0x040006FF
+-  s.io9.assign(0x700, 0);
+-  std::vector<u8> &io = s.io9;
++  memset(io, 0, 0x700);
+   Put<u32>(io, 0x000, s_reg_GX_DISPCNT);
+   Put<u16>(io, 0x004, s_reg_GX_DISPSTAT);
+   Put<u16>(io, 0x008, s_reg_G2_BG0CNT); Put<u16>(io, 0x00A, s_reg_G2_BG1CNT);
+@@ -520,8 +536,7 @@
+   memcpy(&io[0x380], (const void *)&s_reg_G3X_TOON_TABLE_0_L, 64);
+   Put<u16>(io, 0x610, s_reg_G3X_DISP_1DOT_DEPTH);
+   // engine B, 0x04001000-0x0400106F
+-  s.io9b.assign(0x70, 0);
+-  std::vector<u8> &ib = s.io9b;
++  memset(ib, 0, 0x70);
+   Put<u32>(ib, 0x000, s_reg_GXS_DB_DISPCNT);
+   Put<u16>(ib, 0x008, s_reg_G2S_DB_BG0CNT); Put<u16>(ib, 0x00A, s_reg_G2S_DB_BG1CNT);
+   Put<u16>(ib, 0x00C, s_reg_G2S_DB_BG2CNT); Put<u16>(ib, 0x00E, s_reg_G2S_DB_BG3CNT);
+@@ -539,37 +554,63 @@
+   Put<u16>(ib, 0x04C, s_reg_G2S_DB_MOSAIC); Put<u16>(ib, 0x050, s_reg_G2S_DB_BLDCNT);
+   Put<u16>(ib, 0x052, s_reg_G2S_DB_BLDALPHA); Put<u16>(ib, 0x054, s_reg_G2S_DB_BLDY);
+   Put<u16>(ib, 0x06C, s_reg_GXS_DB_MASTER_BRIGHT);
++}
++
++// the banks A-I (vram, 0xA4000 bytes), the palettes (pltt, 0x800) and OAM (oam, 0x800)
++static const u32 kBankSize[9] = {0x20000, 0x20000, 0x20000, 0x20000, 0x10000, 0x4000, 0x4000, 0x8000, 0x4000};
++static void FillMem(u8 *vram, u8 *pltt, u8 *oam) {
+   // the banks, each from where its data is now (libntr-vram.patch)
+-  static const u32 kBankSize[9] = {0x20000, 0x20000, 0x20000, 0x20000, 0x10000, 0x4000, 0x4000, 0x8000, 0x4000};
+   for (int b = 0; b < 9; b++) {
+     const u8 *home = GXi_SimVramBankHome(b);
+-    s.vram.insert(s.vram.end(), home, home + kBankSize[b]);
++    memcpy(vram, home, kBankSize[b]);
++    vram += kBankSize[b];
+   }
+-  s.pltt.insert(s.pltt.end(), s_HW_BG_PLTT, s_HW_BG_PLTT + 0x200);
+-  s.pltt.insert(s.pltt.end(), s_HW_OBJ_PLTT, s_HW_OBJ_PLTT + 0x200);
+-  s.pltt.insert(s.pltt.end(), s_HW_DB_BG_PLTT, s_HW_DB_BG_PLTT + 0x200);
+-  s.pltt.insert(s.pltt.end(), s_HW_DB_OBJ_PLTT, s_HW_DB_OBJ_PLTT + 0x200);
+-  s.oam.insert(s.oam.end(), s_HW_OAM, s_HW_OAM + 0x400);
+-  s.oam.insert(s.oam.end(), s_HW_DB_OAM, s_HW_DB_OAM + 0x400);
+-  // the 3D: the last complete stream (the frame the 3D layer shows), its prologue first
++  memcpy(pltt + 0x000, s_HW_BG_PLTT, 0x200);
++  memcpy(pltt + 0x200, s_HW_OBJ_PLTT, 0x200);
++  memcpy(pltt + 0x400, s_HW_DB_BG_PLTT, 0x200);
++  memcpy(pltt + 0x600, s_HW_DB_OBJ_PLTT, 0x200);
++  memcpy(oam + 0x000, s_HW_OAM, 0x400);
++  memcpy(oam + 0x400, s_HW_DB_OAM, 0x400);
++}
++
++// the 3D: the last complete stream (the frame the 3D layer shows), its prologue first; false when no stream yet
++static bool Fill3D(std::vector<u32> &out, u32 &prologue, u32 &commands, u32 &swapFrame) {
+   G3State st;
+   const Stream *src = sDoneValid ? &sDone : NULL;
+   if (src != NULL) st = src->start;
+   else G3Reset(st);
+-  Prologue(st, s.g3, s.g3Prologue);
+-  s.g3Commands = s.g3Prologue;
+-  if (src != NULL) {
+-    s.g3.insert(s.g3.end(), src->words.begin(), src->words.end());
+-    s.g3Commands += src->commands;
+-    s.g3SwapFrame = src->swapFrame;
+-  } else {
+-    s.notes += "no_swap_yet ";
+-  }
++  out.clear();
++  prologue = 0;
++  Prologue(st, out, prologue);
++  commands = prologue;
++  swapFrame = 0;
++  if (src == NULL) return false;
++  out.insert(out.end(), src->words.begin(), src->words.end());
++  commands += src->commands;
++  swapFrame = src->swapFrame;
++  return true;
++}
++
++static void TakeSnapshot(u32 frame) {
++  Snapshot &s = sSnap;
++  s = Snapshot();
++  s.taken = true;
++  s.frame = frame;
++  s.io9.assign(0x700, 0);
++  s.io9b.assign(0x70, 0);
++  FillRegs(s.io9.data(), s.io9b.data());
++  s.vram.assign(0xA4000, 0);
++  s.pltt.assign(0x800, 0);
++  s.oam.assign(0x800, 0);
++  FillMem(s.vram.data(), s.pltt.data(), s.oam.data());
++  if (!Fill3D(s.g3, s.g3Prologue, s.g3Commands, s.g3SwapFrame)) s.notes += "no_swap_yet ";
+   // notes for the readers
+   if ((s_reg_G2_BG0HOFS | s_reg_G2_BG0VOFS | s_reg_G2_BG1HOFS | s_reg_G2_BG1VOFS | s_reg_G2_BG2HOFS |
+        s_reg_G2_BG2VOFS | s_reg_G2_BG3HOFS | s_reg_G2_BG3VOFS) != 0)
+     s.notes += "main_16bit_scroll_written ";
+   if (((s_reg_GX_DISPCNT >> 16) & 3) == 3) s.notes += "main_memory_display_not_captured ";
++  // LSHT is the window's picture: the in-process renderer's (port/vcore) when it drew the frame
++  if (SIM_FrameRendererActive()) s.notes += "shot_by_frame_renderer ";
+ }
+ 
+ static void Chunk(FILE *f, const char *tag, const void *data, u32 size) {
+@@ -600,7 +641,7 @@
+ // before the frame's 2D is drawn: the state, if the frame is chosen (the capture of DISPCAPCNT runs in the draw)
+ extern "C" void SIM_VCapFrameBegin(void) {
+   sSnap.taken = false;
+-  if (!On()) return;
++  if (!FileOn()) return;
+   u32 frame = *(u32 *)HW_VBLANK_COUNT_BUF;
+   if (!Wanted(frame)) return;
+   TakeSnapshot(frame);
+@@ -653,3 +694,32 @@
+   Chunk(f, "L3D ", l3d.data(), (u32)l3d.size());
+   fclose(f);
+ }
++
++// bw-port (libntr-vbridge.patch): the frame's whole video state for the in-process renderer (port/vcore, through
++// port/bridge/vcore_bridge.c), the same as a .vcs file's chunks: io9 (0x700 bytes), io9b (0x70), vram (0xA4000, the
++// banks A-I), pltt (0x800), oam (0x800), and the GX3D words in *gx (grown with realloc to *cap words when short; the
++// caller frees it). Returns the GX3D words written (the prologue and the shown frame's commands).
++extern "C" uint32_t SIM_VCapGather(uint8_t *io9, uint8_t *io9b, uint8_t *vram, uint8_t *pltt, uint8_t *oam,
++                                   uint32_t **gx, uint32_t *cap) {
++  static std::vector<u32> sWords;
++  u32 prologue, commands, swapFrame;
++  FillRegs(io9, io9b);
++  FillMem(vram, pltt, oam);
++  Fill3D(sWords, prologue, commands, swapFrame); // no SWAP_BUFFERS yet: the reset state's prologue only
++  u32 n = (u32)sWords.size();
++  if (*gx == NULL || *cap < n) {
++    u32 want = n + n / 2 + 1024;
++    uint32_t *p = (uint32_t *)realloc(*gx, (size_t)want * 4);
++    if (p == NULL) return 0;
++    *gx = p;
++    *cap = want;
++  }
++  memcpy(*gx, sWords.data(), (size_t)n * 4);
++  return n;
++}
++
++// the bank's memory where its data lives now (writable): the in-process renderer stores a display capture there
++extern "C" uint8_t *SIM_VCapBankHome(int bank) {
++  if (bank < 0 || bank > 8) return NULL;
++  return (uint8_t *)GXi_SimVramBankHome(bank);
++}

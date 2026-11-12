@@ -1,0 +1,37 @@
+    .text       start:0x021d4240 end:0x021d7c84 kind:code align:32
+    .rodata     start:0x021d7c84 end:0x021d7cfc kind:rodata align:4
+    .ctor       start:0x021d7cfc end:0x021d7cfc kind:rodata align:4
+    .data       start:0x021d7d00 end:0x021d86a0 kind:data align:32
+    .bss        start:0x021d86a0 end:0x021d8980 kind:bss align:32
+
+src/ov118/pokemontrade_demo_down.c:
+    complete
+    .text       start:0x021d54f0 end:0x021d64f4
+    .rodata     start:0x021d7ca8 end:0x021d7cc4
+    .data       start:0x021d7fec end:0x021d82c0
+    .bss        start:0x021d8790 end:0x021d8880
+
+src/ov118/pokemontrade_demo_common.c:
+    complete
+    .text       start:0x021d4240 end:0x021d4b14
+    .rodata     start:0x021d7c84 end:0x021d7ca8
+    .data       start:0x021d7d00 end:0x021d7fd4
+    .bss        start:0x021d86a0 end:0x021d8790
+
+src/ov118/pokemontrade_demo_middle.c:
+    complete
+    .text       start:0x021d6e04 end:0x021d7c84
+    .rodata     start:0x021d7cec end:0x021d7cfc
+    .data       start:0x021d866c end:0x021d86a0
+
+src/ov118/pokemontrade_demo_up.c:
+    complete
+    .text       start:0x021d4b14 end:0x021d54f0
+    .data       start:0x021d7fd4 end:0x021d7fec
+
+src/ov118/pokemontrade_demo_common_irc_ov118.c:
+    complete
+    .text       start:0x021d64f4 end:0x021d6e04
+    .rodata     start:0x021d7cc4 end:0x021d7cec
+    .data       start:0x021d82c0 end:0x021d866c
+    .bss        start:0x021d8880 end:0x021d8980

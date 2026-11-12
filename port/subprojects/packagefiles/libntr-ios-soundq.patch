@@ -1,0 +1,244 @@
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -99,6 +99,7 @@
+                      default); SIM_CONFIG_FRAMESKIP_AUTO = skip only when drawing would drop the game below 60 fps with the
+                      cap on. sim_config.ini FrameSkip=0|1|2|3|auto; BWPORT_FRAMESKIP=N (draw one frame in N) or auto overrides */
+     u8 speed; /* bw-port (libntr-sp76.patch): the game's speed, 1..4 (sim_config.ini Speed=1|2|3|4, BWPORT_SPEED): the game ticks 60 x Speed times a second; the sound is time-stretched back to its pitch */
++    u8 soundQuality; /* bw-port (libntr-ios-soundq.patch): 1 (default) = Enhanced: acore interpolates its channels' samples and keeps the mix at 16 bits; 0 = DS (exact): the DS's own samples and 10-bit output. Both are resampled to the device with a windowed sinc. sim_config.ini SoundQuality=enhanced|ds, BWPORT_SOUNDQUALITY */
+     u8 musicNormalSpeed; /* 1 (default): at Speed > 1 the music (BGM, fanfares) keeps its tempo while sound effects and cries follow the speed (MusicNormalSpeed=on|off, BWPORT_MUSICNORMAL) */
+     u8 displayCap; /* Frame rate: SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second; _UNLIMITED: no cap (FrameRate=60|120|monitor|unlimited, BWPORT_FRAMERATE; old keys DisplayCap=, CapFrameRate= still load) */
+     u8 interpolation; /* Smooth motion (libntr-ib78.patch, renamed by rn80): 1 = in-between pictures (real renders of the 3D between two keyframes) in the present slots a keyframe leaves free (SmoothMotion=off|on, BWPORT_SMOOTH=on|off; old key Interpolation=, BWPORT_INTERP); default 0 */
+diff --git a/include/simulator/sim_audio.h b/include/simulator/sim_audio.h
+--- a/include/simulator/sim_audio.h
++++ b/include/simulator/sim_audio.h
+@@ -34,6 +34,8 @@
+     void (*busSplit)(int aOn);
+     int (*busRun)(s16 * aStereo, int aFrames);
+     void (*busSlot)(int aSlot, int aMusic);
++    // bw-port (libntr-ios-soundq.patch): 1 = Enhanced output, 0 = the DS's exact output (SoundQuality); may be NULL. Called with the audio locked.
++    void (*setQuality)(int aEnhanced);
+ } SIM_SoundBackend;
+ // libntr-mu83.patch: snd_interface.c tells the backend which driver slot starts a music sequence
+ void SIM_Audio_SlotMusic(int aSlot, int aMusic);
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -160,6 +160,9 @@
+     }
+     if(MATCH("General", "OverlayDetail")) {
+         config->overlayDetail = strcmp(value, "detailed") == 0;
++    }
++    if(MATCH("General", "SoundQuality")) {
++        config->soundQuality = strcmp(value, "ds") != 0 && strcmp(value, "exact") != 0 && strcmp(value, "0") != 0;
+     }
+     if(MATCH("General", "MusicNormalSpeed")) {
+         config->musicNormalSpeed = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
+@@ -518,6 +521,10 @@
+         int n = atoi(e);
+         aConfig->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
++    e = getenv("BWPORT_SOUNDQUALITY");
++    if(e != NULL && *e) {
++        aConfig->soundQuality = strcmp(e, "ds") != 0 && strcmp(e, "exact") != 0 && strcmp(e, "0") != 0;
++    }
+     e = getenv("BWPORT_MUSICNORMAL");
+     if(e != NULL && *e) {
+         aConfig->musicNormalSpeed = strcmp(e, "off") != 0 && strcmp(e, "0") != 0;
+@@ -638,6 +645,7 @@
+     aConfig->frameSkip = 0;
+     aConfig->speed = 1;
+     aConfig->ffSpeed = 4;
++    aConfig->soundQuality = 1;
+     aConfig->musicNormalSpeed = 1;
+     aConfig->overlay = 1;
+     aConfig->overlayCorner = 0;
+@@ -748,6 +756,7 @@
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+     fprintf(configFile, "GameSpeed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
+     fprintf(configFile, "FastForwardSpeed=%s\n", aConfig->ffSpeed >= 5 ? "max" : aConfig->ffSpeed == 3 ? "3" : aConfig->ffSpeed == 4 ? "4" : "2");
++    fprintf(configFile, "SoundQuality=%s\n", aConfig->soundQuality ? "enhanced" : "ds");
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
+     fprintf(configFile, "Overlay=%s\n", aConfig->overlay ? "on" : "off");
+     fprintf(configFile, "OverlayCorner=%s\n", aConfig->overlayCorner ? "right" : "left");
+diff --git a/libraries/sim/src/sim_audio.cpp b/libraries/sim/src/sim_audio.cpp
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -110,8 +110,7 @@
+ static u64 s_ringUnderruns = 0;
+ static int s_audioLog = -1; // BWPORT_AUDIOLOG=1: the ring's state once a second (stderr)
+ static int s_ringPrimed = 0;
+-static double s_ringFrac = 1.0; // position between s_hist[1] and s_hist[2]
+-static s16 s_hist[4][2];
++static double s_ringFrac = 1.0; // position between the two samples at the middle of the resampler's window
+ static unsigned s_devRate = 44100;
+ static FILE * s_wav = NULL;
+ static u64 s_wavFrames = 0;
+@@ -546,6 +545,17 @@
+             }
+         }
+     }
++    {
++        // libntr-ios-soundq.patch: SoundQuality reaches the backend (the audio is locked)
++        static int qApplied = -1;
++        int q = sConfigPtr->soundQuality != 0;
++        if(q != qApplied) {
++            qApplied = q;
++            if(SIM_soundBackendOn && SIM_soundBackend->setQuality != NULL) {
++                SIM_soundBackend->setQuality(q);
++            }
++        }
++    }
+     SoundAdvance(s_frameCyc); // nothing when a wait for a command (WaitPump) ran the sound ahead of the frames
+     if(s_audioLog < 0) {
+         s_audioLog = getenv("BWPORT_AUDIOLOG") != NULL;
+@@ -571,15 +581,89 @@
+     }
+ }
+ 
+-static s16 Cubic4(int a, int b, int c, int d, double t)
++// ---- bw-port (libntr-ios-soundq.patch): the resampler to the device's rate (both SoundQuality modes) ----
++//
++// The DS-rate ring is played at the device's rate by a windowed-sinc interpolator: SQ_TAPS source samples (32 each side of
++// the point), a Kaiser window (beta 8), the cutoff at 0.93 of the DS rate's Nyquist (15.2 kHz), so that the images the
++// upsampling makes above 16.4 kHz are some 80 dB down (the 4-point cubic it replaces: a 10 kHz tone had -17 dB of images and
++// distortion with it, 14 kHz -6 dB; the sinc: -83 dB at both, bwport docs/acore.md "Sound quality"). The
++// kernel is tabulated at SQ_PHASES fractions of a sample, the weights between two rows are linearly interpolated. The
++// ring's own rate follows its fill (+-5 %) as before: the interpolator does not care what the step is.
++#define SQ_TAPS 64
++#define SQ_PHASES 512
++static float s_sqTab[SQ_PHASES + 1][SQ_TAPS];
++static int s_sqReady = 0;
++static float s_sqHist[2][2 * SQ_TAPS]; // each channel's last samples, written twice so that a window is contiguous
++static int s_sqPos = 0;                // index of the newest sample in the first half
++
++static double SqBessel0(double x)
+ {
+-    double v = b + 0.5 * t * (c - a + t * (2.0 * a - 5.0 * b + 4.0 * c - d + t * (3.0 * (b - c) + d - a)));
+-    return (s16)(v > 32767 ? 32767 : v < -32768 ? -32768 : v);
++    double sum = 1.0, term = 1.0;
++    for(int k = 1; k < 40; k++) {
++        term *= (x / (2.0 * k)) * (x / (2.0 * k));
++        sum += term;
++    }
++    return sum;
+ }
+ 
++static void SqInit(void)
++{
++    const double fc = 0.93, beta = 8.0, pi = 3.14159265358979323846;
++    const double half = SQ_TAPS / 2;
++    for(int p = 0; p <= SQ_PHASES; p++) {
++        double t = (double)p / SQ_PHASES, sum = 0.0, w[SQ_TAPS];
++        for(int j = 0; j < SQ_TAPS; j++) {
++            double x = (j - (half - 1)) - t; // tap j sits at j, the point at half - 1 + t
++            double a = x * fc * pi;
++            double s = fabs(a) < 1e-9 ? 1.0 : sin(a) / a;
++            double r = x / half;
++            double win = fabs(r) >= 1.0 ? 0.0 : SqBessel0(beta * sqrt(1.0 - r * r)) / SqBessel0(beta);
++            w[j] = s * win;
++            sum += w[j];
++        }
++        for(int j = 0; j < SQ_TAPS; j++) {
++            s_sqTab[p][j] = (float)(w[j] / sum);
++        }
++    }
++    s_sqReady = 1;
++}
++
++static void SqPush(s16 l, s16 r)
++{
++    s_sqPos = (s_sqPos + 1) % SQ_TAPS;
++    s_sqHist[0][s_sqPos] = s_sqHist[0][s_sqPos + SQ_TAPS] = (float)l;
++    s_sqHist[1][s_sqPos] = s_sqHist[1][s_sqPos + SQ_TAPS] = (float)r;
++}
++
++// one output frame at the fraction aT (0..1) of the point between the two samples before the newest SQ_TAPS/2 - 1 later ones
++static void SqOut(double aT, float aVol, s16 * aOut)
++{
++    double q = aT * SQ_PHASES;
++    int p = (int)q;
++    if(p >= SQ_PHASES) {
++        p = SQ_PHASES - 1;
++    }
++    float f = (float)(q - p);
++    const float * c0 = s_sqTab[p];
++    const float * c1 = s_sqTab[p + 1];
++    for(int c = 0; c < 2; c++) {
++        const float * h = s_sqHist[c] + s_sqPos + 1; // the oldest of the window ... the newest is at h[SQ_TAPS - 1]
++        float d0 = 0.0f, d1 = 0.0f;
++        for(int j = 0; j < SQ_TAPS; j++) {
++            d0 += c0[j] * h[j];
++            d1 += c1[j] * h[j];
++        }
++        float v = (d0 + f * (d1 - d0)) * aVol;
++        aOut[c] = (s16)(v >= 32767.0f ? 32767 : v <= -32768.0f ? -32768 : (int)lrintf(v));
++    }
++}
++
+ // the callback, frame clock: the ring played at the device's rate (SDL holds the audio lock)
+ static void PlayRing(s16 * aOut, int aFrames, int aVolume)
+ {
++    if(!s_sqReady) {
++        SqInit();
++    }
+     double fill = (double)(s_ringWr - s_ringRd);
+     double adj = (fill - SND_TARGET) / SND_TARGET * 0.06;
+     adj = adj > 0.05 ? 0.05 : adj < -0.05 ? -0.05 : adj;
+@@ -602,16 +686,11 @@
+                 memset(aOut + 2 * i, 0, (size_t)(aFrames - i) * 4);
+                 return;
+             }
+-            memmove(s_hist[0], s_hist[1], 3 * sizeof s_hist[0]);
+-            s_hist[3][0] = s_ring[s_ringRd % SND_RING][0];
+-            s_hist[3][1] = s_ring[s_ringRd % SND_RING][1];
++            SqPush(s_ring[s_ringRd % SND_RING][0], s_ring[s_ringRd % SND_RING][1]);
+             s_ringRd++;
+             s_ringFrac -= 1.0;
+         }
+-        for(int c = 0; c < 2; c++) {
+-            int v = Cubic4(s_hist[0][c], s_hist[1][c], s_hist[2][c], s_hist[3][c], s_ringFrac);
+-            aOut[2 * i + c] = (s16)(aVolume >= 127 ? v : v * aVolume / 127);
+-        }
++        SqOut(s_ringFrac, aVolume >= 127 ? 1.0f : (float)aVolume / 127.0f, aOut + 2 * i);
+         s_ringFrac += step;
+     }
+ }
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -520,6 +520,8 @@
+ static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120, the monitor's refresh rate, or Unlimited (no cap, no VSync: as fast as the computer can; Tab switches to Unlimited and back). The game runs on its own clock (Fast-forward speed)";
+ static const char * const NoEffectTip = "no effect at Unlimited";
+ static bool FrameRateUnlimited() { return C()->displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED; }
++static const char * const SoundQualityTip = "DS (exact): the sound as the DS makes it, sample for sample: each sample held until the next, the 10-bit output (a little crunchy, with its aliasing and noise floor). Enhanced: samples interpolated and the mix kept at 16 bits: smoother, cleaner highs, same game logic";
++static const char * const SoundQualityNames[] = {"DS (exact)", "Enhanced"};
+ static const char * const MusicNormalTip = "while fast forward runs at 2x-4x the music (the background music and jingles) keeps its normal tempo while sound effects and cries follow the speed";
+ 
+ static int SpeedIndex() {
+@@ -798,6 +800,9 @@
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
++        FormRow("Sound quality", SoundQualityTip);
++        int sq = c->soundQuality != 0;
++        if (ComboIndex("##asq", &sq, SoundQualityNames, 2)) { c->soundQuality = (u8)sq; Dirty(); }
+         ImGui::EndTable();
+     }
+     ImGui::TextDisabled("The sound engine is chosen when the program starts: a change takes effect at the next start.");
+@@ -2573,6 +2578,7 @@
+     if (!strcmp(k, "speed")) return SpeedIndex() + 1;
+     if (!strcmp(k, "framerate")) return DisplayCapIndex();
+     if (!strcmp(k, "musicnormal")) return c->musicNormalSpeed != 0;
++    if (!strcmp(k, "soundquality")) return c->soundQuality != 0;
+     if (!strcmp(k, "frameskip")) return FrameSkipIndex();
+     if (!strcmp(k, "ffspeed")) return c->ffSpeed < 2 ? 2 : c->ffSpeed > 5 ? 5 : c->ffSpeed;   // libntr-ios-speedui.patch
+     if (!strcmp(k, "skipslow")) return c->frameSkip != 0;
+@@ -2603,6 +2609,7 @@
+     else if (!strcmp(k, "speed")) SetSpeed((v < 1 ? 1 : v > 4 ? 4 : v) - 1);
+     else if (!strcmp(k, "framerate")) SetDisplayCap(v < 0 ? 0 : v > 3 ? 3 : v);
+     else if (!strcmp(k, "musicnormal")) c->musicNormalSpeed = (u8)(v != 0);
++    else if (!strcmp(k, "soundquality")) c->soundQuality = (u8)(v != 0);
+     else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
+     else if (!strcmp(k, "ffspeed")) c->ffSpeed = (u8)(v < 2 ? 2 : v > 5 ? 5 : v);   // libntr-ios-speedui.patch: 2..4 or 5 = Max
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);

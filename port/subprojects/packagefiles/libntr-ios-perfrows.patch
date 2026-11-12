@@ -1,0 +1,67 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1110,27 +1110,37 @@
+   }
+   sPerfTestOn = true;
+   s_SIM_configNoSave = 1;  // libntr-ios-appfix.patch: the test's settings are never saved (sim_config.ini keeps the player's)
+-  fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d)\n",
++  fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d renderer3d %s)\n",
+           (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
+-          (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
++          (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation,
++          s_SIM_config.gpuFast ? "fast" : "exact");
+   static const char *const kScript =
+-      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu2-60;"  // (libntr-ios-metaltune.patch: 18 rows, each setting every key it depends on)
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-60;p10:perflog=gpu3-60;"  // libntr-ios-threads.patch: the frame thread's stages (a 'stages:' line)
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-aa4s-60;"
+-      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-smaa-60;"
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm;"
+-      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-smaa-mon-sm;"
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm-x4;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm-x4;p10:perflog=gpu3-aa4s-mon-sm-x4;"  // (libntr-ios-ablate.patch: the FF button's stages too)
+-      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu2-ff;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-aa4s-ff;"
+-      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-smaa-ff;"
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-unlimited;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-aa4s-unlimited;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-aa4s-passes;"
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-passes;"
+-      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-smaa-passes;"
++      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu2-60;"  // (libntr-ios-metaltune.patch: 27 rows, each setting every key it depends on)
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-60;p10:perflog=gpu3-60;"  // libntr-ios-threads.patch: the frame thread's stages (a 'stages:' line)
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-60-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-aa4s-60;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-aa4s-60-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-smaa-60;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-smaa-60-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-mon-sm-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-aa4s-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-aa4s-mon-sm-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-smaa-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=fast;p60:bench=gpu3-smaa-mon-sm-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-mon-sm-x4;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-aa4s-mon-sm-x4;p10:perflog=gpu3-aa4s-mon-sm-x4;"  // (libntr-ios-ablate.patch: the FF button's stages too)
++      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0,renderer3d=exact;p60:bench=gpu2-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0,renderer3d=exact;p60:bench=gpu3-aa4s-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0,renderer3d=exact;p60:bench=gpu3-smaa-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-unlimited;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0,renderer3d=exact;p60:bench=gpu3-aa4s-unlimited;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=exact;p60:bench=gpu3-aa4s-passes;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=fast;p60:bench=gpu3-aa4s-passes-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=exact;p60:bench=gpu3-passes;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=fast;p60:bench=gpu3-passes-fast;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=exact;p60:bench=gpu3-smaa-passes;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1,renderer3d=fast;p60:bench=gpu3-smaa-passes-fast;"
+       "p1:renderer=vcore,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=vcore1-60;"
+       "p1:restore=1";
+   sPerfRowsDone = sPerfRows = 0;
+@@ -1151,6 +1161,7 @@
+   s_SIM_config.interpolation = sCfgSaved.interpolation;
+   s_SIM_config.displayCap = sCfgSaved.displayCap;
+   s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
++  s_SIM_config.gpuFast = sCfgSaved.gpuFast;  // libntr-ios-perfrows.patch: the rows switch the 3D renderer
+   sFastForward = false;
+   sPassOn = false;  // libntr-ios-passes.patch
+   if (sPerfTestOn) {

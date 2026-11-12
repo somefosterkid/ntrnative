@@ -1,0 +1,57 @@
+    .text       start:0x06898020 end:0x0689d608 kind:code align:32
+    .rodata     start:0x0689d608 end:0x0689e54c kind:rodata align:4
+    .ctor       start:0x0689e54c end:0x0689e54c kind:rodata align:4
+    .data       start:0x0689e560 end:0x0689e7e0 kind:data align:32
+    .bss        start:0x0689e7e0 end:0x0689e9a0 kind:bss align:32
+
+src/ov095/btl_faintrec.c:
+    complete
+    .text       start:0x0689d0fc end:0x0689d1fc
+
+src/ov095/btl_wazarec.c:
+    complete
+    .text       start:0x0689cff0 end:0x0689d0fc
+
+src/ov095/btl_poke_select.c:
+    complete
+    .text       start:0x0689ca98 end:0x0689cb3c
+
+src/ov095/btl_monset.c:
+    complete
+    .text       start:0x0689cb3c end:0x0689cff0
+
+src/ov095/btl_pospoke.c:
+    complete
+    .text       start:0x0689d1fc end:0x0689d608
+
+src/ov095/field_handlers.c:
+    complete
+    .text       start:0x06898020 end:0x068981f0
+    .rodata     start:0x0689d608 end:0x0689d690
+
+src/ov095/condition_effects.c:
+    complete
+    .text       start:0x0689b7a8 end:0x0689c888
+    .rodata     start:0x0689e200 end:0x0689e2a4
+
+src/ov095/side_handlers.c:
+    complete
+    .text       start:0x06898bfc end:0x06899af0
+    .rodata     start:0x0689d6f0 end:0x0689d828
+    .bss        start:0x0689e7e0 end:0x0689e9a0
+
+src/ov095/pos_handlers.c:
+    complete
+    .text       start:0x068981f0 end:0x06898bfc
+    .rodata     start:0x0689d690 end:0x0689d6f0
+
+src/ov095/btlv_scd.c:
+    complete
+    .text       start:0x06899af0 end:0x0689b7a8
+    .rodata     start:0x0689d828 end:0x0689e200
+    .data       start:0x0689e560 end:0x0689e7e0
+
+src/ov095/btl_tables.c:
+    complete
+    .text       start:0x0689c888 end:0x0689ca98
+    .rodata     start:0x0689e2a4 end:0x0689e54c

@@ -1,0 +1,209 @@
+#include "types.h"
+#include "battle/btl_adapter.h"
+#include "battle/btl_net.h"
+#include "gfl/heap.h"
+#include "gfl/std.h"
+
+// A command and its data, as the server sends it to a client
+typedef struct {
+    u16 cmd;
+    u16 size;
+    u8 data[0xbbc];
+} BtlAdapterCmd;
+
+// Where an adapter's last command is in its exchange: idle, to be sent, sent and waiting for the reply, replied
+enum {
+    BTL_ADAPTER_STATE_IDLE,
+    BTL_ADAPTER_STATE_SEND,
+    BTL_ADAPTER_STATE_WAIT_REPLY = 3,
+    BTL_ADAPTER_STATE_REPLIED,
+};
+
+struct BtlAdapter {
+    NetHandle *netHandle;
+    // The client's reply to the last command, and its size
+    void *returnData;
+    u32 returnSize;
+    // 1 once the reply has arrived
+    u8 returned : 4;
+    // The commands go over the link
+    u8 isNet : 4;
+    u8 clientId;
+    // A BTL_ADAPTER_STATE_*
+    u8 state;
+    u8 cmd;
+    BtlAdapterCmd sendCmd;
+};
+
+static BOOL SendCmd(BtlAdapter *adapter);
+static BOOL IsReplyReceived(BtlAdapter *adapter);
+
+// The battle's communication mode (BtlFieldSituation.unk18): while it is 0, the server and the client share one adapter
+// per client ID; otherwise each caller gets its own
+static u32 sCommMode;
+static BtlAdapter *sAdapters[4];
+
+void BtlAdapter_InitSystem(u8 commMode) {
+    int i;
+
+    for (i = 0; i < 4; i++) {
+        sAdapters[i] = NULL;
+    }
+    sCommMode = commMode;
+}
+
+void BtlAdapter_QuitSystem(void) {
+}
+
+BtlAdapter *BtlAdapter_Create(NetHandle *netHandle, u8 clientId, BOOL isNet, HeapID heapId) {
+    BtlAdapter *adapter = NULL;
+
+    if (sAdapters[clientId] == NULL) {
+        adapter = GFL_HeapAllocate(heapId, sizeof(BtlAdapter), TRUE, "btl_adapter.c", 0x7e);
+        adapter->netHandle = netHandle;
+        adapter->clientId = clientId;
+        adapter->isNet = isNet;
+        adapter->state = BTL_ADAPTER_STATE_IDLE;
+        adapter->cmd = 0;
+        adapter->returned = 0;
+    }
+    if (sCommMode == 0) {
+        if (sAdapters[clientId] == NULL) {
+            sAdapters[clientId] = adapter;
+        }
+        return sAdapters[clientId];
+    }
+    sAdapters[clientId] = adapter;
+    return adapter;
+}
+
+void BtlAdapter_ResetState(BtlAdapter *adapter) {
+    adapter->state = BTL_ADAPTER_STATE_IDLE;
+    adapter->cmd = 0;
+    adapter->returned = 0;
+}
+
+void BtlAdapter_Delete(BtlAdapter *adapter) {
+    GFL_HeapFree(adapter);
+}
+
+void BtlAdapter_ClearNetReplies(void) {
+    if (sCommMode != 0) {
+        BtlNet_ResetReplies();
+    }
+}
+
+void BtlAdapter_Idle(void) {
+}
+
+void BtlAdapter_SetCmd(BtlAdapter *adapter, u32 cmd, const void *data, u32 size) {
+    adapter->state = BTL_ADAPTER_STATE_SEND;
+    adapter->cmd = cmd;
+    adapter->sendCmd.cmd = cmd;
+    adapter->sendCmd.size = size;
+    MI_CpuCopy8(data, adapter->sendCmd.data, size);
+    adapter->returnData = NULL;
+    adapter->returnSize = 0;
+    adapter->returned = 0;
+}
+
+BOOL BtlAdapter_WaitCmd(BtlAdapter *adapter) {
+    switch (adapter->state) {
+    case BTL_ADAPTER_STATE_SEND:
+        if (!SendCmd(adapter)) {
+            break;
+        }
+        adapter->state = BTL_ADAPTER_STATE_WAIT_REPLY;
+        // fallthrough
+    case BTL_ADAPTER_STATE_WAIT_REPLY:
+        if (!IsReplyReceived(adapter)) {
+            break;
+        }
+        adapter->state = BTL_ADAPTER_STATE_REPLIED;
+        // fallthrough
+    case BTL_ADAPTER_STATE_REPLIED:
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void *BtlAdapter_GetReturnData(BtlAdapter *adapter, u32 *size) {
+    if (size != NULL) {
+        *size = adapter->returnSize;
+    }
+    return adapter->returnData;
+}
+
+void BtlAdapter_SetIdle(BtlAdapter *adapter) {
+    adapter->state = BTL_ADAPTER_STATE_IDLE;
+    if (adapter->isNet) {
+        BtlNet_ResetReplies();
+    }
+}
+
+static BOOL SendCmd(BtlAdapter *adapter) {
+    if (adapter->isNet) {
+        BtlAdapterCmd *cmd = &adapter->sendCmd;
+        return BtlNet_SendServerCmd(adapter->clientId, cmd, cmd->size + 4);
+    }
+    return TRUE;
+}
+
+static BOOL IsReplyReceived(BtlAdapter *adapter) {
+    if (adapter->isNet) {
+        if (BtlNet_AreRepliesReceived()) {
+            adapter->returnSize = BtlNet_GetReply(adapter->clientId, &adapter->returnData);
+            adapter->returned = 1;
+            return TRUE;
+        }
+        return FALSE;
+    }
+    return adapter->returned;
+}
+
+void BtlAdapter_ClearSendCmd(BtlAdapter *adapter) {
+    adapter->sendCmd.cmd = 0;
+    adapter->sendCmd.size = 4;
+}
+
+u8 BtlAdapter_GetRecvCmd(BtlAdapter *adapter) {
+    if (adapter->isNet) {
+        if (BtlNet_IsServerCmdReceived()) {
+            void *buf;
+            BtlAdapterCmd *recv;
+            BtlNet_GetServerCmd(&buf);
+            recv = buf;
+            return recv->cmd;
+        }
+        return 0;
+    }
+    if (adapter->returned == 0) {
+        return adapter->sendCmd.cmd;
+    }
+    return 0;
+}
+
+u16 BtlAdapter_GetRecvData(BtlAdapter *adapter, const void **data) {
+    if (adapter->isNet) {
+        void *buf;
+        BtlAdapterCmd *recv;
+        BtlNet_GetServerCmd(&buf);
+        recv = buf;
+        *data = recv->data;
+        return recv->size;
+    }
+    *data = adapter->sendCmd.data;
+    return adapter->sendCmd.size;
+}
+
+BOOL BtlAdapter_SetReturnData(BtlAdapter *adapter, const void *data, u32 size) {
+    if (adapter->isNet) {
+        return BtlNet_SendReply(data, size);
+    }
+    if (!adapter->returned) {
+        adapter->returnData = data;
+        adapter->returnSize = size;
+        adapter->returned = 1;
+    }
+    return TRUE;
+}

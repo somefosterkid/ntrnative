@@ -1,0 +1,31 @@
+    .text       start:0x021b95a0 end:0x021c2878 kind:code align:32
+    .rodata     start:0x021c2878 end:0x021c39cc kind:rodata align:4
+    .ctor       start:0x021c39cc end:0x021c39cc kind:rodata align:4
+    .data       start:0x021c39e0 end:0x021c3ee0 kind:data align:32
+    .bss        start:0x021c3ee0 end:0x021c3ee0 kind:bss align:32
+
+src/ov099/wifi_p2pmatchroom.c:
+    complete
+    .text       start:0x021b95a0 end:0x021ba7cc
+    .rodata     start:0x021c2878 end:0x021c28a8
+
+src/ov099/wifi_status.c:
+    complete
+    .text       start:0x021c27d0 end:0x021c2878
+
+src/ov099/wifi_p2pmatch.c:
+    complete
+    .text       start:0x021ba828 end:0x021c27d0
+    .rodata     start:0x021c3718 end:0x021c39cc
+    .data       start:0x021c39f0 end:0x021c3ee0
+
+src/ov099/wifi_p2pmatch_net.c:
+    complete
+    .text       start:0x021ba7cc end:0x021ba810
+    .rodata     start:0x021c28a8 end:0x021c28f0
+
+src/ov099/wifi_p2pmatchroom_map.c:
+    complete
+    .text       start:0x021ba810 end:0x021ba828
+    .rodata     start:0x021c28f0 end:0x021c3718
+    .data       start:0x021c39e0 end:0x021c39f0

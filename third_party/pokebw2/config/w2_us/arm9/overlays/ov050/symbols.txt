@@ -1,0 +1,96 @@
+Scrcmd_Bsubway_CreateWork kind:function(thumb,size=0x38) addr:0x021e5840
+Scrcmd_Bsubway_ClearWork kind:function(thumb,size=0x1c) addr:0x021e5878
+Scrcmd_Bsubway_FreeWork kind:function(thumb,size=0x2a) addr:0x021e5894
+Scrcmd_Bsubway_Tool kind:function(thumb,size=0x1128) addr:0x021e58c0
+.L_021e5e6a kind:label(thumb) addr:0x021e5e6a local
+.L_021e6312 kind:label(thumb) addr:0x021e6312
+.L_021e6314 kind:label(thumb) addr:0x021e6314
+.L_021e6338 kind:label(thumb) addr:0x021e6338
+.L_021e6350 kind:label(thumb) addr:0x021e6350
+.L_021e635a kind:label(thumb) addr:0x021e635a
+.L_021e635c kind:label(thumb) addr:0x021e635c
+.L_021e636a kind:label(thumb) addr:0x021e636a
+.L_021e6374 kind:label(thumb) addr:0x021e6374
+.L_021e637e kind:label(thumb) addr:0x021e637e
+.L_021e6386 kind:label(thumb) addr:0x021e6386
+.L_021e638e kind:label(thumb) addr:0x021e638e
+.L_021e6398 kind:label(thumb) addr:0x021e6398
+.L_021e63a4 kind:label(thumb) addr:0x021e63a4
+.L_021e63a8 kind:label(thumb) addr:0x021e63a8
+.L_021e63b8 kind:label(thumb) addr:0x021e63b8
+.L_021e63c0 kind:label(thumb) addr:0x021e63c0
+.L_021e63c8 kind:label(thumb) addr:0x021e63c8
+.L_021e63d4 kind:label(thumb) addr:0x021e63d4
+.L_021e63dc kind:label(thumb) addr:0x021e63dc
+.L_021e63e4 kind:label(thumb) addr:0x021e63e4
+.L_021e63ea kind:label(thumb) addr:0x021e63ea
+.L_021e6408 kind:label(thumb) addr:0x021e6408
+.L_021e6430 kind:label(thumb) addr:0x021e6430
+.L_021e64b4 kind:label(thumb) addr:0x021e64b4
+.L_021e64d4 kind:label(thumb) addr:0x021e64d4
+.L_021e64dc kind:label(thumb) addr:0x021e64dc
+.L_021e64ee kind:label(thumb) addr:0x021e64ee
+.L_021e656a kind:label(thumb) addr:0x021e656a
+.L_021e6572 kind:label(thumb) addr:0x021e6572
+.L_021e657a kind:label(thumb) addr:0x021e657a
+.L_021e6586 kind:label(thumb) addr:0x021e6586
+.L_021e65b8 kind:label(thumb) addr:0x021e65b8
+.L_021e65c6 kind:label(thumb) addr:0x021e65c6
+.L_021e65da kind:label(thumb) addr:0x021e65da
+.L_021e65fc kind:label(thumb) addr:0x021e65fc
+.L_021e6618 kind:label(thumb) addr:0x021e6618
+.L_021e668c kind:label(thumb) addr:0x021e668c
+.L_021e669c kind:label(thumb) addr:0x021e669c
+.L_021e66a4 kind:label(thumb) addr:0x021e66a4
+.L_021e66de kind:label(thumb) addr:0x021e66de
+.L_021e66f0 kind:label(thumb) addr:0x021e66f0
+.L_021e675a kind:label(thumb) addr:0x021e675a
+.L_021e6766 kind:label(thumb) addr:0x021e6766
+.L_021e6770 kind:label(thumb) addr:0x021e6770
+.L_021e677e kind:label(thumb) addr:0x021e677e
+.L_021e679e kind:label(thumb) addr:0x021e679e
+.L_021e67b2 kind:label(thumb) addr:0x021e67b2
+.L_021e6930 kind:label(thumb) addr:0x021e6930 local
+.L_021e69d4 kind:label(thumb) addr:0x021e69d4 local
+.L_021e69d6 kind:label(thumb) addr:0x021e69d6
+.L_021e69d8 kind:label(thumb) addr:0x021e69d8 local
+ScriptNative_BSubwaySendWait kind:function(thumb,size=0x24) addr:0x021e69e8
+ScriptNative_BSubwayTimingWait kind:function(thumb,size=0x54) addr:0x021e6a0c
+ScriptNative_BSubwayParentEntryMenuWait kind:function(thumb,size=0x94) addr:0x021e6a60
+ScriptNative_BSubwayChildEntryMenuWait kind:function(thumb,size=0x84) addr:0x021e6af4
+ScriptNative_BSubwayRecvWait kind:function(thumb,size=0x40) addr:0x021e6b78
+EventBSubwayCommEnd_Callback kind:function(thumb,size=0x66) addr:0x021e6bb8
+EventBSubwayCommEnd_Create kind:function(thumb,size=0x20) addr:0x021e6c20
+EventBSubwayMsgWindow_Callback kind:function(thumb,size=0x86) addr:0x021e6c40
+EventBSubwayMsgWindow_Create kind:function(thumb,size=0x28) addr:0x021e6cc8
+BSubway_PlacePassengers kind:function(thumb,size=0x1bc) addr:0x021e6cf0
+func_ov050_021e6e6c kind:function(thumb,size=0xc) addr:0x021e6eac
+BSubwayCmd_IsNpcEntryAvailable kind:function(thumb,size=0x24) addr:0x021e6eb8
+BSubwayCmd_GetNpcEntryInfo kind:function(thumb,size=0x44) addr:0x021e6edc
+ScriptNative_BSubwayBattleRecSaveWait kind:function(thumb,size=0x80) addr:0x021e6f20
+BSubway_GetModeRegulation kind:function(thumb,size=0x2e) addr:0x021e6fa0
+BSubway_GetZonePlayMode kind:function(thumb,size=0x44) addr:0x021e6fd0
+BSubway_GetPlayerObjCode kind:function(thumb,size=0x32) addr:0x021e7014
+sTable7008 kind:data(any) addr:0x021e7048
+sTable701a kind:data(any) addr:0x021e705a
+sTable702c kind:data(any) addr:0x021e706c
+sTable7040 kind:data(any) addr:0x021e7080
+sTable7054 kind:data(any) addr:0x021e7094
+sTable706c kind:data(any) addr:0x021e70ac
+sWarpZones kind:data(any) addr:0x021e70d0
+sActorPositions kind:data(any) addr:0x021e70f4
+sStages kind:data(any) addr:0x021e711c
+sWarpPositions kind:data(any) addr:0x021e7174
+sActors kind:data(any) addr:0x021e71e0
+data_ov050_021e7264 kind:data(any) addr:0x021e72a4 ambiguous
+data_ov050_021e742d kind:data(any) addr:0x021e746d ambiguous
+data_ov050_021e74cd kind:data(any) addr:0x021e750d ambiguous
+data_ov050_021e75d5 kind:data(any) addr:0x021e7615 ambiguous
+data_ov050_021e7609 kind:data(any) addr:0x021e7649 ambiguous
+data_ov050_021e760d kind:data(any) addr:0x021e764d ambiguous
+data_ov050_021e7621 kind:data(any) addr:0x021e7661 ambiguous
+data_ov050_021e7631 kind:data(any) addr:0x021e7671 ambiguous
+data_ov050_021e7675 kind:data(any) addr:0x021e76b5 ambiguous
+data_ov050_021e76a9 kind:data(any) addr:0x021e76e9 ambiguous
+BSUBWAY_SCRIPT_COMMANDS kind:data(any) addr:0x021e76f0
+data_ov050_021e76b5 kind:data(any) addr:0x021e76f5 ambiguous

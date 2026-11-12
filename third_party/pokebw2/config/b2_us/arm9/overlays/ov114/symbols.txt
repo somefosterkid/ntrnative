@@ -1,0 +1,17 @@
+UndergroundRuins_Init kind:function(thumb,size=0x30) addr:0x021eec80
+UndergroundRuins_End kind:function(thumb,size=0x18) addr:0x021eecb0
+UndergroundRuins_Update kind:function(thumb,size=0xe) addr:0x021eecc8
+UndergroundRuins_ShowModel kind:function(thumb,size=0x5a) addr:0x021eecd8
+UndergroundRuins_SetAnmEnd kind:function(thumb,size=0x6a) addr:0x021eed34
+UndergroundRuins_PlayAnm kind:function(thumb,size=0x6c) addr:0x021eeda0
+UndergroundRuins_LoadScene kind:function(thumb,size=0xd0) addr:0x021eee0c
+UndergroundRuins_FreeScene kind:function(thumb,size=0xc) addr:0x021eeedc
+UndergroundRuins_StepAnimations kind:function(thumb,size=0xc) addr:0x021eeee8
+sAnimations kind:data(any) addr:0x021eeef4
+sSceneSetup kind:data(any) addr:0x021eeef8
+sResources kind:data(any) addr:0x021eef08
+data_ov114_021eef29 kind:data(any) addr:0x021eef29 ambiguous
+sActors kind:data(any) addr:0x021eef50
+data_ov114_021eef55 kind:data(any) addr:0x021eef55 ambiguous
+data_ov114_021eef85 kind:data(any) addr:0x021eef85 ambiguous
+data_ov114_021eef99 kind:data(any) addr:0x021eef99 ambiguous

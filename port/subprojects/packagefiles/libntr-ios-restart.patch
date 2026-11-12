@@ -1,0 +1,67 @@
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1183,6 +1183,8 @@
+ }
+ 
+ // ---- Game > Reset: the program starts again (the DS's reset: what was not saved is gone) ---------------------------
++
++extern "C" void bwport_press_restart(void);  // libntr-ios-restart.patch: port/src/restart_press.c
+ 
+ static bool RestartSupported() {
+ #if defined(__linux__) || defined(_WIN32) || TARGET_OS_OSX
+@@ -1618,7 +1620,7 @@
+             ImGui::TextDisabled(FrameRateUnlimited() ? "No effect at Unlimited (Frame rate)" : "Normal play is 1x; Space switches");
+             ImGui::EndMenu();
+         }
+-        if (RestartSupported() && ImGui::MenuItem("Reset...")) {
++        if (RestartSupported() && ImGui::MenuItem("Restart to title...")) {
+             sResetAsk = true;
+         }
+         ImGui::Separator();
+@@ -1919,17 +1921,18 @@
+         ImGui::EndPopup();
+     }
+     if (sResetAsk) {
+-        ImGui::OpenPopup("Reset the game");
++        ImGui::OpenPopup("Restart to title");
+         sResetAsk = false;
+     }
+     ImGuiViewport * vp = ImGui::GetMainViewport();
+     ImGui::SetNextWindowPos(ImVec2(vp->Size.x * 0.5f, (sBarH + vp->Size.y) * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+-    if (ImGui::BeginPopupModal("Reset the game", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
+-        ImGui::Text("The game starts again from the title.");
+-        ImGui::Text("Whatever was not saved in the game is lost.");
++    if (ImGui::BeginPopupModal("Restart to title", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
++        ImGui::Text("Restart to the title screen?");
++        ImGui::Text("Unsaved progress is lost.");
+         ImGui::Spacing();
+-        if (ImGui::Button("Reset", ImVec2(120.0f * sUiScale, 0.0f))) {
+-            RestartProgram();
++        if (ImGui::Button("Restart", ImVec2(120.0f * sUiScale, 0.0f))) {
++            ImGui::CloseCurrentPopup();
++            bwport_press_restart();  // the game's own L+R+START+SELECT: it resets itself, and not while it saves
+         }
+         ImGui::SameLine();
+         if (ImGui::Button("Cancel", ImVec2(120.0f * sUiScale, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1221,6 +1221,8 @@
+   fprintf(stderr, "perftest: aborted (%s); settings restored\n", why);
+ }
+ static int sIpTestLate, sIpTestClock;  // libntr-ios-smoothhold.patch: cfgscript glate=N, glowclock=1 (LagDone)
++extern "C" void bwport_press_restart(void);  // libntr-ios-restart.patch: port/src/restart_press.c
++
+ static void SIM_CfgScript(void) {
+   std::vector<CfgStep> &sSteps = sCfgSteps;
+   size_t &sNext = sCfgNext;
+@@ -1269,6 +1271,8 @@
+         struct timespec ts = {atoi(v) / 1000, (long)(atoi(v) % 1000) * 1000000L};
+         fprintf(stderr, "cfgscript: stall %d ms\n", atoi(v));
+         nanosleep(&ts, NULL);
++      } else if (strcmp(kv, "restart") == 0) {  // libntr-ios-restart.patch: the game's soft reset (L+R+START+SELECT)
++        bwport_press_restart();
+       } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
+         BenchDone();
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);

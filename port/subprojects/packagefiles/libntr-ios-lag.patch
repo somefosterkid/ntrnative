@@ -1,0 +1,549 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -74,6 +74,7 @@
+ void SimTouch_MenuRequest(void);
+ int SimTouch_PressTaken(unsigned long long * t0, unsigned long long * gate);
+ unsigned SimTouch_PadNow(void);
++int SimTouch_ReleaseTaken(unsigned long long * t0);  // libntr-ios-lag.patch
+ }
+ 
+ #ifdef SDK_BUILD_WIN64
+@@ -869,6 +870,7 @@
+ static std::vector<CfgStep> sCfgSteps;
+ static size_t sCfgNext = 0;
+ static SIM_config_type sCfgSaved;
++static FILE *sPresentLog;  // (BWPORT_PRESENTLOG, below)
+ static void SIM_CfgScriptLoad(const char *e) {
+   if (sCfgNext >= sCfgSteps.size()) { sCfgSteps.clear(); sCfgNext = 0; }
+   size_t at = sCfgNext < sCfgSteps.size() ? sCfgNext + 1 : sCfgSteps.size();
+@@ -970,6 +972,7 @@
+         BenchDone();
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);
+         fflush(stderr);
++        if (sPresentLog != NULL) fflush(sPresentLog);  // libntr-ios-lag.patch: (_exit skips the atexit that closes it)
+         _exit(0);
+       } else if (strcmp(kv, "speed") == 0) {
+         int n = atoi(v);
+@@ -1683,7 +1686,6 @@
+   bool forced;
+   u64 waited; // ns spent waiting for the slot this tick
+ } sPace;
+-static FILE *sPresentLog;
+ // bw-port (libntr-ib78.patch): the P lines of BWPORT_PRESENTLOG also say whether the slot showed an in-between picture and
+ // the hash of the pixels it showed (BWPORT_PRESENTHASH=1; the vcore path's pictures only)
+ static int sPresentMid;
+@@ -1743,40 +1745,251 @@
+ // on, as the renderers return the last tick's picture; the panel shows it a refresh or so later). "UIKit": how long UIKit held the
+ // touch before SDL got it (on iOS the wait for the next event pump, plus anything the system held it for). Each press over 100 ms is
+ // logged ("input:"), every one with BWPORT_PACELOG; the overlay's Detailed mode shows the last one; the pace line the second's.
+-static struct { u64 t0, gate, tick; int stage; float read, shown, uikit; double sum, max; int n; } sIn;
++// libntr-ios-lag.patch: releases are followed the same way (sIn[1]: the finger leaving the glass to the picture that can show the
++// game's answer to it), and both to the end of the GPU's work on that picture ("gpu": the present's fence, LagPoll below). A press
++// or release whose glass-to-GPU-done passes 100 ms logs "input: ... shown N ms late (...)".
++struct InTrack { u64 t0, gate, tick, pad, end, present, serial; int stage; float read, shown, uikit, gpu; double sum, max; int n; };
++static InTrack sIn[2];  // 0 press, 1 release
+ extern "C" float SIM_InputLatency(float *read, float *uikit) {
+-  *read = sIn.read;
+-  *uikit = sIn.uikit;
+-  return sIn.shown;
++  *read = sIn[0].read;
++  *uikit = sIn[0].uikit;
++  return sIn[0].shown;
+ }
+-static void InputTaken(u64 t0, u64 gate) {
+-  sIn.t0 = t0;
+-  sIn.gate = gate;
+-  sIn.tick = sPc.ticks;
+-  sIn.stage = 1;
++// libntr-ios-lag.patch: the last press's / release's glass to GPU done (0: not yet), and to its present
++extern "C" float SIM_InputGpuLatency(int release, float *shown) {
++  *shown = sIn[release != 0].shown;
++  return sIn[release != 0].gpu;
+ }
++static void InputTaken(int k, u64 t0, u64 gate) {
++  InTrack &in = sIn[k];
++  in.t0 = t0;
++  in.gate = gate;
++  in.tick = sPc.ticks;
++  in.pad = SpNowNs();
++  in.stage = 1;
++}
+ static void InputTickEnd(void) {
+-  if (sIn.stage != 1) return;
+-  sIn.read = (float)((SpNowNs() - sIn.t0) / 1e6);
+-  sIn.stage = 2;
++  for (InTrack &in : sIn) {
++    if (in.stage != 1) continue;
++    in.end = SpNowNs();
++    in.read = (float)((in.end - in.t0) / 1e6);
++    in.stage = 2;
++  }
+ }
+-static void InputPresented(u64 now) {
+-  if (sIn.stage != 2 || sPc.ticks < sIn.tick + 3) return;
+-  sIn.stage = 0;
+-  sIn.shown = (float)((now - sIn.t0) / 1e6);
+-  sIn.uikit = (float)(sIn.gate / 1e6);
+-  sIn.sum += sIn.shown;
+-  sIn.max = sIn.shown > sIn.max ? sIn.shown : sIn.max;
+-  sIn.n++;
+-  static int sLog = -1;
+-  if (sLog < 0) sLog = getenv("BWPORT_PACELOG") != NULL;
+-  if (sLog || sIn.shown > 100.0f) {
+-    fprintf(stderr, "input: %.0f ms to the present (game read at %.0f, UIKit held it %.0f)\n", sIn.shown, sIn.read, sIn.uikit);
++static int sLagLog = -1;
++static void InputGpuDone(InTrack &in, u64 done, int inflight) {
++  const int k = (int)(&in - sIn);
++  in.stage = 0;
++  in.gpu = (float)((done - in.t0) / 1e6);
++  if (sLagLog < 0) sLagLog = getenv("BWPORT_PACELOG") != NULL || getenv("BWPORT_LAGLOG") != NULL;
++  if (sLagLog || in.gpu > 100.0f) {
++    fprintf(stderr, "input: %s shown %.0f ms late (glass to pad %.0f, pad to tick end %.0f, to present %.0f, to GPU done %.0f; %d in flight)\n",
++            k ? "release" : "press", in.gpu, (in.pad - in.t0) / 1e6, (in.end - in.pad) / 1e6, (in.present - in.end) / 1e6,
++            (done - in.present) / 1e6, inflight);
++  }
++}
++static void InputPresented(u64 now, u64 serial) {
++  for (InTrack &in : sIn) {
++    if (in.stage != 2 || sPc.ticks < in.tick + 3) continue;
++    in.stage = 3;
++    in.present = now;
++    in.serial = serial;
++    in.shown = (float)((now - in.t0) / 1e6);
++    in.uikit = (float)(in.gate / 1e6);
++    in.sum += in.shown;
++    in.max = in.shown > in.max ? in.shown : in.max;
++    in.n++;
++    if (&in != sIn) continue;
++    static int sLog = -1;
++    if (sLog < 0) sLog = getenv("BWPORT_PACELOG") != NULL;
++    if (sLog || in.shown > 100.0f) {
++      fprintf(stderr, "input: %.0f ms to the present (game read at %.0f, UIKit held it %.0f)\n", in.shown, in.read, in.uikit);
++    }
++  }
++}
++
++// libntr-ios-lag.patch: the GPU's queue. Each present puts a GL fence after the frame's drawing (just before the swap); LagPoll
++// (each frame, and while the pacing sleeps: about every millisecond while one is open) asks with timeout 0 which ones the GPU has
++// finished. "lag" = the swap call to the GPU done with that frame, "in flight" = frames submitted that the GPU has not finished.
++// Neither Apple's OpenGL ES (on Metal) nor a desktop driver promises a swap that waits for the GPU, so the game could run frames
++// ahead of what the GPU has drawn, each one shown later. The bound: before a present's swap, the frame two presents back must be
++// done (glClientWaitSync, at most 100 ms): at most two frames in flight. BWPORT_GPUQUEUE=N allows N (0: no bound, as before),
++// BWPORT_GPUSLOW=N adds N full-screen blended draws a present offscreen (a forced slow GPU, to test the bound).
++typedef GLsync(APIENTRYP LagFenceFn)(GLenum, GLbitfield);
++typedef GLenum(APIENTRYP LagWaitFn)(GLsync, GLbitfield, GLuint64);
++typedef void(APIENTRYP LagDeleteFn)(GLsync);
++static LagFenceFn sLagFence;
++static LagWaitFn sLagWait;
++static LagDeleteFn sLagDelete;
++static int sLagInit, sLagBound = 2, sLagSlow;
++struct LagRec { GLsync f; u64 serial, submit; int inflight; };
++static LagRec sLagQ[16];
++static int sLagN;          // fences not signalled yet (oldest first)
++static u64 sLagSerial;     // the last present's serial
++static struct LagCount { u64 n, sumNs, maxNs, waitNs, bMaxNs; int maxIn, bMaxIn; } sLc;  // (b: the bench window's)
++static float sLagMean, sLagMaxMs;  // the last second's (the overlay)
++static int sLagMaxIn;
++extern "C" float SIM_DisplayLag(int *inflight, float *maxMs) {
++  *inflight = sLagMaxIn;
++  *maxMs = sLagMaxMs;
++  return sLagMean;
++}
++static bool LagReady(void) {
++  if (!sLagInit) {
++    sLagInit = 1;
++    sLagFence = (LagFenceFn)SDL_GL_GetProcAddress("glFenceSync");
++    sLagWait = (LagWaitFn)SDL_GL_GetProcAddress("glClientWaitSync");
++    sLagDelete = (LagDeleteFn)SDL_GL_GetProcAddress("glDeleteSync");
++    const char *e = getenv("BWPORT_GPUQUEUE");
++    if (e != NULL && *e) sLagBound = atoi(e) < 0 ? 0 : atoi(e) > 15 ? 15 : atoi(e);
++    e = getenv("BWPORT_GPUSLOW");
++    if (e != NULL && *e) sLagSlow = atoi(e);
++    fprintf(stderr, "bwport: GPU queue: fences %s, at most %d frames in flight%s\n",
++            sLagFence && sLagWait && sLagDelete ? "on" : "unavailable", sLagBound, sLagSlow > 0 ? " (BWPORT_GPUSLOW on)" : "");
+   }
++  return sLagFence != NULL && sLagWait != NULL && sLagDelete != NULL;
+ }
++// libntr-ios-lag.patch, iOS: the panel. A present can be on the glass at the first display refresh after the GPU finished it, and the
++// panel shows one picture a refresh: shown(p) = max(next refresh after GPU done, shown(p-1) + period), from the CADisplayLink's phase
++// and period (port/src/ios_input.m). "shown lag" = the swap call to that estimate; presents whose estimate is still ahead are
++// "waiting for the panel". If presents outrun the panel (a refresh rate below what the pacing assumes: Low Power Mode, ProMotion
++// lowering it) and the system does not block the swap, that queue grows; LagSubmit then drops presents (BWPORT_PRESENTDROP=0: never).
++#if SIM_IOS
++extern "C" int bwport_ios_vsync(unsigned long long *lastNs, unsigned long long *periodNs);  // port/src/ios_input.m
++#endif
++static u64 sShownQ[16];   // the estimates of the last presents (a ring)
++static int sShownI;
++static u64 sShownPrev, sVsPeriod;
++static struct ShownCount { u64 n, sumNs, maxNs, drops; int maxWait; } sSc;
++static float sShownMean;
++static int sShownMaxWait;
++extern "C" float SIM_DisplayShown(int *waiting, float *hz) {
++  *waiting = sShownMaxWait;
++  *hz = sVsPeriod ? (float)(1e9 / (double)sVsPeriod) : 0.0f;
++  return sShownMean;
++}
++static void LagShown(u64 submit, u64 done) {
++#if SIM_IOS
++  u64 vs = 0, per = 0;
++  if (!bwport_ios_vsync(&vs, &per) || per < 2000000 || per > 50000000) return;
++  sVsPeriod = per;
++  u64 at = done <= vs ? vs : vs + ((done - vs + per - 1) / per) * per;
++  if (sShownPrev != 0 && at < sShownPrev + per - per / 4) at = sShownPrev + per;
++  sShownPrev = at;
++  sShownQ[sShownI++ & 15] = at;
++  sSc.n++;
++  sSc.sumNs += at - submit;
++  if (at - submit > sSc.maxNs) sSc.maxNs = at - submit;
++#else
++  (void)submit, (void)done;
++#endif
++}
++// presents the model says are not on the glass yet (GPU done, waiting for the panel)
++static int LagWaiting(u64 now) {
++  int n = 0;
++  for (u64 t : sShownQ) n += t > now;
++  return n;
++}
++static void LagDone(u64 now) {
++  LagRec &r = sLagQ[0];
++  sLagDelete(r.f);
++  LagShown(r.submit, now);
++  u64 lag = now - r.submit;
++  sLc.n++;
++  sLc.sumNs += lag;
++  if (lag > sLc.maxNs) sLc.maxNs = lag;
++  if (lag > sLc.bMaxNs) sLc.bMaxNs = lag;
++  for (InTrack &in : sIn) {
++    if (in.stage == 3 && in.serial == r.serial) InputGpuDone(in, now, r.inflight);
++  }
++  memmove(&sLagQ[0], &sLagQ[1], (size_t)(sLagN - 1) * sizeof(LagRec));
++  sLagN--;
++}
++static void LagPoll(void) {
++  while (sLagN > 0) {
++    GLenum st = sLagWait(sLagQ[0].f, 0, 0);
++    if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED) return;
++    LagDone(SpNowNs());
++  }
++}
++// a forced slow GPU (BWPORT_GPUSLOW=N): N blended draws of the picture into an offscreen target of the window's size
++static void LagSlowGpu(void) {
++  static GLuint sFbo, sTex;
++  static int sW, sH;
++  int w = 0, h = 0;
++  SDL_GL_GetDrawableSize(window, &w, &h);
++  if (sLastPicTex == 0 || w <= 0 || h <= 0) return;
++  GLint prevFbo = 0, prevTex = 0;
++  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFbo);
++  if (sFbo == 0 || w != sW || h != sH) {
++    if (sTex == 0) glGenTextures(1, &sTex);
++    if (sFbo == 0) glGenFramebuffers(1, &sFbo);
++    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++    glBindTexture(GL_TEXTURE_2D, sTex);
++    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
++    glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++    glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
++    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sTex, 0);
++    sW = w;
++    sH = h;
++  }
++  glBindFramebuffer(GL_FRAMEBUFFER, sFbo);
++  GLint vp[4];
++  glGetIntegerv(GL_VIEWPORT, vp);
++  glViewport(0, 0, w, h);
++  GLboolean blend = glIsEnabled(GL_BLEND);
++  GLint bs = 0, bd = 0;
++  glGetIntegerv(GL_BLEND_SRC_RGB, &bs);
++  glGetIntegerv(GL_BLEND_DST_RGB, &bd);
++  glEnable(GL_BLEND);
++  glBlendFunc(GL_ONE, GL_ONE);
++  GLuint keep = sLastPicTex;
++  for (int i = 0; i < sLagSlow; i++) SIM_DrawFrameTexture(keep);
++  sLastPicTex = keep;
++  glBlendFunc((GLenum)bs, (GLenum)bd);
++  if (!blend) glDisable(GL_BLEND);
++  glViewport(vp[0], vp[1], vp[2], vp[3]);
++  glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)prevFbo);
++}
++// just before a swap: the bound, then this frame's fence; false: drop this present (iOS: the panel is two pictures behind)
++static bool LagSubmit(void) {
++  if (!LagReady()) return true;
++  if (sLagSlow > 0) LagSlowGpu();
++  LagPoll();
++  if (sLagBound > 0 && sLagN >= sLagBound) {
++    u64 t0 = SpNowNs();
++    while (sLagN >= sLagBound) {
++      GLenum st = sLagWait(sLagQ[0].f, GL_SYNC_FLUSH_COMMANDS_BIT, 100000000ull);
++      if (st == GL_TIMEOUT_EXPIRED) break;  // (a GPU that hangs: don't hang the game with it)
++      LagDone(SpNowNs());
++    }
++    sLc.waitNs += SpNowNs() - t0;
++  }
++  if (sLagN == 16) LagDone(SpNowNs());  // (no bound and the GPU 16 frames behind: forget the oldest)
++  {
++    static int sDrop = -1;
++    if (sDrop < 0) sDrop = getenv("BWPORT_PRESENTDROP") == NULL || atoi(getenv("BWPORT_PRESENTDROP")) != 0;
++    int w = LagWaiting(SpNowNs());
++    if (w > sSc.maxWait) sSc.maxWait = w;
++    if (sDrop && w >= 2) {
++      sSc.drops++;
++      return false;
++    }
++  }
++  LagRec &r = sLagQ[sLagN];
++  r.f = sLagFence(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
++  if (r.f == NULL) return true;
++  sLagN++;
++  r.serial = ++sLagSerial;
++  r.submit = SpNowNs();
++  r.inflight = sLagN;
++  if (sLagN > sLc.maxIn) sLc.maxIn = sLagN;
++  if (sLagN > sLc.bMaxIn) sLc.bMaxIn = sLagN;
++  return true;
++}
+ static void PacePresented(u64 swapNs) {
+   u64 now = SpNowNs();
+-  InputPresented(now);
++  InputPresented(now, sLagSerial);
+   sPc.presents++;
+   sPc.swapNs += swapNs;
+   if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapNs) sPc.maxGapNs = now - sPc.lastPresentNs;
+@@ -1789,6 +2002,8 @@
+   u64 t0, endNs;
+   double cpu0;
+   PaceCount c0;
++  LagCount lc0;           // libntr-ios-lag.patch
++  ShownCount sc0;
+   char name[40];
+   std::string table;
+ } sBench;
+@@ -1800,6 +2015,10 @@
+   sPc.maxGapNs = 0;
+   sPc.lastPresentNs = 0;
+   sBench.c0 = sPc;
++  sLc.bMaxNs = 0;
++  sLc.bMaxIn = 0;
++  sBench.lc0 = sLc;
++  sBench.sc0 = sSc;
+   snprintf(sBench.name, sizeof sBench.name, "%s", name);
+ }
+ static bool BenchBusy(void) { return sBench.on; }
+@@ -1837,6 +2056,33 @@
+       sPresentRate = (float)((sPc.presents - sRatePres) / dt);
+       sTickRate = (float)((sPc.ticks - sRateTicks) / dt);
+     }
++    { // libntr-ios-lag.patch: the second's GPU lag (mean, max) and the most frames in flight
++      static LagCount sLcPrev;
++      u64 n = sLc.n - sLcPrev.n;
++      sLagMean = n ? (float)((sLc.sumNs - sLcPrev.sumNs) / 1e6 / n) : 0.0f;
++      sLagMaxMs = (float)(sLc.maxNs / 1e6);
++      sLagMaxIn = sLc.maxIn;
++      static ShownCount sScPrev;
++      u64 sn = sSc.n - sScPrev.n;
++      sShownMean = sn ? (float)((sSc.sumNs - sScPrev.sumNs) / 1e6 / sn) : 0.0f;
++      sShownMaxWait = sSc.maxWait;
++      if (sLog > 0 && sLagInit) {
++        fprintf(stderr, "pace gpu lag %.1f ms mean, %.1f max, %d in flight max, bound wait %.1f ms\n", sLagMean, sLagMaxMs, sLagMaxIn,
++                (sLc.waitNs - sLcPrev.waitNs) / 1e6);
++        if (sVsPeriod) fprintf(stderr, "pace panel %.1f Hz, shown lag %.1f ms mean (est.), %.1f max, %d waiting max, %llu dropped\n", 1e9 / (double)sVsPeriod,
++                               sShownMean, sSc.maxNs / 1e6, sShownMaxWait, (unsigned long long)(sSc.drops - sScPrev.drops));
++      }
++      if (sSc.drops > sScPrev.drops && !(sLog > 0)) {
++        fprintf(stderr, "display: %llu presents dropped in the last second (the panel at %.1f Hz was two pictures behind)\n",
++                (unsigned long long)(sSc.drops - sScPrev.drops), sVsPeriod ? 1e9 / (double)sVsPeriod : 0.0);
++      }
++      sSc.maxNs = 0;
++      sSc.maxWait = 0;
++      sScPrev = sSc;
++      sLc.maxNs = 0;
++      sLc.maxIn = 0;
++      sLcPrev = sLc;
++    }
+     sRateAt = now;
+     sRatePres = sPc.presents;
+     sRateTicks = sPc.ticks;
+@@ -1851,9 +2097,12 @@
+             (sPc.sleepNs - sPrev.sleepNs) / 1e6 / dt, sPc.maxGapLogNs / 1e6, (cpu - sCpuPrev) / dt, t ? (cpu - sCpuPrev) * 1e3 / t : 0.0);
+     // libntr-ios-input.patch: the second's presses (count, mean and longest ms to the present) and on iOS the main run loop's turns
+     // (port/src/ios_input.m: entries, the longest time between two, the display frames a CADisplayLink got, missed, and how late)
+-    if (sIn.n > 0) fprintf(stderr, "pace input %d presses, %.0f ms mean, %.0f max\n", sIn.n, sIn.sum / sIn.n, sIn.max);
+-    sIn.n = 0;
+-    sIn.sum = sIn.max = 0.0;
++    if (sIn[0].n > 0) fprintf(stderr, "pace input %d presses, %.0f ms mean, %.0f max\n", sIn[0].n, sIn[0].sum / sIn[0].n, sIn[0].max);
++    if (sIn[1].n > 0) fprintf(stderr, "pace input %d releases, %.0f ms mean, %.0f max\n", sIn[1].n, sIn[1].sum / sIn[1].n, sIn[1].max);
++    for (InTrack &in : sIn) {
++      in.n = 0;
++      in.sum = in.max = 0.0;
++    }
+ #if SIM_IOS
+     fprintf(stderr, "pace runloop %s\n", bwport_ios_runloop_line());
+ #endif
+@@ -1870,11 +2119,16 @@
+     char row[320];
+     if (!sBench.any) {
+       sBench.any = true;
+-      sBench.table = "bench: step                 renderer      speed x  pres/s drawn/s  mid/s  upMB/s  swap ms/s  gap ms  cores  CPU ms/tick\n";
++      sBench.table = "bench: step                 renderer      speed x  pres/s drawn/s  mid/s  upMB/s  swap ms/s  gap ms  cores  CPU ms/tick  gpu lag ms  max  in flight  shown ms  drops\n";
+     }
+-    snprintf(row, sizeof row, "bench: %-20s %-13s %7.2f %7.1f %7.1f %6.1f %7.1f %10.1f %7.1f %6.2f %12.2f\n", sBench.name, RendererShort(),
++    // libntr-ios-lag.patch: the window's GPU lag (the swap call to the GPU done with the frame: mean, max) and the most frames in flight
++    const u64 ln = sLc.n - sBench.lc0.n;
++    snprintf(row, sizeof row, "bench: %-20s %-13s %7.2f %7.1f %7.1f %6.1f %7.1f %10.1f %7.1f %6.2f %12.2f %11.1f %4.0f %10d %9.1f %6llu\n", sBench.name, RendererShort(),
+              t / dt / 59.8261, (sPc.presents - a.presents) / dt, (sPc.drawn - a.drawn) / dt, (sPc.mids - a.mids) / dt,
+-             (sPc.upBytes - a.upBytes) / 1e6 / dt, (sPc.swapNs - a.swapNs) / 1e6 / dt, sPc.maxGapNs / 1e6, cpu / dt, t ? cpu * 1e3 / t : 0.0);
++             (sPc.upBytes - a.upBytes) / 1e6 / dt, (sPc.swapNs - a.swapNs) / 1e6 / dt, sPc.maxGapNs / 1e6, cpu / dt, t ? cpu * 1e3 / t : 0.0,
++             ln ? (sLc.sumNs - sBench.lc0.sumNs) / 1e6 / ln : 0.0, sLc.bMaxNs / 1e6, sLc.bMaxIn,
++             sSc.n > sBench.sc0.n ? (sSc.sumNs - sBench.sc0.sumNs) / 1e6 / (sSc.n - sBench.sc0.n) : 0.0,
++             (unsigned long long)(sSc.drops - sBench.sc0.drops));
+     sBench.table += row;
+     fputs(row, stderr);
+     fflush(stderr);
+@@ -1913,12 +2167,14 @@
+ #endif
+   const u64 tIn = SpNowNs();
+   for (;;) {
++    if (sLagN > 0) LagPoll();  // libntr-ios-lag.patch: (and the chunks below at most 1 ms while a frame's GPU end is awaited)
+     u64 now = SpNowNs();
+     if (now >= target) {
+       sPc.sleepNs += now - tIn;
+       return;
+     }
+     u64 rem = target - now;
++    if (sLagN > 0 && rem > spin + 1000000) rem = spin + 1000000;
+     if (rem > spin) {
+ #ifdef SDK_BUILD_WIN64
+       if (sTimer != NULL) {
+@@ -1936,6 +2192,10 @@
+         bwport_ios_runloop_for(rem - 1000000);
+         continue;
+       }
++      if (sLagN > 0 && !SimTouch_Background()) {  // libntr-ios-lag.patch: (a 1 ms step: still serve UIKit)
++        bwport_ios_runloop_for(rem - spin);
++        continue;
++      }
+ #endif
+       struct timespec ts;
+       ts.tv_sec = 0;
+@@ -2353,7 +2613,8 @@
+ static unsigned sTouchPadPrev;
+ static void TouchPadWrite(unsigned now) {
+   unsigned long long t0, gate;
+-  if (SimTouch_PressTaken(&t0, &gate)) InputTaken(t0, gate);  // libntr-ios-input.patch
++  if (SimTouch_PressTaken(&t0, &gate)) InputTaken(0, t0, gate);  // libntr-ios-input.patch
++  if (SimTouch_ReleaseTaken(&t0)) InputTaken(1, t0, 0);           // libntr-ios-lag.patch
+   unsigned ch = now ^ sTouchPadPrev;
+   static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
+   for (int b = 0; b < 12; b++) {
+@@ -2951,6 +3212,7 @@
+ 
+     FLStamp(2);
+     SIM_RendererPoll();
++    if (sLagN > 0) LagPoll();  // libntr-ios-lag.patch
+ 
+     SpPaceBegin();
+     SIM_FrameSkipDecide();
+@@ -3020,9 +3282,11 @@
+ #ifdef __APPLE__
+       SIM_ShotMaybe(window);
+ #endif
+-      SDL_GL_SwapWindow(window);
+-      PacePresented(SpNowNs() - swapCall);
+-      SpAfterSwap(0, swapCall);
++      if (LagSubmit()) {  // libntr-ios-lag.patch
++        SDL_GL_SwapWindow(window);
++        PacePresented(SpNowNs() - swapCall);
++        SpAfterSwap(0, swapCall);
++      }
+     }
+     FLStamp(6);
+     {
+@@ -3101,6 +3365,7 @@
+           }
+           if (sLastPicTex != 0) SIM_DrawFrameTexture(sLastPicTex);
+           SIM::GUI::RenderAgain();
++          if (!LagSubmit()) continue;  // libntr-ios-lag.patch
+           u64 call = SpNowNs();
+           SDL_GL_SwapWindow(window);
+           PacePresented(SpNowNs() - call);
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2405,6 +2405,9 @@
+ extern "C" float SIM_PresentRate(void);   // libntr-ios-pace.patch (sim_main.cpp)
+ extern "C" float SIM_GameSpeedNow(void);
+ extern "C" float SIM_InputLatency(float * read, float * uikit);   // libntr-ios-input.patch (sim_main.cpp)
++extern "C" float SIM_InputGpuLatency(int release, float * shown);  // libntr-ios-lag.patch (sim_main.cpp)
++extern "C" float SIM_DisplayLag(int * inflight, float * maxMs);
++extern "C" float SIM_DisplayShown(int * waiting, float * hz);
+ static void TouchOverlay() {
+     SIM_config_type * c = C();
+     if (!c->overlay || SimTouch_MenuOpen()) {
+@@ -2416,7 +2419,7 @@
+         return;
+     }
+     const Snap & m = sSnap;
+-    char l1[64], l2[64] = "", l3[64] = "", l4[64] = "";
++    char l1[64], l2[64] = "", l3[64] = "", l4[64] = "", l5[64] = "", l6[64] = "";
+     // libntr-ios-pace.patch: the presents a second and the game's speed as it runs (m.fps counts game ticks)
+     snprintf(l1, sizeof l1, "%.0f fps  %.1fx", SIM_PresentRate(), SIM_GameSpeedNow());
+     if (c->overlayDetail) {
+@@ -2428,12 +2431,23 @@
+         float rd = 0.0f, uk = 0.0f, in = SIM_InputLatency(&rd, &uk);
+         if (in > 0.0f) snprintf(l4, sizeof l4, "input %.0f ms (UIKit %.0f)", in, uk);
+         else snprintf(l4, sizeof l4, "input -");
++        // libntr-ios-lag.patch: the last press and release to the GPU done with the picture that can show the game's answer, and the
++        // GPU's queue over the last second (the swap call to the GPU done: mean ms, the most frames submitted and not finished)
++        float sp = 0.0f, sr = 0.0f, gp = SIM_InputGpuLatency(0, &sp), gr = SIM_InputGpuLatency(1, &sr);
++        if (gp > 0.0f || gr > 0.0f) snprintf(l5, sizeof l5, "to GPU: press %.0f, release %.0f ms", gp, gr);
++        else snprintf(l5, sizeof l5, "to GPU: -");
++        int fl = 0;
++        float lmax = 0.0f, lag = SIM_DisplayLag(&fl, &lmax);
++        int wait = 0;
++        float hz = 0.0f, shown = SIM_DisplayShown(&wait, &hz);   // (iOS: the swap call to the estimated refresh that shows it)
++        if (hz > 0.0f) snprintf(l6, sizeof l6, "display lag %.0f ms (GPU %.0f) / %d in flight, %d waiting, %.0f Hz", shown, lag, fl, wait, hz);
++        else snprintf(l6, sizeof l6, "display lag %.0f ms / %d in flight", lag, fl);
+     }
+     ImFont * font = ImGui::GetFont();
+     float fs = 9.5f;
+     float pad = 5.0f, gap = 2.0f;
+-    int lines = l3[0] ? 4 : 1;
+-    const char * ls[4] = {l1, l2, l3, l4};
++    int lines = l3[0] ? 6 : 1;
++    const char * ls[6] = {l1, l2, l3, l4, l5, l6};
+     float w = 0.0f;
+     for (int i = 0; i < lines; i++) {
+         w = std::max(w, font->CalcTextSizeA(fs, FLT_MAX, 0.0f, ls[i]).x);
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -93,6 +93,9 @@
+ struct Rel { unsigned mask; unsigned long long hw, app, sdl; bool tap; };
+ Rel sRel[10];
+ int sRelN;
++// libntr-ios-lag.patch: the last release the pad bits show, for sim_main.cpp to follow to the picture (SimTouch_ReleaseTaken)
++unsigned long long sRelTakenT0;
++bool sRelTaken;
+ SDL_threadID sMainThread;
+ int sTouchLog = -1;
+ bool TouchLog() {
+@@ -389,6 +392,7 @@
+         Rel & r = sRel[i];
+         bool shown = (m & r.mask) == 0, old = now - r.sdl > 2000000000ull;   // (another finger still holds it: no release)
+         if (shown && r.hw != 0 && !r.tap) {
++            if (!sRelTaken) { sRelTaken = true; sRelTakenT0 = r.hw; }
+             double late = (now - r.hw) / 1e6;
+             if (late > 50.0 || TouchLog()) {
+                 fprintf(stderr, "input: release %.0f ms late (glass to app %.0f, app to touch layer %.0f, touch layer to pad %.0f)\n",
+@@ -556,6 +560,13 @@
+     *gate = sTakenGate;
+     return 1;
+ }
++// libntr-ios-lag.patch: a release the game's pad bits now show (not a tap): when the finger left the glass (ns; once per release)
++int SimTouch_ReleaseTaken(unsigned long long * t0) {
++    if (!sRelTaken) return 0;
++    sRelTaken = false;
++    *t0 = sRelTakenT0;
++    return 1;
++}
+ int SimTouch_Background(void) { return sBackground; }
+ 
+ // the safe area (l, t, r, b), for the settings window

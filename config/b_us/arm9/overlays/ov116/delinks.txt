@@ -1,0 +1,17 @@
+    .text       start:0x021d6660 end:0x021d83a4 kind:code align:32
+    .rodata     start:0x021d83a4 end:0x021d8550 kind:rodata align:4
+    .ctor       start:0x021d8550 end:0x021d8550 kind:rodata align:4
+    .data       start:0x021d8560 end:0x021d85c0 kind:data align:32
+    .bss        start:0x021d85c0 end:0x021d85c0 kind:bss align:32
+
+src/ov116/wifi_bsubway_graphic.c:
+    complete
+    .text       start:0x021d821c end:0x021d83a4
+    .rodata     start:0x021d83b0 end:0x021d8550
+    .data       start:0x021d858c end:0x021d85c0
+
+src/ov116/wifi_bsubway.c:
+    complete
+    .text       start:0x021d6660 end:0x021d821c
+    .rodata     start:0x021d83a4 end:0x021d83b0
+    .data       start:0x021d8560 end:0x021d858c

@@ -1,0 +1,206 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -636,6 +636,10 @@
+ 
+ // each frame, before the picture is drawn: a changed renderer or resolution bumps the serial, starts the overlay and
+ // retitles the window
++// libntr-ios-cpubatch.patch: ImGui's frame is open this tick (only a presented tick builds one; BWPORT_UIEVERY=1: every tick, as before)
++static bool sUiBuilt = true;
++static int sUiEvery = -1;
++
+ static void SIM_RendererPoll(void) {
+   int want = SIM_RendererWanted(), n = SIM_RenderScale();
+   u32 frame = *((u32 *)HW_VBLANK_COUNT_BUF);
+@@ -681,7 +685,9 @@
+       size_t l = strlen(rate);
+       snprintf(rate + l, sizeof rate - l, "%sFast forward: %s", l ? "  |  " : "", FFLabel(ffl, sizeof ffl)[0] ? ffl + 3 : "off");
+     }
+-    if (frame < sStatusUntil && rate[0]) {
++    if (!sUiBuilt) {
++      // libntr-ios-cpubatch.patch: no ImGui frame this tick (not presented)
++    } else if (frame < sStatusUntil && rate[0]) {
+       char both[480];
+       snprintf(both, sizeof both, "%s  |  %s", SIM_RendererStatus(), rate);
+       SIM::GUI::DrawStatus(both);
+@@ -2334,6 +2340,9 @@
+ // late on the GPU), glowclock=1 (a mid is late while fewer than 8 of the last 32 ticks showed one: the phone clocking down, as modelled; not measured there).
+ static void SpIpLate(void);
+ static void SpIpLateGpu(void);
++static int sIpProbeStage;  // 1: the next mid tried is the first after a CPU half's hold, 2: the second (the 10 s line counts them)
++static u64 sIpProbeN[2], sIpProbeLate[2];
++static bool sIpWarmOff = !(getenv("BWPORT_SMOOTHWARM") != NULL && !strcmp(getenv("BWPORT_SMOOTHWARM"), "1"));  // off unless =1 until the phone confirms it
+ static void SpIpOnTime(void);
+ static u32 sIpShownBits;  // (glowclock: the last 32 ticks, one bit each: a mid shown)
+ static u64 sIpShownMids;
+@@ -2694,6 +2703,12 @@
+                 (unsigned long long)(sPc.mids - sIpLogC.mids), (unsigned long long)(b + g + l + h + n + d), (now - sIpLogT) / 1e9,
+                 (unsigned long long)b, (unsigned long long)g, (unsigned long long)l, (unsigned long long)h, (unsigned long long)n,
+                 (unsigned long long)d, (unsigned long long)lg);
++      static u64 sPrN[2], sPrL[2];  // libntr-ios-cpubatch.patch: after a CPU half's hold, how often its first and second mids were late
++      if (sIpProbeN[0] > sPrN[0])
++        fprintf(stderr, "smooth motion: after a CPU hold the first mid late %llu of %llu, the second %llu of %llu (warm-up rule %s)\n",
++                (unsigned long long)(sIpProbeLate[0] - sPrL[0]), (unsigned long long)(sIpProbeN[0] - sPrN[0]),
++                (unsigned long long)(sIpProbeLate[1] - sPrL[1]), (unsigned long long)(sIpProbeN[1] - sPrN[1]), sIpWarmOff ? "off" : "on");
++      sPrN[0] = sIpProbeN[0], sPrN[1] = sIpProbeN[1], sPrL[0] = sIpProbeLate[0], sPrL[1] = sIpProbeLate[1];
+       sIpLogT = now;
+       sIpLogC = sPc;
+     }
+@@ -2945,16 +2960,23 @@
+ static int sIpLateRun, sIpHoldTicks;
+ static int sIpHoldMeant, sIpHeldRow;  // libntr-ios-smoothhold.patch: the ticks the last hold was set for, and those held since
+ extern "C" void SIM_InterpLate(void) { sIpLateNow = true; }
++// libntr-ios-cpubatch.patch: the first mid after a CPU half's hold is a warm-up: its lateness neither renews nor doubles the hold, the
++// one after it judges. A lone mid after a quiet spell runs on a clocked-down core (M2: late for 62 % of mids right after a held tick,
++// 10 % otherwise), so the single probes kept a loaded run's holds going (held 15-30/s in some rows); a run really behind (vcore 4x at
++// 120: every one late) still doubles its hold, at one more late mid a hold.
++static bool sIpHoldCpu, sIpWarm;
+ static void SpIpLate(void) {
+   sIpLateRun++;
+   sIpHoldTicks = sIpLateRun > 6 ? 32 : 1 << (sIpLateRun - 1);
+   sIpHoldMeant = sIpHoldTicks;
+   sIpHeldRow = 0;
++  sIpHoldCpu = true;
+ }
+ static void SpIpLateGpu(void) {  // libntr-ios-smoothhold.patch: the next tick's in-between (a hold already set keeps its length)
+   if (sIpHoldTicks > 0) return;
+   sIpHoldTicks = sIpHoldMeant = 1;
+   sIpHeldRow = 0;
++  sIpHoldCpu = false;
+ }
+ static void SpIpOnTime(void) { sIpLateRun = 0; }
+ 
+@@ -3049,9 +3071,10 @@
+     sIpBehind = sIpLateSet && sPace.n > 0 && sIpLateNs - least > kSpFrame / (u64)S / 4;
+     sIpLateSet = false;
+   }
+-  if (!s_SIM_config.interpolation) sIpLateRun = sIpHoldTicks = 0;  // (switched off and on: afresh)
++  if (!s_SIM_config.interpolation) sIpLateRun = sIpHoldTicks = 0, sIpWarm = false;  // (switched off and on: afresh)
+   sIpHold = sIpHoldTicks > 0;
+   if (sIpHold) sIpHoldTicks--;
++  if (sIpHold && sIpHoldTicks == 0 && sIpHoldCpu) sIpWarm = !sIpWarmOff, sIpProbeStage = 1;  // libntr-ios-cpubatch.patch: the next mid warms up
+   // libntr-ios-smoothhold.patch: a hold that outlasts what it was set for is a bug: say so (once a hold)
+   if (!sIpHold) sIpHeldRow = 0;
+   else if (++sIpHeldRow == sIpHoldMeant + 1)
+@@ -4206,6 +4229,14 @@
+     }
+ 
+     FLStamp(1);
++    // libntr-ios-cpubatch.patch: the pacing first, so ImGui's frame is built only for a tick that is presented (it was built every
++    // tick: ~5 % of a fast-forward tick); the late GPU verdicts (LagPoll) still come before the pacing reads them
++    if (sLagN > 0) LagPoll();  // libntr-ios-lag.patch
++    SpPaceBegin();
++    SIM_FrameSkipDecide();
++    if (sUiEvery < 0) sUiEvery = getenv("BWPORT_UIEVERY") != NULL;
++    sUiBuilt = sTickPresent != 0 || sUiEvery;
++    if (sUiBuilt) {
+     SIM::GUI::NewFrame();
+     if (panelPxW > 0) {
+       // lit where the pad registers say pressed (keyboard, gamepad or script alike): 0 is pressed
+@@ -4238,12 +4269,10 @@
+       }
+     }
+ 
++    }  // sUiBuilt
++
+     FLStamp(2);
+     SIM_RendererPoll();
+-    if (sLagN > 0) LagPoll();  // libntr-ios-lag.patch
+-
+-    SpPaceBegin();
+-    SIM_FrameSkipDecide();
+ 
+     SIM_VCapFrameBegin();
+ 
+@@ -4269,7 +4298,7 @@
+     FLStamp(4);
+ 
+     GqBegin(1);
+-    SIM::GUI::Render(sTickPresent != 0);
++    if (sUiBuilt) SIM::GUI::Render(sTickPresent != 0);
+     GqEnd();
+     FLStamp(5);
+ 
+@@ -4448,7 +4477,14 @@
+           if (!sPresentMid && ipWhy == 3) sPc.ipNone++;
+           if (!sPresentMid && ipWhy == 4) sPc.ipLate++;
+           if (!sPresentMid && ipWhy == 5) sPc.ipHeld++;
+-          if (!sPresentMid && sIpLateNow) SpIpLate();
++          if (sIpProbeStage > 0 && (sPresentMid || sIpLateNow)) {  // libntr-ios-cpubatch.patch: the mids after a hold, late or not
++            sIpProbeN[sIpProbeStage - 1]++;
++            if (!sPresentMid) sIpProbeLate[sIpProbeStage - 1]++;
++            sIpProbeStage = sIpProbeStage == 1 ? 2 : 0;
++          }
++          if (!sPresentMid && sIpLateNow && sIpWarm) sIpWarm = false;  // libntr-ios-cpubatch.patch: the warm-up's lateness is not counted
++          else if (!sPresentMid && sIpLateNow) SpIpLate();
++          if (sPresentMid) sIpWarm = false;
+           if (sPresentMid && !LagReady()) SpIpOnTime();  // (no fences: shown counts as in time)
+           // the GPU must be done by the refresh after the next slot's (the slot aims 2.5 ms past a refresh with a display link,
+           // SpAfterSwap; at the V-blank without one): one refresh later than it should only shares that refresh with the next present
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -580,6 +580,28 @@
+   for (int b = 0; b < 9; b++) {
+     const u8 *home = GXi_SimVramBankHome(b);
+     memcpy(vram, home, kBankSize[b]);
++    vram += kBankSize[b];
++  }
++  memcpy(pltt + 0x000, s_HW_BG_PLTT, 0x200);
++  memcpy(pltt + 0x200, s_HW_OBJ_PLTT, 0x200);
++  memcpy(pltt + 0x400, s_HW_DB_BG_PLTT, 0x200);
++  memcpy(pltt + 0x600, s_HW_DB_OBJ_PLTT, 0x200);
++  memcpy(oam + 0x000, s_HW_OAM, 0x400);
++  memcpy(oam + 0x400, s_HW_DB_OAM, 0x400);
++}
++
++// libntr-ios-cpubatch.patch: FillMem for SIM_VCapGather, whose buffers hold an earlier frame's (the bridges' two slots): only the
++// 4 KB pieces that differ are written (most of VRAM is the same from frame to frame: comparing reads what a copy reads, and the
++// writes are saved). The result is FillMem's.
++static void CopyChanged(u8 *dst, const u8 *src, u32 n) {
++  for (u32 at = 0; at < n; at += 0x1000) {
++    u32 k = n - at < 0x1000 ? n - at : 0x1000;
++    if (memcmp(dst + at, src + at, k) != 0) memcpy(dst + at, src + at, k);
++  }
++}
++static void FillMemChanged(u8 *vram, u8 *pltt, u8 *oam) {
++  for (int b = 0; b < 9; b++) {
++    CopyChanged(vram, GXi_SimVramBankHome(b), kBankSize[b]);
+     vram += kBankSize[b];
+   }
+   memcpy(pltt + 0x000, s_HW_BG_PLTT, 0x200);
+@@ -720,11 +742,23 @@
+ extern "C" uint32_t SIM_VCapGather(uint8_t *io9, uint8_t *io9b, uint8_t *vram, uint8_t *pltt, uint8_t *oam,
+                                    uint32_t **gx, uint32_t *cap) {
+   static std::vector<u32> sWords;
++  static int sOld = -1;  // BWPORT_VCAPGATHER=copy: the old way (the whole VRAM copied, the stream copied twice), for A/B
++  if (sOld < 0) sOld = getenv("BWPORT_VCAPGATHER") != NULL && !strcmp(getenv("BWPORT_VCAPGATHER"), "copy");
+   u32 prologue, commands, swapFrame;
+   FillRegs(io9, io9b);
+-  FillMem(vram, pltt, oam);
+-  Fill3D(sWords, prologue, commands, swapFrame); // no SWAP_BUFFERS yet: the reset state's prologue only
+-  u32 n = (u32)sWords.size();
++  if (sOld) FillMem(vram, pltt, oam);
++  else FillMemChanged(vram, pltt, oam);
++  // libntr-ios-cpubatch.patch: the prologue alone into sWords, the stream straight from sDone into *gx (it went through sWords too)
++  const Stream *src = sDoneValid && !sOld ? &sDone : NULL;
++  if (src != NULL) {
++    G3State st = src->start;
++    sWords.clear();
++    prologue = 0;
++    Prologue(st, sWords, prologue);
++  } else {
++    Fill3D(sWords, prologue, commands, swapFrame); // no SWAP_BUFFERS yet: the reset state's prologue only
++  }
++  u32 np = (u32)sWords.size(), n = np + (src != NULL ? (u32)src->words.size() : 0);
+   if (*gx == NULL || *cap < n) {
+     u32 want = n + n / 2 + 1024;
+     uint32_t *p = (uint32_t *)realloc(*gx, (size_t)want * 4);
+@@ -732,7 +766,8 @@
+     *gx = p;
+     *cap = want;
+   }
+-  memcpy(*gx, sWords.data(), (size_t)n * 4);
++  memcpy(*gx, sWords.data(), (size_t)np * 4);
++  if (src != NULL && n > np) memcpy(*gx + np, src->words.data(), (size_t)(n - np) * 4);
+   return n;
+ }
+ 

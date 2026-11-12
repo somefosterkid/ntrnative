@@ -1,0 +1,7 @@
+    .text       start:0x021f5260 end:0x021f5738 kind:code align:32
+    .ctor       start:0x021f5738 end:0x021f5738 kind:rodata align:4
+    .bss        start:0x021f5740 end:0x021f5740 kind:bss align:32
+
+src/ov083/field_pass_power.c:
+    complete
+    .text       start:0x021f5260 end:0x021f5738

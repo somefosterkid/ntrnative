@@ -1,0 +1,22 @@
+FieldGimmickBSubway_Setup kind:function(thumb,size=0x64) addr:0x021eecc0
+FieldGimmickBSubway_End kind:function(thumb,size=0x4c) addr:0x021eed24
+FieldGimmickBSubway_Move kind:function(thumb,size=0x50) addr:0x021eed70
+FieldGimmickBSubway_StartTrainEffect kind:function(thumb,size=0x4a) addr:0x021eedc0
+FieldGimmickBSubway_GetTrainEffect kind:function(thumb,size=0x38) addr:0x021eee0c
+TrainSetup kind:function(thumb,size=0x3c) addr:0x021eee44
+TrainEnd kind:function(thumb,size=0xc) addr:0x021eee80
+FieldGimmickBSubway_StopShake kind:function(thumb,size=0x34) addr:0x021eee8c
+ShakeSetup kind:function(thumb,size=0x24) addr:0x021eeec0
+ShakeEnd kind:function(thumb,size=0xc) addr:0x021eeee4
+ShakeMove kind:function(thumb,size=0xa8) addr:0x021eeef0
+GetZoneGimmick kind:function(thumb,size=0x34) addr:0x021eef98
+data_ov108_021eef8c kind:data(any) addr:0x021eefcc
+data_ov108_021eef99 kind:data(any) addr:0x021eefd9 ambiguous
+sZoneGimmicks kind:data(any) addr:0x021eefdc
+data_ov108_021eefa0 kind:data(any) addr:0x021eefe0
+data_ov108_021eefe1 kind:data(any) addr:0x021ef021 ambiguous
+sGimmickFuncs kind:data(any) addr:0x021ef02c
+data_ov108_021eeff0 kind:data(any) addr:0x021ef030
+data_ov108_021eeff4 kind:data(any) addr:0x021ef034
+data_ov108_021ef011 kind:data(any) addr:0x021ef051 ambiguous
+data_ov108_021ef080 kind:data(any) addr:0x021ef0c0

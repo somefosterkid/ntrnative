@@ -1,0 +1,32 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1646,7 +1646,7 @@
+         if (RestartSupported() && ImGui::MenuItem("Restart to title...")) {
+             sResetAsk = true;
+         }
+-#if defined(__APPLE__) && TARGET_OS_OSX
++#if (defined(__APPLE__) && TARGET_OS_OSX) || (defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)   // libntr-pc-launcher.patch: Linux and Windows too (the in-process restart)
+         if (ImGui::MenuItem("Games...")) {
+             sGamesAsk = true;
+         }
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -4759,10 +4759,18 @@
+   snprintf(sCfgShot, sizeof sCfgShot, "%s", name);
+ }
+ 
++extern "C" void bwport_launcher_drop(const char *path);  // libntr-pc-launcher.patch: port/src/launcher_gui.cpp
+ extern "C" void SIM_LauncherFrame(void) {
+   SDL_Event e;
+   Uint64 t0 = SDL_GetTicks64();
+   while (SDL_PollEvent(&e)) {
++    if (e.type == SDL_DROPFILE) {  // libntr-pc-launcher.patch: a .nds (or a save, a picture) dropped on the window
++      if (e.drop.file != NULL) {
++        bwport_launcher_drop(e.drop.file);
++        SDL_free(e.drop.file);
++      }
++      continue;
++    }
+     if (SIM::GUI::ProcessEvent(&e)) continue;
+     if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
+       SIM_Config_SaveConfigFile(&s_SIM_config);

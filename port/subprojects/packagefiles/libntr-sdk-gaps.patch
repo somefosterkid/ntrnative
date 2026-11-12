@@ -1,0 +1,283 @@
+diff --git a/libraries/fs/src/fs_api.c b/libraries/fs/src/fs_api.c
+index 7aa1a76..9d6d0eb 100644
+--- a/libraries/fs/src/fs_api.c
++++ b/libraries/fs/src/fs_api.c
+@@ -13,6 +13,13 @@
+ 
+ static BOOL is_init = FALSE;
+ 
++#if defined(SDK_PORT) && defined(FS_IMPLEMENT)
++// FS_Init calls it and nitro/fs/overlay.h declares it, but no source defines it for PC. It is here, not in
++// fs_overlay.c, so that FS_Init doesn't pull fs_overlay.c's object into a program with its own FS_LoadOverlay (a PC
++// build links every overlay in). fs_overlay.c's FSiOverlayContext stays zeroed
++void FSi_InitOverlay(void) {}
++#endif
++
+ void FS_Init(u32 default_dma_no) {
+ #if defined(FS_IMPLEMENT)
+   SDK_TASSERTMSG(default_dma_no != 0,
+diff --git a/libraries/fx/src/fx_mtx22.c b/libraries/fx/src/fx_mtx22.c
+index 126464c..7b59243 100644
+--- a/libraries/fx/src/fx_mtx22.c
++++ b/libraries/fx/src/fx_mtx22.c
+@@ -34,7 +34,10 @@ void MTX_Transpose22_(const MtxFx22* pSrc, MtxFx22* pDst)
+ 
+ void MTX_Scale22_(MtxFx22* pDst, fx32 x, fx32 y)
+ {
+-    //TODO
++    pDst->_00 = x;
++    pDst->_01 = 0;
++    pDst->_10 = 0;
++    pDst->_11 = y;
+ }
+ 
+ void MTX_Rot22_(MtxFx22 * pDst, fx32 sinVal, fx32 cosVal)
+diff --git a/libraries/fx/src/fx_mtx33.c b/libraries/fx/src/fx_mtx33.c
+index 6a7d9d5..911761c 100644
+--- a/libraries/fx/src/fx_mtx33.c
++++ b/libraries/fx/src/fx_mtx33.c
+@@ -31,26 +31,34 @@ void MTX_Identity33_(MtxFx33* pDst)
+ 
+ void MTX_Copy33To43_(const MtxFx33* pSrc, MtxFx43* pDst)
+ {
+-    SIM_assert_always_msg("Not implemented");
+-    return;
++    MtxFx33 t = *pSrc;
++    int i;
++    for (i = 0; i < 9; i++) pDst->a[i] = t.a[i];
++    pDst->_30 = pDst->_31 = pDst->_32 = 0;
+ }
+ 
+ void MTX_Copy33To44_(const MtxFx33* pSrc, MtxFx44* pDst)
+ {
+-    SIM_assert_always_msg("Not implemented");
+-    return;
++    MtxFx33 t = *pSrc;
++    pDst->_00 = t._00; pDst->_01 = t._01; pDst->_02 = t._02; pDst->_03 = 0;
++    pDst->_10 = t._10; pDst->_11 = t._11; pDst->_12 = t._12; pDst->_13 = 0;
++    pDst->_20 = t._20; pDst->_21 = t._21; pDst->_22 = t._22; pDst->_23 = 0;
++    pDst->_30 = 0; pDst->_31 = 0; pDst->_32 = 0; pDst->_33 = FX32_ONE;
+ }
+ 
+ void MTX_Transpose33_(const MtxFx33* pSrc, MtxFx33* pDst)
+ {
+-    SIM_assert_always_msg("Not implemented");
+-    return;
++    MtxFx33 t = *pSrc;
++    pDst->_00 = t._00; pDst->_01 = t._10; pDst->_02 = t._20;
++    pDst->_10 = t._01; pDst->_11 = t._11; pDst->_12 = t._21;
++    pDst->_20 = t._02; pDst->_21 = t._12; pDst->_22 = t._22;
+ }
+ 
+ void MTX_Scale33_(MtxFx33* pDst, fx32 x, fx32 y, fx32 z)
+ {
+-    SIM_assert_always_msg("Not implemented");
+-    return;
++    pDst->_00 = x; pDst->_01 = 0; pDst->_02 = 0;
++    pDst->_10 = 0; pDst->_11 = y; pDst->_12 = 0;
++    pDst->_20 = 0; pDst->_21 = 0; pDst->_22 = z;
+ }
+ #else
+ 
+diff --git a/libraries/fx/src/fx_mtx43.c b/libraries/fx/src/fx_mtx43.c
+index 1d8207f..75054dc 100644
+--- a/libraries/fx/src/fx_mtx43.c
++++ b/libraries/fx/src/fx_mtx43.c
+@@ -28,14 +28,21 @@ void MTX_Identity43_(MtxFx43* pDst)
+ 
+ void MTX_Copy43To44_(const MtxFx43* pSrc, MtxFx44* pDst)
+ {
+-    //PCPORT_TODO
+-    SIM_assert_always_msg("Not implemented");
++    MtxFx43 t = *pSrc;
++    pDst->_00 = t._00; pDst->_01 = t._01; pDst->_02 = t._02; pDst->_03 = 0;
++    pDst->_10 = t._10; pDst->_11 = t._11; pDst->_12 = t._12; pDst->_13 = 0;
++    pDst->_20 = t._20; pDst->_21 = t._21; pDst->_22 = t._22; pDst->_23 = 0;
++    pDst->_30 = t._30; pDst->_31 = t._31; pDst->_32 = t._32; pDst->_33 = FX32_ONE;
+ }
+ 
++// the 3x3 part transposed, the translation cleared
+ void MTX_Transpose43_(const MtxFx43* pSrc, MtxFx43* pDst)
+ {
+-    //PCPORT_TODO
+-    SIM_assert_always_msg("Not implemented");
++    MtxFx43 t = *pSrc;
++    pDst->_00 = t._00; pDst->_01 = t._10; pDst->_02 = t._20;
++    pDst->_10 = t._01; pDst->_11 = t._11; pDst->_12 = t._21;
++    pDst->_20 = t._02; pDst->_21 = t._12; pDst->_22 = t._22;
++    pDst->_30 = 0; pDst->_31 = 0; pDst->_32 = 0;
+ }
+ #else
+ asm void MTX_Identity43_ (register MtxFx43 *pDst)
+diff --git a/libraries/fx/src/fx_mtx44.c b/libraries/fx/src/fx_mtx44.c
+index 5ed57f4..2fac5b9 100644
+--- a/libraries/fx/src/fx_mtx44.c
++++ b/libraries/fx/src/fx_mtx44.c
+@@ -133,13 +133,18 @@ void MTX_TransApply44 (const MtxFx44 *pSrc, MtxFx44 *pDst, fx32 x, fx32 y, fx32
+ 
+ #ifdef SDK_PORT
+ void MTX_Transpose44_(const MtxFx44* pSrc, MtxFx44* pDst) {
+-    //PCPORT_TODO
+-    SIM_assert_always_msg("Not implemented");
++    MtxFx44 t = *pSrc;
++    int i, j;
++    for (i = 0; i < 4; i++)
++        for (j = 0; j < 4; j++)
++            pDst->m[i][j] = t.m[j][i];
+ }
+ 
+ void MTX_Scale44_(MtxFx44 * pDst, fx32 x, fx32 y, fx32 z) {
+-    //PCPORT_TODO
+-    SIM_assert_always_msg("Not implemented");
++    pDst->_00 = x; pDst->_01 = 0; pDst->_02 = 0; pDst->_03 = 0;
++    pDst->_10 = 0; pDst->_11 = y; pDst->_12 = 0; pDst->_13 = 0;
++    pDst->_20 = 0; pDst->_21 = 0; pDst->_22 = z; pDst->_23 = 0;
++    pDst->_30 = 0; pDst->_31 = 0; pDst->_32 = 0; pDst->_33 = FX32_ONE;
+ }
+ #else
+ asm void MTX_Transpose44_ (register const MtxFx44 *pSrc, register MtxFx44 *pDst)
+diff --git a/libraries/os/src/os_systemCall.c b/libraries/os/src/os_systemCall.c
+index 5f3963d..7e9dd46 100644
+--- a/libraries/os/src/os_systemCall.c
++++ b/libraries/os/src/os_systemCall.c
+@@ -1,15 +1,59 @@
+ #include <nitro.h>
+ 
+ #ifdef SDK_PORT
++// The BIOS's CpuSet (swi 0x0b): bits 0-20 of dmaCntData count units, bit 26 makes them words (else halfwords), bit 24
++// fills with the first unit at srcp (else copies)
+ void SVC_CpuSet(const void *srcp, void *destp, u32 dmaCntData) {
+-  // TODO: stubbed
++  u32 count = dmaCntData & 0x1fffff;
++  BOOL fill = (dmaCntData & (1 << 24)) != 0;
++  u32 i;
++
++  if (dmaCntData & (1 << 26)) {
++    const u32 *s = (const u32 *)srcp;
++    u32 *d = (u32 *)destp;
++    u32 v = *s;
++    for (i = 0; i < count; i++) {
++      d[i] = fill ? v : s[i];
++    }
++  } else {
++    const u16 *s = (const u16 *)srcp;
++    u16 *d = (u16 *)destp;
++    u16 v = *s;
++    for (i = 0; i < count; i++) {
++      d[i] = fill ? v : s[i];
++    }
++  }
+ }
+ 
++// CpuFastSet (swi 0x0c): words only, the count rounded up to a multiple of 8
+ void SVC_CpuSetFast(const void *srcp, void *destp, u32 dmaCntData) {
+-  // TODO: stubbed
++  u32 count = ((dmaCntData & 0x1fffff) + 7) & ~7u;
++  const u32 *s = (const u32 *)srcp;
++  u32 *d = (u32 *)destp;
++  u32 v = *s;
++  u32 i;
++
++  for (i = 0; i < count; i++) {
++    d[i] = (dmaCntData & (1 << 24)) ? v : s[i];
++  }
+ }
+ 
+-u16 SVC_GetCRC16(u32 start, const void *datap, u32 size) { return 0; }
++// GetCRC16 (swi 0x0e): CRC-16 with the reflected polynomial 0xa001 (CRC-16/ARC, CRC-16/MODBUS from 0xffff) from start,
++// over size bytes taken a halfword at a time (an odd last byte is left out, as the BIOS does)
++u16 SVC_GetCRC16(u32 start, const void *datap, u32 size) {
++  const u8 *p = (const u8 *)datap;
++  u32 crc = start & 0xffff;
++  u32 i;
++  int bit;
++
++  for (i = 0; i < (size & ~1u); i++) {
++    crc ^= p[i];
++    for (bit = 0; bit < 8; bit++) {
++      crc = (crc & 1) ? (crc >> 1) ^ 0xa001 : crc >> 1;
++    }
++  }
++  return (u16)crc;
++}
+ 
+ #endif
+ 
+diff --git a/libraries/spi/src/pm.c b/libraries/spi/src/pm.c
+index 6c0f97c..cf3db88 100644
+--- a/libraries/spi/src/pm.c
++++ b/libraries/spi/src/pm.c
+@@ -408,6 +408,47 @@ void PMi_CommonCallback (PXIFifoTag tag, uPtr data, BOOL err)
+ }
+ 
+ #if SDK_VERSION_MAJOR == 5
++#ifdef SDK_PORT
++// Nothing answers PM on PC (the ARM7 simulator has no PM handler, PMi_WaitBusy doesn't wait): a synchronous call
++// returned an uninitialized result and PMi_TryToSendPxiDataTillSuccess waited forever. PMi_TryToSendPxiData answers
++// at once instead, as a DS with a full battery on its adapter, both backlights and the sound power on and the mic amp
++// off would. The PMIC registers that READREG, WRITEREG and SET_AMP use are kept here
++static u16 PMi_PortPmicReg[8] = {PMIC_CTL_SND_PWR | PMIC_CTL_BKLT1 | PMIC_CTL_BKLT2};
++
++static u16 PMi_PortAnswer(const u32 *sendData, int num) {
++  u32 command = (sendData[0] >> 8) & 0xff;
++  u32 number = sendData[0] & 0xff;
++  u32 param = (num > 1) ? (sendData[1] & SPI_PXI_DATA_MASK) : 0;
++
++  if (command != SPI_PXI_COMMAND_PM_UTILITY) {
++    return 0; // sync, sleep, LCD power ...: done
++  }
++  switch (number) {
++  case PMi_UTIL_READREG:
++    return PMi_PortPmicReg[param & 7];
++  case PMi_UTIL_WRITEREG:
++    PMi_PortPmicReg[(param >> 8) & 7] = (u16)(param & 0xff);
++    return 0;
++  case PM_UTIL_SET_AMP:
++    PMi_PortPmicReg[REG_PMIC_OP_CTL_ADDR] = (u16)(param ? PMIC_OP_CTL : 0);
++    return 0;
++  case PM_UTIL_GET_STATUS:
++    switch (param) {
++    case PM_UTIL_PARAM_BATTERY_LEVEL:
++      return PM_BATTERY_LEVEL_MAX;
++    case PM_UTIL_PARAM_AC_ADAPTER:
++    case PM_UTIL_PARAM_SOUND_POWER:
++      return 1;
++    case PM_UTIL_PARAM_AMP:
++      return (u16)(PMi_PortPmicReg[REG_PMIC_OP_CTL_ADDR] & PMIC_OP_CTL);
++    default:
++      return 0; // PM_UTIL_PARAM_BATTERY 0: not low
++    }
++  }
++  return 0;
++}
++#endif
++
+ static u32 PMi_TryToSendPxiData(u32 *sendData, int num, u16 *retValue,
+                                 PMCallback callback, void *arg) {
+   int n;
+@@ -423,12 +464,25 @@ static u32 PMi_TryToSendPxiData(u32 *sendData, int num, u16 *retValue,
+   PMi_Work.callback = callback;
+   PMi_Work.callbackArg = arg;
+ 
++#ifdef SDK_PORT
++  {
++    u16 value = PMi_PortAnswer(sendData, num);
++    if (retValue) {
++      *retValue = value;
++    }
++  }
++  (void)n;
++  (void)OS_RestoreInterrupts(enabled);
++  PMi_CallCallbackAndUnlock(PM_SUCCESS);
++  return PM_SUCCESS;
++#else
+   for (n = 0; n < num; n++) {
+     PMi_SendPxiData(sendData[n]);
+   }
+ 
+   (void)OS_RestoreInterrupts(enabled);
+   return PM_SUCCESS;
++#endif
+ }
+ 
+ #define PMi_UNUSED_RESULT 0xffff0000 // Value that should never be returned

@@ -1,0 +1,47 @@
+    .text       start:0x02187f00 end:0x02189954 kind:code align:32
+    .rodata     start:0x02189954 end:0x02189974 kind:rodata align:4
+    .ctor       start:0x02189974 end:0x02189988 kind:rodata align:4
+    .bss        start:0x021899a0 end:0x021899c0 kind:bss align:32
+
+lib/dsprot/src/dsprot_cipher.c:
+    complete
+    .text       start:0x021889e4 end:0x02188cdc
+    .ctor       start:0x0218997c end:0x02189980
+
+lib/dsprot/src/rc4_ov230.c:
+    complete
+    .text       start:0x0218949c end:0x02189954
+    .ctor       start:0x02189984 end:0x02189988
+
+lib/dsprot/src/mac_owner.c:
+    complete
+    .text       start:0x02188cdc end:0x02188eb4
+    .rodata     start:0x0218996c end:0x02189974
+
+lib/dsprot/src/dummy.c:
+    complete
+    .text       start:0x021893b8 end:0x0218949c
+    .ctor       start:0x02189980 end:0x02189984
+
+lib/dsprot/src/rom_util.c:
+    complete
+    .text       start:0x02188eb4 end:0x02189110
+
+lib/dsprot/src/rom_test.c:
+    complete
+    .text       start:0x02189110 end:0x021893b8
+
+lib/dsprot/src/integrity.c:
+    complete
+    .text       start:0x02188450 end:0x021889e4
+    .ctor       start:0x02189978 end:0x0218997c
+
+lib/dsprot/src/extra.c:
+    complete
+    .rodata     start:0x02189954 end:0x0218996c
+    .bss        start:0x021899a0 end:0x021899c0
+
+lib/dsprot/src/dsprot_main.c:
+    complete
+    .text       start:0x02187f00 end:0x02188450
+    .ctor       start:0x02189974 end:0x02189978

@@ -1,0 +1,7 @@
+    .text       start:0x021542c0 end:0x02154488 kind:code align:32
+    .ctor       start:0x02154488 end:0x02154488 kind:rodata align:4
+    .bss        start:0x021544a0 end:0x021544a0 kind:bss align:32
+
+src/ov004/event_worldtrade.c:
+    complete
+    .text       start:0x021542c0 end:0x02154488

@@ -1,0 +1,38 @@
+--- a/libraries/gx/src/g3x.c
++++ b/libraries/gx/src/g3x.c
+@@ -241,9 +241,18 @@
+ 	}
+ }
+ 
++#ifdef SDK_PORT
++void G3SIM_GetVectorMtx33(MtxFx33 *m);
++#endif
++
+ int G3X_GetVectorMtx (MtxFx33 *m)
+ {
+ 	SDK_NULL_ASSERT(m);
++#ifdef SDK_PORT
++	// bw-port: the simulator's current vector matrix (nothing wrote the VECMTX_RESULT registers on PC)
++	G3SIM_GetVectorMtx33(m);
++	return 0;
++#endif
+ 
+ 	if (G3X_IsGeometryBusy()) {
+ 		return -1;
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -287,6 +287,14 @@
+     return &s_vectorStack;
+ }
+ 
++// bw-port: G3X_GetVectorMtx's result, the current vector matrix's 3x3 (the commands run in the caller's thread)
++extern "C" void G3SIM_GetVectorMtx33(MtxFx33 *m)
++{
++    m->_00 = currentVectorMatrix.nums[0][0]; m->_01 = currentVectorMatrix.nums[0][1]; m->_02 = currentVectorMatrix.nums[0][2];
++    m->_10 = currentVectorMatrix.nums[1][0]; m->_11 = currentVectorMatrix.nums[1][1]; m->_12 = currentVectorMatrix.nums[1][2];
++    m->_20 = currentVectorMatrix.nums[2][0]; m->_21 = currentVectorMatrix.nums[2][1]; m->_22 = currentVectorMatrix.nums[2][2];
++}
++
+ //Calculate the clip matrix
+ //Multiply the PositionMatrix * ProjectionMatrix
+ static void calculateClipMatrix()

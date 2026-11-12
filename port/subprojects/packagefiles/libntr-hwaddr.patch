@@ -1,0 +1,340 @@
+diff --git a/include/twl/hw/common/mmap_shared.h b/include/twl/hw/common/mmap_shared.h
+index be71302..7d0ef97 100644
+--- a/include/twl/hw/common/mmap_shared.h
++++ b/include/twl/hw/common/mmap_shared.h
+@@ -4,7 +4,16 @@
+ extern "C" {
+ #endif
+ 
+-#define HW_TWL_CARD_ROM_HEADER_BUF (HW_MAIN_MEM + 0x00ffc000)
++// libntr's shared system area is not at the DS's top-of-RAM addresses (past the 8 MB s_HW_MAIN_MEM): the system words
++// (0x..fffc00-0x..ffffff) are s_HW_MAIN_MEM_SYSTEM, as nitro/hw/X86/mmap_shared.h has them (the simulator keeps them
++// there, the arena info in s_HW_ARENA_INFO_BUF), the TWL-only blocks below 0x..fff800 are in s_HW_TWL_MAIN_MEM, and
++// the ROM header copy and download parameter (0x..fff800-0x..fffbff) are at the same offsets of the NTR 8 MB.
++// Inline functions expand these macros where the header defines them, whichever header defines them later.
++extern u8 s_HW_MAIN_MEM_SYSTEM[0x400];
++extern u8 s_HW_ARENA_INFO_BUF[];
++extern u8 s_HW_TWL_MAIN_MEM[0x01000000];
++
++#define HW_TWL_CARD_ROM_HEADER_BUF ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffc000)
+ #define HW_TWL_CARD_ROM_HEADER_BUF_SIZE 0x1000
+ #define HW_TWL_CARD_ROM_HEADER_BUF_END                                         \
+   (HW_TWL_CARD_ROM_HEADER_BUF + HW_TWL_CARD_ROM_HEADER_BUF_SIZE)
+@@ -13,27 +22,25 @@ extern "C" {
+ #define HW_TWL_SHARED_RESERVED_END HW_SYSM_VER_INFO_CONTENT_ID
+ 
+ #define HW_SYSM_VER_INFO_CONTENT_ID                                            \
+-  (HW_MAIN_MEM + 0x00ffd7b0) // 8-byte, NULL-terminated contentID
+-#define HW_SYSM_VER_INFO_CONTENT_LAST_INITIAL_CODE (HW_MAIN_MEM + 0x00ffd7b9)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd7b0) // 8-byte, NULL-terminated contentID
++#define HW_SYSM_VER_INFO_CONTENT_LAST_INITIAL_CODE ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd7b9)
+ 
+-#define HW_SYSM_DISABLE_SET_HOTBOOT (HW_MAIN_MEM + 0x00ffd7ba)
++#define HW_SYSM_DISABLE_SET_HOTBOOT ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd7ba)
+ 
+ #define HW_SD_NAND_CONTEXT_BUF                                                 \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00ffd7bc) // NAND context data for the SD driver taken from the launcher
+-#define HW_SD_NAND_CONTEXT_BUF_END (HW_MAIN_MEM + 0x00ffd800)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd7bc) // NAND context data for the SD driver taken from the launcher
++#define HW_SD_NAND_CONTEXT_BUF_END ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd800)
+ 
+-#define HW_OS_TITLE_ID_LIST (HW_MAIN_MEM + 0x00ffd800) // User TitleID list
++#define HW_OS_TITLE_ID_LIST ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffd800) // User TitleID list
+ #define HW_OS_TITLE_ID_LIST_SIZE 0x400
+ 
+ #define HW_TWL_FS_MOUNT_INFO_BUF                                               \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00ffdc00) // Mount information (A size of 0x3c0 is allocated. You can
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffdc00) // Mount information (A size of 0x3c0 is allocated. You can
+                // specify up to 11 mount points. 11*84+1=0x39d)
+ #define HW_TWL_FS_BOOT_SRL_PATH_BUF                                            \
+-  (HW_MAIN_MEM + 0x00ffdfc0) // Path to the SRL file for startup
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffdfc0) // Path to the SRL file for startup
+ 
+-#define HW_TWL_ROM_HEADER_BUF (HW_MAIN_MEM + 0x00ffe000)
++#define HW_TWL_ROM_HEADER_BUF ((u64)(s_HW_TWL_MAIN_MEM) + 0x00ffe000)
+ #define HW_TWL_ROM_HEADER_BUF_SIZE 0x1000
+ #define HW_TWL_ROM_HEADER_BUF_END                                              \
+   (HW_TWL_ROM_HEADER_BUF + HW_TWL_ROM_HEADER_BUF_SIZE)
+@@ -47,7 +54,7 @@ extern "C" {
+ #define HW_PSEG1_RESERVED_0_SIZE 0x180 // 384 bytes
+ #define HW_PSEG1_RESERVED_0_END HW_RED_RESERVED
+ 
+-#define HW_RED_RESERVED (HW_MAIN_MEM + 0x00fff800)
++#define HW_RED_RESERVED (HW_MAIN_MEM + 0x007ff800)
+ #define HW_RED_RESERVED_SIZE 0x200 // 512 bytes
+ #define HW_RED_RESERVED_END (HW_RED_RESERVED + HW_RED_RESERVED_SIZE)
+ 
+@@ -56,185 +63,176 @@ extern "C" {
+   (HW_PSEG1_RESERVED_1_END - HW_PSEG1_RESERVED_1) // 128 bytes
+ #define HW_PSEG1_RESERVED_1_END HW_CARD_ROM_HEADER
+ 
+-#define HW_CARD_ROM_HEADER (HW_MAIN_MEM + 0x00fffa80)
++#define HW_CARD_ROM_HEADER (HW_MAIN_MEM + 0x007ffa80)
+ #define HW_CARD_ROM_HEADER_SIZE 0x160 // 352 bytes
+ #define HW_CARD_ROM_HEADER_END (HW_CARD_ROM_HEADER + HW_CARD_ROM_HEADER_SIZE)
+ 
+-#define HW_DOWNLOAD_PARAMETER (HW_MAIN_MEM + 0x00fffbe0)
++#define HW_DOWNLOAD_PARAMETER (HW_MAIN_MEM + 0x007ffbe0)
+ #define HW_DOWNLOAD_PARAMETER_SIZE 0x20 // 32 bytes
+ #define HW_DOWNLOAD_PARAMETER_END                                              \
+   (HW_DOWNLOAD_PARAMETER + HW_DOWNLOAD_PARAMETER_SIZE)
+ 
+-#define HW_MAIN_MEM_SYSTEM (HW_MAIN_MEM + 0x00fffc00)
++#define HW_MAIN_MEM_SYSTEM ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x0)
+ #define HW_MAIN_MEM_SYSTEM_SIZE                                                \
+   (HW_MAIN_MEM_SYSTEM_END - HW_MAIN_MEM_SYSTEM) // 1024 bytes
+ #define HW_MAIN_MEM_SYSTEM_END HW_MAIN_MEM_SHARED_END
+ 
+ #define HW_WRAM_EX_LOCK_BUF                                                    \
+-  (HW_MAIN_MEM + 0x00fff680) // WRAM lock buffer (END-0x180)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00fff680) // WRAM lock buffer (END-0x180)
+ #define HW_WRAM_EX_LOCK_BUF_END                                                \
+-  (HW_MAIN_MEM + 0x00fff684) //                  (END-0x17c)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00fff684) //                  (END-0x17c)
+ #define HW_RESET_LOCK_FLAG_BUF                                                 \
+-  (HW_MAIN_MEM + 0x00fff684) //                  (END-0x17c)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00fff684) //                  (END-0x17c)
+ #define HW_RESET_LOCK_FLAG_BUF_END                                             \
+-  (HW_MAIN_MEM + 0x00fff688) //                  (END-0x17c)
++  ((u64)(s_HW_TWL_MAIN_MEM) + 0x00fff688) //                  (END-0x17c)
+ 
+ #define HW_BOOT_CHECK_INFO_BUF                                                 \
+-  (HW_MAIN_MEM + 0x00fffc00) // Boot check info (END-0x400)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x0) // Boot check info (END-0x400)
+ #define HW_BOOT_CHECK_INFO_BUF_END                                             \
+-  (HW_MAIN_MEM + 0x00fffc20) //                 (END-0x3e0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x20) //                 (END-0x3e0)
+ 
+ #define HW_RESET_PARAMETER_BUF                                                 \
+-  (HW_MAIN_MEM + 0x00fffc20) // reset parameter (END-0x3e0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x20) // reset parameter (END-0x3e0)
+ 
+ #define HW_BOOT_SHAKEHAND_9                                                    \
+-  (HW_MAIN_MEM + 0x00fffc24) // to shake hand with ARM7 boot sequence
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x24) // to shake hand with ARM7 boot sequence
+ #define HW_BOOT_SHAKEHAND_7                                                    \
+-  (HW_MAIN_MEM + 0x00fffc26) // to shake hand with ARM9 boot sequence
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x26) // to shake hand with ARM9 boot sequence
+ #define HW_BOOT_SYNC_PHASE                                                     \
+-  (HW_MAIN_MEM + 0x00fffc28) // to synchronize ARM7/ARM9 boot sequences
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x28) // to synchronize ARM7/ARM9 boot sequences
+ 
+ #define HW_ROM_BASE_OFFSET_BUF                                                 \
+-  (HW_MAIN_MEM + 0x00fffc2c) // ROM offset of own program (END-0x3d4)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x2c) // ROM offset of own program (END-0x3d4)
+ #define HW_ROM_BASE_OFFSET_BUF_END                                             \
+-  (HW_MAIN_MEM + 0x00fffc30) //                           (END-0x3d0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x30) //                           (END-0x3d0)
+ 
+ #define HW_CTRDG_MODULE_INFO_BUF                                               \
+-  (HW_MAIN_MEM + 0x00fffc30) // Cartridge module info (END-0x3d0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x30) // Cartridge module info (END-0x3d0)
+ #define HW_CTRDG_MODULE_INFO_BUF_END                                           \
+-  (HW_MAIN_MEM + 0x00fffc3c) //                       (END-0x3c4)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c) //                       (END-0x3c4)
+ 
+ #define HW_VBLANK_COUNT_BUF                                                    \
+-  (HW_MAIN_MEM + 0x00fffc3c) // VBlank counter (END-0x3c4)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c) // VBlank counter (END-0x3c4)
+ 
+ #define HW_WM_BOOT_BUF                                                         \
+-  (HW_MAIN_MEM + 0x00fffc40) // WM buffer for Multi-Boot (END-0x3c0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x40) // WM buffer for Multi-Boot (END-0x3c0)
+ #define HW_WM_BOOT_BUF_END                                                     \
+-  (HW_MAIN_MEM + 0x00fffc80) //                          (END-0x380)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x80) //                          (END-0x380)
+ 
+ #define HW_NVRAM_USER_INFO                                                     \
+-  (HW_MAIN_MEM + 0x00fffc80) // NVRAM user info (END-0x380)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x80) // NVRAM user info (END-0x380)
+ #define HW_NVRAM_USER_INFO_END                                                 \
+-  (HW_MAIN_MEM + 0x00fffd68) //                           (END-0x298)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x168) //                           (END-0x298)
+ #define HW_HW_SECURE_INFO                                                      \
+-  (HW_MAIN_MEM + 0x00fffd68) // Secure system information (END-0x298)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x168) // Secure system information (END-0x298)
+ #define HW_HW_SECURE_INFO_END                                                  \
+-  (HW_MAIN_MEM + 0x00fffd80) //                           (END-0x280)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x180) //                           (END-0x280)
+ 
+ #define HW_BIOS_EXCP_STACK_MAIN                                                \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffd80) // MAINP Debugger monitor exception handler(END-0x280)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x180) // MAINP Debugger monitor exception handler(END-0x280)
+ #define HW_BIOS_EXCP_STACK_MAIN_END                                            \
+-  (HW_MAIN_MEM + 0x00fffd9c) //                                 (END-0x264)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x19c) //                                 (END-0x264)
+ #define HW_EXCP_VECTOR_MAIN                                                    \
+-  (HW_MAIN_MEM + 0x00fffd9c) // HW_EXCP_VECTOR_BUF for MAINP      (END-0x264)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x19c) // HW_EXCP_VECTOR_BUF for MAINP      (END-0x264)
+ 
+ #define HW_ARENA_INFO_BUF                                                      \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffda0) // Arena data structure (27F_FDA0 to 27F_FDE7) (END-0x260)
+-#define HW_REAL_TIME_CLOCK_BUF (HW_MAIN_MEM + 0x00fffde8) // RTC
++  ((u64)&s_HW_ARENA_INFO_BUF) // Arena data structure (27F_FDA0 to 27F_FDE7) (END-0x260)
++#define HW_REAL_TIME_CLOCK_BUF ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1e8) // RTC
+ 
+ #define HW_SYS_CONF_BUF                                                        \
+-  (HW_MAIN_MEM + 0x00fffdf0) // System config data (END-0x210)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f0) // System config data (END-0x210)
+ #define HW_SYS_CONF_BUF_END                                                    \
+-  (HW_MAIN_MEM + 0x00fffdf6) //                    (END-0x20a)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f6) //                    (END-0x20a)
+ 
+ #define HW_PRINT_OUTPUT_ARM9                                                   \
+-  (HW_MAIN_MEM + 0x00fffdf6) // debug print window for ARM9
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f6) // debug print window for ARM9
+ #define HW_PRINT_OUTPUT_ARM7                                                   \
+-  (HW_MAIN_MEM + 0x00fffdf7) // debug print window for ARM7
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f7) // debug print window for ARM7
+ #define HW_PRINT_OUTPUT_ARM9ERR                                                \
+-  (HW_MAIN_MEM + 0x00fffdf8) // debug print window for ARM9 error
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f8) // debug print window for ARM9 error
+ #define HW_PRINT_OUTPUT_ARM7ERR                                                \
+-  (HW_MAIN_MEM + 0x00fffdf9) // debug print window for ARM7 error
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1f9) // debug print window for ARM7 error
+ 
+ #define HW_NAND_FIRM_HOTSTART_FLAG                                             \
+-  (HW_MAIN_MEM + 0x00fffdfa) // debug print window for ARM7 error
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1fa) // debug print window for ARM7 error
+ #define HW_TWL_RED_LAUNCHER_VER                                                \
+-  (HW_MAIN_MEM + 0x00fffdfb) // RED launcher version
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1fb) // RED launcher version
+ #define HW_PRELOAD_PARAMETER_ADDR                                              \
+-  (HW_MAIN_MEM + 0x00fffdfc) // preload parameter address
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x1fc) // preload parameter address
+ 
+ #define HW_ROM_HEADER_BUF                                                      \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffe00) // ROM-internal registration area data buffer (END-0x200)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x200) // ROM-internal registration area data buffer (END-0x200)
+ #define HW_ROM_HEADER_BUF_END                                                  \
+-  (HW_MAIN_MEM + 0x00ffff60) //                                    (END-0x0a0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x360) //                                    (END-0x0a0)
+ #define HW_ISD_RESERVED                                                        \
+-  (HW_MAIN_MEM + 0x00ffff60) // IS DEBUGGER Reserved (END-0xa0)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x360) // IS DEBUGGER Reserved (END-0xa0)
+ #define HW_ISD_RESERVED_END                                                    \
+-  (HW_MAIN_MEM + 0x00ffff80) //                      (END-0x80)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x380) //                      (END-0x80)
+ 
+ #define HW_PXI_SIGNAL_PARAM_ARM9                                               \
+-  (HW_MAIN_MEM + 0x00ffff80) // PXI Signal Param for ARM9
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x380) // PXI Signal Param for ARM9
+ #define HW_PXI_SIGNAL_PARAM_ARM7                                               \
+-  (HW_MAIN_MEM + 0x00ffff84) // PXI Signal Param for ARM7
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x384) // PXI Signal Param for ARM7
+ #define HW_PXI_HANDLE_CHECKER_ARM9                                             \
+-  (HW_MAIN_MEM + 0x00ffff88) // PXI Handle Checker for ARM9
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x388) // PXI Handle Checker for ARM9
+ #define HW_PXI_HANDLE_CHECKER_ARM7                                             \
+-  (HW_MAIN_MEM + 0x00ffff8c) // PXI Handle Checker for ARM7
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x38c) // PXI Handle Checker for ARM7
+ 
+ #define HW_MIC_LAST_ADDRESS                                                    \
+-  (HW_MAIN_MEM + 0x00ffff90) // MIC new sampling data storage address
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x390) // MIC new sampling data storage address
+ #define HW_MIC_SAMPLING_DATA                                                   \
+-  (HW_MAIN_MEM + 0x00ffff94) // MIC individual sampling results
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x394) // MIC individual sampling results
+ 
+ #define HW_WM_CALLBACK_CONTROL                                                 \
+-  (HW_MAIN_MEM + 0x00ffff96) // Parameter to synchronize WM callback
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x396) // Parameter to synchronize WM callback
+ #define HW_WM_RSSI_POOL                                                        \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00ffff98) // Random number source depends on WM received signal intensity
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x398) // Random number source depends on WM received signal intensity
+ 
+ #define HW_SET_CTRDG_MODULE_INFO_ONCE                                          \
+-  (HW_MAIN_MEM + 0x00ffff9a) // set ctrdg module info flag
+-#define HW_IS_CTRDG_EXIST (HW_MAIN_MEM + 0x00ffff9b) // ctrdg exist flag
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x39a) // set ctrdg module info flag
++#define HW_IS_CTRDG_EXIST ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x39b) // ctrdg exist flag
+ 
+ #define HW_COMPONENT_PARAM                                                     \
+-  (HW_MAIN_MEM + 0x00ffff9c) // Parameter for component synchronization
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x39c) // Parameter for component synchronization
+ 
+ #define HW_THREADINFO_MAIN                                                     \
+-  (HW_MAIN_MEM + 0x00ffffa0) // ThreadInfo for Main processor
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3a0) // ThreadInfo for Main processor
+ #define HW_THREADINFO_SUB                                                      \
+-  (HW_MAIN_MEM + 0x00ffffa4) // ThreadInfo for subprocessor
+-#define HW_BUTTON_XY_BUF (HW_MAIN_MEM + 0x00ffffa8) // buffer for X and Y button
+-#define HW_TOUCHPANEL_BUF (HW_MAIN_MEM + 0x00ffffaa) // buffer for touch panel
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3a4) // ThreadInfo for subprocessor
++#define HW_BUTTON_XY_BUF ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3a8) // buffer for X and Y button
++#define HW_TOUCHPANEL_BUF ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3aa) // buffer for touch panel
+ #define HW_AUTOLOAD_SYNC_BUF                                                   \
+-  (HW_MAIN_MEM + 0x00ffffae) // buffer for autoload sync
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3ae) // buffer for autoload sync
+ 
+ #define HW_LOCK_ID_FLAG_MAIN                                                   \
+-  (HW_MAIN_MEM + 0x00ffffb0) // lockID flag for Main processor
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3b0) // lockID flag for Main processor
+ #define HW_LOCK_ID_FLAG_SUB                                                    \
+-  (HW_MAIN_MEM + 0x00ffffb8) // lockID flag for subprocessor
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3b8) // lockID flag for subprocessor
+ 
+ #define HW_VRAM_C_LOCK_BUF                                                     \
+-  (HW_MAIN_MEM + 0x00ffffc0) // VRAM-C lock buffer (END-0x40)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c0) // VRAM-C lock buffer (END-0x40)
+ #define HW_VRAM_D_LOCK_BUF                                                     \
+-  (HW_MAIN_MEM + 0x00ffffc8) // VRAM-D lock buffer (END-0x38)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c8) // VRAM-D lock buffer (END-0x38)
+ #define HW_WRAM_BLOCK0_LOCK_BUF                                                \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00ffffd0) // CPU internal work RAM - Block0 - lock buffer (END-0x30)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3d0) // CPU internal work RAM - Block0 - lock buffer (END-0x30)
+ #define HW_WRAM_BLOCK1_LOCK_BUF                                                \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00ffffd8) // CPU internal work RAM - Block1 - lock buffer (END-0x28)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3d8) // CPU internal work RAM - Block1 - lock buffer (END-0x28)
+ #define HW_CARD_LOCK_BUF                                                       \
+-  (HW_MAIN_MEM + 0x00ffffe0) // Game Card - lock buffer (END-0x20)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3e0) // Game Card - lock buffer (END-0x20)
+ #define HW_CTRDG_LOCK_BUF                                                      \
+-  (HW_MAIN_MEM + 0x00ffffe8) // DS Pak - lock buffer (END-0x18)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3e8) // DS Pak - lock buffer (END-0x18)
+ #define HW_INIT_LOCK_BUF                                                       \
+-  (HW_MAIN_MEM + 0x00fffff0) // Initialization lock buffer  (END-0x10)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3f0) // Initialization lock buffer  (END-0x10)
+ 
+ #define HW_MMEMCHECKER_MAIN                                                    \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffff8) // MainMemory Size Checker for Main processor (END-8)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3f8) // MainMemory Size Checker for Main processor (END-8)
+ #define HW_MMEMCHECKER_SUB                                                     \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffffa) // MainMemory Size Checker for Sub processor  (END-6)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3fa) // MainMemory Size Checker for Sub processor  (END-6)
+ 
+-#define HW_CHIPTYPE_FLAG (HW_MAIN_MEM + 0x00fffffc) // chiptype flag (END-4)
++#define HW_CHIPTYPE_FLAG ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3fc) // chiptype flag (END-4)
+ 
+ #define HW_CMD_AREA                                                            \
+-  (HW_MAIN_MEM +                                                               \
+-   0x00fffffe) // Main memory command issue area (Prohibited use area) (END-2)
++  ((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3fe) // Main memory command issue area (Prohibited use area) (END-2)
+ 
+ #define HW_SHARED_LOCK_BUF (HW_VRAM_C_LOCK_BUF)
+ #define HW_SHARED_LOCK_BUF_END (HW_INIT_LOCK_BUF + 8)
+diff --git a/include/twl/hw/X86/mmap_tcm.h b/include/twl/hw/X86/mmap_tcm.h
+index 60fd307..ff21a33 100644
+--- a/include/twl/hw/X86/mmap_tcm.h
++++ b/include/twl/hw/X86/mmap_tcm.h
+@@ -44,7 +44,9 @@ typedef volatile struct {
+ #define HW_DTCM_SVC_STACK_END HW_DTCM_SYSRV
+ 
+ #define HW_DTCM_SYSRV (HW_DTCM + HW_DTCM_SIZE - HW_DTCM_SYSRV_SIZE)
+-#define HW_INTR_CHECK_BUF (HW_DTCM_SYSRV + HW_DTCM_SYSRV_OFS_INTR_CHECK)
++// the simulator keeps the interrupt check flags in s_HW_INTR_CHECK_BUF (nitro/hw/X86/mmap_tcm.h)
++extern u32 s_HW_INTR_CHECK_BUF;
++#define HW_INTR_CHECK_BUF ((u64)&s_HW_INTR_CHECK_BUF)
+ #define HW_INTR_VECTOR_BUF (HW_DTCM_SYSRV + HW_DTCM_SYSRV_OFS_INTR_VECTOR)
+ 
+ #define HW_DTCM_SYSRV_OFS_DEBUGGER 0x00

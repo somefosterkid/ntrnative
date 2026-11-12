@@ -1,0 +1,16 @@
+    .text       start:0x021f36c0 end:0x021f4e5c kind:code align:32
+    .rodata     start:0x021f4e5c end:0x021f50b0 kind:rodata align:4
+    .ctor       start:0x021f50b0 end:0x021f50b0 kind:rodata align:4
+    .data       start:0x021f50c0 end:0x021f5260 kind:data align:32
+    .bss        start:0x021f5260 end:0x021f5260 kind:bss align:32
+
+src/ov048/gimmick_obj_elboard.c:
+    complete
+    .text       start:0x021f4698 end:0x021f4e5c
+    .data       start:0x021f523c end:0x021f5260
+
+src/ov048/field_gimmick_gate.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f4698
+    .rodata     start:0x021f4e5c end:0x021f50b0
+    .data       start:0x021f50c0 end:0x021f523c

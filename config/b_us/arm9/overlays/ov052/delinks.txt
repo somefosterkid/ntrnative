@@ -1,0 +1,11 @@
+    .text       start:0x021f36c0 end:0x021f39cc kind:code align:32
+    .rodata     start:0x021f39cc end:0x021f3aa4 kind:rodata align:4
+    .ctor       start:0x021f3aa4 end:0x021f3aa4 kind:rodata align:4
+    .data       start:0x021f3ac0 end:0x021f3ae0 kind:data align:32
+    .bss        start:0x021f3ae0 end:0x021f3ae0 kind:bss align:32
+
+src/ov052/field_gimmick_bsubway.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f39cc
+    .rodata     start:0x021f39cc end:0x021f3aa4
+    .data       start:0x021f3ac0 end:0x021f3ae0

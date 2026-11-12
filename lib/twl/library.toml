@@ -1,0 +1,66 @@
+# From pokebw2's lib/twl/library.toml (GPL-3.0, https://github.com/fuddlesworth/pokebw2), for Black's copy of the library.
+# TwlSDK's DSi libraries, built apart from the game. So far the SSP JPEG encoder and decoder and their EXIF writer and
+# reader, linked into overlay 257 (the Xtransceiver). They take the game's compiler and flags: Thumb code at -O4,p
+# (-O4,s and -O2 differ), where dsi/1.1 to dsi/1.3p1 compile them alike and dsi/1.6 does not; -ipa file, without which
+# the files' statics are no longer addressed from one base; and -inline on,noauto, since -inline auto inlines small
+# static functions that the ROM keeps.
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-thumb",              # Thumb code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-inline on,noauto",   # Only inline functions marked inline
+    "-ipa file",           # Interprocedural analysis within each file
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# The LTD autoload's TwlSDK libraries are ARM code. camera_api.c, nwm_setup.c and nwm.c load each static through a
+# literal of their own, as -ipa function does (-ipa file reaches them all from one base, and drops camera_api.c's
+# unreferenced word), while nwm_events.c reaches its three from one base, so it takes the default -ipa file;
+# fatfs_api.c is -O2,p, since -O4,p and -O3,p rotate its loops and fold its reloads (pokebw2's lib/twl/library.toml)
+[file_flags]
+"rtc/rtc_api_ex.c" = ["-nothumb"]
+"camera/camera_api.c" = ["-nothumb", "-ipa function"]
+"camera/camera.c" = ["-nothumb"]
+"nwm/nwm_setup.c" = ["-nothumb", "-ipa function"]
+"nwm/nwm_events.c" = ["-nothumb"]
+"nwm/nwm.c" = ["-nothumb", "-ipa function"]
+"mic/mic_twl.c" = ["-nothumb"]
+"fatfs/fatfs_api.c" = ["-nothumb", "-O2,p", "-ipa function"]
+"snd/sndex.c" = ["-nothumb"]
+"dsp/dsp_if.c" = ["-nothumb"]
+"dsp/dsp_process.c" = ["-nothumb"]
+"dsp/dsp_audio.c" = ["-nothumb"]
+"dsp/dsp_pipe.c" = ["-nothumb"]
+"dsp/dsp_g711.c" = ["-nothumb"]
+"photo_sign_client.c" = ["-nothumb"]
+"photo_sign.c" = ["-nothumb"]
+"photo_sign_util.c" = ["-nothumb"]
+# Black's SSP JPEG encoder and decoder and their EXIF writer and reader (overlay 172) are ARM code, where Black 2's
+# are Thumb
+"ssp_jpegdec.c" = ["-nothumb"]
+"ssp_exifdec.c" = ["-nothumb"]
+"ssp_jpegenc.c" = ["-nothumb"]
+"ssp_exifenc.c" = ["-nothumb"]
+"mi/mi_ndma.c" = ["-nothumb"]
+"mi/mi_ndma_gxcommand.c" = ["-nothumb"]
+"mi/mi_sharedWram_twl.c" = ["-nothumb", "-ipa function"]
+"card/card_hash.c" = ["-nothumb"]
+"scfg/scfg_proc.c" = ["-nothumb"]
+
+# TwlSDK's system call library was built with a 2.0 compiler (pokebw2's lib/twl/library.toml takes NitroSystem's
+# 2.0/sp2): the LTD half's HMAC-SHA-1 recomputes the context's address at each call and indexes its pad loops as no dsi
+# compiler does
+[file_compiler]
+"syscall/syscall_twl.c" = "2.0/sp2"

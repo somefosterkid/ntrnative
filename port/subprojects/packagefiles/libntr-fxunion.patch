@@ -1,0 +1,71 @@
+--- a/include/nitro/fx/fx.h
++++ b/include/nitro/fx/fx.h
+@@ -118,14 +118,15 @@
+     MtxFx44;
+ #else
+     typedef union {
++        // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
++        fx32 m[4][4];
++        fx32 a[16];
+         struct {
+             fx32 _00, _01, _02, _03;
+             fx32 _10, _11, _12, _13;
+             fx32 _20, _21, _22, _23;
+             fx32 _30, _31, _32, _33;
+         };
+-        fx32 m[4][4];
+-        fx32 a[16];
+     } MtxFx44;
+ #endif
+ 
+@@ -138,14 +139,15 @@
+     } MtxFx43;
+ #else
+     typedef union {
++        // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
++        fx32 m[4][3];
++        fx32 a[12];
+         struct {
+             fx32 _00, _01, _02;
+             fx32 _10, _11, _12;
+             fx32 _20, _21, _22;
+             fx32 _30, _31, _32;
+         };
+-        fx32 m[4][3];
+-        fx32 a[12];
+     } MtxFx43;
+ #endif
+ 
+@@ -157,13 +159,14 @@
+     } MtxFx33;
+ #else
+     typedef union {
++        // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
++        fx32 m[3][3];
++        fx32 a[9];
+         struct {
+             fx32 _00, _01, _02;
+             fx32 _10, _11, _12;
+             fx32 _20, _21, _22;
+         };
+-        fx32 m[3][3];
+-        fx32 a[9];
+     } MtxFx33;
+ #endif
+ 
+@@ -174,12 +177,13 @@
+     } MtxFx22;
+ #else
+     typedef union {
++        // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
++        fx32 m[2][2];
++        fx32 a[4];
+         struct {
+             fx32 _00, _01;
+             fx32 _10, _11;
+         };
+-        fx32 m[2][2];
+-        fx32 a[4];
+     } MtxFx22;
+ #endif
+ 

@@ -1,0 +1,7 @@
+# White (tools/route.py w). name | start | pilot tokens | end | save | flags
+# w-room (made by new-w, S at the end): Cheren and Bianca beside the player, no Pokemon yet. The gift box on the table (actor uid 2, at 5,8)
+# starts the starter choice and both battles (G:npc:2 = one token, ~5700 frames); then the stairs trigger T0 is dead and G:warp:390 goes down.
+# TOOL GAP: S after the starter is chosen (before the Pokedex) fails (save-failed): the field menu is a 2-column grid there (POKEMON, BAG /
+# trainer card, SAVE / OPTIONS) and the cursor starts on POKEMON; 3 downs, 0-2, 4, 5 downs and right+down / down+right all left save.bin unchanged.
+new-w | NEWGAME | Pa M16000 S | zone 391 5,6 | w-room | quick
+room-box | w-room | Pa G:npc:2 Wf:200 | zone 391 4,6 | -

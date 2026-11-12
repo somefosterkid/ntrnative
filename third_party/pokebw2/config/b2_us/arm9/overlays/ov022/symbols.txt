@@ -1,0 +1,10 @@
+EventWbtPokeSelect_Callback kind:function(thumb,size=0x88) addr:0x0216e660
+EventWbtPokeSelect_Create kind:function(thumb,size=0x54) addr:0x0216e6e8
+EventWbtList_Create kind:function(thumb,size=0x3c) addr:0x0216e73c
+EventWbtList_Callback kind:function(thumb,size=0x74) addr:0x0216e778
+EventWbtBattle_Callback kind:function(thumb,size=0x68) addr:0x0216e7ec
+EventWbtBattle_Create kind:function(thumb,size=0x24) addr:0x0216e854
+EventWbtWinRecord_Create kind:function(thumb,size=0x38) addr:0x0216e878
+EventWbtWinRecord_Callback kind:function(thumb,size=0x48) addr:0x0216e8b0
+EventWbtDownload_Create kind:function(thumb,size=0x38) addr:0x0216e8f8
+EventWbtDownload_Callback kind:function(thumb,size=0x48) addr:0x0216e930

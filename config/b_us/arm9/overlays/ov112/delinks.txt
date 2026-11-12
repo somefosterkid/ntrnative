@@ -1,0 +1,72 @@
+    .text       start:0x021f36c0 end:0x021f815c kind:code align:32
+    .rodata     start:0x021f815c end:0x021f8340 kind:rodata align:4
+    .ctor       start:0x021f8340 end:0x021f8340 kind:rodata align:4
+    .data       start:0x021f8360 end:0x021f8480 kind:data align:32
+    .bss        start:0x021f8480 end:0x021f8480 kind:bss align:32
+
+src/ov112/sta_act_bg.c:
+    complete
+    .text       start:0x021f6f24 end:0x021f709c
+    .data       start:0x021f8418 end:0x021f8464
+
+src/ov112/sta_act_obj.c:
+    complete
+    .text       start:0x021f69e4 end:0x021f6bd8
+    .rodata     start:0x021f8328 end:0x021f832c
+    .data       start:0x021f83f8 end:0x021f8408
+
+src/ov112/mus_item_data.c:
+    complete
+    .text       start:0x021f4f14 end:0x021f5164
+    .data       start:0x021f83b4 end:0x021f83c4
+
+src/ov112/musical_system.c:
+    complete
+    .text       start:0x021f675c end:0x021f69e4
+    .data       start:0x021f83e4 end:0x021f83f8
+
+src/ov112/sta_act_light.c:
+    complete
+    .text       start:0x021f6bd8 end:0x021f6f24
+    .data       start:0x021f8408 end:0x021f8418
+
+src/ov112/musical_shot_sys.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f3af0
+    .rodata     start:0x021f815c end:0x021f81a0
+    .data       start:0x021f8360 end:0x021f8380
+
+src/ov112/mus_poke_draw.c:
+    complete
+    .text       start:0x021f5164 end:0x021f55f8
+    .data       start:0x021f83c4 end:0x021f83d4
+
+src/ov112/mus_shot_info.c:
+    complete
+    .text       start:0x021f4284 end:0x021f48c0
+    .rodata     start:0x021f8290 end:0x021f8300
+    .data       start:0x021f8394 end:0x021f83a4
+
+src/ov112/mus_item_draw.c:
+    complete
+    .text       start:0x021f48c0 end:0x021f4f14
+    .rodata     start:0x021f8300 end:0x021f8304
+    .data       start:0x021f83a4 end:0x021f83b4
+
+src/ov112/mus_shot_photo.c:
+    complete
+    .text       start:0x021f3af0 end:0x021f4284
+    .rodata     start:0x021f81a0 end:0x021f8290
+    .data       start:0x021f8380 end:0x021f8394
+
+src/ov112/sta_act_poke.c:
+    complete
+    .text       start:0x021f709c end:0x021f815c
+    .rodata     start:0x021f832c end:0x021f8340
+    .data       start:0x021f8464 end:0x021f8480
+
+src/ov112/musical_mcss.c:
+    complete
+    .text       start:0x021f55f8 end:0x021f675c
+    .rodata     start:0x021f8304 end:0x021f8328
+    .data       start:0x021f83d4 end:0x021f83e4

@@ -1,0 +1,458 @@
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -36,7 +36,7 @@
+ int SimTouch_MenuOpen(void);
+ void SimTouch_MenuClose(void);
+ void SimTouch_Draw(void);
+-void SimTouch_FeedImGui(void);
++void SimTouch_Screens(float * r);
+ void SimTouch_Safe(float * s);
+ }
+ 
+@@ -1686,7 +1686,7 @@
+     }
+ }
+ 
+-static void TouchMenu();
++static void TouchOverlay();
+ 
+ void Main() {
+     SIM_config_type * c = C();
+@@ -1696,8 +1696,8 @@
+         sBarH = fh;
+     }
+     if (SimTouch_Active()) {
+-        SimTouch_Draw();   // bw-port (libntr-ios-touch.patch): the controls, and the settings screen over them
+-        TouchMenu();
++        SimTouch_Draw();   // bw-port (libntr-ios-touch.patch): the controls; the settings are a native sheet (libntr-ios-settings.patch)
++        TouchOverlay();
+     } else {
+     if (sBarVisible) {
+         MenuBar();
+@@ -2368,121 +2368,48 @@
+ }
+ 
+ // the UI's rectangles as a line of text for BWPORT_TOUCHLOG: the bar (when drawn), the side, the settings windows drawn
+-// ---- the phone's settings screen (libntr-ios-touch.patch) -------------------------------------------------------------
+-// The existing settings in a touch size: rows of big buttons, one full-width toggle each, dragging the background scrolls.
+-
+-static const float kTouchRow = 46.0f;
++// ---- touch mode (libntr-ios-settings.patch): the performance overlay ----------------------------------------------------------
++// The settings are a native sheet (port/src/ios_settings.m) reading and writing through SIM_UISettingGet / Set at the end of this file.
+ 
+-static bool TouchSeg(const char * const * names, int n, int cur, int * pick) {
+-    float sp = ImGui::GetStyle().ItemSpacing.x;
+-    float w = (ImGui::GetContentRegionAvail().x - sp * (float)(n - 1)) / (float)n;
+-    bool changed = false;
+-    for (int i = 0; i < n; i++) {
+-        if (i > 0) { ImGui::SameLine(); }
+-        bool on = i == cur;
+-        ImGui::PushID(i);
+-        ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.95f, 0.70f, 0.15f, 1.0f) : ImVec4(0.22f, 0.24f, 0.33f, 1.0f));
+-        ImGui::PushStyleColor(ImGuiCol_Text, on ? ImVec4(0.08f, 0.07f, 0.03f, 1.0f) : ImVec4(0.93f, 0.94f, 0.97f, 1.0f));
+-        if (ImGui::Button(names[i], ImVec2(w, kTouchRow))) {
+-            *pick = i;
+-            changed = true;
+-        }
+-        ImGui::PopStyleColor(2);
+-        ImGui::PopID();
+-    }
+-    return changed;
+-}
+-
+-static bool TouchToggle(const char * label, bool on) {
+-    ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.95f, 0.70f, 0.15f, 1.0f) : ImVec4(0.22f, 0.24f, 0.33f, 1.0f));
+-    ImGui::PushStyleColor(ImGuiCol_Text, on ? ImVec4(0.08f, 0.07f, 0.03f, 1.0f) : ImVec4(0.93f, 0.94f, 0.97f, 1.0f));
+-    char t[96];
+-    snprintf(t, sizeof t, "%s: %s", label, on ? "on" : "off");
+-    bool hit = ImGui::Button(t, ImVec2(-FLT_MIN, kTouchRow));
+-    ImGui::PopStyleColor(2);
+-    return hit;
+-}
+-
+-static void TouchHead(const char * t) {
+-    ImGui::Spacing();
+-    ImGui::TextColored(ImVec4(0.55f, 0.75f, 1.0f, 1.0f), "%s", t);
+-}
+-
+-static void TouchMenu() {
++// a small box in the top corner of the game's picture (inside the safe area, clear of the controls): fps and game speed, and with
++// OverlayDetail=detailed the frame time, the game / draw split and what draws
++static void TouchOverlay() {
+     SIM_config_type * c = C();
+-    if (!SimTouch_MenuOpen()) {
++    if (!c->overlay || SimTouch_MenuOpen()) {
+         return;
+     }
+-    ImGuiViewport * vp = ImGui::GetMainViewport();
+-    float safe[4];
+-    SimTouch_Safe(safe);
+-    float x = safe[0] + 8.0f, y = safe[1] + 8.0f, w = vp->Size.x - safe[0] - safe[2] - 16.0f, h = vp->Size.y - safe[1] - safe[3] - 16.0f;
+-    float mh = c->showMetrics ? std::min(h * 0.5f, 320.0f) : 0.0f;
+-    ImGui::SetNextWindowPos(ImVec2(x, y));
+-    ImGui::SetNextWindowSize(ImVec2(w, h - mh));
+-    ImGui::SetNextWindowBgAlpha(0.96f);
+-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
+-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
+-    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 18.0f);
+-    ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 34.0f);
+-    bool vis = ImGui::Begin("##touchmenu", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav);
+-    if (vis) {
+-        ImGui::AlignTextToFramePadding();
+-        ImGui::TextUnformatted("Settings");
+-        ImGui::SameLine(ImGui::GetWindowWidth() - 150.0f - ImGui::GetStyle().WindowPadding.x);
+-        if (ImGui::Button("Close", ImVec2(150.0f, kTouchRow))) {
+-            SimTouch_MenuClose();
+-        }
+-        int p = 0;
+-        TouchHead("Renderer");
+-        if (TouchSeg(RendererShort, 3, c->renderer < 3 ? c->renderer : 0, &p)) { c->renderer = (u8)p; Dirty(); }
+-        ImGui::TextDisabled("%s", SIM_RendererStatus());
+-        TouchHead("Resolution");
+-        {
+-            static const char * const rn[] = {"1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x"};
+-            int cur = c->resolution - 1;
+-            if (TouchSeg(rn, 4, cur < 4 ? cur : -1, &p)) { c->resolution = (u8)(p + 1); Dirty(); }
+-            if (TouchSeg(rn + 4, 4, cur >= 4 ? cur - 4 : -1, &p)) { c->resolution = (u8)(p + 5); Dirty(); }
+-        }
+-        TouchHead("Frame rate");
+-        {
+-            static const char * const dn[] = {"60", "120", "Monitor", "Max"};
+-            if (TouchSeg(dn, 4, DisplayCapIndex(), &p)) { SetDisplayCap(p); }
+-        }
+-        TouchHead("Game speed");
+-        {
+-            static const char * const sn[] = {"1x", "2x", "3x", "4x"};
+-            ImGui::BeginDisabled(FrameRateUnlimited());
+-            if (TouchSeg(sn, 4, SpeedIndex(), &p)) { SetSpeed(p); }
+-            ImGui::EndDisabled();
+-        }
+-        ImGui::Spacing();
+-        if (TouchToggle("Music at normal speed", c->musicNormalSpeed != 0)) { c->musicNormalSpeed = !c->musicNormalSpeed; Dirty(); }
+-        ImGui::BeginDisabled(FrameRateUnlimited());
+-        if (TouchToggle("Smooth motion", c->interpolation != 0)) { c->interpolation = !c->interpolation; Dirty(); }
+-        ImGui::EndDisabled();
+-        if (TouchToggle("Metrics", c->showMetrics != 0)) { c->showMetrics = !c->showMetrics; Dirty(); }
+-        TouchHead("Volume");
+-        {
+-            int vol = (int)((c->masterVolume * 100 + 63) / 127);
+-            ImGui::SetNextItemWidth(-FLT_MIN);
+-            if (ImGui::SliderInt("##vol", &vol, 0, 100, "%d%%")) {
+-                c->masterVolume = (u8)((vol * 127 + 50) / 100);
+-                Dirty();
+-            }
+-        }
+-        // a drag on the background scrolls (the buttons take their own)
+-        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(0, 4.0f)) {
+-            ImGui::SetScrollY(ImGui::GetScrollY() - ImGui::GetIO().MouseDelta.y);
+-        }
++    float scr[4];
++    SimTouch_Screens(scr);
++    if (scr[2] <= 0.0f) {
++        return;
+     }
+-    ImGui::End();
+-    ImGui::PopStyleVar(4);
+-    if (mh > 0.0f) {
+-        ImDrawList * bg = ImGui::GetBackgroundDrawList();
+-        bg->AddRectFilled(ImVec2(x, y + h - mh), ImVec2(x + w, y + h), cBack, 8.0f);
+-        SideMetrics(x, y + h - mh, w, mh);
++    const Snap & m = sSnap;
++    char l1[64], l2[64] = "", l3[64] = "";
++    snprintf(l1, sizeof l1, "%.0f fps  %dx", m.fps, SpeedIndex() + 1);
++    if (c->overlayDetail) {
++        int pw = 0, ph = 0;
++        SIM_RendererPicture(&pw, &ph);
++        snprintf(l2, sizeof l2, "%.1f ms (%.1f+%.1f)", m.avgMs, m.gameMs, m.drawMs);
++        snprintf(l3, sizeof l3, "%s %dx %dx%d", ActiveRenderer(), SIM_RenderScale(), pw, ph);
+     }
++    ImFont * font = ImGui::GetFont();
++    float fs = 9.5f;
++    float pad = 5.0f, gap = 2.0f;
++    int lines = l3[0] ? 3 : 1;
++    const char * ls[3] = {l1, l2, l3};
++    float w = 0.0f;
++    for (int i = 0; i < lines; i++) {
++        w = std::max(w, font->CalcTextSizeA(fs, FLT_MAX, 0.0f, ls[i]).x);
++    }
++    float h = (float)lines * fs + (float)(lines - 1) * gap;
++    float bw = w + 2.0f * pad, bh = h + 2.0f * pad;
++    float x = c->overlayCorner ? scr[0] + scr[2] - 4.0f - bw : scr[0] + 4.0f, y = scr[1] + 4.0f;
++    ImDrawList * dl = ImGui::GetForegroundDrawList();
++    dl->AddRectFilled(ImVec2(x, y), ImVec2(x + bw, y + bh), IM_COL32(0, 0, 0, 120), 5.0f);
++    ImU32 fc = m.fps >= 55.0f ? IM_COL32(140, 255, 140, 255) : m.fps >= 30.0f ? IM_COL32(255, 220, 90, 255) : IM_COL32(255, 110, 90, 255);
++    for (int i = 0; i < lines; i++) {
++        dl->AddText(font, fs, ImVec2(x + pad, y + pad + (float)i * (fs + gap)), i == 0 ? fc : IM_COL32(235, 235, 240, 235), ls[i]);
++    }
+ }
+ 
+ void RectsString(char * buf, int n) {
+@@ -2540,9 +2467,6 @@
+ void NewFrame() {
+     ImGui_ImplOpenGL3_NewFrame();
+     ImGui_ImplSDL2_NewFrame();
+-    if (SimTouch_Active()) {
+-        SimTouch_FeedImGui();   // bw-port (libntr-ios-touch.patch): the settings screen's finger as the mouse
+-    }
+     ImGui::NewFrame();
+ }
+ 
+@@ -2595,3 +2519,56 @@
+ }
+ 
+ }
++
++// ---- the native settings sheet's way in (port/src/ios_settings.m), libntr-ios-settings.patch ------------------------------------
++// Every setting is an int by name; a write applies it through the same helpers as the desktop menus and saves sim_config.ini.
++// renderer 0..2 (auto, vcore, gpu); resolution 1..8; antialias 0..2 (off, 2x, 4x); smooth, filter (0 nearest, 1 bilinear), line, edge,
++// musicnormal, overlay, corner (0 left, 1 right), detail (0 compact, 1 detailed) 0/1; speed 1..4; framerate 0..3 (60, 120, Monitor,
++// Unlimited); frameskip 0..4 (off, 1, 2, 3, auto); volume 0..100. Read only: active (0 starting, 1 vcore, 2 gpu), scale.
++extern "C" int SIM_UISettingGet(const char * k) {
++    using namespace SIM::GUI;
++    SIM_config_type * c = C();
++    if (!strcmp(k, "renderer")) return c->renderer < 3 ? c->renderer : 0;
++    if (!strcmp(k, "resolution")) return c->resolution;
++    if (!strcmp(k, "antialias")) return AntialiasIndex(c->antialias);
++    if (!strcmp(k, "smooth")) return c->interpolation != 0;
++    if (!strcmp(k, "filter")) return c->gpuFilter != 0;
++    if (!strcmp(k, "line")) return c->gpuLine != 0;
++    if (!strcmp(k, "edge")) return c->gpuEdge != 0;
++    if (!strcmp(k, "speed")) return SpeedIndex() + 1;
++    if (!strcmp(k, "framerate")) return DisplayCapIndex();
++    if (!strcmp(k, "musicnormal")) return c->musicNormalSpeed != 0;
++    if (!strcmp(k, "frameskip")) return FrameSkipIndex();
++    if (!strcmp(k, "volume")) return (int)((c->masterVolume * 100 + 63) / 127);
++    if (!strcmp(k, "overlay")) return c->overlay != 0;
++    if (!strcmp(k, "corner")) return c->overlayCorner != 0;
++    if (!strcmp(k, "detail")) return c->overlayDetail != 0;
++    if (!strcmp(k, "active")) return SIM_RendererActive();
++    if (!strcmp(k, "scale")) return SIM_RenderScale();
++    return -1;
++}
++
++extern "C" const char * SIM_UIStatus(void) { return SIM_RendererStatus(); }
++
++extern "C" void SIM_UISettingSet(const char * k, int v) {
++    using namespace SIM::GUI;
++    SIM_config_type * c = C();
++    if (!strcmp(k, "renderer")) c->renderer = (u8)(v < 0 ? 0 : v > 2 ? 2 : v);
++    else if (!strcmp(k, "resolution")) c->resolution = (u8)(v < 1 ? 1 : v > 8 ? 8 : v);
++    else if (!strcmp(k, "antialias")) c->antialias = (u8)(v >= 2 ? 4 : v == 1 ? 2 : 1);
++    else if (!strcmp(k, "smooth")) c->interpolation = (u8)(v != 0);
++    else if (!strcmp(k, "filter")) c->gpuFilter = (u8)(v != 0);
++    else if (!strcmp(k, "line")) c->gpuLine = (u8)(v != 0);
++    else if (!strcmp(k, "edge")) c->gpuEdge = (u8)(v != 0);
++    else if (!strcmp(k, "speed")) SetSpeed((v < 1 ? 1 : v > 4 ? 4 : v) - 1);
++    else if (!strcmp(k, "framerate")) SetDisplayCap(v < 0 ? 0 : v > 3 ? 3 : v);
++    else if (!strcmp(k, "musicnormal")) c->musicNormalSpeed = (u8)(v != 0);
++    else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
++    else if (!strcmp(k, "volume")) c->masterVolume = (u8)(((v < 0 ? 0 : v > 100 ? 100 : v) * 127 + 50) / 100);
++    else if (!strcmp(k, "overlay")) c->overlay = (u8)(v != 0);
++    else if (!strcmp(k, "corner")) c->overlayCorner = (u8)(v != 0);
++    else if (!strcmp(k, "detail")) c->overlayDetail = (u8)(v != 0);
++    else return;
++    SIM_Config_SaveConfigFile(c);
++    fprintf(stderr, "bwport: setting %s=%d\n", k, v);
++}
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -66,6 +66,9 @@
+ int SimTouch_Stylus(float * x, float * y);
+ int SimTouch_FFEdge(void);
+ int SimTouch_Background(void);
++int SimTouch_MenuOpen(void);
++void SimTouch_MenuClose(void);
++void SimTouch_MenuRequest(void);
+ }
+ 
+ #ifdef SDK_BUILD_WIN64
+@@ -1979,6 +1982,36 @@
+   }
+   SDL_PauseAudio(0);
+   fprintf(stderr, "bwport: back in the foreground\n");
++}
++
++// bw-port (libntr-ios-settings.patch): the menu button (or BWPORT_SETTINGS_TEST) opens the native settings sheet
++// (port/src/ios_settings.m); the game and its sound stand still, and the run loop is pumped for UIKit, until it is dismissed
++extern "C" void bwport_ios_settings_present(void) __attribute__((weak));
++extern "C" int bwport_ios_settings_is_open(void) __attribute__((weak));
++extern "C" int bwport_ios_settings_test_wants(void) __attribute__((weak));
++static void SimTouchSettingsWait(void) {
++  if (!SimTouch_Active()) return;
++  if (bwport_ios_settings_test_wants != NULL && bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
++  if (!SimTouch_MenuOpen()) return;
++  if (bwport_ios_settings_present == NULL) {
++    SimTouch_MenuClose();
++    return;
++  }
++  fprintf(stderr, "bwport: settings open: paused\n");
++  SDL_PauseAudio(1);
++  bwport_ios_settings_present();
++  while (bwport_ios_settings_is_open() && !SimTouch_Background()) {
++    SDL_PumpEvents();
++    SDL_Delay(10);
++  }
++  while (bwport_ios_settings_is_open()) {  // (backgrounded with the sheet up: wait for the foreground, then for its end)
++    SDL_PumpEvents();
++    SDL_Delay(50);
++  }
++  SDL_FlushEvents(SDL_FINGERDOWN, SDL_FINGERMOTION);
++  SimTouch_MenuClose();
++  SDL_PauseAudio(0);
++  fprintf(stderr, "bwport: settings closed: resumed\n");
+ }
+ 
+ void *SIM_Render(void *arg) {
+@@ -1995,6 +2028,7 @@
+ 
+   do {
+     SimTouchBackgroundWait();
++    SimTouchSettingsWait();
+ #ifdef SDK_TRACY_ENABLE
+     TracyCZone(SimRenderZone, 1);
+ #endif
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -29,7 +29,7 @@
+ namespace {
+ 
+ enum { B_A, B_B, B_X, B_Y, B_L, B_R, B_START, B_SELECT, B_UP, B_DOWN, B_LEFT, B_RIGHT, B_COUNT };
+-enum { K_NONE, K_BTN, K_DPAD, K_STYLUS, K_UI, K_TOGGLE, K_DEAD };
++enum { K_NONE, K_BTN, K_DPAD, K_STYLUS, K_TOGGLE, K_DEAD };
+ 
+ struct Finger {
+     bool used;
+@@ -74,9 +74,6 @@
+ SDL_Window * sWindow;
+ int sForceW, sForceH;
+ 
+-struct UiEv { int type; float x, y; };  // 0 move, 1 down, 2 up
+-std::vector<UiEv> sUiEvents;
+-
+ void ReadInsets(float * s) {
+     s[0] = s[1] = s[2] = s[3] = 0;
+     bool ok = false;
+@@ -230,7 +227,7 @@
+ 
+ void ReleaseAll() {
+     for (Finger & f : sF) {
+-        if (f.used && f.kind != K_UI) f.kind = K_DEAD;
++        if (f.used) f.kind = K_DEAD;
+     }
+     sLiveMask = 0;
+     sStylusDown = 0;
+@@ -245,16 +242,7 @@
+         for (Finger & g : sF) if (!g.used) { f = &g; break; }
+         if (f == NULL) return;
+         *f = {true, id, K_DEAD, 0, x, y};
+-        if (sMenuOpen) {
+-            bool haveUi = false;
+-            for (const Finger & g : sF) if (g.used && g.kind == K_UI) haveUi = true;
+-            f->kind = haveUi ? K_DEAD : K_UI;
+-            if (f->kind == K_UI) {
+-                sUiEvents.push_back({0, x, y});
+-                sUiEvents.push_back({1, x, y});
+-            }
+-            return;
+-        }
++        if (sMenuOpen) { f->kind = K_DEAD; return; }   // (the native settings sheet is up)
+         int idx;
+         int k = HitTest(x, y, &idx);
+         f->kind = k;
+@@ -274,18 +262,13 @@
+         Finger * f = FindFinger(id);
+         if (f == NULL) return;
+         f->x = x; f->y = y;
+-        if (f->kind == K_UI) sUiEvents.push_back({0, x, y});
+-        else if (f->kind == K_DPAD) Recompute();
++        if (f->kind == K_DPAD) Recompute();
+         else if (f->kind == K_STYLUS) { sStylusX = x; sStylusY = y; }
+     } else if (e->type == SDL_FINGERUP) {
+         Finger * f = FindFinger(id);
+         if (f == NULL) return;
+         f->x = x; f->y = y;
+-        if (f->kind == K_UI) {
+-            sUiEvents.push_back({0, x, y});
+-            sUiEvents.push_back({2, x, y});
+-            sUiEvents.push_back({0, -1e6f, -1e6f});
+-        } else if (f->kind == K_STYLUS) {
++        if (f->kind == K_STYLUS) {
+             sStylusX = x; sStylusY = y;
+             sStylusDown = 0;   // (a press not reported yet still is: SimTouch_Stylus)
+         }
+@@ -418,17 +401,9 @@
+ // the safe area (l, t, r, b), for the settings window
+ void SimTouch_Safe(float * s) { memcpy(s, sL.safe, sizeof sL.safe); }
+ 
+-// after ImGui_ImplSDL2_NewFrame (which writes the mouse position itself): the menu's finger as the mouse
+-void SimTouch_FeedImGui(void) {
+-    ImGuiIO & io = ImGui::GetIO();
+-    if (sUiEvents.empty()) return;
+-    io.AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
+-    for (const UiEv & u : sUiEvents) {
+-        if (u.type == 0) io.AddMousePosEvent(u.x, u.y);
+-        else io.AddMouseButtonEvent(0, u.type == 1);
+-    }
+-    sUiEvents.clear();
+-}
++// libntr-ios-settings.patch: the game's screens (x, y, w, h), where the performance overlay sits; a native sheet asks to open
++void SimTouch_Screens(float * r) { memcpy(r, sL.scr, sizeof sL.scr); }
++void SimTouch_MenuRequest(void) { sMenuOpen = true; ReleaseAll(); }
+ 
+ // the controls, in the frame being built (under the settings window)
+ void SimTouch_Draw(void) {
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -144,6 +144,15 @@
+         sSeenGameSpeed = 1;
+         config->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
++    if(MATCH("General", "Overlay")) {
++        config->overlay = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
++    }
++    if(MATCH("General", "OverlayCorner")) {
++        config->overlayCorner = strcmp(value, "right") == 0;
++    }
++    if(MATCH("General", "OverlayDetail")) {
++        config->overlayDetail = strcmp(value, "detailed") == 0;
++    }
+     if(MATCH("General", "MusicNormalSpeed")) {
+         config->musicNormalSpeed = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
+     }
+@@ -604,6 +613,9 @@
+     aConfig->frameSkip = 0;
+     aConfig->speed = 1;
+     aConfig->musicNormalSpeed = 1;
++    aConfig->overlay = 1;
++    aConfig->overlayCorner = 0;
++    aConfig->overlayDetail = 0;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+@@ -710,6 +722,9 @@
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+     fprintf(configFile, "GameSpeed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
++    fprintf(configFile, "Overlay=%s\n", aConfig->overlay ? "on" : "off");
++    fprintf(configFile, "OverlayCorner=%s\n", aConfig->overlayCorner ? "right" : "left");
++    fprintf(configFile, "OverlayDetail=%s\n", aConfig->overlayDetail ? "detailed" : "compact");
+     fprintf(configFile, "SmoothMotion=%s\n", aConfig->interpolation ? "on" : "off");
+     fprintf(configFile, "FrameRate=%s\n", FrameRateToString(aConfig->displayCap));
+     fprintf(configFile, "FrameRateRestore=%s\n", FrameRateToString(aConfig->displayCapBack > SIM_CONFIG_DISPLAYCAP_MONITOR ? SIM_CONFIG_DISPLAYCAP_60 : aConfig->displayCapBack));
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -103,6 +103,9 @@
+     u8 displayCap; /* Frame rate: SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second; _UNLIMITED: no cap (FrameRate=60|120|monitor|unlimited, BWPORT_FRAMERATE; old keys DisplayCap=, CapFrameRate= still load) */
+     u8 interpolation; /* Smooth motion (libntr-ib78.patch, renamed by rn80): 1 = in-between pictures (real renders of the 3D between two keyframes) in the present slots a keyframe leaves free (SmoothMotion=off|on, BWPORT_SMOOTH=on|off; old key Interpolation=, BWPORT_INTERP); default 0 */
+     u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
++    u8 overlay; /* bw-port (libntr-ios-settings.patch): the performance overlay in a corner while playing (touch mode), Overlay=on|off, default on */
++    u8 overlayCorner; /* 0 = top-left (OverlayCorner=left, default), 1 = top-right (=right) */
++    u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */

@@ -1,0 +1,367 @@
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+index 9f68927..827a48f 100644
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -69,7 +69,9 @@ typedef struct {
+ typedef struct {
+     u32 windowWidth; /* Initial width of the window. If set to 0, will use the default width for the screen layout */
+     u32 windowHeight; /* Initial height of the window. If set to 0, will use default height for the screen layout */
+-    u8 fullScreen; /* TRUE to enable fullscreen */
++    u8 fullScreen; /* TRUE to enable fullscreen (F11, Alt+Enter; sim_config.ini FullScreen=0|1) */
++    u8 integerScale; /* TRUE: the screens are drawn at the largest whole multiple of the DS size that fits the window, centred
++                        (sim_config.ini IntegerScale=0|1); FALSE: they fill the window keeping the aspect ratio */
+     u8 masterVolume; /* Master sound volume (0-127) */
+     SIM_config_screen_layout_type screenLayout; /* DS screen layout */
+     BOOL swapScreens; /* Swap screen positions */
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+index 8d72f0d..77588ca 100644
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -42,9 +42,12 @@ static int IniHandler(void* user, const char* section, const char* name,
+     if(MATCH("General", "WindowWidth")) {
+         config->windowWidth = atoi(value);
+     }
+-    if(MATCH("General", "FullScreen")) {
++    if(MATCH("General", "FullScreen") || MATCH("General", "Fullscreen")) {
+         config->fullScreen = StringToBool(value);
+     }
++    if(MATCH("General", "IntegerScale")) {
++        config->integerScale = StringToBool(value);
++    }
+     if(MATCH("General", "MasterVolume")) {
+         config->masterVolume = atoi(value);
+         if(config->masterVolume > 127) {
+@@ -448,6 +451,7 @@ void SIM_Config_LoadDefaults(SIM_config_type * aConfig)
+     aConfig->windowWidth = 0;
+ #endif
+     aConfig->fullScreen = FALSE;
++    aConfig->integerScale = FALSE;
+     aConfig->screenLayout = SIM_CONFIG_SCREEN_LAYOUT_VERTICAL;
+     aConfig->swapScreens = FALSE;
+     aConfig->vsyncInterval = 1;
+@@ -534,6 +538,7 @@ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+     fprintf(configFile, "WindowHeight=%d\n", aConfig->windowHeight);
+     fprintf(configFile, "WindowWidth=%d\n", aConfig->windowWidth);
+     fprintf(configFile, "FullScreen=%s\n", BoolToString(aConfig->fullScreen));
++    fprintf(configFile, "IntegerScale=%s\n", BoolToString(aConfig->integerScale));
+     fprintf(configFile, "MasterVolume=%d\n", aConfig->masterVolume);
+ 
+     const char * screenLayoutString = ScreenLayoutTypeToString(aConfig->screenLayout);
+diff --git a/libraries/sim/src/sim_gui_config.cpp b/libraries/sim/src/sim_gui_config.cpp
+index 9c05037..05cbe1b 100644
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -62,6 +62,7 @@ void AppConfigMain(bool *openState) {
+     int vSyncInterval = sConfig->vsyncInterval;
+     bool frameLimit = sConfig->capFrameRate;
+     bool fullScreen = sConfig->fullScreen;
++    bool integerScale = sConfig->integerScale;
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
+     int resolution = sConfig->resolution;
+@@ -70,7 +71,10 @@ void AppConfigMain(bool *openState) {
+     
+     ImGui::Begin("Config", openState);
+ 
+-    if(ImGui::Checkbox("Fullscreen", &fullScreen)) {
++    if(ImGui::Checkbox("Fullscreen (F11)", &fullScreen)) {
++        configChanged = true;
++    }
++    if(ImGui::Checkbox("Integer scale", &integerScale)) {
+         configChanged = true;
+     }
+ 
+@@ -139,6 +143,7 @@ void AppConfigMain(bool *openState) {
+         sConfig->gpuEdge = (u8)gpuEdge;
+         sConfig->gpuFilter = (u8)gpuFilter;
+         sConfig->fullScreen = fullScreen;
++        sConfig->integerScale = integerScale;
+         if(sConfig->fullScreen) {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), SDL_WINDOW_FULLSCREEN_DESKTOP);
+         } else {
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index 6ee0533..ecc9096 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -68,7 +68,7 @@ SIM_config_type s_SIM_config = {};
+ // Thread
+ extern OSThreadInfo OSi_ThreadInfo;
+ 
+-static u32 s_TouchPanelCoords[4] = {}; // The bounding box of the touch screen
++static float s_TouchPanelCoords[4] = {}; // The touch screen's rectangle in window coordinates (x0, y0, x1, y1; y down)
+ 
+ // SND
+ #include <nitro/snd/common/work.h>
+@@ -1012,21 +1012,28 @@ void *SIM_Render(void *arg) {
+       sPanelShown = shown;
+     }
+ 
+-    viewWidth = windowWidth;
+-    viewHeight = (int)((float)windowWidth / aspectRatio);
+-    viewY = (windowHeight - viewHeight) / 2;
+-    if (viewHeight > windowHeight) {
+-      // Too tall to fit in the window. Scale down the width instead
+-      viewHeight = windowHeight;
+-      viewWidth = (int)((float)viewHeight * aspectRatio);
+-      viewX = (windowWidth - viewWidth) / 2;
+-      viewY = 0;
++    // bw-port (libntr-present.patch): where the screens go in the window. The screens and the input panel beside them are
++    // fitted together keeping the aspect ratio (aspectRatio); IntegerScale: the largest whole multiple of the DS size
++    // that fits (a window smaller than 1x falls back to the fit), centred. viewY is glViewport's (from the bottom),
++    // viewTop the same edge from the window's top (the mouse's and ImGui's)
++    float totalW = layoutW + panelW;
++    float factor = fminf((float)windowWidth / totalW, (float)windowHeight / layoutH);
++    if (s_SIM_config.integerScale && factor >= 1.0f) {
++      factor = floorf(factor + 0.0001f);
+     }
++    viewWidth = (int)(factor * totalW + 0.5f);
++    viewHeight = (int)(factor * layoutH + 0.5f);
++    if (viewWidth > windowWidth) viewWidth = windowWidth;
++    if (viewHeight > windowHeight) viewHeight = windowHeight;
++    viewX = (windowWidth - viewWidth) / 2;
++    int viewTop = (windowHeight - viewHeight) / 2;
++    viewY = windowHeight - viewHeight - viewTop;
+ 
+     // the screens take their share of the width; the panel the rest
+     int panelPxX = viewX + viewWidth, panelPxW = 0;
+     if (panelW > 0.0f) {
+-      int screensW = (int)((float)viewWidth * layoutW / (layoutW + panelW));
++      int screensW = (int)(factor * layoutW + 0.5f);
++      if (screensW > viewWidth) screensW = viewWidth;
+       panelPxX = viewX + screensW;
+       panelPxW = viewWidth - screensW;
+       viewWidth = screensW;
+@@ -1034,49 +1041,30 @@ void *SIM_Render(void *arg) {
+ 
+     glViewport(viewX, viewY, viewWidth, viewHeight);
+ 
+-    // Set up the bounding box of the touch panel
+-    if (s_SIM_config.swapScreens) {
+-      switch (s_SIM_config.screenLayout) {
+-      default:
+-      case SIM_CONFIG_SCREEN_LAYOUT_VERTICAL:
+-        s_TouchPanelCoords[0] = viewX;
+-        s_TouchPanelCoords[1] = viewY;
+-        s_TouchPanelCoords[2] = viewX + viewWidth;
+-        s_TouchPanelCoords[3] = viewY + (viewHeight / 2);
+-        break;
+-      case SIM_CONFIG_SCREEN_LAYOUT_HORIZONTAL:
+-        s_TouchPanelCoords[0] = viewX;
+-        s_TouchPanelCoords[1] = viewY;
+-        s_TouchPanelCoords[2] = viewX + (viewWidth / 2);
+-        s_TouchPanelCoords[3] = viewY + viewHeight;
+-        break;
+-      case SIM_CONFIG_SCREEN_LAYOUT_LARGE:
+-        s_TouchPanelCoords[0] = viewX;
+-        s_TouchPanelCoords[1] = viewY;
+-        s_TouchPanelCoords[2] = viewX + ((viewWidth / 3) * 2);
+-        s_TouchPanelCoords[3] = viewY + viewHeight;
+-        break;
+-      }
+-    } else {
++    // The touch screen's rectangle, from the quads (sim_screenquads.c): vertical = one above the other, horizontal = side
++    // by side, large = the first screen over the left two thirds and the second in the lower right third
++    {
++      float vx = (float)viewX, vy = (float)viewTop, vw = (float)viewWidth, vh = (float)viewHeight;
++      float *c = s_TouchPanelCoords;
++      bool sw = s_SIM_config.swapScreens != 0;
+       switch (s_SIM_config.screenLayout) {
+       default:
+       case SIM_CONFIG_SCREEN_LAYOUT_VERTICAL:
+-        s_TouchPanelCoords[0] = viewX;
+-        s_TouchPanelCoords[1] = viewY + (viewHeight / 2);
+-        s_TouchPanelCoords[2] = viewX + viewWidth;
+-        s_TouchPanelCoords[3] = viewY + viewHeight;
++        c[0] = vx; c[2] = vx + vw;
++        c[1] = sw ? vy : vy + vh * 0.5f;
++        c[3] = sw ? vy + vh * 0.5f : vy + vh;
+         break;
+       case SIM_CONFIG_SCREEN_LAYOUT_HORIZONTAL:
+-        s_TouchPanelCoords[0] = viewX + (viewWidth / 2);
+-        s_TouchPanelCoords[1] = viewY;
+-        s_TouchPanelCoords[2] = viewX + viewWidth;
+-        s_TouchPanelCoords[3] = viewY + viewHeight;
++        c[1] = vy; c[3] = vy + vh;
++        c[0] = sw ? vx : vx + vw * 0.5f;
++        c[2] = sw ? vx + vw * 0.5f : vx + vw;
+         break;
+       case SIM_CONFIG_SCREEN_LAYOUT_LARGE:
+-        s_TouchPanelCoords[0] = viewX + ((viewWidth / 3) * 2);
+-        s_TouchPanelCoords[1] = viewY + (viewHeight / 2);
+-        s_TouchPanelCoords[2] = viewX + viewWidth;
+-        s_TouchPanelCoords[3] = viewY + viewHeight;
++        if (sw) {
++          c[0] = vx; c[1] = vy; c[2] = vx + vw * (2.0f / 3.0f); c[3] = vy + vh;
++        } else {
++          c[0] = vx + vw * (2.0f / 3.0f); c[1] = vy + vh * 0.5f; c[2] = vx + vw; c[3] = vy + vh;
++        }
+         break;
+       }
+     }
+@@ -1098,7 +1086,14 @@ void *SIM_Render(void *arg) {
+       }
+       if (Event.type == SDL_KEYDOWN) {
+         int keyRead = Event.key.keysym.sym;
+-        if (keyRead == s_SIM_config.padSettings.aKey) {
++        if (keyRead == SDLK_F11 || (keyRead == SDLK_RETURN && (Event.key.keysym.mod & KMOD_ALT))) {
++          // bw-port (libntr-present.patch): fullscreen on/off (F11, Alt+Enter; not for a key held down)
++          if (!Event.key.repeat) {
++            s_SIM_config.fullScreen = !s_SIM_config.fullScreen;
++            SDL_SetWindowFullscreen(window, s_SIM_config.fullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
++            SIM_Config_SaveConfigFile(&s_SIM_config);
++          }
++        } else if (keyRead == s_SIM_config.padSettings.aKey) {
+           // A Button
+           s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111110;
+         } else if (keyRead == s_SIM_config.padSettings.bKey) {
+@@ -1278,12 +1273,29 @@ void *SIM_Render(void *arg) {
+     SDL_GetMouseState(&x, &y);
+ 
+     // Convert touch coordinate to DS screen coordinates
+-    if (x >= s_TouchPanelCoords[0] && x <= s_TouchPanelCoords[2] &&
+-        y >= s_TouchPanelCoords[1] && y <= s_TouchPanelCoords[3]) {
+-      s_tpData.x = (u16)map(x, s_TouchPanelCoords[0], s_TouchPanelCoords[2], 0,
+-                            SIM_NDS_SCREEN_WIDTH);
+-      s_tpData.y = (u16)map(y, s_TouchPanelCoords[1], s_TouchPanelCoords[3], 0,
+-                            SIM_NDS_SCREEN_HEIGHT);
++    // (the pixel's centre; 0..255 and 0..191 inside the screen's rectangle)
++    float mx = (float)x + 0.5f, my = (float)y + 0.5f;
++    if (mx >= s_TouchPanelCoords[0] && mx < s_TouchPanelCoords[2] &&
++        my >= s_TouchPanelCoords[1] && my < s_TouchPanelCoords[3]) {
++      int tx = (int)((mx - s_TouchPanelCoords[0]) * SIM_NDS_SCREEN_WIDTH / (s_TouchPanelCoords[2] - s_TouchPanelCoords[0]));
++      int ty = (int)((my - s_TouchPanelCoords[1]) * SIM_NDS_SCREEN_HEIGHT / (s_TouchPanelCoords[3] - s_TouchPanelCoords[1]));
++      s_tpData.x = (u16)(tx < 0 ? 0 : tx > SIM_NDS_SCREEN_WIDTH - 1 ? SIM_NDS_SCREEN_WIDTH - 1 : tx);
++      s_tpData.y = (u16)(ty < 0 ? 0 : ty > SIM_NDS_SCREEN_HEIGHT - 1 ? SIM_NDS_SCREEN_HEIGHT - 1 : ty);
++      // BWPORT_TOUCHLOG=FILE: the touch position each time it changes while the button is down (click tests)
++      static FILE *sTouchLog;
++      static int sTouchLogInit, sLastTx = -1, sLastTy = -1;
++      if (!sTouchLogInit) {
++        sTouchLogInit = 1;
++        const char *tl = getenv("BWPORT_TOUCHLOG");
++        if (tl != NULL && tl[0] != 0) sTouchLog = fopen(tl, "a");
++      }
++      if (sTouchLog != NULL && isMouseDown && (tx != sLastTx || ty != sLastTy)) {
++        fprintf(sTouchLog, "mouse %d %d -> touch %d %d\n", x, y, s_tpData.x, s_tpData.y);
++        fflush(sTouchLog);
++        sLastTx = tx;
++        sLastTy = ty;
++      }
++      if (!isMouseDown) sLastTx = sLastTy = -1;
+     } else {
+       s_tpData.validity = 0;
+       s_tpData.touch = 0;
+@@ -1302,7 +1314,7 @@ void *SIM_Render(void *arg) {
+       }
+       if (!((xy >> 10) & 1)) lit |= 1u << 2;
+       if (!((xy >> 11) & 1)) lit |= 1u << 3;
+-      SIM::GUI::DrawInputPanel((float)panelPxX, (float)viewY, (float)panelPxW, (float)viewHeight, lit);
++      SIM::GUI::DrawInputPanel((float)panelPxX, (float)viewTop, (float)panelPxW, (float)viewHeight, lit);
+     }
+ 
+     SIM_RendererPoll();
+diff --git a/libraries/sim/src/sim_screenquads.c b/libraries/sim/src/sim_screenquads.c
+index a3803eb..e1bcea6 100644
+--- a/libraries/sim/src/sim_screenquads.c
++++ b/libraries/sim/src/sim_screenquads.c
+@@ -329,21 +329,21 @@ static G3SIM_Vertex_t s_LargeScreenQuad[] = {
+         .t = 1.0f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+         .t = 0.5f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+         .t = 0.5f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+@@ -358,14 +358,14 @@ static G3SIM_Vertex_t s_LargeScreenQuad[] = {
+     },
+     // Bottom Screen
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 0.0f,
+         .t = 0.0f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 0.0f,
+         .z = 1.0f,
+         .s = 0.0f,
+@@ -393,7 +393,7 @@ static G3SIM_Vertex_t s_LargeScreenQuad[] = {
+         .t = 0.5f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 0.0f,
+         .z = 1.0f,
+         .s = 0.0f,
+@@ -418,21 +418,21 @@ static G3SIM_Vertex_t s_LargeScreenQuadSwapped[] = {
+         .t = 0.5f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+         .t = 0.0f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+         .t = 0.0f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 1.0f,
+         .z = 1.0f,
+         .s = 1.0f,
+@@ -447,14 +447,14 @@ static G3SIM_Vertex_t s_LargeScreenQuadSwapped[] = {
+     },
+     //Top Screen
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = -1.0f,
+         .z = 1.0f,
+         .s = 0.0f,
+         .t = 0.5f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 0.0f,
+         .z = 1.0f,
+         .s = 0.0f,
+@@ -482,7 +482,7 @@ static G3SIM_Vertex_t s_LargeScreenQuadSwapped[] = {
+         .t = 1.0f,
+     },
+     {
+-        .x = 0.33f,
++        .x = 0.33333334f,
+         .y = 0.0f,
+         .z = 1.0f,
+         .s = 0.0f,

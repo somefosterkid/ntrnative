@@ -1,0 +1,29 @@
+    .text       start:0x021d4240 end:0x021d6330 kind:code align:32
+    .rodata     start:0x021d6330 end:0x021d6558 kind:rodata align:4
+    .ctor       start:0x021d6558 end:0x021d6558 kind:rodata align:4
+    .data       start:0x021d6560 end:0x021d6640 kind:data align:32
+    .bss        start:0x021d6640 end:0x021d6660 kind:bss align:32
+
+src/ov115/wifilogin_disp.c:
+    complete
+    .text       start:0x021d4d38 end:0x021d5984
+    .rodata     start:0x021d6344 end:0x021d6544
+    .data       start:0x021d65d4 end:0x021d6628
+
+src/ov115/wifilogin_message.c:
+    complete
+    .text       start:0x021d5984 end:0x021d603c
+    .rodata     start:0x021d6544 end:0x021d654c
+    .data       start:0x021d6628 end:0x021d6640
+
+src/ov115/wifilogout.c:
+    complete
+    .text       start:0x021d603c end:0x021d6330
+    .rodata     start:0x021d654c end:0x021d6558
+
+src/ov115/wifilogin.c:
+    complete
+    .text       start:0x021d4240 end:0x021d4d38
+    .rodata     start:0x021d6330 end:0x021d6344
+    .data       start:0x021d6560 end:0x021d65d4
+    .bss        start:0x021d6640 end:0x021d6660

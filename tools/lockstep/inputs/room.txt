@@ -1,0 +1,2 @@
+# room: to the stairs
+up*f16@f10 up*f16@f30 right*f16@f50 right*f16@f70 right*f16@f90 right*f16@f110 right*f16@f130 up*f16@f150 up*f16@f170 right*f16@f190 right*f16@f210

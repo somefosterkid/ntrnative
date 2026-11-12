@@ -1,0 +1,159 @@
+// Black's code at ov204 0x021bf094: the intro's scripts and their table (pokebw2's intro_script.c, with Black's
+// scripts). The messages are those of the system message file 44, and the professor's sprite changes frames while
+// she talks. Word 0 is the player's name.
+
+#include "types.h"
+#include "constants/sound.h"
+#include "constants/species.h"
+#include "demo/intro.h"
+#include "demo/intro_script.h"
+#include "gfl/fade.h"
+#include "nitro/fx/fx.h"
+#include "nitro/fx/fx_const.h"
+
+static const IntroCmdEntry data_ov204_021c0020[] = {
+    { INTRO_CMD_LOAD_GRAPHICS, { FALSE }, TRUE },
+    { INTRO_CMD_LOAD_MESSAGES, { TRUE, 44 }, TRUE },
+    { INTRO_CMD_GOTO_MODE_SCRIPT },
+};
+
+static const IntroCmdEntry data_ov204_021c0248[] = {
+    { INTRO_CMD_ADD_SPRITE, { INTRO_SPRITE_PROFESSOR, 0, 0, FX32_CONST(5.628) }, TRUE },
+    { INTRO_CMD_ADD_SPRITE, { INTRO_SPRITE_POKEMON, SPECIES_MINCCINO, FX32_CONST(-5), FX32_CONST(-0.5) }, TRUE },
+    { INTRO_CMD_SET_SPRITE_VISIBLE, { INTRO_SPRITE_POKEMON, FALSE } },
+    { INTRO_CMD_SAVE_START },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, 16, 0, 2 } },
+    { INTRO_CMD_BGM_PLAY, { SEQ_BGM_STARTING2 }, TRUE },
+    { INTRO_CMD_WAIT_BGM_PLAYING },
+    { INTRO_CMD_TALK, { 6, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_TALK, { 7, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_POKEMON } },
+};
+
+static const IntroCmdEntry data_ov204_021c0008[] = {
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_POKEMON } },
+};
+
+static const IntroCmdEntry data_ov204_021c0728[] = {
+    { INTRO_CMD_CLEAR_MESSAGE },
+    { INTRO_CMD_CLEAR_SPRITE_ANIMATION_ENDED, { INTRO_SPRITE_PROFESSOR } },
+    { INTRO_CMD_MOVE_SPRITE_X, { INTRO_SPRITE_PROFESSOR, FX32_CONST(0.2), FX32_CONST(8) } },
+    { INTRO_CMD_WAIT_SPRITE_ANIMATION, { INTRO_SPRITE_PROFESSOR } },
+    { INTRO_CMD_SET_SPRITE_ANIMATION, { INTRO_SPRITE_PROFESSOR, 2, TRUE } },
+    { INTRO_CMD_WAIT, { 52 } },
+    { INTRO_CMD_SE_PLAY, { SEQ_SE_NAGERU } },
+    { INTRO_CMD_WAIT, { 60 } },
+    { INTRO_CMD_SE_PLAY, { SEQ_SE_KON } },
+    { INTRO_CMD_WAIT, { 26 } },
+    { INTRO_CMD_SET_SPRITE_ANIMATION, { INTRO_SPRITE_PROFESSOR, 1, FALSE } },
+    { INTRO_CMD_SE_PLAY, { SEQ_SE_BOWA2 }, TRUE },
+    { INTRO_CMD_SET_SPRITE_VISIBLE, { INTRO_SPRITE_POKEMON, TRUE }, TRUE },
+    { INTRO_CMD_PARTICLES, { FX32_CONST(-0.4), FX32_CONST(0.5) }, TRUE },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, -16, 0, 6 } },
+    // The handler doesn't read its argument
+    { INTRO_CMD_POKEMON_APPEAR, { 610 } },
+    { INTRO_CMD_TALK, { 8, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_TALK, { 9, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_ABOUT_YOU } },
+};
+
+static const IntroCmdEntry data_ov204_021c01a0[] = {
+    { INTRO_CMD_FADE_SPRITE, { INTRO_SPRITE_POKEMON, FALSE } },
+    { INTRO_CMD_CLEAR_SPRITE_ANIMATION_ENDED, { INTRO_SPRITE_PROFESSOR } },
+    { INTRO_CMD_MOVE_SPRITE_X, { INTRO_SPRITE_PROFESSOR, FX32_CONST(-0.2), 0 } },
+    { INTRO_CMD_SET_SPRITE_ANIMATION, { INTRO_SPRITE_PROFESSOR, 1, FALSE } },
+    { INTRO_CMD_TALK, { 10, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_FADE_SPRITE, { INTRO_SPRITE_PROFESSOR, FALSE } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_GENDER } },
+};
+
+static const IntroCmdEntry data_ov204_021c0338[] = {
+    { INTRO_CMD_SET_MODEL_VISIBLE, { TRUE }, TRUE },
+    { INTRO_CMD_OPEN_MODEL },
+    { INTRO_CMD_TALK, { 11, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_CHOOSE_GENDER },
+    { INTRO_CMD_IF, { INTRO_COND_PLAYER_IS_MALE } },
+    { INTRO_CMD_TALK, { 12, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_TALK, { 13, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_YES_NO, { 19, 20, 1 } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_ASK_NAME } },
+    { INTRO_CMD_MODEL_BACK },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_GENDER } },
+};
+
+static const IntroCmdEntry data_ov204_021c0128[] = {
+    { INTRO_CMD_SET_RESULT, { INTRO_RESULT_ENTER_NAME } },
+    { INTRO_CMD_TALK, { 16, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_SAVE_PAUSE },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, 0, 16, 2 } },
+    { INTRO_CMD_END },
+};
+
+static const IntroCmdEntry data_ov204_021c0440[] = {
+    { INTRO_CMD_LOAD_GRAPHICS, { TRUE }, TRUE },
+    { INTRO_CMD_CREATE_OBJ },
+    { INTRO_CMD_ADD_SPRITE, { INTRO_SPRITE_PROFESSOR, 0, 0, FX32_CONST(5.628) }, TRUE },
+    { INTRO_CMD_SAVE_RESUME },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, 16, 0, 2 } },
+    { INTRO_CMD_SET_WORD, { INTRO_WORD_PLAYER_NAME, 0 }, TRUE },
+    { INTRO_CMD_IF, { INTRO_COND_PLAYER_IS_MALE } },
+    { INTRO_CMD_TALK, { 17, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_TALK, { 18, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_WAIT, { 1 } },
+    { INTRO_CMD_YES_NO, { 19, 20, 1 } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_FAREWELL } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_RENAME_PLAYER } },
+};
+
+static const IntroCmdEntry data_ov204_021c0068[] = {
+    { INTRO_CMD_SET_RESULT, { INTRO_RESULT_ENTER_NAME } },
+    { INTRO_CMD_SAVE_PAUSE },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, 0, 16, 2 } },
+    { INTRO_CMD_END },
+};
+
+static const IntroCmdEntry data_ov204_021c0578[] = {
+    { INTRO_CMD_SET_RESULT, { INTRO_RESULT_DONE } },
+    { INTRO_CMD_TALK, { 21, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_TALK, { 22, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_FADE_SPRITE, { INTRO_SPRITE_PROFESSOR, FALSE } },
+    { INTRO_CMD_OPEN_BAND },
+    { INTRO_CMD_OBJ_FADE_IN, { 1 } },
+    { INTRO_CMD_TALK, { 23, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_OBJ_FADE_IN, { 2 } },
+    { INTRO_CMD_TALK, { 24, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_OBJ_FADE_IN, { 0 } },
+    { INTRO_CMD_TALK, { 25, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_OBJ_FADE_OUT },
+    { INTRO_CMD_CLOSE_BAND },
+    { INTRO_CMD_FADE_SPRITE, { INTRO_SPRITE_PROFESSOR, TRUE } },
+    { INTRO_CMD_SAVE_43 },
+    { INTRO_CMD_SAVE_WAIT },
+    { INTRO_CMD_TALK, { 26, INTRO_SPRITE_PROFESSOR, 1 } },
+    { INTRO_CMD_GOTO, { INTRO_SCRIPT_FINISH } },
+};
+
+static const IntroCmdEntry data_ov204_021c00c8[] = {
+    { INTRO_CMD_BGM_FADE_OUT, { 60 } },
+    { INTRO_CMD_FADE, { FADE_ENGINE_A_BLACK | FADE_ENGINE_B_BLACK, 0, 16, 6 } },
+    { INTRO_CMD_FREE_OBJ },
+    { INTRO_CMD_END },
+};
+
+static const IntroCmdEntry *sScripts[INTRO_SCRIPT_COUNT] = {
+    [INTRO_SCRIPT_BEGIN] = data_ov204_021c0020,
+    [INTRO_SCRIPT_START] = data_ov204_021c0248,
+    [INTRO_SCRIPT_SKIP_GREETING] = data_ov204_021c0008,
+    [INTRO_SCRIPT_POKEMON] = data_ov204_021c0728,
+    [INTRO_SCRIPT_ABOUT_YOU] = data_ov204_021c01a0,
+    [INTRO_SCRIPT_GENDER] = data_ov204_021c0338,
+    [INTRO_SCRIPT_ASK_NAME] = data_ov204_021c0128,
+    [INTRO_SCRIPT_PLAYER_NAMED] = data_ov204_021c0440,
+    [INTRO_SCRIPT_RENAME_PLAYER] = data_ov204_021c0068,
+    [INTRO_SCRIPT_FAREWELL] = data_ov204_021c0578,
+    [INTRO_SCRIPT_FINISH] = data_ov204_021c00c8,
+};
+
+const IntroCmdEntry *func_ov204_021bf094(u32 script) {
+    return sScripts[script];
+}

@@ -1,0 +1,69 @@
+bw-port: the 3D renderer row says how Fast draws, or why it cannot. Renderer3D=fast now draws on GL too (port/gpu
+g10_fast_gl.c: framebuffer fetch on GLES and Mesa, fragment interlock or INTEL ordering on desktop GL 4.5; docs/gpu-hwraster.md
+"GL"), so the bridge reports what the core found at the first frame that wanted it: SIM_Renderer3DFast(ok, how) (port/bridge
+gpu_bridge.c), read back by SIM_Renderer3DFastState(&how) (the iOS sheet and the Android screen) and SIM_UISettingGet("fast3d")
+(1 drawn, 0 cannot, -1 not tried). The Video window's row: "Not on this GPU (why): the exact renderer draws", or on GL the way
+it draws ("OpenGL ES: framebuffer fetch"); the row's help no longer says Metal only.
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -551,6 +551,19 @@
+   return s_SIM_config.antialias == 3 ? 3 : s_SIM_config.antialias >= 2 ? 2 : 1;
+ }
+ extern "C" void SIM_RendererAAUsed(int k) { sAAUsed = k; }
++// bw-port (libntr-ios-fastgl.patch): Renderer3D=fast on the GPU renderer's core, as the bridge found it at the first frame that
++// wanted it: 1 it draws fast, 0 it cannot (the exact renderer draws), -1 not tried yet; how, or why not, in the core's words
++// ("Metal", "OpenGL ES: framebuffer fetch", "this GLES has no EXT_shader_framebuffer_fetch", ...: port/gpu gpu_fast_how)
++static int sFast3D = -1;
++static char sFast3DHow[200];
++extern "C" void SIM_Renderer3DFast(int ok, const char *how) {
++  snprintf(sFast3DHow, sizeof sFast3DHow, "%s", how != NULL ? how : "");
++  sFast3D = ok;
++}
++extern "C" int SIM_Renderer3DFastState(const char **how) {
++  if (how != NULL) *how = sFast3DHow;
++  return sFast3D;
++}
+ // bw-port (libntr-fx71.patch): the grid the 3D is drawn on: Resolution x k, k the Antialiasing lowered until the product is
+ // at most 8 (what both bridges do), or the k the bridge reported when that is lower
+ extern "C" int SIM_InternalScale(void) {
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -370,6 +370,7 @@
+ // bw-port (libntr-ios-metal.patch): Present=metal draws ImGui with Dear ImGui's Metal backend (port/src/imgui_impl_metal.mm, through
+ // port/src/metal_present.mm, which draws the draw data in the present's pass)
+ extern "C" int SIM_PresentMetal(void);
++extern "C" int SIM_Renderer3DFastState(const char **how); // libntr-ios-fastgl.patch (sim_main.cpp)
+ extern "C" const char *SIM_PresentName(void);   // "Metal: <GPU>" or GL_RENDERER (sim_main.cpp)
+ #if defined(__APPLE__)
+ extern "C" int bwport_mtl_imgui_init(void);
+@@ -727,13 +728,19 @@
+ #endif
+         // libntr-ios-fast3d.patch: the GPU renderer's 3D (docs/gpu-hwraster.md), applied at the next frame
+         FormRow("3D renderer", "Exact: the DS's 3D bit for bit. Fast: the GPU's own rasterizer, much cheaper, slightly off at polygon edges, "
+-                               "gradients and outlines. The GPU renderer with Metal only for now (else the exact renderer draws)");
++                               "gradients and outlines. The GPU renderer with Metal, or OpenGL with framebuffer fetch or fragment "
++                               "interlock (else the exact renderer draws)");
+         static const char * const R3Names[] = {"Exact (the DS)", "Fast (slightly off)"};
+         int r3 = c->gpuFast != 0;
+         if (ComboIndex("##renderer3d", &r3, R3Names, 2)) { c->gpuFast = (u8)r3; Dirty(); }
+-        if (r3 && !SIM_PresentMetal()) {
++        const char *how3 = "";
++        const int fast3 = SIM_Renderer3DFastState(&how3);   // libntr-ios-fastgl.patch: which way, or why not
++        if (r3 && fast3 == 0) {
+             FormRow("");
+-            ImGui::TextDisabled("Metal only for now: the exact renderer draws");
++            ImGui::TextDisabled("Not on this GPU (%s): the exact renderer draws", how3);
++        } else if (r3 && fast3 > 0 && !SIM_PresentMetal()) {
++            FormRow("");
++            ImGui::TextDisabled("%s", how3);
+         }
+         ImGui::EndTable();
+     }
+@@ -2734,6 +2741,7 @@
+     if (!strcmp(k, "smooth")) return c->interpolation != 0;
+     if (!strcmp(k, "filter")) return c->gpuFilter != 0;
+     if (!strcmp(k, "renderer3d")) return c->gpuFast != 0;   // libntr-ios-fast3d.patch: 0 exact, 1 fast
++    if (!strcmp(k, "fast3d")) return SIM_Renderer3DFastState(NULL);   // libntr-ios-fastgl.patch: 1 drawn, 0 cannot, -1 not tried
+     if (!strcmp(k, "line")) return c->gpuLine != 0;
+     if (!strcmp(k, "edge")) return c->gpuEdge != 0;
+     if (!strcmp(k, "speed")) return SpeedIndex() + 1;

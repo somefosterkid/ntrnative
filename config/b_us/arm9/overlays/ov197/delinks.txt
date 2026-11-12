@@ -1,0 +1,36 @@
+    .text       start:0x0220b120 end:0x0220da08 kind:code align:32
+    .rodata     start:0x0220da08 end:0x0220e0c8 kind:rodata align:4
+    .ctor       start:0x0220e0c8 end:0x0220e0c8 kind:rodata align:4
+    .data       start:0x0220e0e0 end:0x0220e100 kind:data align:32
+    .bss        start:0x0220e100 end:0x0220e100 kind:bss align:32
+
+src/ov197/b_bag_ui.c:
+    complete
+    .text       start:0x0220d8c4 end:0x0220da08
+    .rodata     start:0x0220df90 end:0x0220e0c8
+
+src/ov197/b_bag_item.c:
+    complete
+    .text       start:0x0220b9a4 end:0x0220bbe4
+    .rodata     start:0x0220db3c end:0x0220db44
+
+src/ov197/b_bag_anm.c:
+    complete
+    .text       start:0x0220bbe4 end:0x0220c034
+    .rodata     start:0x0220db44 end:0x0220db7c
+
+src/ov197/b_bag_obj.c:
+    complete
+    .text       start:0x0220c034 end:0x0220c834
+    .rodata     start:0x0220db7c end:0x0220deb0
+
+src/ov197/b_bag_main.c:
+    complete
+    .text       start:0x0220c834 end:0x0220d8c4
+    .rodata     start:0x0220deb0 end:0x0220df90
+    .data       start:0x0220e0e0 end:0x0220e100
+
+src/ov197/b_bag_bmp.c:
+    complete
+    .text       start:0x0220b120 end:0x0220b9a4
+    .rodata     start:0x0220da08 end:0x0220db3c

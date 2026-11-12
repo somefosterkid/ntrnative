@@ -1,0 +1,27 @@
+PlasmaFrigateLights_Init kind:function(thumb,size=0x28) addr:0x021eec80
+PlasmaFrigateLights_End kind:function(thumb,size=0x18) addr:0x021eeca8
+PlasmaFrigateLights_Update kind:function(thumb,size=0xe) addr:0x021eecc0
+PlasmaFrigateLights_ShowSwitchState kind:function(thumb,size=0x3e) addr:0x021eecd0
+PlasmaFrigateLights_PlaySwitchAnim kind:function(thumb,size=0x24) addr:0x021eed10
+PlasmaFrigateLights_PlayLightAnim kind:function(thumb,size=0x24) addr:0x021eed34
+PlasmaFrigateLights_LoadScene kind:function(thumb,size=0xa8) addr:0x021eed58
+PlasmaFrigateLights_FreeScene kind:function(thumb,size=0xc) addr:0x021eee00
+PlasmaFrigateLights_StepAnimations kind:function(thumb,size=0xc) addr:0x021eee0c
+PlasmaFrigateLights_InitModel kind:function(thumb,size=0x86) addr:0x021eee18
+PlasmaFrigateLights_PlayAnimation kind:function(thumb,size=0x4c) addr:0x021eeea0
+PlasmaFrigateLights_StopAnimation kind:function(thumb,size=0x38) addr:0x021eeeec
+PlasmaFrigateLights_PlaySwitchSecond kind:function(thumb,size=0x20) addr:0x021eef24
+PlasmaFrigateLights_ShowSwitchFirstEnd kind:function(thumb,size=0x4a) addr:0x021eef44
+PlasmaFrigateLights_ShowSwitchSecondEnd kind:function(thumb,size=0x46) addr:0x021eef90
+PlasmaFrigateLights_PlayLightSecond kind:function(thumb,size=0x14) addr:0x021eefd8
+PlasmaFrigateLights_ShowLightSecondEnd kind:function(thumb,size=0x48) addr:0x021eefec
+PlasmaFrigateLights_LoopLightFirst kind:function(thumb,size=0x22) addr:0x021ef034
+sLightAnimations kind:data(any) addr:0x021ef058
+sSwitchAnimations kind:data(any) addr:0x021ef060
+sSceneSetup kind:data(any) addr:0x021ef068
+data_ov119_021ef078 kind:data(any) addr:0x021ef078
+data_ov119_021ef0a8 kind:data(any) addr:0x021ef0a8
+sResources kind:data(any) addr:0x021ef0d8
+data_ov119_021ef0f5 kind:data(any) addr:0x021ef0f5 ambiguous
+data_ov119_021ef105 kind:data(any) addr:0x021ef105 ambiguous
+sActors kind:data(any) addr:0x021ef120

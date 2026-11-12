@@ -1,0 +1,31 @@
+diff --git a/libraries/fs/src/fs_archive_fatfs.c b/libraries/fs/src/fs_archive_fatfs.c
+index c1a2a02..d9e0fe9 100644
+--- a/libraries/fs/src/fs_archive_fatfs.c
++++ b/libraries/fs/src/fs_archive_fatfs.c
+@@ -143,6 +143,13 @@ const u16 *FSiPathInvalidCharactersW = (u16 *)":*?\"<>|";
+ 
+ static int FSiSwitchableWramSlots = 0;
+ 
++#ifndef SDK_BUILD_ARM
++// OS_MOUNT_INFO_MAX is a difference of two HW_MAIN_MEM addresses, which on PC are a variable's: gcc folds it to
++// a constant, clang won't (a file-scope array, a static initializer). The same 11 as a constant.
++#undef FS_MOUNTDRIVE_MAX
++#define FS_MOUNTDRIVE_MAX ((size_t)((0x00ffdfc0 - 0x00ffdc00) / sizeof(OSMountInfo)))
++#endif
++
+ #ifdef SDK_BUILD_ARM
+ static FSFATFSArchiveContext
+     FSiFATFSDriveDefault[FS_MOUNTDRIVE_MAX] ATTRIBUTE_ALIGN(32);
+diff --git a/libraries/fs/src/fs_file.c b/libraries/fs/src/fs_file.c
+index b5b6523..ba0b0f2 100644
+--- a/libraries/fs/src/fs_file.c
++++ b/libraries/fs/src/fs_file.c
+@@ -1,5 +1,8 @@
+ #if SDK_VERSION_MAJOR == 5
+ #include <nitro/types.h>
++#ifdef SDK_PORT
++#include <ctype.h> // tolower (clang: an undeclared library function is an error)
++#endif
+ #include <nitro/misc.h>
+ #endif
+ #include <nitro/mi.h>

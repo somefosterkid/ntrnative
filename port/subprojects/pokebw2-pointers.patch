@@ -1,0 +1,1778 @@
+pokebw2-pointers.patch (tools/pokebw2_fetch.sh, the maintainers' notes): every cast of a pointer to u32 or s32 that clang
+reports (-Wpointer-to-int-cast) as a uintptr_t or intptr_t cast: 192 sites, made by the column clang gives. Never worse
+than before (a result stored in a u32 is cut as it was) and right wherever the address is computed on and cast back
+(the heap alignments `(void *)(((u32)p + 0x1f) & ~0x1f)` in dwc_rapcommon.c crashed the boot). What still holds a
+pointer in a u32 (about 130 casts from a u32 to a pointer, the maintainers' notes) needs its type changed, file by file.
+
+diff --git a/src/gfl/bg_sys.c b/src/gfl/bg_sys.c
+index f41c056cd..94076c790 100644
+--- a/src/gfl/bg_sys.c
++++ b/src/gfl/bg_sys.c
+@@ -464,7 +464,7 @@ static void GFL_BGSysTransferUncomp(const void *src, void *dest, u32 size) {
+         MI_UncompressLZ8(src, dest);
+         return;
+     }
+-    if ((u32)src % 4 == 0 && (u32)dest % 4 == 0 && (u16)size % 4 == 0) {
++    if ((uintptr_t)src % 4 == 0 && (uintptr_t)dest % 4 == 0 && (u16)size % 4 == 0) {
+         MIi_CpuCopy32(src, dest, size);
+         return;
+     }
+diff --git a/src/gfl/bmp.c b/src/gfl/bmp.c
+index 0dd8a15f6..3b88a661b 100644
+--- a/src/gfl/bmp.c
++++ b/src/gfl/bmp.c
+@@ -380,7 +380,7 @@ static void GFL_BitmapCopyArea_IDX4_VRAM(const GFLBitmap *src, GFLBitmap *dest,
+                 if (dx >= 0 && dy >= 0) {
+                     srcPixel = PIXEL_ADDR_16(src->pixels, sx, sy, srcTilesX);
+                     destPixels = (u16 *)PIXEL_ADDR_16(dest->pixels, dx, dy, destTilesX);
+-                    if ((u32)destPixels & 1) {
++                    if ((uintptr_t)destPixels & 1) {
+                         destPixels = (u16 *)((u8 *)destPixels - 1);
+                         odd = TRUE;
+                     } else {
+@@ -404,7 +404,7 @@ static void GFL_BitmapCopyArea_IDX4_VRAM(const GFLBitmap *src, GFLBitmap *dest,
+                 if (dx >= 0 && dy >= 0) {
+                     srcPixel = PIXEL_ADDR_16(src->pixels, sx, sy, srcTilesX);
+                     destPixels = (u16 *)PIXEL_ADDR_16(dest->pixels, dx, dy, destTilesX);
+-                    if ((u32)destPixels & 1) {
++                    if ((uintptr_t)destPixels & 1) {
+                         destPixels = (u16 *)((u8 *)destPixels - 1);
+                         odd = TRUE;
+                     } else {
+@@ -459,7 +459,7 @@ static void GFL_BitmapCopyArea_IDX8_VRAM(const GFLBitmap *src, GFLBitmap *dest,
+                 if (dx >= 0 && dy >= 0) {
+                     srcPixel = PIXEL_ADDR_256(src->pixels, sx, sy, srcTilesX);
+                     destPixel = PIXEL_ADDR_256(dest->pixels, dx, dy, destTilesX);
+-                    if ((u32)destPixel & 1) {
++                    if ((uintptr_t)destPixel & 1) {
+                         destPixel--;
+                         pixels = (srcPixel[0] << 8) | srcPixel[-1];
+                     } else {
+@@ -475,7 +475,7 @@ static void GFL_BitmapCopyArea_IDX8_VRAM(const GFLBitmap *src, GFLBitmap *dest,
+                 if (dx >= 0 && dy >= 0) {
+                     srcPixel = PIXEL_ADDR_256(src->pixels, sx, sy, srcTilesX);
+                     destPixel = PIXEL_ADDR_256(dest->pixels, dx, dy, destTilesX);
+-                    if ((u32)destPixel & 1) {
++                    if ((uintptr_t)destPixel & 1) {
+                         destPixel--;
+                         pixels = (srcPixel[0] << 8) | srcPixel[-1];
+                     } else {
+@@ -567,7 +567,7 @@ static void GFL_BitmapFillArea_IDX4_VRAM(GFLBitmap *bitmap, s16 x, s16 y, u16 wi
+         for (i = x; i < xEnd; i++) {
+             if (i >= 0 && j >= 0) {
+                 pixels = (u16 *)PIXEL_ADDR_16(bitmap->pixels, i, j, tilesX);
+-                if ((u32)pixels & 1) {
++                if ((uintptr_t)pixels & 1) {
+                     pixels = (u16 *)((u8 *)pixels - 1);
+                     odd = TRUE;
+                 } else {
+diff --git a/src/gfl/heapsys.c b/src/gfl/heapsys.c
+index 148a02047..4ec1c46a6 100644
+--- a/src/gfl/heapsys.c
++++ b/src/gfl/heapsys.c
+@@ -348,7 +348,7 @@ u32 GFL_HeapGetSize(HeapID heapId) {
+             void *end = heap->heapEnd;
+ 
+             sHeapMgr.lastResult = HEAP_RESULT_OK;
+-            return (u32)end - (u32)heap;
++            return (uintptr_t)end - (uintptr_t)heap;
+         }
+     }
+     return 0;
+diff --git a/src/gfl/net.c b/src/gfl/net.c
+index 4b231b445..12a53e88b 100644
+--- a/src/gfl/net.c
++++ b/src/gfl/net.c
+@@ -593,7 +593,7 @@ void GFL_NetSetDisconnectError(BOOL a0) {
+ // Allocates 32-byte aligned memory, keeping the allocation just before it for GFL_NetFreeAligned32
+ void *allocConfigDSSoftwareFeature(HeapID heapId, u32 size, const char *file, u16 line) {
+     void *mem = GFL_HeapAllocate(heapId, ((size + sizeof(void *) + 32) & ~31) + 32, TRUE, file, line);
+-    void **aligned = (void **)(((u32)mem + 32) & ~31);
++    void **aligned = (void **)(((uintptr_t)mem + 32) & ~31);
+ 
+     aligned[-1] = mem;
+     return aligned;
+diff --git a/src/gfl/net_state.c b/src/gfl/net_state.c
+index c2cbb70d3..1a180cbf2 100644
+--- a/src/gfl/net_state.c
++++ b/src/gfl/net_state.c
+@@ -212,7 +212,7 @@ static void NetState_StartScanForMac(NetState *state) {
+ 
+ void NetState_ConnectMac(const u8 *mac, BOOL scanFirst) {
+     // clang-format off
+-    GFL_ASSERT(((u32)_pNetState->aMacAddress%2)==0);
++    GFL_ASSERT(((uintptr_t)_pNetState->aMacAddress%2)==0);
+     // clang-format on
+     if (mac != NULL) {
+         MI_CpuCopy8(mac, _pNetState->aMacAddress, sizeof(_pNetState->aMacAddress));
+diff --git a/src/gfl/particle.c b/src/gfl/particle.c
+index a02c92d8c..e7876a7ce 100644
+--- a/src/gfl/particle.c
++++ b/src/gfl/particle.c
+@@ -191,7 +191,7 @@ void Particle_Free(void) {
+ // Takes size bytes of the system's work, rounded up to a word
+ static inline void *Particle_Alloc(ParticleSystem *system, u32 size) {
+     void *ret = system->work;
+-    u32 next = (u32)system->work + size;
++    u32 next = (uintptr_t)system->work + size;
+ 
+     if (next % 4 != 0) {
+         next += 4 - next % 4;
+diff --git a/src/ov011/dwc_rapcommon.c b/src/ov011/dwc_rapcommon.c
+index ff6ca4060..37758dd8d 100644
+--- a/src/ov011/dwc_rapcommon.c
++++ b/src/ov011/dwc_rapcommon.c
+@@ -55,7 +55,7 @@ void DWCRapCommon_SetSubHeapEx(u32 name, u32 size, u32 minSize, HeapID heapId) {
+ 
+     pDwcRapWork->heapPtrSub = GFL_HeapAllocate(heapId, size - 0x80, FALSE, "dwc_rapcommon.c", 98);
+     pDwcRapWork->headHandleSub =
+-        NNS_FndCreateExpHeapEx((void *)(((u32)pDwcRapWork->heapPtrSub + 0x1f) & ~0x1f), size - 0xc0, 0);
++        NNS_FndCreateExpHeapEx((void *)(((uintptr_t)pDwcRapWork->heapPtrSub + 0x1f) & ~0x1f), size - 0xc0, 0);
+     pDwcRapWork->subName = name;
+     NNS_FndSetAllocModeForExpHeap(pDwcRapWork->headHandleSub, 1);
+     NNS_FndSetGroupIDForExpHeap(pDwcRapWork->headHandleSub, DWCRAP_SUB_HEAP_GROUP_ID);
+@@ -142,7 +142,7 @@ void DWCRapCommon_Create(HeapID heapId, u32 size) {
+ 
+     pDwcRapWork = GFL_HeapAllocate(0, sizeof(DWCRapCommonWork), TRUE, "dwc_rapcommon.c", 332);
+     pDwcRapWork->heapPtr = GFL_HeapAllocate(heapId, size - 0x80, FALSE, "dwc_rapcommon.c", 333);
+-    pDwcRapWork->heap = NNS_FndCreateExpHeapEx((void *)(((u32)pDwcRapWork->heapPtr + 0x1f) & ~0x1f), size - 0xc0, 0);
++    pDwcRapWork->heap = NNS_FndCreateExpHeapEx((void *)(((uintptr_t)pDwcRapWork->heapPtr + 0x1f) & ~0x1f), size - 0xc0, 0);
+     pDwcRapWork->subHeapId = 0;
+ }
+ 
+diff --git a/src/ov012/event_battle.c b/src/ov012/event_battle.c
+index e9404a188..7f1e7df69 100644
+--- a/src/ov012/event_battle.c
++++ b/src/ov012/event_battle.c
+@@ -415,7 +415,7 @@ GameEvent *LoadTradedPokemonBattleStats(GameSystem *gsys, Field *field, u32 styl
+             PokeParty_SetParam(pkm, 0x71, TRUE);
+             PokeParty_SetParam(pkm, PKM_PARAM_ABILITY, TradedPokemonSave_GetAbility(block, index));
+         }
+-        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)TradedPokemonSave_GetNickname(block, index));
++        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)TradedPokemonSave_GetNickname(block, index));
+         setChangedPkmSpecies(pkm, (u16)species);
+         PokeParty_SetDefaultMoves(pkm);
+     }
+diff --git a/src/ov012/fld_btl_inst_tool.c b/src/ov012/fld_btl_inst_tool.c
+index 656879b52..2dab5609a 100644
+--- a/src/ov012/fld_btl_inst_tool.c
++++ b/src/ov012/fld_btl_inst_tool.c
+@@ -452,7 +452,7 @@ static void genSubwayBtlInstitutePoke(const BSubwayPokemon *src, PartyPkm *pkm,
+     }
+     nickname[i - 1] = terminator;
+     GFL_StrBufLoadString(strbuf, nickname);
+-    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)strbuf);
++    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)strbuf);
+     GFL_StrBufFree(strbuf);
+     PokeParty_SetParam(pkm, PKM_PARAM_REGION, src->region);
+     PokeParty_SetParam(pkm, PKM_PARAM_LEVEL, PokeParty_GetLevel(pkm));
+diff --git a/src/ov012/game_beacon_set.c b/src/ov012/game_beacon_set.c
+index 92ed2c4c5..c0f036a6d 100644
+--- a/src/ov012/game_beacon_set.c
++++ b/src/ov012/game_beacon_set.c
+@@ -575,7 +575,7 @@ static void GameBeacon_FillThanks(GameBeacon *info, GameData *gameData, u16 valu
+ 
+ void GameBeacon_BroadcastPhrase(StrBuf *name, u8 value) {
+     if (GameBeaconSys_AddMissionScore(0x2d, 0)) {
+-        GameBeaconSendSlot_SetMissionEx(&GameBeaconSys->mine, 0x67, (u32)name, value);
++        GameBeaconSendSlot_SetMissionEx(&GameBeaconSys->mine, 0x67, (uintptr_t)name, value);
+     } else if (GameBeaconSys_CanSendType(0x31)) {
+         GameBeaconSendSlot_Reset(&GameBeaconSys->mine);
+         GameBeacon_FillPhrase(&GameBeaconSys->mine.beacon, name, value);
+diff --git a/src/ov012/scrcmd_pokemon.c b/src/ov012/scrcmd_pokemon.c
+index 4760cd04f..c14c8ca18 100644
+--- a/src/ov012/scrcmd_pokemon.c
++++ b/src/ov012/scrcmd_pokemon.c
+@@ -910,7 +910,7 @@ BOOL Scrcmd_Pokemon_PokePartyAddEgg(VM *vm, FieldScriptEnv *env) {
+     pkm = PokeParty_NewTempPkm(species, 1, (u64)-1, heapId);
+     PokeParty_SetParam(pkm, PKM_PARAM_FORM, form);
+     name = copyTrainerNameToNewStrbuf((const u16 *)GetGameDataPlayerInfo(gameData), heapId);
+-    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+     personal = PML_PersonalLoad(PokeParty_GetParam(pkm, PKM_PARAM_SPECIES, NULL),
+                                 PokeParty_GetParam(pkm, PKM_PARAM_FORM, NULL), heapId);
+@@ -919,7 +919,7 @@ BOOL Scrcmd_Pokemon_PokePartyAddEgg(VM *vm, FieldScriptEnv *env) {
+     PokeParty_SetParam(pkm, PKM_PARAM_HAPPINESS, cycles);
+     PokeParty_SetParam(pkm, PKM_PARAM_IS_EGG, 1);
+     name = GFL_MsgDataLoadStrbufNew(g_PMLSpeciesNamesResident, SPECIES_EGG);
+-    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+     PokeParty_RecalcStats(pkm);
+     PokeParty_SetupMetData(pkm, 5, playerInfo, 0xea63, heapId);
+diff --git a/src/ov012/script_plugin.c b/src/ov012/script_plugin.c
+index 7726a0daf..680689eed 100644
+--- a/src/ov012/script_plugin.c
++++ b/src/ov012/script_plugin.c
+@@ -103,7 +103,7 @@ u32 GetCurrentScrPluginCmdCount(GameData *gameData) {
+         return 0;
+     }
+     count = 0;
+-    while ((u32)GetCurrentScrPluginTable(gameData)[count] != (u32)-1) {
++    while ((uintptr_t)GetCurrentScrPluginTable(gameData)[count] != (u32)-1) {
+         count++;
+     }
+     return count;
+diff --git a/src/ov012/script_sys.c b/src/ov012/script_sys.c
+index c099e5aba..4dd7921a6 100644
+--- a/src/ov012/script_sys.c
++++ b/src/ov012/script_sys.c
+@@ -564,7 +564,7 @@ VM *FieldScript_CreateVM(HeapID heapId, ScriptWork *work, u16 zoneId, u16 script
+     vm = VM_Create(heapId, &param);
+     VM_ChangeEnv(vm, env);
+     scriptOffset = FieldScript_ResolveSCRID(zoneId, scriptId, &fileId, &msgArcId, &msgFileNo);
+-    vm->scriptData = (u32)FieldScript_LoadData(fileId, heapId);
++    vm->scriptData = (uintptr_t)FieldScript_LoadData(fileId, heapId);
+     workSize -= 0x41;
+     if (!reduced && msgFileNo != workSize) {
+         SetFieldScriptEnvMsgData(env, msgArcId, msgFileNo);
+diff --git a/src/ov023/event_pokewood.c b/src/ov023/event_pokewood.c
+index 30907a981..ab37d15f9 100644
+--- a/src/ov023/event_pokewood.c
++++ b/src/ov023/event_pokewood.c
+@@ -497,7 +497,7 @@ static void EventPokewood_InitTitleParam(PokewoodTitleParam *title, BtlSetup *se
+     MsgData *msgData;
+ 
+     BattleRec_LoadToolOverlay();
+-    Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0, (u32)pkm);
++    Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0, (uintptr_t)pkm);
+     species = PokeParty_GetParam(pkm, PKM_PARAM_SPECIES, NULL);
+     msgData = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_SPECIES_NAMES, HEAPID_TAIL(HEAPID_GAMEEVENT));
+     GFL_MsgDataLoadStrbuf(msgData, species, name);
+@@ -1108,7 +1108,7 @@ static void EventPokewood_ShowCastNames(BtlSetup *setup, HeapID heapId) {
+                     member->shownSpecies <= POKEWOOD_CAST_SPECIES_LAST) {
+                     StrBuf *name = GFL_MsgDataLoadStrbufNew(msgData, member->shownSpecies - POKEWOOD_CAST_MSG_OFFSET);
+ 
+-                    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)name);
++                    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+                     GFL_StrBufFree(name);
+                 }
+             }
+diff --git a/src/ov033/fld_trade.c b/src/ov033/fld_trade.c
+index aa4843d96..6d4c9f5fa 100644
+--- a/src/ov033/fld_trade.c
++++ b/src/ov033/fld_trade.c
+@@ -86,7 +86,7 @@ void EventFieldTrade_CreatePkm(GameData *gameData, HeapID heapId, PartyPkm *pkm,
+     EventFieldTrade_DebugLogPkm(pkm);
+ 
+     name = FieldTradeInput_LoadName(heapId, offer->nicknameMessageId);
+-    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+ 
+     if (offer->ivs[0] != 0xff) {
+@@ -122,7 +122,7 @@ void EventFieldTrade_CreatePkm(GameData *gameData, HeapID heapId, PartyPkm *pkm,
+     PokeParty_SetParam(pkm, PKM_PARAM_ITEM, offer->heldItem);
+ 
+     name = FieldTradeInput_LoadName(heapId, offer->nameMessageId);
+-    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+     PokeParty_SetParam(pkm, PKM_PARAM_OT_GENDER, offer->trainerGender);
+     PokeParty_SetParam(pkm, PKM_PARAM_REGION, offer->region);
+diff --git a/src/ov034/union_msg.c b/src/ov034/union_msg.c
+index fe5f336d8..8631702a3 100644
+--- a/src/ov034/union_msg.c
++++ b/src/ov034/union_msg.c
+@@ -789,11 +789,11 @@ u32 UnionMsg_UpdateRuleMenu(UnionSystem *unisys, BOOL *picked, u8 *ruleSel, BOOL
+     }
+ 
+     if (ruleSel[3] == UNION_RULE_MENU_PLAYERS) {
+-        if (ret == (u32)sMenuTwo) {
++        if (ret == (uintptr_t)sMenuTwo) {
+             if (ruleSel[0] == 4) {
+                 ruleSel[0] = 0;
+             }
+-        } else if (ret == (u32)sMenuFour) {
++        } else if (ret == (uintptr_t)sMenuFour) {
+             ruleSel[0] = 4;
+         }
+     }
+diff --git a/src/ov034/union_oneself.c b/src/ov034/union_oneself.c
+index 492190b87..774093544 100644
+--- a/src/ov034/union_oneself.c
++++ b/src/ov034/union_oneself.c
+@@ -206,8 +206,8 @@ static void UnionOneself_CheckParentEntry(UnionSystem *unisys, UnionBeaconEntry
+         OS_GetMacAddress(ownMac);
+         if (GFL_STD_MemCmp(entry, ownMac, 6) == 0 &&
+             UnionOneself_SetNextStepIfRunning(unisys, UNION_STEP_ASKED) == TRUE) {
+-            UnionComm_SetSelf(unisys, UNION_SELF_ANSWER, (u32)entry);
+-            UnionComm_SetSelf(unisys, UNION_SELF_TARGET, (u32)entry);
++            UnionComm_SetSelf(unisys, UNION_SELF_ANSWER, (uintptr_t)entry);
++            UnionComm_SetSelf(unisys, UNION_SELF_TARGET, (uintptr_t)entry);
+         }
+     }
+ }
+@@ -460,10 +460,10 @@ static BOOL UnionOneself_StepIdleRun(UnionSystem *unisys, UnionSelf *situ, Field
+         }
+         situ->mycomm.targetActorId = id;
+         entryIndex = UnionOneself_GetEntryIndex(id);
+-        UnionComm_SetSelf(unisys, UNION_SELF_TARGET, (u32)&unisys->found[entryIndex]);
++        UnionComm_SetSelf(unisys, UNION_SELF_TARGET, (uintptr_t)&unisys->found[entryIndex]);
+         if (UnionOneself_IsMemberId(id) == UNION_ACTOR_PARENT) {
+             if (unisys->found[entryIndex].beacon.activity == 0) {
+-                UnionComm_SetSelf(unisys, UNION_SELF_ASKED, (u32)&unisys->found[entryIndex]);
++                UnionComm_SetSelf(unisys, UNION_SELF_ASKED, (uintptr_t)&unisys->found[entryIndex]);
+                 UnionOneself_SetNextStep(unisys, UNION_STEP_ASK);
+             } else {
+                 UnionOneself_SetNextStep(unisys, UNION_STEP_ANSWER);
+@@ -641,7 +641,7 @@ static BOOL UnionOneself_StepAskRun(UnionSystem *unisys, UnionSelf *situ, Field
+             } else if (UnionMain_SendConnectReply(1) == TRUE) {
+                 GFL_SndSEPlay(SEQ_SE_SYS_101);
+                 UnionOneself_SetNextStep(unisys, UNION_STEP_PARENT);
+-                UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (u32)situ->mycomm.asked);
++                UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (uintptr_t)situ->mycomm.asked);
+                 UnionComm_SetSelf(unisys, UNION_SELF_ASKED, 0);
+                 *seq = 3;
+             }
+@@ -754,7 +754,7 @@ static BOOL UnionOneself_StepAskedRun(UnionSystem *unisys, UnionSelf *situ, Fiel
+     case 4:
+         switch (situ->mycomm.connectReply) {
+         case 1:
+-            UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (u32)situ->mycomm.answer_pc);
++            UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (uintptr_t)situ->mycomm.answer_pc);
+             UnionComm_SetSelf(unisys, UNION_SELF_ANSWER, 0);
+             UnionOneself_SetNextStep(unisys, UNION_STEP_OFFER_PARTY);
+             return TRUE;
+@@ -1741,7 +1741,7 @@ static BOOL UnionOneself_StepRecruitRun(UnionSystem *unisys, UnionSelf *situ, Fi
+                 if (needed <= GFL_NetGetHandleNetId(NetHandle_GetOwn())) {
+                     *seq = 4;
+                 } else {
+-                    UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (u32)&unisys->found[entryIndex]);
++                    UnionComm_SetSelf(unisys, UNION_SELF_PARENT, (uintptr_t)&unisys->found[entryIndex]);
+                     situ->mycomm.joinedRecruit = 1;
+                     switch (situ->mycomm.chosenActivity) {
+                     case 20:
+diff --git a/src/ov036/day_care.c b/src/ov036/day_care.c
+index 072316e23..4d4df0b74 100644
+--- a/src/ov036/day_care.c
++++ b/src/ov036/day_care.c
+@@ -1038,10 +1038,10 @@ static void createEggPkm(PartyPkm *pkm, const EggData *egg, PlayerInfo *info, u3
+     PokeParty_SetParam(pkm, PKM_PARAM_MOVE3, egg->moves[2]);
+     PokeParty_SetParam(pkm, PKM_PARAM_MOVE4, egg->moves[3]);
+     name = copyTrainerNameToNewStrbuf(info->name, heapId);
+-    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+     name = GFL_MsgDataLoadStrbufNew(g_PMLSpeciesNamesResident, SPECIES_EGG);
+-    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)name);
++    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+     GFL_StrBufFree(name);
+     PokeParty_SetupMetData(pkm, 5, info, place, heapId);
+     PokeParty_SetParam(pkm, PKM_PARAM_IS_EGG, 1);
+diff --git a/src/ov036/enc_pokeset.c b/src/ov036/enc_pokeset.c
+index 699e2bfd7..ed444d065 100644
+--- a/src/ov036/enc_pokeset.c
++++ b/src/ov036/enc_pokeset.c
+@@ -350,7 +350,7 @@ void FieldEncount_CreateWildPkm(PartyPkm *pkm, const EncountManager *manager, Wi
+         }
+     }
+     PokeParty_SetParam(pkm, PKM_PARAM_OT_GENDER, getTrainerGender(manager->playerInfo));
+-    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)GetPlayerName(manager->playerInfo));
++    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)GetPlayerName(manager->playerInfo));
+     if (manager->synchronize) {
+         PokeParty_SetParam(pkm, PKM_PARAM_NATURE, manager->leadNature);
+     }
+diff --git a/src/ov036/event_name_entry.c b/src/ov036/event_name_entry.c
+index 21b234668..dc929d085 100644
+--- a/src/ov036/event_name_entry.c
++++ b/src/ov036/event_name_entry.c
+@@ -117,7 +117,7 @@ static GameEventReturnCode PokeNameEntry_Callback(GameEvent *event, u32 *state,
+     case NAME_ENTRY_STATE_RESULT:
+         if (work->nameEntry->canceled != TRUE) {
+             if (GFL_StrBufCmp(work->nameEntry->name, work->name) == 0) {
+-                PokeParty_SetParam(work->pkm, PKM_PARAM_NICKNAME, (u32)work->nameEntry->name);
++                PokeParty_SetParam(work->pkm, PKM_PARAM_NICKNAME, (uintptr_t)work->nameEntry->name);
+             } else {
+                 work->nameEntry->canceled = TRUE;
+             }
+@@ -219,16 +219,16 @@ static GameEventReturnCode JoinAvenueNameEntry_Callback(GameEvent *event, u32 *s
+ 
+             switch (work->target) {
+             case JOIN_AVENUE_ENTRY_NAME:
+-                JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_NAME, (u32)str);
++                JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_NAME, (uintptr_t)str);
+                 break;
+             case JOIN_AVENUE_ENTRY_TITLE:
+-                JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_TITLE, (u32)str);
++                JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_TITLE, (uintptr_t)str);
+                 break;
+             case JOIN_AVENUE_ENTRY_PHRASE:
+-                JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_MESSAGE1, (u32)str);
++                JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_MESSAGE1, (uintptr_t)str);
+                 break;
+             case JOIN_AVENUE_ENTRY_IMPRESSED:
+-                JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_MESSAGE2, (u32)str);
++                JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_MESSAGE2, (uintptr_t)str);
+                 break;
+             }
+         } else if (work->target == JOIN_AVENUE_ENTRY_NAME) {
+@@ -241,7 +241,7 @@ static GameEventReturnCode JoinAvenueNameEntry_Callback(GameEvent *event, u32 *s
+             msgData = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_PLACE_NAMES, HEAPID_GAMEEVENT);
+             GFL_MsgDataLoadRawStr(msgData, 0x79, name, 0x15);
+             GFL_MsgDataFree(msgData);
+-            JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_NAME, (u32)name);
++            JoinAvenueInfo_SetParam(info, JOIN_AVE_INFO_NAME, (uintptr_t)name);
+         }
+         if (work->result != NULL) {
+             *work->result = (work->nameEntry->canceled != TRUE);
+diff --git a/src/ov036/fld3d_ci.c b/src/ov036/fld3d_ci.c
+index f3ca2e90e..0742fe3df 100644
+--- a/src/ov036/fld3d_ci.c
++++ b/src/ov036/fld3d_ci.c
+@@ -1501,7 +1501,7 @@ static void EventFieldEffectCutinSub_DrawStrToTexture(PlayerInfo *info, RivalDat
+     raw = ci->palette->pRawData;
+     raw[1] = color;
+     raw[2] = color2;
+-    G3DTextDraw_CreateResource(res, texName, (u32)raw, palName, str, (u16)width, 0, 0x440, heapId, &resource);
++    G3DTextDraw_CreateResource(res, texName, (uintptr_t)raw, palName, str, (u16)width, 0, 0x440, heapId, &resource);
+     GFL_HeapFree(ci->paletteData);
+     GFL_HeapFree(str);
+     GFL_MsgDataFree(msgData);
+diff --git a/src/ov036/ircbattlemenu.c b/src/ov036/ircbattlemenu.c
+index 1e3d92be5..a82df230b 100644
+--- a/src/ov036/ircbattlemenu.c
++++ b/src/ov036/ircbattlemenu.c
+@@ -656,7 +656,7 @@ static void IrcMenu_PressMainButton(IrcMenuWork *wk) {
+     int index = wk->selected;
+ 
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = IrcMenu_OnMainButtonAnimEnd;
+     if (index == IRC_MENU_MAIN_BATTLE_2) {
+         index = IRC_MENU_MAIN_BATTLE;
+@@ -767,7 +767,7 @@ static void IrcMenu_PressPlayerCountButton(IrcMenuWork *wk) {
+         index = IRC_MENU_COUNT_FOUR;
+     }
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = IrcMenu_OnPlayerCountButtonAnimEnd;
+     ClActor_SetAutoAnim(wk->actors[index], TRUE);
+     ClActor_SetAnimCallback(wk->actors[index], &callback);
+@@ -788,7 +788,7 @@ static void IrcMenu_PressPlayerCountBack(IrcMenuWork *wk) {
+     ClActorCallback callback;
+ 
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = IrcMenu_OnPlayerCountBackAnimEnd;
+     ClActor_SetAutoAnim(wk->actors[wk->selected], TRUE);
+     ClActor_SetAnimCallback(wk->actors[wk->selected], &callback);
+@@ -855,7 +855,7 @@ static void IrcMenu_PressBattleBoxButton(IrcMenuWork *wk) {
+     int index = indices[wk->choice];
+ 
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = IrcMenu_OnBattleBoxButtonAnimEnd;
+     ClActor_SetAutoAnim(wk->actors[index], TRUE);
+     ClActor_SetAnimCallback(wk->actors[index], &callback);
+@@ -941,7 +941,7 @@ static void IrcMenu_PressBattleTypeButton(IrcMenuWork *wk) {
+         break;
+     }
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = IrcMenu_OnBattleTypeButtonAnimEnd;
+     ClActor_SetAutoAnim(wk->actors[index], TRUE);
+     ClActor_SetAnimCallback(wk->actors[index], &callback);
+diff --git a/src/ov036/scrcmd_pokemon_fld.c b/src/ov036/scrcmd_pokemon_fld.c
+index f5c1da132..bc150d550 100644
+--- a/src/ov036/scrcmd_pokemon_fld.c
++++ b/src/ov036/scrcmd_pokemon_fld.c
+@@ -50,7 +50,7 @@ void ScrcmdPokemonFld_SwapPartyMonWithBoxedLegend(FieldScriptEnv *env, u32 party
+                 MailBox_SetMail(mails, 0, index, mail);
+             }
+             ResetMailData(mail);
+-            PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)mail);
++            PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+             PokeParty_SetParam(pkm, PKM_PARAM_ITEM, 0);
+             GFL_HeapFree(mail);
+         }
+diff --git a/src/ov055/wbt_party.c b/src/ov055/wbt_party.c
+index a8c8f9bbd..7e79e4c0e 100644
+--- a/src/ov055/wbt_party.c
++++ b/src/ov055/wbt_party.c
+@@ -337,7 +337,7 @@ void WbtParty_MakeRentalParty(WbtSystem *sys, u32 a1, PlayerInfo *playerInfo, u1
+     for (i = 0; i < 6; i++) {
+         pkm = PokeParty_GetPkm(sys->partyC4, i);
+         PokeParty_SetupMetData(pkm, 0, playerInfo, placeName, heapId);
+-        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+         PokeParty_SetParam(pkm, PKM_PARAM_OT_GENDER, 0);
+         PokeParty_SetParam(pkm, PKM_PARAM_ID, 41122);
+     }
+diff --git a/src/ov084/beacon_view_setup.c b/src/ov084/beacon_view_setup.c
+index 733e482f0..b79e8649d 100644
+--- a/src/ov084/beacon_view_setup.c
++++ b/src/ov084/beacon_view_setup.c
+@@ -225,7 +225,7 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+         args[1] = FALSE;
+         event = GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_ID(156), EventPassPowerActivate_Create, args);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, 1));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, 1));
+         work->usePassPower = PASS_POWER_NONE;
+         break;
+     }
+@@ -233,13 +233,13 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+         event = GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_ID(156),
+                                                 (GameEventProvider)EventPassPowerList_Create, work->field);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, 0));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, 0));
+         break;
+     case BEACON_VIEW_EVENT_PASS_POWER_LIST_2:
+         event = GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_ID(156),
+                                                 (GameEventProvider)EventPassPowerList_Create, work->field);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, 0));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, 0));
+         work->unk88 = 0;
+         break;
+     case BEACON_VIEW_EVENT_GREETING:
+@@ -256,7 +256,7 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+         event =
+             GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_FUNFEST_MISSION, EventFestMissionStart_Create, &args);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, 1));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, 1));
+         ClearFesMissionCfg(&work->mission);
+         break;
+     }
+@@ -270,7 +270,7 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+         event =
+             GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_FUNFEST_MISSION, EventFestMissionMessage_Create, &args);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, work->missionButton));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, work->missionButton));
+         ClearFesMissionCfg(&work->mission);
+         break;
+     }
+@@ -278,7 +278,7 @@ GameEvent *BeaconView_CreateEvent(BeaconViewWork *work, BOOL enabled) {
+         event = GameEvent_CreateOverlayDelegate(work->gsys, OVERLAY_FUNFEST_MISSION, EventFestMissionInfo_Create,
+                                                 &work->mission);
+         event = BeaconView_CreateWaitEvent(work, event, EVENT_WAIT_MENU_BUTTON,
+-                                           (u32)BeaconViewMenu_GetButton(work->menu, 0));
++                                           (uintptr_t)BeaconViewMenu_GetButton(work->menu, 0));
+         break;
+     case BEACON_VIEW_EVENT_NONE:
+     default:
+diff --git a/src/ov085/fmission_view_setup.c b/src/ov085/fmission_view_setup.c
+index 5d2b6c9dc..a98d35666 100644
+--- a/src/ov085/fmission_view_setup.c
++++ b/src/ov085/fmission_view_setup.c
+@@ -214,7 +214,7 @@ GameEvent *FMissionViewSetup_CheckEvent(FMissionView *view, BOOL enabled) {
+                                                   GameEvent_CreateOverlayDelegate(view->gsys, OVERLAY_FUNFEST_MISSION,
+                                                                                   EventFestMissionRetire_Create,
+                                                                                   view->field),
+-                                                  CALL_MENU_BUTTON, (u32)BeaconViewMenu_GetButton(view->menu, 0));
++                                                  CALL_MENU_BUTTON, (uintptr_t)BeaconViewMenu_GetButton(view->menu, 0));
+         break;
+     case FMISSION_VIEW_EVENT_PASS_POWER: {
+         u32 args = 1;
+@@ -234,7 +234,7 @@ GameEvent *FMissionViewSetup_CheckEvent(FMissionView *view, BOOL enabled) {
+         event = FMissionViewSetup_CreateCallEvent(
+             view,
+             GameEvent_CreateOverlayDelegate(view->gsys, OVERLAY_FIELD_PASS_POWER, EventPassPowerActivate_Create, args),
+-            CALL_MENU_BUTTON, (u32)BeaconViewMenu_GetButton(view->menu, 1));
++            CALL_MENU_BUTTON, (uintptr_t)BeaconViewMenu_GetButton(view->menu, 1));
+         view->usePassPower = PASS_POWER_NONE;
+         break;
+     }
+@@ -243,14 +243,14 @@ GameEvent *FMissionViewSetup_CheckEvent(FMissionView *view, BOOL enabled) {
+             view,
+             GameEvent_CreateOverlayDelegate(view->gsys, OVERLAY_FIELD_PASS_POWER,
+                                             (GameEventProvider)EventPassPowerList_Create, view->field),
+-            CALL_MENU_BUTTON, (u32)BeaconViewMenu_GetButton(view->menu, 0));
++            CALL_MENU_BUTTON, (uintptr_t)BeaconViewMenu_GetButton(view->menu, 0));
+         break;
+     case FMISSION_VIEW_EVENT_PASS_POWER_LIST_9:
+         event = FMissionViewSetup_CreateCallEvent(
+             view,
+             GameEvent_CreateOverlayDelegate(view->gsys, OVERLAY_FIELD_PASS_POWER,
+                                             (GameEventProvider)EventPassPowerList_Create, view->field),
+-            CALL_MENU_BUTTON, (u32)BeaconViewMenu_GetButton(view->menu, 0));
++            CALL_MENU_BUTTON, (uintptr_t)BeaconViewMenu_GetButton(view->menu, 0));
+         view->unk80 = 0;
+         break;
+     case FMISSION_VIEW_EVENT_GREETING:
+diff --git a/src/ov134/wbt_battle.c b/src/ov134/wbt_battle.c
+index a07d9e249..b84d88916 100644
+--- a/src/ov134/wbt_battle.c
++++ b/src/ov134/wbt_battle.c
+@@ -263,7 +263,7 @@ static void WbtBattle_MakePartyPkm(PartyPkm *pkm, const WbtDownloadedPokemon *sr
+     PokeParty_SetNature(pkm, src->nature);
+     nickname = GFL_StrBufCreate(11, heapId);
+     GFL_StrBufLoadFixedString(nickname, src->nickname, 11);
+-    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)nickname);
++    PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)nickname);
+     GFL_StrBufFree(nickname);
+     PokeParty_SetParam(pkm, PKM_PARAM_POKEBALL, src->ball);
+     PokeParty_RecalcStats(pkm);
+diff --git a/src/ov137/resort_sys.c b/src/ov137/resort_sys.c
+index ade89f655..d5af0800d 100644
+--- a/src/ov137/resort_sys.c
++++ b/src/ov137/resort_sys.c
+@@ -1938,16 +1938,16 @@ static void ResortEntry_Fill(JoinAvenueEntry *entry, u16 shopKind, ResortBinary
+ 
+     msgData = GFL_MsgSysLoadData(FALSE, ARCID_SCRIPT_MESSAGE, SCRIPT_TEXT_GLOBAL_10685, HEAPID_TAIL(heapId));
+     buf = GFL_MsgDataLoadStrbufNew(msgData, nameMessage);
+-    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_NAME, (u32)GFL_StrBufGetStringPtr(buf));
++    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_NAME, (uintptr_t)GFL_StrBufGetStringPtr(buf));
+     GFL_StrBufFree(buf);
+     buf = GFL_MsgDataLoadStrbufNew(msgData, greetingMessage);
+-    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_GREETING, (u32)GFL_StrBufGetStringPtr(buf));
++    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_GREETING, (uintptr_t)GFL_StrBufGetStringPtr(buf));
+     GFL_StrBufFree(buf);
+     buf = GFL_MsgDataLoadStrbufNew(msgData, message1);
+-    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE1, (u32)GFL_StrBufGetStringPtr(buf));
++    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE1, (uintptr_t)GFL_StrBufGetStringPtr(buf));
+     GFL_StrBufFree(buf);
+     buf = GFL_MsgDataLoadStrbufNew(msgData, message2);
+-    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE2, (u32)GFL_StrBufGetStringPtr(buf));
++    JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE2, (uintptr_t)GFL_StrBufGetStringPtr(buf));
+     GFL_StrBufFree(buf);
+     JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_GENDER, gender);
+     JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_TRAINER_TYPE, trainerType);
+@@ -2021,11 +2021,11 @@ static void ResortEntry_Setup(ResortSys *sys, GameData *gameData, JoinAvenueEntr
+     if (shopKind == 4) {
+         JoinAvenueEntry_SetParam(
+             entry, JOIN_AVE_PARAM_GREETING,
+-            (u32)TrainerGameInfo_GetGreeting(getTrainerGameInfoAddress(GameData_GetSaveControl(gameData))));
++            (uintptr_t)TrainerGameInfo_GetGreeting(getTrainerGameInfoAddress(GameData_GetSaveControl(gameData))));
+         joinAveTextHandler(player, JOIN_AVE_PARAM_MESSAGE1, message);
+-        JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE1, (u32)message);
++        JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE1, (uintptr_t)message);
+         joinAveTextHandler(player, JOIN_AVE_PARAM_MESSAGE2, message);
+-        JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE2, (u32)message);
++        JoinAvenueEntry_SetParam(entry, JOIN_AVE_PARAM_MESSAGE2, (uintptr_t)message);
+     }
+ }
+ 
+diff --git a/src/ov162/game_start.c b/src/ov162/game_start.c
+index 345c1c4c9..99b71f44d 100644
+--- a/src/ov162/game_start.c
++++ b/src/ov162/game_start.c
+@@ -391,11 +391,11 @@ static BOOL Continue_Main(GameProc *proc, u32 *state, void *param, void *work) {
+ 
+     switch (*state) {
+     case 0:
+-        if ((u32)param == CONTINUE_DEBUG) {
++        if ((uintptr_t)param == CONTINUE_DEBUG) {
+             GCTX_ProcMgrQueueProc(OVERLAY_NONE, &DEBUG_GAME_START_PROC_FUNCTIONS, wk);
+-        } else if ((u32)param == CONTINUE_CGEAR_OFF) {
++        } else if ((uintptr_t)param == CONTINUE_CGEAR_OFF) {
+             Config_SetCGearOn(wk->config, FALSE);
+-        } else if ((u32)param == CONTINUE_CGEAR_ON) {
++        } else if ((uintptr_t)param == CONTINUE_CGEAR_ON) {
+             Config_SetCGearOn(wk->config, TRUE);
+         }
+         (*state)++;
+diff --git a/src/ov165/plist_sys.c b/src/ov165/plist_sys.c
+index 919fa267b..bf1db78ee 100644
+--- a/src/ov165/plist_sys.c
++++ b/src/ov165/plist_sys.c
+@@ -337,7 +337,7 @@ BOOL PokeList_Main(PokeListWork *wk) {
+         PokeListDemo_End(wk);
+         break;
+     case 17:
+-        NetSync_StartTiming((u32)wk->param, 2);
++        NetSync_StartTiming((uintptr_t)wk->param, 2);
+         wk->state = 18;
+         break;
+     case 18:
+@@ -1101,7 +1101,7 @@ static void PokeList_SelectPokemon(PokeListWork *wk) {
+         if (PokeParty_GetParam(wk->pkm, PKM_PARAM_ITEM, NULL) == 0) {
+             MailData *mail = MailBox_CopyMail(wk->param->unk08, 0, wk->param->unk6C, wk->heapId);
+ 
+-            PokeParty_SetParam(wk->pkm, PKM_PARAM_MAIL, (u32)mail);
++            PokeParty_SetParam(wk->pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+             GFL_HeapFree(mail);
+             PokeParty_SetParam(wk->pkm, PKM_PARAM_ITEM, wk->param->item);
+             MailBox_ResetMail(wk->param->unk08, 0, wk->param->unk6C);
+@@ -1616,9 +1616,9 @@ static void func_ov165_0219c36c(PokeListWork *wk, PartyPkm *from, PartyPkm *to,
+         MailData *blank = CreateMailData(wk->heapId);
+ 
+         PokeParty_GetParam(from, PKM_PARAM_MAIL, mail);
+-        PokeParty_SetParam(to, PKM_PARAM_MAIL, (u32)mail);
++        PokeParty_SetParam(to, PKM_PARAM_MAIL, (uintptr_t)mail);
+         PokeParty_SetParam(to, PKM_PARAM_ITEM, item);
+-        PokeParty_SetParam(from, PKM_PARAM_MAIL, (u32)blank);
++        PokeParty_SetParam(from, PKM_PARAM_MAIL, (uintptr_t)blank);
+         PokeParty_SetParam(from, PKM_PARAM_ITEM, 0);
+         GFL_HeapFree(blank);
+         GFL_HeapFree(mail);
+@@ -1637,22 +1637,22 @@ static void func_ov165_0219c3e8(PokeListWork *wk, PartyPkm *pkmA, PartyPkm *pkmB
+     } else if (PML_ItemIsMail(itemA) == TRUE && PML_ItemIsMail(itemB) == FALSE) {
+         PokeParty_GetParam(pkmA, PKM_PARAM_MAIL, mailA);
+         PokeParty_SetParam(pkmB, PKM_PARAM_ITEM, itemA);
+-        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (u32)mailA);
+-        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (u32)blank);
++        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (uintptr_t)mailA);
++        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (uintptr_t)blank);
+         PokeParty_SetParam(pkmA, PKM_PARAM_ITEM, itemB);
+     } else if (PML_ItemIsMail(itemA) == FALSE && PML_ItemIsMail(itemB) == TRUE) {
+         PokeParty_GetParam(pkmB, PKM_PARAM_MAIL, mailB);
+         PokeParty_SetParam(pkmA, PKM_PARAM_ITEM, itemB);
+-        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (u32)mailB);
+-        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (u32)blank);
++        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (uintptr_t)mailB);
++        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (uintptr_t)blank);
+         PokeParty_SetParam(pkmB, PKM_PARAM_ITEM, itemA);
+     } else if (PML_ItemIsMail(itemA) == TRUE && PML_ItemIsMail(itemB) == TRUE) {
+         PokeParty_GetParam(pkmA, PKM_PARAM_MAIL, mailA);
+         PokeParty_GetParam(pkmB, PKM_PARAM_MAIL, mailB);
+         PokeParty_SetParam(pkmA, PKM_PARAM_ITEM, itemB);
+-        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (u32)mailB);
++        PokeParty_SetParam(pkmA, PKM_PARAM_MAIL, (uintptr_t)mailB);
+         PokeParty_SetParam(pkmB, PKM_PARAM_ITEM, itemA);
+-        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (u32)mailA);
++        PokeParty_SetParam(pkmB, PKM_PARAM_MAIL, (uintptr_t)mailA);
+     }
+     GFL_HeapFree(blank);
+     GFL_HeapFree(mailB);
+diff --git a/src/ov166/event_battle_return.c b/src/ov166/event_battle_return.c
+index 7f4b547df..bc8e705c9 100644
+--- a/src/ov166/event_battle_return.c
++++ b/src/ov166/event_battle_return.c
+@@ -272,7 +272,7 @@ static BOOL EventBattleReturn_Main(GameProc *proc, u32 *state, void *param, void
+                 oldName = GFL_StrBufCreate(32, wk->heapId);
+                 NameEntryParam_GetName(wk->nameEntry, wk->name);
+                 PokeParty_GetParam(wk->pkm, PKM_PARAM_NICKNAME, oldName);
+-                PokeParty_SetParam(wk->pkm, PKM_PARAM_NICKNAME, (u32)wk->name);
++                PokeParty_SetParam(wk->pkm, PKM_PARAM_NICKNAME, (uintptr_t)wk->name);
+                 if (NameEntryParam_CompareName(wk->nameEntry, oldName) == FALSE) {
+                     RecordAddOne(GameData_GetRecords(prm->gameData), 0x1e);
+                 }
+diff --git a/src/ov167/btl_server_flow.c b/src/ov167/btl_server_flow.c
+index 5a394ebf8..96aba38bd 100644
+--- a/src/ov167/btl_server_flow.c
++++ b/src/ov167/btl_server_flow.c
+@@ -2369,7 +2369,7 @@ BOOL ServerEvent_CheckNoEffect(BtlServerFlow *flow, BtlFlowMoveParam *param, u32
+     BattleEventVar_SetConstValue(BTL_EVAR_MOVE, param->move);
+     BattleEventVar_SetConstValue(BTL_EVAR_MOVE_TYPE, param->type);
+     BattleEventVar_SetConstValue(BTL_EVAR_REFLECTED_FLAG, param->flags.reflected);
+-    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (s32)string);
++    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (intptr_t)string);
+     BattleEventVar_SetConstValue(BTL_EVAR_EFFECTIVENESS, value);
+     BattleEventVar_SetRewriteOnceValue(BTL_EVAR_NO_EFFECT_FLAG, 0);
+     BattleEventVar_SetRewriteOnceValue(BTL_EVAR_FLAG, 0);
+@@ -3934,7 +3934,7 @@ u32 ServerEvent_DecideSpecialMoveCondition(BtlServerFlow *flow, BattleMon *attac
+     BattleEventVar_Push(0x1e11);
+     BattleEventVar_SetConstValue(BTL_EVAR_ATTACKER, GetMonID(attacker));
+     BattleEventVar_SetConstValue(BTL_EVAR_DEFENDER, GetMonID(target));
+-    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (s32)string);
++    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (intptr_t)string);
+     BattleEventVar_SetValue(BTL_EVAR_CONDITION, 0);
+     BattleEvent_CallHandlers(flow, BTL_EVENT_DECIDE_SPECIAL_MOVE_CONDITION);
+     condition = BattleEventVar_GetValue(BTL_EVAR_CONDITION);
+@@ -3947,7 +3947,7 @@ void ServerEvent_AddMoveConditionString(BtlServerFlow *flow, u32 condition, Batt
+     BattleEventVar_Push(0x1e28);
+     BattleEventVar_SetConstValue(BTL_EVAR_ATTACKER, GetMonID(attacker));
+     BattleEventVar_SetConstValue(BTL_EVAR_DEFENDER, GetMonID(target));
+-    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (s32)string);
++    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (intptr_t)string);
+     BattleEventVar_SetConstValue(BTL_EVAR_CONDITION, condition);
+     BattleEvent_CallHandlers(flow, BTL_EVENT_ADD_MOVE_CONDITION_STRING);
+     BattleEventVar_Pop(0x1e2e);
+@@ -6216,7 +6216,7 @@ BOOL ServerEvent_SetMoveMessage(BtlServerFlow *flow, BattleMon *mon, u16 move, u
+     BattleEventVar_Push(0x2ccf);
+     BattleEventVar_SetConstValue(BTL_EVAR_MON, GetMonID(mon));
+     BattleEventVar_SetConstValue(BTL_EVAR_MOVE, actualMove);
+-    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (s32)string);
++    BattleEventVar_SetConstValue(BTL_EVAR_STRING, (intptr_t)string);
+     BattleEventVar_SetRewriteOnceValue(BTL_EVAR_FLAG, FALSE);
+     BattleEvent_CallHandlers(flow, BTL_EVENT_SET_MOVE_MESSAGE);
+     result = BattleEventVar_GetValue(BTL_EVAR_FLAG);
+diff --git a/src/ov168/btlv_finger_cursor.c b/src/ov168/btlv_finger_cursor.c
+index cebd0bd65..5f1201e62 100644
+--- a/src/ov168/btlv_finger_cursor.c
++++ b/src/ov168/btlv_finger_cursor.c
+@@ -99,7 +99,7 @@ BOOL BtlvFingerCursor_Start(BtlvFingerCursor *cursor, s32 x, s32 y, u32 wait, s3
+     cursor->seq = FINGER_SEQ_WAIT;
+     cursor->tapFrame = tapFrame;
+     cursor->touched = FALSE;
+-    callback.param = (u32)cursor;
++    callback.param = (uintptr_t)cursor;
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+     callback.frame = 0;
+     callback.func = BtlvFingerCursor_AnimCallback;
+@@ -129,7 +129,7 @@ static void BtlvFingerCursor_AnimCallback(u32 param, fx32 frame) {
+ 
+             ClActor_SetSequence(cursor->actor, 1);
+             cursor->seq++;
+-            callback.param = (u32)cursor;
++            callback.param = (uintptr_t)cursor;
+             callback.type = CLACT_CALLBACK_FRAME;
+             callback.frame = cursor->tapFrame;
+             callback.func = BtlvFingerCursor_AnimCallback;
+@@ -141,7 +141,7 @@ static void BtlvFingerCursor_AnimCallback(u32 param, fx32 frame) {
+ 
+         cursor->touched = TRUE;
+         cursor->seq++;
+-        callback.param = (u32)cursor;
++        callback.param = (uintptr_t)cursor;
+         callback.type = CLACT_CALLBACK_EVERY_FRAME;
+         callback.frame = 0;
+         callback.func = BtlvFingerCursor_AnimCallback;
+diff --git a/src/ov168/btlv_gauge.c b/src/ov168/btlv_gauge.c
+index a2d9153ce..c9c4968e8 100644
+--- a/src/ov168/btlv_gauge.c
++++ b/src/ov168/btlv_gauge.c
+@@ -1063,27 +1063,27 @@ static void BtlvGauge_DrawName(BtlvGauge *gauge, BtlvGaugeEntry *entry, PartyPkm
+         ClActor_GetImageProxy(entry->nameActor, &proxy);
+         if (entry->mon.side) {
+             MI_CpuCopy16(
+-                pixels, (void *)((u32)vram + 0x40 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0xc0);
++                pixels, (void *)((uintptr_t)vram + 0x40 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0xc0);
+             MI_CpuCopy16(pixels + 0x100,
+-                         (void *)((u32)vram + 0x140 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x140 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0xc0);
+             MI_CpuCopy16(pixels + 0xc0,
+-                         (void *)((u32)vram + 0x400 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x400 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x40);
+             MI_CpuCopy16(pixels + 0x1c0,
+-                         (void *)((u32)vram + 0x500 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x500 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x40);
+         } else {
+             MI_CpuCopy16(
+-                pixels, (void *)((u32)vram + 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0xe0);
++                pixels, (void *)((uintptr_t)vram + 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0xe0);
+             MI_CpuCopy16(pixels + 0x100,
+-                         (void *)((u32)vram + 0x120 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x120 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0xe0);
+             MI_CpuCopy16(pixels + 0xe0,
+-                         (void *)((u32)vram + 0x400 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x400 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+             MI_CpuCopy16(pixels + 0x1e0,
+-                         (void *)((u32)vram + 0x500 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x500 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+         }
+     }
+@@ -1105,17 +1105,17 @@ static void BtlvGauge_DrawSex(BtlvGauge *gauge, BtlvGaugeEntry *entry) {
+         ClActor_GetImageProxy(entry->nameActor, &proxy);
+         if (entry->mon.side) {
+             MI_CpuCopy16(gauge->chars + top,
+-                         (void *)((u32)vram + 0x440 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x440 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+             MI_CpuCopy16(gauge->chars + bottom,
+-                         (void *)((u32)vram + 0x540 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x540 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+         } else {
+             MI_CpuCopy16(gauge->chars + top,
+-                         (void *)((u32)vram + 0x420 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x420 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+             MI_CpuCopy16(gauge->chars + bottom,
+-                         (void *)((u32)vram + 0x520 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x520 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+         }
+     }
+@@ -1162,7 +1162,7 @@ static void BtlvGauge_DrawBar(BtlvGauge *gauge, int index, int bar) {
+         for (i = 0; i < 6; i++) {
+             MI_CpuCopy16(
+                 gauge->chars + (color + tiles[i] * 0x20),
+-                (void *)((u32)vram + (i + 1) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                (void *)((uintptr_t)vram + (i + 1) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                 0x20);
+         }
+         if (entry->mon.hpDelta > 0) {
+@@ -1178,7 +1178,7 @@ static void BtlvGauge_DrawBar(BtlvGauge *gauge, int index, int bar) {
+         for (i = 0; i < 10; i++) {
+             MI_CpuCopy16(
+                 gauge->chars + (tiles[i] * 0x20 + 0x400),
+-                (void *)((u32)vram + (i + 1) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                (void *)((uintptr_t)vram + (i + 1) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                 0x20);
+         }
+         break;
+@@ -1226,10 +1226,10 @@ static void BtlvGauge_DrawHpNumbers(BtlvGauge *gauge, BtlvGaugeEntry *entry, s32
+     maxTiles[n] = maxHp * 0x20 + GAUGE_TILE_DIGITS;
+     for (i = 0; i < 3; i++) {
+         MI_CpuCopy16(gauge->chars + hpTiles[i],
+-                     (void *)((u32)vram + i * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                     (void *)((uintptr_t)vram + i * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                      0x20);
+         MI_CpuCopy16(gauge->chars + maxTiles[i],
+-                     (void *)((u32)vram + (i + 4) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                     (void *)((uintptr_t)vram + (i + 4) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                      0x20);
+     }
+ }
+@@ -1255,17 +1255,17 @@ static void BtlvGauge_DrawLevel(BtlvGauge *gauge, BtlvGaugeEntry *entry) {
+         ClActor_GetImageProxy(entry->nameActor, &proxy);
+         if (entry->mon.side) {
+             MI_CpuCopy16(pixels,
+-                         (void *)((u32)vram + 0x480 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x480 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x60);
+             MI_CpuCopy16(pixels + 0x60,
+-                         (void *)((u32)vram + 0x580 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x580 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x60);
+         } else {
+             MI_CpuCopy16(pixels,
+-                         (void *)((u32)vram + 0x460 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x460 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x60);
+             MI_CpuCopy16(pixels + 0x60,
+-                         (void *)((u32)vram + 0x560 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + 0x560 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x60);
+         }
+     }
+@@ -1284,7 +1284,7 @@ static void BtlvGauge_DrawCaughtMark(BtlvGauge *gauge, BtlvGaugeEntry *entry) {
+         }
+         ClActor_GetImageProxy(entry->nameActor, &proxy);
+         MI_CpuCopy16(gauge->chars + tile,
+-                     (void *)((u32)vram + 0x120 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0x20);
++                     (void *)((uintptr_t)vram + 0x120 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 0x20);
+     }
+ }
+ 
+@@ -1312,7 +1312,7 @@ static void BtlvGauge_DrawDamage(BtlvGauge *gauge, BtlvGaugeEntry *entry, s32 do
+         ClActor_GetImageProxy(entry->damageActor, &proxy);
+         for (i = 0; i < 6; i++) {
+             MI_CpuCopy16(gauge->chars + (tiles[i] * 0x20 + 0x6a0),
+-                         (void *)((u32)vram + i * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
++                         (void *)((uintptr_t)vram + i * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]),
+                          0x20);
+         }
+     }
+diff --git a/src/ov168/btlv_input.c b/src/ov168/btlv_input.c
+index 29f0ad5bd..3c2ecdc96 100644
+--- a/src/ov168/btlv_input.c
++++ b/src/ov168/btlv_input.c
+@@ -3043,15 +3043,15 @@ static void BtlvInput_CreateStruggleActor(BtlvInput *work) {
+     for (i = 0; i < 4; i++) {
+         MI_CpuCopy16(
+             &pixels[i * 0x1c0],
+-            (void *)((u32)vram + (0xde + i * 8) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
++            (void *)((uintptr_t)vram + (0xde + i * 8) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
+             0x100);
+         MI_CpuCopy16(
+             &pixels[i * 0x1c0 + 0x100],
+-            (void *)((u32)vram + (0xfe + i * 4) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
++            (void *)((uintptr_t)vram + (0xfe + i * 4) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
+             0x80);
+         MI_CpuCopy16(
+             &pixels[i * 0x1c0 + 0x180],
+-            (void *)((u32)vram + (0x10e + i * 2) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
++            (void *)((uintptr_t)vram + (0x10e + i * 2) * 0x20 + proxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]),
+             0x40);
+     }
+ 
+diff --git a/src/ov173/wifi_p2pmatch.c b/src/ov173/wifi_p2pmatch.c
+index b0b499c4a..c310d5822 100644
+--- a/src/ov173/wifi_p2pmatch.c
++++ b/src/ov173/wifi_p2pmatch.c
+@@ -3357,13 +3357,13 @@ static GFLNetInitData sWifiP2PMatchNetInit = {
+ static int WifiP2PMatch_GetUserData(void *work) {
+     WIFIP2PMATCH_WORK *wk = work;
+ 
+-    return (int)WifiList_GetMyUserData(GameData_GetWifiList(wk->gameData));
++    return (intptr_t)WifiList_GetMyUserData(GameData_GetWifiList(wk->gameData));
+ }
+ 
+ static int WifiP2PMatch_GetFriendData(void *work) {
+     WIFIP2PMATCH_WORK *wk = work;
+ 
+-    return (int)WifiList_GetFriendData(GameData_GetWifiList(wk->gameData), 0);
++    return (intptr_t)WifiList_GetFriendData(GameData_GetWifiList(wk->gameData), 0);
+ }
+ 
+ static void WifiP2PMatch_OnFriendCode(int code, int param, void *work) {
+diff --git a/src/ov174/ircbattlematch.c b/src/ov174/ircbattlematch.c
+index 7ab78c55a..c4cd3b0b3 100644
+--- a/src/ov174/ircbattlematch.c
++++ b/src/ov174/ircbattlematch.c
+@@ -1592,7 +1592,7 @@ static void IrcBattleMatch_UpdateLinkChange(IrcBattleMatch *work) {
+         IrcBattleMatch_FreeActor(work, 3);
+         if (work->linked != 0) {
+             callback.type = CLACT_CALLBACK_LAST_FRAME;
+-            callback.param = (u32)work;
++            callback.param = (uintptr_t)work;
+             callback.func = IrcBattleMatch_OnLeaderAnimEnd;
+             ClActor_SetAnimCallback(work->actors[0], &callback);
+             callback.func = IrcBattleMatch_OnPartnerAnimEnd;
+diff --git a/src/ov190/wifilogin.c b/src/ov190/wifilogin.c
+index ded508e6d..dfe82c9c4 100644
+--- a/src/ov190/wifilogin.c
++++ b/src/ov190/wifilogin.c
+@@ -199,13 +199,13 @@ static int WifiLogin_IsSameGame(int gameCommandBase, int beaconCommandBase) {
+ static int WifiLogin_GetUserData(void *work) {
+     WifiLoginWork *wk = work;
+ 
+-    return (int)WifiList_GetMyUserData(GameData_GetWifiList(wk->gameData));
++    return (intptr_t)WifiList_GetMyUserData(GameData_GetWifiList(wk->gameData));
+ }
+ 
+ static int WifiLogin_GetFriendData(void *work) {
+     WifiLoginWork *wk = work;
+ 
+-    return (int)WifiList_GetFriendData(GameData_GetWifiList(wk->gameData), 0);
++    return (intptr_t)WifiList_GetFriendData(GameData_GetWifiList(wk->gameData), 0);
+ }
+ 
+ static void WifiLogin_OnFriendCode(int code, int param, void *work) {
+diff --git a/src/ov192/pokemontrade_demo_common_irc.c b/src/ov192/pokemontrade_demo_common_irc.c
+index b21e51964..db4d294d7 100644
+--- a/src/ov192/pokemontrade_demo_common_irc.c
++++ b/src/ov192/pokemontrade_demo_common_irc.c
+@@ -222,7 +222,7 @@ static void PokemonTradeIrcDemo_StateSetUpMoves(PokemonTradeWork *wk) {
+     second = sIrcDemoPosSecond;
+     TradeMcssMove_Free(wk->mcssMoves[1]);
+     wk->mcssMoves[1] = TradeMcssMove_Create(wk->mcss[1], PokemonTradeIrcDemo_Frames(84), &second, wk->heapId);
+-    MCSS_SetAnimationEndCallback(wk->mcss[0], (u32)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
++    MCSS_SetAnimationEndCallback(wk->mcss[0], (uintptr_t)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
+     MCSS_StartFade(wk->mcss[1], 0, 16, (s8)(PokemonTradeIrcDemo_Frames(14) / 16), 0);
+     PoketradeSave_CloseMessageWindow(wk);
+     GFL_BGSysResetStdPalette(1, 0);
+diff --git a/src/ov193/pokemontrade_demo_common.c b/src/ov193/pokemontrade_demo_common.c
+index ada61c5ee..49fbad34d 100644
+--- a/src/ov193/pokemontrade_demo_common.c
++++ b/src/ov193/pokemontrade_demo_common.c
+@@ -220,7 +220,7 @@ static void PokemonTradeDemoCommon_StateSetUpMoves(PokemonTradeWork *wk) {
+     second = sTradeDemoCommonPosSecond;
+     TradeMcssMove_Free(wk->mcssMoves[1]);
+     wk->mcssMoves[1] = TradeMcssMove_Create(wk->mcss[1], PokemonTradeDemo_Frames(84), &second, wk->heapId);
+-    MCSS_SetAnimationEndCallback(wk->mcss[0], (u32)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
++    MCSS_SetAnimationEndCallback(wk->mcss[0], (uintptr_t)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
+     MCSS_StartFade(wk->mcss[1], 0, 16, (s8)(PokemonTradeDemo_Frames(14) / 16), 0);
+     PoketradeSave_CloseMessageWindow(wk);
+     GFL_BGSysResetStdPalette(1, 0);
+diff --git a/src/ov193/pokemontrade_demo_middle.c b/src/ov193/pokemontrade_demo_middle.c
+index 3c92a82f6..e914d29b9 100644
+--- a/src/ov193/pokemontrade_demo_middle.c
++++ b/src/ov193/pokemontrade_demo_middle.c
+@@ -242,7 +242,7 @@ static void PokemonTradeDemoMiddle_StateSetUpMoves(PokemonTradeWork *wk) {
+     second = sPosSecond;
+     TradeMcssMove_Free(wk->mcssMoves[1]);
+     wk->mcssMoves[1] = TradeMcssMove_Create(wk->mcss[1], PokemonTradeDemoMiddle_Frame(84), &second, wk->heapId);
+-    MCSS_SetAnimationEndCallback(wk->mcss[0], (u32)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
++    MCSS_SetAnimationEndCallback(wk->mcss[0], (uintptr_t)wk, (MCSSAnimationCallback)TradeMcssMove_StopAnimation, TRUE);
+     MCSS_StartFade(wk->mcss[1], 0, 16, (s8)(PokemonTradeDemoMiddle_Frame(14) / 16), 0);
+     PoketradeSave_CloseMessageWindow(wk);
+     GFL_BGSysResetStdPalette(1, 0);
+diff --git a/src/ov194/pokemontrade_2d.c b/src/ov194/pokemontrade_2d.c
+index c2aff7ea7..ca3318c9e 100644
+--- a/src/ov194/pokemontrade_2d.c
++++ b/src/ov194/pokemontrade_2d.c
+@@ -736,13 +736,13 @@ static void Poketrade2D_CreateBoxIcon(PokemonTradeWork *wk, BoxSaveAccessor *box
+                                                         wk->iconCharData + slot * 0x200, 0x200)) {
+                     MI_CpuCopy8(
+                         wk->iconCharData + slot * 0x200,
+-                        (void *)((u32)G2S_GetOBJCharPtr() + ImageProxy_GetLocation(&proxy, NNS_G2D_VRAM_TYPE_2DSUB)),
++                        (void *)((uintptr_t)G2S_GetOBJCharPtr() + ImageProxy_GetLocation(&proxy, NNS_G2D_VRAM_TYPE_2DSUB)),
+                         0x200);
+                 }
+             } else {
+                 MI_CpuCopy8(
+                     wk->iconCharData + slot * 0x200,
+-                    (void *)((u32)G2S_GetOBJCharPtr() + ImageProxy_GetLocation(&proxy, NNS_G2D_VRAM_TYPE_2DSUB)),
++                    (void *)((uintptr_t)G2S_GetOBJCharPtr() + ImageProxy_GetLocation(&proxy, NNS_G2D_VRAM_TYPE_2DSUB)),
+                     0x200);
+             }
+             Poketrade2D_UpdateIconObjMode(wk, column, i, pkm, isParty, index);
+@@ -2216,7 +2216,7 @@ void Poketrade2D_CreateCursorActor(PokemonTradeWork *wk, u8 x, u8 y) {
+     ClActor_SetAutoAnim(wk->boxCursor, TRUE);
+     wk->boxCursorDone = FALSE;
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = Poketrade2D_OnCursorAnimDone;
+     ClActor_SetAnimCallback(wk->boxCursor, &callback);
+ }
+@@ -2306,12 +2306,12 @@ void Poketrade2D_ScheduleSubPlaneVisible(PokemonTradeWork *wk, int planes) {
+ }
+ 
+ static void Poketrade2D_TaskSetMainPlaneVisible(TCB *tcb, void *data) {
+-    GFL_BGSysSetEnabledBGsA((int)data);
++    GFL_BGSysSetEnabledBGsA((intptr_t)data);
+     GFL_TCBRemove(tcb);
+ }
+ 
+ static void Poketrade2D_TaskSetSubPlaneVisible(TCB *tcb, void *data) {
+-    GFL_BGSysSetEnabledBGsB((int)data);
++    GFL_BGSysSetEnabledBGsB((intptr_t)data);
+     GFL_TCBRemove(tcb);
+ }
+ 
+diff --git a/src/ov194/pokemontrade_nego.c b/src/ov194/pokemontrade_nego.c
+index f767981e3..9701c81ee 100644
+--- a/src/ov194/pokemontrade_nego.c
++++ b/src/ov194/pokemontrade_nego.c
+@@ -1281,11 +1281,11 @@ static void PoketradeNego_StepPollMonCheck(PokemonTradeWork *wk) {
+                             MailData *mail = CreateMailData(wk->heapId);
+                             PokeParty_GetParam(pkm, PKM_PARAM_MAIL, mail);
+                             MailData_SetTrainerName(mail, GFL_StrBufGetStringPtr(name));
+-                            PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)mail);
++                            PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+                             GFL_HeapFree(mail);
+                         }
+                         setNicknameToNick(pkm);
+-                        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)GFL_StrBufGetStringPtr(name));
++                        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)GFL_StrBufGetStringPtr(name));
+                         GFL_StrBufFree(name);
+                     }
+                     count++;
+diff --git a/src/ov194/pokemontrade_save.c b/src/ov194/pokemontrade_save.c
+index 75860695e..fa04cfdec 100644
+--- a/src/ov194/pokemontrade_save.c
++++ b/src/ov194/pokemontrade_save.c
+@@ -436,7 +436,7 @@ static void PoketradeSave_ApplyTradeResult(PokemonTradeWork *wk) {
+                     PokeParty_GetParam(pkm, PKM_PARAM_MAIL, mail);
+                     MailBox_SetMail(block, 0, mailSlot, mail);
+                     ResetMailData(mail);
+-                    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)mail);
++                    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+                     PokeParty_SetParam(pkm, PKM_PARAM_ITEM, 0);
+                     GFL_HeapFree(mail);
+                 }
+@@ -608,7 +608,7 @@ static void PoketradeSave_StepCheckEvolution(PokemonTradeWork *wk) {
+                 other = PokemonTrade_GetPkm(wk, 0);
+             }
+             species =
+-                CheckEvolveSpecies(NULL, pkm, 1, (u32)other, GameData_GetSeason(wk->gameData), &method, wk->heapId);
++                CheckEvolveSpecies(NULL, pkm, 1, (uintptr_t)other, GameData_GetSeason(wk->gameData), &method, wk->heapId);
+             if (species != 0) {
+                 wk->param->next = TRADE_NEXT_EVOLVE;
+                 wk->param->evolveSpecies = species;
+diff --git a/src/ov195/gtsnego_disp.c b/src/ov195/gtsnego_disp.c
+index 92e6987dd..f286479cf 100644
+--- a/src/ov195/gtsnego_disp.c
++++ b/src/ov195/gtsnego_disp.c
+@@ -1193,7 +1193,7 @@ static void GtsNegoDisp_CreateSearchActors(GtsNegoDisp *disp) {
+     ClActor_SetAutoAnim(disp->searchActors[1], TRUE);
+     ClActor_SetVisible(disp->searchActors[1], TRUE);
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)disp;
++    callback.param = (uintptr_t)disp;
+     callback.func = GtsNegoDisp_OnSearchAnimEnd;
+     ClActor_SetAnimCallback(disp->searchActors[1], &callback);
+     GFL_BGSysSetEnabledBGsA(GX_PLANEMASK_ALL);
+diff --git a/src/ov195/gtsnego_proc.c b/src/ov195/gtsnego_proc.c
+index c1aa5f65d..a525fd347 100644
+--- a/src/ov195/gtsnego_proc.c
++++ b/src/ov195/gtsnego_proc.c
+@@ -347,7 +347,7 @@ static void GtsNego_OnRecvPerson(int netId, int size, const void *data, void *wo
+         return;
+     }
+     JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_UNK_26, 2);
+-    JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_NAME, (u32)GetPlayerName(param->playerInfo2));
++    JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_NAME, (uintptr_t)GetPlayerName(param->playerInfo2));
+     JoinAvenue_Add(joinAvenue, param->gameData, person, 1);
+ }
+ 
+diff --git a/src/ov197/mystery.c b/src/ov197/mystery.c
+index 6b5ab5309..d47ddcd49 100644
+--- a/src/ov197/mystery.c
++++ b/src/ov197/mystery.c
+@@ -1453,7 +1453,7 @@ static void Mystery_CreateList(MysteryWork *wk, u32 type, HeapID heapId) {
+             break;
+         case LIST_RECEIVED:
+             setup.msgData = NULL;
+-            setup.items[0] = (u32)GFL_StrBufCreate(37, heapId);
++            setup.items[0] = (uintptr_t)GFL_StrBufCreate(37, heapId);
+             GFL_StrBufLoadFixedString((StrBuf *)setup.items[0], wk->recv.gift.title, 37);
+             setup.count = 1;
+             setup.offsetY = -1;
+diff --git a/src/ov198/comm_tvt_field.c b/src/ov198/comm_tvt_field.c
+index 5ccbb4107..85f6af075 100644
+--- a/src/ov198/comm_tvt_field.c
++++ b/src/ov198/comm_tvt_field.c
+@@ -613,7 +613,7 @@ static void CommTvtField_StartPress(CommTvtFieldWork *wk) {
+     int index = wk->selected;
+ 
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = (NNSG2dAnmCallBackPtr)CommTvtField_QueueStartExit;
+     if (index == 3) {
+         index = 0;
+diff --git a/src/ov199/gsync_menu.c b/src/ov199/gsync_menu.c
+index eb6159d0b..5c7103962 100644
+--- a/src/ov199/gsync_menu.c
++++ b/src/ov199/gsync_menu.c
+@@ -605,7 +605,7 @@ static void GSyncMenu_StatePressButton(GSyncMenuWork *wk) {
+     ClActorCallback callback;
+ 
+     callback.type = CLACT_CALLBACK_LAST_FRAME;
+-    callback.param = (u32)wk;
++    callback.param = (uintptr_t)wk;
+     callback.func = GSyncMenu_OnButtonAnimEnd;
+     ClActor_SetAutoAnim(wk->actors[wk->selected], TRUE);
+     ClActor_SetAnimCallback(wk->actors[wk->selected], &callback);
+diff --git a/src/ov199/gsync_state.c b/src/ov199/gsync_state.c
+index 261aabb43..a30f189e8 100644
+--- a/src/ov199/gsync_state.c
++++ b/src/ov199/gsync_state.c
+@@ -546,7 +546,7 @@ static void GSync_StateWaitReceiveSave(GSyncWork *wk) {
+         GSyncDisp_SetActorSequence(wk->disp, 0, 1);
+         GSyncDisp_DeleteActor(wk->disp, 13);
+         callback.type = CLACT_CALLBACK_LAST_FRAME;
+-        callback.param = (u32)wk;
++        callback.param = (uintptr_t)wk;
+         callback.func = GSync_OnPokemonAnimEnd;
+         GSyncDisp_SetActorCallback(wk->disp, 0, &callback);
+         GSyncDisp_StartFade(wk->disp, FALSE);
+diff --git a/src/ov207/p_status.c b/src/ov207/p_status.c
+index 104c8d937..a523a238b 100644
+--- a/src/ov207/p_status.c
++++ b/src/ov207/p_status.c
+@@ -49,7 +49,7 @@ static BOOL PStatus_ProcInit(GameProc *proc, u32 *state, void *data, void *work)
+                         // "ブラック", Black
+                         u16 otName[5] = { 0x30d6, 0x30e9, 0x30c3, 0x30af, 0xffff };
+ 
+-                        PokeParty_SetParam(partyPkm, PKM_PARAM_OT_NAME_RAW, (u32)otName);
++                        PokeParty_SetParam(partyPkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)otName);
+                     }
+                     PokeParty_SetParam(partyPkm, PKM_PARAM_OT_GENDER, 0);
+                     PokeParty_AddPkm(party, partyPkm);
+@@ -74,7 +74,7 @@ static BOOL PStatus_ProcInit(GameProc *proc, u32 *state, void *data, void *work)
+                             // "ブラック", Black
+                             u16 otName[5] = { 0x30d6, 0x30e9, 0x30c3, 0x30af, 0xffff };
+ 
+-                            PML_PkmSetParam(boxPkm, PKM_PARAM_OT_NAME_RAW, (u32)otName);
++                            PML_PkmSetParam(boxPkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)otName);
+                         }
+                         PML_PkmSetParam(boxPkm, PKM_PARAM_OT_GENDER, 0);
+                         if (param->partyIndex == PSTATUS_PARTY_INDEX_NONE) {
+diff --git a/src/ov210/musical_system.c b/src/ov210/musical_system.c
+index 5e4a21c5a..946c1a7a6 100644
+--- a/src/ov210/musical_system.c
++++ b/src/ov210/musical_system.c
+@@ -130,8 +130,8 @@ void MusicalSystem_LoadProgramData(Ov210Work *work, SaveControl *save, GameData
+     soundData = GFL_HeapAllocate(heapId, work->soundDataSize, TRUE, "musical_system.c", 266);
+     work->soundData = soundData;
+     work->sound[0] = soundData + 3;
+-    work->sound[1] = (void *)((u32)work->sound[0] + size0);
+-    work->sound[2] = (void *)((u32)work->sound[0] + size0 + size1);
++    work->sound[1] = (void *)((uintptr_t)work->sound[0] + size0);
++    work->sound[2] = (void *)((uintptr_t)work->sound[0] + size0 + size1);
+     soundData[0] = size0;
+     soundData[1] = size1;
+     soundData[2] = size2;
+diff --git a/src/ov211/mus_comm_func.c b/src/ov211/mus_comm_func.c
+index 918129946..630233aea 100644
+--- a/src/ov211/mus_comm_func.c
++++ b/src/ov211/mus_comm_func.c
+@@ -1128,8 +1128,8 @@ static void MusComm_RecvSoundChunk(int netId, int size, const void *data, void *
+ 
+         // The three sizes, then the three parts
+         comm->ov210->sound[0] = sizes + 3;
+-        comm->ov210->sound[1] = (void *)((u32)(comm->ov210->soundData + 3) + sizes[0]);
+-        comm->ov210->sound[2] = (void *)((u32)(comm->ov210->soundData + 3) + sizes[0] + sizes[1]);
++        comm->ov210->sound[1] = (void *)((uintptr_t)(comm->ov210->soundData + 3) + sizes[0]);
++        comm->ov210->sound[2] = (void *)((uintptr_t)(comm->ov210->soundData + 3) + sizes[0] + sizes[1]);
+     }
+ }
+ 
+diff --git a/src/ov214/worldtrade_demo.c b/src/ov214/worldtrade_demo.c
+index 515fd67a5..05033ce82 100644
+--- a/src/ov214/worldtrade_demo.c
++++ b/src/ov214/worldtrade_demo.c
+@@ -96,7 +96,7 @@ int WorldTrade_Demo_Main(WorldTradeWork *wk, int seq) {
+             pkm = Demo_GetTradePokemon(wk, wk->subProcessMode);
+             PokeParty_GetParam(pkm, PKM_PARAM_ITEM, NULL);
+             species =
+-                CheckEvolveSpecies(NULL, pkm, 1, (u32)wk->sentPokemon,
++                CheckEvolveSpecies(NULL, pkm, 1, (uintptr_t)wk->sentPokemon,
+                                    GameData_GetSeason(GSYS_GetGameData(wk->param->gsys)), &method, HEAPID_WORLDTRADE);
+             if (species != 0) {
+                 if (wk->subProcParam != NULL) {
+@@ -138,7 +138,7 @@ int WorldTrade_Demo_Main(WorldTradeWork *wk, int seq) {
+                 species = 0;
+                 if (wk->checkEvolution) {
+                     wk->checkEvolution = FALSE;
+-                    species = CheckEvolveSpecies(NULL, pkm, 1, (u32)sent,
++                    species = CheckEvolveSpecies(NULL, pkm, 1, (uintptr_t)sent,
+                                                  GameData_GetSeason(GSYS_GetGameData(wk->param->gsys)), &method,
+                                                  HEAPID_WORLDTRADE);
+                 }
+diff --git a/src/ov214/worldtrade_enter.c b/src/ov214/worldtrade_enter.c
+index e98e1d7f7..ddfac740b 100644
+--- a/src/ov214/worldtrade_enter.c
++++ b/src/ov214/worldtrade_enter.c
+@@ -366,8 +366,8 @@ static int Enter_WifiConnectionLogout(WorldTradeWork *wk) {
+     param->unk4 = 0;
+     param->unk8 = 1;
+     // The header's types for the callback and its data
+-    param->unk14 = (u32)Enter_LogoutCallback;
+-    param->unk18 = (u32)wk;
++    param->unk14 = (uintptr_t)Enter_LogoutCallback;
++    param->unk18 = (uintptr_t)wk;
+     QueueGameProc(wk->procManager, OVERLAY_WIFILOGIN, &WIFILOGOUT_PROC_FUNCTIONS, wk->subProcParam);
+     wk->subprocessSeq = ENTER_WIFI_LOGOUT_WAIT;
+     GFL_NetErrShow(0);
+diff --git a/src/ov214/worldtrade_upload.c b/src/ov214/worldtrade_upload.c
+index 977013feb..de153ad24 100644
+--- a/src/ov214/worldtrade_upload.c
++++ b/src/ov214/worldtrade_upload.c
+@@ -1618,13 +1618,13 @@ static void Upload_ReplaceBadName(PartyPkm *pkm, HeapID heapId) {
+ 
+     GFL_MsgDataFree(msgData);
+     setNicknameToNick(pkm);
+-    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)GFL_StrBufGetStringPtr(name));
++    PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)GFL_StrBufGetStringPtr(name));
+     if (PML_ItemIsMail(PokeParty_GetParam(pkm, PKM_PARAM_ITEM, NULL))) {
+         MailData *mail = CreateMailData(HEAPID_TAIL(heapId));
+ 
+         PokeParty_GetParam(pkm, PKM_PARAM_MAIL, mail);
+         MailData_SetTrainerName(mail, GFL_StrBufGetStringPtr(name));
+-        PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)mail);
++        PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+         GFL_HeapFree(mail);
+     }
+     GFL_StrBufFree(name);
+diff --git a/src/ov215/mailtool.c b/src/ov215/mailtool.c
+index 2e05c0ab7..4b229b105 100644
+--- a/src/ov215/mailtool.c
++++ b/src/ov215/mailtool.c
+@@ -56,7 +56,7 @@ BOOL MailTool_GiveMail(MailParam *param, PartyPkm *pkm) {
+     if (!MailTool_IsWritten(param)) {
+         return FALSE;
+     }
+-    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)param->mail);
++    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)param->mail);
+     return TRUE;
+ }
+ 
+diff --git a/src/ov253/mictest.c b/src/ov253/mictest.c
+index 89452a538..06df7ba78 100644
+--- a/src/ov253/mictest.c
++++ b/src/ov253/mictest.c
+@@ -641,7 +641,7 @@ static void MicTestMic_Init(MicTestMic *mic, u32 heapId, MICCallback callback, v
+     MI_CpuFill8(buffer, 0, bufferSize);
+     mic->buffer = buffer;
+     mic->param.type = MIC_SAMPLING_TYPE_8BIT;
+-    mic->param.buffer = (void *)(((u32)buffer + 0x1f) & ~0x1f);
++    mic->param.buffer = (void *)(((uintptr_t)buffer + 0x1f) & ~0x1f);
+     mic->param.rate = MIC_SAMPLING_RATE_8180;
+     mic->param.loop_enable = TRUE;
+     // Less the 32 bytes that aligning the start may skip
+diff --git a/src/ov260/wifibattlematch_net.c b/src/ov260/wifibattlematch_net.c
+index f4ef07976..ed2e1cbf0 100644
+--- a/src/ov260/wifibattlematch_net.c
++++ b/src/ov260/wifibattlematch_net.c
+@@ -1714,7 +1714,7 @@ static void WifiBattleMatchNet_OnPersonReceived(int netId, int size, const void
+             StrBuf *name = GFL_MsgDataLoadStrbufNew(msgData, WBM_DEFAULT_NAME);
+ 
+             GFL_MsgDataFree(msgData);
+-            JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_NAME, (u32)GFL_StrBufGetStringPtr(name));
++            JoinAvenuePerson_SetParam(person, JOIN_AVE_PARAM_NAME, (uintptr_t)GFL_StrBufGetStringPtr(name));
+             GFL_StrBufFree(name);
+         }
+         JoinAvenue_Add(joinAvenue, p_wk->gameData, person, 1);
+diff --git a/src/ov265/hall_of_fame_demo_main.c b/src/ov265/hall_of_fame_demo_main.c
+index 9e1e01d7b..e6609c161 100644
+--- a/src/ov265/hall_of_fame_demo_main.c
++++ b/src/ov265/hall_of_fame_demo_main.c
+@@ -467,5 +467,5 @@ static void HallOfFameDemoMain_McssCallBack(u32 param, fx32 frame) {
+ // Has the Pokémon's animation stop at its end, which sets mcssAnmEnd
+ void HallOfFameDemoMain_SetMcssCallBack(HallOfFameDemoWork *wk) {
+     wk->mcssAnmEnd = FALSE;
+-    MCSS_SetAnimationEndCallback(wk->mcss, (u32)wk, HallOfFameDemoMain_McssCallBack, 0);
++    MCSS_SetAnimationEndCallback(wk->mcss, (uintptr_t)wk, HallOfFameDemoMain_McssCallBack, 0);
+ }
+diff --git a/src/ov284/evolution_demo.c b/src/ov284/evolution_demo.c
+index b0a6be68b..1b2e35d4b 100644
+--- a/src/ov284/evolution_demo.c
++++ b/src/ov284/evolution_demo.c
+@@ -1363,11 +1363,11 @@ static void EvolutionDemo_MakeShedinja(EvolutionDemoParam *param, EvolutionDemoW
+         }
+         name =
+             GFL_MsgDataLoadStrbufNew(g_PMLSpeciesNamesResident, PokeParty_GetParam(shedinja, PKM_PARAM_SPECIES, NULL));
+-        PokeParty_SetParam(shedinja, PKM_PARAM_NICKNAME, (u32)name);
++        PokeParty_SetParam(shedinja, PKM_PARAM_NICKNAME, (uintptr_t)name);
+         GFL_StrBufFree(name);
+         PokeParty_SetParam(shedinja, PKM_PARAM_STATUS, 0);
+         mail = CreateMailData(wk->heapId);
+-        PokeParty_SetParam(shedinja, PKM_PARAM_MAIL, (u32)mail);
++        PokeParty_SetParam(shedinja, PKM_PARAM_MAIL, (uintptr_t)mail);
+         GFL_HeapFree(mail);
+         PokeParty_SetParam(shedinja, 0x9f, 0);
+         PokeParty_SetParam(shedinja, PKM_PARAM_POKESTAR_FAME, 0);
+diff --git a/src/ov294/intro_mcss.c b/src/ov294/intro_mcss.c
+index 44d3a7077..daf9bb6ce 100644
+--- a/src/ov294/intro_mcss.c
++++ b/src/ov294/intro_mcss.c
+@@ -69,7 +69,7 @@ void IntroMcss_Add(IntroMcss *mcss, fx32 x, fx32 y, fx32 z, const MCSSLoadInfo *
+     MCSS_SetScale(mcss->sprites[index].mcss, &scale);
+     mcss->sprites[index].animationEnded = FALSE;
+     mcss->sprites[index].restartAtEnd = TRUE;
+-    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (u32)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
++    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (uintptr_t)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
+ }
+ 
+ void IntroMcss_AddPokemon(IntroMcss *mcss, fx32 x, fx32 y, fx32 z, u32 species, u8 index) {
+@@ -85,7 +85,7 @@ void IntroMcss_AddPokemon(IntroMcss *mcss, fx32 x, fx32 y, fx32 z, u32 species,
+     mcss->sprites[index].animationEnded = FALSE;
+     mcss->sprites[index].restartAtEnd = TRUE;
+     mcss->idleTimer = GFL_RandomMTRange(5) * 20 + 200;
+-    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (u32)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
++    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (uintptr_t)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
+ }
+ 
+ void IntroMcss_SetVisible(IntroMcss *mcss, BOOL visible, u8 index) {
+@@ -101,7 +101,7 @@ void IntroMcss_SetAnimation(IntroMcss *mcss, u8 index, u32 animation, BOOL resta
+     MCSS_ResumeAnimation(mcss->sprites[index].mcss);
+     mcss->sprites[index].animationEnded = FALSE;
+     mcss->sprites[index].restartAtEnd = restartAtEnd;
+-    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (u32)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
++    MCSS_SetAnimationEndCallback(mcss->sprites[index].mcss, (uintptr_t)&mcss->sprites[index], IntroMcss_OnAnimationEnd, 0);
+ }
+ 
+ BOOL IntroMcss_IsAnimationEnded(IntroMcss *mcss, u8 index) {
+diff --git a/src/ov298/pokedex_detail_form.c b/src/ov298/pokedex_detail_form.c
+index dc9572db9..7558ac264 100644
+--- a/src/ov298/pokedex_detail_form.c
++++ b/src/ov298/pokedex_detail_form.c
+@@ -1563,7 +1563,7 @@ static void PokedexDetailForm_CreateSprite(Sprite *sprite, HeapID heapId, MCSSSy
+     sprite->mcss = PokedexDetailForm_AddMCSS(system, species, form, sex, rare, egg, back, personality);
+     sprite->anim = GFL_HeapAllocate(heapId, sizeof(SpriteAnim), TRUE, "zukan_detail_form.c", 2737);
+     NNS_G2dSetAnimCtrlCallBackFunctor(&MCSS_GetMultiCellAnimation(sprite->mcss)->animCtrl,
+-                                      NNS_G2D_ANMCALLBACKTYPE_LAST_FRM, (u32)sprite->anim,
++                                      NNS_G2D_ANMCALLBACKTYPE_LAST_FRM, (uintptr_t)sprite->anim,
+                                       PokedexDetailForm_SpriteAnimEnd);
+     PokedexDetailForm_InitSpritePositions(sprite->pos, species, form, sex, rare, egg, back, personality);
+ }
+diff --git a/src/ov307/egg_demo.c b/src/ov307/egg_demo.c
+index 869675ea2..0ee730fce 100644
+--- a/src/ov307/egg_demo.c
++++ b/src/ov307/egg_demo.c
+@@ -337,7 +337,7 @@ static BOOL EggDemo_Main(GameProc *proc, u32 *state, void *param, void *work) {
+                 oldName = GFL_StrBufCreate(32, wk->heapId);
+                 NameEntryParam_GetName(wk->nameEntryParam, name);
+                 PokeParty_GetParam(demoParam->pkm, PKM_PARAM_NICKNAME, oldName);
+-                PokeParty_SetParam(demoParam->pkm, PKM_PARAM_NICKNAME, (u32)name);
++                PokeParty_SetParam(demoParam->pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+                 if (NameEntryParam_CompareName(wk->nameEntryParam, oldName) == FALSE) {
+                     RecordAddOne(GameData_GetRecords(demoParam->gameData), 30);
+                 }
+diff --git a/src/ov307/egg_demo_view.c b/src/ov307/egg_demo_view.c
+index 48d55dbc9..aedbcba45 100644
+--- a/src/ov307/egg_demo_view.c
++++ b/src/ov307/egg_demo_view.c
+@@ -469,7 +469,7 @@ static void EggDemoView_SetAnimation(EggDemoView *view, u32 animation, BOOL stop
+     NNS_G2dRestartMCAnimation(mcAnim);
+     MCSS_ResumeAnimation(view->mcss);
+     if (stopAtEnd) {
+-        NNS_G2dSetAnimCtrlCallBackFunctor(&mcAnim->animCtrl, NNS_G2D_ANMCALLBACKTYPE_LAST_FRM, (u32)view,
++        NNS_G2dSetAnimCtrlCallBackFunctor(&mcAnim->animCtrl, NNS_G2D_ANMCALLBACKTYPE_LAST_FRM, (uintptr_t)view,
+                                           EggDemoView_OnAnimationEnd);
+         view->animationEnded = FALSE;
+     } else {
+diff --git a/src/ov323/pkwd_selectscreen.c b/src/ov323/pkwd_selectscreen.c
+index 01378c5a0..d363cf196 100644
+--- a/src/ov323/pkwd_selectscreen.c
++++ b/src/ov323/pkwd_selectscreen.c
+@@ -837,10 +837,10 @@ static void PkwdSelectScreen_LoadMovies(PkwdSelectScreenWork *wk, PkwdSelectScre
+             wk->movies[i].time = Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_TIME, 0);
+             wk->movies[i].watched = PokewoodSave_IsSlotWatched(param->save, i);
+             for (j = 0; j < CAST_COUNT; j++) {
+-                Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0 + j, (u32)pkm);
++                Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0 + j, (uintptr_t)pkm);
+                 wk->movies[i].cast[j] = PokeParty_GetParam(pkm, PKM_PARAM_SPECIES, NULL);
+             }
+-            Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0, (u32)pkm);
++            Pokewood_GetLoadedMovieField(POKEWOOD_BLOCK_FIELD_PKM_0, (uintptr_t)pkm);
+             setPartyPokemonSpeciesNameToStrbuf(wk->movies[i].wordSet, 0, pkm);
+             GFL_HeapFree(pkm);
+         } else {
+diff --git a/src/ov327/wbt_download_sys.c b/src/ov327/wbt_download_sys.c
+index 176701e82..381d8fc62 100644
+--- a/src/ov327/wbt_download_sys.c
++++ b/src/ov327/wbt_download_sys.c
+@@ -297,7 +297,7 @@ static void *WbtDownload_SetupTournaments(HeapID heapId, WbtDownloadWork *wk, u3
+     WbtOv326Param2 *tournaments = GFL_HeapAllocate(heapId, sizeof(WbtOv326Param2), TRUE, "wbt_download_sys.c", 673);
+ 
+     tournaments->gsys = wk->param->gsys;
+-    tournaments->unk4 = (u32)wk->buffer;
++    tournaments->unk4 = (uintptr_t)wk->buffer;
+     tournaments->mode = 1;
+     return tournaments;
+ }
+diff --git a/src/ov330/event_pdc_return.c b/src/ov330/event_pdc_return.c
+index 302fd48d4..189168853 100644
+--- a/src/ov330/event_pdc_return.c
++++ b/src/ov330/event_pdc_return.c
+@@ -133,7 +133,7 @@ static BOOL EventPdcReturn_Main(GameProc *proc, u32 *state, void *param, void *w
+             RecordAddOne(records, 0x54);
+             JoinAvenue_RecordActivity(0x1f);
+             textCopy(playerInfo->name, wk->name);
+-            PokeParty_SetParam(prm->pkm, PKM_PARAM_OT_NAME, (u32)wk->name);
++            PokeParty_SetParam(prm->pkm, PKM_PARAM_OT_NAME, (uintptr_t)wk->name);
+             if (PokeParty_GetPkmCount(party) >= PokeParty_GetCapacity(party)) {
+                 box = BoxSaveAccessor_GetLastOpenedBox(boxes);
+                 slot = 0;
+@@ -202,7 +202,7 @@ static BOOL EventPdcReturn_Main(GameProc *proc, u32 *state, void *param, void *w
+                 oldName = GFL_StrBufCreate(32, wk->heapId);
+                 NameEntryParam_GetName(wk->nameEntry, wk->name);
+                 PokeParty_GetParam(prm->pkm, PKM_PARAM_NICKNAME, oldName);
+-                PokeParty_SetParam(prm->pkm, PKM_PARAM_NICKNAME, (u32)wk->name);
++                PokeParty_SetParam(prm->pkm, PKM_PARAM_NICKNAME, (uintptr_t)wk->name);
+                 if (NameEntryParam_CompareName(wk->nameEntry, oldName) == FALSE) {
+                     RecordAddOne(GameData_GetRecords(prm->gameData), 0x1e);
+                 }
+diff --git a/src/ov332/cygnus_flow.c b/src/ov332/cygnus_flow.c
+index 41c49f4e1..36b5bce64 100644
+--- a/src/ov332/cygnus_flow.c
++++ b/src/ov332/cygnus_flow.c
+@@ -1200,7 +1200,7 @@ static PartyPkm *CygnusData_CreatePokemon(const CygnusData *data, u32 index, Hea
+             PokeParty_SetHiddenAbil(pkm, species, form);
+         }
+         PML_PersonalFree(personal);
+-        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)GetPlayerName(GetGameDataPlayerInfo(data->gameData)));
++        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)GetPlayerName(GetGameDataPlayerInfo(data->gameData)));
+         PokeParty_SetParam(pkm, PKM_PARAM_OT_GENDER, getTrainerGender(GetGameDataPlayerInfo(data->gameData)));
+         PokeParty_SetParam(pkm, PKM_PARAM_POKEBALL, 25);
+         PokeParty_SetParam(pkm, PKM_PARAM_ORIGIN_GAME, game_version);
+diff --git a/src/system/battle_video_proc.c b/src/system/battle_video_proc.c
+index 93397c369..b0703029a 100644
+--- a/src/system/battle_video_proc.c
++++ b/src/system/battle_video_proc.c
+@@ -114,7 +114,7 @@ static BOOL BattleVideo_Main(GameProc *proc, u32 *state, void *param, void *work
+         MI_CpuFill8(&wk->sub.recorder, 0, sizeof(BattleRecorderParam));
+         wk->sub.recorder.mode = wk->param->mode;
+         wk->sub.recorder.gameData = wk->param->gameData;
+-        wk->sub.recorder.unk8 = (u32)wk->loginBuffer;
++        wk->sub.recorder.unk8 = (uintptr_t)wk->loginBuffer;
+         QueueGameProc(wk->manager, OVERLAY_ID(272), &BR_MAIN_PROC_FUNCTIONS, &wk->sub.recorder);
+         (*state)++;
+         break;
+diff --git a/src/system/bmp_menulist.c b/src/system/bmp_menulist.c
+index 5312639d3..dbf45c41e 100644
+--- a/src/system/bmp_menulist.c
++++ b/src/system/bmp_menulist.c
+@@ -230,9 +230,9 @@ s32 BmpMenuList_GetOptionValue(BmpMenuList *list, u16 index) {
+ s32 BmpMenuList_GetParam(BmpMenuList *list, u8 param) {
+     switch (param) {
+     case BMPMENULIST_PARAM_CURSOR_CALLBACK:
+-        return (s32)list->header.cursorCallback;
++        return (intptr_t)list->header.cursorCallback;
+     case BMPMENULIST_PARAM_PRINT_CALLBACK:
+-        return (s32)list->header.printCallback;
++        return (intptr_t)list->header.printCallback;
+     case BMPMENULIST_PARAM_COUNT:
+         return list->header.count;
+     case BMPMENULIST_PARAM_MAX_SHOWN:
+@@ -268,7 +268,7 @@ s32 BmpMenuList_GetParam(BmpMenuList *list, u8 param) {
+     case BMPMENULIST_PARAM_18:
+         break;
+     case BMPMENULIST_PARAM_WORK:
+-        return (s32)list->header.work;
++        return (intptr_t)list->header.work;
+     }
+     return -1;
+ }
+diff --git a/src/system/mcss_tool.c b/src/system/mcss_tool.c
+index 558e0cf8b..14e0a5c7b 100644
+--- a/src/system/mcss_tool.c
++++ b/src/system/mcss_tool.c
+@@ -168,7 +168,7 @@ void MCSS_DrawSpindaSpots(void *chars, u32 personality) {
+ 
+ // Restarts the sprite's animation each time it ends
+ void MCSS_SetLoopAnimation(MCSS *mcss) {
+-    MCSS_SetAnimationEndCallback(mcss, (u32)mcss, MCSS_RestartOnAnimationEnd, 1);
++    MCSS_SetAnimationEndCallback(mcss, (uintptr_t)mcss, MCSS_RestartOnAnimationEnd, 1);
+ }
+ 
+ static void MCSS_RestartOnAnimationEnd(u32 param, fx32 frame) {
+diff --git a/src/system/memory_link_savedata.c b/src/system/memory_link_savedata.c
+index f07fecf98..fdab08ef0 100644
+--- a/src/system/memory_link_savedata.c
++++ b/src/system/memory_link_savedata.c
+@@ -191,12 +191,12 @@ u32 MemoryLinkSave_GetValue(MemoryLinkSave *link, u32 kind, void *dest) {
+             MI_CpuCopy8(&link->players[kind - MEMORY_LINK_KIND_PLAYER_0], dest, sizeof(MemoryLinkPlayer));
+         }
+         // Not the player's address but the first one's, whichever was asked for
+-        return (u32)link;
++        return (uintptr_t)link;
+     case MEMORY_LINK_KIND_PROPS:
+         if (dest != NULL) {
+             MI_CpuCopy8(link->memories.props, dest, sizeof(link->memories.props));
+         }
+-        return (u32)link->memories.props;
++        return (uintptr_t)link->memories.props;
+     }
+     return 0;
+ }
+diff --git a/src/system/pml_met_data.c b/src/system/pml_met_data.c
+index ff1745b44..fb9143b8d 100644
+--- a/src/system/pml_met_data.c
++++ b/src/system/pml_met_data.c
+@@ -118,7 +118,7 @@ static void PML_UtilSetNPokemonMetData(BoxPkm *pkm, u32 placeName, HeapID heapId
+     PML_PkmSyncOriginGame(pkm);
+     msgData = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, MSG_FILE_MEMO, heapId);
+     name = GFL_MsgDataLoadStrbufNew(msgData, MEMO_N_NAME);
+-    PML_PkmSetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++    PML_PkmSetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+     PML_PkmSetParam(pkm, PKM_PARAM_OT_GENDER, GENDER_MALE);
+     PML_PkmSetParam(pkm, PKM_PARAM_ID, N_TRAINER_ID);
+     GFL_StrBufFree(name);
+@@ -171,7 +171,7 @@ static void PML_PkmSetOT(BoxPkm *pkm, PlayerInfo *playerInfo, HeapID heapId) {
+     u32 id = getIDAsUInt(playerInfo);
+     u32 gender = getTrainerGender(playerInfo);
+ 
+-    PML_PkmSetParam(pkm, PKM_PARAM_OT_NAME, (u32)name);
++    PML_PkmSetParam(pkm, PKM_PARAM_OT_NAME, (uintptr_t)name);
+     PML_PkmSetParam(pkm, PKM_PARAM_OT_GENDER, gender);
+     PML_PkmSetParam(pkm, PKM_PARAM_ID, id);
+     GFL_StrBufFree(name);
+diff --git a/src/system/poke_tool.c b/src/system/poke_tool.c
+index a7df4a5ef..770d6ed82 100644
+--- a/src/system/poke_tool.c
++++ b/src/system/poke_tool.c
+@@ -287,7 +287,7 @@ PartyPkm *boxPkmRegenToPartyPkm(BoxPkm *pkm, HeapID heapId) {
+     PokeParty_SetParam(partyPkm, PKM_PARAM_HP, 0);
+     PokeParty_SetParam(partyPkm, PKM_PARAM_MAX_HP, 0);
+     mail = CreateMailData(HEAPID_TAIL(heapId));
+-    PokeParty_SetParam(partyPkm, PKM_PARAM_MAIL, (u32)mail);
++    PokeParty_SetParam(partyPkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+     GFL_HeapFree(mail);
+     PokeParty_RecalcStats(partyPkm);
+     return partyPkm;
+@@ -318,7 +318,7 @@ void PokeParty_CreatePkm(PartyPkm *pkm, u16 species, u16 level, u64 trainerId, s
+     PML_CryptoRun(&pkm->statusCond, sizeof(PartyPkm) - sizeof(BoxPkm), pkm->base.pid);
+     PokeParty_SetParam(pkm, PKM_PARAM_LEVEL, level);
+     mail = CreateMailData(HEAPID_TAIL(HEAPID_SYSTEM));
+-    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (u32)mail);
++    PokeParty_SetParam(pkm, PKM_PARAM_MAIL, (uintptr_t)mail);
+     GFL_HeapFree(mail);
+     PokeParty_RecalcStats(pkm);
+ }
+@@ -357,7 +357,7 @@ static void PML_CreatePkm(BoxPkm *pkm, u16 species, u16 level, u64 trainerId, u3
+     PML_PkmSetParam(pkm, PKM_PARAM_REGION, region);
+     PML_PkmSetParam(pkm, PKM_PARAM_SPECIES, species);
+     GFL_MsgDataLoadRawStr(g_PMLSpeciesNamesResident, species, g_PMLPkmStringTemp, NELEMS(g_PMLPkmStringTemp));
+-    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)g_PMLPkmStringTemp);
++    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)g_PMLPkmStringTemp);
+     PML_PkmSetParam(pkm, PKM_PARAM_EXP, PML_UtilGetPkmLvExp(species, 0, level));
+     PML_PkmSetParam(pkm, PKM_PARAM_HAPPINESS, PML_PersonalGetParam(personal, PERSONAL_FRIENDSHIP));
+     PML_PkmSetParam(pkm, PKM_PARAM_MET_LEVEL, level);
+@@ -413,7 +413,7 @@ static void setNameChangedPkm(BoxPkm *pkm, u16 species) {
+         UpdateGenderOnMonsChange(pkm, species, oldSpecies);
+         if (!isNicknamed) {
+             GFL_MsgDataLoadRawStr(g_PMLSpeciesNamesResident, species, g_PMLPkmStringTemp, NELEMS(g_PMLPkmStringTemp));
+-            PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)g_PMLPkmStringTemp);
++            PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)g_PMLPkmStringTemp);
+         }
+     }
+     PML_PkmReEncrypt(pkm, wasEncrypted);
+@@ -510,7 +510,7 @@ static void fillDataForHatchedEgg(BoxPkm *pkm, PlayerInfo *playerInfo, u32 place
+     PML_PkmSetParam(pkm, PKM_PARAM_IS_EGG, FALSE);
+     PML_PkmSetParam(pkm, PKM_PARAM_HAPPINESS, HATCHED_FRIENDSHIP);
+     GFL_MsgDataLoadRawStr(g_PMLSpeciesNamesResident, species, g_PMLPkmStringTemp, NELEMS(g_PMLPkmStringTemp));
+-    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)g_PMLPkmStringTemp);
++    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)g_PMLPkmStringTemp);
+     PML_UtilSetupMetData(pkm, MET_DATA_HATCHED, playerInfo, placeName, heapId);
+     PML_PkmReEncrypt(pkm, wasEncrypted);
+ }
+@@ -2484,7 +2484,7 @@ void setNicknameToNick(PartyPkm *pkm) {
+ static void setNameToNick(BoxPkm *pkm) {
+     GFL_MsgDataLoadRawStr(g_PMLSpeciesNamesResident, PML_PkmGetParam(pkm, PKM_PARAM_SPECIES, NULL), g_PMLPkmStringTemp,
+                           NELEMS(g_PMLPkmStringTemp));
+-    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)g_PMLPkmStringTemp);
++    PML_PkmSetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)g_PMLPkmStringTemp);
+ }
+ 
+ static void PML_GrowTblRead(u32 growthRate, u32 *dest) {
+diff --git a/src/system/printsys.c b/src/system/printsys.c
+index 278de367d..0d04d71fe 100644
+--- a/src/system/printsys.c
++++ b/src/system/printsys.c
+@@ -274,7 +274,7 @@ BOOL PrintQueue_Main(PrintQueue *queue) {
+             }
+         }
+         if (*queue->cursor == CHAR_EOM) {
+-            u16 offset = (u32)queue->job - (u32)queue->buffer;
++            u16 offset = (uintptr_t)queue->job - (uintptr_t)queue->buffer;
+ 
+             queue->job = PrintQueue_GetNextJob(queue, queue->job);
+             if (queue->job != NULL) {
+diff --git a/src/system/resonance_resort_data.c b/src/system/resonance_resort_data.c
+index 93567003e..bef4a01f8 100644
+--- a/src/system/resonance_resort_data.c
++++ b/src/system/resonance_resort_data.c
+@@ -1005,13 +1005,13 @@ u32 joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam par
+             MI_CpuCopy8(&person->data[5].message, buffer, sizeof(JoinAvenueMessage));
+             ((u16 *)buffer)[8] = GFL_StrBufGetTerminator();
+         }
+-        return (u32)&person->data[5].message;
++        return (uintptr_t)&person->data[5].message;
+     case JOIN_AVE_PARAM_MESSAGE2_RAW:
+         if (buffer != NULL) {
+             MI_CpuCopy8(&person->data[6].message, buffer, sizeof(JoinAvenueMessage));
+             ((u16 *)buffer)[8] = GFL_StrBufGetTerminator();
+         }
+-        return (u32)&person->data[6].message;
++        return (uintptr_t)&person->data[6].message;
+     }
+     return 0;
+ }
+@@ -2408,12 +2408,12 @@ u32 JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer) {
+         if (buffer != NULL) {
+             wcharsncpy(info->name, buffer, NELEMS(info->name));
+         }
+-        return (u32)info->name;
++        return (uintptr_t)info->name;
+     case JOIN_AVE_INFO_TITLE:
+         if (buffer != NULL) {
+             wcharsncpy(info->title, buffer, 11);
+         }
+-        return (u32)info->title;
++        return (uintptr_t)info->title;
+     case JOIN_AVE_INFO_RANK:
+         return info->rank;
+     case JOIN_AVE_INFO_POPULARITY:
+diff --git a/src/system/snd_bgm_stack.c b/src/system/snd_bgm_stack.c
+index 79b0a42df..9cd83a986 100644
+--- a/src/system/snd_bgm_stack.c
++++ b/src/system/snd_bgm_stack.c
+@@ -198,7 +198,7 @@ u32 GFL_SndBGMStack_Preload(const u32 *seqs, u32 count) {
+     preload->count = count;
+     preload->level = level;
+     BGMStack_InitEntry(NNS_SndHeapSaveState(*sBGMStack.heap));
+-    return (u32)preload;
++    return (uintptr_t)preload;
+ }
+ 
+ void GFL_SndBGMStack_Unload(u32 handle) {
+diff --git a/src/system/snd_mic.c b/src/system/snd_mic.c
+index dd3fddb8a..85a56cb64 100644
+--- a/src/system/snd_mic.c
++++ b/src/system/snd_mic.c
+@@ -98,5 +98,5 @@ void SndMic_EncodeChatter(PerapVoice *chatter) {
+ 
+ // The buffer from its first 32-byte boundary
+ static void *SndMic_GetAlignedBuffer(void) {
+-    return (void *)(((u32)sSndMic->buffer + 0x1f) & ~0x1f);
++    return (void *)(((uintptr_t)sSndMic->buffer + 0x1f) & ~0x1f);
+ }
+diff --git a/src/system/vm.c b/src/system/vm.c
+index 42f942b7e..e800b5f0d 100644
+--- a/src/system/vm.c
++++ b/src/system/vm.c
+@@ -149,7 +149,7 @@ void VM_Jump(VM *vm, const u8 *pc) {
+ }
+ 
+ void VM_Call(VM *vm, const u8 *pc) {
+-    VM_StackPush(vm, (u32)vm->pc);
++    VM_StackPush(vm, (uintptr_t)vm->pc);
+     vm->pc = pc;
+ }
+ 

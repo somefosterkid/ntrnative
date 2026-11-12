@@ -1,0 +1,1687 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -78,6 +78,9 @@
+     u8 vsyncInterval; /* Vertical sync interval. Set to 0 to disable vsync, 1 every vblank, 2 every second vblank etc*/
+     u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
++    u8 showMetrics; /* bw-port (libntr-ui68.patch): the metrics at the top of the right side (sim_config.ini ShowMetrics) */
++    u8 showMenuBar; /* the menu bar at the top of the window, windowed (`; ShowMenuBar); fullscreen: out on the mouse at the top edge or Alt */
++    u8 uiScale; /* the UI's size in percent, 0 = from the display's DPI (UiScale=auto|100|125|...) */
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=auto|vcore|gpu (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+     u8 resolution; /* the picture at this many times the DS resolution, 1..8 (sim_config.ini Resolution, BWPORT_RESOLUTION; old: Scale, BWPORT_GPU_SCALE) */
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -11,15 +11,24 @@
+ void Init(SDL_Window * window, SDL_GLContext context);
+ void Main();
+ void NewFrame();
+-void ProcessEvent(SDL_Event * event);
++// bw-port (libntr-ui68.patch): true when the GUI took the event (a key being assigned, Esc closing a window)
++bool ProcessEvent(SDL_Event * event);
+ void Render();
+ void Toggle();
+ void Enable();
+ void OpenFileDialog(std::function<void(std::string)> callback);
+ bool IsGameLogicPaused();
+-// The input panel: the DS's buttons drawn in the window rectangle (x, y, w, h), lit where bit n of pressed is set
++// The right side drawn in the window rectangle (x, y, w, h): the metrics (metrics != 0) over the controller (controller
++// != 0), the buttons lit where bit n of pressed is set
+ // (bit 0 A, 1 B, 2 X, 3 Y, 4 L, 5 R, 6 Start, 7 Select, 8 Up, 9 Down, 10 Left, 11 Right)
+-void DrawInputPanel(float x, float y, float w, float h, unsigned pressed);
++void DrawSide(float x, float y, float w, float h, unsigned pressed, int metrics, int controller);
++// Before the frame's layout: the menu bar's state (the mouse at the top edge, Alt); returns the height the screens'
++// area leaves free at the top (0 when the bar is away or only drawn over the picture in fullscreen)
++int BarBegin(int windowW, int windowH);
++int InitialBarHeight();   // the bar's height before the GUI exists (the window's first size), 0 = no bar
++float DisplayScale();     // the display's DPI / 96 (1.0 on a 96 DPI display)
++bool WantMouse();         // ImGui has the mouse (over a window or the bar): the click is not a touch
++bool WantKeyboard();      // ImGui has the keyboard (a text field)
+ void DrawStatus(const char * text); // libntr-onerender.patch: the renderer status over the picture
+ void AppButton(const char * label, bool * state, void (*aInitFunc)(void), void (*aAppFunc)(bool *));
+ 
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -69,6 +69,16 @@
+     if(MATCH("General", "ShowInputPanel")) {
+         config->showInputPanel = StringToBool(value);
+     }
++    if(MATCH("General", "ShowMetrics")) {
++        config->showMetrics = StringToBool(value);
++    }
++    if(MATCH("General", "ShowMenuBar")) {
++        config->showMenuBar = StringToBool(value);
++    }
++    if(MATCH("General", "UiScale")) {
++        int n = strcmp(value, "auto") == 0 ? 0 : atoi(value);
++        config->uiScale = (u8)(n == 0 ? 0 : n < 50 ? 50 : n > 255 ? 255 : n);
++    }
+     if(MATCH("General", "Sound")) {
+         config->sound = strcmp(value, "acore") == 0 ? SIM_CONFIG_SOUND_ACORE : SIM_CONFIG_SOUND_LIBNTR;
+     }
+@@ -457,6 +467,9 @@
+     aConfig->vsyncInterval = 1;
+     aConfig->capFrameRate = TRUE;
+     aConfig->showInputPanel = TRUE;
++    aConfig->showMetrics = TRUE;
++    aConfig->showMenuBar = TRUE;
++    aConfig->uiScale = 0;
+     aConfig->renderer = SIM_CONFIG_RENDERER_AUTO;
+     aConfig->resolution = 1;
+     aConfig->gpuDot = 0;
+@@ -547,6 +560,13 @@
+     fprintf(configFile, "VsyncInterval=%d\n", aConfig->vsyncInterval);
+     fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
++    fprintf(configFile, "ShowMetrics=%s\n", BoolToString(aConfig->showMetrics));
++    fprintf(configFile, "ShowMenuBar=%s\n", BoolToString(aConfig->showMenuBar));
++    if(aConfig->uiScale == 0) {
++        fprintf(configFile, "UiScale=auto\n");
++    } else {
++        fprintf(configFile, "UiScale=%d\n", aConfig->uiScale);
++    }
+     fprintf(configFile, "Sound=%s\n", aConfig->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
+     fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_GPU ? "gpu"
+                                          : aConfig->renderer == SIM_CONFIG_RENDERER_VCORE ? "vcore" : "auto");
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -477,6 +477,9 @@
+ 
+ void *SIM_RenderInit(void *arg) {
+ 
++  // bw-port (libntr-ui68.patch): per-monitor DPI awareness on Windows: the window's pixels are the screen's (Windows
++  // otherwise stretches the whole window, text and picture, on a scaled display); the UI scales by the display's DPI
++  SDL_SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2");
+   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+@@ -526,7 +529,7 @@
+     windowWidth = s_SIM_config.windowWidth;
+   }
+ 
+-  if (s_SIM_config.showInputPanel && (s_SIM_config.windowWidth == 0 || s_SIM_config.windowHeight == 0)) {
++  if ((s_SIM_config.showInputPanel || s_SIM_config.showMetrics) && (s_SIM_config.windowWidth == 0 || s_SIM_config.windowHeight == 0)) {
+     // room for the input panel (SIM_Render: layoutH * 0.625 beside the screens)
+     switch (s_SIM_config.screenLayout) {
+     default:
+@@ -539,6 +542,13 @@
+       break;
+     }
+   }
++  if (s_SIM_config.windowWidth == 0 || s_SIM_config.windowHeight == 0) {
++    // bw-port (libntr-ui68.patch): the default size scales with the display's DPI (a 150 % display: the size it had
++    // when Windows stretched the window), and leaves room for the menu bar above the screens
++    float ds = SIM::GUI::DisplayScale();
++    windowWidth = (u32)((float)windowWidth * ds + 0.5f);
++    windowHeight = (u32)((float)windowHeight * ds + 0.5f) + (u32)SIM::GUI::InitialBarHeight();
++  }
+ 
+   std::string windowTitle = "libntr Application";
+ 
+@@ -982,6 +992,19 @@
+ 
+     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+ 
++    // bw-port (libntr-ui68.patch): the menu bar at the top (windowed): the screens' area starts below it. The window grows
++    // (shrinks) by the bar's height when the bar comes and goes, so the picture keeps its size.
++    int barH = SIM::GUI::BarBegin(windowWidth, windowHeight);
++    {
++      static int sBarHPrev = -1;
++      if (sBarHPrev >= 0 && sBarHPrev != barH && !s_SIM_config.fullScreen &&
++          !(SDL_GetWindowFlags(window) & (SDL_WINDOW_MAXIMIZED | SDL_WINDOW_FULLSCREEN_DESKTOP))) {
++        windowHeight += barH - sBarHPrev;
++        SDL_SetWindowSize(window, windowWidth, windowHeight);
++      }
++      sBarHPrev = barH;
++    }
++
+     // Scale the viewport to the correct aspect ratio and center it
+     float layoutW, layoutH;
+     switch (s_SIM_config.screenLayout) {
+@@ -997,12 +1020,13 @@
+       break;
+     }
+     // The input panel sits right of the screens: the screens and the panel are fitted together
+-    float panelW = s_SIM_config.showInputPanel ? layoutH * 0.625f : 0.0f;
++    bool sideOn = s_SIM_config.showInputPanel || s_SIM_config.showMetrics;
++    float panelW = sideOn ? layoutH * 0.625f : 0.0f;
+     aspectRatio = (layoutW + panelW) / layoutH;
+     {
+       // the window grows (shrinks) by the panel's width when the panel is switched
+       static int sPanelShown = -1;
+-      int shown = s_SIM_config.showInputPanel ? 1 : 0;
++      int shown = sideOn ? 1 : 0;
+       if (sPanelShown >= 0 && sPanelShown != shown && !s_SIM_config.fullScreen &&
+           !(SDL_GetWindowFlags(window) & (SDL_WINDOW_MAXIMIZED | SDL_WINDOW_FULLSCREEN_DESKTOP))) {
+         float f = shown ? (layoutW + layoutH * 0.625f) / layoutW : layoutW / (layoutW + layoutH * 0.625f);
+@@ -1017,16 +1041,18 @@
+     // that fits (a window smaller than 1x falls back to the fit), centred. viewY is glViewport's (from the bottom),
+     // viewTop the same edge from the window's top (the mouse's and ImGui's)
+     float totalW = layoutW + panelW;
+-    float factor = fminf((float)windowWidth / totalW, (float)windowHeight / layoutH);
++    int areaH = windowHeight - barH; // the window under the menu bar
++    if (areaH < 1) areaH = 1;
++    float factor = fminf((float)windowWidth / totalW, (float)areaH / layoutH);
+     if (s_SIM_config.integerScale && factor >= 1.0f) {
+       factor = floorf(factor + 0.0001f);
+     }
+     viewWidth = (int)(factor * totalW + 0.5f);
+     viewHeight = (int)(factor * layoutH + 0.5f);
+     if (viewWidth > windowWidth) viewWidth = windowWidth;
+-    if (viewHeight > windowHeight) viewHeight = windowHeight;
++    if (viewHeight > areaH) viewHeight = areaH;
+     viewX = (windowWidth - viewWidth) / 2;
+-    int viewTop = (windowHeight - viewHeight) / 2;
++    int viewTop = barH + (areaH - viewHeight) / 2;
+     viewY = windowHeight - viewHeight - viewTop;
+ 
+     // the screens take their share of the width; the panel the rest
+@@ -1075,7 +1101,10 @@
+     }
+ 
+     while (SDL_PollEvent(&Event)) {
+-      SIM::GUI::ProcessEvent(&Event);
++      // bw-port (libntr-ui68.patch): the GUI takes a key it is waiting for (a key being assigned) or Esc for a window
++      if (SIM::GUI::ProcessEvent(&Event)) {
++        continue;
++      }
+ 
+       if (Event.type == SDL_WINDOWEVENT) {
+         switch (Event.window.event) {
+@@ -1084,7 +1113,7 @@
+           break;
+         }
+       }
+-      if (Event.type == SDL_KEYDOWN) {
++      if (Event.type == SDL_KEYDOWN && !SIM::GUI::WantKeyboard()) {
+         int keyRead = Event.key.keysym.sym;
+         if (keyRead == SDLK_F11 || (keyRead == SDLK_RETURN && (Event.key.keysym.mod & KMOD_ALT))) {
+           // bw-port (libntr-present.patch): fullscreen on/off (F11, Alt+Enter; not for a key held down)
+@@ -1257,7 +1286,7 @@
+                               SIM_CONFIG_JOY_AXIS_MINUS_MASK);
+         }
+       }
+-      if (Event.type == SDL_MOUSEBUTTONDOWN) {
++      if (Event.type == SDL_MOUSEBUTTONDOWN && !SIM::GUI::WantMouse()) { // a click on the menu or a window is not a touch
+         isMouseDown = 1;
+         s_tpData.validity = 0;
+         s_tpData.touch = 1;
+@@ -1302,7 +1331,6 @@
+     }
+ 
+     SIM::GUI::NewFrame();
+-    SIM::GUI::Main();
+     if (panelPxW > 0) {
+       // lit where the pad registers say pressed (keyboard, gamepad or script alike): 0 is pressed
+       u16 pad = s_reg_PAD_KEYINPUT;
+@@ -1314,8 +1342,10 @@
+       }
+       if (!((xy >> 10) & 1)) lit |= 1u << 2;
+       if (!((xy >> 11) & 1)) lit |= 1u << 3;
+-      SIM::GUI::DrawInputPanel((float)panelPxX, (float)viewTop, (float)panelPxW, (float)viewHeight, lit);
++      SIM::GUI::DrawSide((float)panelPxX, (float)viewTop, (float)panelPxW, (float)viewHeight, lit,
++                         s_SIM_config.showMetrics, s_SIM_config.showInputPanel);
+     }
++    SIM::GUI::Main(); // after the side's windows: the settings windows are in front of them
+ 
+     SIM_RendererPoll();
+ 
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -11,23 +11,26 @@
+ #include "simulator/config/sim_config.h"
+ 
+ #include <algorithm>
++#include <format>
++#include <math.h>
++#include <stdio.h>
++#include <stdlib.h>
+ #include <string>
+ #include <string.h>
++#include <vector>
++#ifdef __linux__
++#include <unistd.h>
++#endif
+ 
++// bw-port (libntr-ui68.patch): the menu bar, the settings windows, the right side (metrics on top, the controller below)
++// and the sharp text (a vector font at the pixel size drawn). the maintainers' notes "The UI".
+ namespace SIM::GUI {
+ static SDL_Window * sWindow;
+ static SDL_GLContext sContext;
+ static ImGuiContext * sImguiContext;
+-static bool sEnabled = false;
+ static bool sPauseGameLogic = false;
+ static constexpr ImVec2 sButtonSize = {100, 20};
+ 
+-static bool sShowAppConfig = false;
+-static bool sShowAppPad = false;
+-static bool sShowAppNet = false;
+-static bool sShowImGuiDemo = false;
+-static bool sShowWindowPrjSpecific = false;
+-
+ static std::function<void(std::string)> sFileDialogCallback = nullptr;
+ 
+ void PrjMain(bool *) __attribute__((weak));
+@@ -40,8 +43,39 @@
+     }
+ }
+ 
++// ---- state --------------------------------------------------------------------------------------------------------
++
++static float sUiScale = 1.0f;       // the UI's size factor (UiScale in sim_config.ini; auto = the display's DPI / 96)
++static ImGuiStyle sBaseStyle;       // the style at scale 1
++static float sBarH = 24.0f;         // the menu bar's height in pixels
++static bool sBarLatch = false;      // the bar was brought out with Alt (or ` in fullscreen)
++static bool sBarMouse = false;      // the bar is out because the mouse touched the top edge
++static bool sBarVisible = false;    // the bar is drawn this frame
++static int sBarReserve = 0;         // the height the screens' area leaves at the top this frame
++static bool sAltDown = false, sAltOther = false;
++static bool sDirty = false;         // a setting changed: sim_config.ini is written when the mouse is up
++static bool sResetAsk = false;
++
++enum {
++    W_VIDEO, W_AUDIO, W_CONTROLS, W_VIEW, W_DEBUG, W_LEGACY_CONFIG, W_LEGACY_INPUT, W_NET, W_DEMO, W_APP, W_COUNT
++};
++struct Win { bool open; int order; };
++static Win sWins[W_COUNT];
++static int sWinOrder = 0;
++
++struct Capture { int * target; bool joy; };
++static Capture sCap = {nullptr, false};
++
++static SIM_config_type * C() { return SIM_GetConfigPtr(); }
++static void Dirty() { sDirty = true; }
++
++static void OpenWin(int w) {
++    sWins[w].open = true;
++    sWins[w].order = ++sWinOrder;
++}
++
++// ---- key names ----------------------------------------------------------------------------------------------------
+ 
+-// ---- The input panel: a DS's buttons in their places, each with the key it is mapped to, lit while pressed
+ static std::string KeyLabel(int key) {
+     std::string n = SDL_GetKeyName(key);
+     static const char * const sShort[][2] = {
+@@ -58,186 +92,1201 @@
+     return n.empty() ? "-" : n;
+ }
+ 
+-void DrawInputPanel(float px, float py, float pw, float ph, unsigned pressed) {
+-    ImDrawList * dl = ImGui::GetBackgroundDrawList();
++static std::string JoyLabel(int key) {
++    if (key == SIM_CONFIG_JOY_INVALID_KEY) {
++        return "-";
++    }
++    if (key & SIM_CONFIG_JOY_HAT_MASK) {
++        int h = key & ~SIM_CONFIG_JOY_HAT_MASK;
++        return h == SDL_HAT_UP ? "Hat up" : h == SDL_HAT_DOWN ? "Hat down" : h == SDL_HAT_LEFT ? "Hat left" :
++               h == SDL_HAT_RIGHT ? "Hat right" : std::format("Hat {}", h);
++    }
++    if (key & SIM_CONFIG_JOY_AXIS_MINUS_MASK) {
++        return std::format("Axis {}-", key & ~SIM_CONFIG_JOY_AXIS_MINUS_MASK);
++    }
++    if (key & SIM_CONFIG_JOY_AXIS_PLUS_MASK) {
++        return std::format("Axis {}+", key & ~SIM_CONFIG_JOY_AXIS_PLUS_MASK);
++    }
++    return std::format("Button {}", key);
++}
++
++// ---- the display's scale ------------------------------------------------------------------------------------------
++
++float DisplayScale() {
++    float ddpi = 96.0f;
++    if (SDL_GetDisplayDPI(0, &ddpi, nullptr, nullptr) != 0) {
++        ddpi = 96.0f;
++    }
++    float s = ddpi / 96.0f;
++    s = roundf(s * 4.0f) / 4.0f;
++    return s < 1.0f ? 1.0f : s > 3.0f ? 3.0f : s;
++}
++
++static float WantedScale() {
++    SIM_config_type * c = C();
++    if (c->uiScale >= 50) {
++        return (float)c->uiScale / 100.0f;
++    }
++    const char * e = getenv("BWPORT_UISCALE");
++    if (e != nullptr && atof(e) >= 0.5) {
++        return (float)atof(e);
++    }
++    return DisplayScale();
++}
++
++static void ApplyScale(float s) {
++    sUiScale = s;
++    ImGuiStyle & st = ImGui::GetStyle();
++    st = sBaseStyle;
++    st.ScaleAllSizes(s);
++    st.FontScaleMain = s;
++    sBarH = ceilf(st.FontSizeBase * s) + 2.0f * st.FramePadding.y;
++}
++
++int InitialBarHeight() {
++    SIM_config_type * c = C();
++    float s = c->uiScale >= 50 ? (float)c->uiScale / 100.0f : DisplayScale();
++    return c->showMenuBar && !c->fullScreen ? (int)(ceilf(15.0f * s) + 2.0f * floorf(4.0f * s)) : 0;
++}
++
++// ---- the menu bar's state -----------------------------------------------------------------------------------------
++
++int BarBegin(int windowW, int windowH) {
++    (void)windowW;
++    (void)windowH;
++    SIM_config_type * c = C();
++    int mx = 0, my = 0;
++    Uint32 b = SDL_GetMouseState(&mx, &my);
++    bool focus = SDL_GetMouseFocus() == sWindow;
++    bool popup = sImguiContext != nullptr && ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
++    bool pinned = !c->fullScreen && c->showMenuBar;
++    if (!pinned) {
++        // out when the mouse reaches the top edge (not while a button is down: a touch there is the game's)
++        if (focus && !(b & SDL_BUTTON_LMASK) && my <= 2) {
++            sBarMouse = true;
++        } else if (!(focus && (float)my < sBarH + 6.0f) && !popup) {
++            sBarMouse = false;
++        }
++    } else {
++        sBarMouse = false;
++        sBarLatch = false;
++    }
++    sBarVisible = pinned || sBarMouse || sBarLatch || popup;
++    sBarReserve = pinned ? (int)ceilf(sBarH) : 0;
++    return sBarReserve;
++}
++
++// ` : the bar on or off (windowed: kept in sim_config.ini; fullscreen: out until pressed again)
++void Toggle() {
++    SIM_config_type * c = C();
++    if (c->fullScreen) {
++        sBarLatch = !sBarLatch;
++    } else {
++        c->showMenuBar = !c->showMenuBar;
++        sBarLatch = false;
++        Dirty();
++    }
++}
++
++void Enable() {
++    C()->showMenuBar = 1;
++}
++
++bool IsGameLogicPaused() {
++    return sPauseGameLogic;
++}
++
++bool WantMouse() {
++    return sImguiContext != nullptr && ImGui::GetIO().WantCaptureMouse;
++}
++
++bool WantKeyboard() {
++    return sImguiContext != nullptr && ImGui::GetIO().WantCaptureKeyboard;
++}
++
++bool ProcessEvent(SDL_Event * event) {
++    // a key being assigned (Controls window): the next key or gamepad input, Esc cancels; the game does not see it
++    if (sCap.target != nullptr) {
++        if (event->type == SDL_KEYDOWN) {
++            if (event->key.keysym.sym != SDLK_ESCAPE && !sCap.joy) {
++                *sCap.target = event->key.keysym.sym;
++                Dirty();
++            }
++            if (event->key.keysym.sym == SDLK_ESCAPE || !sCap.joy) {
++                sCap.target = nullptr;
++            }
++            return true;
++        }
++        if (sCap.joy) {
++            int v = SIM_CONFIG_JOY_INVALID_KEY;
++            SIM_config_type * c = C();
++            if (event->type == SDL_JOYBUTTONDOWN) {
++                v = event->jbutton.button;
++            } else if (event->type == SDL_JOYHATMOTION && event->jhat.value != SDL_HAT_CENTERED) {
++                v = event->jhat.value | SIM_CONFIG_JOY_HAT_MASK;
++            } else if (event->type == SDL_JOYAXISMOTION && (event->jaxis.value > c->padSettings.joyAxisDeadzone ||
++                                                              event->jaxis.value < -c->padSettings.joyAxisDeadzone)) {
++                v = event->jaxis.axis | (event->jaxis.value > 0 ? SIM_CONFIG_JOY_AXIS_PLUS_MASK : SIM_CONFIG_JOY_AXIS_MINUS_MASK);
++            }
++            if (v != SIM_CONFIG_JOY_INVALID_KEY) {
++                *sCap.target = v;
++                sCap.target = nullptr;
++                Dirty();
++                return true;
++            }
++        }
++    }
++    if (event->type == SDL_KEYDOWN && event->key.keysym.sym == SDLK_ESCAPE && !event->key.repeat) {
++        // Esc closes the settings window last used
++        int best = -1;
++        for (int i = 0; i < W_COUNT; i++) {
++            if (sWins[i].open && (best < 0 || sWins[i].order > sWins[best].order)) {
++                best = i;
++            }
++        }
++        if (best >= 0) {
++            sWins[best].open = false;
++            return true;
++        }
++    }
++    if (event->type == SDL_KEYDOWN || event->type == SDL_KEYUP) {
++        int k = event->key.keysym.sym;
++        bool alt = k == SDLK_LALT || k == SDLK_RALT;
++        if (event->type == SDL_KEYDOWN) {
++            if (alt) {
++                sAltDown = true;
++                sAltOther = false;
++            } else {
++                sAltOther = true;
++            }
++        } else if (alt) {
++            // Alt pressed and released alone: the bar out or away
++            if (sAltDown && !sAltOther && !(!C()->fullScreen && C()->showMenuBar)) {
++                sBarLatch = !sBarLatch;
++            }
++            sAltDown = false;
++        }
++    }
++    ImGui_ImplSDL2_ProcessEvent(event);
++    return false;
++}
++
++// ---- the draw state -----------------------------------------------------------------------------------------------
++
++void Init(SDL_Window * window, SDL_GLContext context) {
++    sWindow = window;
++    sContext = context;
++
++    sImguiContext = ImGui::CreateContext(NULL);
++
++    ImGuiIO & igIO = ImGui::GetIO();
++    igIO.IniFilename = nullptr;                    // the windows open centred each time
++    igIO.DisplaySize.x = (float)(SIM_NDS_SCREEN_WIDTH*SIM_NDS_WINDOW_SCALE_FACTOR);
++    igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
++
++    ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
++    const char * glsl_version = "#version 420";
++    ImGui_ImplOpenGL3_Init(glsl_version);
++
++    ImGui::StyleColorsDark(NULL);
++    // a vector font: sharp at any size, scaled with the UI and drawn at the pixel size
++    igIO.Fonts->AddFontDefaultVector();
++    ImGuiStyle & st = ImGui::GetStyle();
++    st.FontSizeBase = 15.0f;
++    st.WindowRounding = 6.0f;
++    st.FrameRounding = 4.0f;
++    st.PopupRounding = 4.0f;
++    st.GrabRounding = 4.0f;
++    st.TabRounding = 4.0f;
++    st.ScrollbarRounding = 6.0f;
++    st.WindowPadding = ImVec2(14.0f, 12.0f);
++    st.FramePadding = ImVec2(8.0f, 4.0f);
++    st.ItemSpacing = ImVec2(8.0f, 6.0f);
++    st.WindowBorderSize = 1.0f;
++    st.PopupBorderSize = 1.0f;
++    ImVec4 * col = st.Colors;
++    col[ImGuiCol_WindowBg] = ImVec4(0.09f, 0.09f, 0.12f, 0.98f);
++    col[ImGuiCol_PopupBg] = ImVec4(0.10f, 0.10f, 0.14f, 0.99f);
++    col[ImGuiCol_MenuBarBg] = ImVec4(0.11f, 0.11f, 0.15f, 1.00f);
++    col[ImGuiCol_TitleBg] = ImVec4(0.12f, 0.12f, 0.17f, 1.00f);
++    col[ImGuiCol_TitleBgActive] = ImVec4(0.17f, 0.20f, 0.30f, 1.00f);
++    col[ImGuiCol_FrameBg] = ImVec4(0.17f, 0.18f, 0.24f, 1.00f);
++    col[ImGuiCol_Header] = ImVec4(0.25f, 0.38f, 0.65f, 0.55f);
++    col[ImGuiCol_Border] = ImVec4(0.30f, 0.32f, 0.42f, 0.70f);
++    sBaseStyle = st;
++    ApplyScale(WantedScale());
++}
++
++// ---- small helpers ------------------------------------------------------------------------------------------------
++
++static const char * const LayoutNames[] = {"Vertical", "Horizontal", "Large screen"};
++static const char * const RendererNames[] = {
++    "auto (the GPU when there is one, else vcore)",
++    "vcore (the DS video core on the CPU)",
++    "gpu (OpenGL)"
++};
++static const char * const RendererShort[] = {"auto", "vcore", "gpu"};
++static const char * const DotNames[] = {"block (N x N, the DS look)", "fine (one N x pixel)"};
++static const char * const LineNames[] = {"wide (N pixels)", "thin (one N x pixel)"};
++static const char * const EdgeNames[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
++static const char * const FilterNames[] = {"nearest (the DS look)", "bilinear"};
++static const char * const FrameSkipNames[] = {
++    "Off (draw every frame)", "1 (draw every 2nd frame)", "2 (draw every 3rd frame)", "3 (draw every 4th frame)",
++    "Auto (only when too slow for 60 fps)"
++};
++static const char * const VsyncNames[] = {"Off", "Every V-Blank", "Every second V-Blank"};
++static const int UiScales[] = {0, 100, 125, 150, 175, 200, 250};
++
++static void LayoutSize(int * w, int * h) {
++    switch (C()->screenLayout) {
++    default:
++    case SIM_CONFIG_SCREEN_LAYOUT_VERTICAL: *w = 256; *h = 384; break;
++    case SIM_CONFIG_SCREEN_LAYOUT_HORIZONTAL: *w = 512; *h = 192; break;
++    case SIM_CONFIG_SCREEN_LAYOUT_LARGE: *w = 768; *h = 384; break;
++    }
++}
++
++static std::string ResolutionLabel(int n) {
++    int w, h;
++    LayoutSize(&w, &h);
++    return std::format("{}x ({}x{})", n, w * n, h * n);
++}
++
++static int FrameSkipIndex() {
++    SIM_config_type * c = C();
++    return c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : c->frameSkip > 3 ? 3 : c->frameSkip;
++}
++
++static void SetFrameSkip(int i) {
++    // a value from BWPORT_FRAMESKIP (above 3) stays unless the choice was changed
++    if (i != FrameSkipIndex()) {
++        C()->frameSkip = i == 4 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)i;
++        Dirty();
++    }
++}
++
++static void ApplyFullscreen(bool on) {
++    C()->fullScreen = on;
++    SDL_SetWindowFullscreen(sWindow, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
++    Dirty();
++}
++
++static void ApplyVsync(int v) {
++    C()->vsyncInterval = (u8)v;
++    if (v != SDL_GL_GetSwapInterval()) {
++        SDL_GL_SetSwapInterval(v);
++    }
++    Dirty();
++}
++
++static void SetUiScale(int percent) {
++    C()->uiScale = (u8)percent;
++    ApplyScale(WantedScale());
++    Dirty();
++}
++
++static const char * ActiveRenderer() {
++    int a = SIM_RendererActive();
++    return a == 1 ? "vcore" : a == 2 ? "gpu" : "starting";
++}
++
++static bool ComboIndex(const char * label, int * idx, const char * const * names, int n) {
++    bool ch = false;
++    if (ImGui::BeginCombo(label, names[*idx < n ? *idx : 0])) {
++        for (int i = 0; i < n; i++) {
++            if (ImGui::Selectable(names[i], i == *idx)) {
++                *idx = i;
++                ch = true;
++            }
++        }
++        ImGui::EndCombo();
++    }
++    return ch;
++}
++
++static bool RendererCombo(const char * label, bool longNames) {
++    int r = C()->renderer;
++    static const char * const shortNames[] = {"auto", "vcore (CPU)", "gpu (OpenGL)"};
++    if (ComboIndex(label, &r, longNames ? RendererNames : shortNames, 3)) {
++        C()->renderer = (u8)r;
++        Dirty();
++        return true;
++    }
++    return false;
++}
++
++static bool ResolutionCombo(const char * label) {
++    int res = C()->resolution;
++    bool ch = false;
++    if (ImGui::BeginCombo(label, ResolutionLabel(res).c_str())) {
++        for (int n = 1; n <= 8; n++) {
++            if (ImGui::Selectable(ResolutionLabel(n).c_str(), n == res)) {
++                C()->resolution = (u8)n;
++                Dirty();
++                ch = true;
++            }
++        }
++        ImGui::EndCombo();
++    }
++    return ch;
++}
++
++static bool BeginForm(const char * id) {
++    if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_None)) {
++        return false;
++    }
++    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 150.0f * sUiScale);
++    ImGui::TableSetupColumn("control", ImGuiTableColumnFlags_WidthStretch);
++    return true;
++}
++
++static void FormRow(const char * label, const char * tip = nullptr) {
++    ImGui::TableNextRow();
++    ImGui::TableSetColumnIndex(0);
++    ImGui::AlignTextToFramePadding();
++    ImGui::TextUnformatted(label);
++    if (tip != nullptr && ImGui::IsItemHovered()) {
++        ImGui::SetTooltip("%s", tip);
++    }
++    ImGui::TableSetColumnIndex(1);
++    ImGui::SetNextItemWidth(-FLT_MIN);
++}
++
++// a settings window: centred in the window under the bar when it opens, a fixed width, as high as its content, Esc closes
++static bool BeginSettings(int id, const char * title, float width) {
++    Win & w = sWins[id];
++    if (!w.open) {
++        return false;
++    }
++    ImGuiViewport * vp = ImGui::GetMainViewport();
++    ImVec2 c(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + (sBarH + vp->Size.y) * 0.5f);
++    ImGui::SetNextWindowPos(c, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
++    ImGui::SetNextWindowSizeConstraints(ImVec2(0, 0), ImVec2(vp->Size.x - 20.0f, vp->Size.y - sBarH - 20.0f));
++    if (!ImGui::Begin(title, &w.open, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
++        ImGui::End();
++        return false;
++    }
++    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
++        w.order = ++sWinOrder;
++    }
++    ImGui::Dummy(ImVec2(std::min(width * sUiScale, vp->Size.x - 60.0f), 1.0f));
++    return true;
++}
++
++// ---- the settings windows -----------------------------------------------------------------------------------------
++
++static void VideoWindow() {
++    if (!BeginSettings(W_VIDEO, "Video", 520.0f)) {
++        return;
++    }
++    SIM_config_type * c = C();
++    ImGui::SeparatorText("Renderer");
++    if (BeginForm("##vr")) {
++        FormRow("Renderer", "auto picks the GPU renderer when OpenGL is a real GPU, else vcore (the CPU)");
++        RendererCombo("##renderer", true);
++        ImGui::EndTable();
++    }
++    ImGui::TextDisabled("Drawing now:");
++    ImGui::SameLine();
++    ImGui::TextWrapped("%s", SIM_RendererStatus());
++
++    ImGui::SeparatorText("Resolution");
++    {
++        int w, h;
++        LayoutSize(&w, &h);
++        const float rowH = ImGui::GetFrameHeight();
++        if (ImGui::BeginTable("##res", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_SizingStretchProp)) {
++            ImGui::TableSetupColumn("Scale", ImGuiTableColumnFlags_WidthFixed, 60.0f * sUiScale);
++            ImGui::TableSetupColumn("Picture", ImGuiTableColumnFlags_WidthStretch);
++            ImGui::TableSetupColumn("Drawn by", ImGuiTableColumnFlags_WidthFixed, 130.0f * sUiScale);
++            ImGui::TableHeadersRow();
++            for (int n = 1; n <= 8; n++) {
++                ImGui::TableNextRow(0, rowH);
++                ImGui::TableSetColumnIndex(0);
++                char lab[32];
++                snprintf(lab, sizeof lab, "%dx##res%d", n, n);
++                if (ImGui::Selectable(lab, c->resolution == n, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, rowH - 2.0f))) {
++                    c->resolution = (u8)n;
++                    Dirty();
++                }
++                ImGui::TableSetColumnIndex(1);
++                ImGui::Text("%d x %d", w * n, h * n);
++                ImGui::TableSetColumnIndex(2);
++                if (c->resolution == n) {
++                    ImGui::TextColored(ImVec4(0.55f, 0.9f, 0.55f, 1.0f), "%s", ActiveRenderer());
++                }
++            }
++            ImGui::EndTable();
++        }
++    }
++
++    ImGui::SeparatorText("Look at 2x and above");
++    ImGui::BeginDisabled(c->resolution <= 1);
++    if (BeginForm("##vl")) {
++        int dot = c->gpuDot, line = c->gpuLine, edge = c->gpuEdge, filter = c->gpuFilter;
++        FormRow("Dots");
++        if (ComboIndex("##dots", &dot, DotNames, 2)) { c->gpuDot = (u8)dot; Dirty(); }
++        FormRow("Lines");
++        if (ComboIndex("##lines", &line, LineNames, 2)) { c->gpuLine = (u8)line; Dirty(); }
++        FormRow("Edge marking");
++        if (ComboIndex("##edge", &edge, EdgeNames, 2)) { c->gpuEdge = (u8)edge; Dirty(); }
++        FormRow("Texture filter", "the GPU renderer's");
++        if (ComboIndex("##filter", &filter, FilterNames, 2)) { c->gpuFilter = (u8)filter; Dirty(); }
++        ImGui::EndTable();
++    }
++    ImGui::EndDisabled();
++
++    ImGui::SeparatorText("Window and timing");
++    if (BeginForm("##vw")) {
++        FormRow("Fullscreen (F11)");
++        bool fs = c->fullScreen;
++        if (ImGui::Checkbox("##fs", &fs)) { ApplyFullscreen(fs); }
++        FormRow("Integer scale", "the screens at a whole multiple of the DS size, centred");
++        bool is = c->integerScale;
++        if (ImGui::Checkbox("##is", &is)) { c->integerScale = is; Dirty(); }
++        FormRow("Frame skip");
++        int fk = FrameSkipIndex();
++        if (ComboIndex("##fk", &fk, FrameSkipNames, 5)) { SetFrameSkip(fk); }
++        FormRow("VSync");
++        int vs = c->vsyncInterval > 2 ? 2 : c->vsyncInterval;
++        if (ComboIndex("##vs", &vs, VsyncNames, 3)) { ApplyVsync(vs); }
++        FormRow("Cap at 60 fps (Tab)");
++        bool cap = c->capFrameRate;
++        if (ImGui::Checkbox("##cap", &cap)) { c->capFrameRate = cap; Dirty(); }
++        ImGui::EndTable();
++    }
++    ImGui::End();
++}
++
++static void AudioWindow() {
++    if (!BeginSettings(W_AUDIO, "Audio", 440.0f)) {
++        return;
++    }
++    SIM_config_type * c = C();
++    if (BeginForm("##au")) {
++        FormRow("Volume");
++        int vol = (int)((c->masterVolume * 100 + 63) / 127);
++        if (ImGui::SliderInt("##vol", &vol, 0, 100, "%d%%")) {
++            c->masterVolume = (u8)((vol * 127 + 50) / 100);
++            Dirty();
++        }
++        FormRow("Sound engine", "acore: the port's own DS sound core; libntr: libntr's ARM7 driver");
++        static const char * const snd[] = {"libntr (libntr's sound driver)", "acore (the port's DS sound core)"};
++        int s = c->sound == SIM_CONFIG_SOUND_ACORE ? 1 : 0;
++        if (ComboIndex("##snd", &s, snd, 2)) {
++            c->sound = s ? SIM_CONFIG_SOUND_ACORE : SIM_CONFIG_SOUND_LIBNTR;
++            Dirty();
++        }
++        ImGui::EndTable();
++    }
++    ImGui::TextDisabled("The sound engine is chosen when the program starts: a change takes effect at the next start.");
++    ImGui::End();
++}
++
++static void KeyRow(const char * name, int * key, bool joy) {
++    ImGui::TableNextColumn();
++    ImGui::AlignTextToFramePadding();
++    ImGui::TextUnformatted(name);
++    ImGui::TableNextColumn();
++    ImGui::PushID(key);
++    bool cap = sCap.target == key;
++    std::string txt = cap ? "press a key... (Esc cancels)" : joy ? JoyLabel(*key) : KeyLabel(*key);
++    if (cap && joy) {
++        txt = "press a gamepad input...";
++    }
++    if (cap) {
++        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.75f, 0.55f, 0.10f, 1.0f));
++    }
++    ImGui::SetNextItemWidth(-FLT_MIN);
++    if (ImGui::Button(txt.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
++        sCap.target = cap ? nullptr : key;
++        sCap.joy = joy;
++    }
++    if (cap) {
++        ImGui::PopStyleColor();
++    }
++    ImGui::PopID();
++}
++
++static void ControlsWindow() {
++    if (!BeginSettings(W_CONTROLS, "Controls", 560.0f)) {
++        return;
++    }
++    SIM_config_type * c = C();
++    SIM_config_pad_settings_type & p = c->padSettings;
++    bool show = c->showInputPanel;
++    if (ImGui::Checkbox("Show the controller panel (F1)", &show)) {
++        c->showInputPanel = show;
++        Dirty();
++    }
++    ImGui::TextDisabled("Click a button, then press the key (or the gamepad input) to assign.");
++    if (ImGui::BeginTabBar("##ctab")) {
++        const ImGuiTableFlags tf = ImGuiTableFlags_SizingStretchSame;
++        if (ImGui::BeginTabItem("Keyboard")) {
++            ImGui::Spacing();
++            if (ImGui::BeginTable("##kb", 4, tf)) {
++                ImGui::TableSetupColumn("n1", ImGuiTableColumnFlags_WidthFixed, 56.0f * sUiScale);
++                ImGui::TableSetupColumn("k1");
++                ImGui::TableSetupColumn("n2", ImGuiTableColumnFlags_WidthFixed, 56.0f * sUiScale);
++                ImGui::TableSetupColumn("k2");
++                KeyRow("A", &p.aKey, false);      KeyRow("Up", &p.upKey, false);
++                KeyRow("B", &p.bKey, false);      KeyRow("Down", &p.downKey, false);
++                KeyRow("X", &p.xKey, false);      KeyRow("Left", &p.leftKey, false);
++                KeyRow("Y", &p.yKey, false);      KeyRow("Right", &p.rightKey, false);
++                KeyRow("L", &p.lKey, false);      KeyRow("Start", &p.startKey, false);
++                KeyRow("R", &p.rKey, false);      KeyRow("Select", &p.selectKey, false);
++                ImGui::EndTable();
++            }
++            ImGui::SeparatorText("Program keys");
++            if (ImGui::BeginTable("##kp", 2, tf)) {
++                ImGui::TableSetupColumn("n", ImGuiTableColumnFlags_WidthFixed, 200.0f * sUiScale);
++                ImGui::TableSetupColumn("k");
++                KeyRow("Menu bar on/off", &p.guiKey, false);
++                KeyRow("Frame cap on/off", &p.frameCapToggleKey, false);
++                KeyRow("Fast forward (hold)", &p.frameCapKey, false);
++                ImGui::EndTable();
++            }
++            ImGui::TextDisabled("F11 and Alt+Enter: fullscreen. F1: the controller panel. Alt alone: the menu bar.");
++            ImGui::EndTabItem();
++        }
++        if (ImGui::BeginTabItem("Gamepad")) {
++            ImGui::Spacing();
++            int n = SDL_NumJoysticks();
++            ImGui::TextDisabled("%s", n > 0 ? SDL_JoystickNameForIndex(0) : "No gamepad connected");
++            if (ImGui::BeginTable("##jp", 4, tf)) {
++                ImGui::TableSetupColumn("n1", ImGuiTableColumnFlags_WidthFixed, 56.0f * sUiScale);
++                ImGui::TableSetupColumn("k1");
++                ImGui::TableSetupColumn("n2", ImGuiTableColumnFlags_WidthFixed, 56.0f * sUiScale);
++                ImGui::TableSetupColumn("k2");
++                KeyRow("A", &p.aJoyKey, true);      KeyRow("Up", &p.upJoyKey, true);
++                KeyRow("B", &p.bJoyKey, true);      KeyRow("Down", &p.downJoyKey, true);
++                KeyRow("X", &p.xJoyKey, true);      KeyRow("Left", &p.leftJoyKey, true);
++                KeyRow("Y", &p.yJoyKey, true);      KeyRow("Right", &p.rightJoyKey, true);
++                KeyRow("L", &p.lJoyKey, true);      KeyRow("Start", &p.startJoyKey, true);
++                KeyRow("R", &p.rJoyKey, true);      KeyRow("Select", &p.selectJoyKey, true);
++                ImGui::EndTable();
++            }
++            ImGui::Spacing();
++            if (BeginForm("##jd")) {
++                FormRow("Stick dead zone");
++                int dz = p.joyAxisDeadzone;
++                if (ImGui::SliderInt("##dz", &dz, 1000, 30000)) {
++                    p.joyAxisDeadzone = dz;
++                    Dirty();
++                }
++                ImGui::EndTable();
++            }
++            ImGui::EndTabItem();
++        }
++        ImGui::EndTabBar();
++    }
++    ImGui::Separator();
++    if (ImGui::Button("Reset the keys and the gamepad to the defaults")) {
++        SIM_config_type d;
++        memset(&d, 0, sizeof d);
++        SIM_Config_LoadDefaults(&d);
++        c->padSettings = d.padSettings;
++        sCap.target = nullptr;
++        Dirty();
++    }
++    ImGui::End();
++}
++
++static void ViewWindow() {
++    if (!BeginSettings(W_VIEW, "View", 460.0f)) {
++        return;
++    }
++    SIM_config_type * c = C();
++    ImGui::SeparatorText("Screens");
++    if (BeginForm("##vs1")) {
++        FormRow("Layout");
++        int l = c->screenLayout;
++        if (ComboIndex("##layout", &l, LayoutNames, 3)) {
++            c->screenLayout = (SIM_config_screen_layout_type)l;
++            Dirty();
++        }
++        FormRow("Swap screens");
++        bool sw = c->swapScreens;
++        if (ImGui::Checkbox("##swap", &sw)) { c->swapScreens = sw; Dirty(); }
++        FormRow("Integer scale");
++        bool is = c->integerScale;
++        if (ImGui::Checkbox("##is", &is)) { c->integerScale = is; Dirty(); }
++        ImGui::EndTable();
++    }
++    ImGui::SeparatorText("Right side");
++    if (BeginForm("##vs2")) {
++        FormRow("Metrics");
++        bool m = c->showMetrics;
++        if (ImGui::Checkbox("##met", &m)) { c->showMetrics = m; Dirty(); }
++        FormRow("Controller panel (F1)");
++        bool k = c->showInputPanel;
++        if (ImGui::Checkbox("##pad", &k)) { c->showInputPanel = k; Dirty(); }
++        ImGui::EndTable();
++    }
++    ImGui::SeparatorText("Menu and text");
++    if (BeginForm("##vs3")) {
++        FormRow("Menu bar (`)");
++        bool mb = c->showMenuBar;
++        if (ImGui::Checkbox("##mb", &mb)) { c->showMenuBar = mb; Dirty(); }
++        FormRow("UI size");
++        int cur = 0;
++        for (int i = 0; i < 7; i++) {
++            if (UiScales[i] == c->uiScale) {
++                cur = i;
++            }
++        }
++        std::string curS = cur == 0 ? std::format("Auto ({}%)", (int)(DisplayScale() * 100.0f + 0.5f)) : std::format("{}%", UiScales[cur]);
++        if (ImGui::BeginCombo("##uis", curS.c_str())) {
++            for (int i = 0; i < 7; i++) {
++                std::string s = i == 0 ? std::format("Auto ({}%)", (int)(DisplayScale() * 100.0f + 0.5f)) : std::format("{}%", UiScales[i]);
++                if (ImGui::Selectable(s.c_str(), i == cur)) {
++                    SetUiScale(UiScales[i]);
++                }
++            }
++            ImGui::EndCombo();
++        }
++        ImGui::EndTable();
++    }
++    ImGui::End();
++}
++
++static void DebugWindow() {
++    if (!BeginSettings(W_DEBUG, "Debug", 520.0f)) {
++        return;
++    }
++    ImGui::Text("Git rev: %s", SIM_GetLibntrGitHash());
++    float renderTimeMs = static_cast<float>(SIM_GetRenderFrameTime()) / 1000000.0f;
++    ImGui::Text("Render time: %.3fms", renderTimeMs);
++    static float sPeriodMs = 16.7f;
++    float periodMs = static_cast<float>(SIM_GetRealFrameTime()) / 1000000.0f;
++    if (periodMs > 0.0f) {
++        sPeriodMs += (periodMs - sPeriodMs) * 0.1f;
++    }
++    ImGui::Text("%.0ffps", 1000.0f / sPeriodMs);
++    {
++        static float sGameMs = 0.0f, sRenderMs = 0.0f;
++        float g = static_cast<float>(SIM_GetGameWorkTime()) / 1000000.0f;
++        float r = static_cast<float>(SIM_GetRenderWorkTime()) / 1000000.0f;
++        sGameMs += (g - sGameMs) * 0.1f;
++        sRenderMs += (r - sRenderMs) * 0.1f;
++        const float kFrameMs = 16.715f;
++        float total = (sGameMs + sRenderMs) * 100.0f / kFrameMs;
++        ImVec4 col = total > 100.0f ? ImVec4(1.0f, 0.4f, 0.3f, 1.0f) : ImVec4(0.5f, 1.0f, 0.5f, 1.0f);
++        ImGui::TextColored(col, "Frame budget: %.0f%% of 16.7 ms", total);
++        ImGui::Text("  game %.1f ms (%.0f%%), render %.1f ms (%.0f%%)", sGameMs, sGameMs * 100.0f / kFrameMs, sRenderMs,
++                    sRenderMs * 100.0f / kFrameMs);
++    }
++    ImGui::Checkbox("Pause game logic", &sPauseGameLogic);
++    ImGui::SeparatorText("Tools");
++    auto tool = [](const char * label, int w, void (*init)(void)) {
++        if (ImGui::Button(label, ImVec2(150.0f * sUiScale, 0.0f))) {
++            if (!sWins[w].open && init) {
++                init();
++            }
++            if (sWins[w].open) {
++                sWins[w].open = false;
++            } else {
++                OpenWin(w);
++            }
++        }
++    };
++    tool("Old Config window", W_LEGACY_CONFIG, AppConfigInit);
++    ImGui::SameLine();
++    tool("Old Input window", W_LEGACY_INPUT, AppPadInit);
++    tool("Multiplayer", W_NET, AppNetInit);
++    ImGui::SameLine();
++    tool("ImGui demo", W_DEMO, nullptr);
++    ImGui::SameLine();
++    tool("Application", W_APP, nullptr);
++
++    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey", ImGuiWindowFlags_NoCollapse, ImVec2(200, 200))) {
++        if (ImGuiFileDialog::Instance()->IsOk()) {
++            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
++            if (sFileDialogCallback) {
++                sFileDialogCallback(filePathName);
++            }
++        }
++        ImGuiFileDialog::Instance()->Close();
++    }
++    ImGui::End();
++}
++
++// ---- Game > Reset: the program starts again (the DS's reset: what was not saved is gone) ---------------------------
++
++static bool RestartSupported() {
++#if defined(__linux__) || defined(_WIN32)
++    return true;
++#else
++    return false;
++#endif
++}
++
++#ifdef _WIN32
++extern "C" __declspec(dllimport) char * __stdcall GetCommandLineA(void);
++#endif
++
++static void RestartProgram() {
++    SIM_Config_SaveConfigFile(C());
++#if defined(__linux__)
++    FILE * f = fopen("/proc/self/cmdline", "rb");
++    if (f != nullptr) {
++        std::vector<char> buf;
++        int ch;
++        while ((ch = fgetc(f)) != EOF) {
++            buf.push_back((char)ch);
++        }
++        fclose(f);
++        std::vector<char *> argv;
++        size_t at = 0;
++        while (at < buf.size()) {
++            argv.push_back(&buf[at]);
++            at += strlen(&buf[at]) + 1;
++        }
++        argv.push_back(nullptr);
++        execv("/proc/self/exe", argv.data());
++    }
++#elif defined(_WIN32)
++    std::string cmd = std::string("start \"\" ") + GetCommandLineA();
++    system(cmd.c_str());
++    exit(0);
++#endif
++}
++
++// ---- the menu bar -------------------------------------------------------------------------------------------------
++
++static bool MenuRadio(const char * label, bool selected) {
++    return ImGui::MenuItem(label, nullptr, selected);
++}
++
++static void MenuBar() {
++    SIM_config_type * c = C();
++    if (!ImGui::BeginMainMenuBar()) {
++        return;
++    }
++    if (ImGui::BeginMenu("Game")) {
++        ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
++        if (RestartSupported() && ImGui::MenuItem("Reset...")) {
++            sResetAsk = true;
++        }
++        ImGui::Separator();
++        if (ImGui::MenuItem("Quit")) {
++            SIM_Config_SaveConfigFile(c);
++            exit(0);
++        }
++        ImGui::EndMenu();
++    }
++    if (ImGui::BeginMenu("Video")) {
++        if (ImGui::MenuItem("Video settings...")) {
++            OpenWin(W_VIDEO);
++        }
++        ImGui::Separator();
++        if (ImGui::BeginMenu("Renderer")) {
++            for (int i = 0; i < 3; i++) {
++                if (MenuRadio(RendererNames[i], c->renderer == i)) {
++                    c->renderer = (u8)i;
++                    Dirty();
++                }
++            }
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Resolution")) {
++            for (int n = 1; n <= 8; n++) {
++                if (MenuRadio(ResolutionLabel(n).c_str(), c->resolution == n)) {
++                    c->resolution = (u8)n;
++                    Dirty();
++                }
++            }
++            ImGui::Separator();
++            ImGui::TextDisabled("%s", SIM_RendererStatus());
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Texture filter")) {
++            for (int i = 0; i < 2; i++) {
++                if (MenuRadio(FilterNames[i], c->gpuFilter == i)) {
++                    c->gpuFilter = (u8)i;
++                    Dirty();
++                }
++            }
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Dots")) {
++            for (int i = 0; i < 2; i++) {
++                if (MenuRadio(DotNames[i], c->gpuDot == i)) { c->gpuDot = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Lines")) {
++            for (int i = 0; i < 2; i++) {
++                if (MenuRadio(LineNames[i], c->gpuLine == i)) { c->gpuLine = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Edge marking")) {
++            for (int i = 0; i < 2; i++) {
++                if (MenuRadio(EdgeNames[i], c->gpuEdge == i)) { c->gpuEdge = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
++        ImGui::Separator();
++        bool is = c->integerScale;
++        if (ImGui::MenuItem("Integer scale", nullptr, &is)) { c->integerScale = is; Dirty(); }
++        bool fs = c->fullScreen;
++        if (ImGui::MenuItem("Fullscreen", "F11", &fs)) { ApplyFullscreen(fs); }
++        if (ImGui::BeginMenu("Frame skip")) {
++            for (int i = 0; i < 5; i++) {
++                if (MenuRadio(FrameSkipNames[i], FrameSkipIndex() == i)) { SetFrameSkip(i); }
++            }
++            ImGui::EndMenu();
++        }
++        ImGui::EndMenu();
++    }
++    if (ImGui::BeginMenu("Audio")) {
++        if (ImGui::MenuItem("Audio settings...")) {
++            OpenWin(W_AUDIO);
++        }
++        ImGui::Separator();
++        if (ImGui::BeginMenu("Sound engine")) {
++            if (MenuRadio("acore (the port's DS sound core)", c->sound == SIM_CONFIG_SOUND_ACORE)) {
++                c->sound = SIM_CONFIG_SOUND_ACORE;
++                Dirty();
++            }
++            if (MenuRadio("libntr (libntr's sound driver)", c->sound == SIM_CONFIG_SOUND_LIBNTR)) {
++                c->sound = SIM_CONFIG_SOUND_LIBNTR;
++                Dirty();
++            }
++            ImGui::TextDisabled("takes effect at the next start");
++            ImGui::EndMenu();
++        }
++        int vol = (int)((c->masterVolume * 100 + 63) / 127);
++        ImGui::SetNextItemWidth(160.0f * sUiScale);
++        if (ImGui::SliderInt("Volume", &vol, 0, 100, "%d%%")) {
++            c->masterVolume = (u8)((vol * 127 + 50) / 100);
++            Dirty();
++        }
++        ImGui::EndMenu();
++    }
++    if (ImGui::BeginMenu("Controls")) {
++        if (ImGui::MenuItem("Keys and gamepad...")) {
++            OpenWin(W_CONTROLS);
++        }
++        bool k = c->showInputPanel;
++        if (ImGui::MenuItem("Controller panel", "F1", &k)) { c->showInputPanel = k; Dirty(); }
++        ImGui::EndMenu();
++    }
++    if (ImGui::BeginMenu("View")) {
++        if (ImGui::MenuItem("View settings...")) {
++            OpenWin(W_VIEW);
++        }
++        ImGui::Separator();
++        if (ImGui::BeginMenu("Screen layout")) {
++            for (int i = 0; i < 3; i++) {
++                if (MenuRadio(LayoutNames[i], c->screenLayout == i)) {
++                    c->screenLayout = (SIM_config_screen_layout_type)i;
++                    Dirty();
++                }
++            }
++            ImGui::EndMenu();
++        }
++        bool sw = c->swapScreens;
++        if (ImGui::MenuItem("Swap screens", nullptr, &sw)) { c->swapScreens = sw; Dirty(); }
++        bool m = c->showMetrics;
++        if (ImGui::MenuItem("Metrics", nullptr, &m)) { c->showMetrics = m; Dirty(); }
++        bool k = c->showInputPanel;
++        if (ImGui::MenuItem("Controller panel", "F1", &k)) { c->showInputPanel = k; Dirty(); }
++        if (ImGui::BeginMenu("UI size")) {
++            for (int i = 0; i < 7; i++) {
++                std::string s = i == 0 ? "Auto" : std::format("{}%", UiScales[i]);
++                if (MenuRadio(s.c_str(), UiScales[i] == c->uiScale)) {
++                    SetUiScale(UiScales[i]);
++                }
++            }
++            ImGui::EndMenu();
++        }
++        ImGui::EndMenu();
++    }
++    if (ImGui::BeginMenu("Debug")) {
++        if (ImGui::MenuItem("Debug tools...")) {
++            OpenWin(W_DEBUG);
++        }
++        ImGui::EndMenu();
++    }
++    // right side: what draws
++    {
++        char t[96];
++        snprintf(t, sizeof t, "%s %dx", ActiveRenderer(), SIM_RenderScale());
++        float w = ImGui::CalcTextSize(t).x + ImGui::GetStyle().ItemSpacing.x;
++        ImGui::SameLine(ImGui::GetWindowWidth() - w - 12.0f * sUiScale);
++        ImGui::TextDisabled("%s", t);
++    }
++    ImGui::EndMainMenuBar();
++}
++
++// ---- Main: once a frame, between NewFrame and Render --------------------------------------------------------------
++
++void Main() {
++    SIM_config_type * c = C();
++    // the bar's real height (ImGui's), for the next frame's layout
++    float fh = ImGui::GetFrameHeight();
++    if (fabsf(fh - sBarH) > 0.5f) {
++        sBarH = fh;
++    }
++    if (sBarVisible) {
++        MenuBar();
++    }
++    VideoWindow();
++    AudioWindow();
++    ControlsWindow();
++    ViewWindow();
++    DebugWindow();
++    if (sWins[W_LEGACY_CONFIG].open) { AppConfigMain(&sWins[W_LEGACY_CONFIG].open); }
++    if (sWins[W_LEGACY_INPUT].open) { AppPadMain(&sWins[W_LEGACY_INPUT].open); }
++    if (sWins[W_NET].open) { AppNetMain(&sWins[W_NET].open); }
++    if (sWins[W_DEMO].open) { ImGui::ShowDemoWindow(&sWins[W_DEMO].open); }
++    if (sWins[W_APP].open) { PrjMain(&sWins[W_APP].open); }
++
++    if (sResetAsk) {
++        ImGui::OpenPopup("Reset the game");
++        sResetAsk = false;
++    }
++    ImGuiViewport * vp = ImGui::GetMainViewport();
++    ImGui::SetNextWindowPos(ImVec2(vp->Size.x * 0.5f, (sBarH + vp->Size.y) * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
++    if (ImGui::BeginPopupModal("Reset the game", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
++        ImGui::Text("The game starts again from the title.");
++        ImGui::Text("Whatever was not saved in the game is lost.");
++        ImGui::Spacing();
++        if (ImGui::Button("Reset", ImVec2(120.0f * sUiScale, 0.0f))) {
++            RestartProgram();
++        }
++        ImGui::SameLine();
++        if (ImGui::Button("Cancel", ImVec2(120.0f * sUiScale, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
++            ImGui::CloseCurrentPopup();
++        }
++        ImGui::EndPopup();
++    }
++
++    // the settings are written when the mouse is up (a slider is not written at every step)
++    if (sDirty && !ImGui::IsMouseDown(0) && sCap.target == nullptr) {
++        sDirty = false;
++        SIM_Config_SaveConfigFile(c);
++    }
++}
++
++// ---- the right side: metrics on top, the controller below ---------------------------------------------------------
++
++static const ImU32 cBack = IM_COL32(22, 22, 28, 255), cBody = IM_COL32(52, 54, 68, 255), cBtn = IM_COL32(86, 88, 104, 255),
++                   cLit = IM_COL32(255, 205, 60, 255), cEdge = IM_COL32(150, 152, 168, 255),
++                   cText = IM_COL32(235, 235, 240, 255), cTextLit = IM_COL32(20, 20, 24, 255),
++                   cDim = IM_COL32(160, 162, 176, 255);
++
++static const ImGuiWindowFlags kSideFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
++                                           ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
++
++static void SideMetrics(float x, float y, float w, float h) {
++    SIM_config_type * c = C();
++    ImGui::SetNextWindowPos(ImVec2(x, y));
++    ImGui::SetNextWindowSize(ImVec2(w, h));
++    if (!ImGui::Begin("##metrics", nullptr, kSideFlags)) {
++        ImGui::End();
++        return;
++    }
++    static float sPeriodMs = 16.7f, sGameMs = 0.0f, sRenderMs = 0.0f;
++    float periodMs = static_cast<float>(SIM_GetRealFrameTime()) / 1000000.0f;
++    if (periodMs > 0.0f) {
++        sPeriodMs += (periodMs - sPeriodMs) * 0.1f;
++    }
++    sGameMs += (static_cast<float>(SIM_GetGameWorkTime()) / 1000000.0f - sGameMs) * 0.1f;
++    sRenderMs += (static_cast<float>(SIM_GetRenderWorkTime()) / 1000000.0f - sRenderMs) * 0.1f;
++    const float kFrameMs = 16.715f;
++    float fps = 1000.0f / sPeriodMs;
++    float budget = (sGameMs + sRenderMs) / kFrameMs;
++
++    ImGui::TextColored(ImVec4(0.55f, 0.75f, 1.0f, 1.0f), "Metrics");
++    ImGui::Separator();
++    ImVec4 fc = fps >= 55.0f ? ImVec4(0.5f, 1.0f, 0.5f, 1.0f) : fps >= 30.0f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(1.0f, 0.4f, 0.3f, 1.0f);
++    ImGui::TextColored(fc, "%.0f fps", fps);
++    ImGui::SameLine();
++    ImGui::TextDisabled("%.1f ms a frame", sPeriodMs);
++    char over[64];
++    snprintf(over, sizeof over, "game %.1f + draw %.1f ms", sGameMs, sRenderMs);
++    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, budget > 1.0f ? ImVec4(0.8f, 0.3f, 0.25f, 1.0f) : budget > 0.7f ? ImVec4(0.8f, 0.65f, 0.2f, 1.0f) : ImVec4(0.25f, 0.6f, 0.35f, 1.0f));
++    ImGui::ProgressBar(budget > 1.0f ? 1.0f : budget, ImVec2(-FLT_MIN, 0.0f), over);
++    ImGui::PopStyleColor();
++    int pw = 0, ph = 0;
++    SIM_RendererPicture(&pw, &ph);
++    ImGui::Text("%s %dx", ActiveRenderer(), SIM_RenderScale());
++    ImGui::SameLine();
++    ImGui::TextDisabled("%d x %d", pw, ph);
++    ImGui::TextDisabled("%s", SIM_GLRendererName());
++    ImGui::Text("Sound: %s", c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
++    ImGui::SameLine();
++    ImGui::TextDisabled("   skip: %s", c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? "auto" : c->frameSkip == 0 ? "off" : std::to_string((int)c->frameSkip).c_str());
++    ImGui::Spacing();
++    if (BeginForm("##q")) {
++        FormRow("Renderer");
++        RendererCombo("##qr", false);
++        FormRow("Resolution");
++        ResolutionCombo("##qres");
++        ImGui::EndTable();
++    }
++    ImGui::End();
++}
++
++static void SideController(float px, float py, float pw, float ph, unsigned pressed) {
++    ImGui::SetNextWindowPos(ImVec2(px, py));
++    ImGui::SetNextWindowSize(ImVec2(pw, ph));
++    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
++    bool vis = ImGui::Begin("##pad", nullptr, kSideFlags | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
++    ImGui::PopStyleVar();
++    if (!vis) {
++        ImGui::End();
++        return;
++    }
++    static bool sShowJoy = false;
++    ImDrawList * dl = ImGui::GetWindowDrawList();
+     ImFont * font = ImGui::GetFont();
+-    SIM_config_type * cfg = SIM_GetConfigPtr();
++    SIM_config_type * cfg = C();
+     const SIM_config_pad_settings_type & pad = cfg->padSettings;
+     const float CW = 240.0f, CH = 300.0f;    // the drawing's own units
+-    float u = std::min(pw / (CW + 20.0f), ph / (CH + 20.0f));
++    float u = std::min(pw / (CW + 24.0f), ph / (CH + 24.0f));
+     if (u <= 0.0f) {
++        ImGui::End();
+         return;
+     }
+-    float ox = px + (pw - CW * u) / 2.0f, oy = py + (ph - CH * u) / 2.0f;
+-    const ImU32 cBack = IM_COL32(22, 22, 28, 255), cBody = IM_COL32(52, 54, 68, 255), cBtn = IM_COL32(86, 88, 104, 255),
+-                cLit = IM_COL32(255, 205, 60, 255), cEdge = IM_COL32(150, 152, 168, 255),
+-                cText = IM_COL32(235, 235, 240, 255), cTextLit = IM_COL32(20, 20, 24, 255),
+-                cDim = IM_COL32(160, 162, 176, 255);
++    float ox = roundf(px + (pw - CW * u) / 2.0f), oy = roundf(py + (ph - CH * u) / 2.0f);
+ 
+-    auto P = [&](float x, float y) { return ImVec2(ox + x * u, oy + y * u); };
+-    // text centred on (cx, cy), at most maxW wide (units)
++    // whole pixels for every edge and every text, so lines and glyphs are sharp at any size
++    auto P = [&](float x, float y) { return ImVec2(roundf(ox + x * u), roundf(oy + y * u)); };
++    const float lw = std::max(1.0f, roundf(u));
+     auto Text = [&](float cx, float cy, float size, const std::string & s, ImU32 col, float maxW) {
+-        float fs = size * u;
++        float fs = std::max(7.0f, roundf(size * u));
+         ImVec2 sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, s.c_str());
+         if (sz.x > maxW * u) {
+-            fs *= maxW * u / sz.x;
++            fs = std::max(7.0f, floorf(fs * maxW * u / sz.x));
+             sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, s.c_str());
+         }
+         ImVec2 c = P(cx, cy);
+-        dl->AddText(font, fs, ImVec2(c.x - sz.x / 2.0f, c.y - sz.y / 2.0f), col, s.c_str());
++        dl->AddText(font, fs, ImVec2(roundf(c.x - sz.x / 2.0f), roundf(c.y - sz.y / 2.0f)), col, s.c_str());
+     };
+     auto Rect = [&](float x, float y, float w, float h, float r, bool lit) {
+         dl->AddRectFilled(P(x, y), P(x + w, y + h), lit ? cLit : cBtn, r * u);
+-        dl->AddRect(P(x, y), P(x + w, y + h), cEdge, r * u, 0, std::max(1.0f, u));
++        dl->AddRect(P(x, y), P(x + w, y + h), cEdge, r * u, 0, lw);
+     };
+     auto Circle = [&](float cx, float cy, float r, bool lit) {
+-        dl->AddCircleFilled(P(cx, cy), r * u, lit ? cLit : cBtn, 32);
+-        dl->AddCircle(P(cx, cy), r * u, cEdge, 32, std::max(1.0f, u));
++        int seg = std::max(24, (int)(r * u * 1.5f));
++        dl->AddCircleFilled(P(cx, cy), r * u, lit ? cLit : cBtn, seg);
++        dl->AddCircle(P(cx, cy), r * u, cEdge, seg, lw);
+     };
+     auto Lit = [&](int bit) { return (pressed >> bit & 1) != 0; };
++    auto Key = [&](int kb, int joy) { return sShowJoy ? JoyLabel(joy) : KeyLabel(kb); };
++    auto KeyShort = [&](int kb, int joy) {
++        if (!sShowJoy) {
++            return KeyLabel(kb);
++        }
++        std::string s = JoyLabel(joy);
++        if (s.compare(0, 7, "Button ") == 0) { s = s.substr(7); }
++        else if (s.compare(0, 4, "Hat ") == 0) { s = s.substr(4); }
++        return s;
++    };
+ 
+-    dl->AddRectFilled(ImVec2(px, py), ImVec2(px + pw, py + ph), cBack);
+-    dl->AddRectFilled(P(-6, -6), P(CW + 6, CH + 6), cBody, 16.0f * u);
++    dl->AddRectFilled(P(-8, -8), P(CW + 8, CH + 8), cBody, 16.0f * u);
+ 
+     // shoulder buttons
+     Rect(8, 6, 100, 30, 8, Lit(4));
+-    Text(58, 21, 13, "L   " + KeyLabel(pad.lKey), Lit(4) ? cTextLit : cText, 92);
++    Text(58, 21, 13, "L   " + Key(pad.lKey, pad.lJoyKey), Lit(4) ? cTextLit : cText, 92);
+     Rect(132, 6, 100, 30, 8, Lit(5));
+-    Text(182, 21, 13, "R   " + KeyLabel(pad.rKey), Lit(5) ? cTextLit : cText, 92);
++    Text(182, 21, 13, "R   " + Key(pad.rKey, pad.rJoyKey), Lit(5) ? cTextLit : cText, 92);
+ 
+     // D-pad, arms of 34
+-    struct Arm { float x, y; int bit; int key; };
+-    const Arm arms[] = {{45, 64, 8, pad.upKey}, {45, 132, 9, pad.downKey}, {11, 98, 10, pad.leftKey},
+-                        {79, 98, 11, pad.rightKey}};
++    struct Arm { float x, y; int bit; int key; int joy; const char * name; };
++    const Arm arms[] = {{45, 64, 8, pad.upKey, pad.upJoyKey, "Up"}, {45, 132, 9, pad.downKey, pad.downJoyKey, "Down"},
++                        {11, 98, 10, pad.leftKey, pad.leftJoyKey, "Left"}, {79, 98, 11, pad.rightKey, pad.rightJoyKey, "Right"}};
+     dl->AddRectFilled(P(45, 98), P(79, 132), cBtn);
+     for (const Arm & a : arms) {
+         Rect(a.x, a.y, 34, 34, 5, Lit(a.bit));
+-        Text(a.x + 17, a.y + 17, 11, KeyLabel(a.key), Lit(a.bit) ? cTextLit : cText, 30);
++        Text(a.x + 17, a.y + 17, 11, KeyShort(a.key, a.joy), Lit(a.bit) ? cTextLit : cText, 30);
+     }
+ 
+     // A B X Y
+-    struct Face { float x, y; int bit; const char * name; int key; };
+-    const Face faces[] = {{178, 78, 2, "X", pad.xKey}, {144, 112, 3, "Y", pad.yKey}, {212, 112, 0, "A", pad.aKey},
+-                          {178, 146, 1, "B", pad.bKey}};
++    struct Face { float x, y; int bit; const char * name; int key; int joy; };
++    const Face faces[] = {{178, 78, 2, "X", pad.xKey, pad.xJoyKey}, {144, 112, 3, "Y", pad.yKey, pad.yJoyKey},
++                          {212, 112, 0, "A", pad.aKey, pad.aJoyKey}, {178, 146, 1, "B", pad.bKey, pad.bJoyKey}};
+     for (const Face & f : faces) {
+         Circle(f.x, f.y, 19, Lit(f.bit));
+         Text(f.x, f.y - 7, 15, f.name, Lit(f.bit) ? cTextLit : cText, 30);
+-        Text(f.x, f.y + 9, 10, KeyLabel(f.key), Lit(f.bit) ? cTextLit : cText, 32);
++        Text(f.x, f.y + 9, 10, KeyShort(f.key, f.joy), Lit(f.bit) ? cTextLit : cText, 32);
+     }
+ 
+     // Start, Select
+     Rect(130, 196, 102, 28, 14, Lit(6));
+-    Text(181, 210, 12, "START  " + KeyLabel(pad.startKey), Lit(6) ? cTextLit : cText, 94);
++    Text(181, 210, 12, "START  " + Key(pad.startKey, pad.startJoyKey), Lit(6) ? cTextLit : cText, 94);
+     Rect(130, 232, 102, 28, 14, Lit(7));
+-    Text(181, 246, 12, "SELECT  " + KeyLabel(pad.selectKey), Lit(7) ? cTextLit : cText, 94);
++    Text(181, 246, 12, "SELECT  " + Key(pad.selectKey, pad.selectJoyKey), Lit(7) ? cTextLit : cText, 94);
+ 
+-    // the emulator's own keys
++    // the program's own keys
+     const std::string hints[] = {
+         "F1  hide this panel", KeyLabel(pad.frameCapToggleKey) + "  frame cap on/off",
+-        KeyLabel(pad.frameCapKey) + "  hold: fast forward", KeyLabel(pad.guiKey) + "  debug window",
++        KeyLabel(pad.frameCapKey) + "  hold: fast forward", KeyLabel(pad.guiKey) + "  menu bar",
+     };
+-    float hy = 200.0f;
+-    for (const std::string & h : hints) {
+-        ImVec2 c = P(10, hy);
+-        float fs = 10.0f * u;
+-        ImVec2 sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, h.c_str());
+-        if (sz.x > 106.0f * u) {
+-            fs *= 106.0f * u / sz.x;
++    {
++        // one size for the four lines: the largest at which the longest fits
++        float fs = std::max(7.0f, roundf(10.0f * u));
++        for (const std::string & h : hints) {
++            ImVec2 sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, h.c_str());
++            if (sz.x > 106.0f * u) {
++                fs = std::max(7.0f, floorf(fs * 106.0f * u / sz.x));
++            }
+         }
+-        dl->AddText(font, fs, ImVec2(c.x, c.y - fs / 2.0f), cDim, h.c_str());
+-        hy += 16.0f;
+-    }
+-}
+-
+-void Init(SDL_Window * window, SDL_GLContext context) {
+-    sWindow = window;
+-    sContext = context;
+-
+-    sImguiContext = ImGui::CreateContext(NULL);
+-
+-    ImGuiIO igIO = ImGui::GetIO();
+-	igIO.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+-	igIO.DisplaySize.x = (float)(SIM_NDS_SCREEN_WIDTH*SIM_NDS_WINDOW_SCALE_FACTOR);
+-	igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
+-
+-
+-
+-	ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
+-	const char * glsl_version = "#version 420";
+-  	ImGui_ImplOpenGL3_Init(glsl_version);
+-
+-    ImGui::StyleColorsDark(NULL);
+-
+-    //ImFontAtlas::ImFontAtlas_AddFontDefault
+-    //ioptr->Fonts.AddFontDefault(NULL);
+-}
+-
+-void Main() {
+-    if(sEnabled) {
+-        ImGui::Begin("libntr", &sEnabled);
+-
+-        ImGui::Text("Git rev: %s", SIM_GetLibntrGitHash());
+-
+-        float renderTimeMs = static_cast<float>(SIM_GetRenderFrameTime()) / 1000000.0f;
+-        ImGui::Text("Render time: %.3fms", renderTimeMs);
+-
+-        // the real frame rate: the period between frames (SIM_GetFullFrameTime ends before the cap's wait), smoothed
+-        static float sPeriodMs = 16.7f;
+-        float periodMs = static_cast<float>(SIM_GetRealFrameTime()) / 1000000.0f;
+-        if (periodMs > 0.0f) {
+-            sPeriodMs += (periodMs - sPeriodMs) * 0.1f;
+-        }
+-        ImGui::Text("%.0ffps", 1000.0f / sPeriodMs);
+-
+-        // the frame budget: the game's work and our render against the DS's 16.7 ms frame
+-        {
+-            static float sGameMs = 0.0f, sRenderMs = 0.0f;
+-            float g = static_cast<float>(SIM_GetGameWorkTime()) / 1000000.0f;
+-            float r = static_cast<float>(SIM_GetRenderWorkTime()) / 1000000.0f;
+-            sGameMs += (g - sGameMs) * 0.1f;
+-            sRenderMs += (r - sRenderMs) * 0.1f;
+-            const float kFrameMs = 16.715f;
+-            float total = (sGameMs + sRenderMs) * 100.0f / kFrameMs;
+-            ImVec4 col = total > 100.0f ? ImVec4(1.0f, 0.4f, 0.3f, 1.0f) : ImVec4(0.5f, 1.0f, 0.5f, 1.0f);
+-            ImGui::TextColored(col, "Frame budget: %.0f%% of 16.7 ms", total);
+-            ImGui::Text("  game %.1f ms (%.0f%%), render %.1f ms (%.0f%%)", sGameMs, sGameMs * 100.0f / kFrameMs,
+-                        sRenderMs, sRenderMs * 100.0f / kFrameMs);
++        float hy = 206.0f;
++        for (const std::string & h : hints) {
++            ImVec2 c = P(10, hy);
++            dl->AddText(font, fs, ImVec2(c.x, roundf(c.y - fs / 2.0f)), cDim, h.c_str());
++            hy += 16.0f;
+         }
++    }
+ 
+-
+-        AppButton("Config", &sShowAppConfig, AppConfigInit, AppConfigMain);
+-        AppButton("Input", &sShowAppPad, AppPadInit, AppPadMain);
+-        AppButton("Multiplayer", &sShowAppNet, AppNetInit, AppNetMain);
+-        AppButton("ImGui Demo", &sShowImGuiDemo, nullptr, ImGui::ShowDemoWindow);
+-        AppButton("Application", &sShowWindowPrjSpecific, nullptr, PrjMain);
+-
+-        if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey", ImGuiWindowFlags_NoCollapse, ImVec2(200, 200))) {
+-          if (ImGuiFileDialog::Instance()->IsOk()) { // action if OK
+-            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+-            std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+-
+-            // FilePathName will be the full path to the file selected
+-            if(sFileDialogCallback) {
+-                sFileDialogCallback(filePathName);
+-            }
+-          }
+-
+-          // close
+-          ImGuiFileDialog::Instance()->Close();
++    // a click on the card's top margin switches the labels between the keyboard's and the gamepad's
++    {
++        ImVec2 a = P(8, -2), b = P(CW - 8, 4);
++        ImGui::SetCursorScreenPos(a);
++        if (ImGui::InvisibleButton("##joy", ImVec2(b.x - a.x, std::max(6.0f, b.y - a.y)))) {
++            sShowJoy = !sShowJoy;
+         }
++        float fs = std::max(7.0f, roundf(9.0f * u));
++        const char * l = sShowJoy ? "gamepad (click: keyboard)" : "keyboard (click: gamepad)";
++        dl->AddText(font, fs, ImVec2(a.x + 4.0f * u, roundf(P(0, -2).y - fs / 2.0f)), cDim, l);
++    }
++    ImGui::End();
++}
+ 
+-        ImGui::Checkbox("Pause Game Logic", &sPauseGameLogic);
+-
+-        ImGui::End();
++void DrawSide(float x, float y, float w, float h, unsigned pressed, int metrics, int controller) {
++    if (w <= 0.0f || h <= 0.0f) {
++        return;
++    }
++    ImDrawList * bg = ImGui::GetBackgroundDrawList();
++    bg->AddRectFilled(ImVec2(x, y), ImVec2(x + w, y + h), cBack);
++    float mh = 0.0f;
++    if (metrics && controller) {
++        mh = floorf(h * 0.40f);
++    } else if (metrics) {
++        mh = h;
++    }
++    if (metrics) {
++        SideMetrics(x, y, w, mh);
++    }
++    if (controller) {
++        SideController(x, y + mh, w, h - mh, pressed);
+     }
+ }
+ 
++// ---- the rest of libntr's GUI API ---------------------------------------------------------------------------------
++
+ void OpenFileDialog(std::function<void(std::string)> callback) {
+     sFileDialogCallback = callback;
+ 
+     IGFD::FileDialogConfig config;
+-    	config.path = ".";
++    config.path = ".";
+     ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Select NDS ROM", ".nds,.srl", config);
++    OpenWin(W_DEBUG);
+ }
+ 
+ void NewFrame() {
+@@ -246,45 +1295,23 @@
+     ImGui::NewFrame();
+ }
+ 
+-void ProcessEvent(SDL_Event * event) {
+-    if(sEnabled) {
+-        ImGui_ImplSDL2_ProcessEvent(event);
+-    }
+-}
+-
+ void Render() {
+     ImGui::Render();
+-    // bw-port (libntr-norender.patch): the backend's render pass with no vertices to draw (the debug GUI is closed) cost
+-    // ~5 ms a frame on llvmpipe (it syncs with the pending draws); it draws nothing
++    // bw-port (libntr-norender.patch): a render pass with no vertices to draw cost ~5 ms a frame on llvmpipe
+     ImDrawData *dd = ImGui::GetDrawData();
+     if (dd != NULL && dd->TotalVtxCount > 0) {
+         ImGui_ImplOpenGL3_RenderDrawData(dd);
+     }
+ }
+ 
+-// bw-port (libntr-onerender.patch): a line of text at the window's top left, over the picture, in the frame being built
++// bw-port (libntr-onerender.patch): a line of text at the picture's top left, over the picture, in the frame being built
+ // (the renderer's status for a few seconds after a change)
+ void DrawStatus(const char * text) {
+     ImDrawList * dl = ImGui::GetForegroundDrawList();
+     ImVec2 size = ImGui::CalcTextSize(text);
+-    dl->AddRectFilled(ImVec2(4, 4), ImVec2(12 + size.x, 12 + size.y), IM_COL32(0, 0, 0, 170));
+-    dl->AddText(ImVec2(8, 8), IM_COL32(255, 255, 255, 255), text);
+-}
+-
+-void Toggle() {
+-    if(sEnabled) {
+-        sEnabled = false;
+-    } else {
+-        sEnabled = true;
+-    }
+-}
+-
+-void Enable() {
+-    sEnabled = true;
+-}
+-
+-bool IsGameLogicPaused() {
+-    return sPauseGameLogic;
++    float y0 = (float)sBarReserve + 4.0f;
++    dl->AddRectFilled(ImVec2(4, y0), ImVec2(12 + size.x, y0 + 8 + size.y), IM_COL32(0, 0, 0, 170));
++    dl->AddText(ImVec2(8, y0 + 4), IM_COL32(255, 255, 255, 255), text);
+ }
+ 
+ // Generic button to open another GUI applet
+@@ -305,4 +1332,4 @@
+     }
+ }
+ 
+-}
+\ No newline at end of file
++}

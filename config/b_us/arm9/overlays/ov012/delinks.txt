@@ -1,0 +1,38 @@
+    .text       start:0x02172bc0 end:0x02175380 kind:code align:32
+    .rodata     start:0x02175380 end:0x021755f8 kind:rodata align:4
+    .ctor       start:0x021755f8 end:0x021755f8 kind:rodata align:4
+    .data       start:0x02175600 end:0x02175640 kind:data align:32
+    .bss        start:0x02175640 end:0x02175640 kind:bss align:32
+
+src/ov012/colosseum.c:
+    complete
+    .text       start:0x02174f4c end:0x02175380
+    .data       start:0x02175630 end:0x02175640
+
+src/ov012/union_receive.c:
+    complete
+    .text       start:0x02173984 end:0x0217413c
+    .data       start:0x02175624 end:0x02175628
+
+src/ov012/union_main.c:
+    complete
+    .text       start:0x02173744 end:0x02173984
+    .data       start:0x02175610 end:0x02175624
+
+src/ov012/colosseum_comm.c:
+    complete
+    .text       start:0x02174b40 end:0x02174f4c
+    .rodata     start:0x02175588 end:0x021755f8
+    .data       start:0x0217562c end:0x02175630
+
+src/ov012/union_comm.c:
+    complete
+    .text       start:0x02172bc0 end:0x02173744
+    .rodata     start:0x02175380 end:0x02175498
+    .data       start:0x02175600 end:0x02175610
+
+src/ov012/union_subproc.c:
+    complete
+    .text       start:0x0217413c end:0x02174b40
+    .rodata     start:0x02175498 end:0x02175588
+    .data       start:0x02175628 end:0x0217562c

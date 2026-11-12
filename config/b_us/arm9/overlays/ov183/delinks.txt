@@ -1,0 +1,80 @@
+    .text       start:0x021db2e0 end:0x021e3268 kind:code align:32
+    .rodata     start:0x021e3268 end:0x021e3944 kind:rodata align:4
+    .ctor       start:0x021e3944 end:0x021e3944 kind:rodata align:4
+    .data       start:0x021e3960 end:0x021e39c0 kind:data align:32
+    .bss        start:0x021e39c0 end:0x021e39c0 kind:bss align:32
+
+src/ov183/br_bvsend_proc.c:
+    complete
+    .text       start:0x021e1c80 end:0x021e2028
+    .rodata     start:0x021e38e0 end:0x021e38f4
+
+src/ov183/br_codein_proc.c:
+    complete
+    .text       start:0x021e050c end:0x021e06d0
+    .rodata     start:0x021e3844 end:0x021e3850
+
+src/ov183/br_menu_proc.c:
+    complete
+    .text       start:0x021db698 end:0x021db940
+    .rodata     start:0x021e3274 end:0x021e329c
+
+src/ov183/br_bvsave_proc.c:
+    complete
+    .text       start:0x021e2578 end:0x021e3268
+    .rodata     start:0x021e3910 end:0x021e3944
+
+src/ov183/br_start_proc.c:
+    complete
+    .text       start:0x021db2e0 end:0x021db698
+    .rodata     start:0x021e3268 end:0x021e3274
+
+src/ov183/br_codein_disp.c:
+    complete
+    .text       start:0x021e0840 end:0x021e11d0
+    .rodata     start:0x021e3850 end:0x021e3858
+    .data       start:0x021e3978 end:0x021e397c
+
+src/ov183/br_codein_pv.c:
+    complete
+    .text       start:0x021e11d0 end:0x021e1c80
+    .rodata     start:0x021e3858 end:0x021e38e0
+    .data       start:0x021e397c end:0x021e39b4
+
+src/ov183/br_bvrank_proc.c:
+    complete
+    .text       start:0x021de9a0 end:0x021df920
+    .rodata     start:0x021e36f4 end:0x021e3728
+    .data       start:0x021e3964 end:0x021e3968
+
+src/ov183/br_codein.c:
+    complete
+    .text       start:0x021e06d0 end:0x021e0840
+    .data       start:0x021e3968 end:0x021e3978
+
+src/ov183/br_bvdelete_proc.c:
+    complete
+    .text       start:0x021e2028 end:0x021e2578
+    .rodata     start:0x021e38f4 end:0x021e3910
+    .data       start:0x021e39b4 end:0x021e39c0
+
+src/ov183/br_btlsubway_proc.c:
+    complete
+    .text       start:0x021dd37c end:0x021de1c8
+    .rodata     start:0x021e3350 end:0x021e3510
+
+src/ov183/br_record_proc.c:
+    complete
+    .text       start:0x021db940 end:0x021dd37c
+    .rodata     start:0x021e329c end:0x021e3350
+    .data       start:0x021e3960 end:0x021e3964
+
+src/ov183/br_bvsearch_proc.c:
+    complete
+    .text       start:0x021df920 end:0x021e050c
+    .rodata     start:0x021e3728 end:0x021e3844
+
+src/ov183/br_rndmatch_proc.c:
+    complete
+    .text       start:0x021de1c8 end:0x021de9a0
+    .rodata     start:0x021e3510 end:0x021e36f4

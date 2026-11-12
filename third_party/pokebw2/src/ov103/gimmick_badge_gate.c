@@ -1,0 +1,594 @@
+#include "types.h"
+#include "constants/arc.h"
+#include "field/badge_gate.h"
+#include "field/field.h"
+#include "field/field_camera.h"
+#include "field/field_exp_obj.h"
+#include "field/field_task.h"
+#include "gfl/fade.h"
+#include "gfl/g3d.h"
+#include "gfl/sound.h"
+#include "gfl/std.h"
+#include "nitro/fx.h"
+#include "save/event_work.h"
+#include "system/game_data.h"
+#include "system/game_event.h"
+#include "system/game_system.h"
+
+// The value of a gate's event work once the gate is open
+#define GATE_WORK_OPENED 2
+
+// The scenes of a gate: its check, the closed gate and the opening
+enum {
+    GATE_SCENE_CHECK,
+    GATE_SCENE_CLOSED,
+    GATE_SCENE_OPEN,
+};
+
+// The steps of a gate's check
+enum {
+    CHECK_STEP_SHOW,
+    CHECK_STEP_WAIT_ANIM,
+    CHECK_STEP_OPEN,
+};
+
+// The steps of the last gate's event
+enum {
+    LAST_STEP_FADE_OUT,
+    LAST_STEP_SET_CAMERA,
+    LAST_STEP_FADE_IN,
+    LAST_STEP_SHOW_GATE,
+    LAST_STEP_WAIT_ANIM_1,
+    LAST_STEP_WAIT_ANIM_0,
+    LAST_STEP_WAIT_SHAKES,
+};
+
+// An actor of one of the gimmick's scenes
+typedef struct {
+    u32 scene;
+    u32 actor;
+    u32 unk08;
+    FieldExpObjSystem *expObj;
+} BadgeGateActor;
+
+typedef struct {
+    u16 unk00;
+    FieldExpObjSystem *expObj;
+    Field *field;
+    EventWork *eventWork;
+    // The actors of scenes 0, 1 and 2
+    BadgeGateActor actors0[8];
+    BadgeGateActor actors1[9];
+    BadgeGateActor actors2[9];
+    u32 last;
+} BadgeGateWork;
+
+typedef struct {
+    BadgeGateWork *gimmickWork;
+    u16 badge;
+    u32 state;
+    u8 unk0c[0x10];
+} BadgeGateCheckEventData;
+
+typedef struct {
+    BadgeGateWork *gimmickWork;
+    FieldCamera *camera;
+    // The actor of the last gate's scene
+    BadgeGateActor lastActor;
+    u32 state;
+    // Whether each camera shake is over
+    u16 shakeDone[2];
+    VecFx32 eyeOffset;
+    VecFx32 targetOffset;
+    Field *field;
+} BadgeGateLastEventData;
+
+void BadgeGate_InitActors(BadgeGateWork *work);
+BOOL BadgeGate_IsGateOpened(u32 badge, EventWork *work);
+GameEventReturnCode BadgeGate_CheckEvent(GameEvent *event, u32 *state, void *data);
+void BadgeGate_PlayCheckSounds(BadgeGateCheckEventData *data);
+BadgeGateActor *BadgeGate_GetActor(BadgeGateWork *work, u32 index, u32 scene);
+void BadgeGate_SetAnimPaused(BadgeGateActor *actor, u16 anm, BOOL paused);
+fx32 BadgeGate_GetOpenAnimFrame(BadgeGateWork *work);
+GameEventReturnCode BadgeGate_LastGateEvent(GameEvent *event, u32 *state, void *data);
+void BadgeGate_PlayLastGateSounds(BadgeGateLastEventData *data);
+void BadgeGate_UpdateCameraShakes(BadgeGateLastEventData *data);
+void BadgeGate_AddLastGateScene(BadgeGateActor *actor, FieldExpObjSystem *system);
+void BadgeGate_FreeLastGateScene(FieldExpObjSystem *system);
+
+// A shake of the camera during the last gate's event, between two of its frames
+typedef struct {
+    u32 start;
+    u32 end;
+    u32 period;
+    fx32 amplitudeX;
+    fx32 amplitudeY;
+} BadgeGateCameraShake;
+
+static const G3DSceneAnimationSetup sScene2Animations7[] = { { 15, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations0[] = { { 1, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations6[] = { { 13, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations2[] = { { 5, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations8[] = { { 17, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations5[] = { { 16, 0 }, { 17, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations5[] = { { 11, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations0[] = { { 1, 0 }, { 2, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations7[] = { { 22, 0 }, { 23, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations2[] = { { 7, 0 }, { 8, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations4[] = { { 13, 0 }, { 14, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations6[] = { { 19, 0 }, { 20, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations4[] = { { 9, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations1[] = { { 3, 0 } };
+
+static const G3DSceneResourceSetup sScene1Resources[] = {
+#include "asset/gimmick_badge_gate_sScene1Resources.inc"
+};
+
+static const G3DSceneAnimationSetup sScene0Animations3[] = { { 10, 0 }, { 11, 0 } };
+static const G3DSceneAnimationSetup sScene2Animations3[] = { { 7, 0 } };
+static const G3DSceneAnimationSetup sScene0Animations1[] = { { 4, 0 }, { 5, 0 } };
+static const G3DSceneAnimationSetup sScene3Animations[] = { { 1, 0 }, { 2, 0 }, { 3, 0 } };
+
+static const G3DSceneActorSetup sScene3Actors[] = {
+    { 0, 0, 0, 0, sScene3Animations, NELEMS(sScene3Animations) },
+};
+
+static const G3DSceneResourceSetup sScene0Resources[] = {
+    { ARCID_GIMMICK_BADGE_GATE, 0, 0 },  { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 3, 0 },  { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 6, 0 },  { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 9, 0 },  { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 12, 0 }, { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 15, 0 }, { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 18, 0 }, { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 21, 0 }, { ARCID_GIMMICK_BADGE_GATE, 27, 0 }, { ARCID_GIMMICK_BADGE_GATE, 29, 0 },
+};
+
+static const G3DSceneActorSetup sScene0Actors[] = {
+#include "asset/gimmick_badge_gate_sScene0Actors.inc"
+};
+
+static const G3DSceneActorSetup sScene1Actors[] = {
+#include "asset/gimmick_badge_gate_sScene1Actors.inc"
+};
+
+static const G3DSceneResourceSetup sScene2Resources[] = {
+#include "asset/gimmick_badge_gate_sScene2Resources.inc"
+};
+
+static const G3DSceneResourceSetup sScene3Resources[] = {
+    { ARCID_GIMMICK_BADGE_GATE, 24, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 28, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 30, 0 },
+    { ARCID_GIMMICK_BADGE_GATE, 32, 0 },
+};
+
+static const G3DSceneActorSetup sScene2Actors[] = {
+#include "asset/gimmick_badge_gate_sScene2Actors.inc"
+};
+
+static const G3DSceneSetup sScene0 = { sScene0Resources, NELEMS(sScene0Resources), sScene0Actors,
+                                       NELEMS(sScene0Actors) };
+static const G3DSceneSetup sScene1 = { sScene1Resources, NELEMS(sScene1Resources), sScene1Actors,
+                                       NELEMS(sScene1Actors) };
+
+static const BadgeGateCameraShake sCameraShakes[2] = {
+    { 138, 315, 4, 1, 1 },
+    { 385, 430, 4, 2, 2 },
+};
+
+static const G3DSceneSetup sScene2 = { sScene2Resources, NELEMS(sScene2Resources), sScene2Actors,
+                                       NELEMS(sScene2Actors) };
+static const G3DSceneSetup sScene3 = { sScene3Resources, NELEMS(sScene3Resources), sScene3Actors,
+                                       NELEMS(sScene3Actors) };
+
+// The event work of each gate, which is 2 once its badge has been checked
+static const u16 sGateWorks[9] = { 0x40e4, 0x40e5, 0x40e6, 0x40e7, 0x40e8, 0x40e9, 0x40ea, 0x40eb, 0x40ec };
+
+// The size of a grid square of the field
+#define GRID_SIZE FX32_CONST(16)
+
+// The position of each gate's actors, in grid squares
+static const VecFx32 sGatePositions[9] = {
+#include "asset/gimmick_badge_gate_sGatePositions.inc"
+};
+
+void BadgeGate_Setup(Field *field) {
+    HeapID heapId;
+    GameData *gameData;
+    BadgeGateWork *work;
+
+    heapId = Field_GetHeapID(field);
+    gameData = GSYS_GetGameData(Field_GetGameSystem(field));
+    GameData_GetGimmickState(gameData);
+    work = Field_AllocGimmickWorkBlock(field, 0, heapId, sizeof(BadgeGateWork));
+    work->unk00 = 0x15;
+    work->field = field;
+    work->expObj = Field_GetExpObjSystem(field);
+    work->eventWork = GameData_GetEventWork(gameData);
+    work->last = 0;
+    LoadFieldExpandObjData(work->expObj, &sScene0, 0);
+    LoadFieldExpandObjData(work->expObj, &sScene1, 1);
+    LoadFieldExpandObjData(work->expObj, &sScene2, 2);
+    BadgeGate_InitActors(work);
+}
+
+void BadgeGate_InitActors(BadgeGateWork *work) {
+    s32 i;
+    s32 j;
+    BadgeGateActor *actor;
+    FieldExpObjAnm *anm0;
+    FieldExpObjAnm *anm1;
+
+    for (i = 0; i < 8; i++) {
+        actor = &work->actors0[i];
+        actor->scene = 0;
+        actor->actor = i;
+        actor->expObj = work->expObj;
+    }
+    for (i = 0; i < 9; i++) {
+        actor = &work->actors1[i];
+        actor->scene = 1;
+        actor->actor = i;
+        actor->expObj = work->expObj;
+    }
+    for (i = 0; i < 9; i++) {
+        actor = &work->actors2[i];
+        actor->scene = 2;
+        actor->actor = i;
+        actor->expObj = work->expObj;
+    }
+    for (j = 0; j < 8; j++) {
+        actor = &work->actors0[j];
+        FieldExpObj_GetActorMatrixPtr(actor->expObj, 0, actor->actor)->translation = sGatePositions[j];
+        FieldExpObj_SetActorHidden(actor->expObj, 0, actor->actor, TRUE);
+        FieldExpObj_SetActorCulling(actor->expObj, 0, actor->actor, 1);
+        anm0 = FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 0);
+        FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 0, TRUE);
+        FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 0, 0);
+        FieldExpObjAnm_SetLooped(anm0, FALSE);
+        BadgeGate_SetAnimPaused(actor, 0, TRUE);
+        anm1 = FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 1);
+        BadgeGate_SetAnimPaused(actor, 1, TRUE);
+        FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 1, TRUE);
+        FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 1, 0);
+        FieldExpObjAnm_SetLooped(anm1, FALSE);
+    }
+    for (j = 0; j < 9; j++) {
+        actor = &work->actors1[j];
+        FieldExpObj_GetActorMatrixPtr(actor->expObj, 1, actor->actor)->translation = sGatePositions[j];
+        if (BadgeGate_IsGateOpened(j, work->eventWork)) {
+            FieldExpObj_SetActorHidden(actor->expObj, actor->scene, actor->actor, TRUE);
+        } else {
+            FieldExpObj_SetActorHidden(actor->expObj, actor->scene, actor->actor, FALSE);
+        }
+        FieldExpObj_SetActorCulling(actor->expObj, 1, actor->actor, 1);
+    }
+    for (i = 0; i < 9; i++) {
+        actor = &work->actors2[i];
+        FieldExpObj_GetActorMatrixPtr(actor->expObj, actor->scene, actor->actor)->translation = sGatePositions[i];
+        FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 0, TRUE);
+        if (BadgeGate_IsGateOpened(i, work->eventWork)) {
+            BadgeGate_SetAnimPaused(actor, 0, FALSE);
+            FieldExpObj_SetActorHidden(actor->expObj, actor->scene, actor->actor, FALSE);
+        } else {
+            BadgeGate_SetAnimPaused(actor, 0, TRUE);
+            FieldExpObj_SetActorHidden(actor->expObj, actor->scene, actor->actor, TRUE);
+        }
+        FieldExpObj_SetActorCulling(actor->expObj, actor->scene, actor->actor, 1);
+        FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 0, 0);
+        FieldExpObjAnm_SetLooped(FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 0), TRUE);
+    }
+}
+
+BOOL BadgeGate_IsGateOpened(u32 badge, EventWork *work) {
+    u16 *value;
+
+    value = EventWork_GetWkPtr(work, sGateWorks[badge]);
+    return *value == GATE_WORK_OPENED;
+}
+
+void BadgeGate_End(Field *field) {
+    BadgeGateWork *work;
+
+    work = Field_GetGimmickWorkBlock(field, 0);
+    FieldExpObj_FreeScene(work->expObj, 1);
+    FieldExpObj_FreeScene(work->expObj, 2);
+    FieldExpObj_FreeScene(work->expObj, 0);
+    Field_DeleteGimmickWorkBlock(field, 0);
+}
+
+void BadgeGate_Update(Field *field) {
+    BadgeGateWork *work;
+
+    work = Field_GetGimmickWorkBlock(field, 0);
+    FieldExpObj_StepAllAnimations(work->expObj);
+}
+
+GameEvent *BadgeGate_CreateCheckEvent(GameSystem *gsys, u8 badge) {
+    Field *field;
+    GameEvent *event;
+    BadgeGateCheckEventData *data;
+
+    field = GSYS_GetField(gsys);
+    event = GameEvent_Create(gsys, NULL, BadgeGate_CheckEvent, sizeof(BadgeGateCheckEventData));
+    data = GameEvent_GetData(event);
+    GSYS_GetGameData(gsys);
+    MI_CpuFill8(data, 0, sizeof(BadgeGateCheckEventData));
+    data->badge = badge;
+    data->state = 0;
+    data->gimmickWork = Field_GetGimmickWorkBlock(field, 0);
+    return event;
+}
+
+GameEventReturnCode BadgeGate_CheckEvent(GameEvent *event, u32 *state, void *arg) {
+    BadgeGateCheckEventData *data;
+    BadgeGateActor *entry0;
+    BadgeGateActor *entry1;
+    BadgeGateActor *entry2;
+    FieldExpObjAnm *anm;
+    fx32 frame;
+
+    data = arg;
+    entry0 = BadgeGate_GetActor(data->gimmickWork, data->badge, GATE_SCENE_CHECK);
+    entry1 = BadgeGate_GetActor(data->gimmickWork, data->badge, GATE_SCENE_CLOSED);
+    entry2 = BadgeGate_GetActor(data->gimmickWork, data->badge, GATE_SCENE_OPEN);
+    BadgeGate_PlayCheckSounds(data);
+    data->state++;
+
+    switch (*state) {
+    case CHECK_STEP_SHOW:
+        FieldExpObj_SetActorHidden(entry1->expObj, entry1->scene, entry1->actor, TRUE);
+        FieldExpObj_SetActorHidden(entry0->expObj, entry0->scene, entry0->actor, FALSE);
+        BadgeGate_SetAnimPaused(entry0, 0, FALSE);
+        BadgeGate_SetAnimPaused(entry0, 1, FALSE);
+        (*state)++;
+        break;
+    case CHECK_STEP_WAIT_ANIM:
+        anm = FieldExpObj_GetAnmInfo(entry0->expObj, entry0->scene, entry0->actor, 0);
+        if (FieldExpObjAnm_IsPlaybackFinished(anm) == TRUE) {
+            BadgeGate_SetAnimPaused(entry0, 0, TRUE);
+            (*state)++;
+            return GAMEEVENT_CONTINUE_DIRECT;
+        }
+        break;
+    case CHECK_STEP_OPEN:
+        FieldExpObj_SetActorHidden(entry0->expObj, entry0->scene, entry0->actor, TRUE);
+        FieldExpObj_SetActorHidden(entry2->expObj, entry2->scene, entry2->actor, FALSE);
+        frame = BadgeGate_GetOpenAnimFrame(data->gimmickWork);
+        FieldExpObj_SetAnmFrame(entry2->expObj, entry2->scene, entry2->actor, 0, frame);
+        BadgeGate_SetAnimPaused(entry2, 0, FALSE);
+        return GAMEEVENT_DONE;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+void BadgeGate_PlayCheckSounds(BadgeGateCheckEventData *data) {
+    if (data->state == 0) {
+        GFL_SndSEPlay(0x8a0);
+    }
+    if (data->state == 0x32) {
+        GFL_SndSEPlay(0x89b);
+    }
+}
+
+BadgeGateActor *BadgeGate_GetActor(BadgeGateWork *work, u32 index, u32 scene) {
+    switch (scene) {
+    case GATE_SCENE_CHECK:
+        return &work->actors0[index];
+    case GATE_SCENE_CLOSED:
+        return &work->actors1[index];
+    case GATE_SCENE_OPEN:
+        return &work->actors2[index];
+    default:
+        return NULL;
+    }
+}
+
+void BadgeGate_SetAnimPaused(BadgeGateActor *actor, u16 anm, BOOL paused) {
+    FieldExpObjAnm_SetPaused(FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, anm), paused);
+}
+
+fx32 BadgeGate_GetOpenAnimFrame(BadgeGateWork *work) {
+    s32 i;
+    BadgeGateActor *entry;
+    FieldExpObjAnm *anm;
+
+    for (i = 0; i < 8; i++) {
+        entry = BadgeGate_GetActor(work, i, GATE_SCENE_OPEN);
+        anm = FieldExpObj_GetAnmInfo(entry->expObj, entry->scene, entry->actor, 0);
+        if (!FieldExpObjAnm_IsPaused(anm)) {
+            return FieldExpObj_GetAnmFrame(entry->expObj, entry->scene, entry->actor, 0);
+        }
+    }
+    return 0;
+}
+
+GameEvent *BadgeGate_CreateLastGateEvent(GameSystem *gsys) {
+    Field *field;
+    GameEvent *event;
+    BadgeGateLastEventData *data;
+
+    field = GSYS_GetField(gsys);
+    event = GameEvent_Create(gsys, NULL, BadgeGate_LastGateEvent, sizeof(BadgeGateLastEventData));
+    data = GameEvent_GetData(event);
+    GSYS_GetGameData(gsys);
+    MI_CpuFill8(data, 0, sizeof(BadgeGateLastEventData));
+    data->gimmickWork = Field_GetGimmickWorkBlock(field, 0);
+    data->camera = Field_GetCameraSystem(field);
+    data->field = field;
+    data->state = 0;
+    FieldCamera_CoordsGetEyeOffset(data->camera, &data->eyeOffset);
+    FieldCamera_CoordsGetTargetOffset(data->camera, &data->targetOffset);
+    return event;
+}
+
+GameEventReturnCode BadgeGate_LastGateEvent(GameEvent *event, u32 *state, void *arg) {
+    BadgeGateLastEventData *data = arg;
+    BadgeGateActor *gate = BadgeGate_GetActor(data->gimmickWork, 8, GATE_SCENE_CLOSED);
+    BadgeGateActor *open = BadgeGate_GetActor(data->gimmickWork, 8, GATE_SCENE_OPEN);
+    FieldTaskManager *tasks;
+    FieldEvCameraAnimationSetup setup;
+    u32 i;
+
+    BadgeGate_UpdateCameraShakes(data);
+    switch (*state) {
+    case LAST_STEP_WAIT_ANIM_1:
+    case LAST_STEP_WAIT_ANIM_0:
+    case LAST_STEP_WAIT_SHAKES:
+        BadgeGate_PlayLastGateSounds(data);
+        data->state++;
+        break;
+    }
+    switch (*state) {
+    case LAST_STEP_FADE_OUT:
+        tasks = Field_GetTaskManager(data->field);
+        FieldTaskManager_AddTask(tasks, FieldFadeTask_Create(data->field, 3, 0, 16, 2), 0);
+        (*state)++;
+        break;
+    case LAST_STEP_SET_CAMERA:
+        if (GFL_FadeIsRunning()) {
+            break;
+        }
+        setup.targetCoords.pitch = 0x1dd8;
+        setup.targetCoords.yaw = 0;
+        setup.targetCoords.distance = 0x18d000;
+        setup.targetCoords.targetPos.x = 0x1f8000;
+        setup.targetCoords.targetPos.y = 0x6005f;
+        setup.targetCoords.targetPos.z = 0x26e000;
+        setup.flags.animatePitch = TRUE;
+        setup.flags.animateYaw = TRUE;
+        setup.flags.animateTargetDistance = TRUE;
+        setup.flags.animateTargetPos = TRUE;
+        setup.flags.animateExtraTranslation = FALSE;
+        setup.flags.animateFOV = FALSE;
+        FieldCameraAnm_SetAnimation(data->camera, &setup, 1);
+        BadgeGate_AddLastGateScene(&data->lastActor, data->gimmickWork->expObj);
+        (*state)++;
+        break;
+    case LAST_STEP_FADE_IN:
+        tasks = Field_GetTaskManager(data->field);
+        FieldTaskManager_AddTask(tasks, FieldFadeTask_Create(data->field, 3, 16, 0, 2), 0);
+        (*state)++;
+        break;
+    case LAST_STEP_SHOW_GATE:
+        if (GFL_FadeIsRunning()) {
+            break;
+        }
+        FieldExpObj_SetActorHidden(gate->expObj, gate->scene, gate->actor, TRUE);
+        FieldExpObj_SetActorHidden(data->lastActor.expObj, data->lastActor.scene, data->lastActor.actor, FALSE);
+        BadgeGate_SetAnimPaused(&data->lastActor, 1, FALSE);
+        (*state)++;
+        break;
+    case LAST_STEP_WAIT_ANIM_1:
+        if (FieldExpObjAnm_IsPlaybackFinished(FieldExpObj_GetAnmInfo(data->lastActor.expObj, data->lastActor.scene,
+                                                                     data->lastActor.actor, 1)) == TRUE) {
+            BadgeGate_SetAnimPaused(&data->lastActor, 1, TRUE);
+            FieldExpObj_SetAnm(data->lastActor.expObj, data->lastActor.scene, data->lastActor.actor, 1, FALSE);
+            FieldExpObj_SetAnm(data->lastActor.expObj, data->lastActor.scene, data->lastActor.actor, 2, TRUE);
+            BadgeGate_SetAnimPaused(&data->lastActor, 2, FALSE);
+            BadgeGate_SetAnimPaused(&data->lastActor, 0, FALSE);
+            FieldExpObj_SetAnmFrame(data->lastActor.expObj, data->lastActor.scene, data->lastActor.actor, 2,
+                                    BadgeGate_GetOpenAnimFrame(data->gimmickWork));
+            (*state)++;
+        }
+        break;
+    case LAST_STEP_WAIT_ANIM_0:
+        if (FieldExpObjAnm_IsPlaybackFinished(FieldExpObj_GetAnmInfo(data->lastActor.expObj, data->lastActor.scene,
+                                                                     data->lastActor.actor, 0)) == TRUE) {
+            BadgeGate_SetAnimPaused(&data->lastActor, 0, TRUE);
+            (*state)++;
+        }
+        break;
+    case LAST_STEP_WAIT_SHAKES:
+        for (i = 0; i < 2; i++) {
+            if (data->shakeDone[i] == 0) {
+                return GAMEEVENT_CONTINUE;
+            }
+        }
+        FieldExpObj_SetActorHidden(open->expObj, open->scene, open->actor, FALSE);
+        FieldExpObj_SetAnmFrame(open->expObj, open->scene, open->actor, 0,
+                                BadgeGate_GetOpenAnimFrame(data->gimmickWork));
+        BadgeGate_SetAnimPaused(open, 0, FALSE);
+        FieldExpObj_SetActorHidden(data->lastActor.expObj, data->lastActor.scene, data->lastActor.actor, TRUE);
+        BadgeGate_FreeLastGateScene(data->gimmickWork->expObj);
+        return GAMEEVENT_DONE;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+void BadgeGate_UpdateCameraShakes(BadgeGateLastEventData *data) {
+    u32 i;
+    VecFx32 eye;
+    VecFx32 target;
+    const BadgeGateCameraShake *shake;
+    u16 angle;
+
+    for (i = 0; i < 2; i++) {
+        eye = data->eyeOffset;
+        target = data->eyeOffset;
+        shake = &sCameraShakes[i];
+        if (data->state >= shake->start && data->state <= shake->end) {
+            angle = ((data->state - shake->start) << 16) / shake->period;
+            eye.x += FX_SinIdx(angle) * shake->amplitudeX;
+            eye.y += FX_CosIdx(angle) * shake->amplitudeY;
+            target.x += FX_SinIdx(angle) * shake->amplitudeX;
+            target.y += FX_CosIdx(angle) * shake->amplitudeY;
+            FieldCamera_CoordsSetEyeOffset(data->camera, &eye);
+            FieldCamera_CoordsSetTargetOffset(data->camera, &target);
+            data->shakeDone[i] = FALSE;
+            if (data->state >= shake->end) {
+                FieldCamera_CoordsSetEyeOffset(data->camera, &data->eyeOffset);
+                data->shakeDone[i] = TRUE;
+            }
+        }
+    }
+}
+
+void BadgeGate_PlayLastGateSounds(BadgeGateLastEventData *data) {
+    if (data->state == 100) {
+        GFL_SndSEPlay(0x89d);
+    }
+    if (data->state == 0) {
+        GFL_SndSEPlay(0x89c);
+    }
+    if (data->state == 140) {
+        GFL_SndSEPlay(0x89e);
+        GFL_SndSEPlay(0x8a1);
+    }
+    if (data->state == 0x14a) {
+        GFL_SndSEPlay(0x89f);
+    }
+}
+
+void BadgeGate_AddLastGateScene(BadgeGateActor *actor, FieldExpObjSystem *system) {
+    FieldExpObjAnm *anm;
+    SRTMatrix *matrix;
+
+    FieldExpObj_AddScene(system, &sScene3, 3);
+    actor->scene = 3;
+    actor->actor = 0;
+    actor->expObj = system;
+    matrix = FieldExpObj_GetActorMatrixPtr(actor->expObj, 3, actor->actor);
+    matrix->translation = sGatePositions[8];
+    FieldExpObj_SetActorHidden(actor->expObj, 3, actor->actor, TRUE);
+    FieldExpObj_SetActorCulling(actor->expObj, 3, actor->actor, 1);
+    anm = FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 0);
+    FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 0, TRUE);
+    FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 0, 0);
+    FieldExpObjAnm_SetLooped(anm, FALSE);
+    BadgeGate_SetAnimPaused(actor, 0, TRUE);
+    anm = FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 1);
+    BadgeGate_SetAnimPaused(actor, 1, TRUE);
+    FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 1, TRUE);
+    FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 1, 0);
+    FieldExpObjAnm_SetLooped(anm, FALSE);
+    BadgeGate_SetAnimPaused(actor, 2, TRUE);
+    FieldExpObj_SetAnm(actor->expObj, actor->scene, actor->actor, 2, FALSE);
+    FieldExpObj_SetAnmFrame(actor->expObj, actor->scene, actor->actor, 2, 0);
+    FieldExpObjAnm_SetLooped(FieldExpObj_GetAnmInfo(actor->expObj, actor->scene, actor->actor, 2), TRUE);
+}
+
+void BadgeGate_FreeLastGateScene(FieldExpObjSystem *system) {
+    FieldExpObj_FreeScene(system, 3);
+}

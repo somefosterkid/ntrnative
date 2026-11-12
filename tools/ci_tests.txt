@@ -1,0 +1,15 @@
+tools/acore_compare_tests.py
+tools/add_source_file_tests.py
+tools/asset_tests.py
+tools/bss_dwarf_tests.py
+tools/bw2_notes_tests.py
+tools/dead_strip_tests.py
+tools/inner_symbols_tests.py
+tools/nonmatching_dedupe_tests.py
+tools/port_audit_tests.py
+tools/port_decls_tests.py
+tools/port_file_tests.py
+tools/rename_tests.py
+tools/rom_leak_check_tests.py
+tools/two_modules_tests.py
+tools/veneers_tests.py

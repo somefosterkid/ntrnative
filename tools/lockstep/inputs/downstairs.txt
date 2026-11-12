@@ -1,0 +1,2 @@
+# downstairs: walk, A, menu
+left*f16@f10 left*f16@f30 up*f16@f50 up*f16@f70 a*f4@f100 a*f4@f130 a*f4@f160 x*f4@f200 down*f4@f230 b*f4@f260 b*f4@f290

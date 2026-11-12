@@ -1,0 +1,108 @@
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -28,6 +28,7 @@
+ void (*SIM_sndCaptureHook)(const SNDCommand * list) = NULL;
+ 
+ // sim7's snd_seq.c (no header declares them)
++void SND_UpdateChannelStatus7(void); // snd_channel.c: SNDi_SharedWork->channelStatus from the channels' busy bits
+ void SNDi_SetPlayerParam7(int playerNo, u32 offset, u32 data, int size);
+ void SNDi_SetTrackParam7(int playerNo, u32 trackBitMask, u32 offset, u32 data, int size);
+ 
+@@ -178,6 +179,12 @@
+             				case SND_COMMAND_START_TIMER:
+ 
+ 								{
++									for (int ch = 0; ch < 16; ch++) {
++										if ((sndCommandList->arg[0] >> ch) & 1) {
++											SND_StartChannel7(ch);
++										}
++									}
++									SND_UpdateChannelStatus7();
+ 									u32 wav_len = 200;
+ 									u8 channelsEnabled[32] = {0};
+ 									
+@@ -227,6 +234,12 @@
+ 
+             				case SND_COMMAND_STOP_TIMER:
+ 
++								for (int ch = 0; ch < 16; ch++) {
++									if ((sndCommandList->arg[0] >> ch) & 1) {
++										SND_StopChannel7(ch, 0);
++									}
++								}
++								SND_UpdateChannelStatus7();
+ 								u8 channelsEnabled[32] = {0};
+ 								u8 alarmsEnabled[32] = {0};
+ 								for( int i=0; i<32; i++ )
+@@ -276,10 +289,20 @@
+             				    break;
+ 
+             				case SND_COMMAND_SETUP_CHANNEL_PCM:
++								// bw-port: a wave-out channel (PokeVoice cries, NNS_SndWaveOut): the SDK's ARM7 decode of the
++								// command, so the channel plays and shows in the status word while it does
+ 								{
+-
+-									
+-
++									const u64 * a = sndCommandList->arg;
++									SND_SetupChannelPcm7((int)(a[0] & 0xffff),
++									                     (const void *)(uintptr_t)a[1],
++									                     (SNDWaveFormat)((a[3] >> 24) & 3),
++									                     (SNDChannelLoop)((a[3] >> 26) & 3),
++									                     (int)(a[3] & 0xffff),
++									                     (int)(a[2] & 0x3fffff),
++									                     (int)((a[2] >> 24) & 0x7f),
++									                     (SNDChannelDataShift)((a[2] >> 22) & 3),
++									                     (int)((a[0] >> 16) & 0xffff),
++									                     (int)((a[3] >> 16) & 0x7f));
+ 								}
+ 
+             				    break;
+--- a/libraries/sim7/src/snd/snd_channel.c
++++ b/libraries/sim7/src/snd/snd_channel.c
+@@ -1,4 +1,5 @@
+ #include <nitro/snd/common/channel.h>
++#include <nitro/snd/common/work.h>
+ 
+ #ifdef SDK_PORT
+ #include <simulator/sim.h>
+@@ -446,3 +447,20 @@
+   }
+ }
+ 
++
++
++// bw-port: UpdateSharedWork's channel word (snd_work.c's, ARM7 only): bit n = channel n busy. The callback's SND_SeqMain
++// and the wave-out commands (pxi.c) refresh it, as the DS ARM7 does after each wake and each START/STOP_TIMER
++void SND_UpdateChannelStatus7(void)
++{
++    u16 status = 0;
++    int chNo;
++
++    if (SNDi_SharedWork == NULL)
++        return;
++    for (chNo = 0; chNo < SND_CHANNEL_NUM; chNo++) {
++        if (SND_IsChannelActive7(chNo))
++            status |= (u16)(1 << chNo);
++    }
++    SNDi_SharedWork->channelStatus = status;
++}
+--- a/libraries/sim7/src/snd/snd_seq.c
++++ b/libraries/sim7/src/snd/snd_seq.c
+@@ -157,6 +157,8 @@
+     }
+ }
+ 
++void SND_UpdateChannelStatus7(void);
++
+ void SND_SeqMain(BOOL doPeriodicProc)
+ {
+     SNDPlayer *player_p;
+@@ -189,6 +191,7 @@
+     {
+         SNDi_SharedWork->playerStatus = playerStatus;
+     }
++    SND_UpdateChannelStatus7();
+ }
+ 
+ void SND_PrepareSeq7(int playerNo, const void *seqBase, u32 seqOffset, SNDBankData *bank_p)

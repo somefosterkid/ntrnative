@@ -1,0 +1,127 @@
+diff --git a/include/simulator/sim_audio.h b/include/simulator/sim_audio.h
+index d27c17a..53875f9 100644
+--- a/include/simulator/sim_audio.h
++++ b/include/simulator/sim_audio.h
+@@ -36,6 +36,10 @@ typedef struct SIM_SoundBackend {
+     void (*busSlot)(int aSlot, int aMusic);
+     // bw-port (libntr-ios-soundq.patch): 1 = Enhanced output, 0 = the DS's exact output (SoundQuality); may be NULL. Called with the audio locked.
+     void (*setQuality)(int aEnhanced);
++    // bw-port (libntr-ios-audiowait.patch): a command wait (SIM_Audio_WaitPump) had no reply for 300 ms: write the backend's
++    // command state into aState (one line), and if the backend holds no list the game still waits for, count one list finished
++    // (the game's finished tag moves, so the wait ends). 1 when it did. May be NULL. Called with the audio locked.
++    int (*waitStuck)(char * aState, int aSize);
+ } SIM_SoundBackend;
+ // libntr-mu83.patch: snd_interface.c tells the backend which driver slot starts a music sequence
+ void SIM_Audio_SlotMusic(int aSlot, int aMusic);
+@@ -51,6 +55,8 @@ extern int SIM_soundBackendOn;
+ void SIM_Audio_FrameTick(void);
+ // The ARM9 side waits for a sound command's completion (SND_RecvCommandReply): iteration 0 only lets the PXI thread
+ // finish the lists sent so far, later ones advance the sound by one driver tick (the DS's ARM7 would have run it).
++// libntr-ios-audiowait.patch: after 64 ticks the sound is stepped once a millisecond only, and a wait still unanswered after
++// 300 ms logs "audio: command reply wait timed out (...)" and asks the backend's waitStuck to release it.
+ void SIM_Audio_WaitPump(int aIteration);
+ // sim7/pxi.c: waits (20 ms at most) until the PXI thread has handled every message sent so far
+ void SIM_PxiDrain(void);
+diff --git a/libraries/sim/src/queue.c b/libraries/sim/src/queue.c
+index 5b99a7e..3df26d4 100644
+--- a/libraries/sim/src/queue.c
++++ b/libraries/sim/src/queue.c
+@@ -1,21 +1,36 @@
+ #include <stddef.h>
++#include <stdio.h>
++#include <SDL2/SDL_atomic.h>
+ #include <simulator/queue.h>
+ 
++// bw-port (libntr-ios-audiowait.patch): the queues (PXI's two) are written and read by different threads. Without a lock
++// or barrier an ARM64 reader could see the new head before the slot's write and take the message as NULL (the end of the
++// queue): the message, a sound command list, was lost and the game waited for its reply for ever. One lock for all queues
++// (a few hundred messages a second).
++static SDL_SpinLock s_lock = 0;
++
+ void* SIM_queue_read(SIM_queue_t *queue) {
++    SDL_AtomicLock(&s_lock);
+     if (queue->tail == queue->head) {
++        SDL_AtomicUnlock(&s_lock);
+         return NULL;
+     }
+     void* handle = queue->data[queue->tail];
+     queue->data[queue->tail] = NULL;
+     queue->tail = (queue->tail + 1) % queue->size;
++    SDL_AtomicUnlock(&s_lock);
+     return handle;
+ }
+ 
+ int SIM_queue_write(SIM_queue_t *queue, void* handle) {
++    SDL_AtomicLock(&s_lock);
+     if (((queue->head + 1) % queue->size) == queue->tail) {
++        SDL_AtomicUnlock(&s_lock);
++        fprintf(stderr, "queue: full (%zu), a message is lost\n", queue->size); // (PXI's callers do not check)
+         return -1;
+     }
+     queue->data[queue->head] = handle;
+     queue->head = (queue->head + 1) % queue->size;
++    SDL_AtomicUnlock(&s_lock);
+     return 0;
+-}
+\ No newline at end of file
++}
+diff --git a/libraries/sim/src/sim_audio.cpp b/libraries/sim/src/sim_audio.cpp
+index 746d843..a80426c 100644
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -742,17 +742,51 @@ extern "C" void SIM_Audio_FrameTick(void)
+     SDL_UnlockAudio();
+ }
+ 
++// libntr-ios-audiowait.patch: the wait's safety net. A list finishes at the driver's next tick (one or two iterations); a wait
++// that goes on had its reply lost (nothing the backend runs will move the finished tag), and stepping the sound a tick per
++// spin ran it ahead by seconds a second at 100 % CPU, for ever. After 64 ticks the sound steps once a millisecond (real time,
++// a few times faster than the DS), and after 300 ms the wait is logged with the backend's state and the backend releases it.
++#define SND_WAIT_TICKS 64
++#define SND_WAIT_MS 300.0
++
++static double WaitNowMs(void)
++{
++    struct timespec ts;
++    clock_gettime(CLOCK_MONOTONIC, &ts);
++    return (double)ts.tv_sec * 1e3 + ts.tv_nsec * 1e-6;
++}
++
+ extern "C" void SIM_Audio_WaitPump(int aIteration)
+ {
++    static double sT0 = 0.0, sNextLog = 0.0;
+     if(!s_frameClock) {
+         return;
+     }
+     SIM_PxiDrain();
+-    if(aIteration > 0) {
+-        SDL_LockAudio();
+-        SoundAdvance(s_sndCyc + SND_CYC_TICK);
+-        SDL_UnlockAudio();
++    if(aIteration == 0) {
++        sT0 = WaitNowMs();
++        sNextLog = sT0 + SND_WAIT_MS;
++        return;
++    }
++    if(aIteration > SND_WAIT_TICKS) {
++        SDL_Delay(1);
+     }
++    SDL_LockAudio();
++    SoundAdvance(s_sndCyc + SND_CYC_TICK);
++    double now = WaitNowMs();
++    if(now >= sNextLog) {
++        char st[512] = "";
++        int released = 0;
++        if(SIM_soundBackendOn && SIM_soundBackend->waitStuck != NULL) {
++            released = SIM_soundBackend->waitStuck(st, (int)sizeof st);
++            SoundAdvance(s_sndCyc + SND_CYC_TICK); // (the backend copies its state out after a step)
++        }
++        fprintf(stderr, "audio: command reply wait timed out (%.0f ms, %d spins, frame %llu, sound at frame %.2f, %s backend; %s)%s\n",
++                now - sT0, aIteration, (unsigned long long)(s_frameCyc / SND_CYC_FRAME), (double)s_sndCyc / SND_CYC_FRAME,
++                SIM_soundBackendOn ? "the program's" : "sim7's", st[0] ? st : "no state", released ? ": released" : "");
++        sNextLog = now + 1000.0;
++    }
++    SDL_UnlockAudio();
+ }
+ 
+ // ---- bw-port (libntr-ios-soundq.patch): the resampler to the device's rate (both SoundQuality modes) ----

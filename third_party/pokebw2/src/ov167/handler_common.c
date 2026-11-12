@@ -1,0 +1,161 @@
+#include "types.h"
+#include "battle/btl_event.h"
+#include "battle/btl_handler.h"
+#include "battle/btl_main.h"
+#include "battle/btl_pokeparam.h"
+#include "battle/btl_server_flow.h"
+#include "battle/btl_tables.h"
+#include "battle/handler_common.h"
+#include "constants/items.h"
+#include "constants/species.h"
+#include "pml/move.h"
+
+// Function names from swan (https://github.com/ds-pokemon-hacking/swan, GPL-3.0) where it has them
+
+// Whether a mon is among the event's targets
+BOOL IsEventTargetMon(u32 monId) {
+    u32 count = BattleEventVar_GetValue(BTL_EVAR_TARGET_COUNT);
+    u32 i;
+
+    for (i = 0; i < count; i++) {
+        if (monId == BattleEventVar_GetValue(BTL_EVAR_TARGET_1 + i)) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+BOOL IsMonLastInTurnOrder(BtlServerFlow *flow, u8 monId) {
+    if (BtlServerFlow_IsLastToAct(flow, monId)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// Whether a species holds the item that its form depends on
+BOOL GiratinaArceusGenesectItemCheck(u16 species, u16 item) {
+    switch (species) {
+    case SPECIES_GIRATINA:
+        if (item == ITEM_GRISEOUS_ORB) {
+            return TRUE;
+        }
+        break;
+    case SPECIES_ARCEUS:
+        if (IsArceusPlate(item)) {
+            return TRUE;
+        }
+        break;
+    case SPECIES_GENESECT:
+        if (IsGenesectDrive(item)) {
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
+
+// Whether a mon's item can't be taken away from it
+// Whether a mon's item can't be taken away from it
+BOOL IsItemUnremovable(BtlServerFlow *flow, u8 monId) {
+    BattleMon *mon = GetBattleMon(flow, monId);
+    u16 species = GetBattleMonSpecies(mon);
+    u16 item = GetBattleMonHeldItem(mon);
+
+    if (GiratinaArceusGenesectItemCheck(species, item)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+BOOL IsWildOpponent(BtlServerFlow *flow, u8 monId) {
+    if (BtlServerFlow_GetBattleType(flow) == 0) {
+        u32 client = GetClientIDFromMonID(monId);
+
+        // The original tests the client against 1 twice (`beq` to the next instruction, then `bne`), as two
+        // constants of the same value would
+        if (client == 1 || client == 1) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+// Whether two mons' items can't be swapped
+// Whether two mons' items can't be swapped
+BOOL IsItemSwapBlocked(BtlServerFlow *flow, u8 monId, u8 otherId) {
+    BattleMon *mon;
+    BattleMon *other;
+    u16 species;
+    u16 item;
+
+    if (IsWildOpponent(flow, monId)) {
+        return TRUE;
+    }
+    if (IsItemUnremovable(flow, otherId)) {
+        return TRUE;
+    }
+    mon = GetBattleMon(flow, monId);
+    other = GetBattleMon(flow, otherId);
+    species = GetBattleMonSpecies(mon);
+    item = GetBattleMonHeldItem(other);
+    if (GiratinaArceusGenesectItemCheck(species, item)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// Magic Coat and Magic Bounce: bounce a status move that can be reflected back at its user
+void CommonMagicCoatCheckMoveEffect(BattleEventItem *item, BtlServerFlow *flow, u8 monId, s32 *work) {
+    u8 attacker = BattleEventVar_GetValue(BTL_EVAR_MON);
+
+    if (!IsAllyMonID(attacker, monId)) {
+        u16 move = BattleEventVar_GetValue(BTL_EVAR_MOVE);
+
+        if (PML_MoveGetQuality(move) == MOVE_QUALITY_SIDE && getMoveFlag(move, 4) &&
+            BattleEventVar_RewriteValue(BTL_EVAR_FAIL_CAUSE, 0x19)) {
+            BtlServerFlow_AddMagicCoatReflect(flow, monId, attacker);
+        }
+    }
+}
+
+void CommonMagicCoatWait(BattleEventItem *item, BtlServerFlow *flow, u8 monId, s32 *work) {
+    if (monId == BattleEventVar_GetValue(BTL_EVAR_DEFENDER) && BattleEventVar_GetValue(BTL_EVAR_REFLECTED_FLAG) == 0 &&
+        !IsSemiInvulnMove(GetBattleMon(flow, monId)) && getMoveFlag(BattleEventVar_GetValue(BTL_EVAR_MOVE), 4) &&
+        BattleEventVar_RewriteValue(BTL_EVAR_NO_EFFECT_FLAG, 1)) {
+        u8 attacker = BattleEventVar_GetValue(BTL_EVAR_ATTACKER);
+
+        BtlServerFlow_AddMagicCoatReflect(flow, monId, attacker);
+        BattleEventVar_RewriteValue(BTL_EVAR_FLAG, 1);
+    }
+}
+
+// The message that a mon is protected from a move
+void CommonMoveProtectedMessage(BattleEventItem *item, BtlServerFlow *flow, u8 monId, s32 *work) {
+    BattleHandlerMessageParam *param;
+
+    if (monId == BattleEventVar_GetValue(BTL_EVAR_MON) && !IsSemiInvulnMove(GetBattleMon(flow, monId))) {
+        param = BattleHandler_PushWork(flow, BTL_HANDLER_MESSAGE, monId);
+        BattleHandler_StrSetup(&param->string, 2, 0x2fc);
+        BattleHandler_AddArg(&param->string, monId);
+        BattleHandler_AddArg(&param->string, BattleEventVar_GetValue(BTL_EVAR_MOVE));
+        BattleHandler_PopWork(flow, param);
+    }
+}
+
+void MultiplyBasePower(u32 factor) {
+    factor *= BattleEventVar_GetValue(BTL_EVAR_POWER);
+    BattleEventVar_RewriteValue(BTL_EVAR_POWER, factor);
+}
+
+void CommonRunCalcSkip(BattleEventItem *item, BtlServerFlow *flow, u8 monId, s32 *work) {
+    if (IsAllyMonID(BattleEventVar_GetValue(BTL_EVAR_MON), monId)) {
+        BattleEventVar_RewriteValue(BTL_EVAR_FLAG, 1);
+    }
+}
+
+BOOL CommonCheckRunMessage(BattleEventItem *item, BtlServerFlow *flow, u8 monId) {
+    if (IsAllyMonID(BattleEventVar_GetValue(BTL_EVAR_MON), monId) && BattleEventVar_RewriteValue(BTL_EVAR_FLAG, 1)) {
+        return TRUE;
+    }
+    return FALSE;
+}

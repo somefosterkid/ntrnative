@@ -1,0 +1,3 @@
+EventWorldTrade_CreateFromArgs kind:function(thumb,size=0xc) addr:0x0214f500
+EventWorldTrade_Create kind:function(thumb,size=0xc4) addr:0x0214f50c
+EventWorldTrade_Callback kind:function(thumb,size=0xf8) addr:0x0214f5d0

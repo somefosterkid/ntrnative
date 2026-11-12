@@ -1,0 +1,5 @@
+# the subprojects' checkouts (meson clones them from the wraps at setup); packagefiles/ holds our patches to them
+/subprojects/*/
+!/subprojects/packagefiles/
+/subprojects/packagecache/
+/subprojects/.wraplock

@@ -1,0 +1,72 @@
+    .text       start:0x021b95a0 end:0x021c184c kind:code align:32
+    .rodata     start:0x021c184c end:0x021c3b7c kind:rodata align:4
+    .ctor       start:0x021c3b7c end:0x021c3b7c kind:rodata align:4
+    .data       start:0x021c3b80 end:0x021c3cc0 kind:data align:32
+    .bss        start:0x021c3cc0 end:0x021c3cc0 kind:bss align:32
+
+src/ov110/pmsiv_wordwin.c:
+    complete
+    .text       start:0x021bf844 end:0x021c0134
+    .data       start:0x021c3c84 end:0x021c3c94
+
+src/ov110/pmsi_search.c:
+    complete
+    .text       start:0x021baedc end:0x021bb1f4
+    .rodata     start:0x021c375c end:0x021c37a8
+    .data       start:0x021c3c34 end:0x021c3c44
+
+src/ov110/pmsi_initial_data.c:
+    complete
+    .text       start:0x021bb1f4 end:0x021bb290
+    .rodata     start:0x021c37a8 end:0x021c38b8
+
+src/ov110/pmsiv_tool.c:
+    complete
+    .text       start:0x021bc78c end:0x021bc990
+    .rodata     start:0x021c38d0 end:0x021c38d4
+
+src/ov110/pms_select_graphic.c:
+    complete
+    .text       start:0x021c1610 end:0x021c184c
+    .rodata     start:0x021c3a18 end:0x021c3b7c
+    .data       start:0x021c3c98 end:0x021c3cc0
+
+src/ov110/pms_input_data.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9a50
+    .rodata     start:0x021c184c end:0x021c3604
+    .data       start:0x021c3b80 end:0x021c3b94
+
+src/ov110/pms_input.c:
+    complete
+    .text       start:0x021bd484 end:0x021bf844
+    .rodata     start:0x021c38f0 end:0x021c39d4
+    .data       start:0x021c3c78 end:0x021c3c84
+
+src/ov110/pms_input_view.c:
+    complete
+    .text       start:0x021b9a50 end:0x021baedc
+    .rodata     start:0x021c3604 end:0x021c375c
+    .data       start:0x021c3b94 end:0x021c3c34
+src/ov110/pmsiv_category.c:
+    complete
+    .text       start:0x021bb290 end:0x021bbc5c
+    .rodata     start:0x021c38b8 end:0x021c38d0
+    .data       start:0x021c3c44 end:0x021c3c58
+
+src/ov110/pmsiv_menu.c:
+    complete
+    .text       start:0x021bc990 end:0x021bd484
+    .rodata     start:0x021c38d4 end:0x021c38f0
+    .data       start:0x021c3c68 end:0x021c3c78
+
+src/ov110/pmsiv_edit.c:
+    complete
+    .text       start:0x021bbc5c end:0x021bc78c
+    .data       start:0x021c3c58 end:0x021c3c68
+
+src/ov110/pms_select.c:
+    complete
+    .text       start:0x021c0134 end:0x021c1610
+    .rodata     start:0x021c39d4 end:0x021c3a18
+    .data       start:0x021c3c94 end:0x021c3c98

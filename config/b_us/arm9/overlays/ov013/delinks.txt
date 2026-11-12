@@ -1,0 +1,58 @@
+    .text       start:0x021aeb20 end:0x021b3a00 kind:code align:32
+    .rodata     start:0x021b3a00 end:0x021b3c0c kind:rodata align:4
+    .ctor       start:0x021b3c0c end:0x021b3c0c kind:rodata align:4
+    .data       start:0x021b3c20 end:0x021b3c80 kind:data align:32
+    .bss        start:0x021b3c80 end:0x021b6100 kind:bss align:32
+
+lib/dwc/src/vct/vct_session.c:
+    complete
+    .text       start:0x021b1f2c end:0x021b2ed8
+    .rodata     start:0x021b3af0 end:0x021b3c0c
+    .data       start:0x021b3c48 end:0x021b3c50
+    .bss        start:0x021b4bd0 end:0x021b4c24
+
+lib/dwc/src/vct/vct_audio.c:
+    complete
+    .text       start:0x021b0508 end:0x021b12fc
+    .rodata     start:0x021b3ad0 end:0x021b3af0
+    .data       start:0x021b3c24 end:0x021b3c28
+    .bss        start:0x021b3c84 end:0x021b4b98
+
+lib/dwc/src/vct/vct_buffer.c:
+    complete
+    .text       start:0x021b12fc end:0x021b1f2c
+    .data       start:0x021b3c28 end:0x021b3c48
+    .bss        start:0x021b4b98 end:0x021b4bd0
+
+lib/dwc/src/vct/udp_buffer.c:
+    .text       start:0x021b2ed8 end:0x021b3018
+    .bss        start:0x021b4c24 end:0x021b4c2c
+
+lib/dwc/src/vct/vad.c:
+    .text       start:0x021b3018 end:0x021b3278
+    .data       start:0x021b3c50 end:0x021b3c60
+    .bss        start:0x021b4c2c end:0x021b4c48
+
+lib/dwc/src/vct/fir.c:
+    .text       start:0x021b3278 end:0x021b3624
+    .data       start:0x021b3c60 end:0x021b3c80
+    .bss        start:0x021b4c48 end:0x021b60cc
+
+lib/dwc/src/vct/mixer.c:
+    .text       start:0x021b3624 end:0x021b370c
+
+lib/dwc/src/vct/vct_adpcm.c:
+    complete
+    .text       start:0x021af340 end:0x021b0508
+    .rodata     start:0x021b3a00 end:0x021b3ad0
+
+src/ov013/dwc_rap_vchat.c:
+    complete
+    .text       start:0x021aeb20 end:0x021af340
+    .data       start:0x021b3c20 end:0x021b3c24
+    .bss        start:0x021b3c80 end:0x021b3c84
+
+lib/dwc/src/vct/vct.c:
+    complete
+    .text       start:0x021b370c end:0x021b3a00
+    .bss        start:0x021b60cc end:0x021b60f5

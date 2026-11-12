@@ -1,0 +1,1190 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), lib/twl/src/ssp_jpegenc.c, for Black's copy of the
+// library in overlay 172, which is ARM code.
+#include "types.h"
+#include "nitro/mi.h"
+#include "gfl/std.h"
+#include "nitro/os.h"
+#include "ssp_exifenc.h"
+#include "ssp_private.h"
+#include "twl/ssp/common/ssp_jpeg_type.h"
+#include "twl/ssp/ARM9/jpegenc.h"
+
+// TwlSDK's JPEG encoder (SSP_StartJpegEncoder), linked into the Xtransceiver's overlay, libssp.TWL.HYB.a's jpegenc.o.
+// It converts the image to YCbCr planes, transforms and quantizes it in 8x8 blocks with a fixed point AAN DCT, and
+// writes a baseline JPEG with the standard Huffman tables, after the EXIF data of ssp_exifenc.c or, for the EXIF
+// thumbnail, a bare header. The functions have the SDK's names (the Yos_ ones are its author's) that Black 1's
+// decompilation (aletheia) gives the same functions in the same order; the names of the data are ours.
+
+// The thumbnail that SSP_JPEG_THUMBNAIL adds to the EXIF data
+#define THUMBNAIL_WIDTH 160
+#define THUMBNAIL_HEIGHT 120
+// Its quality is capped
+#define THUMBNAIL_MAX_QUALITY 70
+// The work memory it needs: the thumbnail's RGB555 pixels, and its JPEG data in a buffer as large
+#define THUMBNAIL_BUFFER_SIZE (THUMBNAIL_WIDTH * THUMBNAIL_HEIGHT * 2)
+
+// EXIF tags that SSPi_JpegEncoderDoSign looks for
+#define EXIF_TAG_EXIF_IFD 0x8769
+#define EXIF_TAG_MAKER_NOTE 0x927c
+
+// Option bits
+#define SSP_JPEG_THUMBNAIL 0x1
+#define SSP_JPEG_YUV422 0x100
+
+// A Huffman table in the encoder's work memory: the counts of codes of each length and the values, as the DHT segment
+// holds them, and the code and code length of each value
+typedef struct {
+    u32 unused[257];
+    struct {
+        u8 bits[32];
+        u8 values[256];
+        u16 codes[256];
+        u32 unused2;
+        u8 sizes[256];
+        u32 unused3;
+    } spec;
+    u32 unused4;
+} JpegEncHuffTable;
+
+// The code lengths and codes of a table's values, in order, while Yos_JpegEncoderHuffmanEncoderBuildTable builds it
+typedef struct {
+    u32 sizes[256];
+    u32 codes[256];
+} JpegEncHuffWork;
+
+// The start of the encoder's work memory, which the coefficients and the YCbCr planes follow
+typedef struct {
+    s32 divisors[2][64];
+    u8 quant[2][64];
+    JpegEncHuffTable dcLum;
+    JpegEncHuffTable dcChrom;
+    JpegEncHuffTable acLum;
+    JpegEncHuffTable acChrom;
+    JpegEncHuffWork huffWork;
+} JpegEncWork;
+
+// The quantized DCT coefficients of one component, 64 for each block
+typedef struct {
+    s16 *coefs;
+    u32 blocksX;
+    u32 blocksY;
+    s32 lastDc;
+} JpegEncComponent;
+
+// Converts the source pixels to the Y, Cb and Cr planes
+typedef void (*JpegEncConvertFunc)(const void *src, u32 width, u32 height, u8 *dst);
+
+static void Yos_BitInit(void);
+static BOOL Yos_BitWrite(u8 *dst, u32 *pos, u32 value, u32 count);
+static void Yos_JpegEncoderForwardDct(const u8 *block, s32 *divisors, s16 *coefs);
+static void Yos_JpegEncoderHuffmanEncoderBuildTable(JpegEncHuffWork *work, JpegEncHuffTable *table, u32 type);
+static BOOL Yos_JpegEncoderHuffmanEncoderPrintTable(const JpegEncHuffTable *table, u8 *dst, u32 *pos);
+static u32 Yos_JpegEncoderHuffmanEncoderOutputSize(const JpegEncHuffTable *table);
+static BOOL Yos_JpegEncoderComponentSequential(const JpegEncHuffTable *dcTable, const JpegEncHuffTable *acTable,
+                                               JpegEncComponent *component, u8 *dst, u32 *pos, unsigned long x, unsigned long y);
+static void Yos_JpegEncodeSample2to2Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width);
+static void Yos_JpegEncodeSample2to1Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width);
+static void Yos_JpegEncodeSample1to1Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width);
+static u32 Yos_JPEGGetMemorySize(u32 width, u32 height, u32 sampling);
+static BOOL SSPi_JpegEncoderDoSign(u8 *data, u32 size);
+static void SSP_JpegEncoderResample(const u16 *src, u32 width, u32 height, u16 *dst, u32 dstWidth, u32 dstHeight,
+                                    u32 option);
+static void SSP_RGB555ToYUV888(const void *src, u32 width, u32 height, u8 *dst);
+static void SSP_YUV422ToYUV888(const void *src, u32 width, u32 height, u8 *dst);
+static u32 Yos_JPEGEncode(const void *src, u8 *dst, u32 limit, JpegEncWork *work, u32 width, u32 height, u32 quality,
+                          u32 sampling, BOOL isThumbnail, const u8 *thumbnail, u32 thumbnailSize,
+                          JpegEncConvertFunc convert);
+static BOOL SSPi_JpegEncoderCheckWidthHeight(u32 width, u32 height, u32 sampling);
+
+// The bit masks, by bit count
+static const u32 sJpegEncBitMasks[17] = {
+    0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080,
+    0x0100, 0x0200, 0x0400, 0x0800, 0x1000, 0x2000, 0x4000, 0x8000,
+};
+
+// The SOS segment of the three components
+static u8 sJpegEncSosHeader[14] = {
+    0xff, 0xda, 0x00, 0x0c, 0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3f, 0x00
+};
+
+// The SOF0 segment, whose size and sampling are written in, and the start of the DQT segment
+static u8 sJpegEncSofHeader[23] = {
+    0xff, 0xc0, 0x00, 0x11, 0x08, 0x01, 0xe0, 0x02, 0x80, 0x03, 0x01, 0x11,
+    0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xdb, 0x00, 0x84,
+};
+
+// The SOI marker and the same segments, for the thumbnail, which has no EXIF data
+static u8 sJpegEncThumbnailHeader[25] = {
+    0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x01, 0xe0, 0x02, 0x80, 0x03, 0x01,
+    0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, 0xff, 0xdb, 0x00, 0x84,
+};
+
+// A standard Huffman table of the JPEG specification (K.3), as the DHT segment holds it: the number of codes of each
+// length, and the values in code order. They are copied with MI_CpuCopy32, and aligned like TwlSDK's DMA buffers
+typedef struct {
+    u8 bits[16];
+    u8 values[12];
+} JpegEncDcHuffSpec;
+
+typedef struct {
+    u8 bits[16];
+    u8 values[162];
+} JpegEncAcHuffSpec;
+
+static JpegEncDcHuffSpec sJpegEncDcChromSpec ATTRIBUTE_ALIGN(32) = {
+    { 0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
+    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
+};
+static JpegEncDcHuffSpec sJpegEncDcLumSpec ATTRIBUTE_ALIGN(32) = {
+    { 0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 },
+};
+
+// The standard quantization tables of the JPEG specification (K.1), for quality 50
+static u8 sJpegEncLumQuantTable[64] = {
+    16, 11,  10,  16, 24, 40, 51, 61, 12,  12,  14,  19,  26, 58, 60, 55,  14,  13,  16,  24, 40, 57,
+    69, 56,  14,  17, 22, 29, 51, 87, 80,  62,  18,  22,  37, 56, 68, 109, 103, 77,  24,  35, 55, 64,
+    81, 104, 113, 92, 49, 64, 78, 87, 103, 121, 120, 101, 72, 92, 95, 98,  112, 100, 103, 99,
+};
+static u8 sJpegEncChromQuantTable[64] = {
+    17, 18, 24, 47, 99, 99, 99, 99, 18, 21, 26, 66, 99, 99, 99, 99, 24, 26, 56, 99, 99, 99,
+    99, 99, 47, 66, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99, 99,
+};
+
+// The index in a block of each coefficient in zigzag order
+static u8 sJpegEncZigzag[64] = {
+    0,  1,  8,  16, 9,  2,  3,  10, 17, 24, 32, 25, 18, 11, 4,  5,  12, 19, 26, 33, 40, 48,
+    41, 34, 27, 20, 13, 6,  7,  14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23,
+    30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
+};
+
+static JpegEncAcHuffSpec sJpegEncAcChromSpec ATTRIBUTE_ALIGN(32) = {
+    { 0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 0x77 },
+    {
+        0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21, 0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71, 0x13, 0x22,
+        0x32, 0x81, 0x08, 0x14, 0x42, 0x91, 0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0, 0x15, 0x62, 0x72, 0xd1,
+        0x0a, 0x16, 0x24, 0x34, 0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x35, 0x36,
+        0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58,
+        0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a,
+        0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a,
+        0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba,
+        0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
+        0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa,
+    },
+};
+static JpegEncAcHuffSpec sJpegEncAcLumSpec ATTRIBUTE_ALIGN(32) = {
+    { 0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 0x7d },
+    {
+        0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07, 0x22, 0x71,
+        0x14, 0x32, 0x81, 0x91, 0xa1, 0x08, 0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0, 0x24, 0x33, 0x62, 0x72,
+        0x82, 0x09, 0x0a, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x34, 0x35, 0x36, 0x37,
+        0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59,
+        0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x83,
+        0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3,
+        0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
+        0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+        0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9, 0xfa,
+    },
+};
+
+// The AAN DCT's scale factors, 8 * 2^21 / (s(u) * s(v)) with s(0) = 1 and s(k) = cos(k pi / 16) * sqrt(2), which
+// Yos_JPEGEncode divides by the quantizer
+static s32 sJpegEncAanScales[64] = {
+    0x200, 0x171, 0x188, 0x1b3, 0x200, 0x28c, 0x3b2, 0x740, 0x171, 0x10a, 0x11b, 0x13a, 0x171, 0x1d6, 0x2aa, 0x53a,
+    0x188, 0x11b, 0x12c, 0x14d, 0x188, 0x1f3, 0x2d4, 0x58c, 0x1b3, 0x13a, 0x14d, 0x172, 0x1b3, 0x22a, 0x325, 0x62a,
+    0x200, 0x171, 0x188, 0x1b3, 0x200, 0x28c, 0x3b2, 0x740, 0x28c, 0x1d6, 0x1f3, 0x22a, 0x28c, 0x33d, 0x4b4, 0x93a,
+    0x3b2, 0x2aa, 0x2d4, 0x325, 0x3b2, 0x4b4, 0x6d4, 0xd65, 0x740, 0x53a, 0x58c, 0x62a, 0x740, 0x93a, 0xd65, 0x1a46,
+};
+
+// The bit writer: the bits left in the byte being written, the byte, and the size of the output buffer
+static u32 sJpegEncLimit;
+static u32 sJpegEncBitsLeft;
+static u32 sJpegEncBits;
+
+static void Yos_BitInit(void) {
+    sJpegEncBits = 0;
+    sJpegEncBitsLeft = 8;
+}
+
+// Writes the low count bits of value, from the highest, with a 0 stuffed after each 0xff byte
+static BOOL Yos_BitWrite(u8 *dst, u32 *pos, u32 value, u32 count) {
+    for (; count != 0; count--) {
+        if (value & sJpegEncBitMasks[count]) {
+            sJpegEncBits |= sJpegEncBitMasks[sJpegEncBitsLeft];
+        }
+        if (--sJpegEncBitsLeft == 0) {
+            dst[*pos] = sJpegEncBits;
+            if (sJpegEncBits == 0xff) {
+                if (*pos + 2 >= sJpegEncLimit) {
+                    return FALSE;
+                }
+                dst[*pos + 1] = 0;
+                *pos += 2;
+            } else {
+                if (++*pos >= sJpegEncLimit) {
+                    return FALSE;
+                }
+            }
+            sJpegEncBits = 0;
+            sJpegEncBitsLeft = 8;
+        }
+    }
+    return TRUE;
+}
+
+// Transforms an 8x8 block of samples with the AAN DCT in 8 bit fixed point, and quantizes the coefficients
+static void Yos_JpegEncoderForwardDct(const u8 *block, s32 *divisors, s16 *coefs) {
+    s32 workspace[64];
+    long k;
+    long i;
+    s32 tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7;
+    s32 tmp10, tmp11, z1, z3, z5a, z5b, z6a, z6b;
+
+    for (i = 0; i < 8; i++) {
+        tmp0 = block[i + 0] + block[i + 56] - 256;
+        tmp1 = block[i + 8] + block[i + 48] - 256;
+        tmp2 = block[i + 16] + block[i + 40] - 256;
+        tmp3 = block[i + 24] + block[i + 32] - 256;
+        tmp4 = block[i + 24] - block[i + 32];
+        tmp5 = block[i + 16] - block[i + 40];
+        tmp6 = block[i + 8] - block[i + 48];
+        tmp7 = block[i + 0] - block[i + 56];
+
+        tmp10 = tmp0 + tmp3;
+        tmp11 = tmp1 + tmp2;
+        tmp1 = tmp1 - tmp2 + tmp0 - tmp3;
+        tmp0 = tmp0 - tmp3;
+        tmp2 = tmp5 + tmp6;
+        tmp6 = tmp6 + tmp7;
+
+        tmp5 = tmp4 + tmp5 + tmp6;
+
+        z1 = tmp1 * 181;
+        z3 = tmp2 * 181;
+        z5a = tmp5 * 98;
+        z5b = tmp5 * 237;
+        z6a = tmp6 * 139;
+        z6b = tmp6 * 334;
+
+        workspace[i + 0] = (tmp10 + tmp11) << 8;
+        workspace[i + 32] = (tmp10 - tmp11) << 8;
+        workspace[i + 16] = z1 + (tmp0 << 8);
+        workspace[i + 48] = (tmp0 << 8) - z1;
+        workspace[i + 8] = z3 + (tmp7 << 8) + z5a + z6a;
+        workspace[i + 40] = (tmp7 << 8) - z3 + z5b - z6b;
+        workspace[i + 24] = (tmp7 << 8) - z3 - z5b + z6b;
+        workspace[i + 56] = z3 + (tmp7 << 8) - z5a - z6a;
+    }
+
+    for (i = k = 0; i < 8; i++, k += 8) {
+        tmp0 = workspace[k + 0] + workspace[k + 7];
+        tmp1 = workspace[k + 1] + workspace[k + 6];
+        tmp2 = workspace[k + 2] + workspace[k + 5];
+        tmp3 = workspace[k + 3] + workspace[k + 4];
+        tmp4 = workspace[k + 3] - workspace[k + 4];
+        tmp5 = workspace[k + 2] - workspace[k + 5];
+        tmp6 = workspace[k + 1] - workspace[k + 6];
+        tmp7 = workspace[k + 0] - workspace[k + 7];
+
+        tmp10 = tmp0 + tmp3;
+        tmp11 = tmp1 + tmp2;
+        tmp1 = tmp1 - tmp2 + tmp0 - tmp3;
+        tmp0 = tmp0 - tmp3;
+        tmp2 = tmp5 + tmp6;
+        tmp6 = tmp6 + tmp7;
+
+        tmp5 = tmp4 + tmp5 + tmp6;
+
+        z1 = tmp1 * 181;
+        z3 = tmp2 * 181;
+        z5a = tmp5 * 98;
+        z5b = tmp5 * 237;
+        z6a = tmp6 * 139;
+        z6b = tmp6 * 334;
+
+        coefs[k + 0] = ((((tmp10 + tmp11) + 128) >> 8) * divisors[i * 8 + 0] + 0x800) >> 12;
+        coefs[k + 1] = (((z3 + (tmp7 << 8) + z5a + z6a + 0x8000) >> 16) * divisors[i * 8 + 1] + 0x800) >> 12;
+        coefs[k + 2] = (((z1 + (tmp0 << 8) + 0x8000) >> 16) * divisors[i * 8 + 2] + 0x800) >> 12;
+        coefs[k + 3] = ((((tmp7 << 8) - z3 - z5b + z6b + 0x8000) >> 16) * divisors[i * 8 + 3] + 0x800) >> 12;
+        coefs[k + 4] = ((((tmp10 - tmp11) + 128) >> 8) * divisors[i * 8 + 4] + 0x800) >> 12;
+        coefs[k + 5] = ((((tmp7 << 8) - z3 + z5b - z6b + 0x8000) >> 16) * divisors[i * 8 + 5] + 0x800) >> 12;
+        coefs[k + 6] = ((((tmp0 << 8) - z1 + 0x8000) >> 16) * divisors[i * 8 + 6] + 0x800) >> 12;
+        coefs[k + 7] = (((z3 + (tmp7 << 8) - z5a - z6a + 0x8000) >> 16) * divisors[i * 8 + 7] + 0x800) >> 12;
+    }
+}
+
+// Copies one of the standard tables into a Huffman table, and derives the code of each value from it (JPEG
+// specification, C.1 to C.3); type is 0 and 1 for the luminance and chrominance DC tables, 2 and 3 for the AC tables
+static void Yos_JpegEncoderHuffmanEncoderBuildTable(JpegEncHuffWork *work, JpegEncHuffTable *table, u32 type) {
+    u32 i, j, p;
+    u16 code = 0;
+    u32 size;
+    u32 value;
+
+    MIi_CpuClearFast(0, &table->spec, sizeof(table->spec));
+    switch (type) {
+    case 0:
+        MIi_CpuCopyFast(sJpegEncDcLumSpec.bits, table->spec.bits, 16);
+        break;
+    case 1:
+        MIi_CpuCopyFast(sJpegEncDcChromSpec.bits, table->spec.bits, 16);
+        break;
+    case 2:
+        MIi_CpuCopyFast(sJpegEncAcLumSpec.bits, table->spec.bits, 16);
+        break;
+    case 3:
+        MIi_CpuCopyFast(sJpegEncAcChromSpec.bits, table->spec.bits, 16);
+        break;
+    }
+    switch (type) {
+    case 0:
+        MIi_CpuCopyFast(sJpegEncDcLumSpec.values, table->spec.values, sizeof(sJpegEncDcLumSpec.values));
+        break;
+    case 1:
+        MIi_CpuCopyFast(sJpegEncDcChromSpec.values, table->spec.values, sizeof(sJpegEncDcChromSpec.values));
+        break;
+    case 2:
+        sys_memcpy_fast(sJpegEncAcLumSpec.values, table->spec.values, sizeof(sJpegEncAcLumSpec.values));
+        break;
+    case 3:
+        sys_memcpy_fast(sJpegEncAcChromSpec.values, table->spec.values, sizeof(sJpegEncAcChromSpec.values));
+        break;
+    }
+
+    i = 0;
+    MIi_CpuClearFast(0, work->sizes, sizeof(work->sizes));
+    p = 0;
+    while (i < 16) {
+        for (j = 0; j < table->spec.bits[i]; j++) {
+            work->sizes[p] = i + 1;
+            p++;
+        }
+        work->sizes[p] = 0;
+        i++;
+    }
+
+    MIi_CpuClearFast(0, work->codes, sizeof(work->codes));
+    p = 0;
+    size = work->sizes[0];
+    while (work->sizes[p] != 0) {
+        while (work->sizes[p] == size) {
+            work->codes[p] = code;
+            code++;
+            p++;
+        }
+        size++;
+        code <<= 1;
+    }
+
+    for (p = 0; p < 256; p++) {
+        if (work->sizes[p] != 0) {
+            value = table->spec.values[p];
+            table->spec.codes[value] = work->codes[p];
+            table->spec.sizes[value] = work->sizes[p];
+        }
+    }
+}
+
+// Writes the code counts and values of a table, as the DHT segment holds them
+static BOOL Yos_JpegEncoderHuffmanEncoderPrintTable(const JpegEncHuffTable *table, u8 *dst, u32 *pos) {
+    u32 i;
+    u32 count = 0;
+
+    if (*pos + 16 >= sJpegEncLimit) {
+        return FALSE;
+    }
+    for (i = 0; i < 16; i++) {
+        dst[*pos] = table->spec.bits[i];
+        count += table->spec.bits[i];
+        (*pos)++;
+    }
+    if (*pos + count >= sJpegEncLimit) {
+        return FALSE;
+    }
+    for (i = 0; i < count; i++) {
+        dst[*pos] = table->spec.values[i];
+        (*pos)++;
+    }
+    return TRUE;
+}
+
+// The length of a table in the DHT segment, with its class and ID
+static u32 Yos_JpegEncoderHuffmanEncoderOutputSize(const JpegEncHuffTable *table) {
+    u32 i;
+    u32 count = 0;
+
+    for (i = 0; i < 16; i++) {
+        count += table->spec.bits[i];
+    }
+    return count + 17;
+}
+
+// Encodes the block at x, y of a component
+static BOOL Yos_JpegEncoderComponentSequential(const JpegEncHuffTable *dcTable, const JpegEncHuffTable *acTable,
+                                               JpegEncComponent *component, u8 *dst, u32 *pos, unsigned long x,
+                                               unsigned long y) {
+    s16 *block;
+    long temp, temp2;
+    unsigned long nbits;
+    unsigned long run;
+    unsigned long k;
+    unsigned long i;
+
+    block = &component->coefs[(y * component->blocksX + x) * 64];
+    temp = block[0] - component->lastDc;
+    component->lastDc = block[0];
+    if (temp >= 0) {
+        temp2 = temp;
+    } else {
+        temp = -temp;
+        temp2 = ~temp;
+    }
+    nbits = 0;
+    while (temp != 0) {
+        nbits++;
+        temp >>= 1;
+    }
+    if (!Yos_BitWrite(dst, pos, dcTable->spec.codes[nbits], dcTable->spec.sizes[nbits])) {
+        return FALSE;
+    }
+    if (nbits != 0 && !Yos_BitWrite(dst, pos, temp2, nbits)) {
+        return FALSE;
+    }
+
+    run = 0;
+    for (k = 1; k < 64; k++) {
+        if (block[sJpegEncZigzag[k]] != 0) {
+            while (run >= 16) {
+                if (!Yos_BitWrite(dst, pos, acTable->spec.codes[0xf0], acTable->spec.sizes[0xf0])) {
+                    return FALSE;
+                }
+                run -= 16;
+            }
+            temp = block[sJpegEncZigzag[k]];
+            if (temp >= 0) {
+                temp2 = temp;
+            } else {
+                temp = -temp;
+                temp2 = ~temp;
+            }
+            nbits = 0;
+            while (temp != 0) {
+                temp >>= 1;
+                nbits++;
+            }
+            i = (run << 4) | nbits;
+            if (!Yos_BitWrite(dst, pos, acTable->spec.codes[i], acTable->spec.sizes[i])) {
+                return FALSE;
+            }
+            if (nbits != 0 && !Yos_BitWrite(dst, pos, temp2, nbits)) {
+                return FALSE;
+            }
+            run = 0;
+        } else {
+            run++;
+        }
+    }
+    if (run != 0 && !Yos_BitWrite(dst, pos, acTable->spec.codes[0], acTable->spec.sizes[0])) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// Transforms a chrominance plane subsampled 2:1 both ways
+static void Yos_JpegEncodeSample2to2Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width) {
+    u8 block[64];
+    u32 n;
+    u32 y = 0;
+    s16 *coefs;
+    u32 blocksX;
+    u32 blocksY;
+    u32 x;
+    u32 offset;
+    u8 *row0;
+    u8 *row1;
+
+    blocksY = component->blocksY;
+    coefs = component->coefs;
+    blocksX = component->blocksX;
+    n = 0;
+    for (; y < blocksY; y++) {
+        for (x = 0; x < blocksX; x++) {
+            u32 i;
+            offset = (y << 4) * width + (x << 4);
+            for (i = 0; i < 64; i += 8) {
+                row0 = src + offset;
+                row1 = src + width + offset;
+                block[i + 0] = (row1[1] + (row1[0] + (row0[0] + row0[1]))) >> 2;
+                block[i + 1] = (row1[3] + (row1[2] + (row0[2] + row0[3]))) >> 2;
+                block[i + 2] = (row1[5] + (row1[4] + (row0[4] + row0[5]))) >> 2;
+                block[i + 3] = (row1[7] + (row1[6] + (row0[6] + row0[7]))) >> 2;
+                block[i + 4] = (row1[9] + (row1[8] + (row0[8] + row0[9]))) >> 2;
+                block[i + 5] = (row1[11] + (row1[10] + (row0[10] + row0[11]))) >> 2;
+                block[i + 6] = (row1[13] + (row1[12] + (row0[12] + row0[13]))) >> 2;
+                block[i + 7] = (row1[15] + (row1[14] + (row0[14] + row0[15]))) >> 2;
+                offset += width * 2;
+            }
+            Yos_JpegEncoderForwardDct(block, divisors, &coefs[n * 64]);
+            n++;
+        }
+    }
+}
+
+
+// Transforms a chrominance plane subsampled 2:1 horizontally
+static void Yos_JpegEncodeSample2to1Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width) {
+    u8 block[64];
+    u32 y;
+    u32 n;
+    u32 x;
+    u32 offset;
+    s16 *coefs;
+    u32 blocksX;
+    u32 blocksY;
+
+    coefs = component->coefs;
+    blocksX = component->blocksX;
+    blocksY = component->blocksY;
+    y = 0;
+    for (n = 0; y < blocksY; y++) {
+        for (x = 0; x < blocksX; x++) {
+            u32 i;
+            offset = (y << 3) * width + x * 16;
+            for (i = 0; i < 64; i += 8) {
+                block[i + 0] = (src[offset] + src[offset + 1]) >> 1;
+                block[i + 1] = (src[offset + 2] + src[offset + 3]) >> 1;
+                block[i + 2] = (src[offset + 4] + src[offset + 5]) >> 1;
+                block[i + 3] = (src[offset + 6] + src[offset + 7]) >> 1;
+                block[i + 4] = (src[offset + 8] + src[offset + 9]) >> 1;
+                block[i + 5] = (src[offset + 10] + src[offset + 11]) >> 1;
+                block[i + 6] = (src[offset + 12] + src[offset + 13]) >> 1;
+                block[i + 7] = (src[offset + 14] + src[offset + 15]) >> 1;
+                offset += width;
+            }
+            Yos_JpegEncoderForwardDct(block, divisors, &coefs[n * 64]);
+            n++;
+        }
+    }
+}
+
+// Transforms a plane at full resolution
+static void Yos_JpegEncodeSample1to1Component(u8 *src, const s32 *divisors, JpegEncComponent *component, u32 width) {
+    u8 block[64];
+    u32 n;
+    u32 x;
+    u32 y;
+    s16 *coefs;
+    u32 blocksX;
+    u32 blocksY;
+    u32 i;
+    u8 *row0, *row1, *row2, *row3, *row4, *row5, *row6, *row7;
+
+    blocksY = component->blocksY;
+    y = 0;
+    n = y;
+    coefs = component->coefs;
+    blocksX = component->blocksX;
+    row0 = src;
+    row1 = src + width;
+    row2 = src + width * 2;
+    row3 = src + width * 3;
+    row4 = src + width * 4;
+    row5 = src + width * 5;
+    row6 = src + width * 6;
+    row7 = src + width * 7;
+    for (; y < blocksY; y++) {
+        for (x = 0; x < blocksX; x++) {
+            for (i = 0; i < 8; i++) {
+                block[i] = *row0++;
+                block[i + 8] = *row1++;
+                block[i + 16] = *row2++;
+                block[i + 24] = *row3++;
+                block[i + 32] = *row4++;
+                block[i + 40] = *row5++;
+                block[i + 48] = *row6++;
+                block[i + 56] = *row7++;
+            }
+            Yos_JpegEncoderForwardDct(block, divisors, &coefs[n * 64]);
+            n++;
+        }
+        row0 = row7;
+        row1 = row0 + width;
+        row2 = row1 + width;
+        row3 = row2 + width;
+        row4 = row3 + width;
+        row5 = row4 + width;
+        row6 = row5 + width;
+        row7 = row6 + width;
+    }
+}
+
+// The work memory that Yos_JPEGEncode needs for an image
+static u32 Yos_JPEGGetMemorySize(u32 width, u32 height, u32 sampling) {
+    u32 blocksX, blocksY;
+    u32 alignedWidth, alignedHeight;
+    u32 hFactor = 1;
+    u32 vFactor = 1;
+    u32 chromBlocksX, chromBlocksY;
+
+    switch (sampling) {
+    case SSP_JPEG_OUTPUT_YUV444:
+        break;
+    case SSP_JPEG_OUTPUT_YUV420:
+        vFactor = 2;
+        hFactor = 2;
+        break;
+    case SSP_JPEG_OUTPUT_YUV422:
+        hFactor = 2;
+        break;
+    }
+    alignedWidth = ~(hFactor * 8 - 1) & (width + (hFactor * 8 - 1));
+    alignedHeight = ~(vFactor * 8 - 1) & (height + (vFactor * 8 - 1));
+    blocksX = alignedWidth / 8;
+    blocksY = alignedHeight / 8;
+    chromBlocksX = blocksX / hFactor;
+    chromBlocksY = blocksY / vFactor;
+    return alignedWidth * alignedHeight * 3 + (blocksX * blocksY + chromBlocksX * chromBlocksY * 2) * 64 * sizeof(s16) +
+           sizeof(JpegEncWork);
+}
+
+u32 SSP_GetJpegEncoderBufferSize(u32 width, u32 height, u32 sampling, u32 option) {
+    u32 thumbnail = option & SSP_JPEG_THUMBNAIL;
+    u32 size, thumbnailSize;
+
+    if (thumbnail) {
+        if (width < THUMBNAIL_WIDTH) {
+            width = THUMBNAIL_WIDTH;
+        }
+        if (height < THUMBNAIL_HEIGHT) {
+            height = THUMBNAIL_HEIGHT;
+        }
+    }
+    size = Yos_JPEGGetMemorySize(width, height, sampling);
+    thumbnailSize = Yos_JPEGGetMemorySize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, SSP_JPEG_OUTPUT_YUV444);
+    if (size > thumbnailSize) {
+        return size + (thumbnail ? THUMBNAIL_BUFFER_SIZE * 2 : 0);
+    } else {
+        return thumbnailSize + (thumbnail ? THUMBNAIL_BUFFER_SIZE * 2 : 0);
+    }
+}
+
+// Reads a big-endian number
+#define READ_BE16(p) ((u16)((p)[1] + ((p)[0] << 8)))
+#define READ_BE32(p) (((p)[0] << 24) + ((p)[1] << 16) + ((p)[2] << 8) + (p)[3])
+
+// Writes the signature of the image into the first entry of its EXIF maker note
+static BOOL SSPi_JpegEncoderDoSign(u8 *data, u32 size) {
+    u8 signature[SSP_SIGNATURE_SIZE];
+    u32 pos, count, i;
+    u32 limit = sJpegEncLimit;
+    u16 tag;
+    const u8 *entry;
+    u32 offset;
+
+    if (limit < 0x17) {
+        return FALSE;
+    }
+
+    // IFD0, whose offset is at the end of the TIFF header, after the APP1 marker and length and "Exif"
+    pos = data[0x13] + 12;
+    if (pos + 2 > limit) {
+        return FALSE;
+    }
+    count = READ_BE16(&data[pos]);
+    pos += 2;
+    if (pos + count * 12 > limit) {
+        return FALSE;
+    }
+    tag = 0;
+    for (i = 0; i < count; i++) {
+        entry = &data[pos];
+        tag = READ_BE16(entry);
+        if (tag == EXIF_TAG_EXIF_IFD) {
+            pos = READ_BE32(entry + 8) + 12;
+            break;
+        }
+        pos += 12;
+    }
+    if (tag != EXIF_TAG_EXIF_IFD) {
+        return FALSE;
+    }
+
+    if (pos + 2 > limit) {
+        return FALSE;
+    }
+    count = READ_BE16(&data[pos]);
+    pos += 2;
+    if (pos + count * 12 > limit) {
+        return FALSE;
+    }
+    tag = 0;
+    for (i = 0; i < count; i++) {
+        entry = &data[pos];
+        tag = READ_BE16(entry);
+        if (tag == EXIF_TAG_MAKER_NOTE) {
+            pos = READ_BE32(entry + 8) + 12;
+            break;
+        }
+        pos += 12;
+    }
+    if (tag != EXIF_TAG_MAKER_NOTE) {
+        return FALSE;
+    }
+
+    // The maker note's first entry, tag 0x1000, holds the signature
+    if (pos + 4 > limit) {
+        return FALSE;
+    }
+    entry = &data[pos];
+    if (entry[2] != 0x10 || entry[3] != 0x00) {
+        return FALSE;
+    }
+    if (pos + 14 > limit) {
+        return FALSE;
+    }
+    offset = READ_BE32(entry + 10) + 12;
+    if (offset + SSP_SIGNATURE_SIZE > limit) {
+        return FALSE;
+    }
+    MI_CpuFill8(&data[offset], 0, SSP_SIGNATURE_SIZE);
+    if (OS_IsRunOnTwl()) {
+        func_027073ac();
+    }
+    if (func_02707774(signature, data, size) != TRUE) {
+        return FALSE;
+    }
+    MI_CpuCopy8(signature, &data[offset], SSP_SIGNATURE_SIZE);
+    return TRUE;
+}
+
+// Scales the image down to the thumbnail, in RGB555 or YUV422 like the image
+static void SSP_JpegEncoderResample(const u16 *src, u32 width, u32 height, u16 *dst, u32 dstWidth, u32 dstHeight,
+                                    u32 option) {
+    u32 format;
+    u32 prev;
+    u32 stepX;
+    u32 srcX, srcY;
+    s32 x, y;
+    u32 pair;
+    u32 pixel, u, v, luma;
+
+    format = option & (SSP_JPEG_RGB555 | SSP_JPEG_YUV422);
+    prev = 0;
+    stepX = (width << 4) / dstWidth;
+
+    // From the last pixel back, so that each odd pixel is kept in prev until the even one before it
+    for (y = dstHeight - 1; y >= 0; y--) {
+        srcY = ((height * y) << 4) / dstHeight;
+        srcX = width << 4;
+        for (x = dstWidth - 1; x >= 0; x--) {
+            srcX -= stepX;
+            if (format != SSP_JPEG_RGB555 && format == SSP_JPEG_YUV422) {
+                pixel = (srcX >> 4);
+                pair = ((const u32 *)src)[((pixel & ~1) + width * (srcY >> 4)) >> 1];
+                u = pair & 0xff00;
+                v = pair & 0xff000000;
+                if (pixel & 1) {
+                    luma = pair & (u8)(pair >> 16);
+                } else {
+                    luma = (u8)pair;
+                }
+                if (x & 1) {
+                    prev = v | (luma | u);
+                } else {
+                    // The two pixels' Y, and their U and V averaged
+                    u = (prev >> 1) + (u >> 1) + (v >> 1);
+                    ((u32 *)dst)[(x + y * dstWidth) >> 1] = luma | (((prev & 0xff) << 16) | (u & 0xff00ff00));
+                }
+            } else {
+                dst[y * dstWidth + x] = src[width * (srcY >> 4) + (srcX >> 4)];
+            }
+        }
+    }
+}
+
+// Converts RGB555 pixels to the Y, Cb and Cr planes, padded to whole blocks
+static void SSP_RGB555ToYUV888(const void *src, u32 width, u32 height, u8 *dst) {
+    const u16 *pixels = src;
+    unsigned long i = 0;
+    unsigned long size;
+    u8 *cr;
+    unsigned long stride;
+    u8 *cb;
+
+    stride = (width + 7) & ~7;
+    size = stride * ((height + 7) & ~7);
+    cb = dst + size;
+    cr = dst + size + size;
+    while (i < size) {
+        u32 x = i % stride;
+        u32 pix;
+        u32 r, g, b;
+        u32 v;
+
+        if (x < width) {
+            pix = *pixels;
+        } else {
+            pix = 0;
+        }
+        r = (pix & 0x1f) << 3;
+        g = (pix & 0x3e0) >> 2;
+        b = (pix & 0x7c00) >> 7;
+
+        dst[i] = (r * 0x4c9 + g * 0x964 + b * 0x1d3 + 0x800) >> 12;
+
+        v = (0x80800 - r * 0x2b3 - g * 0x54d + b * 0x800) >> 12;
+        if (v > 0xff) {
+            v = 0xff;
+        }
+        cb[i] = v;
+
+        v = (r * 0x800 + 0x80800 - g * 0x6b3 - b * 0x14d) >> 12;
+        if (v > 0xff) {
+            v = 0xff;
+        }
+        cr[i] = v;
+
+        if (x < width) {
+            pixels++;
+        }
+        i++;
+    }
+}
+
+// Splits YUV422 pixels into the Y, Cb and Cr planes, doubling the chrominance horizontally
+static void SSP_YUV422ToYUV888(const void *src, u32 width, u32 height, u8 *dst) {
+    const u32 *pixels = src;
+    u32 i;
+    u32 count = width * height / 2;
+    u16 *crPlane;
+    u16 *cbPlane = (u16 *)dst + count;
+    crPlane = cbPlane + count;
+
+    for (i = 0; i < count; i++) {
+        u32 pair = *pixels++;
+        ((u16 *)dst)[i] = (pair & 0xff) | ((pair & 0xff0000) >> 8);
+        cbPlane[i] = (pair & 0xff00) | ((pair & 0xff00) >> 8);
+        crPlane[i] = (pair >> 24) | ((pair & 0xff000000) >> 16);
+    }
+}
+
+// Encodes an image, after the EXIF data or as a thumbnail; returns its size, or 0 if it didn't fit in limit bytes
+static u32 Yos_JPEGEncode(const void *src, u8 *dst, u32 limit, JpegEncWork *work, u32 width, u32 height, u32 quality,
+                          u32 sampling, BOOL isThumbnail, const u8 *thumbnail, u32 thumbnailSize,
+                          JpegEncConvertFunc convert) {
+    JpegEncComponent components[3];
+    u32 pos;
+    u32 cbOffset, crOffset, yOffset;
+    u32 i;
+    u32 mcusX, mcusY;
+    u32 hFactor = 1;
+    u32 vFactor = 1;
+    u32 x;
+    u32 blocksX, blocksY;
+    u32 q;
+    u32 dhtLength;
+    u32 coefOffset;
+    u8(*quant)[64];
+    JpegEncHuffTable *dcLum;
+    JpegEncHuffTable *dcChrom;
+    JpegEncHuffTable *acLum;
+    JpegEncHuffTable *acChrom;
+    JpegEncHuffWork *huffWork;
+
+    switch (sampling) {
+    case SSP_JPEG_OUTPUT_YUV444:
+        break;
+    case SSP_JPEG_OUTPUT_YUV420:
+        vFactor = 2;
+        hFactor = 2;
+        break;
+    case SSP_JPEG_OUTPUT_YUV422:
+        hFactor = 2;
+        break;
+    }
+    sJpegEncLimit = limit;
+    mcusX = width / (hFactor * 8);
+    mcusY = height / (vFactor * 8);
+    blocksX = width / 8;
+    blocksY = height / 8;
+    quant = work->quant;
+    dcLum = &work->dcLum;
+    dcChrom = &work->dcChrom;
+    acLum = &work->acLum;
+    acChrom = &work->acChrom;
+    huffWork = &work->huffWork;
+    i = blocksX / hFactor;
+    x = blocksY / vFactor;
+    coefOffset = sizeof(JpegEncWork) + blocksX * blocksY * 128;
+    components[0].coefs = (s16 *)((u8 *)work + sizeof(JpegEncWork));
+    components[0].blocksX = blocksX;
+    components[0].blocksY = blocksY;
+    components[1].coefs = (s16 *)((u8 *)work + coefOffset);
+    components[2].coefs = (s16 *)((u8 *)work + (coefOffset + i * x * 128));
+    components[1].blocksX = components[2].blocksX = i;
+    components[1].blocksY = components[2].blocksY = x;
+    components[0].lastDc = components[1].lastDc = components[2].lastDc = 0;
+    yOffset = coefOffset + i * x * 128 * 2;
+    pos = width * height;
+    cbOffset = yOffset + pos;
+    crOffset = yOffset + pos * 2;
+
+    // Scale the quantization tables as IJG's libjpeg does
+    if (quality < 50) {
+        quality = 5000 / quality;
+    } else {
+        quality = 200 - quality * 2;
+    }
+    for (i = 0; i < 64; i++) {
+        q = (sJpegEncLumQuantTable[i] * quality + 50) / 100;
+        if (q == 0) {
+            q = 1;
+        }
+        if (q > 255) {
+            q = 255;
+        }
+        quant[0][i] = q;
+        work->divisors[0][i] = sJpegEncAanScales[i] / (s32)q;
+        q = (sJpegEncChromQuantTable[i] * quality + 50) / 100;
+        if (q == 0) {
+            q = 1;
+        }
+        if (q > 255) {
+            q = 255;
+        }
+        quant[1][i] = q;
+        work->divisors[1][i] = sJpegEncAanScales[i] / (s32)q;
+    }
+    if (convert != NULL) {
+        convert(src, width, height, (u8 *)work + yOffset);
+    }
+    Yos_JpegEncodeSample1to1Component((u8 *)work + yOffset, work->divisors[0], &components[0], width);
+    if (sampling == SSP_JPEG_OUTPUT_YUV444) {
+        Yos_JpegEncodeSample1to1Component((u8 *)work + cbOffset, work->divisors[1], &components[1], width);
+    } else if (sampling == SSP_JPEG_OUTPUT_YUV420) {
+        Yos_JpegEncodeSample2to2Component((u8 *)work + cbOffset, work->divisors[1], &components[1], width);
+    } else {
+        Yos_JpegEncodeSample2to1Component((u8 *)work + cbOffset, work->divisors[1], &components[1], width);
+    }
+    if (sampling == SSP_JPEG_OUTPUT_YUV444) {
+        Yos_JpegEncodeSample1to1Component((u8 *)work + crOffset, work->divisors[1], &components[2], width);
+    } else if (sampling == SSP_JPEG_OUTPUT_YUV420) {
+        Yos_JpegEncodeSample2to2Component((u8 *)work + crOffset, work->divisors[1], &components[2], width);
+    } else {
+        Yos_JpegEncodeSample2to1Component((u8 *)work + crOffset, work->divisors[1], &components[2], width);
+    }
+
+    // SOI, or the EXIF data, and SOF0
+    if (isThumbnail) {
+        if (sizeof(sJpegEncThumbnailHeader) >= sJpegEncLimit) {
+            return 0;
+        }
+        MI_CpuCopy8(sJpegEncThumbnailHeader, dst, sizeof(sJpegEncThumbnailHeader));
+        dst[7] = THUMBNAIL_HEIGHT >> 8;
+        dst[8] = THUMBNAIL_HEIGHT & 0xff;
+        dst[9] = THUMBNAIL_WIDTH >> 8;
+        dst[10] = THUMBNAIL_WIDTH & 0xff;
+        dst[13] = (hFactor << 4) | vFactor;
+        pos = sizeof(sJpegEncThumbnailHeader);
+    } else {
+        pos = SSP_ExifEncode(dst, width, height, thumbnail, thumbnailSize);
+        if (pos + sizeof(sJpegEncSofHeader) >= sJpegEncLimit) {
+            return 0;
+        }
+        MI_CpuCopy8(sJpegEncSofHeader, &dst[pos], sizeof(sJpegEncSofHeader));
+        *(dst + pos + 5) = height >> 8;
+        *(dst + pos + 6) = height;
+        *(dst + pos + 7) = width >> 8;
+        *(dst + pos + 8) = width;
+        *(dst + pos + 11) = (hFactor << 4) | vFactor;
+        pos += sizeof(sJpegEncSofHeader);
+    }
+
+    // DQT
+    if (pos + 130 >= sJpegEncLimit) {
+        return 0;
+    }
+    dst[pos++] = 0;
+    for (i = 0; i < 64; i++) {
+        dst[pos] = quant[0][sJpegEncZigzag[i]];
+        pos++;
+    }
+    dst[pos++] = 1;
+    for (i = 0; i < 64; i++) {
+        dst[pos] = quant[1][sJpegEncZigzag[i]];
+        pos++;
+    }
+
+    // DHT
+    Yos_JpegEncoderHuffmanEncoderBuildTable(huffWork, dcLum, 0);
+    Yos_JpegEncoderHuffmanEncoderBuildTable(huffWork, acLum, 2);
+    Yos_JpegEncoderHuffmanEncoderBuildTable(huffWork, dcChrom, 1);
+    Yos_JpegEncoderHuffmanEncoderBuildTable(huffWork, acChrom, 3);
+    dhtLength = 2 + Yos_JpegEncoderHuffmanEncoderOutputSize(dcLum) + Yos_JpegEncoderHuffmanEncoderOutputSize(dcChrom) +
+                Yos_JpegEncoderHuffmanEncoderOutputSize(acLum) + Yos_JpegEncoderHuffmanEncoderOutputSize(acChrom);
+    if (pos + 4 >= sJpegEncLimit) {
+        return 0;
+    }
+    dst[pos] = 0xff;
+    *(dst + pos + 1) = 0xc4;
+    *(dst + pos + 2) = dhtLength >> 8;
+    *(dst + pos + 3) = dhtLength;
+    pos += 4;
+    dst[pos++] = 0x00;
+    if (!Yos_JpegEncoderHuffmanEncoderPrintTable(dcLum, dst, &pos)) {
+        return 0;
+    }
+    dst[pos++] = 0x01;
+    if (!Yos_JpegEncoderHuffmanEncoderPrintTable(dcChrom, dst, &pos)) {
+        return 0;
+    }
+    dst[pos++] = 0x10;
+    if (!Yos_JpegEncoderHuffmanEncoderPrintTable(acLum, dst, &pos)) {
+        return 0;
+    }
+    dst[pos++] = 0x11;
+    if (!Yos_JpegEncoderHuffmanEncoderPrintTable(acChrom, dst, &pos)) {
+        return 0;
+    }
+
+    // SOS and the scan
+    for (i = 0; i < 3; i++) {
+        components[i].lastDc = 0;
+    }
+    Yos_BitInit();
+    if (pos + sizeof(sJpegEncSosHeader) > sJpegEncLimit) {
+        return 0;
+    }
+    for (i = 0; i < sizeof(sJpegEncSosHeader); i++) {
+        dst[pos] = sJpegEncSosHeader[i];
+        pos++;
+    }
+    for (i = 0; i < mcusY; i++) {
+        for (x = 0; x < mcusX; x++) {
+            if (sampling == SSP_JPEG_OUTPUT_YUV444) {
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x, i)) {
+                    return 0;
+                }
+            } else if (sampling == SSP_JPEG_OUTPUT_YUV420) {
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2, i * 2)) {
+                    return 0;
+                }
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2 + 1, i * 2)) {
+                    return 0;
+                }
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2, i * 2 + 1)) {
+                    return 0;
+                }
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2 + 1,
+                                                        i * 2 + 1)) {
+                    return 0;
+                }
+            } else {
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2, i)) {
+                    return 0;
+                }
+                if (!Yos_JpegEncoderComponentSequential(dcLum, acLum, &components[0], dst, &pos, x * 2 + 1, i)) {
+                    return 0;
+                }
+            }
+            if (!Yos_JpegEncoderComponentSequential(dcChrom, acChrom, &components[1], dst, &pos, x, i)) {
+                return 0;
+            }
+            if (!Yos_JpegEncoderComponentSequential(dcChrom, acChrom, &components[2], dst, &pos, x, i)) {
+                return 0;
+            }
+        }
+    }
+    if (sJpegEncBitsLeft != 8 && !Yos_BitWrite(dst, &pos, 0, 7)) {
+        return 0;
+    }
+
+    // EOI
+    if (pos + 2 >= sJpegEncLimit) {
+        return 0;
+    }
+    dst[pos] = 0xff;
+    *(dst + pos + 1) = 0xd9;
+    pos += 2;
+    if (isThumbnail) {
+        // The thumbnail is padded to an even size
+        if ((pos & 1) == 1) {
+            dst[pos] = 0;
+            pos++;
+        }
+        return pos;
+    }
+    if (ExifEnc_SignMode == TRUE && OS_IsRunOnTwl() == TRUE) {
+        if (SSPi_JpegEncoderDoSign(dst, pos)) {
+            return pos;
+        }
+        return 0;
+    }
+    return pos;
+}
+
+static BOOL SSPi_JpegEncoderCheckWidthHeight(u32 width, u32 height, u32 sampling) {
+    if (width == 0 || width > 0xffff || height == 0 || height > 0xffff) {
+        return FALSE;
+    }
+    switch (sampling) {
+    case SSP_JPEG_OUTPUT_YUV444:
+        if ((width & 7) != 0 || (height & 7) != 0) {
+            return FALSE;
+        }
+        break;
+    case SSP_JPEG_OUTPUT_YUV420:
+        if ((width & 15) != 0 || (height & 15) != 0) {
+            return FALSE;
+        }
+        break;
+    case SSP_JPEG_OUTPUT_YUV422:
+        if ((width & 15) != 0 || (height & 7) != 0) {
+            return FALSE;
+        }
+        break;
+    default:
+        return FALSE;
+    }
+    return TRUE;
+}
+
+u32 SSP_StartJpegEncoder(const void *src, u8 *dst, u32 limit, u8 *work, u32 width, u32 height, u32 quality,
+                         u32 sampling, u32 option) {
+    u8 *thumbnailBuffer = NULL;
+    JpegEncConvertFunc convert;
+    // The thumbnail's quality, then its size
+    u32 thumbnailSize = 0;
+    BOOL thumbnail = option & SSP_JPEG_THUMBNAIL;
+
+    if (!SSPi_JpegEncoderCheckWidthHeight(width, height, sampling)) {
+        return 0;
+    }
+    if ((option & (SSP_JPEG_RGB555 | SSP_JPEG_YUV422)) != SSP_JPEG_RGB555 &&
+        (option & (SSP_JPEG_RGB555 | SSP_JPEG_YUV422)) == SSP_JPEG_YUV422) {
+        convert = SSP_YUV422ToYUV888;
+    } else {
+        convert = SSP_RGB555ToYUV888;
+    }
+
+    if (thumbnail) {
+        thumbnailBuffer = work;
+        work += THUMBNAIL_BUFFER_SIZE * 2;
+        thumbnailSize = quality;
+        SSP_JpegEncoderResample(src, width, height, (u16 *)(thumbnailBuffer + THUMBNAIL_BUFFER_SIZE), THUMBNAIL_WIDTH,
+                                THUMBNAIL_HEIGHT, option);
+        if (quality > THUMBNAIL_MAX_QUALITY) {
+            thumbnailSize = THUMBNAIL_MAX_QUALITY;
+        }
+        thumbnailSize = Yos_JPEGEncode(thumbnailBuffer + THUMBNAIL_BUFFER_SIZE, thumbnailBuffer, THUMBNAIL_BUFFER_SIZE,
+                                       (JpegEncWork *)work, THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT, thumbnailSize,
+                                       SSP_JPEG_OUTPUT_YUV422, TRUE, NULL, 0, convert);
+        if (thumbnailSize == 0) {
+            return 0;
+        }
+    }
+    thumbnailBuffer = thumbnail ? thumbnailBuffer : NULL;
+    return Yos_JPEGEncode(src, dst, limit, (JpegEncWork *)work, width, height, quality, sampling, FALSE,
+                          thumbnailBuffer, thumbnailSize, convert);
+}

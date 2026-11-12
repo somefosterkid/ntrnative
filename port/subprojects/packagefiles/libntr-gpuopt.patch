@@ -1,0 +1,162 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -78,6 +78,10 @@
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=vcore|gpu|libntr (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+     u8 gpuScale; /* Renderer=gpu: the 3D at this many times the DS resolution, 1..8 (sim_config.ini Scale, BWPORT_GPU_SCALE) */
++    u8 gpuDot;    /* Renderer=gpu, Scale > 1: 0 = a 1-dot polygon is an N x N block (Dot=block), 1 = one N x pixel (Dot=fine); BWPORT_GPU_DOT */
++    u8 gpuLine;   /* 0 = lines and wire-frames N wide (Line=wide), 1 = one N x pixel (Line=thin); BWPORT_GPU_LINE */
++    u8 gpuEdge;   /* 0 = edge marking one DS pixel wide (Edge=ds), 1 = one N x pixel (Edge=fine); BWPORT_GPU_EDGE */
++    u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -77,6 +77,18 @@
+         int n = atoi(value);
+         config->gpuScale = (u8)(n < 1 ? 1 : n > 8 ? 8 : n);
+     }
++    if(MATCH("General", "Dot")) {
++        config->gpuDot = strcmp(value, "fine") == 0;
++    }
++    if(MATCH("General", "Line")) {
++        config->gpuLine = strcmp(value, "thin") == 0;
++    }
++    if(MATCH("General", "Edge")) {
++        config->gpuEdge = strcmp(value, "fine") == 0;
++    }
++    if(MATCH("General", "Filter")) {
++        config->gpuFilter = strcmp(value, "bilinear") == 0;
++    }
+ 
+     if(MATCH("General", "MacAddr")) {
+         char * pos = value;
+@@ -367,7 +379,6 @@
+         aConfig->renderer = SIM_CONFIG_RENDERER_LIBNTR;
+     } else if(e != NULL && strcmp(e, "vcore") == 0) {
+         aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
+-    aConfig->gpuScale = 2;
+     } else if(e != NULL && strcmp(e, "gpu") == 0) {
+         aConfig->renderer = SIM_CONFIG_RENDERER_GPU;
+     }
+@@ -375,6 +386,23 @@
+     if(e != NULL && atoi(e) >= 1) {
+         aConfig->gpuScale = (u8)(atoi(e) > 8 ? 8 : atoi(e));
+     }
++    // the N x looks: BWPORT_GPU_DOT=block|fine, _LINE=wide|thin, _EDGE=ds|fine, _FILTER=nearest|bilinear
++    e = getenv("BWPORT_GPU_DOT");
++    if(e != NULL) {
++        aConfig->gpuDot = strcmp(e, "fine") == 0;
++    }
++    e = getenv("BWPORT_GPU_LINE");
++    if(e != NULL) {
++        aConfig->gpuLine = strcmp(e, "thin") == 0;
++    }
++    e = getenv("BWPORT_GPU_EDGE");
++    if(e != NULL) {
++        aConfig->gpuEdge = strcmp(e, "fine") == 0;
++    }
++    e = getenv("BWPORT_GPU_FILTER");
++    if(e != NULL) {
++        aConfig->gpuFilter = strcmp(e, "bilinear") == 0;
++    }
+ }
+ 
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig)
+@@ -404,6 +432,11 @@
+     aConfig->capFrameRate = TRUE;
+     aConfig->showInputPanel = TRUE;
+     aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
++    aConfig->gpuScale = 2;
++    aConfig->gpuDot = 0;
++    aConfig->gpuLine = 0;
++    aConfig->gpuEdge = 0;
++    aConfig->gpuFilter = 0;
+     aConfig->sound = SIM_CONFIG_SOUND_LIBNTR;
+     aConfig->masterVolume = 127;
+ 
+@@ -491,6 +524,10 @@
+     fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_LIBNTR ? "libntr"
+                                          : aConfig->renderer == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore");
+     fprintf(configFile, "Scale=%d\n", aConfig->gpuScale);
++    fprintf(configFile, "Dot=%s\n", aConfig->gpuDot ? "fine" : "block");
++    fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
++    fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
++    fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+                                                               aConfig->macAddr[2],
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -32,6 +32,12 @@
+     "gpu (port/gpu, upscaled 3D)"
+ };
+ 
++// bw-port (libntr-gpuopt.patch): the N x looks of Renderer=gpu, each 0 / 1 as sim_config.ini's Dot, Line, Edge, Filter
++static constexpr const char * DotStrings[] = {"block (N x N, the DS look)", "fine (one N x pixel)"};
++static constexpr const char * LineStrings[] = {"wide (N pixels)", "thin (one N x pixel)"};
++static constexpr const char * EdgeStrings[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
++static constexpr const char * FilterStrings[] = {"nearest (the DS look)", "bilinear"};
++
+ static constexpr const char * VblankStrings[] = {
+     "Off",
+     "Every V-Blank",
+@@ -52,6 +58,7 @@
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
+     int gpuScale = sConfig->gpuScale;
++    int gpuDot = sConfig->gpuDot, gpuLine = sConfig->gpuLine, gpuEdge = sConfig->gpuEdge, gpuFilter = sConfig->gpuFilter;
+     
+     ImGui::Begin("Config", openState);
+ 
+@@ -72,6 +79,20 @@
+         if(ImGui::SliderInt("GPU scale", &gpuScale, 1, 8, "%dx DS")) {
+             configChanged = true;
+         }
++        if(gpuScale > 1) {
++            if(ImGui::Combo("Dots", &gpuDot, DotStrings, 2, 2)) {
++                configChanged = true;
++            }
++            if(ImGui::Combo("Lines", &gpuLine, LineStrings, 2, 2)) {
++                configChanged = true;
++            }
++            if(ImGui::Combo("Edge marking", &gpuEdge, EdgeStrings, 2, 2)) {
++                configChanged = true;
++            }
++            if(ImGui::Combo("Texture filter", &gpuFilter, FilterStrings, 2, 2)) {
++                configChanged = true;
++            }
++        }
+     }
+ 
+     if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
+@@ -103,6 +124,10 @@
+         sConfig->showInputPanel = showPanel;
+         sConfig->renderer = (u8)renderer;
+         sConfig->gpuScale = (u8)gpuScale;
++        sConfig->gpuDot = (u8)gpuDot;
++        sConfig->gpuLine = (u8)gpuLine;
++        sConfig->gpuEdge = (u8)gpuEdge;
++        sConfig->gpuFilter = (u8)gpuFilter;
+         sConfig->fullScreen = fullScreen;
+         if(sConfig->fullScreen) {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), SDL_WINDOW_FULLSCREEN_DESKTOP);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1239,6 +1239,15 @@
+ }
+ 
+ extern "C" int SIM_GLRendererScale(void) { return s_SIM_config.gpuScale; }
++// libntr-gpuopt.patch: the N x looks (sim_config.ini Dot, Line, Edge, Filter): which = 0 dot, 1 line, 2 edge, 3 filter; each 0 or 1
++extern "C" int SIM_GLRendererOption(int which) {
++    switch(which) {
++        case 0: return s_SIM_config.gpuDot;
++        case 1: return s_SIM_config.gpuLine;
++        case 2: return s_SIM_config.gpuEdge;
++        default: return s_SIM_config.gpuFilter;
++    }
++}
+ 
+ static bool SIM_DrawFrameRenderer(void) {
+   sFrameRendererDrew = 0;

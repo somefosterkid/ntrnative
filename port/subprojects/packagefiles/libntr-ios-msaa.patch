@@ -1,0 +1,225 @@
+bw-port: Antialiasing names samples per pixel (the GPU renderer multisamples, port/gpu, docs/gpu.md "Antialiasing").
+sim_config.ini Antialiasing=off|4 samples; the old 2x and 4x (and BWPORT_AA, cfgscript antialias=) read as 4 samples (k = 2).
+SIM_AntialiasWanted is 1 or 2. The status says when a renderer could not draw it (vcore's 8x cap); the performance test gets
+gpu 3x off and 4 samples rows.
+
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -91,7 +91,7 @@
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=auto|vcore|gpu (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+     u8 resolution; /* the picture at this many times the DS resolution, 1..8 (sim_config.ini Resolution, BWPORT_RESOLUTION; old: Scale, BWPORT_GPU_SCALE) */
+-    u8 antialias; /* bw-port (libntr-aa70.patch): supersampling 1 (off, the default), 2 or 4: sim_config.ini Antialiasing=off|2x|4x, BWPORT_AA */
++    u8 antialias; /* bw-port (libntr-aa70.patch, libntr-ios-msaa.patch): k, 1 (off, the default) or 2 (k x k = 4 samples per pixel): sim_config.ini Antialiasing=off|4 samples (the old 2x and 4x read as 4 samples), BWPORT_AA */
+     u8 gpuDot;    /* Renderer=gpu, Scale > 1: 0 = a 1-dot polygon is an N x N block (Dot=block), 1 = one N x pixel (Dot=fine); BWPORT_GPU_DOT */
+     u8 gpuLine;   /* 0 = lines and wire-frames N wide (Line=wide), 1 = one N x pixel (Line=thin); BWPORT_GPU_LINE */
+     u8 gpuEdge;   /* 0 = edge marking one DS pixel wide (Edge=ds), 1 = one N x pixel (Edge=fine); BWPORT_GPU_EDGE */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -120,7 +120,7 @@
+     }
+     if(MATCH("General", "Antialiasing")) {
+         int n = atoi(value);
+-        config->antialias = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1); /* off, 2x, 4x (also 1, 2, 4) */
++        config->antialias = (u8)(n >= 2 ? 2 : 1); /* bw-port (libntr-ios-msaa.patch): off or 4 samples (k = 2); the old 2x and 4x are 4 */
+     }
+     if(MATCH("General", "Scale") && !sResolutionKey) {
+         /* the old name of Resolution (Renderer=gpu's N x) */
+@@ -499,7 +499,7 @@
+     }
+     e = getenv("BWPORT_AA");
+     if(e != NULL) {
+-        aConfig->antialias = (u8)(atoi(e) >= 4 ? 4 : atoi(e) >= 2 ? 2 : 1);
++        aConfig->antialias = (u8)(atoi(e) >= 2 ? 2 : 1);
+     }
+     // the N x looks: BWPORT_GPU_DOT=block|fine, _LINE=wide|thin, _EDGE=ds|fine, _FILTER=nearest|bilinear
+     e = getenv("BWPORT_GPU_DOT");
+@@ -766,7 +766,7 @@
+     fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_GPU ? "gpu"
+                                          : aConfig->renderer == SIM_CONFIG_RENDERER_VCORE ? "vcore" : "auto");
+     fprintf(configFile, "Resolution=%d\n", aConfig->resolution);
+-    fprintf(configFile, "Antialiasing=%s\n", aConfig->antialias >= 4 ? "4x" : aConfig->antialias >= 2 ? "2x" : "off");
++    fprintf(configFile, "Antialiasing=%s\n", aConfig->antialias >= 2 ? "4 samples" : "off");
+     fprintf(configFile, "Dot=%s\n", aConfig->gpuDot ? "fine" : "block");
+     fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -449,11 +449,11 @@
+   return n < 1 ? 1 : n > 8 ? 8 : n;
+ }
+ 
+-// bw-port (libntr-aa70.patch): Antialiasing=off|2x|4x. The renderers draw at Resolution x k and show the k x k box average at
+-// Resolution; the bridges cap the internal size (8x) by lowering k and report what they used.
++// bw-port (libntr-aa70.patch, libntr-ios-msaa.patch): Antialiasing=off|4 samples, k = 1 or 2 (k x k samples per pixel). The gpu
++// renderer multisamples at Resolution (never lowered); vcore supersamples at Resolution x k and lowers k when that passes 8x, and
++// the bridges report what they used.
+ extern "C" int SIM_AntialiasWanted(void) {
+-  int k = s_SIM_config.antialias;
+-  return k >= 4 ? 4 : k >= 2 ? 2 : 1;
++  return s_SIM_config.antialias >= 2 ? 2 : 1;
+ }
+ extern "C" void SIM_RendererAAUsed(int k) { sAAUsed = k; }
+ // bw-port (libntr-fx71.patch): the grid the 3D is drawn on: Resolution x k, k the Antialiasing lowered until the product is
+@@ -465,14 +465,13 @@
+   if (sAAUsed > 0 && sAAUsed < k) k = sAAUsed;
+   return n * k;
+ }
+-// " AA 2x" when the setting is on and in force, " AA 4x -> 2x (8x cap)" when it was lowered, " AA 4x off (8x cap)" when no k fits
++// " AA 4 samples" when the setting is on and in force, " AA 4 samples not drawn (...)" when the renderer could not (vcore's 8x cap)
+ static const char *AAText(char *buf, size_t n) {
+   int w = SIM_AntialiasWanted();
+   buf[0] = 0;
+   if (w <= 1) return buf;
+-  if (sAAUsed == w || sAAUsed == 0) snprintf(buf, n, ", AA %dx", w);
+-  else if (sAAUsed > 1) snprintf(buf, n, ", AA %dx lowered to %dx (internal size capped at 8x: %dx x %d)", w, sAAUsed, SIM_RenderScale(), sAAUsed);
+-  else snprintf(buf, n, ", AA %dx not drawn (internal size capped at 8x: %dx x %d)", w, SIM_RenderScale(), w);
++  if (sAAUsed == w || sAAUsed == 0) snprintf(buf, n, ", AA %d samples", w * w);
++  else snprintf(buf, n, ", AA %d samples not drawn (vcore draws at most 8x: %dx x %d)", w * w, SIM_RenderScale(), w);
+   return buf;
+ }
+ 
+@@ -550,7 +549,7 @@
+     char t[256];
+     int ok = sActive == (want == SIM_CONFIG_RENDERER_GPU ? 2 : 1);
+     char aat[16] = "";
+-    if (SIM_AntialiasWanted() > 1) snprintf(aat, sizeof aat, " AA%dx", sAAUsed > 0 && sAAUsed < SIM_AntialiasWanted() ? sAAUsed : SIM_AntialiasWanted());
++    if (SIM_AntialiasWanted() > 1) snprintf(aat, sizeof aat, sAAUsed > 0 && sAAUsed < SIM_AntialiasWanted() ? " AA off (cap)" : " AA 4s");
+     char ffl[16];
+     FFLabel(ffl, sizeof ffl);
+     snprintf(t, sizeof t, "%s - %s %dx%s%s%s%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
+@@ -911,7 +910,14 @@
+       "p1:renderer=gpu,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0;p60:bench=gpu1-60;"
+       "p1:resolution=2;p60:bench=gpu2-60;"
+       "p1:resolution=4;p60:bench=gpu4-60;"
+-      "p1:resolution=2,antialias=4;p60:bench=gpu2-aa4-60;"
++      "p1:resolution=2,antialias=2;p60:bench=gpu2-aa4s-60;"
++      "p1:resolution=3,antialias=1;p60:bench=gpu3-60;"
++      "p1:antialias=2;p60:bench=gpu3-aa4s-60;"
++      "p1:framerate=monitor,smooth=1;p60:bench=gpu3-aa4s-mon-sm;"
++      "p1:antialias=1;p60:bench=gpu3-mon-sm;"
++      "p1:speed=4;p60:bench=gpu3-mon-sm-x4;"
++      "p1:antialias=2;p60:bench=gpu3-aa4s-mon-sm-x4;"
++      "p1:resolution=2,antialias=1,framerate=60,smooth=0,speed=1;"
+       "p1:antialias=1,framerate=120;p60:bench=gpu2-120;"
+       "p1:framerate=monitor;p60:bench=gpu2-monitor;"
+       "p1:framerate=120,smooth=1;p60:bench=gpu2-120-smooth;"
+@@ -988,7 +994,7 @@
+         s_SIM_config.resolution = (u8)(n < 1 ? 1 : n > 8 ? 8 : n);
+       } else if (strcmp(kv, "antialias") == 0) {
+         int n = atoi(v);
+-        s_SIM_config.antialias = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1);
++        s_SIM_config.antialias = (u8)(n >= 2 ? 2 : 1);
+       } else if (strcmp(kv, "perflog") == 0) {  // a 5 s performance log into perf_NAME.txt
+         char fn[128];
+         snprintf(fn, sizeof fn, "perf_%s.txt", v);
+@@ -2112,7 +2118,7 @@
+ static const char *RendererShort(void) {
+   static char b[48];
+   snprintf(b, sizeof b, "%s %dx%s", SIM_RendererActive() == 2 ? "gpu" : SIM_RendererActive() == 1 ? "vcore" : "?",
+-           (int)s_SIM_config.resolution, s_SIM_config.antialias > 1 ? (s_SIM_config.antialias >= 4 ? " aa4" : " aa2") : "");
++           (int)s_SIM_config.resolution, s_SIM_config.antialias > 1 ? " aa4s" : "");
+   return b;
+ }
+ // presents and game ticks a second over the last second (the iOS overlay: its fps counted game ticks, so 120 presents at 1x read 60 and
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -431,8 +431,8 @@
+     "gpu (OpenGL)"
+ };
+ static const char * const RendererShort[] = {"auto", "vcore", "gpu"};
+-static const char * const AntialiasNames[] = {"off", "2x (2 x 2 samples)", "4x (4 x 4 samples)"};
+-static int AntialiasIndex(int k) { return k >= 4 ? 2 : k >= 2 ? 1 : 0; }
++static const char * const AntialiasNames[] = {"off", "4 samples per pixel"}; // bw-port (libntr-ios-msaa.patch): k = 1, 2
++static int AntialiasIndex(int k) { return k >= 2 ? 1 : 0; }
+ static const char * const DotNames[] = {"block (N x N, the DS look)", "fine (one N x pixel)"};
+ static const char * const LineNames[] = {"wide (N pixels)", "thin (one N x pixel)"};
+ static const char * const EdgeNames[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
+@@ -716,9 +716,9 @@
+ 
+     ImGui::SeparatorText("Antialiasing");
+     if (BeginForm("##va")) {
+-        FormRow("Supersampling", "draws at Resolution x 2 or x 4 and shows the average: 3D edges and textures smooth, the 2D stays sharp; internal sizes over 8x are lowered");
++        FormRow("Samples", "smooth 3D edges, the 2D stays sharp. GPU: coverage and depth per sample, each polygon shaded once per pixel, at any Resolution. vcore: draws at Resolution x 2 and averages, not above 8x (Resolution 5 and up: not drawn, the status says so)");
+         int aa = AntialiasIndex(c->antialias);
+-        if (ComboIndex("##aa", &aa, AntialiasNames, 3)) { c->antialias = (u8)(aa == 2 ? 4 : aa == 1 ? 2 : 1); Dirty(); }
++        if (ComboIndex("##aa", &aa, AntialiasNames, 2)) { c->antialias = (u8)(aa == 1 ? 2 : 1); Dirty(); }
+         ImGui::EndTable();
+     }
+ 
+@@ -1497,9 +1497,9 @@
+             ImGui::EndMenu();
+         }
+         if (ImGui::BeginMenu("Antialiasing")) {
+-            for (int i = 0; i < 3; i++) {
++            for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(AntialiasNames[i], AntialiasIndex(c->antialias) == i)) {
+-                    c->antialias = (u8)(i == 2 ? 4 : i == 1 ? 2 : 1);
++                    c->antialias = (u8)(i == 1 ? 2 : 1);
+                     Dirty();
+                 }
+             }
+@@ -2219,11 +2219,11 @@
+         FormRow("Resolution");
+         ResolutionCombo("##qres");
+         ItemRect(1);
+-        FormRow("Antialiasing", "draws the 3D at Resolution x 2 or x 4 and shows the average");
++        FormRow("Antialiasing", "4 samples per pixel: the GPU renderer tests coverage and depth per sample and shades once per pixel; vcore draws at Resolution x 2 and averages");
+         {
+-            static const char * const aaShort[] = {"off", "2x", "4x"};
++            static const char * const aaShort[] = {"off", "4 samples"};
+             int aa = AntialiasIndex(c->antialias);
+-            if (ComboIndex("##qaa", &aa, aaShort, 3)) { c->antialias = (u8)(aa == 2 ? 4 : aa == 1 ? 2 : 1); Dirty(); }
++            if (ComboIndex("##qaa", &aa, aaShort, 2)) { c->antialias = (u8)(aa == 1 ? 2 : 1); Dirty(); }
+             ItemRect(8);
+         }
+         FormRow("Frame rate (Tab)", DisplayCapTip);
+@@ -2575,7 +2575,7 @@
+ 
+ // ---- the native settings sheet's way in (port/src/ios_settings.m), libntr-ios-settings.patch ------------------------------------
+ // Every setting is an int by name; a write applies it through the same helpers as the desktop menus and saves sim_config.ini.
+-// renderer 0..2 (auto, vcore, gpu); resolution 1..8; antialias 0..2 (off, 2x, 4x); smooth, filter (0 nearest, 1 bilinear), line, edge,
++// renderer 0..2 (auto, vcore, gpu); resolution 1..8; antialias 0..1 (off, 4 samples; 2 = 1); smooth, filter (0 nearest, 1 bilinear), line, edge,
+ // musicnormal, overlay, corner (0 left, 1 right), detail (0 compact, 1 detailed), skipslow (frame skip Auto on / off) 0/1; speed 1..4;
+ // ffspeed 2..5 (5 = Max, the fast-forward button's speed); smooth also sets the frame rate (60 off, the screen's on); framerate 0..3 (60, 120, Monitor,
+ // Unlimited); hidetouch 0/1 (touch buttons hidden while a controller is connected); frameskip 0..4 (off, 1, 2, 3, auto); volume 0..100. Read only: active (0 starting, 1 vcore, 2 gpu), scale.
+@@ -2613,7 +2613,7 @@
+     SIM_config_type * c = C();
+     if (!strcmp(k, "renderer")) c->renderer = (u8)(v < 0 ? 0 : v > 2 ? 2 : v);
+     else if (!strcmp(k, "resolution")) c->resolution = (u8)(v < 1 ? 1 : v > 8 ? 8 : v);
+-    else if (!strcmp(k, "antialias")) c->antialias = (u8)(v >= 2 ? 4 : v == 1 ? 2 : 1);
++    else if (!strcmp(k, "antialias")) c->antialias = (u8)(v >= 1 ? 2 : 1);
+     else if (!strcmp(k, "smooth")) {
+         c->interpolation = (u8)(v != 0);
+         SetDisplayCap(v != 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR : SIM_CONFIG_DISPLAYCAP_60);   // the frame rate is automatic on iOS
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -66,7 +66,7 @@
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
+     int resolution = sConfig->resolution;
+-    int antialias = sConfig->antialias >= 4 ? 2 : sConfig->antialias >= 2 ? 1 : 0;
++    int antialias = sConfig->antialias >= 2 ? 1 : 0;
+     int frameSkip = sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip;
+     int gpuDot = sConfig->gpuDot, gpuLine = sConfig->gpuLine, gpuEdge = sConfig->gpuEdge, gpuFilter = sConfig->gpuFilter;
+     
+@@ -85,8 +85,8 @@
+     if(ImGui::SliderInt("Resolution", &resolution, 1, 8, "%dx DS")) {
+         configChanged = true;
+     }
+-    static const char * const AntialiasStrings[] = {"off", "2x", "4x"};
+-    if(ImGui::Combo("Antialiasing", &antialias, AntialiasStrings, 3, 3)) {
++    static const char * const AntialiasStrings[] = {"off", "4 samples"};
++    if(ImGui::Combo("Antialiasing", &antialias, AntialiasStrings, 2, 2)) {
+         configChanged = true;
+     }
+     ImGui::TextWrapped("%s", SIM_RendererStatus());
+@@ -138,7 +138,7 @@
+         sConfig->showInputPanel = showPanel;
+         sConfig->renderer = (u8)renderer;
+         sConfig->resolution = (u8)resolution;
+-        sConfig->antialias = (u8)(antialias == 2 ? 4 : antialias == 1 ? 2 : 1);
++        sConfig->antialias = (u8)(antialias == 1 ? 2 : 1);
+         // a value from BWPORT_FRAMESKIP (above 3) stays unless the combo was changed
+         if(frameSkip != (sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip)) {
+             sConfig->frameSkip = frameSkip == 4 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)frameSkip;

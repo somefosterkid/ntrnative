@@ -1,0 +1,4 @@
+EventWifiBattleMatch_Callback kind:function(thumb,size=0x13c) addr:0x0214f540
+EventWifiBattleMatch_Create kind:function(thumb,size=0x50) addr:0x0214f67c
+EventWifiBattleMatch_CreateFromArgs kind:function(thumb,size=0x14) addr:0x0214f6cc
+data_ov002_0214f6c0 kind:data(any) addr:0x0214f700

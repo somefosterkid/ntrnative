@@ -1,0 +1,11 @@
+    .text       start:0x021b95a0 end:0x021b9d44 kind:code align:32
+    .rodata     start:0x021b9d44 end:0x021b9da0 kind:rodata align:4
+    .ctor       start:0x021b9da0 end:0x021b9da0 kind:rodata align:4
+    .data       start:0x021b9dc0 end:0x021b9de0 kind:data align:32
+    .bss        start:0x021b9de0 end:0x021b9de0 kind:bss align:32
+
+src/ov092/event_battle_return.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9d44
+    .rodata     start:0x021b9d44 end:0x021b9da0
+    .data       start:0x021b9dc0 end:0x021b9de0

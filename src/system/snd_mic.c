@@ -1,0 +1,108 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), src/system/snd_mic.c, ported by tools/port_file.py.
+// The names are Black's; pokebw2's own guesses are in the comments.
+#include "types.h"
+#include "gfl/sound.h"
+#include "gfl/dwc_vchat.h"
+#include "gfl/heap.h"
+#include "gfl/std.h"
+#include "nitro/spi/ARM9/mic.h"
+#include "nitro/os.h"
+#include "save/chatter.h"
+#include "twl/snd/ARM9/sndex.h"
+
+// The microphone, which records a Chatot's cry. The name is the ROM's string.
+
+// A second of samples at 8180 Hz, which is what a Chatot's recording holds
+#define SND_MIC_SAMPLES PERAP_VOICE_DECODED_SIZE
+// The buffer has room to start at a 32-byte boundary
+#define SND_MIC_BUFFER_SIZE (SND_MIC_SAMPLES + 0x20)
+// How far the count has to go for func_02006d94
+#define SND_MIC_COUNT_MAX 180
+
+typedef struct {
+    MICAutoParam param;
+    BOOL sampling;
+    u32 enabled : 1;
+    u32 count : 31;
+    void *buffer;
+} SndMic;
+
+static MICResult func_02006dac(MICAutoParam *param);
+static void *func_02006e2c(void);
+
+// pokebw2's sMicFilter
+static u16 data_020a7030[6] = { 0x7e46, 0x81ba, 0x7e46, 0x7e43, 0x836e, 0 };
+
+// pokebw2's sSndMic
+static SndMic *data_02146164;
+
+
+void setupMic(HeapID heapId) {
+    SndMic *mic;
+    void *buffer;
+
+    mic = GFL_HeapAllocate(heapId, sizeof(SndMic), FALSE, "snd_mic.c", 89);
+    MI_CpuFill8(mic, 0, sizeof(SndMic));
+    buffer = GFL_HeapAllocate(heapId, SND_MIC_BUFFER_SIZE, FALSE, "snd_mic.c", 95);
+    MI_CpuFill8(buffer, 0, SND_MIC_BUFFER_SIZE);
+    mic->buffer = buffer;
+    PM_SetAmp(PM_AMP_ON);
+    PM_SetAmpGain(PM_AMPGAIN_80);
+    mic->enabled = TRUE;
+    MIC_Init();
+    if (OS_IsRunOnTwl() == TRUE) {
+        func_027047c0(0, data_020a7030);
+    }
+    data_02146164 = mic;
+}
+
+void ampOffFreeBlocks(void) {
+    PM_SetAmp(PM_AMP_OFF);
+    GFL_HeapFree(data_02146164->buffer);
+    GFL_HeapFree(data_02146164);
+}
+
+void func_02006d64(u32 a0) {
+    SndMic *mic = data_02146164;
+
+    if (mic->enabled && !func_02006d94()) {
+        mic->count += a0;
+    }
+}
+
+BOOL func_02006d94(void) {
+    return data_02146164->count > SND_MIC_COUNT_MAX;
+}
+
+static MICResult func_02006dac(MICAutoParam *param) {
+    MICResult result = MIC_StartLimitedSampling(param);
+
+    data_02146164->sampling = TRUE;
+    data_02146164->param = *param;
+    return result;
+}
+
+u32 func_02006dd8(void (*callback)(u32 result, u32 *done), u32 *done) {
+    MICAutoParam param;
+
+    param.type = 2;
+    param.buffer = func_02006e2c();
+    param.size = SND_MIC_SAMPLES;
+    if (param.size & 0x1f) {
+        param.size &= ~0x1f;
+    }
+    param.rate = MIC_SAMPLING_RATE_8180;
+    param.loop_enable = FALSE;
+    param.full_callback = (MICCallback)callback;
+    param.full_arg = done;
+    return func_02006dac(&param);
+}
+
+void func_02006e18(void *chatter) {
+    func_02007bd0(chatter, func_02006e2c());
+}
+
+// The buffer from its first 32-byte boundary
+static void *func_02006e2c(void) {
+    return (void *)(((uintptr_t)data_02146164->buffer + 0x1f) & ~0x1f);
+}

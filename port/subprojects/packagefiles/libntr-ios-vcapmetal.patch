@@ -1,0 +1,57 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -439,7 +439,7 @@
+ // bw-port: the frame-state capture (sim_vcapture.cpp, BWPORT_VCAPTURE): the state before the screens are drawn,
+ // the picture after
+ extern "C" void SIM_VCapFrameBegin(void);
+-extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical);
++extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical, int metal);
+ 
+ // bw-port (libntr-vbridge.patch): an in-process frame renderer that draws the two screens instead of libntr's 2D
+ // engines: port/vcore (bw-port's DS video core), which port/bridge/vcore_bridge.c registers. It gathers the frame's
+@@ -4320,7 +4320,7 @@
+     // the main engine's 3D rows in the 3D framebuffer: the top half when it shows on the top screen (POWCNT bit 15)
+     SIM_VCapFrameEnd(viewX, viewY, viewWidth, viewHeight, 0, 1,
+                      (s_reg_GX_POWCNT >> 15) & 1,
+-                     s_SIM_config.screenLayout == SIM_CONFIG_SCREEN_LAYOUT_VERTICAL && !s_SIM_config.swapScreens);
++                     s_SIM_config.screenLayout == SIM_CONFIG_SCREEN_LAYOUT_VERTICAL && !s_SIM_config.swapScreens, sMetal);
+ 
+     // Run HBlank Interrupt
+     OS_IRQTable[OS_IE_H_BLANK - 1]();
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -792,15 +792,20 @@
+ // after both screens are drawn into the window's framebuffer (vx, vy, vw, vh: the screens' viewport there; fb3d, row3d:
+ // the shown 3D frame's framebuffer and its rows for the main engine's screen at the internal resolution)
+ // vertical: the window shows the screens top over bottom (the default layout, not swapped); else no LSHT pixels
+-extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical) {
++extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical, int metal) {
+   if (!sSnap.taken) return;
+   Snapshot &s = sSnap;
+   s.taken = false;
+-  GLint readFb;
+-  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFb);
+   std::vector<u8> shot, l3d;
+-  glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+-  if (vertical) {
++  GLint readFb = 0;
++  if (!metal) {  // (libntr-ios-vcapmetal.patch) the window is Metal's: no GL context to read it from (the read crashed)
++    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFb);
++    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
++  }
++  if (metal) {
++    shot.assign(256 * 384 * 4, 0);
++    s.notes += "shot_not_read_metal_present ";
++  } else if (vertical) {
+     ReadRegion(vx, vy, vw, vh, 256, 384, shot);
+   } else {
+     shot.assign(256 * 384 * 4, 0);
+@@ -809,7 +814,7 @@
+   // libntr has no 3D picture of its own any more (libntr-onerender.patch): L3D is zeros
+   (void)fb3d;
+   l3d.assign(256 * 192 * 4, 0);
+-  glBindFramebuffer(GL_READ_FRAMEBUFFER, readFb);
++  if (!metal) glBindFramebuffer(GL_READ_FRAMEBUFFER, readFb);
+ 
+   char path[1024];
+   snprintf(path, sizeof path, "%s/f%06u.vcs", sDir.c_str(), s.frame);

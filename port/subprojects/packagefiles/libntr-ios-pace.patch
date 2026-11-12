@@ -1,0 +1,505 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -40,6 +40,9 @@
+ #endif
+ #include <time.h>
+ #include <signal.h>
++#ifndef SDK_BUILD_WIN64
++#include <sys/resource.h>
++#endif
+ 
+ #include "screenquads.h"
+ 
+@@ -827,34 +830,74 @@
+ // shot=NAME (the window's picture to NAME.png), quit=1 (ends the run), perflog=NAME (records 5 s of per-frame stage times to perf_NAME.txt, as Debug > Save performance log).
+ extern "C" void SIM_FrameForceDraw(void);
+ static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch) writes NAME.png at the next present
++// bw-port (libntr-ios-pace.patch): more keys: speed=1..4, frameskip=0..3|auto, smooth=0|1, ff=0|1 (fast forward as Space / the
++// touch button), bench=NAME (a 4 s window of the pacing's work counters: one row, see sPc; pN steps wait for it), restore=1 (the
++// settings as they were when the script was loaded), perftest=1 (the iOS performance test's steps, next). SIM_CfgScriptLoad adds steps at
++// run time: after the step being applied, or at the end.
++static void BenchStart(const char *name);
++static bool BenchBusy(void);
++static void BenchDone(void);
++struct CfgStep { u32 frame; bool rel; char text[96]; };
++static std::vector<CfgStep> sCfgSteps;
++static size_t sCfgNext = 0;
++static SIM_config_type sCfgSaved;
++static void SIM_CfgScriptLoad(const char *e) {
++  if (sCfgNext >= sCfgSteps.size()) { sCfgSteps.clear(); sCfgNext = 0; }
++  size_t at = sCfgNext < sCfgSteps.size() ? sCfgNext + 1 : sCfgSteps.size();
++  sCfgSaved = s_SIM_config;
++  char *dup = strdup(e);
++  char *save = NULL;
++  for (char *tok = strtok_r(dup, ";", &save); tok != NULL; tok = strtok_r(NULL, ";", &save)) {
++    char *colon = strchr(tok, ':');
++    if ((tok[0] != 'f' && tok[0] != 'p') || colon == NULL) continue;
++    CfgStep st;
++    st.frame = (u32)atoi(tok + 1);
++    st.rel = tok[0] == 'p';
++    snprintf(st.text, sizeof st.text, "%s", colon + 1);
++    sCfgSteps.insert(sCfgSteps.begin() + (long)at++, st);
++  }
++  free(dup);
++}
++extern "C" void SIM_PerfTestStart(void);
++// the iOS performance test (Settings > About > Run performance test; port/src/ios_settings.m): from where the player stands, each step
++// settles 1 s and measures 4 s (bench rows, no frame skip), then the settings as they were; the table goes to the log
++extern "C" void SIM_PerfTestStart(void) {
++  fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d)\n",
++          (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
++          (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
++  SIM_CfgScriptLoad(
++      "p1:renderer=gpu,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0;p60:bench=gpu1-60;"
++      "p1:resolution=2;p60:bench=gpu2-60;"
++      "p1:resolution=4;p60:bench=gpu4-60;"
++      "p1:resolution=2,antialias=4;p60:bench=gpu2-aa4-60;"
++      "p1:antialias=1,framerate=120;p60:bench=gpu2-120;"
++      "p1:framerate=monitor;p60:bench=gpu2-monitor;"
++      "p1:framerate=120,smooth=1;p60:bench=gpu2-120-smooth;"
++      "p1:framerate=60,smooth=0,speed=2;p60:bench=gpu2-60-speed2;"
++      "p1:speed=4;p60:bench=gpu2-60-speed4;"
++      "p1:speed=1,ff=1;p60:bench=gpu2-ff;"
++      "p1:ff=0,framerate=unlimited;p60:bench=gpu2-unlimited;"
++      "p1:renderer=vcore,resolution=1,framerate=60;p60:bench=vcore1-60;"
++      "p1:resolution=2;p60:bench=vcore2-60;"
++      "p1:framerate=120,smooth=1;p60:bench=vcore2-120-smooth;"
++      "p1:framerate=60,smooth=0,resolution=1,ff=1;p60:bench=vcore1-ff;"
++      "p1:restore=1");
++}
+ static void SIM_CfgScript(void) {
+-  struct Step { u32 frame; bool rel; char text[96]; };
+-  static std::vector<Step> sSteps;
++  std::vector<CfgStep> &sSteps = sCfgSteps;
++  size_t &sNext = sCfgNext;
+   static int sInit = 0;
+-  static size_t sNext = 0;
+   if (!sInit) {
+     sInit = 1;
+     const char *e = getenv("BWPORT_CFGSCRIPT");
+-    if (e == NULL || !*e) return;
+-    char *dup = strdup(e);
+-    char *save = NULL;
+-    for (char *tok = strtok_r(dup, ";", &save); tok != NULL; tok = strtok_r(NULL, ";", &save)) {
+-      char *colon = strchr(tok, ':');
+-      if ((tok[0] != 'f' && tok[0] != 'p') || colon == NULL) continue;
+-      Step st;
+-      st.frame = (u32)atoi(tok + 1);
+-      st.rel = tok[0] == 'p';
+-      snprintf(st.text, sizeof st.text, "%s", colon + 1);
+-      sSteps.push_back(st);
+-    }
+-    free(dup);
++    if (e != NULL && *e) SIM_CfgScriptLoad(e);
+   }
+   u32 now = *((u32 *)HW_VBLANK_COUNT_BUF);
+   static u32 sMark = 0;  // the frame a performance log was last running or a step last applied, for the pN steps
+   while (sNext < sSteps.size()) {
+-    bool busy = SIM::GUI::PerfLogBusy();
++    bool busy = SIM::GUI::PerfLogBusy() || BenchBusy();
+     if (busy) sMark = now;
+-    const Step &cur = sSteps[sNext];
++    const CfgStep &cur = sSteps[sNext];
+     if (cur.rel ? (busy || now < sMark + cur.frame) : now < cur.frame) break;
+     sMark = now;
+     char *save = NULL;
+@@ -881,9 +924,35 @@
+         snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
+         SIM_FrameForceDraw();   // frame skip (libntr-ios-shotdraw.patch): the shot frame and the next two are drawn
+       } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
++        BenchDone();
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);
+         fflush(stderr);
+         _exit(0);
++      } else if (strcmp(kv, "speed") == 0) {
++        int n = atoi(v);
++        s_SIM_config.speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++      } else if (strcmp(kv, "frameskip") == 0) {
++        s_SIM_config.frameSkip = strcmp(v, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(atoi(v) < 0 ? 0 : atoi(v) > 3 ? 3 : atoi(v));
++      } else if (strcmp(kv, "smooth") == 0) {
++        s_SIM_config.interpolation = (u8)(atoi(v) != 0);
++      } else if (strcmp(kv, "ff") == 0) {
++        sFastForward = atoi(v) != 0;
++      } else if (strcmp(kv, "perftest") == 0) {  // the iOS performance test's steps (they follow this script's remaining ones)
++        SIM_PerfTestStart();
++      } else if (strcmp(kv, "bench") == 0) {
++        BenchStart(v);
++      } else if (strcmp(kv, "restore") == 0) {
++        s_SIM_config.renderer = sCfgSaved.renderer;
++        s_SIM_config.resolution = sCfgSaved.resolution;
++        s_SIM_config.antialias = sCfgSaved.antialias;
++        s_SIM_config.speed = sCfgSaved.speed;
++        s_SIM_config.frameSkip = sCfgSaved.frameSkip;
++        s_SIM_config.interpolation = sCfgSaved.interpolation;
++        s_SIM_config.displayCap = sCfgSaved.displayCap;
++        s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
++        sFastForward = false;
++        BenchDone();
++        fprintf(stderr, "perftest: settings restored\n");
+       } else if (strcmp(kv, "framerate") == 0) {
+         u8 r = strcmp(v, "unlimited") == 0 ? SIM_CONFIG_DISPLAYCAP_UNLIMITED : strcmp(v, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+              : atoi(v) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
+@@ -1426,6 +1495,7 @@
+ }
+ 
+ static GLuint sLastPicTex; // bw-port (libntr-sp76.patch): the picture the window shows (a present that shows it again)
++static const unsigned char *sFrameTexSrc; // libntr-ios-pace.patch: the pixels s_frameTexture holds (a skipped frame's are the same)
+ // the screen quads with the picture in texture tex (unit 0), libntr's state back after
+ static void SIM_DrawFrameTexture(GLuint tex) {
+   sLastPicTex = tex;
+@@ -1463,6 +1533,11 @@
+ // (the cap's wait counts), drawn when the credit covers a drawn frame's cost, at most 4 skipped in a row.
+ static int sDrawNow = 1;
+ static int sTickPresent = 1; // libntr-sp76.patch: this tick has a present slot (SpPaceBegin)
++// libntr-ios-pace.patch: the ticks that had a present slot, and whether every tick has one (uncapped, presents not limited). FrameSkip=N
++// draws one in N + 1 of the PRESENTED ticks: the V-blank count's multiples of N + 1 could all fall on ticks without a present slot
++// (Game speed 2 at 60 with FrameSkip 1: a picture every ~2 s), so it is used only when every tick presents (the tests' --skip runs).
++static u32 sPresentTickN;
++static bool sAllTicksPresent = true;
+ static volatile sig_atomic_t sFrameForce;
+ static unsigned sFSRun;                 // frames skipped in a row
+ static s64 sFSCredit;                   // ns of frame time in hand (auto)
+@@ -1482,7 +1557,8 @@
+ #endif
+   }
+   const u8 fs = s_SIM_config.frameSkip;
+-  const s64 kFrame = 16715000;
++  // libntr-ios-pace.patch: a tick's time is the DS frame over the Game speed (auto skip measured against 16.7 ms at 2x-4x and fell behind)
++  const s64 kFrame = 16715000 / (s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed);
+   bool can = sFrameRenderer != NULL || sFrameRendererGL != NULL;
+   bool force = sFrameForce > 0;
+ #ifdef __APPLE__
+@@ -1497,7 +1573,7 @@
+         draw = sFSBusySkipped == 0 ? sFSBusyDrawn <= kFrame : sFSCredit + kFrame >= sFSBusyDrawn;
+       }
+     } else {
+-      draw = (*((u32 *)HW_VBLANK_COUNT_BUF) % ((u32)fs + 1)) == 0;
++      draw = ((sAllTicksPresent ? *((u32 *)HW_VBLANK_COUNT_BUF) : sPresentTickN) % ((u32)fs + 1)) == 0;
+     }
+   }
+   // bw-port (libntr-sp76.patch): a tick with no present slot is not gathered or drawn (unless the game reads the capture)
+@@ -1516,7 +1592,7 @@
+ 
+ // after the frame's swap (busy: ns from the last frame's end to here, the cap's wait not included)
+ static void SIM_FrameSkipEnd(u64 busy) {
+-  const s64 kFrame = 16715000;
++  const s64 kFrame = 16715000 / (s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed); // (libntr-ios-pace.patch)
+   s64 b = (s64)busy;
+   s64 &avg = sFSWasDrawn ? sFSBusyDrawn : sFSBusySkipped;
+   {
+@@ -1602,7 +1678,116 @@
+   glDeleteFramebuffers(1, &fbo);
+   free(buf);
+   return r;
++}
++
++// bw-port (libntr-ios-pace.patch): the pacing's work counters. BWPORT_PACELOG=1 prints a line a second; the cfgscript's bench=NAME
++// step (and the iOS performance test, SIM_PerfTestStart) prints a row per window: game ticks, presents, renderer draws, in-between
++// pictures, picture uploads, the time in the swap and in the pacing's sleeps, the longest gap between two presents, the process CPU.
++static struct PaceCount { u64 ticks, presents, drawn, mids, upBytes, swapNs, sleepNs, maxGapNs, maxGapLogNs, lastPresentNs; } sPc;
++static u64 SpNowNs(void);
++static double PaceCpuSec(void) {
++#ifdef SDK_BUILD_WIN64
++  return 0.0;
++#else
++  struct rusage ru;
++  if (getrusage(RUSAGE_SELF, &ru) != 0) return 0.0;
++  return ru.ru_utime.tv_sec + ru.ru_stime.tv_sec + (ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1e6;
++#endif
++}
++static void PacePresented(u64 swapNs) {
++  u64 now = SpNowNs();
++  sPc.presents++;
++  sPc.swapNs += swapNs;
++  if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapNs) sPc.maxGapNs = now - sPc.lastPresentNs;
++  if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapLogNs) sPc.maxGapLogNs = now - sPc.lastPresentNs;
++  sPc.lastPresentNs = now;
++}
++
++static struct {
++  bool on, any;
++  u64 t0, endNs;
++  double cpu0;
++  PaceCount c0;
++  char name[40];
++  std::string table;
++} sBench;
++static void BenchStart(const char *name) {
++  sBench.on = true;
++  sBench.t0 = SpNowNs();
++  sBench.endNs = sBench.t0 + 4000000000ull;
++  sBench.cpu0 = PaceCpuSec();
++  sPc.maxGapNs = 0;
++  sPc.lastPresentNs = 0;
++  sBench.c0 = sPc;
++  snprintf(sBench.name, sizeof sBench.name, "%s", name);
+ }
++static bool BenchBusy(void) { return sBench.on; }
++// the rows so far as a table (the end of a script, the iOS test's end)
++static void BenchDone(void) {
++  if (!sBench.any) return;
++  fprintf(stderr, "bench: table\n%s", sBench.table.c_str());
++  fflush(stderr);
++  sBench.table.clear();
++  sBench.any = false;
++}
++static const char *RendererShort(void) {
++  static char b[48];
++  snprintf(b, sizeof b, "%s %dx%s", SIM_RendererActive() == 2 ? "gpu" : SIM_RendererActive() == 1 ? "vcore" : "?",
++           (int)s_SIM_config.resolution, s_SIM_config.antialias > 1 ? (s_SIM_config.antialias >= 4 ? " aa4" : " aa2") : "");
++  return b;
++}
++// presents and game ticks a second over the last second (the iOS overlay: its fps counted game ticks, so 120 presents at 1x read 60 and
++// Game speed 2 at 60 read 120)
++static float sPresentRate, sTickRate;
++extern "C" float SIM_PresentRate(void) { return sPresentRate; }
++extern "C" float SIM_GameSpeedNow(void) { return sTickRate / 59.8261f; }
++static void PaceTick(void) {
++  static int sLog = -1;
++  static u64 sLast, sRateAt, sRateTicks, sRatePres;
++  static PaceCount sPrev;
++  static double sCpuPrev;
++  u64 now = SpNowNs();
++  if (now - sRateAt >= 1000000000ull) {
++    if (sRateAt != 0) {
++      double dt = (now - sRateAt) / 1e9;
++      sPresentRate = (float)((sPc.presents - sRatePres) / dt);
++      sTickRate = (float)((sPc.ticks - sRateTicks) / dt);
++    }
++    sRateAt = now;
++    sRatePres = sPc.presents;
++    sRateTicks = sPc.ticks;
++  }
++  if (sLog < 0) { sLog = getenv("BWPORT_PACELOG") != NULL; sLast = now; sCpuPrev = PaceCpuSec(); }
++  if (sLog && now - sLast >= 1000000000ull) {
++    double dt = (now - sLast) / 1e9, cpu = PaceCpuSec();
++    u64 t = sPc.ticks - sPrev.ticks;
++    fprintf(stderr, "pace ticks %llu pres %llu drawn %llu mid %llu upMB %.1f swap %.1f sleep %.1f gap %.1f cores %.2f ms/tick %.2f\n",
++            (unsigned long long)t, (unsigned long long)(sPc.presents - sPrev.presents), (unsigned long long)(sPc.drawn - sPrev.drawn),
++            (unsigned long long)(sPc.mids - sPrev.mids), (sPc.upBytes - sPrev.upBytes) / 1e6 / dt, (sPc.swapNs - sPrev.swapNs) / 1e6 / dt,
++            (sPc.sleepNs - sPrev.sleepNs) / 1e6 / dt, sPc.maxGapLogNs / 1e6, (cpu - sCpuPrev) / dt, t ? (cpu - sCpuPrev) * 1e3 / t : 0.0);
++    sPc.maxGapLogNs = 0;
++    sPrev = sPc;
++    sCpuPrev = cpu;
++    sLast = now;
++  }
++  if (sBench.on && now >= sBench.endNs) {
++    sBench.on = false;
++    double dt = (now - sBench.t0) / 1e9, cpu = PaceCpuSec() - sBench.cpu0;
++    const PaceCount &a = sBench.c0;
++    u64 t = sPc.ticks - a.ticks;
++    char row[320];
++    if (!sBench.any) {
++      sBench.any = true;
++      sBench.table = "bench: step                 renderer      speed x  pres/s drawn/s  mid/s  upMB/s  swap ms/s  gap ms  cores  CPU ms/tick\n";
++    }
++    snprintf(row, sizeof row, "bench: %-20s %-13s %7.2f %7.1f %7.1f %6.1f %7.1f %10.1f %7.1f %6.2f %12.2f\n", sBench.name, RendererShort(),
++             t / dt / 59.8261, (sPc.presents - a.presents) / dt, (sPc.drawn - a.drawn) / dt, (sPc.mids - a.mids) / dt,
++             (sPc.upBytes - a.upBytes) / 1e6 / dt, (sPc.swapNs - a.swapNs) / 1e6 / dt, sPc.maxGapNs / 1e6, cpu / dt, t ? cpu * 1e3 / t : 0.0);
++    sBench.table += row;
++    fputs(row, stderr);
++    fflush(stderr);
++  }
++}
+ 
+ static u64 SpNowNs(void) {
+   u64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
+@@ -1628,9 +1813,13 @@
+ #else
+   const u64 spin = 150000;
+ #endif
++  const u64 tIn = SpNowNs();
+   for (;;) {
+     u64 now = SpNowNs();
+-    if (now >= target) return;
++    if (now >= target) {
++      sPc.sleepNs += now - tIn;
++      return;
++    }
+     u64 rem = target - now;
+     if (rem > spin) {
+ #ifdef SDK_BUILD_WIN64
+@@ -1670,6 +1859,26 @@
+ static u64 SpSlotAbs(s64 k) { return (u64)((s64)sPace.t0 + sPace.phase + k * (s64)sPace.Q); }
+ static u64 SpTickDue(u64 n) { return sPace.t0 + n * kSpFrame / (u64)sPace.S; }
+ 
++// libntr-ios-pace.patch: in-between pictures (Smooth motion) only while the game keeps its speed. They are drawn before the next tick
++// can start (vcore's worker draws the frame and then them; the GPU path's GL half runs in the slots), so when they do not fit, every
++// tick runs late and the game slows down while the pictures come too late to be shown (vcore 4x at 120 on the M2: 0.62x speed, 0.2
++// in-between pictures a second). A tick that starts a quarter tick late turns them off for 2 s, then 4, 8 ... (at most a minute)
++// while it keeps happening; 4 s on time with them on resets that.
++static int sIpOff, sIpOffLen = 120, sIpGood;
++static void SpInterpGuard(bool late) {
++  if (!s_SIM_config.interpolation) return;
++  if (late && sIpOff == 0) {
++    sIpOff = sIpOffLen;
++    fprintf(stderr, "bwport: smooth motion off for %d s: the game fell behind\n", sIpOffLen / 60);
++    sIpOffLen = sIpOffLen * 2 > 3600 ? 3600 : sIpOffLen * 2;
++    sIpGood = 0;
++  } else if (sIpOff > 0) {
++    sIpOff--;
++  } else if (++sIpGood >= 240) {
++    sIpOffLen = 120;
++  }
++}
++
+ // at the top of a tick: which slots are this tick's
+ static void SpPaceBegin(void) {
+   { // BWPORT_SPEEDSCRIPT="TICK:SPEED,TICK:SPEED": a test aid, the Speed changes live (as the UI sets it) at that tick
+@@ -1708,13 +1917,28 @@
+     sPace.count = 1;
+     sPace.waited = 0;
+     sTickPresent = 1;
++    // libntr-ios-pace.patch: fast forward presents at most 60 times a second (the ticks between are neither drawn nor presented):
++    // every tick drew and presented, which cost more than the game's own work, and on iOS a present waits for the display (fast
++    // forward could not pass 2x at 120 Hz, frame skip or not). Unlimited still draws and presents every tick (a measure of the
++    // renderer's throughput).
++    const bool limit = sFastForward;
++    sAllTicksPresent = !limit;
++    if (limit) {
++      static u64 sNextPresent;
++      u64 q = SpMonitorNs() > kSpFrame ? SpMonitorNs() : kSpFrame, now = SpNowNs();
++      if (now + q / 8 >= sNextPresent || sFrameForce > 0) sNextPresent = now > sNextPresent + q ? now + q : sNextPresent + q;
++      else sTickPresent = 0;
++    }
++    if (sTickPresent) sPresentTickN++;
+     return;
+   }
++  sAllTicksPresent = false;
+   int S = s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed;
+   u8 mode = s_SIM_config.displayCap;
+   u64 Q = mode == SIM_CONFIG_DISPLAYCAP_MONITOR ? SpMonitorNs() : mode == SIM_CONFIG_DISPLAYCAP_120 ? kSpFrame / 2 : kSpFrame;
+   u64 now = SpNowNs();
+   if (sPace.on && (S != sPace.S || mode != sPace.mode || Q != sPace.Q)) sPace.on = false;
++  SpInterpGuard(sPace.on && now > SpTickDue(sPace.n) + kSpFrame / (u64)S / 4);
+   // behind by more than three ticks (a slow machine, a pause, a window drag): start the timeline again
+   if (sPace.on && now > SpTickDue(sPace.n) + 3 * kSpFrame / (u64)S) sPace.on = false;
+   if (!sPace.on) {
+@@ -1738,6 +1962,7 @@
+     sPace.forced = true;
+   }
+   sTickPresent = sPace.count > 0;
++  if (sTickPresent) sPresentTickN++;
+   if (sPresentLog != NULL) fprintf(sPresentLog, "T %llu %llu\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n);
+ }
+ 
+@@ -1791,6 +2016,7 @@
+ extern "C" int SIM_InterpWanted(void) { return s_SIM_config.interpolation != 0; }
+ extern "C" int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next) {
+   if (!s_SIM_config.interpolation || !sPace.on || sPace.forced || sPace.count <= 0 || s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED || sFastForward) return 0;
++  if (sIpOff > 0) return 0; // libntr-ios-pace.patch: SpInterpGuard
+   long long due = (long long)SpTickDue(sPace.n);
+   *serial = (long long)sPace.t0;
+   *nominal = due;
+@@ -1827,6 +2053,7 @@
+         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+         sFrameTexW = 1;
+         sFrameTexH = 1;
++        sFrameTexSrc = NULL;
+         glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+       }
+     }
+@@ -1874,12 +2101,18 @@
+   GqBegin(0);
+   if (SIM_NoPresent() || !sTickPresent) {
+     // the picture is neither uploaded nor drawn
++  } else if (!sDrawNow && rgba == sFrameTexSrc && pw == sFrameTexW && ph == sFrameTexH) {
++    // libntr-ios-pace.patch: a skipped frame shows the picture the texture holds (it was uploaded again: 6 MB a frame at 4x)
+   } else if (pw != sFrameTexW || ph != sFrameTexH) {
+     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+     sFrameTexW = pw;
+     sFrameTexH = ph;
++    sFrameTexSrc = rgba;
++    sPc.upBytes += (u64)pw * ph * 4;
+   } else {
+     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pw, ph, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
++    sFrameTexSrc = rgba;
++    sPc.upBytes += (u64)pw * ph * 4;
+   }
+   if (sPresentLog != NULL && sPresentHashOn < 0) sPresentHashOn = getenv("BWPORT_PRESENTHASH") != NULL;
+   if (sPresentHashOn > 0) sPresentHash = SpHashRgba(rgba, (size_t)pw * (size_t)ph * 4);
+@@ -2573,6 +2806,8 @@
+ 
+     // bw-port: the in-process frame renderer (port/vcore) draws both screens when it is chosen
+     SIM_DrawFrameRenderer();
++    if (sDrawNow && sFrameRendererDrew) sPc.drawn++;
++    sPc.ticks++;
+     FLStamp(3);
+ 
+     // the main engine's 3D rows in the 3D framebuffer: the top half when it shows on the top screen (POWCNT bit 15)
+@@ -2613,6 +2848,9 @@
+       // libntr-sp76.patch: VSync only for DisplayCap=monitor (its swap waits for the V-blank, SpWaitSlot comes just before)
+       // (rn80: Unlimited and fast forward: VSync off; the old VsyncInterval key no longer matters)
+       int wantInterval = (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward && s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR) ? 1 : 0;
++#if SIM_IOS
++      wantInterval = 0; // libntr-ios-pace.patch: SDL's UIKit view has no swap interval (the set failed every frame); a present always waits for the display
++#endif
+       if (SDL_GL_GetSwapInterval() != wantInterval) {
+         SDL_GL_SetSwapInterval(wantInterval);
+       }
+@@ -2630,6 +2868,7 @@
+       SIM_ShotMaybe(window);
+ #endif
+       SDL_GL_SwapWindow(window);
++      PacePresented(SpNowNs() - swapCall);
+       SpAfterSwap(0, swapCall);
+     }
+     FLStamp(6);
+@@ -2697,6 +2936,8 @@
+               } else {
+                 glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mw, mh, GL_RGBA, GL_UNSIGNED_BYTE, mid);
+               }
++              sPc.upBytes += (u64)mw * mh * 4;
++              sFrameTexSrc = mid;
+               glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+               glActiveTexture((GLenum)prevUnit);
+               sLastPicTex = s_frameTexture;
+@@ -2708,6 +2949,8 @@
+           SIM::GUI::RenderAgain();
+           u64 call = SpNowNs();
+           SDL_GL_SwapWindow(window);
++          PacePresented(SpNowNs() - call);
++          if (sPresentMid) sPc.mids++;
+           SpAfterSwap(r, call);
+         }
+       }
+@@ -2716,6 +2959,7 @@
+     }
+ 
+     FLStamp(7);
++    PaceTick();
+ 
+     {
+       // bw-port: the real frame period, from one frame's end (after the cap's wait) to the next's; sFullFrameTime is
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2373,6 +2373,8 @@
+ 
+ // a small box in the top corner of the game's picture (inside the safe area, clear of the controls): fps and game speed, and with
+ // OverlayDetail=detailed the frame time, the game / draw split and what draws
++extern "C" float SIM_PresentRate(void);   // libntr-ios-pace.patch (sim_main.cpp)
++extern "C" float SIM_GameSpeedNow(void);
+ static void TouchOverlay() {
+     SIM_config_type * c = C();
+     if (!c->overlay || SimTouch_MenuOpen()) {
+@@ -2385,7 +2387,8 @@
+     }
+     const Snap & m = sSnap;
+     char l1[64], l2[64] = "", l3[64] = "";
+-    snprintf(l1, sizeof l1, "%.0f fps  %dx", m.fps, SpeedIndex() + 1);
++    // libntr-ios-pace.patch: the presents a second and the game's speed as it runs (m.fps counts game ticks)
++    snprintf(l1, sizeof l1, "%.0f fps  %.1fx", SIM_PresentRate(), SIM_GameSpeedNow());
+     if (c->overlayDetail) {
+         int pw = 0, ph = 0;
+         SIM_RendererPicture(&pw, &ph);
+@@ -2406,7 +2409,9 @@
+     float x = c->overlayCorner ? scr[0] + scr[2] - 4.0f - bw : scr[0] + 4.0f, y = scr[1] + 4.0f;
+     ImDrawList * dl = ImGui::GetForegroundDrawList();
+     dl->AddRectFilled(ImVec2(x, y), ImVec2(x + bw, y + bh), IM_COL32(0, 0, 0, 120), 5.0f);
+-    ImU32 fc = m.fps >= 55.0f ? IM_COL32(140, 255, 140, 255) : m.fps >= 30.0f ? IM_COL32(255, 220, 90, 255) : IM_COL32(255, 110, 90, 255);
++    // green: the game keeps its speed (Game speed or fast forward); yellow / red: it falls behind
++    float keep = SIM_GameSpeedNow() / (float)(SpeedIndex() + 1);
++    ImU32 fc = keep >= 0.95f ? IM_COL32(140, 255, 140, 255) : keep >= 0.5f ? IM_COL32(255, 220, 90, 255) : IM_COL32(255, 110, 90, 255);
+     for (int i = 0; i < lines; i++) {
+         dl->AddText(font, fs, ImVec2(x + pad, y + pad + (float)i * (fs + gap)), i == 0 ? fc : IM_COL32(235, 235, 240, 235), ls[i]);
+     }

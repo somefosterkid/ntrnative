@@ -1,0 +1,182 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -222,6 +222,34 @@
+ 
+ static u8 isMouseDown = 0;
+ 
++// bw-port (libntr-tp73.patch): the stylus. On the DS the touch screen reports "down" and the position for every frame the pen
++// is on it; the game sees the lift only when it comes. Here: down from the left press (on the touch screen, not on the UI) until
++// the release, the position follows the mouse every frame, off the screen = lifted, back on = down again. A press that is gone
++// before SIM_Render looked again (press and release in one batch of events: a quick click, or a frame that took long) still
++// gives the game one touched frame: sTouchLatch holds the stylus down until the game has taken a sample (SIM_TouchSampled), at
++// most 4 frames.
++static u8 sTouchLatch;           // a press the game has not sampled yet
++static u32 sTouchSamples;        // the samples the game has taken (SIM_TouchSampled)
++static u32 sTouchLatchAt;        // sTouchSamples when the latch was set
++static int sTouchLatchFrames;    // frames the latch has been held
++static float sTouchLastX, sTouchLastY; // the last window position of the stylus on the touch screen
++static int sTouchLogPrev;        // the last sample logged was touched
++static bool TouchOnScreen(float px, float py) { // px, py: the pixel's centre
++  const float *r = s_TouchPanelCoords;
++  return px >= r[0] && px < r[2] && py >= r[1] && py < r[3];
++}
++// the game took a touch sample (tp.c): the latch may end; BWPORT_TOUCHLOG gets "tp VBLANK touch X Y" for the touched samples
++// and the first untouched one after
++extern "C" void SIM_TouchSampled(const TPData *d) {
++  sTouchSamples++;
++  FILE *tl = TouchLogFile();
++  if (tl != NULL && (d->touch || sTouchLogPrev)) {
++    fprintf(tl, "tp %u touch %d %d %d\n", *((u32 *)HW_VBLANK_COUNT_BUF), (int)d->touch, (int)d->x, (int)d->y);
++    fflush(tl);
++  }
++  sTouchLogPrev = d->touch ? 1 : 0;
++}
++
+ // Local Procedure Declarations
+ static void ConvertMsgParams(draw_msg_t *msg);
+ static u8 GetNumParamsFromCommandType(draw_command_type_t type);
+@@ -1508,6 +1536,10 @@
+       s_SIM_SDLJoystick = SDL_JoystickOpen(0);
+     }
+ 
++    // bw-port (libntr-tp73.patch): a press the game has sampled (or 4 frames old) no longer holds the stylus down by itself
++    if (sTouchLatch && (sTouchSamples != sTouchLatchAt || ++sTouchLatchFrames > 4)) {
++      sTouchLatch = 0;
++    }
+     while (SDL_PollEvent(&Event)) {
+       // bw-port (libntr-ui68.patch): the GUI takes a key it is waiting for (a key being assigned) or Esc for a window
+       if (SIM::GUI::ProcessEvent(&Event)) {
+@@ -1519,6 +1551,9 @@
+         case SDL_WINDOWEVENT_CLOSE:
+           exit(0);
+           break;
++        case SDL_WINDOWEVENT_FOCUS_LOST: // the pen is lifted: the button's release may never come to this window
++          isMouseDown = 0;
++          break;
+         }
+       }
+       if (Event.type == SDL_KEYDOWN && !SIM::GUI::WantKeyboard()) {
+@@ -1703,41 +1738,76 @@
+           isMouseDown = 1;
+           s_tpData.validity = 0;
+           s_tpData.touch = 1;
++          static int sNoLatch = -1;
++          if (sNoLatch < 0) sNoLatch = getenv("BWPORT_TOUCH_NOLATCH") != NULL; // the test's "before": no held-over press
++          sTouchLatch = !sNoLatch;
++          sTouchLatchAt = sTouchSamples;
++          sTouchLatchFrames = 0;
++          sTouchLastX = ex;
++          sTouchLastY = ey;
++          if (TouchLogFile() != NULL) {
++            fprintf(sTouchLog, "ev down %u %d %d\n", *((u32 *)HW_VBLANK_COUNT_BUF), Event.button.x, Event.button.y);
++            fflush(sTouchLog);
++          }
+         }
+       }
++      if (Event.type == SDL_MOUSEMOTION && isMouseDown &&
++          TouchOnScreen((float)Event.motion.x + 0.5f, (float)Event.motion.y + 0.5f)) {
++        sTouchLastX = (float)Event.motion.x + 0.5f; // where the pen was last (a quick click that moves on before the frame)
++        sTouchLastY = (float)Event.motion.y + 0.5f;
++      }
+       if (Event.type == SDL_MOUSEBUTTONUP && Event.button.button == SDL_BUTTON_LEFT) {
++        if (isMouseDown && TouchLogFile() != NULL) {
++          fprintf(sTouchLog, "ev up %u %d %d\n", *((u32 *)HW_VBLANK_COUNT_BUF), Event.button.x, Event.button.y);
++          fflush(sTouchLog);
++        }
++        if (isMouseDown && TouchOnScreen((float)Event.button.x + 0.5f, (float)Event.button.y + 0.5f)) {
++          sTouchLastX = (float)Event.button.x + 0.5f;
++          sTouchLastY = (float)Event.button.y + 0.5f;
++        }
+         isMouseDown = 0;
+         s_tpData.validity = 0;
+-        s_tpData.touch = 0;
+       }
+     }
+     s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT;
+ 
+-    SDL_GetMouseState(&x, &y);
++    Uint32 mouseButtons = SDL_GetMouseState(&x, &y);
++    if (isMouseDown && !(mouseButtons & SDL_BUTTON_LMASK)) {
++      isMouseDown = 0; // the release never reached us (focus change, a grab that ended)
++    }
++    if (isMouseDown && SDL_GetMouseFocus() == NULL && !(SDL_GetGlobalMouseState(NULL, NULL) & SDL_BUTTON_LMASK)) {
++      isMouseDown = 0; // the pointer is outside the window with no grab: ask the system whether the button is still down
++    }
+ 
+-    // Convert touch coordinate to DS screen coordinates
++    // The stylus for this frame: down while the button is held and the mouse is over the touch screen (its position now), or
++    // for the frame of a press the game has not sampled yet (the position the pen was last at on the screen)
+     // (the pixel's centre; 0..255 and 0..191 inside the screen's rectangle)
+-    float mx = (float)x + 0.5f, my = (float)y + 0.5f;
+-    if (mx >= s_TouchPanelCoords[0] && mx < s_TouchPanelCoords[2] &&
+-        my >= s_TouchPanelCoords[1] && my < s_TouchPanelCoords[3]) {
+-      int tx = (int)((mx - s_TouchPanelCoords[0]) * SIM_NDS_SCREEN_WIDTH / (s_TouchPanelCoords[2] - s_TouchPanelCoords[0]));
+-      int ty = (int)((my - s_TouchPanelCoords[1]) * SIM_NDS_SCREEN_HEIGHT / (s_TouchPanelCoords[3] - s_TouchPanelCoords[1]));
+-      s_tpData.x = (u16)(tx < 0 ? 0 : tx > SIM_NDS_SCREEN_WIDTH - 1 ? SIM_NDS_SCREEN_WIDTH - 1 : tx);
+-      s_tpData.y = (u16)(ty < 0 ? 0 : ty > SIM_NDS_SCREEN_HEIGHT - 1 ? SIM_NDS_SCREEN_HEIGHT - 1 : ty);
+-      // the stroke goes on when it comes back onto the screen
+-      s_tpData.touch = isMouseDown;
++    {
++      float mx = (float)x + 0.5f, my = (float)y + 0.5f;
++      bool onScreen = TouchOnScreen(mx, my);
++      bool live = isMouseDown && onScreen;
++      if (live) {
++        sTouchLastX = mx;
++        sTouchLastY = my;
++      }
++      if (live || sTouchLatch || onScreen) {
++        float px = (live || !sTouchLatch) ? mx : sTouchLastX, py = (live || !sTouchLatch) ? my : sTouchLastY;
++        int tx = (int)((px - s_TouchPanelCoords[0]) * SIM_NDS_SCREEN_WIDTH / (s_TouchPanelCoords[2] - s_TouchPanelCoords[0]));
++        int ty = (int)((py - s_TouchPanelCoords[1]) * SIM_NDS_SCREEN_HEIGHT / (s_TouchPanelCoords[3] - s_TouchPanelCoords[1]));
++        s_tpData.x = (u16)(tx < 0 ? 0 : tx > SIM_NDS_SCREEN_WIDTH - 1 ? SIM_NDS_SCREEN_WIDTH - 1 : tx);
++        s_tpData.y = (u16)(ty < 0 ? 0 : ty > SIM_NDS_SCREEN_HEIGHT - 1 ? SIM_NDS_SCREEN_HEIGHT - 1 : ty);
++      }
++      s_tpData.validity = 0;
++      s_tpData.touch = (live || sTouchLatch) ? 1 : 0;
+       // the touch position each time it changes while the stylus is down (click tests)
+       static int sLastTx = -1, sLastTy = -1;
+-      if (sTouchLog != NULL && isMouseDown && (tx != sLastTx || ty != sLastTy)) {
++      if (sTouchLog != NULL && s_tpData.touch && (s_tpData.x != sLastTx || s_tpData.y != sLastTy)) {
+         fprintf(sTouchLog, "mouse %d %d -> touch %d %d\n", x, y, s_tpData.x, s_tpData.y);
+         fflush(sTouchLog);
+-        sLastTx = tx;
+-        sLastTy = ty;
++        sLastTx = s_tpData.x;
++        sLastTy = s_tpData.y;
+       }
+-      if (!isMouseDown) sLastTx = sLastTy = -1;
+-    } else {
+-      s_tpData.validity = 0;
+-      s_tpData.touch = 0;
++      if (!s_tpData.touch) sLastTx = sLastTy = -1;
+     }
+ 
+     FLStamp(1);
+--- a/libraries/spi/src/tp.c
++++ b/libraries/spi/src/tp.c
+@@ -5,6 +5,7 @@
+ 
+ #ifdef SDK_PORT
+ extern TPData s_tpData;
++extern void SIM_TouchSampled(const TPData *d); // sim_main.cpp (libntr-tp73.patch)
+ #endif
+ 
+ #define TP_RAW_MAX  0x1000
+@@ -365,6 +366,7 @@
+ 
+     #ifdef SDK_PORT
+     *result = s_tpData;
++    SIM_TouchSampled(&s_tpData);
+     #else
+     *result = tpState.buf;
+     #endif
+@@ -478,6 +480,9 @@
+ 
+     result->validity = TP_VALIDITY_INVALID_XY;
+ 
++    #ifdef SDK_PORT
++    SIM_TouchSampled(&s_tpData);
++    #endif
+     curr_index = tpState.index;
+ 
+     if (tpState.frequence == 1 || tpState.bufSize == 1) {

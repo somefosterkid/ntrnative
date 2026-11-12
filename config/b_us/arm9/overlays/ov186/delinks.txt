@@ -1,0 +1,68 @@
+    .text       start:0x021f90c0 end:0x02200248 kind:code align:32
+    .rodata     start:0x02200248 end:0x02200cf8 kind:rodata align:4
+    .ctor       start:0x02200cf8 end:0x02200cf8 kind:rodata align:4
+    .data       start:0x02200d00 end:0x02200dc0 kind:data align:32
+    .bss        start:0x02200dc0 end:0x02200dc0 kind:bss align:32
+
+src/ov186/br_btn_data.c:
+    complete
+    .text       start:0x021fb5e4 end:0x021fb884
+    .rodata     start:0x02200378 end:0x02200880
+    .data       start:0x02200d28 end:0x02200d3c
+
+src/ov186/br_graphic.c:
+    complete
+    .text       start:0x021fc3bc end:0x021fc6a4
+    .rodata     start:0x02200900 end:0x02200ad0
+    .data       start:0x02200d4c end:0x02200d5c
+
+src/ov186/br_pokesearch.c:
+    complete
+    .text       start:0x021ffbd4 end:0x02200248
+    .rodata     start:0x02200c94 end:0x02200cf8
+    .data       start:0x02200d9c end:0x02200dc0
+
+src/ov186/br_net.c:
+    complete
+    .text       start:0x021ff408 end:0x021ffbd4
+    .data       start:0x02200d8c end:0x02200d9c
+
+src/ov186/br_fade.c:
+    complete
+    .text       start:0x021fe6c0 end:0x021fed50
+    .data       start:0x02200d6c end:0x02200d78
+
+src/ov186/br_sidebar.c:
+    complete
+    .text       start:0x021fed50 end:0x021ff408
+    .rodata     start:0x02200b74 end:0x02200c94
+    .data       start:0x02200d78 end:0x02200d8c
+
+src/ov186/br_btn.c:
+    complete
+    .text       start:0x021f9cb8 end:0x021fb5e4
+    .rodata     start:0x02200358 end:0x02200378
+    .data       start:0x02200d18 end:0x02200d28
+
+src/ov186/br_util.c:
+    complete
+    .text       start:0x021fc6a4 end:0x021fe6c0
+    .rodata     start:0x02200ad0 end:0x02200b74
+    .data       start:0x02200d5c end:0x02200d6c
+
+src/ov186/br_core.c:
+    complete
+    .text       start:0x021f90c0 end:0x021f99cc
+    .rodata     start:0x02200248 end:0x02200358
+    .data       start:0x02200d00 end:0x02200d04
+
+src/ov186/br_res.c:
+    complete
+    .text       start:0x021fb884 end:0x021fc3bc
+    .rodata     start:0x02200880 end:0x02200900
+    .data       start:0x02200d3c end:0x02200d4c
+
+src/ov186/br_proc_sys.c:
+    complete
+    .text       start:0x021f99cc end:0x021f9cb8
+    .data       start:0x02200d04 end:0x02200d18

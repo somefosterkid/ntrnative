@@ -1,0 +1,21 @@
+    .text       start:0x021b6100 end:0x021b68d8 kind:code align:32
+    .rodata     start:0x021b68d8 end:0x021b6ae4 kind:rodata align:4
+    .ctor       start:0x021b6ae4 end:0x021b6ae4 kind:rodata align:4
+    .data       start:0x021b6b00 end:0x021b6b20 kind:data align:32
+    .bss        start:0x021b6b20 end:0x021b6b20 kind:bss align:32
+
+src/ov179/cdemo_main.c:
+    complete
+    .text       start:0x021b6100 end:0x021b6380
+    .rodata     start:0x021b68d8 end:0x021b6a04
+    .data       start:0x021b6b00 end:0x021b6b20
+
+src/ov179/cdemo_script.c:
+    complete
+    .text       start:0x021b66dc end:0x021b68d8
+    .rodata     start:0x021b6a40 end:0x021b6ae4
+
+src/ov179/cdemo_control.c:
+    complete
+    .text       start:0x021b6380 end:0x021b66dc
+    .rodata     start:0x021b6a04 end:0x021b6a40

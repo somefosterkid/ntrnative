@@ -1,0 +1,13 @@
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+index 77588ca..a99df5d 100644
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -464,7 +464,7 @@ void SIM_Config_LoadDefaults(SIM_config_type * aConfig)
+     aConfig->gpuEdge = 0;
+     aConfig->gpuFilter = 0;
+     aConfig->frameSkip = 0;
+-    aConfig->sound = SIM_CONFIG_SOUND_LIBNTR;
++    aConfig->sound = SIM_CONFIG_SOUND_ACORE; /* bw-port (libntr-sounddefault.patch, owner 10-29): our sound core by default */
+     aConfig->masterVolume = 127;
+ 
+     aConfig->padSettings.joyAxisDeadzone = 32767 / 4;

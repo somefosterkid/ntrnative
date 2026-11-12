@@ -1,0 +1,9 @@
+    .text       start:0x021bea60 end:0x021beee4 kind:code align:32
+    .ctor       start:0x021beee4 end:0x021beee4 kind:rodata align:4
+    .data       start:0x021bef00 end:0x021bef20 kind:data align:32
+    .bss        start:0x021bef20 end:0x021bef20 kind:bss align:32
+
+src/ov331/save_outside.c:
+    complete
+    .text       start:0x021bea60 end:0x021beee4
+    .data       start:0x021bef00 end:0x021bef20

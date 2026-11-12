@@ -1,0 +1,238 @@
+diff --git a/libraries/os/src/os_message.c b/libraries/os/src/os_message.c
+--- a/libraries/os/src/os_message.c
++++ b/libraries/os/src/os_message.c
+@@ -14,9 +14,6 @@
+     mq->msgCount = msgCount;
+     mq->firstIndex = 0;
+     mq->usedCount = 0;
+-    #ifdef SDK_PORT
+-    mq->semaphore = SDL_CreateSemaphore(0);
+-    #endif
+ }
+ 
+ BOOL OS_SendMessage (OSMessageQueue * mq, OSMessage msg, s32 flags)
+@@ -41,9 +38,6 @@
+     mq->usedCount++;
+ 
+     OS_WakeupThread(&mq->queueReceive);
+-    #ifdef SDK_PORT
+-    SDL_SemPost(mq->semaphore);
+-    #endif
+ 
+     (void)OS_RestoreInterrupts(enabled);
+     return TRUE;
+@@ -60,11 +54,8 @@
+             (void)OS_RestoreInterrupts(enabled);
+             return FALSE;
+         } else {
+-            #ifdef SDK_PORT
+-            SDL_SemWaitTimeout(mq->semaphore, 1);
+-            #else
++            // bw-port (libntr-threadwait.patch): OS_SleepThread blocks now, as the SDK's (was a 1 ms semaphore poll)
+             OS_SleepThread(&mq->queueReceive);
+-            #endif
+         }
+     }
+ 
+diff --git a/libraries/os/src/os_system.c b/libraries/os/src/os_system.c
+--- a/libraries/os/src/os_system.c
++++ b/libraries/os/src/os_system.c
+@@ -5,6 +5,9 @@
+ #endif
+ 
+ #ifdef SDK_PORT
++// bw-port (libntr-threadwait.patch): where the SDK's callers check what they sleep on (os_thread.c)
++extern void OSi_NoteWakeEpoch(void);
++
+ OSIntrMode OS_EnableInterrupts( void )
+ {
+     return 0;
+@@ -12,6 +15,7 @@
+ 
+ OSIntrMode OS_DisableInterrupts( void )
+ {
++    OSi_NoteWakeEpoch();
+     return 0;
+ }
+ 
+@@ -22,6 +26,7 @@
+ 
+ OSIntrMode OS_DisableInterrupts_IrqAndFiq( void )
+ {
++    OSi_NoteWakeEpoch();
+     return 0;
+ }
+ 
+diff --git a/libraries/os/src/os_thread.c b/libraries/os/src/os_thread.c
+--- a/libraries/os/src/os_thread.c
++++ b/libraries/os/src/os_thread.c
+@@ -11,6 +11,34 @@
+ 
+ pthread_mutex_t osiThreadMutex = PTHREAD_MUTEX_INITIALIZER;
+ 
++// bw-port (libntr-threadwait.patch): OS_SleepThread blocks until a wakeup instead of returning after a millisecond
++// (the SDK's callers loop on their condition, so that was a 1 kHz poll per waiting thread). Host threads run at the
++// same time and OS_DisableInterrupts stops none of them, so a wakeup may come between a caller's check and its sleep:
++// s_wakeEpoch counts the wakeups, a thread notes it when it disables interrupts (where the SDK checks its condition)
++// and when a sleep ends, and a sleep that sees it moved since returns at once (the caller checks again). The timed
++// wait is a backstop for a wakeup the host never sends (no IRQ handler wakes OSi_IrqThreadQueue here)
++#include <errno.h>
++#include <time.h>
++#define OSi_WAIT_BACKSTOP_MS 50
++static pthread_mutex_t s_waitLock = PTHREAD_MUTEX_INITIALIZER;
++static pthread_cond_t s_waitCond = PTHREAD_COND_INITIALIZER;
++static u32 s_wakeEpoch;
++static __thread u32 t_seenEpoch;
++
++void OSi_NoteWakeEpoch(void)
++{
++    t_seenEpoch = __atomic_load_n(&s_wakeEpoch, __ATOMIC_ACQUIRE);
++}
++
++// s_waitLock held: a wakeup happened; anyone it made ready gets the signal
++static void OSi_WakeLocked(BOOL woke)
++{
++    __atomic_add_fetch(&s_wakeEpoch, 1, __ATOMIC_RELEASE);
++    if (woke) {
++        pthread_cond_broadcast(&s_waitCond);
++    }
++}
++
+ typedef struct {
+     SDL_threadID threadId;
+     OSThread * thread;
+@@ -163,7 +191,9 @@
+ static void OSi_RescheduleThread(void);
+ 
+ #ifdef SDK_PORT
+-static OSThread s_WIN_unknownThread;
++// a host thread libntr didn't make (the game's main thread, PXI, audio): one each, so two of them can sleep and be
++// woken apart
++static __thread OSThread s_WIN_unknownThread;
+ 
+ OSThread * WIN_OS_GetCurrentThread(void)
+ {
+@@ -976,8 +1006,46 @@
+     }
+ }
+ 
++#ifdef SDK_PORT
+ void OS_SleepThread (OSThreadQueue * queue)
+ {
++    OSThread * currentThread = OSi_GetCurrentThread();
++
++    pthread_mutex_lock(&s_waitLock);
++    if (s_wakeEpoch == t_seenEpoch) {
++        struct timespec deadline;
++        int rc = 0;
++
++        if (queue) {
++            currentThread->queue = queue;
++            OSi_InsertLinkToQueue(queue, currentThread);
++        }
++        currentThread->state = OS_THREAD_STATE_WAITING;
++
++        clock_gettime(CLOCK_REALTIME, &deadline);
++        deadline.tv_nsec += OSi_WAIT_BACKSTOP_MS * 1000000L;
++        if (deadline.tv_nsec >= 1000000000L) {
++            deadline.tv_sec++;
++            deadline.tv_nsec -= 1000000000L;
++        }
++        while (currentThread->state == OS_THREAD_STATE_WAITING && rc != ETIMEDOUT) {
++            rc = pthread_cond_timedwait(&s_waitCond, &s_waitLock, &deadline);
++        }
++
++        // the backstop, or OS_WakeupThreadDirect: still in the queue
++        if (currentThread->queue) {
++            (void)OSi_RemoveSpecifiedLinkFromQueue(currentThread->queue, currentThread);
++            currentThread->queue = NULL;
++            currentThread->link.prev = currentThread->link.next = NULL;
++        }
++        currentThread->state = OS_THREAD_STATE_READY;
++    }
++    t_seenEpoch = s_wakeEpoch;
++    pthread_mutex_unlock(&s_waitLock);
++}
++#else
++void OS_SleepThread (OSThreadQueue * queue)
++{
+     OSIntrMode enable;
+     OSThread * currentThread;
+ 
+@@ -1006,14 +1074,12 @@
+ 
+         currentThread->state = OS_THREAD_STATE_WAITING;
+         OSi_RescheduleThread();
+-        #ifdef SDK_PORT
+-        SDL_Delay(1);
+-        #endif
+     }
+ #endif
+     (void)OS_RestoreInterrupts(enable);
+ 
+ }
++#endif
+ 
+ void OS_WakeupThread (OSThreadQueue * queue)
+ {
+@@ -1042,6 +1108,23 @@
+         OS_InitThreadQueue(queue);
+         OSi_RescheduleThread();
+     }
++#elif defined(SDK_PORT)
++    {
++        BOOL woke = FALSE;
++
++        pthread_mutex_lock(&s_waitLock);
++        while (queue->head) {
++            OSThread * thread = OSi_RemoveLinkFromQueue(queue);
++
++            woke |= (thread->state == OS_THREAD_STATE_WAITING);
++            thread->state = OS_THREAD_STATE_READY;
++            thread->queue = NULL;
++            thread->link.prev = thread->link.next = NULL;
++        }
++        OS_InitThreadQueue(queue);
++        OSi_WakeLocked(woke);
++        pthread_mutex_unlock(&s_waitLock);
++    }
+ #else
+     if (queue->head) {
+         while (queue->head) {
+@@ -1070,12 +1153,20 @@
+     enable = OS_DisableInterrupts();
+ 
+     {
+-        thread->state = OS_THREAD_STATE_READY;
+-        OSi_RescheduleThread();
+         #ifdef SDK_PORT
++        BOOL woke;
++
++        pthread_mutex_lock(&s_waitLock);
++        woke = (thread->state == OS_THREAD_STATE_WAITING);
++        thread->state = OS_THREAD_STATE_READY;
++        OSi_WakeLocked(woke);
++        pthread_mutex_unlock(&s_waitLock);
+         while(thread->win_threadState == 0){
+             SDL_Delay(1);
+         }
++        #else
++        thread->state = OS_THREAD_STATE_READY;
++        OSi_RescheduleThread();
+         #endif
+     }
+ 
+diff --git a/libraries/sim/src/sim_net.cpp b/libraries/sim/src/sim_net.cpp
+--- a/libraries/sim/src/sim_net.cpp
++++ b/libraries/sim/src/sim_net.cpp
+@@ -476,7 +476,9 @@
+ static int NetThread(void * arg)
+ {
+     while(1) {
+-        SDL_Delay(1);
++        // bw-port (libntr-threadwait.patch): a session's ENet host is served every millisecond; without one
++        // (the game's whole single-player time) the thread only looks for it
++        SDL_Delay(net.enetHost != NULL ? 1 : 50);
+         SIM_Net_Process();
+     }
+ }

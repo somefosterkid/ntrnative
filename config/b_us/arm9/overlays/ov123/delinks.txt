@@ -1,0 +1,51 @@
+    .text       start:0x021d4240 end:0x021da634 kind:code align:32
+    .rodata     start:0x021da634 end:0x021da9b4 kind:rodata align:4
+    .ctor       start:0x021da9b4 end:0x021da9b4 kind:rodata align:4
+    .data       start:0x021da9c0 end:0x021dac20 kind:data align:32
+    .bss        start:0x021dac20 end:0x021dac40 kind:bss align:32
+
+src/ov123/gsync_message.c:
+    complete
+    .text       start:0x021d54e0 end:0x021d5ac0
+    .data       start:0x021daa30 end:0x021daa40
+
+src/ov123/gsync_download.c:
+    complete
+    .text       start:0x021d5ac0 end:0x021d5d94
+    .data       start:0x021daa40 end:0x021daa78
+    .bss        start:0x021dac20 end:0x021dac40
+
+src/ov123/pdwacc_state.c:
+    complete
+    .text       start:0x021d9fd4 end:0x021da634
+    .rodata     start:0x021da9a8 end:0x021da9b4
+
+src/ov123/pdwacc_disp.c:
+    complete
+    .text       start:0x021d9958 end:0x021d9fd4
+    .rodata     start:0x021da8a8 end:0x021da9a8
+    .data       start:0x021dabbc end:0x021dac20
+
+src/ov123/pdwacc_message.c:
+    complete
+    .text       start:0x021d92b8 end:0x021d9958
+    .rodata     start:0x021da864 end:0x021da8a8
+    .data       start:0x021daba8 end:0x021dabbc
+
+src/ov123/gsync_disp.c:
+    complete
+    .text       start:0x021d5d94 end:0x021d6e08
+    .rodata     start:0x021da730 end:0x021da838
+    .data       start:0x021daa78 end:0x021dab78
+
+src/ov123/gsync_state.c:
+    complete
+    .text       start:0x021d6e08 end:0x021d92b8
+    .rodata     start:0x021da838 end:0x021da864
+    .data       start:0x021dab78 end:0x021daba8
+
+src/ov123/gsync_menu.c:
+    complete
+    .text       start:0x021d4240 end:0x021d54e0
+    .rodata     start:0x021da634 end:0x021da730
+    .data       start:0x021da9c0 end:0x021daa30

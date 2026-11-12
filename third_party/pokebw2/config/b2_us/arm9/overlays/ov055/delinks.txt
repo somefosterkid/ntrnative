@@ -1,0 +1,33 @@
+    .text       start:0x021e5800 end:0x021e7264 kind:code align:32
+    .rodata     start:0x021e7264 end:0x021e7548 kind:rodata align:4
+    .ctor       start:0x021e7548 end:0x021e7548 kind:rodata align:4
+    .data       start:0x021e7560 end:0x021e75c0 kind:data align:32
+    .bss        start:0x021e75c0 end:0x021e75c0 kind:bss align:32
+
+src/ov055/scrcmd_wbt.c:
+    complete
+    .text       start:0x021e5800 end:0x021e5b98
+    .rodata     start:0x021e7264 end:0x021e735c
+
+src/ov055/wbt_system.c:
+    complete
+    .text       start:0x021e5b98 end:0x021e6388
+    .rodata     start:0x021e735c end:0x021e74f8
+    .data       start:0x021e7560 end:0x021e7570
+
+src/ov055/wbt_tool.c:
+    complete
+    .text       start:0x021e6388 end:0x021e67f4
+    .rodata     start:0x021e74f8 end:0x021e753c
+    .data       start:0x021e7570 end:0x021e757c
+
+src/ov055/wbt_setup.c:
+    complete
+    .text       start:0x021e67f4 end:0x021e6b04
+    .rodata     start:0x021e753c end:0x021e7548
+    .data       start:0x021e757c end:0x021e7588
+
+src/ov055/wbt_party.c:
+    complete
+    .text       start:0x021e6b04 end:0x021e7264
+    .data       start:0x021e7588 end:0x021e75c0

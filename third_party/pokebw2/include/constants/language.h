@@ -1,0 +1,16 @@
+#ifndef POKEBW2_CONSTANTS_LANGUAGE_H
+#define POKEBW2_CONSTANTS_LANGUAGE_H
+
+// The game's language IDs
+#define LANGUAGE_JAPANESE 1
+#define LANGUAGE_ENGLISH 2
+#define LANGUAGE_FRENCH 3
+#define LANGUAGE_ITALIAN 4
+#define LANGUAGE_GERMAN 5
+#define LANGUAGE_SPANISH 7
+#define LANGUAGE_KOREAN 8
+
+// The language of this build: both US versions are English
+#define GAME_LANGUAGE LANGUAGE_ENGLISH
+
+#endif // POKEBW2_CONSTANTS_LANGUAGE_H

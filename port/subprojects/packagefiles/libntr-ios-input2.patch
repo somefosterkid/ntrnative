@@ -1,0 +1,556 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1261,6 +1261,8 @@
+   if (SIM_HiddenWanted()) SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
+ #endif
+   SimTouch_Hints();
++  if (getenv("BWPORT_VPAD") != NULL) SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");   // (the test window is hidden)
++  SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");   // bw-port (libntr-ios-input2.patch): the phone's motion sensor is not a controller
+   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+@@ -2555,45 +2557,150 @@
+   sPicW = pw;
+   sPicH = ph;
+   return true;
++}
++
++// bw-port (libntr-ios-input2.patch): the pad bits are the OR of three sources (keyboard, controller, touch), each with its own mask of
++// held buttons (bit B_*: A B X Y L R Start Select Up Down Left Right), so letting go on one source keeps a button another still holds
++static unsigned sPadSrc[3];  // 0 keyboard, 1 controller, 2 touch
++static unsigned sPadFrame;
++static void PadSrcSet(int src, int b, bool down) {
++  static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};
++  sPadSrc[src] = down ? sPadSrc[src] | (1u << b) : sPadSrc[src] & ~(1u << b);
++  bool any = ((sPadSrc[0] | sPadSrc[1] | sPadSrc[2]) >> b) & 1;
++  if (padBit[b] != 0xff) {
++    s_reg_PAD_KEYINPUT = (u16)(any ? s_reg_PAD_KEYINPUT & ~(1u << padBit[b]) : s_reg_PAD_KEYINPUT | (1u << padBit[b]));
++  } else {
++    vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
++    u16 bit = (u16)(1u << (b == 2 ? 10 : 11));
++    *xy = (u16)(any ? *xy & ~bit : *xy | bit);
++  }
+ }
++static void PadSrcClear(int src) {
++  for (int b = 0; b < 12; b++) if ((sPadSrc[src] >> b) & 1) PadSrcSet(src, b, false);
++}
+ 
++// bw-port (libntr-ios-input2.patch): the controller. The first one that is there is opened, and again whenever one is added or taken
++// away (a pad that slept or lost its cable comes back). The desktop reads the raw joystick (the buttons of padSettings); iOS (and
++// BWPORT_PAD_GC=1) the SDL game controller with the same layout as the desktop's defaults: A B X Y, Back = Select, Start, the
++// shoulders = L R, the D-pad. BWPORT_VPAD="f200:attach f260:down0 f300:up0 f320:detach" (frames of the event loop) drives a virtual one.
++static SDL_GameController *sPadGC;
++static bool sPadUseGC;
++extern "C" void SimTouch_Controller(int present);   // sim_touch.cpp
++static void PadRescan() {
++  if (s_SIM_SDLJoystick != NULL && !SDL_JoystickGetAttached(s_SIM_SDLJoystick)) {
++    fprintf(stderr, "bwport: controller disconnected\n");
++    if (sPadGC != NULL) SDL_GameControllerClose(sPadGC);
++    else SDL_JoystickClose(s_SIM_SDLJoystick);
++    sPadGC = NULL;
++    s_SIM_SDLJoystick = NULL;
++    PadSrcClear(1);
++    SimTouch_Controller(0);
++  }
++  if (s_SIM_SDLJoystick != NULL) return;
++  for (int i = 0; i < SDL_NumJoysticks(); i++) {
++    if (sPadUseGC) {
++      if (!SDL_IsGameController(i)) continue;
++      sPadGC = SDL_GameControllerOpen(i);
++      if (sPadGC == NULL) continue;
++      s_SIM_SDLJoystick = SDL_GameControllerGetJoystick(sPadGC);
++      fprintf(stderr, "bwport: controller connected: %s (game controller)\n", SDL_GameControllerName(sPadGC));
++    } else {
++      s_SIM_SDLJoystick = SDL_JoystickOpen(i);
++      if (s_SIM_SDLJoystick == NULL) continue;
++      fprintf(stderr, "bwport: controller connected: %s (joystick)\n", SDL_JoystickName(s_SIM_SDLJoystick));
++    }
++    SimTouch_Controller(1);
++    return;
++  }
++}
++// a game controller's buttons as the desktop layout
++static void PadControllerButton(int button, bool down) {
++  static const s8 map[SDL_CONTROLLER_BUTTON_MAX] = {
++      [SDL_CONTROLLER_BUTTON_A] = 0, [SDL_CONTROLLER_BUTTON_B] = 1, [SDL_CONTROLLER_BUTTON_X] = 2, [SDL_CONTROLLER_BUTTON_Y] = 3,
++      [SDL_CONTROLLER_BUTTON_BACK] = 7, [SDL_CONTROLLER_BUTTON_GUIDE] = -1, [SDL_CONTROLLER_BUTTON_START] = 6,
++      [SDL_CONTROLLER_BUTTON_LEFTSTICK] = -1, [SDL_CONTROLLER_BUTTON_RIGHTSTICK] = -1, [SDL_CONTROLLER_BUTTON_LEFTSHOULDER] = 4,
++      [SDL_CONTROLLER_BUTTON_RIGHTSHOULDER] = 5, [SDL_CONTROLLER_BUTTON_DPAD_UP] = 8, [SDL_CONTROLLER_BUTTON_DPAD_DOWN] = 9,
++      [SDL_CONTROLLER_BUTTON_DPAD_LEFT] = 10, [SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = 11};
++  if (button < 0 || button >= SDL_CONTROLLER_BUTTON_MAX) return;
++  int b = map[button];
++  if (b >= 0 && b < 12) PadSrcSet(1, b, down);
++}
++// the test's virtual pad: BWPORT_VPAD steps "fN:op[arg]": attach, detach, down/up (a virtual button), key (the keyboard source's
++// button b down; key16+b = up), pad (log the register)
++static void PadTestScript(unsigned frame) {
++  static const char *script;
++  static int virt = -1, pos;
++  static SDL_Joystick *vj;
++  if (script == NULL) script = getenv("BWPORT_VPAD") != NULL ? getenv("BWPORT_VPAD") : "";
++  while (script[pos] != 0) {
++    unsigned f;
++    char op[16];
++    int n = 0, arg = 0;
++    if (sscanf(script + pos, " f%u:%15[a-z]%n", &f, op, &n) < 2) { pos = (int)strlen(script); break; }
++    if (f > frame) break;
++    pos += n;
++    if (sscanf(script + pos, "%d%n", &arg, &n) == 1) pos += n;
++    if (!strcmp(op, "attach")) {
++      virt = SDL_JoystickAttachVirtual(SDL_JOYSTICK_TYPE_GAMECONTROLLER, SDL_CONTROLLER_AXIS_MAX, SDL_CONTROLLER_BUTTON_MAX, 1);
++      vj = virt >= 0 ? SDL_JoystickOpen(virt) : NULL;   // (the test's own handle: the game opens another)
++    } else if (!strcmp(op, "detach")) {
++      if (vj != NULL) SDL_JoystickClose(vj);
++      if (virt >= 0) SDL_JoystickDetachVirtual(virt);
++      vj = NULL;
++      virt = -1;
++    } else if (!strcmp(op, "down") && vj != NULL) {
++      SDL_JoystickSetVirtualButton(vj, arg, 1);
++    } else if (!strcmp(op, "up") && vj != NULL) {
++      SDL_JoystickSetVirtualButton(vj, arg, 0);
++    } else if (!strcmp(op, "swap")) {   // a turn of the window (desktop test of a rotation)
++      int w, h;
++      SDL_GetWindowSize(window, &w, &h);
++      SDL_SetWindowSize(window, h, w);
++    } else if (!strcmp(op, "key")) {
++      PadSrcSet(0, arg & 15, arg < 16);
++    }
++    fprintf(stderr, "bwport: vpad frame %u %s %d pad %04x srcs %03x %03x %03x\n", frame, op, arg, (unsigned)s_reg_PAD_KEYINPUT,
++            sPadSrc[0], sPadSrc[1], sPadSrc[2]);
++  }
++}
++
+ static void HandleJoystickKeyDown(int aKey) {
+   if (aKey == s_SIM_config.padSettings.aJoyKey) {
+     // A Button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111110;
++    PadSrcSet(1, 0, true);
+   } else if (aKey == s_SIM_config.padSettings.bJoyKey) {
+     // B Button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111101;
++    PadSrcSet(1, 1, true);
+   } else if (aKey == s_SIM_config.padSettings.xJoyKey) {
+     // X Button
+-    *(vu16 *)HW_BUTTON_XY_BUF = *(vu16 *)HW_BUTTON_XY_BUF & 0b1111100000000000;
++    PadSrcSet(1, 2, true);
+   } else if (aKey == s_SIM_config.padSettings.yJoyKey) {
+     // y Button
+-    *(vu16 *)HW_BUTTON_XY_BUF = *(vu16 *)HW_BUTTON_XY_BUF & 0b1111010000000000;
++    PadSrcSet(1, 3, true);
+   } else if (aKey == s_SIM_config.padSettings.upJoyKey) {
+     // Dpad Up
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111110111111;
++    PadSrcSet(1, 8, true);
+   } else if (aKey == s_SIM_config.padSettings.downJoyKey) {
+     // Dpad Down
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111101111111;
++    PadSrcSet(1, 9, true);
+   } else if (aKey == s_SIM_config.padSettings.leftJoyKey) {
+     // Dpad Left
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111011111;
++    PadSrcSet(1, 10, true);
+   } else if (aKey == s_SIM_config.padSettings.rightJoyKey) {
+     // Dpad Right
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111101111;
++    PadSrcSet(1, 11, true);
+   } else if (aKey == s_SIM_config.padSettings.lJoyKey) {
+     // L
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111110111111111;
++    PadSrcSet(1, 4, true);
+   } else if (aKey == s_SIM_config.padSettings.rJoyKey) {
+     // R
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111011111111;
++    PadSrcSet(1, 5, true);
+   } else if (aKey == s_SIM_config.padSettings.startJoyKey) {
+     // Start button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111110111;
++    PadSrcSet(1, 6, true);
+   } else if (aKey == s_SIM_config.padSettings.selectJoyKey) {
+     // Select button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111011;
++    PadSrcSet(1, 7, true);
+   }
+ #ifdef SDK_BUILD_NX
+   else if (aKey == 8) {
+@@ -2606,40 +2713,40 @@
+ static void HandleJoystickKeyUp(int aKey) {
+   if (aKey == s_SIM_config.padSettings.aJoyKey) {
+     // A Button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000001;
++    PadSrcSet(1, 0, false);
+   } else if (aKey == s_SIM_config.padSettings.bJoyKey) {
+     // B Button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000010;
++    PadSrcSet(1, 1, false);
+   } else if (aKey == s_SIM_config.padSettings.xJoyKey) {
+     // X Button
+-    *(vu16 *)HW_BUTTON_XY_BUF = *(vu16 *)HW_BUTTON_XY_BUF | 0b0000010000000000;
++    PadSrcSet(1, 2, false);
+   } else if (aKey == s_SIM_config.padSettings.yJoyKey) {
+     // y Button
+-    *(vu16 *)HW_BUTTON_XY_BUF = *(vu16 *)HW_BUTTON_XY_BUF | 0b0000100000000000;
++    PadSrcSet(1, 3, false);
+   } else if (aKey == s_SIM_config.padSettings.upJoyKey) {
+     // Dpad Up
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000001000000;
++    PadSrcSet(1, 8, false);
+   } else if (aKey == s_SIM_config.padSettings.downJoyKey) {
+     // Dpad Down
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000010000000;
++    PadSrcSet(1, 9, false);
+   } else if (aKey == s_SIM_config.padSettings.leftJoyKey) {
+     // Dpad Left
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000100000;
++    PadSrcSet(1, 10, false);
+   } else if (aKey == s_SIM_config.padSettings.rightJoyKey) {
+     // Dpad Right
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000010000;
++    PadSrcSet(1, 11, false);
+   } else if (aKey == s_SIM_config.padSettings.lJoyKey) {
+     // L
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000001000000000;
++    PadSrcSet(1, 4, false);
+   } else if (aKey == s_SIM_config.padSettings.rJoyKey) {
+     // R
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000100000000;
++    PadSrcSet(1, 5, false);
+   } else if (aKey == s_SIM_config.padSettings.startJoyKey) {
+     // Start button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000001000;
++    PadSrcSet(1, 6, false);
+   } else if (aKey == s_SIM_config.padSettings.selectJoyKey) {
+     // Select button
+-    s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000100;
++    PadSrcSet(1, 7, false);
+   }
+ }
+ 
+@@ -2651,17 +2758,8 @@
+   if (SimTouch_PressTaken(&t0, &gate)) InputTaken(0, t0, gate);  // libntr-ios-input.patch
+   if (SimTouch_ReleaseTaken(&t0)) InputTaken(1, t0, 0);           // libntr-ios-lag.patch
+   unsigned ch = now ^ sTouchPadPrev;
+-  static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
+-  for (int b = 0; b < 12; b++) {
+-    if (!((ch >> b) & 1)) continue;
+-    bool down = (now >> b) & 1;
+-    if (padBit[b] != 0xff) {
+-      s_reg_PAD_KEYINPUT = (u16)(down ? s_reg_PAD_KEYINPUT & ~(1u << padBit[b]) : s_reg_PAD_KEYINPUT | (1u << padBit[b]));
+-    } else {
+-      vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
+-      u16 bit = (u16)(1u << (b == 2 ? 10 : 11));
+-      *xy = (u16)(down ? *xy & ~bit : *xy | bit);
+-    }
++  for (int b = 0; b < 12; b++) {
++    if ((ch >> b) & 1) PadSrcSet(2, b, (now >> b) & 1);
+   }
+   sTouchPadPrev = now;
+ }
+@@ -2892,9 +2990,13 @@
+       }
+     }
+     // Check Joysticks
+-    if (s_SIM_SDLJoystick == NULL && SDL_NumJoysticks() >= 1) {
+-      s_SIM_SDLJoystick = SDL_JoystickOpen(0);
++    if (sPadFrame == 0) {
++      sPadUseGC = SIM_IOS || getenv("BWPORT_PAD_GC") != NULL;
++      if (sPadUseGC) SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
++      for (int i = 0; i < SDL_NumJoysticks(); i++) fprintf(stderr, "bwport: joystick %d at start: %s\n", i, SDL_JoystickNameForIndex(i));
++      PadRescan();
+     }
++    PadTestScript(sPadFrame++);
+ 
+     // bw-port (libntr-tp73.patch): a press the game has sampled (or 4 frames old) no longer holds the stylus down by itself
+     if (sTouchLatch && (sTouchSamples != sTouchLatchAt || ++sTouchLatchFrames > 4)) {
+@@ -2931,42 +3033,40 @@
+           }
+         } else if (keyRead == s_SIM_config.padSettings.aKey) {
+           // A Button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111110;
++          PadSrcSet(0, 0, true);
+         } else if (keyRead == s_SIM_config.padSettings.bKey) {
+           // B Button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111101;
++          PadSrcSet(0, 1, true);
+         } else if (keyRead == s_SIM_config.padSettings.xKey) {
+           // X Button
+-          *(vu16 *)HW_BUTTON_XY_BUF =
+-              *(vu16 *)HW_BUTTON_XY_BUF & 0b1111100000000000;
++          PadSrcSet(0, 2, true);
+         } else if (keyRead == s_SIM_config.padSettings.yKey) {
+           // y Button
+-          *(vu16 *)HW_BUTTON_XY_BUF =
+-              *(vu16 *)HW_BUTTON_XY_BUF & 0b1111010000000000;
++          PadSrcSet(0, 3, true);
+         } else if (keyRead == s_SIM_config.padSettings.upKey) {
+           // Dpad Up
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111110111111;
++          PadSrcSet(0, 8, true);
+         } else if (keyRead == s_SIM_config.padSettings.downKey) {
+           // Dpad Down
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111101111111;
++          PadSrcSet(0, 9, true);
+         } else if (keyRead == s_SIM_config.padSettings.leftKey) {
+           // Dpad Left
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111011111;
++          PadSrcSet(0, 10, true);
+         } else if (keyRead == s_SIM_config.padSettings.rightKey) {
+           // Dpad Right
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111101111;
++          PadSrcSet(0, 11, true);
+         } else if (keyRead == s_SIM_config.padSettings.lKey) {
+           // L
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111110111111111;
++          PadSrcSet(0, 4, true);
+         } else if (keyRead == s_SIM_config.padSettings.rKey) {
+           // R
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111011111111;
++          PadSrcSet(0, 5, true);
+         } else if (keyRead == s_SIM_config.padSettings.startKey) {
+           // Start button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111110111;
++          PadSrcSet(0, 6, true);
+         } else if (keyRead == s_SIM_config.padSettings.selectKey) {
+           // Select button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT & 0b1111111111111011;
++          PadSrcSet(0, 7, true);
+         } else if (keyRead == s_SIM_config.padSettings.guiKey) {
+           // Toggle Debug GUI
+           SIM::GUI::Toggle();
+@@ -3001,53 +3101,60 @@
+         int keyRead = Event.key.keysym.sym;
+         if (keyRead == s_SIM_config.padSettings.aKey) {
+           // A Button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000001;
++          PadSrcSet(0, 0, false);
+         } else if (keyRead == s_SIM_config.padSettings.bKey) {
+           // B Button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000010;
++          PadSrcSet(0, 1, false);
+         } else if (keyRead == s_SIM_config.padSettings.xKey) {
+           // X Button
+-          *(vu16 *)HW_BUTTON_XY_BUF =
+-              *(vu16 *)HW_BUTTON_XY_BUF | 0b0000010000000000;
++          PadSrcSet(0, 2, false);
+         } else if (keyRead == s_SIM_config.padSettings.yKey) {
+           // y Button
+-          *(vu16 *)HW_BUTTON_XY_BUF =
+-              *(vu16 *)HW_BUTTON_XY_BUF | 0b0000100000000000;
++          PadSrcSet(0, 3, false);
+         } else if (keyRead == s_SIM_config.padSettings.upKey) {
+           // Dpad Up
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000001000000;
++          PadSrcSet(0, 8, false);
+         } else if (keyRead == s_SIM_config.padSettings.downKey) {
+           // Dpad Down
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000010000000;
++          PadSrcSet(0, 9, false);
+         } else if (keyRead == s_SIM_config.padSettings.leftKey) {
+           // Dpad Left
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000100000;
++          PadSrcSet(0, 10, false);
+         } else if (keyRead == s_SIM_config.padSettings.rightKey) {
+           // Dpad Right
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000010000;
++          PadSrcSet(0, 11, false);
+         } else if (keyRead == s_SIM_config.padSettings.lKey) {
+           // L
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000001000000000;
++          PadSrcSet(0, 4, false);
+         } else if (keyRead == s_SIM_config.padSettings.rKey) {
+           // R
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000100000000;
++          PadSrcSet(0, 5, false);
+         } else if (keyRead == s_SIM_config.padSettings.startKey) {
+           // Start button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000001000;
++          PadSrcSet(0, 6, false);
+         } else if (keyRead == s_SIM_config.padSettings.selectKey) {
+           // Select button
+-          s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000100;
++          PadSrcSet(0, 7, false);
+         } else if(keyRead == s_SIM_config.padSettings.frameCapKey) {
+           if (SDL_GetTicks() - sFFKeyDownAt > 350) SIM_FFSet(0); // (the swap interval is set each frame in SIM_Render)
+         }
+       }
+-      if (Event.type == SDL_JOYBUTTONDOWN) {
++      if (Event.type == SDL_JOYDEVICEADDED || Event.type == SDL_JOYDEVICEREMOVED) {
++        PadRescan();
++      }
++      if (sPadUseGC) {
++        // (the game controller's own events; the joystick events of the same pad are not read twice)
++        if (Event.type == SDL_CONTROLLERBUTTONDOWN || Event.type == SDL_CONTROLLERBUTTONUP) {
++          PadControllerButton(Event.cbutton.button, Event.type == SDL_CONTROLLERBUTTONDOWN);
++        }
++      }
++      if (!sPadUseGC && Event.type == SDL_JOYBUTTONDOWN) {
+         HandleJoystickKeyDown(Event.jbutton.button);
+       }
+-      if (Event.type == SDL_JOYBUTTONUP) {
++      if (!sPadUseGC && Event.type == SDL_JOYBUTTONUP) {
+         HandleJoystickKeyUp(Event.jbutton.button);
+       }
+-      if (Event.type == SDL_JOYHATMOTION) {
++      if (!sPadUseGC && Event.type == SDL_JOYHATMOTION) {
+         if (Event.jhat.value == SDL_HAT_CENTERED) {
+           // send keyUp event for all hats
+           HandleJoystickKeyUp(SIM_CONFIG_JOY_HAT_MASK | SDL_HAT_UP);
+@@ -3077,7 +3184,7 @@
+           }
+         }
+       }
+-      if (Event.type == SDL_JOYAXISMOTION) {
++      if (!sPadUseGC && Event.type == SDL_JOYAXISMOTION) {
+         if (Event.jaxis.value > s_SIM_config.padSettings.joyAxisDeadzone ||
+             Event.jaxis.value <
+                 (s_SIM_config.padSettings.joyAxisDeadzone * -1)) {
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -70,6 +70,10 @@
+ bool sActive, sInit;
+ Finger sF[10];
+ bool sMenuOpen;
++// libntr-ios-input2.patch: a controller is connected; with the setting "hidetouch" (default on) the buttons and the D-pad are not shown
++// and take no touch (the menu and fast-forward buttons stay, and the touch screen is still the stylus)
++bool sController;
++bool Hidden() { return sController && SIM_UISettingGet("hidetouch") != 0; }
+ bool sFF;
+ int sFFEdge = -1;
+ unsigned sLiveMask;               // buttons held by fingers now
+@@ -237,7 +241,8 @@
+     // round buttons: the nearest centre within the radius + a margin
+     float best = 1e9f;
+     int bi = -1;
+-    for (int i = 0; i < B_UP; i++) {
++    const bool hide = Hidden();
++    for (int i = 0; i < B_UP && !hide; i++) {
+         const Btn & b = L.btn[i];
+         if (b.w <= 0) continue;
+         if (b.round) {
+@@ -250,7 +255,7 @@
+         }
+     }
+     if (bi >= 0) { *idx = bi; return K_BTN; }
+-    if (hypotf(x - L.dcx, y - L.dcy) <= L.dc * 2.0f) return K_DPAD;
++    if (!hide && hypotf(x - L.dcx, y - L.dcy) <= L.dc * 2.0f) return K_DPAD;
+     const Btn * t[2] = {&L.menu, &L.ff};
+     for (int i = 0; i < 2; i++) {
+         if (x >= t[i]->x - 6 && x < t[i]->x + t[i]->w + 6 && y >= t[i]->y - 6 && y < t[i]->y + t[i]->h + 6) {
+@@ -464,7 +469,16 @@
+             // the test window: an iPhone 16 Pro Max's insets
+             if (winW > winH) { s[0] = s[2] = 62; s[3] = 21; } else { s[1] = 62; s[3] = 34; }
+         }
++        bool wasLandscape = sL.landscape;
+         Compute(winW, winH, s);
++        if (wasLandscape != sL.landscape) {
++            // libntr-ios-input2.patch: a finger on a button or the D-pad stays on it only as long as the layout does: after a turn it is
++            // measured against the new centre (the held direction would change under it), so it is let go until it lifts
++            for (Finger & f : sF) {
++                if (f.used && (f.kind == K_BTN || f.kind == K_DPAD)) f.kind = K_DEAD;
++            }
++            sLiveMask = 0;
++        }
+ #if SIM_TOUCH_IOS
+         bwport_ios_touch_setup(sWindow);   // libntr-ios-inputprio.patch: (again: a rotation may bring new recognizers)
+ #endif
+@@ -537,6 +551,16 @@
+ }
+ 
+ int SimTouch_MenuOpen(void) { return sMenuOpen; }
++// libntr-ios-input2.patch: a controller was connected / taken away
++void SimTouch_Controller(int present) {
++    sController = present != 0;
++    if (Hidden()) {   // (fingers on the controls that are gone)
++        for (Finger & f : sF) {
++            if (f.used && (f.kind == K_BTN || f.kind == K_DPAD)) f.kind = K_DEAD;
++        }
++        sLiveMask = 0;
++    }
++}
+ // libntr-ios-input.patch: every finger is forgotten when the sheet closes. The finger that tapped the menu button lifts while the sheet
+ // is up, and SimTouchSettingsWait flushes that SDL_FINGERUP with the rest: its slot stayed taken, so after ten openings no finger could
+ // press anything (the maintainer's "the game stops taking button presses after changing settings"). A finger still down now is ignored
+@@ -585,8 +609,9 @@
+                 ink = IM_COL32(245, 246, 250, 235), inkLit = IM_COL32(28, 24, 12, 255), shade = IM_COL32(0, 0, 0, 70);
+     const Layout & L = sL;
+     unsigned m = sPressed;
++    const bool hide = Hidden();
+ 
+-    for (int i = 0; i < B_UP; i++) {
++    for (int i = 0; i < B_UP && !hide; i++) {
+         const Btn & b = L.btn[i];
+         if (b.w <= 0) continue;
+         bool on = (m >> i) & 1;
+@@ -612,7 +637,7 @@
+     }
+ 
+     // the D-pad: a plus of two slabs, arrows on the arms, the held arm lit
+-    {
++    if (!hide) {
+         float c = L.dc, x = L.dcx, y = L.dcy, rr = c * 0.28f;
+         // the plus as one outline (corners cut), so no line crosses its middle
+         {
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2578,7 +2578,7 @@
+ // renderer 0..2 (auto, vcore, gpu); resolution 1..8; antialias 0..2 (off, 2x, 4x); smooth, filter (0 nearest, 1 bilinear), line, edge,
+ // musicnormal, overlay, corner (0 left, 1 right), detail (0 compact, 1 detailed), skipslow (frame skip Auto on / off) 0/1; speed 1..4;
+ // ffspeed 2..5 (5 = Max, the fast-forward button's speed); smooth also sets the frame rate (60 off, the screen's on); framerate 0..3 (60, 120, Monitor,
+-// Unlimited); frameskip 0..4 (off, 1, 2, 3, auto); volume 0..100. Read only: active (0 starting, 1 vcore, 2 gpu), scale.
++// Unlimited); hidetouch 0/1 (touch buttons hidden while a controller is connected); frameskip 0..4 (off, 1, 2, 3, auto); volume 0..100. Read only: active (0 starting, 1 vcore, 2 gpu), scale.
+ extern "C" int SIM_UISettingGet(const char * k) {
+     using namespace SIM::GUI;
+     SIM_config_type * c = C();
+@@ -2600,6 +2600,7 @@
+     if (!strcmp(k, "overlay")) return c->overlay != 0;
+     if (!strcmp(k, "corner")) return c->overlayCorner != 0;
+     if (!strcmp(k, "detail")) return c->overlayDetail != 0;
++    if (!strcmp(k, "hidetouch")) return c->hideTouch != 0;
+     if (!strcmp(k, "active")) return SIM_RendererActive();
+     if (!strcmp(k, "scale")) return SIM_RenderScale();
+     return -1;
+@@ -2631,6 +2632,7 @@
+     else if (!strcmp(k, "overlay")) c->overlay = (u8)(v != 0);
+     else if (!strcmp(k, "corner")) c->overlayCorner = (u8)(v != 0);
+     else if (!strcmp(k, "detail")) c->overlayDetail = (u8)(v != 0);
++    else if (!strcmp(k, "hidetouch")) c->hideTouch = (u8)(v != 0);
+     else return;
+     SIM_Config_SaveConfigFile(c);
+     fprintf(stderr, "bwport: setting %s=%d\n", k, v);
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -158,6 +158,9 @@
+     if(MATCH("General", "OverlayCorner")) {
+         config->overlayCorner = strcmp(value, "right") == 0;
+     }
++    if(MATCH("General", "HideTouchWithController")) {
++        config->hideTouch = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
++    }
+     if(MATCH("General", "OverlayDetail")) {
+         config->overlayDetail = strcmp(value, "detailed") == 0;
+     }
+@@ -650,6 +653,7 @@
+     aConfig->overlay = 1;
+     aConfig->overlayCorner = 0;
+     aConfig->overlayDetail = 0;
++    aConfig->hideTouch = 1;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+@@ -760,6 +764,7 @@
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
+     fprintf(configFile, "Overlay=%s\n", aConfig->overlay ? "on" : "off");
+     fprintf(configFile, "OverlayCorner=%s\n", aConfig->overlayCorner ? "right" : "left");
++    fprintf(configFile, "HideTouchWithController=%s\n", aConfig->hideTouch ? "on" : "off");
+     fprintf(configFile, "OverlayDetail=%s\n", aConfig->overlayDetail ? "detailed" : "compact");
+     fprintf(configFile, "SmoothMotion=%s\n", aConfig->interpolation ? "on" : "off");
+     fprintf(configFile, "FrameRate=%s\n", FrameRateToString(aConfig->displayCap));
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -107,6 +107,7 @@
+     u8 overlay; /* bw-port (libntr-ios-settings.patch): the performance overlay in a corner while playing (touch mode), Overlay=on|off, default on */
+     u8 overlayCorner; /* 0 = top-left (OverlayCorner=left, default), 1 = top-right (=right) */
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
++    u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */

@@ -1,0 +1,11 @@
+    .text       start:0x021efec0 end:0x021f0134 kind:code align:32
+    .rodata     start:0x021f0134 end:0x021f01ac kind:rodata align:4
+    .ctor       start:0x021f01ac end:0x021f01ac kind:rodata align:4
+    .data       start:0x021f01c0 end:0x021f01e0 kind:data align:32
+    .bss        start:0x021f01e0 end:0x021f01e0 kind:bss align:32
+
+src/ov030/no_gear.c:
+    complete
+    .text       start:0x021efec0 end:0x021f0134
+    .rodata     start:0x021f0134 end:0x021f01ac
+    .data       start:0x021f01c0 end:0x021f01e0

@@ -1,0 +1,2 @@
+# route1: grass walk; battle
+up*f16@f10 up*f16@f30 up*f16@f50 up*f16@f70 left*f16@f90 up*f16@f110 up*f16@f130 down*f16@f150 down*f16@f170 up*f16@f190 up*f16@f210 left*f16@f230 left*f16@f250 right*f16@f270 right*f16@f290 up*f16@f310 up*f16@f330 down*f16@f350 down*f16@f370

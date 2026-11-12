@@ -1,0 +1,9 @@
+    .text       start:0x021eecc0 end:0x021ef374 kind:code align:32
+    .ctor       start:0x021ef374 end:0x021ef374 kind:rodata align:4
+    .data       start:0x021ef380 end:0x021ef3a0 kind:data align:32
+    .bss        start:0x021ef3a0 end:0x021ef3a0 kind:bss align:32
+
+src/ov131/rail_slipdown.c:
+    complete
+    .text       start:0x021eecc0 end:0x021ef374
+    .data       start:0x021ef380 end:0x021ef3a0

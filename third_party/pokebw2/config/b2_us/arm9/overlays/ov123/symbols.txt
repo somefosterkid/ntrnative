@@ -1,0 +1,30 @@
+GimmickGrimsley_Setup kind:function(thumb,size=0x56) addr:0x021eec80
+GimmickGrimsley_End kind:function(thumb,size=0x18) addr:0x021eecd8
+GimmickGrimsley_Update kind:function(thumb,size=0x18) addr:0x021eecf0
+GimmickGrimsley_PlayGroup kind:function(thumb,size=0x34) addr:0x021eed08
+GimmickGrimsley_PlayModel0Animation kind:function(thumb,size=0x18) addr:0x021eed3c
+GrimsleyRoom_Init kind:function(thumb,size=0x11c) addr:0x021eed54
+GrimsleyRoom_Free kind:function(thumb,size=0xc) addr:0x021eee70
+GrimsleyRoom_StepAnimations kind:function(thumb,size=0xc) addr:0x021eee7c
+GrimsleyRoom_ShowSavedState kind:function(thumb,size=0x74) addr:0x021eee88
+GrimsleyRoom_StartGroup kind:function(thumb,size=0x1c) addr:0x021eeefc
+GrimsleyRoom_UpdatePlayback kind:function(thumb,size=0x22) addr:0x021eef18
+GrimsleyRoom_IsGroupFinished kind:function(thumb,size=0x68) addr:0x021eef3c
+GrimsleyRoom_ShowGroup kind:function(thumb,size=0x134) addr:0x021eefa4
+GrimsleyRoom_PlayModel0Animation kind:function(thumb,size=0x6a) addr:0x021ef0d8
+GrimsleyRoom_SetGroup0Played kind:function(thumb,size=0x4) addr:0x021ef144
+GrimsleyRoom_GetGroup0Played kind:function(thumb,size=0x4) addr:0x021ef148
+GrimsleyRoom_SetGroup1Played kind:function(thumb,size=0x4) addr:0x021ef14c
+GrimsleyRoom_GetGroup1Played kind:function(thumb,size=0x4) addr:0x021ef150
+sModel0Animations kind:data(any) addr:0x021ef154
+sGroupLastModels kind:data(any) addr:0x021ef15c
+sGroupFirstModels kind:data(any) addr:0x021ef164
+sGroupModelAnimations kind:data(any) addr:0x021ef16c
+sSceneSetup kind:data(any) addr:0x021ef17c
+data_ov123_021ef18c kind:data(any) addr:0x021ef18c
+sResources kind:data(any) addr:0x021ef1d4
+data_ov123_021ef211 kind:data(any) addr:0x021ef211 ambiguous
+data_ov123_021ef231 kind:data(any) addr:0x021ef231 ambiguous
+sActors kind:data(any) addr:0x021ef234
+data_ov123_021ef289 kind:data(any) addr:0x021ef289 ambiguous
+data_ov123_021ef29d kind:data(any) addr:0x021ef29d ambiguous

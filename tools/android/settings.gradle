@@ -1,0 +1,19 @@
+// The Android app's Gradle project (the maintainers' notes, "Android"): packaging only. The game's native code is built by meson
+// (port/machine/android-*.ini); tools/android_package.sh copies this project to build/android/project, adds the .so files, SDL's
+// Java glue (from the SDL release tools/android_deps.sh built) and the icon, and runs Gradle there.
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = 'bwport'
+include ':app'

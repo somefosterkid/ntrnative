@@ -1,0 +1,88 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -921,6 +921,14 @@
+ // the iOS performance test (Settings > About > Run performance test; port/src/ios_settings.m): from where the player stands, each step
+ // settles 1 s and measures 4 s (bench rows, no frame skip), then the settings as they were; the table goes to the log
+ static bool sPerfTestOn;
++// libntr-ios-testbadge.patch: the test's progress for the touch overlay (the fast-forward pill reads "TEST n/N" while it runs and
++// takes no tap): bench rows finished of the script's rows
++static int sPerfRowsDone, sPerfRows;
++extern "C" int SIM_PerfTestProgress(int *done, int *rows) {
++  if (done) *done = sPerfRowsDone;
++  if (rows) *rows = sPerfRows;
++  return sPerfTestOn;
++}
+ // libntr-ios-passes.patch: a bench row's parts (cfgscript passes=1|0). The phone's GLES has no timer queries, so its GPU time a frame
+ // was only a bound (the fence latency); with passes on, the GPU path runs its GL half with glFinish after each pass (gpu_set_timing)
+ // and adds each frame's parts here: the worker's CPU half (geometry, span records, 2D) and the GPU's uploads, pass R, passes E + P and
+@@ -957,7 +965,7 @@
+   fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d)\n",
+           (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
+           (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
+-  SIM_CfgScriptLoad(
++  static const char *const kScript =
+       "p1:renderer=gpu,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0;p60:bench=gpu1-60;"
+       "p1:resolution=2;p60:bench=gpu2-60;"
+       "p1:resolution=4;p60:bench=gpu4-60;"
+@@ -990,7 +998,10 @@
+       "p1:resolution=2;p60:bench=vcore2-60;"
+       "p1:framerate=120,smooth=1;p60:bench=vcore2-120-smooth;"
+       "p1:framerate=60,smooth=0,resolution=1,ff=1;p60:bench=vcore1-ff;"
+-      "p1:restore=1");
++      "p1:restore=1";
++  sPerfRowsDone = sPerfRows = 0;
++  for (const char *q = strstr(kScript, "bench="); q != NULL; q = strstr(q + 6, "bench=")) sPerfRows++;  // (libntr-ios-testbadge.patch)
++  SIM_CfgScriptLoad(kScript);
+ #if SIM_IOS
+   sCfgSaved.speed = 1;  // (play is 1x on iOS: a fast-forward the sheet just switched off must not come back with the settings)
+ #endif
+@@ -2368,6 +2379,7 @@
+              (sPc.ipLate - a.ipLate) / dt, (sPc.ipNone - a.ipNone) / dt);
+     sBench.table += row;
+     fputs(row, stderr);
++    if (sPerfTestOn) sPerfRowsDone++;  // libntr-ios-testbadge.patch
+     if (sPassOn && sPassNg > 0) {  // libntr-ios-passes.patch: the row's parts, means a frame in ms
+       const double nc = sPassNc ? (double)sPassNc : 1.0, ng = (double)sPassNg;
+       fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f; GPU (glFinish after each) uploads %.2f, R %.2f, E+P %.2f, SMAA %.2f, compose %.2f ms\n",
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -48,6 +48,7 @@
+ extern "C" const char * SIM_PadNames(unsigned m, char * buf);
+ extern "C" unsigned SIM_InputTickNo(void);
+ extern "C" int SIM_UISettingGet(const char * k);   // sim_gui.cpp: "ffspeed" 2..5 (5 = Max)
++extern "C" int SIM_PerfTestProgress(int * done, int * rows);   // sim_main.cpp (libntr-ios-testbadge.patch): the performance test runs
+ 
+ namespace {
+ 
+@@ -445,7 +446,7 @@
+         }
+         if (k == K_TOGGLE) {
+             if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; if (sFF) { sFF = false; sFFEdge = 0; } }
+-            else { sFF = !sFF; sFFEdge = sFF; }
++            else if (!SIM_PerfTestProgress(nullptr, nullptr)) { sFF = !sFF; sFFEdge = sFF; }   // (the test owns the speed: libntr-ios-testbadge.patch)
+         } else if (k == K_STYLUS) {
+             if (sStylusDown) { f->kind = K_DEAD; return; }
+             sStylusDown = 1;
+@@ -841,9 +842,19 @@
+         dl->AddRectFilled(q0, q1, sFF ? lit : body, fr);
+         dl->AddRect(q0, q1, edge, fr, 0, 2.0f * u);
+         int sp = SIM_UISettingGet("ffspeed");
+-        char lab[8];
++        char lab[16];
+         snprintf(lab, sizeof lab, sp >= 5 ? "MAX" : "%dx", sp);
+         float fs = (f.h > 40.0f * u ? 16.0f : 14.0f) * u;
++        // libntr-ios-testbadge.patch: while the performance test runs the pill says so, with the rows done ("TEST 7/30"), lit
++        int tDone = 0, tRows = 0;
++        if (SIM_PerfTestProgress(&tDone, &tRows)) {
++            snprintf(lab, sizeof lab, "TEST %d/%d", tDone + 1 > tRows ? tRows : tDone + 1, tRows);
++            dl->AddRectFilled(q0, q1, lit, fr);
++            dl->AddRect(q0, q1, edge, fr, 0, 2.0f * u);
++            ImVec2 ls = font->CalcTextSizeA(fs, 1000.0f, 0.0f, lab);
++            dl->AddText(font, fs, ImVec2(f.x + (f.w - ls.x) * 0.5f, f.y + (f.h - ls.y) * 0.5f), inkLit, lab);
++            return;
++        }
+         ImVec2 ts = font->CalcTextSizeA(fs, 1000.0f, 0.0f, lab);
+         float ah = f.h * 0.22f, aw = ah * 0.9f, total = 2 * aw + 9.0f * u + ts.x;
+         float x0 = f.x + (f.w - total) * 0.5f, cy = f.y + f.h * 0.5f;

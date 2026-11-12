@@ -1,0 +1,71 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -86,6 +86,10 @@
+ double bwport_mtl_fetch_bench(unsigned long long *n);
+ void bwport_mtl_bench(unsigned long long *presents, double *gpuMean, double *gpuMax, unsigned long long *waits, double *waitMs,
+                       unsigned long long *nodrawable);
++int bwport_mtl_vsync(unsigned long long *lastNs, unsigned long long *periodNs);  // libntr-ios-maclink.patch
++void bwport_mtl_glass(unsigned long long *shown, unsigned long long *lost, unsigned long long *gaps, unsigned long long *gapRuns,
++                      double *latMean, double *latMax, unsigned long long *calls, unsigned long long *empty,
++                      unsigned long long *twice, double *phase, double *phaseMin, double *phaseMax);
+ }
+ #else
+ #define SIM_METAL 0
+@@ -2211,6 +2215,19 @@
+   *vs = SpNowNs() / *per * *per;
+   return 1;
+ #else
++  // libntr-ios-maclink.patch: macOS under Present=metal: the present does not wait for the refresh (the drawable comes from a
++  // thread of its own), so Frame rate Monitor follows the display's real refreshes, a CVDisplayLink (port/src/metal_present.mm),
++  // as iOS follows its CADisplayLink: the slots locked to them, the panel model and its drops. Monitor only (not fast forward):
++  // 60, 120 and Unlimited stay on the program's clock as before
++#if SIM_METAL
++  if (SpPanelEnvHz() <= 0 && sMetal && s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR && !sFastForward) {
++    unsigned long long a = 0, b = 0;
++    int ok = bwport_mtl_vsync(&a, &b);
++    *vs = a;
++    *per = b;
++    return ok;
++  }
++#endif
+   if (SpPanelEnvHz() <= 0) return 0;
+   *per = 1000000000ull / (u64)SpPanelEnvHz();
+   *vs = SpNowNs() / *per * *per;
+@@ -2484,6 +2501,9 @@
+     unsigned long long p, w, nd;
+     double gm, gx, wm;
+     bwport_mtl_bench(&p, &gm, &gx, &w, &wm, &nd);
++    unsigned long long gs, gl, gg, gr, lc, le, lt;  // libntr-ios-maclink.patch
++    double lp, lpn, lpx;
++    bwport_mtl_glass(&gs, &gl, &gg, &gr, &gm, &gx, &lc, &le, &lt, &lp, &lpn, &lpx);
+   }
+ #endif
+ }
+@@ -2656,6 +2676,18 @@
+       fprintf(stderr, "metal: %-20s GPU %.3f ms a present (max %.3f, %llu presents), renderer %.1f ms/s (%llu command buffers), "
+               "GPU spans ~%.0f%% of the time (overlaps count twice), drawable waits %.1f/s %.1f ms/s, no drawable %.1f/s, fetch thread waits %.1f/s %.1f ms/s\n",
+               sBench.name, gm, gx, p, rms / dt, rn, (gm * (double)p + rms) / dt / 10.0, w / dt, wm / dt, nd / dt, fn / dt, fms / dt);
++      // libntr-ios-maclink.patch: what reached the glass (each drawable's presentedTime): shown and never shown a second, the
++      // refreshes between two shown presents with no new picture (a repeat or a dropped present) and the present call to the glass
++      // and the present calls on the display link's refreshes (macOS; a hidden window has no glass but the link ticks): refreshes
++      // with no call and with two a second, and how far into its refresh a call came; "paced by the link" when SpLink used it
++      unsigned long long gs, gl, gg, gr, lc, le, lt;
++      double glm, glx, lp, lpn, lpx;
++      bwport_mtl_glass(&gs, &gl, &gg, &gr, &glm, &glx, &lc, &le, &lt, &lp, &lpn, &lpx);
++      u64 lvs = 0, lper = 0;
++      fprintf(stderr, "glass: %-20s shown %.1f/s, never shown %.1f/s, refreshes without a new picture %.2f/s (%llu gaps), present to glass %.1f ms (max %.1f); "
++              "link: %llu calls, refreshes with none %.2f/s, with two %.2f/s, call %.1f ms into the refresh (%.1f-%.1f), %s\n",
++              sBench.name, gs / dt, gl / dt, gg / dt, gr, glm, glx, lc, le / dt, lt / dt, lp, lpn, lpx,
++              SpLink(&lvs, &lper) ? "paced by the link" : "paced by the program's clock");
+     }
+ #endif
+     fflush(stderr);
+@@ -2744,7 +2776,7 @@
+   static int calls, sEnvHz = -1, sLoggedHz;
+   if (sEnvHz < 0) sEnvHz = getenv("BWPORT_PANELHZ") != NULL ? atoi(getenv("BWPORT_PANELHZ")) : 0;
+   int panelHz = sEnvHz > 0 ? sEnvHz : 0;
+-#if SIM_IOS || SIM_ANDROID
++#if SIM_IOS || SIM_ANDROID || SIM_METAL  // (libntr-ios-maclink.patch: and the Mac's display link under Metal)
+   u64 vs = 0, per = 0;
+   if (panelHz == 0 && SpLink(&vs, &per) && per >= 4000000 && per <= 50000000) {
+     // libntr-ios-pacefix.patch: a new rate is followed once it has held half a second. Every change restarts the pace timeline

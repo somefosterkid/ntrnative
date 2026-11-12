@@ -1,0 +1,9 @@
+    .text       start:0x021b7560 end:0x021b8ab8 kind:code align:32
+    .rodata     start:0x021b8ab8 end:0x021b8c5c kind:rodata align:4
+    .ctor       start:0x021b8c5c end:0x021b8c5c kind:rodata align:4
+    .bss        start:0x021b8c60 end:0x021b8c60 kind:bss align:32
+
+src/ov102/irc_compat_menu.c:
+    complete
+    .text       start:0x021b7560 end:0x021b8ab8
+    .rodata     start:0x021b8ab8 end:0x021b8c5c

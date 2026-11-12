@@ -1,0 +1,4 @@
+func_ov002_021542c0 kind:function(thumb,size=0x128) addr:0x021542c0
+func_ov002_021543e8 kind:function(thumb,size=0x50) addr:0x021543e8
+func_ov002_02154438 kind:function(thumb,size=0x14) addr:0x02154438
+data_ov002_02154460 kind:data(any) addr:0x02154460

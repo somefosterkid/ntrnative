@@ -1,0 +1,328 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -106,7 +106,7 @@
+     u8 overlay; /* bw-port (libntr-ios-settings.patch): the performance overlay in a corner while playing (touch mode), Overlay=on|off, default on */
+     u8 overlayCorner; /* 0 = top-left (OverlayCorner=left, default), 1 = top-right (=right) */
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+-    u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the fast-forward button's speed on iOS, 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4); the desktop keeps it but does not use it */
++    u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -577,19 +577,21 @@
+     }
+ }
+ 
+-/* bw-port (libntr-ios-speedui.patch): on iOS play is always 1x and the fast-forward button switches to FastForwardSpeed. A file that has
+-   no FastForwardSpeed yet (an older one) hands its GameSpeed over to it once (the file is written with the key from then on). The
+-   sheet has no Frame rate or fixed Frame skip: the rate follows Smooth motion (the screen's with it on, else 60), a fixed skip is Auto. */
+-#if defined(__APPLE__) && TARGET_OS_IOS
+-static void IosSpeedModel(SIM_config_type * aConfig)
++/* bw-port (libntr-ios-speedui.patch, libntr-desktop-speed.patch): play is always 1x; fast forward (the iOS button, Space on the desktop)
++   switches to FastForwardSpeed. A file that has no FastForwardSpeed yet (an older one) hands its GameSpeed over to it once (the file is
++   written with the key from then on). A fixed Frame skip is Auto (the sheet / windows only have the "Skip frames when slow" switch; a
++   BWPORT_FRAMESKIP value is applied after this). On iOS there is also no Frame rate row: it follows Smooth motion (the screen's with it
++   on, else 60). The desktop keeps its Frame rate. */
++static void SpeedModel(SIM_config_type * aConfig)
+ {
+     if(!sSeenFFSpeed && aConfig->speed > 1) aConfig->ffSpeed = aConfig->speed;
+     aConfig->speed = 1;
++    if(aConfig->frameSkip != 0) aConfig->frameSkip = SIM_CONFIG_FRAMESKIP_AUTO;
++#if defined(__APPLE__) && TARGET_OS_IOS
+     aConfig->displayCap = aConfig->interpolation ? SIM_CONFIG_DISPLAYCAP_MONITOR : SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+-    if(aConfig->frameSkip != 0) aConfig->frameSkip = SIM_CONFIG_FRAMESKIP_AUTO;
+-}
+ #endif
++}
+ 
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig)
+ {
+@@ -598,9 +600,7 @@
+     sSeenGameSpeed = 0; sSeenFrameRate = 0; sSeenRestore = 0; sSeenSmooth = 0; sSeenFFSpeed = 0;
+     BOOL ok = (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
+     FinishOldKeys(aConfig);
+-#if defined(__APPLE__) && TARGET_OS_IOS
+-    IosSpeedModel(aConfig);
+-#endif
++    SpeedModel(aConfig);
+     RendererFromEnv(aConfig);
+     SoundFromEnv(aConfig);
+     return ok;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -490,6 +490,8 @@
+     SIM_config_type * c = C();
+     return c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : c->frameSkip > 3 ? 3 : c->frameSkip;
+ }
++
++static bool SkipSlow() { return C()->frameSkip != 0; } // libntr-desktop-speed.patch: Auto (or a BWPORT_FRAMESKIP value) = on
+ 
+ static void SetFrameSkip(int i) {
+     // a value from BWPORT_FRAMESKIP (above 3) stays unless the choice was changed
+@@ -511,11 +513,14 @@
+ static const char * const SpeedShort[] = {"1x", "2x", "3x", "4x"};
+ static const char * const DisplayCapNames[] = {"60 per second", "120 per second", "Monitor's refresh rate", "Unlimited (Tab)"};
+ static const char * const DisplayCapShort[] = {"60", "120", "Monitor", "Max"};
+-static const char * const SpeedTip = "how fast the game runs: sound effects and cries follow, the music keeps its tempo (Audio: Music at normal speed). No effect at Unlimited";
+-static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120, the monitor's refresh rate, or Unlimited (no cap, no VSync: as fast as the computer can; Tab switches to Unlimited and back). The game runs on its own clock (Game speed)";
++static const char * const SpeedTip = "how fast the game runs while fast forward is on (Space: tap to switch on and off, hold to fast-forward while held). 2x-4x run the game at that speed and show the usual frame rate; Max runs as fast as the computer can. Normal play is always 1x. Sound effects and cries follow the speed, the music keeps its tempo (Music at normal speed). No effect at Unlimited (Tab)";
++static const char * const SkipTip = "when the computer cannot keep the game at full speed, draw only some of the pictures so the game itself keeps its speed. Off: draw every picture";
++static const char * const FFNames[] = {"2x", "3x", "4x", "Max (as fast as possible)"};
++static const char * const FFShort[] = {"2x", "3x", "4x", "Max"};
++static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120, the monitor's refresh rate, or Unlimited (no cap, no VSync: as fast as the computer can; Tab switches to Unlimited and back). The game runs on its own clock (Fast-forward speed)";
+ static const char * const NoEffectTip = "no effect at Unlimited";
+ static bool FrameRateUnlimited() { return C()->displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED; }
+-static const char * const MusicNormalTip = "at Speed 2x-4x the music (the background music and jingles) keeps its normal tempo while sound effects and cries follow the speed";
++static const char * const MusicNormalTip = "while fast forward runs at 2x-4x the music (the background music and jingles) keeps its normal tempo while sound effects and cries follow the speed";
+ 
+ static int SpeedIndex() {
+     SIM_config_type * c = C();
+@@ -525,6 +530,22 @@
+ static void SetSpeed(int i) {
+     if (i != SpeedIndex()) {
+         C()->speed = (u8)(i + 1);
++        Dirty();
++    }
++}
++
++// libntr-desktop-speed.patch: the Fast-forward speed (2x 3x 4x Max = ffSpeed 2..5); Space switches fast forward on and off (sim_main.cpp)
++extern "C" int SIM_FFOn(void);
++extern "C" void SIM_FFSet(int on);
++static int FFIndex() {
++    SIM_config_type * c = C();
++    return c->ffSpeed < 2 ? 0 : c->ffSpeed > 5 ? 3 : c->ffSpeed - 2;
++}
++
++static void SetFF(int i) {
++    if (i != FFIndex()) {
++        C()->ffSpeed = (u8)(i + 2);
++        if (SIM_FFOn()) { SIM_FFSet(1); } // running: continue at the new speed
+         Dirty();
+     }
+ }
+@@ -729,9 +750,9 @@
+         FormRow("Integer scale", "the screens at a whole multiple of the DS size, centred");
+         bool is = c->integerScale;
+         if (ImGui::Checkbox("##is", &is)) { c->integerScale = is; Dirty(); }
+-        FormRow("Frame skip");
+-        int fk = FrameSkipIndex();
+-        if (ComboIndex("##fk", &fk, FrameSkipNames, 5)) { SetFrameSkip(fk); }
++        FormRow("Skip frames when slow", SkipTip);
++        bool fk = SkipSlow();
++        if (ImGui::Checkbox("##fk", &fk)) { SetFrameSkip(fk ? 4 : 0); }
+         FormRow("Frame rate", DisplayCapTip);
+         int dc = DisplayCapIndex();
+         if (ComboIndex("##dcap", &dc, DisplayCapNames, 4)) { SetDisplayCap(dc); }
+@@ -768,10 +789,10 @@
+         ImGui::EndTable();
+     }
+     if (BeginForm("##aus")) {
+-        FormRow("Game speed (Game menu)", SpeedTip);
++        FormRow("Fast-forward speed (Space)", SpeedTip);
+         ImGui::BeginDisabled(FrameRateUnlimited());
+-        int sp = SpeedIndex();
+-        if (ComboIndex("##aspd", &sp, SpeedNames, 4)) { SetSpeed(sp); }
++        int sp = FFIndex();
++        if (ComboIndex("##aspd", &sp, FFNames, 4)) { SetFF(sp); }
+         ImGui::EndDisabled();
+         if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         FormRow("Music at normal speed", MusicNormalTip);
+@@ -843,7 +864,7 @@
+                 ImGui::TableSetupColumn("k");
+                 KeyRow("Menu bar on/off", &p.guiKey, false);
+                 KeyRow("Frame rate Unlimited on/off", &p.frameCapToggleKey, false);
+-                KeyRow("Fast forward (hold)", &p.frameCapKey, false);
++                KeyRow("Fast forward (tap or hold)", &p.frameCapKey, false);
+                 ImGui::EndTable();
+             }
+             ImGui::TextDisabled("F11 and Alt+Enter: fullscreen. F1: the controller panel. Alt alone: the menu bar.");
+@@ -1147,11 +1168,11 @@
+     char b[900];
+     snprintf(b, sizeof b,
+              "# GL renderer: %s\n# GL version: %s\n"
+-             "# Renderer: %s, Resolution %d (picture %d x %d), Antialiasing %s, Smooth motion %s, Frame rate %s, Game speed %s,"
+-             " Frame skip %s, Sound %s, window %d x %d\n",
++             "# Renderer: %s, Resolution %d (picture %d x %d), Antialiasing %s, Smooth motion %s, Frame rate %s, Fast-forward speed %s,"
++             " Skip frames when slow %s, Sound %s, window %d x %d\n",
+              SIM_GLRendererName(), sGlVersion.c_str(), ActiveRenderer(), SIM_RenderScale(), pw, ph,
+              AntialiasNames[AntialiasIndex(c->antialias)], c->interpolation ? "on" : "off", DisplayCapShort[DisplayCapIndex()],
+-             SpeedShort[SpeedIndex()], skip.c_str(), c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr", ww, wh);
++             FFShort[FFIndex()], skip.c_str(), c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr", ww, wh);
+     return b;
+ }
+ 
+@@ -1421,14 +1442,16 @@
+     ItemRect(3);
+     if (mgame) {
+         ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
+-        if (ImGui::BeginMenu("Game speed")) {
++        bool ffOn = SIM_FFOn() != 0;
++        if (ImGui::MenuItem("Fast forward", "Space", &ffOn)) { SIM_FFSet(ffOn); }
++        if (ImGui::BeginMenu("Fast-forward speed")) {
+             ImGui::BeginDisabled(FrameRateUnlimited());
+             for (int i = 0; i < 4; i++) {
+-                if (MenuRadio(SpeedNames[i], SpeedIndex() == i)) { SetSpeed(i); }
++                if (MenuRadio(FFNames[i], FFIndex() == i)) { SetFF(i); }
+             }
+             ImGui::EndDisabled();
+             ImGui::Separator();
+-            ImGui::TextDisabled(FrameRateUnlimited() ? "No effect at Unlimited (Frame rate)" : "Sound effects follow the speed");
++            ImGui::TextDisabled(FrameRateUnlimited() ? "No effect at Unlimited (Frame rate)" : "Normal play is 1x; Space switches");
+             ImGui::EndMenu();
+         }
+         if (RestartSupported() && ImGui::MenuItem("Reset...")) {
+@@ -1519,12 +1542,8 @@
+         if (ImGui::MenuItem("Integer scale", nullptr, &is)) { c->integerScale = is; Dirty(); }
+         bool fs = c->fullScreen;
+         if (ImGui::MenuItem("Fullscreen", "F11", &fs)) { ApplyFullscreen(fs); }
+-        if (ImGui::BeginMenu("Frame skip")) {
+-            for (int i = 0; i < 5; i++) {
+-                if (MenuRadio(FrameSkipNames[i], FrameSkipIndex() == i)) { SetFrameSkip(i); }
+-            }
+-            ImGui::EndMenu();
+-        }
++        bool sk = SkipSlow();
++        if (ImGui::MenuItem("Skip frames when slow", nullptr, &sk)) { SetFrameSkip(sk ? 4 : 0); }
+         if (ImGui::BeginMenu("Frame rate")) {
+             for (int i = 0; i < 4; i++) {
+                 if (MenuRadio(DisplayCapNames[i], DisplayCapIndex() == i)) { SetDisplayCap(i); }
+@@ -2208,11 +2227,11 @@
+             if (ComboIndex("##qdcap", &dc, DisplayCapShort, 4)) { SetDisplayCap(dc); }
+             ItemRect(9);
+         }
+-        FormRow("Game speed", SpeedTip);
++        FormRow("Fast-forward speed", SpeedTip);
+         {
+             ImGui::BeginDisabled(FrameRateUnlimited());
+-            int sp = SpeedIndex();
+-            if (ComboIndex("##qspeed", &sp, SpeedShort, 4)) { SetSpeed(sp); }
++            int sp = FFIndex();
++            if (ComboIndex("##qspeed", &sp, FFShort, 4)) { SetFF(sp); }
+             ItemRect(10);
+             ImGui::EndDisabled();
+             if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+@@ -2231,6 +2250,11 @@
+             ItemRect(12);
+             ImGui::EndDisabled();
+             if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
++        }
++        FormRow("Skip frames when slow", SkipTip);
++        {
++            bool sk = SkipSlow();
++            if (ImGui::Checkbox("##qskip", &sk)) { SetFrameSkip(sk ? 4 : 0); }
+         }
+         ImGui::EndTable();
+     }
+@@ -2332,7 +2356,7 @@
+     // the program's own keys
+     const std::string hints[] = {
+         "F1  hide this panel", KeyLabel(pad.frameCapToggleKey) + "  unlimited frame rate on/off",
+-        KeyLabel(pad.frameCapKey) + "  hold: fast forward", KeyLabel(pad.guiKey) + "  menu bar",
++        KeyLabel(pad.frameCapKey) + "  fast forward: tap on/off, or hold", KeyLabel(pad.guiKey) + "  menu bar",
+     };
+     {
+         // one size for the four lines: the largest at which the longest fits
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -107,7 +107,9 @@
+         }
+     }
+ 
+-    if(ImGui::Combo("Frame skip", &frameSkip, FrameSkipStrings, 5, 5)) {
++    bool skipSlow = frameSkip != 0; // libntr-desktop-speed.patch: Skip frames when slow (Auto) on / off
++    if(ImGui::Checkbox("Skip frames when slow", &skipSlow)) {
++        frameSkip = skipSlow ? 4 : 0;
+         configChanged = true;
+     }
+     if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
+--- a/libraries/sim/src/sim_gui_pad.cpp
++++ b/libraries/sim/src/sim_gui_pad.cpp
+@@ -115,7 +115,7 @@
+     KeySettingButton("L   ", 5, sConfig->padSettings.lKey);
+     KeySettingButton("R   ", 6, sConfig->padSettings.rKey);
+     KeySettingButton("GUI ", 7, sConfig->padSettings.guiKey);
+-    KeySettingButton("Frame Cap Hold ", 8, sConfig->padSettings.frameCapKey);
++    KeySettingButton("Fast forward   ", 8, sConfig->padSettings.frameCapKey);
+     KeySettingButton("Frame Cap Toggle ", 9, sConfig->padSettings.frameCapToggleKey);
+ 
+     ImGui::NextColumn();
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -418,6 +418,25 @@
+ static u32 sLogAt;                // the V-blank count to log the status at (0: none)
+ static u32 sStatusUntil;          // the V-blank count until which the overlay shows
+ static u32 sRateOverlayUntil;     // rn80: the same for the Frame rate line after Tab
++
++// bw-port (libntr-desktop-speed.patch): fast forward is on while the Game speed timeline runs above 1x (FastForwardSpeed 2x-4x) or the
++// uncapped path is on (Max). Space (a tap: toggle; held longer than a tap: only while held), the Fast-forward speed rows and the
++// iOS button all go through here. The label is "FF 4x" / "FF Max" in the title and the status line.
++static u32 sFFMsgUntil, sFFKeyDownAt;
++extern "C" int SIM_FFOn(void) { return s_SIM_config.speed > 1 || sFastForward; }
++extern "C" void SIM_FFSet(int on) {
++  const bool max = s_SIM_config.ffSpeed >= 5;
++  s_SIM_config.speed = (u8)(on && !max ? (s_SIM_config.ffSpeed < 2 ? 2 : s_SIM_config.ffSpeed) : 1);
++  sFastForward = on && max;
++  sFFMsgUntil = *((u32 *)HW_VBLANK_COUNT_BUF) + 90;
++  fprintf(stderr, "bwport: fast forward %s: game speed %d%s\n", on ? "on" : "off", (int)s_SIM_config.speed, sFastForward ? " + uncapped (Max)" : "");
++}
++static const char * FFLabel(char * b, size_t n) {
++  if (!SIM_FFOn()) { b[0] = 0; return b; }
++  if (sFastForward) snprintf(b, n, "FF Max");
++  else snprintf(b, n, "FF %dx", (int)s_SIM_config.speed);
++  return b;
++}
+ static double sCostMs;            // render work per frame, smoothed
+ static std::string sBaseTitle;
+ static std::string sShownTitle;
+@@ -529,9 +548,11 @@
+     int ok = sActive == (want == SIM_CONFIG_RENDERER_GPU ? 2 : 1);
+     char aat[16] = "";
+     if (SIM_AntialiasWanted() > 1) snprintf(aat, sizeof aat, " AA%dx", sAAUsed > 0 && sAAUsed < SIM_AntialiasWanted() ? sAAUsed : SIM_AntialiasWanted());
+-    snprintf(t, sizeof t, "%s - %s %dx%s%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
++    char ffl[16];
++    FFLabel(ffl, sizeof ffl);
++    snprintf(t, sizeof t, "%s - %s %dx%s%s%s%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
+              ok || sActive == 0 ? "" : (sActive == 2 ? " (gpu drawing)" : " (vcore drawing)"),
+-             s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? " - Frame rate: Unlimited" : "");
++             s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? " - Frame rate: Unlimited" : "", ffl[0] ? " - " : "", ffl);
+     if (sShownTitle != t) {
+       sShownTitle = t;
+       SDL_SetWindowTitle(window, t);
+@@ -544,6 +565,11 @@
+       snprintf(rate, sizeof rate, "Frame rate: %s", d == SIM_CONFIG_DISPLAYCAP_UNLIMITED ? "Unlimited" : d == SIM_CONFIG_DISPLAYCAP_MONITOR ? "Monitor"
+                                                                   : d == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60");
+     }
++    if ((s32)(sFFMsgUntil - frame) > 0) { // libntr-desktop-speed.patch: what Space switched to
++      char ffl[16];
++      size_t l = strlen(rate);
++      snprintf(rate + l, sizeof rate - l, "%sFast forward: %s", l ? "  |  " : "", FFLabel(ffl, sizeof ffl)[0] ? ffl + 3 : "off");
++    }
+     if (frame < sStatusUntil && rate[0]) {
+       char both[480];
+       snprintf(both, sizeof both, "%s  |  %s", SIM_RendererStatus(), rate);
+@@ -2536,8 +2562,11 @@
+           }
+           
+         } else if(keyRead == s_SIM_config.padSettings.frameCapKey) {
+-          sFastForward = true;
+-          SDL_GL_SetSwapInterval(0);
++          // libntr-desktop-speed.patch: a tap switches fast forward on / off; a key held longer than a tap is fast forward only while held
++          if (!Event.key.repeat) {
++            sFFKeyDownAt = SDL_GetTicks();
++            SIM_FFSet(!SIM_FFOn());
++          }
+         }
+       }
+       if (Event.type == SDL_KEYUP) {
+@@ -2581,7 +2610,7 @@
+           // Select button
+           s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000100;
+         } else if(keyRead == s_SIM_config.padSettings.frameCapKey) {
+-          sFastForward = false; // (the swap interval is set each frame in SIM_Render)
++          if (SDL_GetTicks() - sFFKeyDownAt > 350) SIM_FFSet(0); // (the swap interval is set each frame in SIM_Render)
+         }
+       }
+       if (Event.type == SDL_JOYBUTTONDOWN) {

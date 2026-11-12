@@ -1,0 +1,81 @@
+    .text       start:0x021bc240 end:0x021c80e0 kind:code align:32
+    .rodata     start:0x021c80e0 end:0x021c8d7c kind:rodata align:4
+    .ctor       start:0x021c8d7c end:0x021c8d7c kind:rodata align:4
+    .data       start:0x021c8d80 end:0x021c8e80 kind:data align:32
+    .bss        start:0x021c8e80 end:0x021c8e80 kind:bss align:32
+
+src/ov208/zukan_detail_procsys.c:
+    complete
+    .text       start:0x021bc240 end:0x021bc35c
+    .data       start:0x021c8d80 end:0x021c8d98
+
+src/ov208/zukan_detail_touchbar.c:
+    complete
+    .text       start:0x021bd8c0 end:0x021be710
+    .rodata     start:0x021c8384 end:0x021c84f4
+    .data       start:0x021c8de4 end:0x021c8dfc
+
+src/ov208/zukan_detail_headbar.c:
+    complete
+    .text       start:0x021be710 end:0x021bea00
+    .rodata     start:0x021c84f4 end:0x021c8508
+    .data       start:0x021c8dfc end:0x021c8e14
+
+src/ov208/zukan_detail_graphic.c:
+    complete
+    .text       start:0x021bcd68 end:0x021bd11c
+    .rodata     start:0x021c8114 end:0x021c8314
+    .data       start:0x021c8dc0 end:0x021c8dd8
+
+src/ov208/zukan_detail_common.c:
+    complete
+    .text       start:0x021bc35c end:0x021bca68
+    .rodata     start:0x021c80e0 end:0x021c8108
+    .data       start:0x021c8d98 end:0x021c8db0
+
+src/ov208/zknd_tbar.c:
+    complete
+    .text       start:0x021bd148 end:0x021bd8c0
+    .rodata     start:0x021c8314 end:0x021c8384
+    .data       start:0x021c8dd8 end:0x021c8de4
+
+src/ov208/zukan_detail_form.c:
+    complete
+    .text       start:0x021c3b68 end:0x021c80e0
+    .rodata     start:0x021c87fc end:0x021c8d7c
+    .data       start:0x021c8e40 end:0x021c8e80
+
+src/ov208/zukan_detail_voice.c:
+    complete
+    .text       start:0x021c2560 end:0x021c3b68
+    .rodata     start:0x021c86ec end:0x021c8794
+    .data       start:0x021c8e28 end:0x021c8e40
+
+src/ov208/zukan_detail.c:
+    complete
+    .text       start:0x021bca68 end:0x021bcd68
+    .rodata     start:0x021c8108 end:0x021c8114
+    .data       start:0x021c8db0 end:0x021c8dc0
+
+src/ov208/ov208_021c239c.c:
+    complete
+    .text       start:0x021c239c end:0x021c2560
+
+src/ov208/zukan_detail_form_data.c:
+    complete
+    .rodata     start:0x021c8794 end:0x021c87fc
+
+src/ov208/zukan_detail_info.c:
+    complete
+    .text       start:0x021bea00 end:0x021bf784
+    .rodata     start:0x021c8508 end:0x021c8554
+
+src/ov208/ov208_021bf784.c:
+    complete
+    .text       start:0x021bf784 end:0x021c239c
+    .rodata     start:0x021c8554 end:0x021c86ec
+    .data       start:0x021c8e14 end:0x021c8e28
+
+src/ov208/ov208_021bd11c.c:
+    complete
+    .text       start:0x021bd11c end:0x021bd148

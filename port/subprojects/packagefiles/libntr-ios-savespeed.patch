@@ -1,0 +1,135 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -114,6 +114,7 @@
+     u8 textSpeed; /* bw-port (libntr-ios-textspeed.patch): the text printers' speed, 0 = the game's own (Options), 1 = Faster (4 characters a frame), 2 = Fastest (8), 3 = Instant (TextSpeed=game|faster|fastest|instant, default game; BWPORT_TEXTSPEED); port/extern/src/system/text_speed.c reads it */
+     u8 fadeSpeed; /* bw-port (libntr-ios-fadespeed.patch): the game's screen fades and wipes (map changes, doors, menus and apps opening and closing), 0 = the game's, 1 = 2x, 2 = 4x, 3 = Instant (FadeSpeed=1|2|4|instant, default 1; BWPORT_FADESPEED); port/extern/lib/gfl/src/fade.c and port/extern/src/system/wipe.c read it */
+     u8 walkSpeed, runSpeed, surfSpeed; /* bw-port (libntr-ios-movesettings.patch): the player's walk, run and Surf speeds, 1, 2 or 4 times the game's (WalkSpeed / RunSpeed / SurfSpeed = 1|2|4, default 1; BWPORT_WALKSPEED / RUNSPEED / SURFSPEED); port/src/move_speed.c reads them */
++    u8 saveSpeed; /* bw-port (libntr-ios-savespeed.patch): the Game speed while the game saves (the field menu's Save from Yes to the end, any other save's write), 1, 2 or 4 (SaveSpeed=1|2|4, default 1 = off; BWPORT_SAVESPEED); port/extern/src/system/game_event.c reads it */
+     u8 battleSpeed; /* bw-port (libntr-ios-battlespeed.patch): the Game speed while a battle runs, 1..4 (BattleSpeed=1..4, default 1 = off; BWPORT_BATTLESPEED); the higher of it and the Game speed applies */
+     u32 audioRate; /* bw-port (libntr-ios-ablate.patch): the rate asked of SDL's audio device (AudioRate=48000); 0 = 44100 as before. A phone whose device runs at 48 kHz then skips SDL's second resample (a test of that cost; off by default) */
+     u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -231,6 +231,9 @@
+     }
+     if(MATCH("General", "SurfSpeed")) { /* bw-port (libntr-ios-movesettings.patch) */
+         config->surfSpeed = MoveSpeedFromString(value);
++    }
++    if(MATCH("General", "SaveSpeed")) { /* bw-port (libntr-ios-savespeed.patch) */
++        config->saveSpeed = MoveSpeedFromString(value);
+     }
+     if(MATCH("General", "BattleSpeed")) { /* bw-port (libntr-ios-battlespeed.patch) */
+         int n = atoi(value);
+@@ -649,6 +652,10 @@
+     if(e != NULL && *e) {
+         aConfig->surfSpeed = MoveSpeedFromString(e);
+     }
++    e = getenv("BWPORT_SAVESPEED");   /* bw-port (libntr-ios-savespeed.patch): 1|2|4 */
++    if(e != NULL && *e) {
++        aConfig->saveSpeed = MoveSpeedFromString(e);
++    }
+     e = getenv("BWPORT_BATTLESPEED");   /* bw-port (libntr-ios-battlespeed.patch): 1..4 */
+     if(e != NULL && *e) {
+         int n = atoi(e);
+@@ -784,6 +791,7 @@
+     aConfig->walkSpeed = 1;   /* bw-port (libntr-ios-movesettings.patch) */
+     aConfig->runSpeed = 1;   /* bw-port (libntr-ios-movesettings.patch) */
+     aConfig->surfSpeed = 1;   /* bw-port (libntr-ios-movesettings.patch) */
++    aConfig->saveSpeed = 1;   /* bw-port (libntr-ios-savespeed.patch) */
+     aConfig->textSpeed = 0;   /* bw-port (libntr-ios-textspeed.patch) */
+     aConfig->soundQuality = 1;
+     aConfig->musicNormalSpeed = 1;
+@@ -944,6 +952,7 @@
+     fprintf(configFile, "WalkSpeed=%d\n", aConfig->walkSpeed >= 4 ? 4 : aConfig->walkSpeed >= 2 ? 2 : 1);   /* bw-port (libntr-ios-movesettings.patch) */
+     fprintf(configFile, "RunSpeed=%d\n", aConfig->runSpeed >= 4 ? 4 : aConfig->runSpeed >= 2 ? 2 : 1);   /* bw-port (libntr-ios-movesettings.patch) */
+     fprintf(configFile, "SurfSpeed=%d\n", aConfig->surfSpeed >= 4 ? 4 : aConfig->surfSpeed >= 2 ? 2 : 1);   /* bw-port (libntr-ios-movesettings.patch) */
++    fprintf(configFile, "SaveSpeed=%d\n", aConfig->saveSpeed >= 4 ? 4 : aConfig->saveSpeed >= 2 ? 2 : 1);   /* bw-port (libntr-ios-savespeed.patch) */
+     fprintf(configFile, "BattleSpeed=%d\n", aConfig->battleSpeed < 1 ? 1 : aConfig->battleSpeed > 4 ? 4 : aConfig->battleSpeed);
+     fprintf(configFile, "FastForwardSpeed=%s\n", aConfig->ffSpeed >= 5 ? "max" : aConfig->ffSpeed == 3 ? "3" : aConfig->ffSpeed == 4 ? "4" : "2");
+     fprintf(configFile, "SoundQuality=%s\n", aConfig->soundQuality ? "enhanced" : "ds");
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -625,6 +625,10 @@
+         Dirty();
+     }
+ }
++
++// libntr-ios-savespeed.patch: Save speed (Off, 2x, 4x): the game speed while the game saves; the config holds 1, 2 or 4
++static const char * const SaveSpeedTip = "how fast saving runs: the field menu's Save from your Yes to the end (the saving message, its wait and the save's sound), and the write of any other save. Off = the normal speed. The music keeps its tempo. Fast forward, when faster, still wins";
++static const char * const SaveSpeedNames[] = {"Off", "2x", "4x"};
+ 
+ // libntr-desktop-speed.patch: the Fast-forward speed (2x 3x 4x Max = ffSpeed 2..5); Space switches fast forward on and off (sim_main.cpp)
+ extern "C" int SIM_FFOn(void);
+@@ -933,6 +937,8 @@
+         { int msp = MoveSpeedIndex(c->runSpeed); if (ComboIndex("##arunmspd", &msp, MoveSpeedNames, 3)) { SetMoveSpeed(&c->runSpeed, msp); } }
+         FormRow("Surf speed", MoveSpeedTip);   // libntr-ios-movesettings.patch
+         { int msp = MoveSpeedIndex(c->surfSpeed); if (ComboIndex("##asurfmspd", &msp, MoveSpeedNames, 3)) { SetMoveSpeed(&c->surfSpeed, msp); } }
++        FormRow("Save speed", SaveSpeedTip);   // libntr-ios-savespeed.patch
++        { int ssp = MoveSpeedIndex(c->saveSpeed); if (ComboIndex("##asavespd", &ssp, SaveSpeedNames, 3)) { SetMoveSpeed(&c->saveSpeed, ssp); } }
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+@@ -2466,6 +2472,11 @@
+             int msp = MoveSpeedIndex(C()->surfSpeed);
+             if (ComboIndex("##qsurfmspd", &msp, MoveSpeedNames, 3)) { SetMoveSpeed(&C()->surfSpeed, msp); }
+         }
++        FormRow("Save speed", SaveSpeedTip);   // libntr-ios-savespeed.patch
++        {
++            int ssp = MoveSpeedIndex(C()->saveSpeed);
++            if (ComboIndex("##qsavespd", &ssp, SaveSpeedNames, 3)) { SetMoveSpeed(&C()->saveSpeed, ssp); }
++        }
+         FormRow("Music, normal speed", MusicNormalTip);
+         {
+             bool mn = c->musicNormalSpeed != 0;
+@@ -2855,6 +2866,7 @@
+     if (!strcmp(k, "walkspeed")) return c->walkSpeed >= 4 ? 4 : c->walkSpeed >= 2 ? 2 : 1;   // libntr-ios-movesettings.patch: 1, 2 or 4
+     if (!strcmp(k, "runspeed")) return c->runSpeed >= 4 ? 4 : c->runSpeed >= 2 ? 2 : 1;   // libntr-ios-movesettings.patch: 1, 2 or 4
+     if (!strcmp(k, "surfspeed")) return c->surfSpeed >= 4 ? 4 : c->surfSpeed >= 2 ? 2 : 1;   // libntr-ios-movesettings.patch: 1, 2 or 4
++    if (!strcmp(k, "savespeed")) return c->saveSpeed >= 4 ? 4 : c->saveSpeed >= 2 ? 2 : 1;   // libntr-ios-savespeed.patch: 1 (off), 2 or 4
+     if (!strcmp(k, "battlespeed")) return BattleSpeedIndex() + 1;   // libntr-ios-battlespeed.patch: 1 (off) .. 4
+     if (!strcmp(k, "skipslow")) return c->frameSkip != 0;
+     if (!strcmp(k, "volume")) return (int)((c->masterVolume * 100 + 63) / 127);
+@@ -2896,6 +2908,7 @@
+     else if (!strcmp(k, "walkspeed")) c->walkSpeed = (u8)(v >= 4 ? 4 : v >= 2 ? 2 : 1);   // libntr-ios-movesettings.patch
+     else if (!strcmp(k, "runspeed")) c->runSpeed = (u8)(v >= 4 ? 4 : v >= 2 ? 2 : 1);   // libntr-ios-movesettings.patch
+     else if (!strcmp(k, "surfspeed")) c->surfSpeed = (u8)(v >= 4 ? 4 : v >= 2 ? 2 : 1);   // libntr-ios-movesettings.patch
++    else if (!strcmp(k, "savespeed")) c->saveSpeed = (u8)(v >= 4 ? 4 : v >= 2 ? 2 : 1);   // libntr-ios-savespeed.patch
+     else if (!strcmp(k, "battlespeed")) c->battleSpeed = (u8)(v < 1 ? 1 : v > 4 ? 4 : v);   // libntr-ios-battlespeed.patch
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);
+     else if (!strcmp(k, "volume") || !strcmp(k, "volumelive")) {
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -533,6 +533,11 @@
+ // player's speed applies, and the player's speed comes back when it ends, as with a battle.
+ static int sTrSpeed;
+ extern "C" void SIM_SetTransition(int speed) { sTrSpeed = speed < 0 ? 0 : speed > 4 ? 4 : speed; }
++// bw-port (libntr-ios-savespeed.patch): the save window, a third one. The port (port/extern/src/system/game_event.c) passes the
++// SaveSpeed setting while the game saves (the field menu's Save from the player's Yes to its end, the write of any other
++// save), 0 otherwise; the highest of the windows and the player's speed applies, as for the transition window.
++static int sSvSpeed;
++extern "C" void SIM_SetSave(int speed) { sSvSpeed = speed < 0 ? 0 : speed > 4 ? 4 : speed; }
+ static int SIM_UserSpeed(void) { return sBtlApplied && s_SIM_config.speed == sBtlApplied ? sBtlUser : s_SIM_config.speed; }
+ extern "C" int SIM_SpeedForFile(int speed) { return sBtlApplied && speed == sBtlApplied ? sBtlUser : speed; }
+ // a Game speed set by the player (fast forward, the settings, a script) while a battle's speed is applied
+@@ -550,7 +555,10 @@
+   int bs = s_SIM_config.battleSpeed < 1 ? 1 : s_SIM_config.battleSpeed > 4 ? 4 : s_SIM_config.battleSpeed;
+   int want = sBtlOn && bs > user ? bs : 0;
+   if (sTrSpeed > user && sTrSpeed > want) want = sTrSpeed;  // libntr-ios-transitions.patch
+-  if (want != sBtlApplied) fprintf(stderr, "bwport: %s speed %s (game speed %d)\n", sBtlOn ? "battle" : "transition", want ? "on" : "off", want ? want : user);
++  if (sSvSpeed > user && sSvSpeed > want) want = sSvSpeed;  // libntr-ios-savespeed.patch
++  static const char *sWinName = "battle";  // libntr-ios-savespeed.patch: the window that set the speed, named at its on and its off
++  if (want) sWinName = sBtlOn ? "battle" : want == sSvSpeed ? "save" : "transition";
++  if (want != sBtlApplied) fprintf(stderr, "bwport: %s speed %s (game speed %d)\n", sWinName, want ? "on" : "off", want ? want : user);
+   if (want) {
+     sBtlUser = user;
+     s_SIM_config.speed = (u8)want;
+@@ -1293,6 +1301,9 @@
+       } else if (strcmp(kv, "runspeed") == 0) {  // libntr-ios-movesettings.patch: the player's run speed 1, 2 or 4
+         int n = atoi(v);
+         s_SIM_config.runSpeed = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1);
++      } else if (strcmp(kv, "savespeed") == 0) {  // libntr-ios-savespeed.patch: the save window's speed 1, 2 or 4
++        int n = atoi(v);
++        s_SIM_config.saveSpeed = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1);
+       } else if (strcmp(kv, "surfspeed") == 0) {  // libntr-ios-movesettings.patch: the player's surf speed 1, 2 or 4
+         int n = atoi(v);
+         s_SIM_config.surfSpeed = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1);

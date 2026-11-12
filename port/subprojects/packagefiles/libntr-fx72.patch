@@ -1,0 +1,59 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -645,8 +645,8 @@
+ 
+ struct SwSeen { double cost, rss, texMB; int objs; };
+ static std::vector<std::pair<int, SwSeen>> sSwSeen;
+-struct SwHist { int res; double rss; };
+-static std::vector<SwHist> sSwHist;  // every step's Resolution and resident memory
++struct SwHist { int renderer, res; double rss; };
++static std::vector<SwHist> sSwHist;  // every step's renderer in force, internal size and resident memory
+ 
+ static void SwOut(const char *fmt, ...) {
+   char line[400];
+@@ -667,6 +667,12 @@
+   s_SIM_config.renderer = (u8)sSwSteps[i].renderer;
+   s_SIM_config.resolution = (u8)sSwSteps[i].res;
+   s_SIM_config.antialias = (u8)sSwSteps[i].aa;
++  // test hook for the memory rule: BWPORT_SWITCH_LEAK=MB, every change keeps that many MB more, touched
++  if (getenv("BWPORT_SWITCH_LEAK") != NULL && atoi(getenv("BWPORT_SWITCH_LEAK")) > 0) {
++    size_t n = (size_t)atoi(getenv("BWPORT_SWITCH_LEAK")) << 20;
++    volatile char *leak = (volatile char *)malloc(n);
++    if (leak != NULL) for (size_t o = 0; o < n; o += 4096) leak[o] = 1;
++  }
+   sSwFrame = 0;
+   sSwN = 0;
+   sSwCost = 0;
+@@ -748,19 +754,27 @@
+     else if (gc.texMB > seen->texMB + 8.0)
+       ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB of textures, first time %.0f)", gc.texMB, seen->texMB);
+   }
+-  // memory: a step may not hold more than the most any earlier step of the same or a higher Resolution held (the
+-  // allocator keeps some freed memory, so a margin); a leak per change grows past it within a few steps
++  // memory: a step may not hold more than the most any earlier step of the same or a larger internal size held (the
++  // allocator keeps some freed memory, so a margin; the process keeps the other renderer's leftovers too, so every
++  // renderer's steps count). But the renderers differ (vcore at 8x holds ~410 MB, gpu ~270 MB): a renderer's first
++  // visit at an internal size no earlier step of ITS OWN reached is not judged; its later visits are, and a leak per
++  // change grows past the envelope within a few steps
+   if (ok) {
+     double env = -1;
+     int eff = st.res;  // memory follows the internal size, Resolution x the Antialiasing in force (capped at 8)
+     for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { eff = st.res * k; break; }
+-    for (auto &h : sSwHist) if (h.res >= eff && h.rss > env) env = h.rss;
+-    if (env >= 0 && rssMB > env + 64.0 + env * 0.1)
++    bool own = false;  // an earlier step of this renderer at this internal size or more
++    for (auto &h : sSwHist) {
++      if (h.res < eff) continue;
++      if (h.renderer == wantActive) own = true;
++      if (h.rss > env) env = h.rss;
++    }
++    if (own && env >= 0 && rssMB > env + 64.0 + env * 0.1)
+       ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB resident, no earlier step at %dx or more held over %.0f)", rssMB, eff, env);
+   }
+   int effRes = st.res;
+   for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { effRes = st.res * k; break; }
+-  sSwHist.push_back({effRes, rssMB});
++  sSwHist.push_back({wantActive, effRes, rssMB});
+   if (seen == NULL) sSwSeen.push_back({key, {cost, rssMB, gc.texMB, objs}});
+   if (!ok) sSwFails++;
+   SwOut("switch-test step %d: %s:%d%s -> %s drew %dx%d (want %dx%d), render %.2f ms (was %.2f): %s\n", sSwIdx,

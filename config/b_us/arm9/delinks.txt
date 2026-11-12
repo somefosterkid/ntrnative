@@ -1,0 +1,2394 @@
+    .text       start:0x02004000 end:0x0209d870 kind:code align:32
+    .exceptix   start:0x0209d870 end:0x0209d8a0 kind:rodata align:4
+    .rodata     start:0x0209d8a0 end:0x020a64f8 kind:rodata align:4
+    .ctor       start:0x020a64f8 end:0x020a64f8 kind:rodata align:4
+    .data       start:0x020a6500 end:0x020a9e80 kind:data align:32
+    .bss        start:0x020a9e80 end:0x021542c0 kind:bss align:32
+
+lib/nitro/src/fx/fx_vec.c:
+    complete
+    .text       start:0x0207c9d0 end:0x0207cfb8
+
+src/system/wipe_wnd.c:
+    complete
+    .text       start:0x02023b48 end:0x02023e0c
+
+src/system/brightness.c:
+    complete
+    .text       start:0x02023e0c end:0x02024044
+    .bss        start:0x021468fc end:0x0214693c
+
+src/system/sin_wave_table.c:
+    complete
+    .text       start:0x02024230 end:0x0202428c
+
+lib/spl/src/spl_emitter.c:
+    complete
+    .text       start:0x02052fc8 end:0x02053e1c
+
+lib/spl/src/spl_emit.c:
+    complete
+    .text       start:0x02056684 end:0x02057ab8
+    .data       start:0x020a7fec end:0x020a7ff4
+
+lib/spl/src/spl_anim.c:
+    complete
+    .text       start:0x02057ab8 end:0x02057ef8
+
+lib/spl/src/spl_behavior.c:
+    complete
+    .text       start:0x02057ef8 end:0x02058300
+
+lib/spl/src/spl_list.c:
+    complete
+    .text       start:0x02058300 end:0x0205841c
+
+lib/spl/src/spl_random.c:
+    complete
+    .text       start:0x0205841c end:0x020584e0
+    .bss        start:0x02146a8c end:0x02146a90
+
+src/system/bmp_cursor.c:
+    complete
+    .text       start:0x02020d18 end:0x02020dec
+    .rodata     start:0x0209e8cc end:0x0209e8ec
+    .data       start:0x020a73a0 end:0x020a73b0
+
+src/system/playtime_ctrl.c:
+    complete
+    .text       start:0x02021438 end:0x02021518
+    .bss        start:0x02146788 end:0x021467a4
+
+src/system/hp_gauge.c:
+    complete
+    .text       start:0x0202d01c end:0x0202d060
+
+src/system/screentex.c:
+    complete
+    .text       start:0x0202e560 end:0x0202e770
+    .rodata     start:0x020a02b8 end:0x020a03c8
+    .data       start:0x020a77e0 end:0x020a77ec
+
+src/system/scroll_bar.c:
+    complete
+    .text       start:0x0202ede4 end:0x0202ee30
+
+src/system/shooter_item.c:
+    complete
+    .text       start:0x0202f114 end:0x0202f190
+    .rodata     start:0x020a03c8 end:0x020a0480
+
+lib/nitro/src/crypto/rc4.c:
+    complete
+    .text       start:0x0202fab4 end:0x0202fbac
+
+lib/gfl/src/heapsys.c:
+    complete
+    .text       start:0x0202fbac end:0x02030534
+    .bss        start:0x02146954 end:0x02146964
+
+lib/gfl/src/heap_dtcm.c:
+    complete
+    .text       start:0x02030534 end:0x02030608
+    .bss        start:0x02146964 end:0x02146970
+
+lib/gfl/src/heap.c:
+    complete
+    .text       start:0x02030608 end:0x02030bd4
+    .data       start:0x020a7820 end:0x020a7834
+    .bss        start:0x02146970 end:0x02146990
+
+lib/gfl/src/tcb.c:
+    complete
+    .text       start:0x02030bd4 end:0x02030ef0
+
+lib/gfl/src/tcbl.c:
+    complete
+    .text       start:0x02030ef0 end:0x0203129c
+    .data       start:0x020a7834 end:0x020a783c
+
+lib/gfl/src/gf_overlay.c:
+    complete
+    .text       start:0x0203499c end:0x02034e24
+    .data       start:0x020a7970 end:0x020a7984
+    .bss        start:0x021469b8 end:0x021469bc
+
+lib/gfl/src/net_queue.c:
+    complete
+    .text       start:0x02036670 end:0x02036bd4
+    .data       start:0x020a79c4 end:0x020a79f0
+
+lib/gfl/src/wm_icon.c:
+    complete
+    .text       start:0x02036bd4 end:0x02037224
+    .rodata     start:0x020a0810 end:0x020a0830
+    .data       start:0x020a79f0 end:0x020a7a20
+    .bss        start:0x021469c8 end:0x021469d0
+
+lib/gfl/src/net_system.c:
+    complete
+    .text       start:0x02037224 end:0x020395ec
+    .data       start:0x020a7a20 end:0x020a7a68
+    .bss        start:0x021469d0 end:0x021469d4
+
+lib/gfl/src/bg_sys.c:
+    complete
+    .text       start:0x0203f8f4 end:0x0204335c
+    .data       start:0x020a7e5c end:0x020a7e68
+    .bss        start:0x02146a44 end:0x02146a48
+
+lib/gfl/src/savedata.c:
+    complete
+    .text       start:0x02033908 end:0x02033c00
+    .data       start:0x020a78cc end:0x020a7958
+
+lib/gfl/src/areaman.c:
+    complete
+    .text       start:0x02033c00 end:0x02034520
+    .rodata     start:0x020a048c end:0x020a07a0
+    .data       start:0x020a7958 end:0x020a7964
+
+lib/gfl/src/vman.c:
+    complete
+    .text       start:0x02034520 end:0x020346ec
+    .rodata     start:0x020a07a0 end:0x020a0810
+    .data       start:0x020a7964 end:0x020a796c
+
+lib/gfl/src/assert.c:
+    complete
+    .text       start:0x020346ec end:0x02034768
+    .bss        start:0x0214699c end:0x021469ac
+
+lib/gfl/src/debug_print.c:
+    complete
+    .text       start:0x02034768 end:0x0203499c
+    .data       start:0x020a796c end:0x020a7970
+    .bss        start:0x021469ac end:0x021469b8
+
+lib/gfl/src/net_irc_wireless.c:
+    complete
+    .text       start:0x0203d8f0 end:0x0203e5f8
+    .data       start:0x020a7d34 end:0x020a7d74
+    .bss        start:0x021469f0 end:0x021469f4
+
+lib/gfl/src/net_lower_data.c:
+    complete
+    .text       start:0x0203e5f8 end:0x0203ef5c
+    .data       start:0x020a7d74 end:0x020a7e4c
+    .bss        start:0x021469f4 end:0x021469f8
+
+lib/gfl/src/rtc_cache.c:
+    complete
+    .text       start:0x0203f3b4 end:0x0203f5fc
+    .rodata     start:0x020a08b8 end:0x020a08d0
+    .bss        start:0x021469fc end:0x02146a44
+
+lib/gfl/src/math_util.c:
+    complete
+    .text       start:0x0203f5fc end:0x0203f8f4
+
+lib/gfl/src/gx_layers.c:
+    complete
+    .text       start:0x0204335c end:0x02043678
+    .bss        start:0x02146a48 end:0x02146a50
+
+lib/gfl/src/bmp_win.c:
+    complete
+    .text       start:0x02045088 end:0x020457a0
+    .data       start:0x020a7e70 end:0x020a7e7c
+    .bss        start:0x02146a50 end:0x02146a54
+
+lib/gfl/src/strbuf.c:
+    complete
+    .text       start:0x020457a0 end:0x02045b38
+    .data       start:0x020a7e7c end:0x020a7e8c
+
+lib/gfl/src/msgdata.c:
+    complete
+    .text       start:0x02045b38 end:0x020461f4
+    .data       start:0x020a7e8c end:0x020a7e98
+    .bss        start:0x02146a54 end:0x02146a58
+
+lib/gfl/src/dma_vblank.c:
+    complete
+    .text       start:0x02050a70 end:0x02050b80
+    .bss        start:0x02146a84 end:0x02146a88
+
+lib/gfl/src/billboard.c:
+    complete
+    .text       start:0x0204ebd4 end:0x0204fe94
+    .rodata     start:0x020a14c0 end:0x020a155c
+    .data       start:0x020a7fa4 end:0x020a7fb0
+
+lib/gfl/src/billboard_act.c:
+    complete
+    .text       start:0x0204fe94 end:0x02050a70
+    .rodata     start:0x020a155c end:0x020a1578
+    .data       start:0x020a7fb0 end:0x020a7fc0
+
+lib/gfl/src/g3d_util.c:
+    complete
+    .text       start:0x02047cfc end:0x02048a24
+    .data       start:0x020a7eb8 end:0x020a7ec4
+
+lib/gfl/src/g3d_camera.c:
+    complete
+    .text       start:0x02048a24 end:0x02048bc4
+    .data       start:0x020a7ec4 end:0x020a7ed4
+
+lib/gfl/src/textprint.c:
+    complete
+    .text       start:0x0204e130 end:0x0204e5e8
+    .rodata     start:0x020a1480 end:0x020a14c0
+    .data       start:0x020a7f80 end:0x020a7f8c
+    .bss        start:0x02146a78 end:0x02146a7c
+
+lib/gfl/src/fade.c:
+    complete
+    .text       start:0x0204e5e8 end:0x0204e8c0
+    .data       start:0x020a7f8c end:0x020a7f94
+    .bss        start:0x02146a7c end:0x02146a80
+
+lib/gfl/src/double3Ddisp.c:
+    complete
+    .text       start:0x0204e8c0 end:0x0204ebd4
+    .data       start:0x020a7f94 end:0x020a7fa4
+    .bss        start:0x02146a80 end:0x02146a84
+
+lib/gfl/src/str_sjis.c:
+    complete
+    .text       start:0x02052274 end:0x020524c8
+
+lib/gfl/src/calctool.c:
+    complete
+    .text       start:0x02051e74 end:0x02052274
+
+lib/gfl/src/particle.c:
+    complete
+    .text       start:0x02050b80 end:0x02051b84
+    .rodata     start:0x020a1578 end:0x020a15e8
+    .data       start:0x020a7fc0 end:0x020a7fcc
+    .bss        start:0x02146a88 end:0x02146a8c
+
+lib/gfl/src/button_man.c:
+    complete
+    .text       start:0x02051b84 end:0x02051e74
+    .rodata     start:0x020a15e8 end:0x020a15f0
+    .data       start:0x020a7fcc end:0x020a7fdc
+
+src/system/iss_road_sys.c:
+    complete
+    .text       start:0x0202b1ac end:0x0202b2cc
+    .data       start:0x020a7708 end:0x020a7718
+
+src/system/ctvt_beacon.c:
+    complete
+    .text       start:0x0202e8d8 end:0x0202e930
+
+src/system/union_view.c:
+    complete
+    .text       start:0x02025c74 end:0x02025cd0
+    .rodata     start:0x0209fb18 end:0x0209fb58
+
+src/system/dsi.c:
+    complete
+    .text       start:0x0202eb0c end:0x0202eb7c
+
+src/system/codein_param.c:
+    complete
+    .text       start:0x0202e4ec end:0x0202e560
+    .data       start:0x020a77d0 end:0x020a77e0
+
+src/system/season.c:
+    complete
+    .text       start:0x0202e848 end:0x0202e8d8
+
+src/system/comm_player_support.c:
+    complete
+    .text       start:0x0202e770 end:0x0202e818
+    .data       start:0x020a77ec end:0x020a7804
+
+src/system/player_volume_fader.c:
+    complete
+    .text       start:0x02028760 end:0x02028844
+    .data       start:0x020a7500 end:0x020a7518
+
+src/system/tpoke_data.c:
+    complete
+    .text       start:0x0202a128 end:0x0202a230
+    .data       start:0x020a76cc end:0x020a76dc
+
+src/system/mystatus.c:
+    complete
+    .text       start:0x02008468 end:0x0200857c
+    .data       start:0x020a70ac end:0x020a70b8
+
+src/system/app_printsys_common.c:
+    complete
+    .text       start:0x02028470 end:0x02028590
+
+src/system/bmp_menuwork.c:
+    complete
+    .text       start:0x0201f81c end:0x0201f93c
+    .data       start:0x020a7374 end:0x020a7384
+
+src/system/trainer_data_savedata.c:
+    complete
+    .text       start:0x02008700 end:0x02008828
+
+src/system/adventure_savedata.c:
+    complete
+    .text       start:0x02008aec end:0x02008c20
+
+src/system/country_region.c:
+    complete
+    .text       start:0x02025b38 end:0x02025c74
+    .rodata     start:0x0209f8a0 end:0x0209fb18
+
+src/system/timesig_savedata.c:
+    complete
+    .text       start:0x020089a8 end:0x02008aec
+
+src/system/config.c:
+    complete
+    .text       start:0x020082ec end:0x02008468
+    .data       start:0x020a70a0 end:0x020a70ac
+
+src/system/player_savedata.c:
+    complete
+    .text       start:0x02008828 end:0x020089a8
+
+src/system/playtime.c:
+    complete
+    .text       start:0x0200857c end:0x02008700
+    .data       start:0x020a70b8 end:0x020a70c4
+
+src/system/app_menu_common.c:
+    complete
+    .text       start:0x020275e8 end:0x02027778
+    .rodata     start:0x0209fcec end:0x0209fd10
+
+src/system/app_keycursor.c:
+    complete
+    .text       start:0x02028590 end:0x02028760
+    .rodata     start:0x0209fd10 end:0x0209fd90
+    .data       start:0x020a74f0 end:0x020a7500
+
+src/system/str_tool.c:
+    complete
+    .text       start:0x0201f35c end:0x0201f53c
+    .rodata     start:0x0209e758 end:0x0209e8c8
+
+src/system/pmsi_param.c:
+    complete
+    .text       start:0x02024044 end:0x02024230
+    .data       start:0x020a745c end:0x020a746c
+
+src/system/iss_dungeon_sys.c:
+    complete
+    .text       start:0x0202b2cc end:0x0202b4bc
+    .data       start:0x020a7718 end:0x020a772c
+
+src/system/mail.c:
+    complete
+    .text       start:0x02008eac end:0x020090b0
+    .data       start:0x020a716c end:0x020a7174
+
+src/system/iss_zone_sys.c:
+    complete
+    .text       start:0x0202be68 end:0x0202c070
+    .data       start:0x020a7748 end:0x020a7758
+
+src/system/ringtone_sys.c:
+    complete
+    .text       start:0x02029f14 end:0x0202a128
+    .rodata     start:0x0209fed4 end:0x0209fee4
+    .data       start:0x020a76bc end:0x020a76cc
+    .bss        start:0x02146944 end:0x02146948
+
+src/system/zone_weather.c:
+    complete
+    .text       start:0x0202c794 end:0x0202c9b4
+    .rodata     start:0x0209fff4 end:0x020a0058
+
+src/system/actor_tool.c:
+    complete
+    .text       start:0x02025318 end:0x02025538
+    .data       start:0x020a7484 end:0x020a7494
+
+src/system/field_sound.c:
+    complete
+    .text       start:0x02029cf0 end:0x02029f14
+    .rodata     start:0x0209fe94 end:0x0209fed4
+    .data       start:0x020a75a8 end:0x020a76bc
+
+src/system/iss_switch.c:
+    complete
+    .text       start:0x0202c538 end:0x0202c794
+    .data       start:0x020a7780 end:0x020a7790
+
+src/system/game_beacon.c:
+    complete
+    .text       start:0x020266e0 end:0x0202751c
+    .rodata     start:0x0209fc04 end:0x0209fcec
+    .data       start:0x020a74bc end:0x020a74d0
+    .bss        start:0x02146940 end:0x02146944
+
+src/system/record.c:
+    complete
+    .text       start:0x02008c64 end:0x02008eac
+    .rodata     start:0x0209dda0 end:0x0209ddcc
+    .data       start:0x020a70c4 end:0x020a716c
+
+src/system/iss_switch_set.c:
+    complete
+    .text       start:0x0202c2ec end:0x0202c538
+    .data       start:0x020a776c end:0x020a7780
+
+lib/gfl/src/g3d_light.c:
+    complete
+    .text       start:0x02048bc4 end:0x02048cec
+    .data       start:0x020a7ed4 end:0x020a7ee0
+
+lib/gfl/src/key.c:
+    complete
+    .text       start:0x02035ee8 end:0x0203640c
+    .data       start:0x020a799c end:0x020a79a4
+
+lib/gfl/src/procsys.c:
+    complete
+    .text       start:0x0203129c end:0x020316c8
+    .data       start:0x020a783c end:0x020a7848
+    .bss        start:0x02146990 end:0x02146994
+
+lib/gfl/src/net_ring_buff.c:
+    complete
+    .text       start:0x0203640c end:0x02036670
+    .data       start:0x020a79a4 end:0x020a79c4
+
+lib/gfl/src/flash_access.c:
+    complete
+    .text       start:0x02033534 end:0x02033908
+    .data       start:0x020a789c end:0x020a78cc
+    .bss        start:0x02146998 end:0x0214699c
+
+src/system/unity_tower_register.c:
+    complete
+    .text       start:0x0202eb7c end:0x0202ede4
+
+src/system/livematch_savedata.c:
+    complete
+    .text       start:0x0200e904 end:0x0200e9dc
+
+src/system/net_bgm_volume.c:
+    complete
+    .text       start:0x0200f698 end:0x0200f6b8
+
+src/system/poke_friendship.c:
+    complete
+    .text       start:0x0201b7a0 end:0x0201b920
+    .rodata     start:0x0209e45c end:0x0209e474
+
+src/system/poke_recover.c:
+    complete
+    .text       start:0x0201b920 end:0x0201ba68
+
+src/system/rndmatch_savedata.c:
+    complete
+    .text       start:0x0200dfcc end:0x0200e024
+
+src/system/rtc.c:
+    complete
+    .text       start:0x020113d8 end:0x02011428
+    .rodata     start:0x0209df10 end:0x0209df84
+
+src/system/shinka_check.c:
+    complete
+    .text       start:0x0201b2b0 end:0x0201b7a0
+    .data       start:0x020a7320 end:0x020a7340
+
+src/system/trainer_log_savedata.c:
+    complete
+    .text       start:0x0200a8a0 end:0x0200ad6c
+
+src/system/pm_voice.c:
+    complete
+    .text       start:0x02006544 end:0x02006cbc
+    .rodata     start:0x0209d8c0 end:0x0209d8cc
+    .data       start:0x020a7024 end:0x020a7030
+    .bss        start:0x02140484 end:0x02146164
+
+src/system/bsubway_savedata.c:
+    complete
+    .text       start:0x0200d858 end:0x0200dfcc
+    .data       start:0x020a71f8 end:0x020a720c
+
+lib/spl/src/spl_draw.c:
+    complete
+    .text       start:0x02053e1c end:0x02056684
+    .data       start:0x020a7fdc end:0x020a7fec
+
+src/system/survey_savedata.c:
+    complete
+    .text       start:0x0200e368 end:0x0200e588
+
+lib/spl/src/spl_manager.c:
+    complete
+    .text       start:0x020524c8 end:0x02052fc8
+
+src/system/mystery_data.c:
+    complete
+    .text       start:0x02009ed4 end:0x0200a53c
+    .data       start:0x020a71a4 end:0x020a71b4
+
+src/system/musical_savedata.c:
+    complete
+    .text       start:0x0200a53c end:0x0200a870
+
+src/system/unity_tower_savedata.c:
+    complete
+    .text       start:0x02009454 end:0x020097bc
+
+src/system/mcss.c:
+    complete
+    .text       start:0x02014b08 end:0x02017100
+    .rodata     start:0x0209e090 end:0x0209e0a8
+    .data       start:0x020a72cc end:0x020a72d4
+
+src/system/bgm_info.c:
+    complete
+    .text       start:0x02006e40 end:0x02006f20
+    .data       start:0x020a7048 end:0x020a7054
+
+src/system/field_event.c:
+    complete
+    .text       start:0x02014488 end:0x0201493c
+
+src/system/net_err.c:
+    complete
+    .text       start:0x0200f6b8 end:0x02010360
+    .rodata     start:0x0209dea0 end:0x0209def0
+    .data       start:0x020a7234 end:0x020a7240
+    .bss        start:0x0214617c end:0x021461e0
+
+lib/gfl/src/net_handle.c:
+    complete
+    .text       start:0x020395ec end:0x0203a494
+    .data       start:0x020a7a68 end:0x020a7ae8
+    .bss        start:0x021469d4 end:0x021469d8
+
+src/system/symbol_save.c:
+    complete
+    .text       start:0x0200e024 end:0x0200e368
+    .rodata     start:0x0209de90 end:0x0209dea0
+    .data       start:0x020a720c end:0x020a721c
+
+src/system/gds_profile.c:
+    complete
+    .text       start:0x0200d59c end:0x0200d858
+    .data       start:0x020a71e8 end:0x020a71f8
+
+src/system/field_actor_savedata.c:
+    complete
+    .text       start:0x0200ee48 end:0x0200f168
+
+src/system/field_light_status.c:
+    complete
+    .text       start:0x0201493c end:0x02014b08
+    .rodata     start:0x0209e054 end:0x0209e090
+
+src/system/game_data.c:
+    complete
+    .text       start:0x020124f4 end:0x02012ff0
+    .rodata     start:0x0209dfa8 end:0x0209dfb0
+    .data       start:0x020a728c end:0x020a7298
+
+src/system/field_status.c:
+    complete
+    .text       start:0x02014428 end:0x02014488
+    .data       start:0x020a72bc end:0x020a72cc
+
+src/system/myitem_savedata.c:
+    complete
+    .text       start:0x02007cb0 end:0x020082ec
+    .rodata     start:0x0209dd64 end:0x0209dda0
+    .data       start:0x020a708c end:0x020a70a0
+
+src/system/game_system.c:
+    complete
+    .text       start:0x02011d28 end:0x020122c0
+    .bss        start:0x02146248 end:0x02146264
+    .rodata     start:0x0209df9c end:0x0209dfa8
+
+src/system/worldtrade_data.c:
+    complete
+    .text       start:0x0200ad6c end:0x0200ade8
+
+src/system/gimmick_savedata.c:
+    complete
+    .text       start:0x0200b364 end:0x0200b3dc
+
+src/system/battle_video_proc.c:
+    complete
+    .text       start:0x02010bb8 end:0x02010db4
+    .rodata     start:0x0209defc end:0x0209df08
+
+src/system/snd_mic.c:
+    complete
+    .text       start:0x02006cbc end:0x02006e40
+    .data       start:0x020a7030 end:0x020a7048
+    .bss        start:0x02146164 end:0x02146168
+
+lib/gfl/src/bmp.c:
+    complete
+    .text       start:0x02043678 end:0x02045088
+    .data       start:0x020a7e68 end:0x020a7e70
+
+src/system/daycare_savedata.c:
+    complete
+    .text       start:0x0200bc10 end:0x0200bdbc
+
+src/system/ica_anime.c:
+    complete
+    .text       start:0x02011428 end:0x02011d28
+    .rodata     start:0x0209df84 end:0x0209df9c
+    .data       start:0x020a7270 end:0x020a727c
+
+src/system/wih_dwc.c:
+    complete
+    .text       start:0x02010360 end:0x02010888
+    .data       start:0x020a7240 end:0x020a725c
+    .bss        start:0x021461e0 end:0x021461e8
+
+src/system/pml_hm_check.c:
+    complete
+    .text       start:0x0202f72c end:0x0202f768
+
+src/system/net_define.c:
+    complete
+    .text       start:0x0200f168 end:0x0200f34c
+    .bss        start:0x02146178 end:0x0214617c
+
+lib/gfl/src/net_state.c:
+    complete
+    .text       start:0x0203ad74 end:0x0203cb34
+    .data       start:0x020a7ba8 end:0x020a7ca0
+    .bss        start:0x021469dc end:0x021469e0
+
+src/system/poke_personal.c:
+    complete
+    .text       start:0x0201ad88 end:0x0201b038
+    .data       start:0x020a7310 end:0x020a7320
+    .bss        start:0x0214652c end:0x02146530
+
+src/system/area_data.c:
+    complete
+    .text       start:0x0201407c end:0x020140f8
+
+src/system/dream_world_savedata.c:
+    complete
+    .text       start:0x02009228 end:0x02009454
+
+lib/gfl/src/gf_standard.c:
+    complete
+    .text       start:0x0203ef5c end:0x0203f3b4
+    .data       start:0x020a7e4c end:0x020a7e5c
+    .bss        start:0x021469f8 end:0x021469fc
+
+lib/gfl/src/clact.c:
+    complete
+    .text       start:0x0204a48c end:0x0204e130
+    .rodata     start:0x020a1384 end:0x020a1480
+    .data       start:0x020a7f3c end:0x020a7f80
+    .bss        start:0x02146a74 end:0x02146a78
+
+src/system/pokedex_skin_save.c:
+    complete
+    .text       start:0x0200e8b0 end:0x0200e8e8
+
+src/system/trainer_card_savedata.c:
+    complete
+    .text       start:0x02008c20 end:0x02008c64
+
+src/system/game_event.c:
+    complete
+    .text       start:0x020122c0 end:0x020124f4
+    .data       start:0x020a727c end:0x020a728c
+
+lib/gfl/src/arc_tool.c:
+    complete
+    .text       start:0x02048cec end:0x02049624
+    .data       start:0x020a7ee0 end:0x020a7f30
+    .bss        start:0x02146a68 end:0x02146a74
+
+lib/gfl/src/net.c:
+    complete
+    .text       start:0x0203cb34 end:0x0203d8f0
+    .data       start:0x020a7ca0 end:0x020a7d34
+    .bss        start:0x021469e0 end:0x021469f0
+
+src/system/poke_tool.c:
+    complete
+    .text       start:0x020173d0 end:0x02019d84
+    .rodata     start:0x0209e280 end:0x0209e424
+    .data       start:0x020a72e4 end:0x020a72f0
+    .bss        start:0x02146270 end:0x0214652c
+
+src/system/poke_regulation.c:
+    complete
+    .text       start:0x02019d84 end:0x0201a918
+    .rodata     start:0x0209e424 end:0x0209e45c
+    .data       start:0x020a72f0 end:0x020a7304
+
+src/system/perapvoice.c:
+    complete
+    .text       start:0x02007b00 end:0x02007cb0
+    .data       start:0x020a707c end:0x020a708c
+
+src/system/c_gear_phrase_savedata.c:
+    complete
+    .text       start:0x0200e6b0 end:0x0200e730
+
+lib/gfl/src/touchpanel.c:
+    complete
+    .text       start:0x02035750 end:0x02035ee8
+    .data       start:0x020a798c end:0x020a799c
+    .bss        start:0x021469c4 end:0x021469c8
+
+src/system/event_work.c:
+    complete
+    .text       start:0x020142d0 end:0x0201441c
+    .bss        start:0x02146268 end:0x02146270
+
+src/system/btl_setup.c:
+    complete
+    .text       start:0x02013090 end:0x020139b0
+    .data       start:0x020a729c end:0x020a72a8
+
+src/system/file_util.c:
+    complete
+    .text       start:0x02020dec end:0x02020e60
+    .data       start:0x020a73b0 end:0x020a73bc
+
+lib/gfl/src/arc_util.c:
+    complete
+    .text       start:0x02049624 end:0x0204a48c
+    .rodata     start:0x020a135c end:0x020a1384
+    .data       start:0x020a7f30 end:0x020a7f3c
+
+src/system/musical_dist_save.c:
+    complete
+    .text       start:0x0200c520 end:0x0200c6e4
+    .data       start:0x020a71d4 end:0x020a71e8
+
+src/system/poke_icon.c:
+    complete
+    .text       start:0x0201ba68 end:0x0201bd28
+    .rodata     start:0x0209e474 end:0x0209e73c
+
+src/system/high_link_savedata.c:
+    complete
+    .text       start:0x0200bdbc end:0x0200be84
+
+src/system/misc_savedata.c:
+    complete
+    .text       start:0x0200ed38 end:0x0200ee48
+
+src/system/trainer_game_info_savedata.c:
+    complete
+    .text       start:0x0200c054 end:0x0200c404
+
+src/system/pass_power.c:
+    complete
+    .text       start:0x02010db4 end:0x020111e8
+    .bss        start:0x021461e8 end:0x02146248
+
+src/system/gfl_use.c:
+    complete
+    .text       start:0x0200545c end:0x020057dc
+    .rodata     start:0x0209d8a0 end:0x0209d8c0
+    .data       start:0x020a6500 end:0x020a7010
+    .bss        start:0x020aa194 end:0x020aa1ac
+
+src/system/bmp_menu.c:
+    complete
+    .text       start:0x0201f93c end:0x0201ff30
+    .data       start:0x020a7384 end:0x020a7390
+
+src/system/text_speed.c:
+    complete
+    .text       start:0x02012ff0 end:0x02013090
+    .rodata     start:0x0209dfb0 end:0x0209dfb8
+    .data       start:0x020a7298 end:0x020a729c
+
+src/system/pokeparty.c:
+    complete
+    .text       start:0x0201a918 end:0x0201ad88
+    .data       start:0x020a7304 end:0x020a7310
+
+lib/gfl/src/ui.c:
+    complete
+    .text       start:0x02034e24 end:0x02035750
+    .data       start:0x020a7984 end:0x020a798c
+    .bss        start:0x021469bc end:0x021469c4
+
+src/system/mcss_tool.c:
+    complete
+    .text       start:0x02017100 end:0x020173d0
+    .rodata     start:0x0209e0a8 end:0x0209e280
+    .data       start:0x020a72d4 end:0x020a72e4
+
+src/system/battle_box.c:
+    complete
+    .text       start:0x0200ba78 end:0x0200bc10
+
+src/system/net_save.c:
+    complete
+    .text       start:0x02010888 end:0x02010a5c
+    .data       start:0x020a725c end:0x020a7268
+
+src/system/pokerus.c:
+    complete
+    .text       start:0x0201b038 end:0x0201b2b0
+
+src/system/zone_spawn.c:
+    complete
+    .text       start:0x020140f8 end:0x020142d0
+
+src/system/pms_word.c:
+    complete
+    .text       start:0x020247a8 end:0x02024a20
+    .rodata     start:0x0209f74c end:0x0209f830
+    .data       start:0x020a746c end:0x020a7478
+
+src/system/iss_switch_sys.c:
+    complete
+    .text       start:0x0202c070 end:0x0202c2ec
+    .data       start:0x020a7758 end:0x020a776c
+
+src/system/save_error.c:
+    complete
+    .text       start:0x0202f768 end:0x0202f9f4
+
+src/system/iss_city_unit.c:
+    complete
+    .text       start:0x0202aeec end:0x0202b1ac
+    .data       start:0x020a76f8 end:0x020a7708
+
+src/system/bmp_winframe.c:
+    complete
+    .text       start:0x0201f53c end:0x0201f81c
+    .rodata     start:0x0209e8c8 end:0x0209e8cc
+
+src/system/time_icon.c:
+    complete
+    .text       start:0x0202ee30 end:0x0202f114
+    .data       start:0x020a7814 end:0x020a7820
+
+src/system/dwc_friend.c:
+    complete
+    .text       start:0x0200f34c end:0x0200f698
+
+src/system/hall_of_fame_savedata.c:
+    complete
+    .text       start:0x0200ea0c end:0x0200ed38
+
+src/system/battle_rec.c:
+    complete
+    .text       start:0x0200b3dc end:0x0200ba78
+    .rodata     start:0x0209ddcc end:0x0209de20
+    .data       start:0x020a71c4 end:0x020a71d4
+    .bss        start:0x0214616c end:0x02146170
+
+src/system/cgear_picture_save.c:
+    complete
+    .text       start:0x0200c6e4 end:0x0200c720
+
+src/system/waza_tool.c:
+    complete
+    .text       start:0x0201bd28 end:0x0201c41c
+    .data       start:0x020a7340 end:0x020a734c
+    .bss        start:0x02146530 end:0x02146558
+
+lib/nitro/src/cp/cp_context.c:
+    complete
+    .text       start:0x020775b8 end:0x02077634
+
+src/system/snd_bgm_stack.c:
+    complete
+    .text       start:0x020057dc end:0x02005b24
+    .bss        start:0x020aa1ac end:0x020aa260
+
+src/system/iss_city_sys.c:
+    complete
+    .text       start:0x0202aaf4 end:0x0202aeec
+    .data       start:0x020a76e8 end:0x020a76f8
+
+src/system/iss_sys.c:
+    complete
+    .text       start:0x0202b4bc end:0x0202b894
+    .rodata     start:0x0209ff88 end:0x0209fff4
+    .data       start:0x020a772c end:0x020a7738
+
+src/system/game_comm.c:
+    complete
+    .text       start:0x020261e4 end:0x020266e0
+    .rodata     start:0x0209fb5c end:0x0209fc04
+    .data       start:0x020a74b0 end:0x020a74bc
+
+src/system/cursor_move.c:
+    complete
+    .text       start:0x02025cd0 end:0x020261e4
+    .rodata     start:0x0209fb58 end:0x0209fb5c
+    .data       start:0x020a74a0 end:0x020a74b0
+
+src/system/pms_data.c:
+    complete
+    .text       start:0x0202428c end:0x020247a8
+    .rodata     start:0x0209f71c end:0x0209f74c
+
+src/system/iss_3ds_sys.c:
+    complete
+    .text       start:0x0202b894 end:0x0202be68
+    .data       start:0x020a7738 end:0x020a7748
+
+src/system/pml_item.c:
+    complete
+    .text       start:0x02020e60 end:0x02021438
+    .rodata     start:0x0209e8ec end:0x0209f538
+
+src/system/bmp_oam.c:
+    complete
+    .text       start:0x02025538 end:0x02025b38
+    .rodata     start:0x0209f87c end:0x0209f8a0
+    .data       start:0x020a7494 end:0x020a74a0
+
+src/system/bgwinfrm.c:
+    complete
+    .text       start:0x0202c9b4 end:0x0202d01c
+    .rodata     start:0x020a0058 end:0x020a0064
+    .data       start:0x020a7790 end:0x020a779c
+
+src/system/wordset.c:
+    complete
+    .text       start:0x0201ec64 end:0x0201f344
+    .data       start:0x020a7364 end:0x020a7370
+
+src/system/pml_species_names.c:
+    complete
+    .text       start:0x0201f344 end:0x0201f35c
+    .data       start:0x020a7370 end:0x020a7374
+
+src/system/tr_tool.c:
+    complete
+    .text       start:0x0202a230 end:0x0202aaf4
+    .rodata     start:0x0209fee4 end:0x0209ff88
+    .data       start:0x020a76dc end:0x020a76e8
+
+lib/nnsys/src/fnd/list.c:
+    complete
+    .text       start:0x02060468 end:0x02060640
+
+src/system/printsys.c:
+    complete
+    .text       start:0x0201c41c end:0x0201d7ec
+    .data       start:0x020a734c end:0x020a7358
+    .bss        start:0x02146558 end:0x02146578
+
+src/system/wipe_sub.c:
+    complete
+    .text       start:0x020226e0 end:0x02023b48
+    .rodata     start:0x0209f568 end:0x0209f71c
+    .data       start:0x020a73d0 end:0x020a745c
+
+src/system/gf_font.c:
+    complete
+    .text       start:0x0201d7ec end:0x0201ec64
+    .rodata     start:0x0209e73c end:0x0209e758
+    .data       start:0x020a7358 end:0x020a7364
+    .bss        start:0x02146578 end:0x02146788
+
+src/system/infowin.c:
+    complete
+    .text       start:0x02024a20 end:0x02025318
+    .rodata     start:0x0209f830 end:0x0209f87c
+    .data       start:0x020a7478 end:0x020a7484
+    .bss        start:0x0214693c end:0x02146940
+
+src/system/pms_draw.c:
+    complete
+    .text       start:0x0202db0c end:0x0202e43c
+    .data       start:0x020a77b8 end:0x020a77c4
+
+src/system/snd_sys.c:
+    complete
+    .text       start:0x02005b24 end:0x02006544
+    .data       start:0x020a7010 end:0x020a7024
+    .bss        start:0x020aa260 end:0x02140484
+
+src/system/pokegra.c:
+    complete
+    .text       start:0x0202d060 end:0x0202db0c
+    .data       start:0x020a779c end:0x020a77b8
+    .rodata     start:0x020a0064 end:0x020a023c
+
+lib/nitro/src/gx/g3x.c:
+    complete
+    .text       start:0x0207d988 end:0x0207df60
+
+lib/nitro/src/gx/gx_vramcnt.c:
+    complete
+    .text       start:0x0207fd34 end:0x02080c84
+
+lib/nitro/src/fx/fx_mtx44.c:
+    complete
+    .text       start:0x0207bdb4 end:0x0207c768
+
+lib/nitro/src/fx/fx_mtx43.c:
+    complete
+    .text       start:0x0207b598 end:0x0207bdb4
+
+lib/nitro/src/fx/fx_mtx33.c:
+    complete
+    .text       start:0x0207adc4 end:0x0207b598
+
+lib/nitro/src/gx/gx_bgcnt.c:
+    complete
+    .text       start:0x0207df60 end:0x0207e3d0
+
+lib/nitro/src/os/os_thread.c:
+    complete
+    .text       start:0x02084fb4 end:0x02085b9c
+    .bss        start:0x02150fd0 end:0x02151244
+
+lib/nitro/src/os/os_alarm.c:
+    complete
+    .text       start:0x02087180 end:0x02087578
+    .bss        start:0x02151340 end:0x0215134c
+
+lib/nitro/src/os/os_valarm.c:
+    complete
+    .text       start:0x02087578 end:0x02087974
+    .bss        start:0x0215134c end:0x02151360
+
+lib/nitro/src/rtc/convert.c:
+    complete
+    .text       start:0x02088f58 end:0x02089330
+    .data       start:0x020a86f4 end:0x020a8724
+
+lib/nitro/src/os/os_alloc.c:
+    complete
+    .text       start:0x020867f4 end:0x02086c70
+    .data       start:0x020a86ac end:0x020a86b4
+    .bss        start:0x0215126c end:0x02151290
+
+lib/nitro/src/math/crc.c:
+    complete
+    .text       start:0x02081940 end:0x02081be4
+
+lib/nitro/src/mi/mi_memory.c:
+    complete
+    .text       start:0x02082a48 end:0x020834b8
+
+lib/nnsys/src/g3d/sbc.c:
+    .text       start:0x0206b458 end:0x0206db24
+    .rodata     start:0x020a1954 end:0x020a1998
+    .data       start:0x020a82b8 end:0x020a8438
+    .bss        start:0x02148db0 end:0x0214bab4
+
+lib/nitro/src/snd/snd_interface.c:
+    complete
+    .text       start:0x02089330 end:0x02089848
+
+lib/gfl/src/backup_system.c:
+    .text       start:0x020316c8 end:0x02033534
+    .data       start:0x020a7848 end:0x020a789c
+    .bss        start:0x02146994 end:0x02146998
+
+lib/gfl/src/g3d_system.c:
+    complete
+    .text       start:0x02046440 end:0x02047cfc
+    .rodata     start:0x020a1300 end:0x020a134c
+    .data       start:0x020a7ea8 end:0x020a7eb8
+    .bss        start:0x02146a5c end:0x02146a68
+
+src/system/battle_examination.c:
+    complete
+    .text       start:0x0200e588 end:0x0200e6b0
+    .data       start:0x020a721c end:0x020a7234
+
+src/system/regulation.c:
+    complete
+    .text       start:0x0200ade8 end:0x0200b364
+    .data       start:0x020a71b4 end:0x020a71c4
+
+src/system/traded_pokemon_savedata.c:
+    complete
+    .text       start:0x0200e730 end:0x0200e874
+
+src/system/game_sync_settings_proc.c:
+    complete
+    .text       start:0x02010a5c end:0x02010bb8
+    .rodata     start:0x0209def0 end:0x0209defc
+
+lib/gfl/src/net_command.c:
+    complete
+    .text       start:0x0203a494 end:0x0203ad74
+    .data       start:0x020a7ae8 end:0x020a7ba8
+    .rodata     start:0x020a0830 end:0x020a08b8
+    .bss        start:0x021469d8 end:0x021469dc
+
+src/system/box_savedata.c:
+    complete
+    .text       start:0x0200745c end:0x02007b00
+    .data       start:0x020a7068 end:0x020a707c
+
+src/system/main.c:
+    complete
+    .text       start:0x02005124 end:0x02005328
+
+src/system/machine_use.c:
+    complete
+    .text       start:0x02005328 end:0x0200545c
+    .bss        start:0x020a9e80 end:0x020aa194
+
+src/system/save_control.c:
+    complete
+    .text       start:0x02006f20 end:0x0200745c
+    .data       start:0x020a7054 end:0x020a7068
+    .bss        start:0x02146168 end:0x0214616c
+
+src/system/c_gear_savedata.c:
+    complete
+    .text       start:0x020090b0 end:0x02009228
+    .data       start:0x020a7174 end:0x020a7198
+
+lib/nitro/src/wm/wm_ds.c:
+    complete
+    .text       start:0x0209004c end:0x02090b9c
+
+lib/nitro/src/spi/tp.c:
+    complete
+    .text       start:0x0208a6b0 end:0x0208b24c
+    .bss        start:0x02152fa4 end:0x02152fe0
+
+lib/nitro/src/wm/wm_mp.c:
+    complete
+    .text       start:0x0208fa28 end:0x0208fe64
+
+lib/nitro/src/snd/snd_bank.c:
+    complete
+    .text       start:0x0208a2bc end:0x0208a6b0
+
+lib/nitro/src/wm/wm_sync.c:
+    complete
+    .text       start:0x0208eac8 end:0x0208f224
+    .data       start:0x020a872c end:0x020a8730
+
+lib/nitro/src/wm/wm_standard.c:
+    complete
+    .text       start:0x0208f224 end:0x0208fa28
+
+lib/nitro/src/wm/wm_etc.c:
+    complete
+    .text       start:0x02090bc4 end:0x02090f18
+    .bss        start:0x02153b00 end:0x02153b80
+
+lib/nitro/src/math/qsort.c:
+    complete
+    .text       start:0x02081be4 end:0x02081e6c
+
+lib/nitro/src/os/os_message.c:
+    complete
+    .text       start:0x02085d94 end:0x02086004
+
+lib/nitro/src/fx/fx_cp.c:
+    complete
+    .text       start:0x0207c768 end:0x0207c9d0
+
+lib/nitro/src/snd/snd_work.c:
+    complete
+    .text       start:0x0208a054 end:0x0208a24c
+    .bss        start:0x02152fa0 end:0x02152fa4
+
+lib/nitro/src/wm/wm_dcf.c:
+    complete
+    .text       start:0x0208fe64 end:0x0209004c
+
+lib/nitro/src/gx/g3_util.c:
+    complete
+    .text       start:0x0207d704 end:0x0207d8c4
+
+lib/nitro/src/spi/mic.c:
+    complete
+    .text       start:0x0208b24c end:0x0208b7bc
+    .bss        start:0x02152fe0 end:0x02153000
+
+lib/nitro/src/os/os_spinLock.c:
+    complete
+    .text       start:0x02084ab0 end:0x02084f40
+    .bss        start:0x02150fcc end:0x02150fd0
+
+lib/nitro/src/fx/fx_atanidx.c:
+    complete
+    .text       start:0x0207cfb8 end:0x0207d148
+    .rodata     start:0x020a5b38 end:0x020a5c3c
+
+lib/nitro/src/std/std_sprintf.c:
+    complete
+    .text       start:0x0208d708 end:0x0208e010
+
+lib/nitro/src/os/os_arena.c:
+    complete
+    .text       start:0x020863e0 end:0x020867f4
+    .bss        start:0x02151264 end:0x0215126c
+
+lib/nitro/src/os/os_tick.c:
+    complete
+    .text       start:0x02086fe8 end:0x02087180
+    .bss        start:0x02151330 end:0x02151340
+
+lib/nitro/src/pxi/pxi_fifo.c:
+    complete
+    .text       start:0x020884a4 end:0x02088788
+    .bss        start:0x021513a4 end:0x02151428
+
+lib/nitro/src/gx/g2.c:
+    complete
+    .text       start:0x0207d59c end:0x0207d704
+
+lib/nitro/src/os/os_interrupt.c:
+    complete
+    .text       start:0x0208475c end:0x02084a28
+
+lib/nitro/src/os/os_system.c:
+    complete
+    .text       start:0x02087974 end:0x02087b04
+
+lib/nitro/src/std/std_string.c:
+    complete
+    .text       start:0x0208cadc end:0x0208d708
+
+lib/nitro/src/mi/mi_uncompress.c:
+    complete
+    .text       start:0x020834c0 end:0x020835a0
+
+lib/nitro/src/snd/snd_alarm.c:
+    complete
+    .text       start:0x02089f88 end:0x0208a054
+    .bss        start:0x02152f40 end:0x02152fa0
+
+lib/nitro/src/spi/pm.c:
+    complete
+    .text       start:0x0208b7bc end:0x0208c960
+    .data       start:0x020a8724 end:0x020a872c
+    .bss        start:0x02153000 end:0x02153040
+
+lib/nitro/src/os/os_cache.c:
+    complete
+    .text       start:0x02086284 end:0x02086348
+
+lib/nitro/src/os/os_context.c:
+    complete
+    .text       start:0x02085b9c end:0x02085cbc
+
+lib/nitro/src/os/os_vramExclusive.c:
+    complete
+    .text       start:0x02087ea0 end:0x02087f60
+    .bss        start:0x0215136c end:0x02151384
+
+lib/nitro/src/rtc/external.c:
+    complete
+    .text       start:0x02088788 end:0x02088eec
+    .bss        start:0x02151428 end:0x02151450
+
+lib/nitro/src/os/os_exception.c:
+    complete
+    .text       start:0x02086dd8 end:0x02086fc4
+    .bss        start:0x02151290 end:0x0215132c
+
+lib/nitro/src/fx/fx_mtx22.c:
+    complete
+    .text       start:0x0207ad40 end:0x0207adc4
+
+lib/nitro/src/fx/fx_asinacosidx.c:
+    complete
+    .text       start:0x0207d184 end:0x0207d204
+
+lib/nitro/src/snd/snd_main.c:
+    complete
+    .text       start:0x02089848 end:0x020898a8
+    .bss        start:0x02151450 end:0x0215146c
+
+lib/nitro/src/snd/snd_util.c:
+    complete
+    .text       start:0x0208a24c end:0x0208a2bc
+    .rodata     start:0x020a5d08 end:0x020a60dc
+
+lib/nitro/src/rtc/internal.c:
+    complete
+    .text       start:0x02088eec end:0x02088f58
+
+lib/nitro/src/math/math.c:
+    complete
+    .text       start:0x02080d24 end:0x02080d68
+
+lib/nitro/src/os/os_mutex.c:
+    complete
+    .text       start:0x02086088 end:0x02086284
+
+lib/nitro/src/fx/fx.c:
+    complete
+    .text       start:0x0207d148 end:0x0207d184
+
+lib/nitro/src/os/os_timer.c:
+    complete
+    .text       start:0x02086fc4 end:0x02086fe8
+    .bss        start:0x0215132c end:0x02151330
+
+lib/nitro/src/os/os_init.c:
+    complete
+    .text       start:0x02086348 end:0x020863e0
+
+lib/nitro/src/os/os_protectionUnit.c:
+    complete
+    .text       start:0x02086cf4 end:0x02086d14
+
+lib/nitro/src/wm/wm_ks.c:
+    complete
+    .text       start:0x02090b9c end:0x02090bc4
+
+lib/nitro/src/os/os_tcm.c:
+    complete
+    .text       start:0x02086ce0 end:0x02086cf4
+
+lib/nitro/src/mi/mi_wram.c:
+    complete
+    .text       start:0x020821b0 end:0x020821c0
+
+src/system/resh_zek_savedata.c:
+    complete
+    .text       start:0x0200a870 end:0x0200a8a0
+
+src/system/unity_tower_floor_savedata.c:
+    complete
+    .text       start:0x0200e874 end:0x0200e8b0
+
+src/system/battlematch_savedata.c:
+    complete
+    .text       start:0x0200e9dc end:0x0200ea0c
+
+src/system/beacon_status.c:
+    complete
+    .text       start:0x0202751c end:0x020275e8
+    .data       start:0x020a74d0 end:0x020a74e0
+
+lib/nitro/src/math/sha1_block.c:
+    complete
+    .text       start:0x02081e6c end:0x02082198
+
+lib/nnsys/src/g3d/anm/nsbca.c:
+    .text       start:0x0206eb00 end:0x0207010c
+    .rodata     start:0x020a1998 end:0x020a19bc
+
+lib/nnsys/src/g2d/g2d_CharCanvas.c:
+    .text       start:0x020681e4 end:0x020694d8
+    .rodata     start:0x020a18d0 end:0x020a1954
+
+lib/nnsys/src/fnd/expheap.c:
+    .text       start:0x02060764 end:0x02060fa4
+
+lib/nnsys/src/g3d/kernel.c:
+    .text       start:0x02069c14 end:0x0206a700
+
+lib/nnsys/src/g2d/g2d_MultiCellAnimation.c:
+    .text       start:0x020643cc end:0x02064e3c
+
+lib/nnsys/src/snd/sndarc_loader.c:
+    .text       start:0x02074a54 end:0x020754c4
+    .bss        start:0x0214ea54 end:0x0214ea90
+
+lib/nnsys/src/snd/player.c:
+    .text       start:0x02072d98 end:0x020737c0
+    .bss        start:0x0214e00c end:0x0214e8e4
+
+lib/nnsys/src/g2d/g2d_Image.c:
+    .text       start:0x02063790 end:0x020640b0
+
+lib/nnsys/src/g2d/g2di_VRamLocation.c:
+    complete
+    .text       start:0x020640b0 end:0x020640dc
+
+lib/nnsys/src/g3d/glbstate.c:
+    complete
+    .text       start:0x0206a700 end:0x0206af08
+    .bss        start:0x02148b4c end:0x02148db0
+
+lib/nnsys/src/g3d/cgtool/maya.c:
+    .text       start:0x02070d18 end:0x02071510
+    .data       start:0x020a8438 end:0x020a8458
+
+lib/nnsys/src/g3d/cgtool/3dsmax.c:
+    .text       start:0x02071a24 end:0x02072068
+    .data       start:0x020a8458 end:0x020a8478
+
+lib/nnsys/src/g3d/cgtool/xsi.c:
+    .text       start:0x02072068 end:0x020726d0
+    .data       start:0x020a8478 end:0x020a8498
+
+lib/nnsys/src/snd/nns_snd_main.c:
+    .text       start:0x020726d0 end:0x0207292c
+    .bss        start:0x0214bac0 end:0x0214dec0
+
+lib/nnsys/src/g2d/g2d_Renderer.c:
+    .text       start:0x02064e3c end:0x02066754
+    .data       start:0x020a81f8 end:0x020a8218
+    .bss        start:0x02147b88 end:0x02148b20
+
+lib/nnsys/src/g3d/anm.c:
+    .text       start:0x0206af08 end:0x0206b458
+    .data       start:0x020a821c end:0x020a8290
+
+lib/nnsys/src/g3d/cgtool/si3d.c:
+    complete
+    .text       start:0x02071510 end:0x02071a24
+
+lib/nnsys/src/g3d/anm/nsbma.c:
+    complete
+    .text       start:0x0207010c end:0x02070524
+
+lib/nnsys/src/g3d/util.c:
+    .text       start:0x0206de88 end:0x0206e348
+
+lib/nnsys/src/g2d/g2d_OAM.c:
+    .text       start:0x02063054 end:0x02063784
+    .data       start:0x020a81e4 end:0x020a81f8
+    .bss        start:0x02146bc4 end:0x02147b88
+    .rodata     start:0x020a17d8 end:0x020a1808
+
+lib/nnsys/src/g2d/g2d_Animation.c:
+    .text       start:0x02062bf4 end:0x02063054
+
+lib/nnsys/src/gfd/VramManager/gfdi_LinkedListVramMan_Common.c:
+    .text       start:0x02061d0c end:0x0206210c
+
+lib/nnsys/src/snd/sndarc_player.c:
+    .text       start:0x020754c4 end:0x02075858
+
+lib/nnsys/src/g3d/binres/res_struct_accessor.c:
+    .text       start:0x0206e62c end:0x0206e9a4
+
+lib/nnsys/src/gfd/VramTransferMan/gfd_VramTransferManager.c:
+    complete
+    .text       start:0x02061840 end:0x02061d0c
+    .rodata     start:0x020a1718 end:0x020a17a8
+    .bss        start:0x02146b80 end:0x02146b94
+
+lib/nnsys/src/g3d/anm/nsbta.c:
+    .text       start:0x02070524 end:0x02070948
+
+lib/nnsys/src/g2d/g2d_Font.c:
+    complete
+    .text       start:0x02067eb0 end:0x020681e4
+
+lib/nnsys/src/g2d/g2d_CellTransferManager.c:
+    complete
+    .text       start:0x02066878 end:0x02066b84
+    .rodata     start:0x020a1808 end:0x020a1814
+    .bss        start:0x02148b20 end:0x02148b2c
+
+lib/nnsys/src/g2d/g2d_TextCanvas.c:
+    complete
+    .text       start:0x020694d8 end:0x020698f8
+
+lib/nnsys/src/g3d/model.c:
+    .text       start:0x0206e394 end:0x0206e62c
+
+lib/nnsys/src/g3d/anm/nsbtp.c:
+    complete
+    .text       start:0x02070948 end:0x02070bd8
+
+lib/nnsys/src/fnd/frameheap.c:
+    .text       start:0x02060fa4 end:0x02061224
+
+lib/nnsys/src/g2d/g2d_RendererCore.c:
+    .text       start:0x02067080 end:0x02067eb0
+    .rodata     start:0x020a18a4 end:0x020a18c4
+    .bss        start:0x02148b48 end:0x02148b4c
+
+lib/nnsys/src/snd/capture.c:
+    complete
+    .text       start:0x02073d5c end:0x02073fb8
+    .bss        start:0x0214e9b4 end:0x0214ea50
+
+lib/nnsys/src/g2d/g2d_CellAnimation.c:
+    complete
+    .text       start:0x0206419c end:0x020643cc
+
+lib/nnsys/src/snd/waveout.c:
+    complete
+    .text       start:0x02072a44 end:0x02072d98
+    .bss        start:0x0214decc end:0x0214e00c
+
+lib/nnsys/src/gfd/VramManager/gfd_FrameTexVramMan.c:
+    .text       start:0x02061390 end:0x020616cc
+    .data       start:0x020a8150 end:0x020a81e4
+    .bss        start:0x02146b70 end:0x02146b74
+
+lib/nnsys/src/g2d/load/g2d_NAN_load.c:
+    complete
+    .text       start:0x02062634 end:0x020627f0
+
+lib/nnsys/src/gfd/VramManager/gfd_LinkedListPlttVramMan.c:
+    .text       start:0x0206246c end:0x02062634
+    .bss        start:0x02146bb0 end:0x02146bc4
+
+lib/nnsys/src/gfd/VramManager/gfd_LinkedListTexVramMan.c:
+    .text       start:0x0206210c end:0x0206246c
+    .rodata     start:0x020a17a8 end:0x020a17d8
+    .bss        start:0x02146b94 end:0x02146bb0
+
+lib/nnsys/src/g3d/binres/res_struct_accessor_anm.c:
+    complete
+    .text       start:0x0206e9a4 end:0x0206eb00
+
+lib/nnsys/src/fnd/allocator.c:
+    .text       start:0x0206128c end:0x02061370
+    .rodata     start:0x020a16f8 end:0x020a1718
+
+lib/nnsys/src/g2d/internal/g2di_Mtx32.c:
+    .text       start:0x02066754 end:0x02066878
+
+lib/nnsys/src/g2d/load/g2d_NOB_load.c:
+    complete
+    .text       start:0x020627f0 end:0x02062920
+
+lib/nnsys/src/g2d/load/g2d_NMC_load.c:
+    complete
+    .text       start:0x02062920 end:0x02062a00
+
+lib/nnsys/src/g2d/g2d_OamSoftwareSpriteDraw.c:
+    .text       start:0x02066b84 end:0x02067080
+    .rodata     start:0x020a1814 end:0x020a18a4
+    .data       start:0x020a8218 end:0x020a821c
+    .bss        start:0x02148b2c end:0x02148b48
+
+lib/nnsys/src/g2d/load/g2d_NFT_load.c:
+    complete
+    .text       start:0x020698f8 end:0x02069ba0
+
+lib/nnsys/src/fnd/heapcommon.c:
+    .text       start:0x02060640 end:0x02060764
+    .bss        start:0x02146b60 end:0x02146b70
+
+lib/nnsys/src/g3d/cgtool/basic.c:
+    complete
+    .text       start:0x02070c5c end:0x02070d18
+
+lib/nnsys/src/g3d/gecom.c:
+    .text       start:0x0206db24 end:0x0206de88
+    .bss        start:0x0214bab4 end:0x0214bac0
+
+lib/nnsys/src/gfd/VramManager/gfd_FramePlttVramMan.c:
+    .text       start:0x020616cc end:0x02061840
+    .bss        start:0x02146b74 end:0x02146b80
+
+lib/nnsys/src/snd/fader.c:
+    complete
+    .text       start:0x02075b94 end:0x02075c38
+
+lib/nnsys/src/g2d/g2d_SRTControl.c:
+    complete
+    .text       start:0x020640dc end:0x02064178
+
+lib/nnsys/src/g2d/load/g2d_NCG_load.c:
+    .text       start:0x02062a00 end:0x02062a98
+
+lib/nnsys/src/g2d/load/g2d_NCL_load.c:
+    complete
+    .text       start:0x02062a98 end:0x02062b30
+
+lib/nnsys/src/g2d/load/g2d_Load.c:
+    complete
+    .text       start:0x02062b64 end:0x02062bf4
+
+lib/nnsys/src/snd/resource_mgr.c:
+    .text       start:0x0207292c end:0x02072a44
+    .bss        start:0x0214dec0 end:0x0214decc
+
+lib/nnsys/src/g3d/anm/nsbva.c:
+    complete
+    .text       start:0x02070bd8 end:0x02070c5c
+
+lib/nnsys/src/fnd/unitheap.c:
+    complete
+    .text       start:0x02061224 end:0x0206128c
+
+lib/nnsys/src/g2d/internal/g2di_BitReader.c:
+    complete
+    .text       start:0x02069ba0 end:0x02069c00
+
+lib/nnsys/src/snd/sndarc.c:
+    .text       start:0x02073fb8 end:0x020746e8
+    .bss        start:0x0214ea50 end:0x0214ea54
+
+lib/nnsys/src/snd/seqdata.c:
+    complete
+    .text       start:0x02075b54 end:0x02075b94
+
+lib/nnsys/src/g2d/load/g2d_NSC_load.c:
+    complete
+    .text       start:0x02062b30 end:0x02062b64
+
+lib/nnsys/src/g3d/mem.c:
+    complete
+    .text       start:0x0206e348 end:0x0206e394
+
+lib/nnsys/src/g2d/g2d_Node.c:
+    complete
+    .text       start:0x02064178 end:0x0206419c
+
+lib/nnsys/src/snd/stream.c:
+    .text       start:0x020737c0 end:0x02073d5c
+    .bss        start:0x0214e8e4 end:0x0214e9b4
+
+src/main/main_0200be84.c:
+    complete
+    .text       start:0x0200be84 end:0x0200c054
+    .bss        start:0x02146170 end:0x02146178
+
+lib/nnsys/src/gfd/VramManager/gfd_TexVramMan.c:
+    complete
+    .text       start:0x02061370 end:0x02061380
+    .data       start:0x020a8140 end:0x020a8148
+
+lib/nnsys/src/gfd/VramManager/gfd_PlttVramMan.c:
+    complete
+    .text       start:0x02061380 end:0x02061390
+    .data       start:0x020a8148 end:0x020a8150
+
+src/system/bmp_menulist.c:
+    complete
+    .text       start:0x0201ff30 end:0x02020d18
+    .data       start:0x020a7390 end:0x020a73a0
+
+src/system/palanm.c:
+    complete
+    .text       start:0x02021518 end:0x0202208c
+    .data       start:0x020a73bc end:0x020a73c8
+
+src/system/field_sound_system.c:
+    complete
+    .text       start:0x02028844 end:0x02029488
+    .rodata     start:0x0209fd90 end:0x0209fe94
+    .data       start:0x020a7518 end:0x020a75a8
+
+src/system/app_taskmenu.c:
+    complete
+    .text       start:0x02027778 end:0x02028470
+    .data       start:0x020a74e0 end:0x020a74f0
+
+src/system/encounter_savedata.c:
+    complete
+    .text       start:0x0200d414 end:0x0200d59c
+
+src/system/trial_house_savedata.c:
+    complete
+    .text       start:0x0200e8e8 end:0x0200e904
+
+lib/dwc/src/bm/dwc_backup.c:
+    .text       start:0x020584e0 end:0x020589d0
+    .bss        start:0x02146a90 end:0x02146aa4
+
+lib/dwc/src/bm/dwc_bm_init.c:
+    .text       start:0x020589d0 end:0x02058a3c
+
+lib/dwc/src/bm/util_wifiidtool.c:
+    .text       start:0x02058a3c end:0x02059058
+    .rodata     start:0x020a15f0 end:0x020a1618
+
+lib/dwc/src/account/dwc_account.c:
+    .text       start:0x02059058 end:0x02059b40
+    .data       start:0x020a7ff4 end:0x020a8028
+
+src/main/main_02059b40.c:
+    complete
+    .text       start:0x02059b40 end:0x02059e18
+    .data       start:0x020a8028 end:0x020a8070
+
+lib/dwc/src/base/dwc_error.c:
+    .text       start:0x02059e18 end:0x02059f6c
+    .bss        start:0x02146aa4 end:0x02146aac
+
+lib/dwc/src/account/dwc_init.c:
+    .text       start:0x02059f6c end:0x0205a12c
+    .data       start:0x020a8070 end:0x020a80a4
+    .bss        start:0x02146aac end:0x02146ab4
+
+lib/dwc/src/base/dwc_memfunc.c:
+    .text       start:0x0205a12c end:0x0205a2c8
+    .bss        start:0x02146ab4 end:0x02146abc
+
+lib/nnsys/src/snd/snd_heap.c:
+    .text       start:0x020746e8 end:0x02074a54
+
+lib/nitro/src/card/card_api.c:
+    complete
+    .text       start:0x02075c38 end:0x02075ed4
+    .bss        start:0x0215019c end:0x021501a0
+
+lib/nitro/src/card/card_common.c:
+    complete
+    .text       start:0x02075ed4 end:0x02076100
+    .bss        start:0x021501a0 end:0x02150720
+
+lib/nitro/src/card/card_hook.c:
+    complete
+    .text       start:0x02076100 end:0x02076170
+    .bss        start:0x02150720 end:0x02150740
+
+lib/nitro/src/card/card_task.c:
+    complete
+    .text       start:0x02076170 end:0x020762f4
+
+lib/nitro/src/card/card_utility.c:
+    complete
+    .text       start:0x020762f4 end:0x020763bc
+    .rodata     start:0x020a19bc end:0x020a19c4
+
+lib/nitro/src/card/card_backup.c:
+    complete
+    .text       start:0x020763bc end:0x02076bbc
+    .bss        start:0x02150740 end:0x02150840
+
+lib/nitro/src/card/card_rom.c:
+    complete
+    .text       start:0x02076bbc end:0x020773dc
+    .data       start:0x020a8498 end:0x020a84a0
+    .bss        start:0x02150840 end:0x02150b00
+
+lib/nitro/src/card/card_pullOut.c:
+    complete
+    .text       start:0x020773dc end:0x020775b8
+    .bss        start:0x02150b00 end:0x02150b0c
+
+lib/nitro/src/fs/fs_archive.c:
+    complete
+    .text       start:0x02077634 end:0x020787a0
+    .data       start:0x020a84a0 end:0x020a84a4
+    .bss        start:0x02150b0c end:0x02150d20
+
+lib/nitro/src/fs/fs_file.c:
+    complete
+    .text       start:0x020787a0 end:0x02078cb0
+    .rodata     start:0x020a19c4 end:0x020a1a04
+    .data       start:0x020a84a4 end:0x020a84a8
+    .bss        start:0x02150d20 end:0x02150d28
+
+lib/nitro/src/fs/fs_overlay.c:
+    complete
+    .text       start:0x02078cb0 end:0x02079304
+    .bss        start:0x02150d28 end:0x02150d40
+
+lib/nitro/src/fs/fs_proc_default.c:
+    complete
+    .text       start:0x02079304 end:0x0207a7c4
+    .rodata     start:0x020a1a04 end:0x020a1b38
+    .data       start:0x020a84a8 end:0x020a84ac
+
+lib/nitro/src/fs/fs_proc_mem.c:
+    complete
+    .text       start:0x0207a7c4 end:0x0207a980
+    .data       start:0x020a84ac end:0x020a84b0
+    .bss        start:0x02150d40 end:0x02150da0
+
+lib/nitro/src/fs/fs_proc_rom.c:
+    complete
+    .text       start:0x0207a980 end:0x0207ad04
+    .data       start:0x020a84b0 end:0x020a84bc
+    .bss        start:0x02150da0 end:0x02150e04
+
+lib/nitro/src/fs/fs_api.c:
+    complete
+    .text       start:0x0207ad04 end:0x0207ad40
+    .bss        start:0x02150e04 end:0x02150e0c
+
+lib/nitro/src/mi/mi_dma_card.c:
+    complete
+    .text       start:0x020835a0 end:0x0208361c
+
+lib/nitro/src/mi/mi_init.c:
+    complete
+    .text       start:0x0208361c end:0x02083644
+
+src/main/main_02083644.c:
+    complete
+    .text       start:0x02083644 end:0x0208459c
+    .bss        start:0x02150ea0 end:0x02150f38
+
+lib/nitro/src/os/os_irqHandler.c:
+    complete
+    .text       start:0x0208459c end:0x02084610
+
+lib/nitro/src/os/os_irqTable.c:
+    complete
+    .text       start:0x02084610 end:0x0208475c
+    .data       start:0x020a868c end:0x020a86a4
+    .bss        start:0x02150f38 end:0x02150fc8
+
+lib/nitro/src/os/os_printf.c:
+    complete
+    .text       start:0x02084f40 end:0x02084fb4
+
+lib/nitro/src/os/os_emulator.c:
+    complete
+    .text       start:0x02085cbc end:0x02085d94
+    .rodata     start:0x020a5cd4 end:0x020a5ce8
+    .data       start:0x020a86a4 end:0x020a86ac
+    .bss        start:0x02151244 end:0x02151264
+
+lib/nitro/src/os/os_systemWork.c:
+    complete
+    .text       start:0x02087b04 end:0x02087b78
+    .bss        start:0x02151360 end:0x02151368
+
+lib/nitro/src/os/os_ownerInfo.c:
+    complete
+    .text       start:0x02087c6c end:0x02087d28
+    .rodata     start:0x020a5ce8 end:0x020a5d08
+
+src/main/main_02087f60.c:
+    complete
+    .text       start:0x02087f60 end:0x02088168
+    .bss        start:0x02151384 end:0x02151398
+
+lib/nitro/src/os/os_entropy.c:
+    complete
+    .text       start:0x02088168 end:0x02088234
+
+lib/nitro/src/os/os_terminate_proc.c:
+    complete
+    .text       start:0x02088234 end:0x020882dc
+    .bss        start:0x02151398 end:0x021513a4
+
+lib/nitro/src/os/os_event.c:
+    complete
+    .text       start:0x020882dc end:0x020883d4
+
+lib/nitro/src/os/os_application_jump.c:
+    complete
+    .text       start:0x020883d4 end:0x02088498
+
+lib/nitro/src/pxi/pxi_init.c:
+    complete
+    .text       start:0x02088498 end:0x020884a4
+
+lib/nitro/src/ctrdg/ctrdg.c:
+    complete
+    .text       start:0x02090f18 end:0x020911a0
+    .bss        start:0x02153b80 end:0x02153b88
+
+lib/nitro/src/ctrdg/ctrdg_proc.c:
+    complete
+    .text       start:0x020911a0 end:0x020911d8
+
+lib/twl/src/syscall/syscall_twl.c:
+    complete
+    .text       start:0x020911d8 end:0x0209128c
+
+src/main/main_0207e3d0.c:
+    complete
+    .text       start:0x0207e3d0 end:0x0207f7a0
+    .bss        start:0x02150e10 end:0x02150e2c
+
+lib/nitro/src/os/os_ownerInfoEx.c:
+    complete
+    .text       start:0x02087d28 end:0x02087ea0
+
+lib/nitro/src/os/os_reset.c:
+    complete
+    .text       start:0x02087b78 end:0x02087c6c
+    .bss        start:0x02151368 end:0x0215136c
+
+lib/nitro/src/snd/snd_command.c:
+    complete
+    .text       start:0x020898a8 end:0x02089f88
+    .bss        start:0x0215146c end:0x02152f40
+
+lib/nitro/src/gx/g3imm.c:
+    complete
+    .text       start:0x0207d8c4 end:0x0207d988
+
+lib/nitro/src/wm/wm_system.c:
+    complete
+    .text       start:0x0208e010 end:0x0208eac8
+    .bss        start:0x02153058 end:0x02153b00
+
+lib/nitro/src/gx/gx.c:
+    complete
+    .text       start:0x0207d204 end:0x0207d59c
+    .data       start:0x020a84bc end:0x020a84c4
+    .bss        start:0x02150e0c end:0x02150e10
+
+lib/msl/src/runtime/fp.c:
+    complete
+    .text       start:0x0209ac04 end:0x0209d724
+
+lib/msl/src/runtime/runtime.c:
+    complete
+    .text       start:0x0209d724 end:0x0209d850
+    .bss        start:0x02153fb4 end:0x021542b8
+    .exceptix   start:0x0209d870 end:0x0209d8a0
+
+lib/msl/src/runtime/__register_global_object.c:
+    complete
+    .text       start:0x0209d850 end:0x0209d870
+    .bss        start:0x021542b8 end:0x021542c0
+
+lib/msl/src/string_extras.c:
+    complete
+    .text       start:0x0209ab8c end:0x0209ac04
+
+lib/msl/src/math/w_pow.c:
+    complete
+    .text       start:0x0209ab80 end:0x0209ab8c
+
+lib/msl/src/math/s_sin.c:
+    complete
+    .text       start:0x0209aa08 end:0x0209ab80
+
+lib/msl/src/math/s_ldexp.c:
+    complete
+    .text       start:0x0209a7a8 end:0x0209aa08
+
+lib/msl/src/math/s_frexp.c:
+    complete
+    .text       start:0x0209a6e8 end:0x0209a7a8
+
+lib/msl/src/math/s_floor.c:
+    complete
+    .text       start:0x0209a524 end:0x0209a6e8
+
+lib/msl/src/math/s_fabs.c:
+    complete
+    .text       start:0x0209a504 end:0x0209a524
+
+lib/msl/src/math/s_cos.c:
+    complete
+    .text       start:0x0209a390 end:0x0209a504
+
+lib/msl/src/math/s_copysign.c:
+    complete
+    .text       start:0x0209a368 end:0x0209a390
+
+lib/msl/src/math/k_sin.c:
+    complete
+    .text       start:0x0209a0ec end:0x0209a368
+
+lib/msl/src/math/k_rem_pio2.c:
+    complete
+    .text       start:0x0209953c end:0x0209a0ec
+    .rodata     start:0x020a64a8 end:0x020a64f8
+
+lib/msl/src/math/k_cos.c:
+    complete
+    .text       start:0x02099224 end:0x0209953c
+
+lib/msl/src/math/e_rem_pio2.c:
+    complete
+    .text       start:0x02098b44 end:0x02099224
+    .rodata     start:0x020a6320 end:0x020a64a8
+
+lib/msl/src/math/e_pow.c:
+    complete
+    .text       start:0x020979bc end:0x02098b44
+    .rodata     start:0x020a62f0 end:0x020a6320
+
+lib/msl/src/extras.c:
+    complete
+    .text       start:0x02097990 end:0x020979bc
+
+lib/msl/src/ansi_fp.c:
+    complete
+    .text       start:0x020965b4 end:0x02097990
+    .data       start:0x020a8a7c end:0x020a8bb8
+
+lib/msl/src/wstring.c:
+    complete
+    .text       start:0x02096578 end:0x020965b4
+
+lib/msl/src/wchar_io.c:
+    complete
+    .text       start:0x02096508 end:0x02096578
+
+lib/msl/src/strtoul.c:
+    complete
+    .text       start:0x02095b3c end:0x02096508
+
+lib/msl/src/strtold.c:
+    complete
+    .text       start:0x02094b8c end:0x02095b3c
+    .rodata     start:0x020a62dc end:0x020a62f0
+
+lib/msl/src/string.c:
+    complete
+    .text       start:0x0209477c end:0x02094b8c
+
+lib/msl/src/secure_error.c:
+    complete
+    .text       start:0x02094750 end:0x0209477c
+    .bss        start:0x02153fb0 end:0x02153fb4
+
+lib/msl/src/scanf.c:
+    complete
+    .text       start:0x020946d8 end:0x02094750
+
+lib/msl/src/rand.c:
+    complete
+    .text       start:0x02094694 end:0x020946d8
+    .data       start:0x020a8a78 end:0x020a8a7c
+
+lib/msl/src/qsort_msl.c:
+    complete
+    .text       start:0x0209455c end:0x02094694
+
+lib/msl/src/printf.c:
+    complete
+    .text       start:0x020924dc end:0x0209455c
+    .data       start:0x020a8a40 end:0x020a8a78
+
+lib/msl/src/mem_funcs.c:
+    complete
+    .text       start:0x02092430 end:0x020924dc
+
+lib/msl/src/mem_msl.c:
+    complete
+    .text       start:0x02092344 end:0x02092430
+
+lib/msl/src/mbstring.c:
+    complete
+    .text       start:0x02092264 end:0x02092344
+
+lib/msl/src/locale.c:
+    complete
+    .data       start:0x020a8824 end:0x020a8a40
+
+lib/msl/src/float.c:
+    complete
+    .data       start:0x020a8814 end:0x020a8824
+
+lib/msl/src/errno.c:
+    complete
+    .bss        start:0x02153fac end:0x02153fb0
+
+lib/msl/src/math_api.c:
+    complete
+    .text       start:0x02092144 end:0x02092264
+
+lib/msl/src/file_pos.c:
+    complete
+    .text       start:0x02091cbc end:0x02092144
+
+lib/msl/src/file_io.c:
+    complete
+    .text       start:0x02091ae8 end:0x02091cbc
+
+lib/msl/src/direct_io.c:
+    complete
+    .text       start:0x020916d4 end:0x02091ae8
+
+lib/msl/src/buffer_io.c:
+    complete
+    .text       start:0x02091594 end:0x020916d4
+
+lib/msl/src/arith.c:
+    complete
+    .text       start:0x02091588 end:0x02091594
+
+lib/msl/src/ansi_files.c:
+    complete
+    .text       start:0x0209149c end:0x02091588
+    .data       start:0x020a8730 end:0x020a8814
+    .bss        start:0x02153cac end:0x02153fac
+
+lib/msl/src/alloc.c:
+    complete
+    .text       start:0x0209138c end:0x0209149c
+
+lib/msl/src/math_arm.c:
+    complete
+    .text       start:0x02091374 end:0x0209138c
+
+lib/msl/src/critical_regions.c:
+    complete
+    .bss        start:0x02153b8c end:0x02153cac
+
+lib/msl/src/abort_exit_arm_eabi.c:
+    complete
+    .text       start:0x020912a8 end:0x02091374
+
+lib/msl/src/ctype.c:
+    complete
+    .rodata     start:0x020a60dc end:0x020a62dc
+
+src/system/pml_met_data.c:
+    complete
+    .text       start:0x0202f190 end:0x0202f72c
+
+src/system/wipe.c:
+    complete
+    .text       start:0x0202208c end:0x020226e0
+    .rodata     start:0x0209f538 end:0x0209f568
+    .data       start:0x020a73c8 end:0x020a73d0
+    .bss        start:0x021467a4 end:0x021468fc
+
+
+src/system/event_sound.c:
+    complete
+    .text       start:0x02029488 end:0x02029cf0
+
+src/main/main_0207f7a0.c:
+    complete
+    .text       start:0x0207f7a0 end:0x0207fd34
+    .rodata     start:0x020a5c3c end:0x020a5cac
+    .bss        start:0x02150e2c end:0x02150e4c
+
+src/main/main_0202e818.c:
+    complete
+    .text       start:0x0202e818 end:0x0202e848
+
+src/system/blink_palanm.c:
+    complete
+    .text       start:0x0202e930 end:0x0202eb0c
+    .data       start:0x020a7804 end:0x020a7814
+
+lib/nnsys/src/snd/sndarc_stream.c:
+    .text       start:0x02075858 end:0x02075b54
+    .bss        start:0x0214ea90 end:0x0215019c
+
+lib/nitro/src/os/os_pxi.c:
+    complete
+    .text       start:0x02084a28 end:0x02084ab0
+    .bss        start:0x02150fc8 end:0x02150fcc
+
+src/system/bag_param.c:
+    complete
+    .text       start:0x0202e43c end:0x0202e4ec
+    .rodata     start:0x020a02a8 end:0x020a02b8
+    .data       start:0x020a77c4 end:0x020a77d0
+
+src/main/main_020821c0.c:
+    complete
+    .text       start:0x020821c0 end:0x02082a48
+    .bss        start:0x02150e6c end:0x02150ea0
+
+src/main/main_02086004.c:
+    complete
+    .text       start:0x02086004 end:0x02086088
+
+lib/nitro/src/gx/gxasm.c:
+    complete
+    .text       start:0x02080c84 end:0x02080cc4
+
+lib/nitro/src/os/os_protectionRegion.c:
+    complete
+    .text       start:0x02086d14 end:0x02086dd8
+    .data       start:0x020a86b4 end:0x020a86f4
+
+lib/dwc/src/wds/wds.c:
+    complete
+    .text       start:0x0205a2c8 end:0x0205a938
+    .rodata     start:0x020a1618 end:0x020a161c
+    .bss        start:0x02146abc end:0x02146ac0
+
+lib/dwc/src/ac/dwc_ac_wcm.c:
+    complete
+    .text       start:0x0205a938 end:0x0205b1e4
+    .rodata     start:0x020a161c end:0x020a1620
+
+lib/dwc/src/ac/dwc_ac_cleanup.c:
+    complete
+    .text       start:0x0205b1e4 end:0x0205b33c
+
+lib/dwc/src/ac/dwc_ac_connect.c:
+    complete
+    .text       start:0x0205b33c end:0x0205b98c
+
+lib/dwc/src/ac/dwc_ac.c:
+    complete
+    .text       start:0x0205b98c end:0x0205c6ac
+    .bss        start:0x02146ac0 end:0x02146ad4
+
+lib/dwc/src/base/dwc_connectinet.c:
+    complete
+    .text       start:0x0205c6ac end:0x0205d0e4
+    .bss        start:0x02146ad4 end:0x02146adc
+
+lib/dwc/src/ac/dwc_ac_result.c:
+    complete
+    .text       start:0x0205d0e4 end:0x0205d318
+
+lib/dwc/src/ac/dwc_ac_aplist.c:
+    complete
+    .text       start:0x0205d318 end:0x0205d91c
+    .rodata     start:0x020a1620 end:0x020a1634
+    .data       start:0x020a80a4 end:0x020a80b0
+
+lib/dwc/src/base/dwc_wdsscan.c:
+    complete
+    .text       start:0x0205d91c end:0x0205dd2c
+    .bss        start:0x02146adc end:0x02146ae8
+
+lib/dwc/src/ac/dwc_ac_search.c:
+    complete
+    .text       start:0x0205dd2c end:0x0205ea08
+    .rodata     start:0x020a1634 end:0x020a1668
+
+lib/dwc/src/ac/dwc_ac_wepkey.c:
+    complete
+    .text       start:0x0205ea08 end:0x0205eff0
+    .rodata     start:0x020a1668 end:0x020a16a0
+    .data       start:0x020a80b0 end:0x020a8130
+
+lib/dwc/src/ac/dwc_ac_soc.c:
+    complete
+    .text       start:0x0205eff0 end:0x0205f648
+    .rodata     start:0x020a16a0 end:0x020a16f8
+    .data       start:0x020a8130 end:0x020a813c
+
+lib/dwc/src/bm/dwc_nvram.c:
+    complete
+    .text       start:0x0205f648 end:0x0205faa8
+    .data       start:0x020a813c end:0x020a8140
+    .bss        start:0x02146ae8 end:0x02146b60
+
+lib/dwc/src/bm/dwc_bm_check.c:
+    complete
+    .text       start:0x0205faa8 end:0x02060468
+
+lib/msl/src/exit.c:
+    complete
+    .text       start:0x0209128c end:0x020912a8
+    .bss        start:0x02153b88 end:0x02153b8c
+
+lib/nitro/src/gx/gx_state.c:
+    complete
+    .text       start:0x02080cc4 end:0x02080d24
+    .bss        start:0x02150e4c end:0x02150e68
+
+lib/nnsys/src/g2d/g2di_SplitChar.c:
+    complete
+    .text       start:0x02069c00 end:0x02069c14
+
+lib/nitro/src/mi/mi_sharedWram.c:
+    complete
+    .text       start:0x02082198 end:0x020821b0
+
+lib/nitro/src/os/os_address_check.c:
+    complete
+    .text       start:0x02086c70 end:0x02086ce0
+
+src/system/pokegra_data.c:
+    complete
+    .rodata     start:0x020a023c end:0x020a02a8
+
+src/system/wifilist.c:
+    complete
+    .text       start:0x020097bc end:0x02009ed4
+    .data       start:0x020a7198 end:0x020a71a4
+
+src/system/pokedex.c:
+    complete
+    .text       start:0x0200c720 end:0x0200d414
+    .rodata     start:0x0209de20 end:0x0209de90
+
+lib/gfl/src/systemfont.c:
+    complete
+    .text       start:0x020461f4 end:0x02046440
+    .rodata     start:0x020a08d0 end:0x020a1300
+    .data       start:0x020a7e98 end:0x020a7ea8
+    .bss        start:0x02146a58 end:0x02146a5c
+
+lib/gfl/src/gfx_loader_data.c:
+    complete
+    .rodata     start:0x020a134c end:0x020a135c
+
+src/system/zonedata.c:
+    complete
+    .text       start:0x020139b0 end:0x0201407c
+    .rodata     start:0x0209dfb8 end:0x0209e050
+    .data       start:0x020a72a8 end:0x020a72bc
+    .bss        start:0x02146264 end:0x02146268
+
+lib/nitro/src/math/math_md5.c:
+    complete
+    .text       start:0x02080d68 end:0x020812e0
+    .data       start:0x020a84c4 end:0x020a8688
+
+lib/nitro/src/math/math_sha1.c:
+    complete
+    .text       start:0x020812e0 end:0x02081940
+    .rodata     start:0x020a5cac end:0x020a5cd4
+    .data       start:0x020a8688 end:0x020a868c
+    .bss        start:0x02150e68 end:0x02150e6c
+
+lib/nitro/src/fs/fs_overlay_digest.c:
+    complete
+    .data       start:0x020a8bb8 end:0x020a9e64
+
+lib/nitro/src/syscall/secure_area.c:
+    .text       start:0x02004000 end:0x02004800
+
+lib/nitro/src/init/crt0.c:
+    complete
+    .text       start:0x02004800 end:0x02005050
+
+src/system/shortcut_savedata.c:
+    complete
+    .text       start:0x0200c404 end:0x0200c520
+
+src/system/boot_proc.c:
+    complete
+    .text       start:0x0202f9f4 end:0x0202fab4
+    .bss        start:0x02146948 end:0x02146954
+    .rodata     start:0x020a0480 end:0x020a048c
+
+src/system/save_table.c:
+    complete
+    .rodata     start:0x0209d8cc end:0x0209dd64
+
+src/system/version.c:
+    complete
+    .text       start:0x020111e8 end:0x020111ec
+    .rodata     start:0x0209df08 end:0x0209df10
+
+src/system/vm.c:
+    complete
+    .text       start:0x020111ec end:0x020113d8
+    .data       start:0x020a7268 end:0x020a7270
+
+lib/nitro/src/fx/fx_sincos.c:
+    complete
+    .rodata     start:0x020a1b38 end:0x020a5b38
+
+src/system/field_dir.c:
+    complete
+    .text       start:0x0201441c end:0x02014428
+    .rodata     start:0x0209e050 end:0x0209e054
+
+lib/nnsys/src/g2d/g2d_PaletteTable.c:
+    complete
+    .text       start:0x02063784 end:0x02063790
+
+lib/nitro/src/mi/mi_swap.c:
+    complete
+    .text       start:0x020834b8 end:0x020834c0
+
+lib/twl/src/scfg/scfg_proc.c:
+    complete
+    .text       start:0x0208c960 end:0x0208cadc
+    .bss        start:0x02153040 end:0x02153058
+
+lib/nnsys/src/g3d/cgtool.c:
+    complete
+    .data       start:0x020a8290 end:0x020a82b8

@@ -1,0 +1,52 @@
+    .text       start:0x021b6240 end:0x021bea78 kind:code align:32
+    .rodata     start:0x021bea78 end:0x021becf0 kind:rodata align:4
+    .ctor       start:0x021becf0 end:0x021becf0 kind:rodata align:4
+    .data       start:0x021bed00 end:0x021bed80 kind:data align:32
+    .bss        start:0x021bed80 end:0x021beda0 kind:bss align:32
+
+src/ov091/status_rcv.c:
+    complete
+    .text       start:0x021bdd78 end:0x021bea78
+
+src/ov091/plist_menu.c:
+    complete
+    .text       start:0x021bba8c end:0x021bbe74
+    .rodata     start:0x021bec80 end:0x021bece4
+    .data       start:0x021bed38 end:0x021bed48
+
+src/ov091/plist_message.c:
+    complete
+    .text       start:0x021bb594 end:0x021bba8c
+    .data       start:0x021bed28 end:0x021bed38
+
+src/ov091/plist_sys.c:
+    complete
+    .text       start:0x021b660c end:0x021ba6a0
+    .rodata     start:0x021beaa8 end:0x021bec6c
+
+src/ov091/plist_demo.c:
+    complete
+    .text       start:0x021bd8b0 end:0x021bdd78
+    .data       start:0x021bed58 end:0x021bed80
+
+src/ov091/plist_plate.c:
+    .text       start:0x021ba6a0 end:0x021bb594
+    .rodata     start:0x021bec6c end:0x021bec80
+    .data       start:0x021bed18 end:0x021bed28
+
+src/ov091/plist_battle.c:
+    complete
+    .text       start:0x021bcccc end:0x021bd8b0
+    .data       start:0x021bed48 end:0x021bed58
+
+src/ov091/plist_item.c:
+    complete
+    .text       start:0x021bbe74 end:0x021bcccc
+    .rodata     start:0x021bece4 end:0x021becf0
+
+src/ov091/pokelist.c:
+    complete
+    .text       start:0x021b6240 end:0x021b660c
+    .rodata     start:0x021bea78 end:0x021beaa8
+    .data       start:0x021bed00 end:0x021bed18
+    .bss        start:0x021bed80 end:0x021beda0

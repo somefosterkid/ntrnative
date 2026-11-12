@@ -1,0 +1,38 @@
+Scrcmd_BlackTower_CreateWalls kind:function(thumb,size=0x28) addr:0x021e5800
+Scrcmd_BlackTower_ChangeRoom kind:function(thumb,size=0x5e) addr:0x021e5828
+Scrcmd_BlackTower_ChangeFloor kind:function(thumb,size=0x3a) addr:0x021e5888
+Scrcmd_BlackTower_SetProgress kind:function(thumb,size=0x3e) addr:0x021e58c4
+Scrcmd_BlackTower_StartRun kind:function(thumb,size=0x48) addr:0x021e5904
+Scrcmd_BlackTower_GetFloorInArea kind:function(thumb,size=0x30) addr:0x021e594c
+Scrcmd_BlackTower_GetArea kind:function(thumb,size=0x30) addr:0x021e597c
+Scrcmd_BlackTower_CallBattleEvent kind:function(thumb,size=0x3e) addr:0x021e59ac
+Scrcmd_BlackTower_CallDoorEvent kind:function(thumb,size=0x4a) addr:0x021e59ec
+Scrcmd_BlackTower_CallMachineEvent kind:function(thumb,size=0x2c) addr:0x021e5a38
+Scrcmd_BlackTower_CallLiftEvent kind:function(thumb,size=0x2c) addr:0x021e5a64
+func_ov061_021e5a90 kind:function(thumb,size=0x18) addr:0x021e5a90
+Scrcmd_BlackTower_SetTrainerDefeated kind:function(thumb,size=0x4a) addr:0x021e5aa8
+Scrcmd_BlackTower_IsTrainerDefeated kind:function(thumb,size=0x4a) addr:0x021e5af4
+Scrcmd_BlackTower_GetNpcScript kind:function(thumb,size=0x6c) addr:0x021e5b40
+func_ov061_021e5bac kind:function(thumb,size=0x18) addr:0x021e5bac
+func_ov061_021e5bc4 kind:function(thumb,size=0x40) addr:0x021e5bc4
+Scrcmd_BlackTower_SetSpecialTrainerFlag kind:function(thumb,size=0x56) addr:0x021e5c04
+Scrcmd_BlackTower_GetSpecialTrainerFlag kind:function(thumb,size=0x5a) addr:0x021e5c5c
+Scrcmd_BlackTower_GetGoalFloor kind:function(thumb,size=0x52) addr:0x021e5cb8
+Scrcmd_BlackTower_GetRoomNpcCount kind:function(thumb,size=0x4c) addr:0x021e5d0c
+Scrcmd_BlackTower_GetTrainerClass kind:function(thumb,size=0x4c) addr:0x021e5d58
+Scrcmd_BlackTower_IsInChallenge kind:function(thumb,size=0x30) addr:0x021e5da4
+Scrcmd_BlackTower_SetInChallenge kind:function(thumb,size=0x32) addr:0x021e5dd4
+Scrcmd_BlackTower_GetTrainerId kind:function(thumb,size=0x56) addr:0x021e5e08
+Scrcmd_BlackTower_GetVersion kind:function(thumb,size=0x36) addr:0x021e5e60
+Scrcmd_BlackTower_GetInfo kind:function(thumb,size=0xfc) addr:0x021e5e98
+func_ov061_021e5f94 kind:function(thumb,size=0x50) addr:0x021e5f94
+Scrcmd_BlackTower_IsTargetSlot kind:function(thumb,size=0x58) addr:0x021e5fe4
+Scrcmd_BlackTower_GetNpcScriptByResult kind:function(thumb,size=0x6a) addr:0x021e603c
+Scrcmd_BlackTower_HasEarnedMoney kind:function(thumb,size=0x4c) addr:0x021e60a8
+Scrcmd_BlackTower_TakeEarnedMoney kind:function(thumb,size=0x8c) addr:0x021e60f4
+sUnkPairs kind:data(any) addr:0x021e6180
+data_ov061_021e619d kind:data(any) addr:0x021e619d ambiguous
+sUnkPairs17 kind:data(any) addr:0x021e61d8
+data_ov061_021e61d9 kind:data(any) addr:0x021e61d9 ambiguous
+BLACK_TOWER_SCRIPT_COMMANDS kind:data(any) addr:0x021e6230
+data_ov061_021e62a9 kind:data(any) addr:0x021e62a9 ambiguous

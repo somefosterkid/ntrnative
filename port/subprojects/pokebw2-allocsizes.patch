@@ -1,0 +1,46 @@
+pokebw2-allocsizes.patch (tools/pokebw2_fetch.sh, the maintainers' notes): three allocations give the DS size of what holds
+pointers, so on a 64-bit host the block is too small: the field's prop search (FieldPropSystem_FindPropsInArea's 32
+pointers, 0x80 bytes on the DS; Black's src/ov021/field_buildmodel.c has 32 * sizeof(FieldChunkPropHolder *)), the
+C-Gear help's CGHelpParam (8 on the DS, 0x10 here) and the Battle Subway script's BSubwayScrWork (0x7f0, 0x840 here).
+Each is the sizeof of what it holds. From a scan of the allocations with a number for their size against the host's
+sizeof of the pointer's type (the maintainers' notes).
+
+diff --git a/src/ov033/bsubway_scr.c b/src/ov033/bsubway_scr.c
+index a6b2604..8305be6 100644
+--- a/src/ov033/bsubway_scr.c
++++ b/src/ov033/bsubway_scr.c
+@@ -56,7 +56,7 @@ BSubwayScrWork *BsubwayScr_CreateWork(GameSystem *gsys, u16 resume, u16 playMode
+     gameData = GSYS_GetGameData(gsys);
+     playerInfo = GetGameDataPlayerInfo(gameData);
+     save = GameData_GetSaveControl(gameData);
+-    bsw = GFL_HeapAllocate(4, 0x7f0, 1, "bsubway_scr.c", 0x5f);
++    bsw = GFL_HeapAllocate(4, sizeof(BSubwayScrWork), 1, "bsubway_scr.c", 0x5f);
+     bsw->heapId = 4;
+     bsw->magic = 0x12345678;
+     bsw->gameData = gameData;
+diff --git a/src/ov036/field_buildmodel.c b/src/ov036/field_buildmodel.c
+index dbeebb9..3310470 100644
+--- a/src/ov036/field_buildmodel.c
++++ b/src/ov036/field_buildmodel.c
+@@ -873,7 +873,7 @@ static inline BOOL FieldPropAreaBounds_Contains(const FieldPropAreaBounds *bound
+ FieldChunkPropHolder **FieldPropSystem_FindPropsInArea(FieldPropSystem *system, const FieldPropAreaBounds *bounds,
+                                                        u32 filter, u32 *count) {
+     u32 found = 0;
+-    FieldChunkPropHolder **props = GFL_HeapAllocate(system->heapId, 0x80, TRUE, "field_buildmodel.c", 1846);
++    FieldChunkPropHolder **props = GFL_HeapAllocate(system->heapId, 32 * sizeof(FieldChunkPropHolder *), TRUE, "field_buildmodel.c", 1846);
+     u32 i;
+     FieldChunkPropHolder *holder;
+     VecFx32 position;
+diff --git a/src/ov200/cg_help.c b/src/ov200/cg_help.c
+index bdf6e91..874567b 100644
+--- a/src/ov200/cg_help.c
++++ b/src/ov200/cg_help.c
+@@ -505,7 +505,7 @@ static BOOL CGHelp_Init(GameProc *proc, u32 *state, void *param, void *work) {
+     GFL_HeapCreateChild(HEAPID_USER, HEAPID_CG_HELP, 0x60000);
+     help = GFL_ProcInitSubsystem(proc, sizeof(CGHelp), HEAPID_CG_HELP);
+     if (helpParam == NULL) {
+-        helpParam = GFL_HeapAllocate(HEAPID_CG_HELP, 8, TRUE, "cg_help.c", 801);
++        helpParam = GFL_HeapAllocate(HEAPID_CG_HELP, sizeof(CGHelpParam), TRUE, "cg_help.c", 801);
+         helpParam->playerInfo = PlayerInfo_Create(HEAPID_CG_HELP);
+         if (GCTX_HIDGetHeldKeys() & PAD_BUTTON_R) {
+             setTrainerGender(helpParam->playerInfo, 1);

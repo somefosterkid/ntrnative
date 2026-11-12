@@ -1,0 +1,7 @@
+    .text       start:0x021998c0 end:0x02199c5c kind:code align:32
+    .ctor       start:0x02199c5c end:0x02199c5c kind:rodata align:4
+    .bss        start:0x02199c60 end:0x02199c60 kind:bss align:32
+
+src/ov032/wfc_user_info_warning.c:
+    complete
+    .text       start:0x021998c0 end:0x02199c5c

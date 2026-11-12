@@ -1,0 +1,37 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1019,6 +1019,7 @@
+ static bool sPassOn;
+ static double sPassCpu[3], sPassGpu[5];
+ static u64 sPassNc, sPassNg;
++static u64 sPass2dN, sPass2dA, sPass2dB;  // libntr-ios-2dskip.patch: the frames whose engine A / B 2D the GPU path reused
+ extern "C" int SIM_PassTiming(void) { return sPassOn; }
+ extern "C" void SIM_PassCpu(double geo, double spans, double twod) {
+   if (!sPassOn) return;
+@@ -1035,7 +1036,13 @@
+ extern "C" void SIM_PassGpuE(double e) {
+   if (sPassOn) sPassE += e;
+ }
++// libntr-ios-2dskip.patch: per frame of the passes row, the engines whose 2D was the frame before's (bit 0 A, bit 1 B; docs/gpu-2d.md)
++extern "C" void SIM_Pass2DSkip(int reuse) {
++  if (!sPassOn) return;
++  sPass2dN++, sPass2dA += reuse & 1, sPass2dB += (reuse >> 1) & 1;
++}
+ static void PassReset(void) {
++  sPass2dN = sPass2dA = sPass2dB = 0;
+   sPassE = 0.0;
+   sPassCpu[0] = sPassCpu[1] = sPassCpu[2] = 0.0;
+   sPassGpu[0] = sPassGpu[1] = sPassGpu[2] = sPassGpu[3] = sPassGpu[4] = 0.0;
+@@ -2665,8 +2672,10 @@
+       const double nc = sPassNc ? (double)sPassNc : 1.0, ng = (double)sPassNg;
+       char ep[64] = "";  // libntr-ios-passe.patch: Metal's E+P in its parts
+       if (sMetal) snprintf(ep, sizeof ep, " (E+P: E %.2f, P %.2f)", sPassE / ng, (sPassGpu[2] - sPassE) / ng);
+-      fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f; GPU (%s) uploads %.2f, R %.2f, E+P %.2f, SMAA %.2f, compose %.2f ms%s\n",
+-              sBench.name, (unsigned long long)sPassNg, sPassCpu[0] / nc, sPassCpu[1] / nc, sPassCpu[2] / nc, sMetal ? "Metal: each pass a command buffer, its GPU time" : "glFinish after each", sPassGpu[0] / ng,
++      char skip[48] = "";  // libntr-ios-2dskip.patch
++      if (sPass2dN > 0) snprintf(skip, sizeof skip, " (skipped A %d%%, B %d%%)", (int)(sPass2dA * 100 / sPass2dN), (int)(sPass2dB * 100 / sPass2dN));
++      fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f%s; GPU (%s) uploads %.2f, R %.2f, E+P %.2f, SMAA %.2f, compose %.2f ms%s\n",
++              sBench.name, (unsigned long long)sPassNg, sPassCpu[0] / nc, sPassCpu[1] / nc, sPassCpu[2] / nc, skip, sMetal ? "Metal: each pass a command buffer, its GPU time" : "glFinish after each", sPassGpu[0] / ng,
+               sPassGpu[1] / ng, sPassGpu[2] / ng, sPassGpu[4] / ng, sPassGpu[3] / ng, ep);
+     }
+     if (sDrN >= 2)  // libntr-ios-smoothfix.patch: the test aid's waits for a drawable (BWPORT_DRAWABLES)

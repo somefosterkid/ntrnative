@@ -1,0 +1,103 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -125,6 +125,7 @@
+ u8 s_SIM_g3tex[4 * 1024 * 1024];
+ 
+ // FBOs
++extern "C" void SIM_ApplyG3Viewport(void);
+ static GLuint g3FrameBuffer;
+ // The 3D frame on the screen: the render target's copy at the last G3_SwapBuffers. The render target is cleared after
+ // a swap, so a game that swaps every other frame (the field at 30 fps) showed an empty 3D layer every other frame
+@@ -1663,16 +1664,8 @@
+   glBindFramebuffer(GL_FRAMEBUFFER, g3FrameBuffer);
+   glBindRenderbuffer(GL_RENDERBUFFER, g3RenderBufferId);
+ 
+-  // Setup 3D Viewport
+-  if (s_reg_GX_POWCNT >> 15) {
+-    glViewport(0, SIM_NDS_SCREEN_HEIGHT * s_SIM_config.internalResolutionScale,
+-               SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale,
+-               SIM_NDS_SCREEN_HEIGHT * s_SIM_config.internalResolutionScale);
+-  } else {
+-    glViewport(0, 0,
+-               SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale,
+-               SIM_NDS_SCREEN_HEIGHT * s_SIM_config.internalResolutionScale);
+-  }
++  // Setup 3D Viewport (G3_Viewport's, the whole screen until the game sets one)
++  SIM_ApplyG3Viewport();
+ 
+   // Activate 3D shader
+   glUseProgram(g3shaderProgramID);
+@@ -1721,10 +1714,34 @@
+ 
+ void SIM_PreRenderVBlank() { SDL_SemPost(vcountVblankSemaphore); }
+ 
++// bw-port: the 3D viewport, G3_ViewPort's x1 | y1 << 8 | x2 << 16 | y2 << 24 (y counted from the bottom, as GL's); the
++// 3D engine's screen is the upper half of the render target when POWCNT's bit 15 says so. 0 (never written) is the
++// whole screen
++extern "C" void SIM_ApplyG3Viewport(void) {
++  u32 vp = s_reg_G3_VIEWPORT;
++  u32 x1 = vp & 0xFF, y1 = (vp >> 8) & 0xFF, x2 = (vp >> 16) & 0xFF, y2 = (vp >> 24) & 0xFF;
++  if (vp == 0 || x2 < x1 || y2 < y1 || y2 >= SIM_NDS_SCREEN_HEIGHT) {
++    x1 = 0; y1 = 0; x2 = SIM_NDS_SCREEN_WIDTH - 1; y2 = SIM_NDS_SCREEN_HEIGHT - 1;
++  }
++  int sc = s_SIM_config.internalResolutionScale;
++  int top = (s_reg_GX_POWCNT >> 15) ? SIM_NDS_SCREEN_HEIGHT : 0;
++  glViewport(x1 * sc, (top + y1) * sc, (x2 - x1 + 1) * sc, (y2 - y1 + 1) * sc);
++}
++
++// bw-port: the 3D frame starts from G3X_SetClearColor's colour, alpha (0 leaves the 3D layer transparent there) and
++// depth. Not done: the clear polygon ID, the clear image (rear-plane bitmap: no place for it in libntr)
++static void SIM_ClearG3(void) {
++  u32 c = s_reg_G3X_CLEAR_COLOR;
++  float a = (float)((c >> 16) & 0x1F) / 31.0f;
++  float d = (float)(s_reg_G3X_CLEAR_DEPTH & 0x7FFF) / 32767.0f;
++  glClearColor((float)(c & 0x1F) / 31.0f, (float)((c >> 5) & 0x1F) / 31.0f, (float)((c >> 10) & 0x1F) / 31.0f, a);
++  glClearDepth(d);
++  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++}
++
+ void SIM_PostRenderVBlank() {
+   if (G3SIM_SwapBuffersCalledThisFrame()) {
+-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
++    SIM_ClearG3();
+     G3SIM_ResetSwapBuffersCall();
+   }
+   // The game's V-blank work (after OS_WaitIrq) starts at line 192 too
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -115,6 +115,8 @@
+   }
+ }
+ 
++extern "C" void SIM_ApplyG3Viewport(void);
++
+ static void ConvertMsgParams(draw_msg_t *msg) {
+   draw_msg_t tmpMsg;
+   memcpy(&tmpMsg, msg, sizeof(draw_msg_t));
+@@ -586,7 +588,10 @@
+         depthBufferMode); // TODO: add flush attributes here for Z/W-buffering!
+   } break;
+   case DRAW_CMD_G3_VIEWPORT:
+-    // TODO
++    // bw-port: the draws so far keep the old viewport
++    G3SIM_FlushArray();
++    s_reg_G3_VIEWPORT = msg->data.numU32;
++    SIM_ApplyG3Viewport();
+     break;
+   case DRAW_CMD_G3_TEXPLTTBASE:
+     G3SIM_FlushArray();
+--- a/libraries/sim/src/shaders/g3_fragment.glsl
++++ b/libraries/sim/src/shaders/g3_fragment.glsl
+@@ -51,8 +51,9 @@
+             if(foundIdx == 31) {
+                 fogFactor = fogDensity[foundIdx];
+             } else {
+-                float interpolationFactor = (fogDepthBoundary[foundIdx-1] - coords.z) / (fogDepthBoundary[foundIdx] - fogDepthBoundary[foundIdx-1]);
+-                fogFactor = (fogDensity[foundIdx - 1] * (interpolationFactor)) + (fogDensity[foundIdx] * (1.0-interpolationFactor));
++                // bw-port: t runs 0 at the lower entry to 1 at the upper (it was negated, blending backwards)
++                float t = (coords.z - fogDepthBoundary[foundIdx-1]) / (fogDepthBoundary[foundIdx] - fogDepthBoundary[foundIdx-1]);
++                fogFactor = mix(fogDensity[foundIdx - 1], fogDensity[foundIdx], clamp(t, 0.0, 1.0));
+             }
+         }
+         color = mix(shadedColor, fogColor, fogFactor);

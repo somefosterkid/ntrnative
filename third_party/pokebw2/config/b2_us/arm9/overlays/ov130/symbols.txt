@@ -1,0 +1,33 @@
+GimmickFunfestLevels_Setup kind:function(thumb,size=0x5a) addr:0x021eec80
+GimmickFunfestLevels_End kind:function(thumb,size=0x2c) addr:0x021eecdc
+GimmickFunfestLevels_Update kind:function(thumb,size=0x8e) addr:0x021eed08
+GimmickFunfestLevels_PlayStartEffect kind:function(thumb,size=0x1c) addr:0x021eed98
+GimmickFunfestLevels_PlayLeaveEffect kind:function(thumb,size=0x1c) addr:0x021eedb4
+GimmickFunfestLevels_InitModels kind:function(thumb,size=0x104) addr:0x021eedd0
+GimmickFunfestLevels_Free kind:function(thumb,size=0xc) addr:0x021eeed4
+GimmickFunfestLevels_StepAnimations kind:function(thumb,size=0xc) addr:0x021eeee0
+GimmickFunfestLevels_PlayAnimation kind:function(thumb,size=0x4c) addr:0x021eeeec
+GimmickFunfestLevels_InitState kind:function(thumb,size=0x34) addr:0x021eef38
+GimmickFunfestLevels_HideLevels kind:function(thumb,size=0x20) addr:0x021eef6c
+GetLevelSteps kind:function(thumb,size=0x10) addr:0x021eef8c
+GimmickFunfestLevels_ShowLevels kind:function(thumb,size=0xb4) addr:0x021eef9c
+GetCommWork kind:function(thumb,size=0x18) addr:0x021ef050
+GimmickFunfestLevels_ShowEffect0 kind:function(thumb,size=0x2c) addr:0x021ef068
+GimmickFunfestLevels_PlayEffect1 kind:function(thumb,size=0x2c) addr:0x021ef094
+GimmickFunfestLevels_ShowStartEffect kind:function(thumb,size=0x36) addr:0x021ef0c0
+GimmickFunfestLevels_ShowLeaveEffect kind:function(thumb,size=0x1e) addr:0x021ef0f8
+IsAtEffectStart kind:function(thumb,size=0x38) addr:0x021ef118
+IsAtEffectEnd kind:function(thumb,size=0x30) addr:0x021ef150
+sLeaveEffectAnimations kind:data(any) addr:0x021ef180
+sEffect1Animations kind:data(any) addr:0x021ef184
+sEffect0Animations kind:data(any) addr:0x021ef188
+sStartEffectAnimations kind:data(any) addr:0x021ef190
+sAnimationCounts kind:data(any) addr:0x021ef19c
+sFunfestLevelsSceneSetup kind:data(any) addr:0x021ef1ac
+sFunfestLevelsResources kind:data(any) addr:0x021ef1bc
+data_ov130_021ef211 kind:data(any) addr:0x021ef211 ambiguous
+data_ov130_021ef231 kind:data(any) addr:0x021ef231 ambiguous
+sFunfestLevelsActors kind:data(any) addr:0x021ef24c
+data_ov130_021ef289 kind:data(any) addr:0x021ef289 ambiguous
+data_ov130_021ef29d kind:data(any) addr:0x021ef29d ambiguous
+data_ov130_021ef2e1 kind:data(any) addr:0x021ef2e1 ambiguous

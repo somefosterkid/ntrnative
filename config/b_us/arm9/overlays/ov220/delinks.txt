@@ -1,0 +1,17 @@
+    .text       start:0x021b95a0 end:0x021ba314 kind:code align:32
+    .rodata     start:0x021ba314 end:0x021ba4dc kind:rodata align:4
+    .ctor       start:0x021ba4dc end:0x021ba4dc kind:rodata align:4
+    .data       start:0x021ba4e0 end:0x021ba520 kind:data align:32
+    .bss        start:0x021ba520 end:0x021ba520 kind:bss align:32
+
+src/ov220/th_award.c:
+    complete
+    .text       start:0x021b95a0 end:0x021ba0d8
+    .rodata     start:0x021ba314 end:0x021ba3fc
+    .data       start:0x021ba4e0 end:0x021ba4f8
+
+src/ov220/th_award_graphic.c:
+    complete
+    .text       start:0x021ba0d8 end:0x021ba314
+    .rodata     start:0x021ba3fc end:0x021ba4dc
+    .data       start:0x021ba4f8 end:0x021ba520

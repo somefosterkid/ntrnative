@@ -1,0 +1,374 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -80,6 +80,7 @@
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+     u8 showMetrics; /* bw-port (libntr-ui68.patch): the metrics at the top of the right side (sim_config.ini ShowMetrics) */
+     u8 showMenuBar; /* the menu bar at the top of the window, windowed (`; ShowMenuBar); fullscreen: out on the mouse at the top edge or Alt */
++    u8 fullscreenMenuBar; /* bw-port (libntr-ux69.patch): fullscreen with the menu bar shown (ShowMenuBar): 0 = the bar slides in over the picture on the mouse at the top edge / Alt (FullscreenMenuBar=autohide, default), 1 = it stays and the screens start below it (=always) */
+     u8 uiScale; /* the UI's size in percent, 0 = from the display's DPI (UiScale=auto|100|125|...) */
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=auto|vcore|gpu (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -24,9 +24,15 @@
+ void DrawSide(float x, float y, float w, float h, unsigned pressed, int metrics, int controller);
+ // Before the frame's layout: the menu bar's state (the mouse at the top edge, Alt); returns the height the screens'
+ // area leaves free at the top (0 when the bar is away or only drawn over the picture in fullscreen)
+-int BarBegin(int windowW, int windowH);
++// touchRect (x0, y0, x1, y1 in window pixels, last frame's): the bar does not slide in at once over the touch screen's top rows
++int BarBegin(int windowW, int windowH, const float * touchRect);
+ int InitialBarHeight();   // the bar's height before the GUI exists (the window's first size), 0 = no bar
+ float DisplayScale();     // the display's DPI / 96 (1.0 on a 96 DPI display)
++// bw-port (libntr-ux69.patch): sim_main logs these to BWPORT_TOUCHLOG for the touch tests (the bar's height, the settings windows' rectangles)
++void RectsString(char * buf, int n);
++// bw-port (libntr-ux69.patch): is the window pixel (x, y) under the bar, a settings window, the side or an open menu, as
++// drawn last frame? (WantMouse is ImGui's flag, which lags a frame behind a quick move and click)
++bool WantMouseAt(int x, int y);
+ bool WantMouse();         // ImGui has the mouse (over a window or the bar): the click is not a touch
+ bool WantKeyboard();      // ImGui has the keyboard (a text field)
+ void DrawStatus(const char * text); // libntr-onerender.patch: the renderer status over the picture
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -75,6 +75,9 @@
+     if(MATCH("General", "ShowMenuBar")) {
+         config->showMenuBar = StringToBool(value);
+     }
++    if(MATCH("General", "FullscreenMenuBar")) {
++        config->fullscreenMenuBar = (strcmp(value, "always") == 0 || strcmp(value, "1") == 0 || strcmp(value, "true") == 0) ? 1 : 0;
++    }
+     if(MATCH("General", "UiScale")) {
+         int n = strcmp(value, "auto") == 0 ? 0 : atoi(value);
+         config->uiScale = (u8)(n == 0 ? 0 : n < 50 ? 50 : n > 255 ? 255 : n);
+@@ -469,6 +472,7 @@
+     aConfig->showInputPanel = TRUE;
+     aConfig->showMetrics = TRUE;
+     aConfig->showMenuBar = TRUE;
++    aConfig->fullscreenMenuBar = 0;
+     aConfig->uiScale = 0;
+     aConfig->renderer = SIM_CONFIG_RENDERER_AUTO;
+     aConfig->resolution = 1;
+@@ -562,6 +566,7 @@
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
+     fprintf(configFile, "ShowMetrics=%s\n", BoolToString(aConfig->showMetrics));
+     fprintf(configFile, "ShowMenuBar=%s\n", BoolToString(aConfig->showMenuBar));
++    fprintf(configFile, "FullscreenMenuBar=%s\n", aConfig->fullscreenMenuBar ? "always" : "autohide");
+     if(aConfig->uiScale == 0) {
+         fprintf(configFile, "UiScale=auto\n");
+     } else {
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -6,6 +6,7 @@
+ #include "imgui_impl_opengl3.h"
+ #include "imgui_impl_sdl2.h"
+ #include "gui_internal.hpp"
++#include "imgui_internal.h"
+ 
+ #include "ImGuiFileDialog.h"
+ #include "simulator/config/sim_config.h"
+@@ -49,6 +50,7 @@
+ static ImGuiStyle sBaseStyle;       // the style at scale 1
+ static float sBarH = 24.0f;         // the menu bar's height in pixels
+ static bool sBarLatch = false;      // the bar was brought out with Alt (or ` in fullscreen)
++static Uint32 sBarDwell = 0;        // SDL_GetTicks() when the mouse reached the top edge (0 = not there)
+ static bool sBarMouse = false;      // the bar is out because the mouse touched the top edge
+ static bool sBarVisible = false;    // the bar is drawn this frame
+ static int sBarReserve = 0;         // the height the screens' area leaves at the top this frame
+@@ -59,7 +61,7 @@
+ enum {
+     W_VIDEO, W_AUDIO, W_CONTROLS, W_VIEW, W_DEBUG, W_LEGACY_CONFIG, W_LEGACY_INPUT, W_NET, W_DEMO, W_APP, W_COUNT
+ };
+-struct Win { bool open; int order; };
++struct Win { bool open; int order; float x, y, w, h; };
+ static Win sWins[W_COUNT];
+ static int sWinOrder = 0;
+ 
+@@ -143,27 +145,48 @@
+     sBarH = ceilf(st.FontSizeBase * s) + 2.0f * st.FramePadding.y;
+ }
+ 
++// the bar keeps its place (the screens' area starts below it): windowed with ShowMenuBar; in fullscreen only with
++// FullscreenMenuBar=always (otherwise it slides in over the picture)
++static bool Pinned() {
++    SIM_config_type * c = C();
++    return c->showMenuBar && (!c->fullScreen || c->fullscreenMenuBar);
++}
++
+ int InitialBarHeight() {
+     SIM_config_type * c = C();
+     float s = c->uiScale >= 50 ? (float)c->uiScale / 100.0f : DisplayScale();
+-    return c->showMenuBar && !c->fullScreen ? (int)(ceilf(15.0f * s) + 2.0f * floorf(4.0f * s)) : 0;
++    return Pinned() ? (int)(ceilf(15.0f * s) + 2.0f * floorf(4.0f * s)) : 0;
+ }
+ 
++static float sSideRect[4];
++static int sSideMetrics, sSideController;
++
+ // ---- the menu bar's state -----------------------------------------------------------------------------------------
+ 
+-int BarBegin(int windowW, int windowH) {
++int BarBegin(int windowW, int windowH, const float * touchRect) {
+     (void)windowW;
+     (void)windowH;
+     SIM_config_type * c = C();
++    sSideRect[2] = sSideRect[3] = 0.0f; // DrawSide sets it again when the side is drawn
+     int mx = 0, my = 0;
+     Uint32 b = SDL_GetMouseState(&mx, &my);
+     bool focus = SDL_GetMouseFocus() == sWindow;
+     bool popup = sImguiContext != nullptr && ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
+-    bool pinned = !c->fullScreen && c->showMenuBar;
++    bool pinned = Pinned();
+     if (!pinned) {
+         // out when the mouse reaches the top edge (not while a button is down: a touch there is the game's)
+         if (focus && !(b & SDL_BUTTON_LMASK) && my <= 2) {
+-            sBarMouse = true;
++            // over the touch screen's top rows (it starts at the window's top edge): the mouse must rest there for
++            // 0.35 s, so a quick click on the touch screen's first rows is a touch, not the bar coming out over it
++            bool overTouch = touchRect != nullptr && (float)mx + 0.5f >= touchRect[0] && (float)mx + 0.5f < touchRect[2] &&
++                             touchRect[1] < 3.0f && touchRect[3] > touchRect[1];
++            Uint32 now = SDL_GetTicks();
++            if (sBarDwell == 0) {
++                sBarDwell = now | 1u; // (odd: 0 means not at the edge)
++            }
++            if (!overTouch || (int)(now - sBarDwell) >= 350) {
++                sBarMouse = true;
++            }
+         } else if (!(focus && (float)my < sBarH + 6.0f) && !popup) {
+             sBarMouse = false;
+         }
+@@ -171,6 +194,11 @@
+         sBarMouse = false;
+         sBarLatch = false;
+     }
++    if (!(focus && my <= 2) || pinned) {
++        sBarDwell = 0;
++    } else if (b & SDL_BUTTON_LMASK) {
++        sBarDwell = SDL_GetTicks() | 1u; // clicking at the top edge: the count starts again from the click
++    }
+     sBarVisible = pinned || sBarMouse || sBarLatch || popup;
+     sBarReserve = pinned ? (int)ceilf(sBarH) : 0;
+     return sBarReserve;
+@@ -179,7 +207,7 @@
+ // ` : the bar on or off (windowed: kept in sim_config.ini; fullscreen: out until pressed again)
+ void Toggle() {
+     SIM_config_type * c = C();
+-    if (c->fullScreen) {
++    if (c->fullScreen && !c->fullscreenMenuBar) {
+         sBarLatch = !sBarLatch;
+     } else {
+         c->showMenuBar = !c->showMenuBar;
+@@ -200,6 +228,26 @@
+     return sImguiContext != nullptr && ImGui::GetIO().WantCaptureMouse;
+ }
+ 
++bool WantMouseAt(int x, int y) {
++    if (sImguiContext == nullptr) {
++        return false;
++    }
++    if (ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel)) {
++        return true;
++    }
++    ImGuiContext & g = *sImguiContext;
++    for (int i = g.Windows.Size - 1; i >= 0; i--) {
++        ImGuiWindow * w = g.Windows[i];
++        if (!w->WasActive || (w->Flags & (ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_ChildWindow))) {
++            continue;
++        }
++        if (w->Rect().Contains(ImVec2((float)x, (float)y))) {
++            return true;
++        }
++    }
++    return false;
++}
++
+ bool WantKeyboard() {
+     return sImguiContext != nullptr && ImGui::GetIO().WantCaptureKeyboard;
+ }
+@@ -261,7 +309,7 @@
+             }
+         } else if (alt) {
+             // Alt pressed and released alone: the bar out or away
+-            if (sAltDown && !sAltOther && !(!C()->fullScreen && C()->showMenuBar)) {
++            if (sAltDown && !sAltOther && !Pinned()) {
+                 sBarLatch = !sBarLatch;
+             }
+             sAltDown = false;
+@@ -278,6 +326,16 @@
+     sContext = context;
+ 
+     sImguiContext = ImGui::CreateContext(NULL);
++    {
++        // BWPORT_UIOPEN=video,audio,controls,view,debug: settings windows open from the start (the touch tests)
++        const char * uo = getenv("BWPORT_UIOPEN");
++        static const char * const names[] = {"video", "audio", "controls", "view", "debug"};
++        for (int i = 0; uo != nullptr && i < 5; i++) {
++            if (strstr(uo, names[i]) != nullptr) {
++                OpenWin(i);
++            }
++        }
++    }
+ 
+     ImGuiIO & igIO = ImGui::GetIO();
+     igIO.IniFilename = nullptr;                    // the windows open centred each time
+@@ -320,6 +378,7 @@
+ // ---- small helpers ------------------------------------------------------------------------------------------------
+ 
+ static const char * const LayoutNames[] = {"Vertical", "Horizontal", "Large screen"};
++static const char * const FsBarNames[] = {"Auto-hide", "Always visible"};
+ static const char * const RendererNames[] = {
+     "auto (the GPU when there is one, else vcore)",
+     "vcore (the DS video core on the CPU)",
+@@ -470,6 +529,7 @@
+         w.order = ++sWinOrder;
+     }
+     ImGui::Dummy(ImVec2(std::min(width * sUiScale, vp->Size.x - 60.0f), 1.0f));
++    w.x = ImGui::GetWindowPos().x; w.y = ImGui::GetWindowPos().y; w.w = ImGui::GetWindowSize().x; w.h = ImGui::GetWindowSize().y;
+     return true;
+ }
+ 
+@@ -728,6 +788,9 @@
+         FormRow("Menu bar (`)");
+         bool mb = c->showMenuBar;
+         if (ImGui::Checkbox("##mb", &mb)) { c->showMenuBar = mb; Dirty(); }
++        FormRow("Menu bar in fullscreen", "Auto-hide: slides in over the picture at the top edge or with Alt. Always visible: stays, the screens start below it");
++        int fb = c->fullscreenMenuBar ? 1 : 0;
++        if (ComboIndex("##fsmb", &fb, FsBarNames, 2)) { c->fullscreenMenuBar = (u8)fb; Dirty(); }
+         FormRow("UI size");
+         int cur = 0;
+         for (int i = 0; i < 7; i++) {
+@@ -993,6 +1056,12 @@
+         if (ImGui::MenuItem("Metrics", nullptr, &m)) { c->showMetrics = m; Dirty(); }
+         bool k = c->showInputPanel;
+         if (ImGui::MenuItem("Controller panel", "F1", &k)) { c->showInputPanel = k; Dirty(); }
++        if (ImGui::BeginMenu("Menu bar in fullscreen")) {
++            for (int i = 0; i < 2; i++) {
++                if (MenuRadio(FsBarNames[i], (c->fullscreenMenuBar ? 1 : 0) == i)) { c->fullscreenMenuBar = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
+         if (ImGui::BeginMenu("UI size")) {
+             for (int i = 0; i < 7; i++) {
+                 std::string s = i == 0 ? "Auto" : std::format("{}%", UiScales[i]);
+@@ -1258,7 +1327,20 @@
+     ImGui::End();
+ }
+ 
++// the UI's rectangles as a line of text for BWPORT_TOUCHLOG: the bar (when drawn), the side, the settings windows drawn
++void RectsString(char * buf, int n) {
++    int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
++                     sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
++    for (int i = 0; i < W_COUNT && k < n - 80; i++) {
++        if (sWins[i].open && sWins[i].w > 0.0f) {
++            k += snprintf(buf + k, n - k, " win%d %.0f %.0f %.0f %.0f", i, sWins[i].x, sWins[i].y, sWins[i].w, sWins[i].h);
++        }
++    }
++}
++
+ void DrawSide(float x, float y, float w, float h, unsigned pressed, int metrics, int controller) {
++    sSideRect[0] = x; sSideRect[1] = y; sSideRect[2] = w; sSideRect[3] = h;
++    sSideMetrics = metrics; sSideController = controller;
+     if (w <= 0.0f || h <= 0.0f) {
+         return;
+     }
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -68,6 +68,18 @@
+ // Thread
+ extern OSThreadInfo OSi_ThreadInfo;
+ 
++// bw-port (libntr-ux69.patch): BWPORT_TOUCHLOG=FILE, for the click tests: a "layout" line each time the picture's place, the
++// touch screen's rectangle or the UI's rectangles change, and a "mouse X Y -> touch TX TY" line for each touch position
++static FILE *sTouchLog;
++static FILE *TouchLogFile() {
++  static int init;
++  if (!init) {
++    init = 1;
++    const char *tl = getenv("BWPORT_TOUCHLOG");
++    if (tl != NULL && tl[0] != 0) sTouchLog = fopen(tl, "a");
++  }
++  return sTouchLog;
++}
+ static float s_TouchPanelCoords[4] = {}; // The touch screen's rectangle in window coordinates (x0, y0, x1, y1; y down)
+ 
+ // SND
+@@ -1168,7 +1180,7 @@
+ 
+     // bw-port (libntr-ui68.patch): the menu bar at the top (windowed): the screens' area starts below it. The window grows
+     // (shrinks) by the bar's height when the bar comes and goes, so the picture keeps its size.
+-    int barH = SIM::GUI::BarBegin(windowWidth, windowHeight);
++    int barH = SIM::GUI::BarBegin(windowWidth, windowHeight, s_TouchPanelCoords);
+     {
+       static int sBarHPrev = -1;
+       if (sBarHPrev >= 0 && sBarHPrev != barH && !s_SIM_config.fullScreen &&
+@@ -1268,7 +1280,6 @@
+         break;
+       }
+     }
+-
+     // Check Joysticks
+     if (s_SIM_SDLJoystick == NULL && SDL_NumJoysticks() >= 1) {
+       s_SIM_SDLJoystick = SDL_JoystickOpen(0);
+@@ -1460,12 +1471,18 @@
+                               SIM_CONFIG_JOY_AXIS_MINUS_MASK);
+         }
+       }
+-      if (Event.type == SDL_MOUSEBUTTONDOWN && !SIM::GUI::WantMouse()) { // a click on the menu or a window is not a touch
+-        isMouseDown = 1;
+-        s_tpData.validity = 0;
+-        s_tpData.touch = 1;
++      if (Event.type == SDL_MOUSEBUTTONDOWN && Event.button.button == SDL_BUTTON_LEFT) {
++        // a click on the menu bar or a window is not a touch; neither is one outside the touch screen. The stroke then
++        // lasts until the button is up: it leaves the screen and comes back, the stylus is lifted and put down again
++        float ex = (float)Event.button.x + 0.5f, ey = (float)Event.button.y + 0.5f;
++        if (!SIM::GUI::WantMouseAt(Event.button.x, Event.button.y) && ex >= s_TouchPanelCoords[0] && ex < s_TouchPanelCoords[2] &&
++            ey >= s_TouchPanelCoords[1] && ey < s_TouchPanelCoords[3]) {
++          isMouseDown = 1;
++          s_tpData.validity = 0;
++          s_tpData.touch = 1;
++        }
+       }
+-      if (Event.type == SDL_MOUSEBUTTONUP) {
++      if (Event.type == SDL_MOUSEBUTTONUP && Event.button.button == SDL_BUTTON_LEFT) {
+         isMouseDown = 0;
+         s_tpData.validity = 0;
+         s_tpData.touch = 0;
+@@ -1484,14 +1501,10 @@
+       int ty = (int)((my - s_TouchPanelCoords[1]) * SIM_NDS_SCREEN_HEIGHT / (s_TouchPanelCoords[3] - s_TouchPanelCoords[1]));
+       s_tpData.x = (u16)(tx < 0 ? 0 : tx > SIM_NDS_SCREEN_WIDTH - 1 ? SIM_NDS_SCREEN_WIDTH - 1 : tx);
+       s_tpData.y = (u16)(ty < 0 ? 0 : ty > SIM_NDS_SCREEN_HEIGHT - 1 ? SIM_NDS_SCREEN_HEIGHT - 1 : ty);
+-      // BWPORT_TOUCHLOG=FILE: the touch position each time it changes while the button is down (click tests)
+-      static FILE *sTouchLog;
+-      static int sTouchLogInit, sLastTx = -1, sLastTy = -1;
+-      if (!sTouchLogInit) {
+-        sTouchLogInit = 1;
+-        const char *tl = getenv("BWPORT_TOUCHLOG");
+-        if (tl != NULL && tl[0] != 0) sTouchLog = fopen(tl, "a");
+-      }
++      // the stroke goes on when it comes back onto the screen
++      s_tpData.touch = isMouseDown;
++      // the touch position each time it changes while the stylus is down (click tests)
++      static int sLastTx = -1, sLastTy = -1;
+       if (sTouchLog != NULL && isMouseDown && (tx != sLastTx || ty != sLastTy)) {
+         fprintf(sTouchLog, "mouse %d %d -> touch %d %d\n", x, y, s_tpData.x, s_tpData.y);
+         fflush(sTouchLog);
+@@ -1521,6 +1534,21 @@
+     }
+     SIM::GUI::Main(); // after the side's windows: the settings windows are in front of them
+ 
++    if (TouchLogFile() != NULL) {
++      char ui[512], line[900];
++      SIM::GUI::RectsString(ui, sizeof ui);
++      snprintf(line, sizeof line, "layout %d swap %d fs %d int %d window %d %d view %d %d %d %d touch %.2f %.2f %.2f %.2f %s",
++               (int)s_SIM_config.screenLayout, (int)s_SIM_config.swapScreens, (int)s_SIM_config.fullScreen,
++               (int)s_SIM_config.integerScale, windowWidth, windowHeight, viewX, viewTop, viewWidth, viewHeight,
++               s_TouchPanelCoords[0], s_TouchPanelCoords[1], s_TouchPanelCoords[2], s_TouchPanelCoords[3], ui);
++      static char last[900];
++      if (strcmp(line, last) != 0) {
++        strcpy(last, line);
++        fprintf(sTouchLog, "%s\n", line);
++        fflush(sTouchLog);
++      }
++    }
++
+     SIM_RendererPoll();
+ 
+     SIM_FrameSkipDecide();

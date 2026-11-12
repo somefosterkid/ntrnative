@@ -1,0 +1,93 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -56,6 +56,14 @@
+ #else
+ #define SIM_IOS 0
+ #endif
++// bw-port (libntr-android-gles.patch): Android is OpenGL ES 3.0 through SDL's EGL surface, as iOS: SIM_GLES is what the two share
++// (the context, the shaders' version, no glProgramUniform, SIM_main), SIM_IOS stays what only UIKit has
++#ifdef __ANDROID__
++#define SIM_ANDROID 1
++#else
++#define SIM_ANDROID 0
++#endif
++#define SIM_GLES (SIM_IOS || SIM_ANDROID)
+ 
+ // bw-port (libntr-ios-touch.patch): the phone's on-screen controls (sim_touch.cpp)
+ extern "C" {
+@@ -1292,8 +1300,8 @@
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+ 
+-#if SIM_IOS
+-  // bw-port (libntr-ios-gles.patch): iOS has OpenGL ES only (Apple's OpenGLES.framework, 3.0)
++#if SIM_GLES
++  // bw-port (libntr-ios-gles.patch): iOS has OpenGL ES only (Apple's OpenGLES.framework, 3.0); Android too (libntr-android-gles.patch)
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+@@ -1419,7 +1427,7 @@
+   sBaseTitle = windowTitle;
+   window = SDL_CreateWindow(
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
+-#if SIM_IOS
++#if SIM_GLES
+       SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI
+ #elif defined(__APPLE__)
+       (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | SDL_WINDOW_OPENGL
+@@ -1495,7 +1503,7 @@
+ // bw-port (libntr-vbridge.patch): the frame renderer's picture, a 256x384 RGBA8 texture (top screen in its first
+ // rows) drawn with the window's screen quads (sim_screenquads.c: the layout and the swap), which sample the top screen
+ // from the upper half of t: t is flipped for the picture's rows, which go down
+-#if SIM_IOS
++#if SIM_GLES
+ #define SIM_FRAME_GLSL "#version 300 es\nprecision highp float;\nprecision highp int;\n"
+ #elif defined(__APPLE__)
+ #define SIM_FRAME_GLSL "#version 410 core"
+@@ -1557,7 +1565,7 @@
+   glAttachShader(s_frameProgram, vs);
+   glAttachShader(s_frameProgram, fs);
+   glLinkProgram(s_frameProgram);
+-#if SIM_IOS
++#if SIM_GLES
+   glUseProgram(s_frameProgram);   // (no glProgramUniform in ES 3.0)
+   glUniform1i(glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
+   glUseProgram(0);
+@@ -3820,8 +3828,9 @@
+ }
+ #endif
+ 
+-#if SIM_IOS
+-// bw-port (libntr-ios-gles.patch): port/src/ios_main.c's main() hands this to SDL_UIKitRunApp
++#if SIM_GLES
++// bw-port (libntr-ios-gles.patch): port/src/ios_main.c's main() hands this to SDL_UIKitRunApp; on Android port/src/android_main.c's
++// SDL_main calls it (libntr-android-gles.patch)
+ extern "C" int SIM_main(int argc, char *argv[]);
+ int SIM_main(int argc, char *argv[]) {
+ #else
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -381,8 +381,8 @@
+     igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
+ 
+     ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
+-#if defined(__APPLE__) && TARGET_OS_IOS
+-    const char * glsl_version = "#version 300 es";   // bw-port (libntr-ios-gles.patch): OpenGL ES 3.0
++#if (defined(__APPLE__) && TARGET_OS_IOS) || defined(__ANDROID__)
++    const char * glsl_version = "#version 300 es";   // bw-port (libntr-ios-gles.patch, libntr-android-gles.patch): OpenGL ES 3.0
+ #elif defined(__APPLE__)
+     const char * glsl_version = "#version 410";   // bw-port (libntr-ios-gl.patch): macOS stops at GL 4.1
+ #else
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -431,8 +431,8 @@
+         sInit = true;
+         const char * e = getenv("BWPORT_TOUCH");
+         if (e != NULL && sscanf(e, "%dx%d", &sForceW, &sForceH) != 2) sForceW = sForceH = 0;
+-#if SIM_TOUCH_IOS
+-        sActive = true;
++#if SIM_TOUCH_IOS || defined(__ANDROID__)
++        sActive = true;   // (libntr-android-gles.patch: Android's fingers too)
+ #else
+         sActive = sForceW > 0;
+ #endif

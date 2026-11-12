@@ -1,0 +1,4 @@
+InitItemBag_ kind:function(thumb,size=0x50) addr:0x021e8c20
+InitDreamRadarFlagSave_ kind:function(thumb,size=0x32) addr:0x021e8c70
+InitItemBag kind:function(thumb,size=0x8) addr:0x021e8ca4
+InitDreamRadarFlagSave kind:function(thumb,size=0x8) addr:0x021e8cac

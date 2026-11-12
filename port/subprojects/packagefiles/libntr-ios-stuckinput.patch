@@ -1,0 +1,402 @@
+bw-port: the stuck-input checks (docs/perf.md "Stuck buttons"), cheap enough to stay on in the maintainer's builds. Lines only when
+something is off: "anomaly: WHAT, tick T" (20 a minute) and, on iOS, "stall: tick T: N ms (parts...)" for a frame over 50 ms.
+sim_touch.cpp: a finger UIKit ended or cancelled whose end did not reach the touch layer in that dispatch is let go at once
+(SimTouch_UIKitEnded, from port/src/ios_input.m); once a frame every held finger is checked against UIKit's record (ended
+100 ms ago: let go; missing from UIKit's touch events: logged); a down for a finger still held lets the old one go; UIKit's
+cancels on SDL's view are logged; the "input: release N ms late" line names the buttons and the tick (30 a minute).
+sim_main.cpp: SIM_Anomaly / SIM_PadNames / SIM_InputTickNo; the keyboard's (iOS) and the game controller's held masks against
+the devices' state (150 ms stale: let go); a controller disconnect while holding is logged; the frame stamps always taken.
+Windows/Linux: 8 clock reads a frame more, the stall line only with BWPORT_STALLLOG=1, the controller check only on the SDL game
+controller path (BWPORT_PAD_GC), a disconnect line; nothing else changes there.
+
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -160,8 +160,11 @@ static inline u64 FLNow(void) {
+   clock_gettime(CLOCK_MONOTONIC, &t);
+   return (u64)t.tv_sec * 1000000000ull + (u64)t.tv_nsec;
+ }
++// libntr-ios-stuckinput.patch: the stamps are always taken for the stall line (StallCheck; 8 clock reads a frame)
++static u64 sStT[8], sStOver;
+ static inline void FLStamp(int i) {
+-  if (sFLOn > 0 || sPerfOn) sFLT[i] = FLNow();
++  sStT[i] = FLNow();
++  if (sFLOn > 0 || sPerfOn) sFLT[i] = sStT[i];
+ }
+ static void FLClose(void) {
+   if (sFLFile != NULL) fclose(sFLFile);
+@@ -1835,6 +1838,34 @@ static bool LogBudgetOk(LogBudget &b, int perMin, int *skippedBefore) {
+   b.skipped = 0;
+   return true;
+ }
++// bw-port (libntr-ios-stuckinput.patch): the stuck-input checks' line: "anomaly: WHAT, tick T" (T = the V-blank count, the game's
++// frames), at most 20 a minute (the next one says how many were left out); WHAT names the source, the buttons and the ages
++static LogBudget sAnomBudget;
++extern "C" unsigned SIM_InputTickNo(void) { return *((u32 *)HW_VBLANK_COUNT_BUF); }
++extern "C" void SIM_Anomaly(const char *fmt, ...) {
++  int skipped = 0;
++  if (!LogBudgetOk(sAnomBudget, 20, &skipped)) return;
++  char line[400];
++  va_list ap;
++  va_start(ap, fmt);
++  vsnprintf(line, sizeof line, fmt, ap);
++  va_end(ap);
++  fprintf(stderr, "anomaly: %s, tick %u", line, SIM_InputTickNo());
++  if (skipped > 0) fprintf(stderr, " (%d left out before)", skipped);
++  fputc('\n', stderr);
++}
++// the buttons of a mask (bit B_*: A B X Y L R Start Select Up Down Left Right) as "B+Down+Left", "-" for none; buf holds 64
++extern "C" const char *SIM_PadNames(unsigned m, char *buf) {
++  static const char *const nm[12] = {"A", "B", "X", "Y", "L", "R", "Start", "Select", "Up", "Down", "Left", "Right"};
++  buf[0] = 0;
++  for (int b = 0; b < 12; b++) {
++    if (!((m >> b) & 1)) continue;
++    if (buf[0] != 0) strcat(buf, "+");
++    strcat(buf, nm[b]);
++  }
++  if (buf[0] == 0) strcpy(buf, "-");
++  return buf;
++}
+ static void InputGpuDone(InTrack &in, u64 done, int inflight) {
+   const int k = (int)(&in - sIn);
+   in.stage = 0;
+@@ -2264,6 +2295,7 @@ static void SpSleepUntil(u64 target) {
+     u64 now = SpNowNs();
+     if (now >= target) {
+       sPc.sleepNs += now - tIn;
++      if (tIn < target && now - target > sStOver) sStOver = now - target;  // libntr-ios-stuckinput.patch: (the run loop held the wait past its end)
+       return;
+     }
+     u64 rem = target - now;
+@@ -2735,6 +2767,10 @@ static void PadRescan() {
+     else SDL_JoystickClose(s_SIM_SDLJoystick);
+     sPadGC = NULL;
+     s_SIM_SDLJoystick = NULL;
++    if (sPadSrc[1] != 0) {  // libntr-ios-stuckinput.patch
++      char nm[64];
++      SIM_Anomaly("controller disconnected while holding %s: let go", SIM_PadNames(sPadSrc[1], nm));
++    }
+     PadSrcClear(1);
+     SimTouch_Controller(0);
+   }
+@@ -2756,15 +2792,15 @@ static void PadRescan() {
+   }
+ }
+ // a game controller's buttons as the desktop layout
+-static void PadControllerButton(int button, bool down) {
+-  static const s8 map[SDL_CONTROLLER_BUTTON_MAX] = {
++static const s8 sPadGCMap[SDL_CONTROLLER_BUTTON_MAX] = {
+       [SDL_CONTROLLER_BUTTON_A] = 0, [SDL_CONTROLLER_BUTTON_B] = 1, [SDL_CONTROLLER_BUTTON_X] = 2, [SDL_CONTROLLER_BUTTON_Y] = 3,
+       [SDL_CONTROLLER_BUTTON_BACK] = 7, [SDL_CONTROLLER_BUTTON_GUIDE] = -1, [SDL_CONTROLLER_BUTTON_START] = 6,
+       [SDL_CONTROLLER_BUTTON_LEFTSTICK] = -1, [SDL_CONTROLLER_BUTTON_RIGHTSTICK] = -1, [SDL_CONTROLLER_BUTTON_LEFTSHOULDER] = 4,
+       [SDL_CONTROLLER_BUTTON_RIGHTSHOULDER] = 5, [SDL_CONTROLLER_BUTTON_DPAD_UP] = 8, [SDL_CONTROLLER_BUTTON_DPAD_DOWN] = 9,
+       [SDL_CONTROLLER_BUTTON_DPAD_LEFT] = 10, [SDL_CONTROLLER_BUTTON_DPAD_RIGHT] = 11};
++static void PadControllerButton(int button, bool down) {
+   if (button < 0 || button >= SDL_CONTROLLER_BUTTON_MAX) return;
+-  int b = map[button];
++  int b = sPadGCMap[button];
+   if (b >= 0 && b < 12) PadSrcSet(1, b, down);
+ }
+ // the test's virtual pad: BWPORT_VPAD steps "fN:op[arg]": attach, detach, down/up (a virtual button), key (the keyboard source's
+@@ -2806,6 +2842,70 @@ static void PadTestScript(unsigned frame) {
+   }
+ }
+ 
++// bw-port (libntr-ios-stuckinput.patch): once a frame after the events, the keyboard's and the controller's held masks against the
++// devices' own state: a button a source has held for 150 ms while its device reports it up lost its release (a sheet that took
++// the key's up, a dropped event) and is let go, with an "anomaly:" line. The controller: the SDL game controller (iOS,
++// BWPORT_PAD_GC); the keyboard on iOS only and not under a test's key script (BWPORT_KEYS / BWPORT_VPAD push events that never
++// reach SDL's key state).
++static void PadStaleCheck(void) {
++  static u64 since[2][12];
++  static int keysTest = -1;
++  if (keysTest < 0) keysTest = getenv("BWPORT_KEYS") != NULL || getenv("BWPORT_VPAD") != NULL;
++  const u64 now = SpNowNs();
++  const Uint8 *ks = SDL_GetKeyboardState(NULL);
++  const SDL_Keycode keys[12] = {s_SIM_config.padSettings.aKey, s_SIM_config.padSettings.bKey, s_SIM_config.padSettings.xKey,
++                                s_SIM_config.padSettings.yKey, s_SIM_config.padSettings.lKey, s_SIM_config.padSettings.rKey,
++                                s_SIM_config.padSettings.startKey, s_SIM_config.padSettings.selectKey, s_SIM_config.padSettings.upKey,
++                                s_SIM_config.padSettings.downKey, s_SIM_config.padSettings.leftKey, s_SIM_config.padSettings.rightKey};
++  for (int src = 0; src < 2; src++) {
++    for (int b = 0; b < 12; b++) {
++      bool stale = false;
++      if ((sPadSrc[src] >> b) & 1) {
++        if (src == 0 && SIM_IOS && !keysTest) {
++          stale = !ks[SDL_GetScancodeFromKey(keys[b])];
++        } else if (src == 1 && sPadUseGC && sPadGC != NULL) {
++          stale = true;
++          for (int k = 0; k < SDL_CONTROLLER_BUTTON_MAX; k++) {
++            if (sPadGCMap[k] == b && SDL_GameControllerGetButton(sPadGC, (SDL_GameControllerButton)k)) stale = false;
++          }
++        }
++      }
++      if (!stale) { since[src][b] = 0; continue; }
++      if (since[src][b] == 0) since[src][b] = now;
++      if (now - since[src][b] < 150000000ull) continue;
++      char nm[64];
++      SIM_Anomaly("%s holds %s but the %s reports it up (%.0f ms): let go", src == 0 ? "keyboard" : "controller",
++                  SIM_PadNames(1u << b, nm), src == 0 ? "key state" : "controller", (now - since[src][b]) / 1e6);
++      PadSrcSet(src, b, false);
++      since[src][b] = 0;
++    }
++  }
++}
++
++// bw-port (libntr-ios-stuckinput.patch): a frame (the game's tick and ours, one end to the next) over 50 ms while not paused is a
++// stall: "stall: tick T: N ms (game G, events E, touch S, renderer R, vblank V, ui U, slot + present P, waits W, after A; a wait
++// overran by O), held touch X key Y controller Z" (ms; game = the game's own code up to SIM_Render; overran = the run loop kept a wait
++// past its end: UIKit work). 10 a minute. On by default on iOS; BWPORT_STALLLOG=1 elsewhere, 0 off.
++static LogBudget sStallBudget;
++static void StallCheck(bool paused, u64 frameNs, u64 gameNs, u64 endNs) {
++  static int on = -1;
++  if (on < 0) on = getenv("BWPORT_STALLLOG") != NULL ? atoi(getenv("BWPORT_STALLLOG")) != 0 : SIM_IOS;
++  const u64 over = sStOver;
++  sStOver = 0;
++  if (!on || paused || frameNs < 50000000ull || SIM_InputTickNo() < 10) return;  // (the first frames load the game)
++  int skipped = 0;
++  if (!LogBudgetOk(sStallBudget, 10, &skipped)) return;
++  auto ms = [](u64 a, u64 b) { return b > a ? (b - a) / 1e6 : 0.0; };
++  char t[64], k[64], c[64];
++  fprintf(stderr, "stall: tick %u: %.0f ms (game %.0f, events %.0f, touch %.0f, renderer %.0f, vblank %.0f, ui %.0f, slot + present %.0f, "
++          "waits %.0f, after %.0f; a wait overran by %.0f), held touch %s key %s controller %s",
++          SIM_InputTickNo(), frameNs / 1e6, gameNs / 1e6, ms(sStT[0], sStT[1]), ms(sStT[1], sStT[2]), ms(sStT[2], sStT[3]),
++          ms(sStT[3], sStT[4]), ms(sStT[4], sStT[5]), ms(sStT[5], sStT[6]), ms(sStT[6], sStT[7]), ms(sStT[7], endNs), over / 1e6,
++          SIM_PadNames(sPadSrc[2], t), SIM_PadNames(sPadSrc[0], k), SIM_PadNames(sPadSrc[1], c));
++  if (skipped > 0) fprintf(stderr, " (%d left out before)", skipped);
++  fputc('\n', stderr);
++}
++
+ static void HandleJoystickKeyDown(int aKey) {
+   if (aKey == s_SIM_config.padSettings.aJoyKey) {
+     // A Button
+@@ -3001,6 +3101,7 @@ void *SIM_Render(void *arg) {
+       clock_gettime(CLOCK_MONOTONIC, &tStart);
+       sGameWorkTime = ((tStart.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+                       (tStart.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++      sStT[0] = (u64)tStart.tv_sec * 1000000000ull + (u64)tStart.tv_nsec;  // libntr-ios-stuckinput.patch
+       if (sFLOn < 0) FLInit();
+       sPerfOn = SIM::GUI::PerfWanted();
+       if (bwport_sys_frame != NULL) {
+@@ -3420,6 +3521,7 @@ void *SIM_Render(void *arg) {
+       }
+     }
+     s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT;
++    PadStaleCheck();  // libntr-ios-stuckinput.patch
+ 
+     Uint32 mouseButtons;
+     if (touchMode) {
+@@ -3712,6 +3814,7 @@ void *SIM_Render(void *arg) {
+       sRealFrameTime = ((s_SIM_lastFrameEnd.tv_sec - prevEnd.tv_sec) * 1000000000) +
+                        (s_SIM_lastFrameEnd.tv_nsec - prevEnd.tv_nsec);
+       SIM::GUI::FrameRecord(sRealFrameTime, sGameWorkTime, sRenderWorkTime);
++      StallCheck(paused, sRealFrameTime, sGameWorkTime, (u64)s_SIM_lastFrameEnd.tv_sec * 1000000000ull + (u64)s_SIM_lastFrameEnd.tv_nsec);
+     }
+ #ifdef SDK_TRACY_ENABLE
+     TracyCFrameMark;
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -28,12 +28,19 @@ extern "C" int bwport_ios_touch_time(unsigned long long * hwNs, unsigned long lo
+ // gesture recognizers no longer hold touches back
+ extern "C" int bwport_ios_touch_rec(unsigned long long finger, int up, unsigned long long * hwNs, unsigned long long * appNs);
+ extern "C" void bwport_ios_touch_setup(SDL_Window * window);
++// libntr-ios-stuckinput.patch: what UIKit knows of a touch (its end's arrival, the last touch event that listed it, the last one)
++extern "C" int bwport_ios_touch_state(unsigned long long finger, unsigned long long * endApp, unsigned long long * seen,
++                                      unsigned long long * lastEv);
+ #else
+ #define SIM_TOUCH_IOS 0
+ #endif
+ // libntr-ios-inputprio.patch: when the key script (port/src/keys_script.c) let go of its finger (its pushed fingers' "hardware time")
+ extern "C" unsigned long long bwport_keys_touch_ns(long long finger);
+ 
++// libntr-ios-stuckinput.patch: sim_main.cpp's anomaly line (rate-limited, with the game's tick) and the buttons' names
++extern "C" void SIM_Anomaly(const char * fmt, ...);
++extern "C" const char * SIM_PadNames(unsigned m, char * buf);
++extern "C" unsigned SIM_InputTickNo(void);
+ extern "C" int SIM_UISettingGet(const char * k);   // sim_gui.cpp: "ffspeed" 2..5 (5 = Max)
+ 
+ namespace {
+@@ -47,6 +54,8 @@ struct Finger {
+     int kind;
+     int idx;     // K_BTN: the button
+     float x, y;  // points
++    unsigned long long downAt;   // libntr-ios-stuckinput.patch: when the touch layer got it (NowNs)
++    bool missLogged;             // (its "missing from UIKit's touch events" line is out)
+ };
+ 
+ struct Btn {
+@@ -306,14 +315,77 @@ void ReleaseAll() {
+     sStylusPending = false;
+ }
+ 
++// the buttons a finger holds now
++unsigned HeldBy(const Finger & f) {
++    return f.kind == K_BTN ? 1u << f.idx : f.kind == K_DPAD ? DpadMask(f.x, f.y) : 0;
++}
++
++// a finger leaves the glass (its up, or libntr-ios-stuckinput.patch: UIKit ended it and the up did not come): its buttons are let go and
++// the release is followed to the pad bits (hw, app: when it left the glass and when the app got that; 0 unknown)
++void Lift(Finger * f, unsigned long long hw, unsigned long long app) {
++    unsigned held = HeldBy(*f);
++    if (held != 0 || TouchLog()) {
++        Rel r = {held, hw, app, NowNs(), false};
++        if (r.hw > r.sdl || r.app > r.sdl) r.hw = r.app = 0;
++        for (int i = 0; i < B_COUNT; i++) {
++            if ((held >> i & 1) && sFrame <= sLatchUntil[i]) r.tap = true;   // (a tap: held its 3 frames whatever the finger does)
++        }
++        if (TouchLog()) {
++            fprintf(stderr, "bwport: touch finger %llx up at %.0f,%.0f held %03x: glass to app %.1f ms, app to touch layer %.1f ms\n",
++                    (unsigned long long)f->id, f->x, f->y, held, r.hw ? (r.app - r.hw) / 1e6 : -1.0, r.hw ? (r.sdl - r.app) / 1e6 : -1.0);
++        }
++        if (held != 0) {
++            if (sRelN == 10) memmove(&sRel[0], &sRel[1], 9 * sizeof(Rel));
++            sRel[sRelN < 10 ? sRelN++ : 9] = r;
++        }
++    }
++    if (f->kind == K_STYLUS) {
++        sStylusX = f->x; sStylusY = f->y;
++        sStylusDown = 0;   // (a press not reported yet still is: SimTouch_Stylus)
++    }
++    f->kind = K_DEAD;
++    f->used = false;
++    Recompute();
++}
++
++#if SIM_TOUCH_IOS
++// libntr-ios-stuckinput.patch: once a frame, every finger the layer holds against UIKit's own record of the touch. One whose end UIKit
++// dispatched more than 100 ms ago is let go (SimTouch_UIKitEnded does that at the dispatch itself; this is the net under it); one
++// that UIKit's later touch events no longer list (each lists every touch on the glass) for 500 ms is only logged.
++void CheckFingers() {
++    if (sL.winW == 0) return;
++    const unsigned long long now = NowNs();
++    for (Finger & f : sF) {
++        unsigned long long endApp, seen, lastEv;
++        if (!f.used || !bwport_ios_touch_state((unsigned long long)f.id, &endApp, &seen, &lastEv)) continue;
++        char nm[64];
++        if (endApp != 0 && now > endApp && now - endApp > 100000000ull) {
++            SIM_Anomaly("touch finger %llx (%s, kind %d, %.0f ms) ended in UIKit %.0f ms ago and no finger up came: let go",
++                        (unsigned long long)f.id, SIM_PadNames(HeldBy(f), nm), f.kind, (now - f.downAt) / 1e6, (now - endApp) / 1e6);
++            Lift(&f, 0, 0);
++        } else if (endApp == 0 && !f.missLogged && seen != 0 && lastEv > seen && now - seen > 500000000ull) {
++            f.missLogged = true;
++            SIM_Anomaly("touch finger %llx (%s, kind %d, %.0f ms) missing from UIKit's touch events for %.0f ms, no end seen: still held",
++                        (unsigned long long)f.id, SIM_PadNames(HeldBy(f), nm), f.kind, (now - f.downAt) / 1e6, (now - seen) / 1e6);
++        }
++    }
++}
++#endif
++
+ void Event(const SDL_Event * e) {
+     float x = e->tfinger.x * (float)sL.winW, y = e->tfinger.y * (float)sL.winH;
+     SDL_FingerID id = e->tfinger.fingerId;
+     if (e->type == SDL_FINGERDOWN) {
++        if (Finger * old = FindFinger(id)) {   // libntr-ios-stuckinput.patch: (SDL sends a lost up itself: this should never show)
++            char nm[64];
++            SIM_Anomaly("touch finger %llx down again while the layer still holds it (%s, kind %d, %.0f ms): let go", (unsigned long long)id,
++                        SIM_PadNames(HeldBy(*old), nm), old->kind, (NowNs() - old->downAt) / 1e6);
++            Lift(old, 0, 0);
++        }
+         Finger * f = NULL;
+         for (Finger & g : sF) if (!g.used) { f = &g; break; }
+         if (f == NULL) return;
+-        *f = {true, id, K_DEAD, 0, x, y};
++        *f = {true, id, K_DEAD, 0, x, y, NowNs(), false};
+         if (sMenuOpen) { f->kind = K_DEAD; return; }   // (the native settings sheet is up)
+         int idx;
+         int k = HitTest(x, y, &idx);
+@@ -346,30 +418,10 @@ void Event(const SDL_Event * e) {
+     } else if (e->type == SDL_FINGERUP) {
+         Finger * f = FindFinger(id);
+         if (f == NULL) return;
+-        unsigned held = f->kind == K_BTN ? 1u << f->idx : f->kind == K_DPAD ? DpadMask(f->x, f->y) : 0;
+-        if (held != 0 || TouchLog()) {
+-            Rel r = {held, 0, 0, NowNs(), false};
+-            FingerTimes(e, 1, r.sdl, &r.hw, &r.app);
+-            for (int i = 0; i < B_COUNT; i++) {
+-                if ((held >> i & 1) && sFrame <= sLatchUntil[i]) r.tap = true;   // (a tap: held its 3 frames whatever the finger does)
+-            }
+-            if (TouchLog()) {
+-                fprintf(stderr, "bwport: touch finger %llx up at %.0f,%.0f held %03x: glass to app %.1f ms, app to touch layer %.1f ms\n",
+-                        (unsigned long long)id, x, y, held, r.hw ? (r.app - r.hw) / 1e6 : -1.0, r.hw ? (r.sdl - r.app) / 1e6 : -1.0);
+-            }
+-            if (held != 0) {
+-                if (sRelN == 10) memmove(&sRel[0], &sRel[1], 9 * sizeof(Rel));
+-                sRel[sRelN < 10 ? sRelN++ : 9] = r;
+-            }
+-        }
+-        f->x = x; f->y = y;
+-        if (f->kind == K_STYLUS) {
+-            sStylusX = x; sStylusY = y;
+-            sStylusDown = 0;   // (a press not reported yet still is: SimTouch_Stylus)
+-        }
+-        f->kind = K_DEAD;
+-        f->used = false;
+-        Recompute();
++        unsigned long long hw = 0, app = 0;
++        FingerTimes(e, 1, NowNs(), &hw, &app);
++        f->x = x; f->y = y;   // (SDL's up repeats the last motion's place)
++        Lift(f, hw, app);
+     }
+ }
+ 
+@@ -412,9 +464,19 @@ void ReleasesShown(unsigned m) {
+         if (shown && r.hw != 0 && !r.tap) {
+             if (!sRelTaken) { sRelTaken = true; sRelTakenT0 = r.hw; }
+             double late = (now - r.hw) / 1e6;
+-            if (late > 50.0 || TouchLog()) {
+-                fprintf(stderr, "input: release %.0f ms late (glass to app %.0f, app to touch layer %.0f, touch layer to pad %.0f)\n",
+-                        late, (r.app - r.hw) / 1e6, (r.sdl - r.app) / 1e6, (now - r.sdl) / 1e6);
++            static unsigned long long sWin;
++            static int sUsed, sSkipped;
++            if (now - sWin > 60000000000ull) { sWin = now; sUsed = 0; }
++            if ((late > 50.0 && sUsed < 30) || TouchLog()) {   // (libntr-ios-stuckinput.patch: 30 a minute; the buttons and the tick)
++                char nm[64];
++                fprintf(stderr, "input: release %.0f ms late (glass to app %.0f, app to touch layer %.0f, touch layer to pad %.0f): touch %s, tick %u",
++                        late, (r.app - r.hw) / 1e6, (r.sdl - r.app) / 1e6, (now - r.sdl) / 1e6, SIM_PadNames(r.mask, nm), SIM_InputTickNo());
++                if (sSkipped > 0) fprintf(stderr, " (%d left out before)", sSkipped);
++                fputc('\n', stderr);
++                sUsed++;
++                sSkipped = 0;
++            } else if (late > 50.0) {
++                sSkipped++;
+             }
+         }
+         if (!shown && !old) sRel[k++] = r;
+@@ -522,6 +584,9 @@ int SimTouch_Event(const SDL_Event * e) {
+ static unsigned Pad(void);
+ unsigned SimTouch_Pressed(void) {
+     sFrame++;
++#if SIM_TOUCH_IOS
++    CheckFingers();   // libntr-ios-stuckinput.patch
++#endif
+     return Pad();
+ }
+ unsigned SimTouch_PadNow(void) { return Pad(); }
+@@ -606,6 +671,29 @@ int SimTouch_ReleaseTaken(unsigned long long * t0) {
+ }
+ int SimTouch_Background(void) { return sBackground; }
+ 
++// libntr-ios-stuckinput.patch (port/src/ios_input.m, main thread): UIKit has dispatched a touch's end or cancel. SDL's view turns it
++// into the finger up inside that dispatch, so a finger the layer still holds now had its end held back from the view (a gesture
++// recognizer that delays ends): it is let go now and logged.
++void SimTouch_UIKitEnded(unsigned long long finger, int cancelled, unsigned long long hwNs, unsigned long long appNs) {
++    if (sL.winW == 0) return;
++    Finger * f = FindFinger((SDL_FingerID)finger);
++    if (f == NULL) return;
++    if (f->kind != K_DEAD) {
++        char nm[64];
++        SIM_Anomaly("touch finger %llx (%s, kind %d, %.0f ms) %s by UIKit but the end did not reach the game's view: let go", finger,
++                    SIM_PadNames(HeldBy(*f), nm), f->kind, (NowNs() - f->downAt) / 1e6, cancelled ? "cancelled" : "ended");
++    }
++    Lift(f, hwNs <= appNs ? hwNs : 0, appNs);
++}
++// a cancel SDL's view got (a recognizer or the system took the touch): logged; SDL sends the up
++void SimTouch_UIKitCancel(unsigned long long finger) {
++    Finger * f = sL.winW != 0 ? FindFinger((SDL_FingerID)finger) : NULL;
++    if (f == NULL || f->kind == K_DEAD) return;
++    char nm[64];
++    SIM_Anomaly("touch finger %llx (%s, kind %d, %.0f ms) cancelled by UIKit (a recognizer or the system took it)", finger,
++                SIM_PadNames(HeldBy(*f), nm), f->kind, (NowNs() - f->downAt) / 1e6);
++}
++
+ // the safe area (l, t, r, b), for the settings window
+ void SimTouch_Safe(float * s) { memcpy(s, sL.safe, sizeof sL.safe); }
+ 

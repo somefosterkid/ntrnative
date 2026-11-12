@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f4bc4 kind:code align:32
+    .rodata     start:0x021f4bc4 end:0x021f4fec kind:rodata align:4
+    .ctor       start:0x021f4fec end:0x021f4fec kind:rodata align:4
+    .bss        start:0x021f5000 end:0x021f5000 kind:bss align:32
+
+src/ov039/gimmick_roller_coaster.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f4bc4
+    .rodata     start:0x021f4bc4 end:0x021f4fec

@@ -1,0 +1,37 @@
+# From pokebw2's lib/nitrowifi/library.toml (GPL-3.0, https://github.com/fuddlesworth/pokebw2), for Black's copy.
+# Nintendo's NitroWiFi, the TCP/IP stack (CPS), socket layer (SOCL), SSL and wireless connection manager (WCM) under DWC,
+# in overlay 9. Black 2 links its Thumb build; Black links the ARM build of the same version: pokebw2's C compiled
+# with dsi/1.1p1 -nothumb gives 247 of the 413 functions of its files, 2.0/sp2p2 140, 1.2/base none
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# CPS reaches its globals from one anchor, as -ipa file does (90 of its 113 functions match with it, 60 without)
+[file_flags]
+"cps/cps.c" = ["-ipa file"]
+"soc/socl_startup.c" = ["-ipa file"]
+"soc/socl_command.c" = ["-ipa file"]
+"soc/soc.c" = ["-ipa file"]
+# WCM's system.c reaches its two statics (the mode the caller may preset, the work) from one base, as -ipa file does
+"wcm/wcm_system.c" = ["-ipa file"]
+"ssl/ssl.c" = ["-ipa file"]
+
+# socl_shutdown.c is the one file of the library whose function matches only with a 2.0 compiler (any of 2.0/*; the others
+# lose most of their functions with it): tools/flag_search.py
+[file_compiler]
+"soc/socl_shutdown.c" = "2.0/sp2p2"

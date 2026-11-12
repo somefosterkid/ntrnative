@@ -1,0 +1,230 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -16,6 +16,8 @@
+     SIM_CONFIG_RENDERER_GPU /* bw-port's port/gpu (libntr-gpu.patch): the 3D upscaled on the GPU, vcore when it cannot */
+ } SIM_config_renderer_type;
+ 
++#define SIM_CONFIG_FRAMESKIP_AUTO 255
++
+ /* bw-port (libntr-acore.patch): what plays the sound */
+ typedef enum {
+     SIM_CONFIG_SOUND_LIBNTR, /* libntr's ARM7 sound driver (sim7) and mixer */
+@@ -81,6 +83,9 @@
+     u8 gpuDot;    /* Renderer=gpu, Scale > 1: 0 = a 1-dot polygon is an N x N block (Dot=block), 1 = one N x pixel (Dot=fine); BWPORT_GPU_DOT */
+     u8 gpuLine;   /* 0 = lines and wire-frames N wide (Line=wide), 1 = one N x pixel (Line=thin); BWPORT_GPU_LINE */
+     u8 gpuEdge;   /* 0 = edge marking one DS pixel wide (Edge=ds), 1 = one N x pixel (Edge=fine); BWPORT_GPU_EDGE */
++    u8 frameSkip; /* bw-port (libntr-frameskip.patch): frames not drawn between two drawn ones, 0 = every frame is drawn (the
++                     default); SIM_CONFIG_FRAMESKIP_AUTO = skip only when drawing would drop the game below 60 fps with the
++                     cap on. sim_config.ini FrameSkip=0|1|2|3|auto; BWPORT_FRAMESKIP=N (draw one frame in N) or auto overrides */
+     u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -86,6 +86,10 @@
+     if(MATCH("General", "Edge")) {
+         config->gpuEdge = strcmp(value, "fine") == 0;
+     }
++    if(MATCH("General", "FrameSkip")) {
++        int n = atoi(value);
++        config->frameSkip = strcmp(value, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(n < 0 ? 0 : n > 60 ? 60 : n);
++    }
+     if(MATCH("General", "Filter")) {
+         config->gpuFilter = strcmp(value, "bilinear") == 0;
+     }
+@@ -403,6 +407,14 @@
+     if(e != NULL) {
+         aConfig->gpuFilter = strcmp(e, "bilinear") == 0;
+     }
++    // bw-port (libntr-frameskip.patch): BWPORT_FRAMESKIP=N draws one frame in N (1 and 0: all), auto
++    e = getenv("BWPORT_FRAMESKIP");
++    if(e != NULL && strcmp(e, "auto") == 0) {
++        aConfig->frameSkip = SIM_CONFIG_FRAMESKIP_AUTO;
++    } else if(e != NULL && *e) {
++        int n = atoi(e);
++        aConfig->frameSkip = (u8)(n <= 1 ? 0 : n > 61 ? 60 : n - 1);
++    }
+ }
+ 
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig)
+@@ -437,6 +449,7 @@
+     aConfig->gpuLine = 0;
+     aConfig->gpuEdge = 0;
+     aConfig->gpuFilter = 0;
++    aConfig->frameSkip = 0;
+     aConfig->sound = SIM_CONFIG_SOUND_LIBNTR;
+     aConfig->masterVolume = 127;
+ 
+@@ -528,6 +541,11 @@
+     fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
++    if(aConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
++        fprintf(configFile, "FrameSkip=auto\n");
++    } else {
++        fprintf(configFile, "FrameSkip=%d\n", aConfig->frameSkip);
++    }
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+                                                               aConfig->macAddr[2],
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -38,6 +38,15 @@
+ static constexpr const char * EdgeStrings[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
+ static constexpr const char * FilterStrings[] = {"nearest (the DS look)", "bilinear"};
+ 
++// bw-port (libntr-frameskip.patch): FrameSkip's choices (the index is the number of frames skipped; the last is auto)
++static constexpr const char * FrameSkipStrings[] = {
++    "Off (draw every frame)",
++    "1 (draw every 2nd frame)",
++    "2 (draw every 3rd frame)",
++    "3 (draw every 4th frame)",
++    "Auto (only when too slow for 60 fps)"
++};
++
+ static constexpr const char * VblankStrings[] = {
+     "Off",
+     "Every V-Blank",
+@@ -58,6 +67,7 @@
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
+     int gpuScale = sConfig->gpuScale;
++    int frameSkip = sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip;
+     int gpuDot = sConfig->gpuDot, gpuLine = sConfig->gpuLine, gpuEdge = sConfig->gpuEdge, gpuFilter = sConfig->gpuFilter;
+     
+     ImGui::Begin("Config", openState);
+@@ -95,6 +105,9 @@
+         }
+     }
+ 
++    if(ImGui::Combo("Frame skip", &frameSkip, FrameSkipStrings, 5, 5)) {
++        configChanged = true;
++    }
+     if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
+         configChanged = true;
+     }
+@@ -124,6 +137,10 @@
+         sConfig->showInputPanel = showPanel;
+         sConfig->renderer = (u8)renderer;
+         sConfig->gpuScale = (u8)gpuScale;
++        // a value from BWPORT_FRAMESKIP (above 3) stays unless the combo was changed
++        if(frameSkip != (sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip)) {
++            sConfig->frameSkip = frameSkip == 4 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)frameSkip;
++        }
+         sConfig->gpuDot = (u8)gpuDot;
+         sConfig->gpuLine = (u8)gpuLine;
+         sConfig->gpuEdge = (u8)gpuEdge;
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -35,6 +35,7 @@
+ 
+ #include <math.h>
+ #include <time.h>
++#include <signal.h>
+ 
+ #include "screenquads.h"
+ 
+@@ -1249,6 +1250,86 @@
+     }
+ }
+ 
++// bw-port (libntr-frameskip.patch): frame skip. The game's logic runs every frame; the picture is drawn only on some.
++// SIM_FrameSkipDecide runs at the top of each frame (SIM_Render) and sets sDrawNow; the frame renderers' bridges ask
++// SIM_FrameSkipping() and, when it is 1, hand back the picture they showed last instead of gathering and drawing a new
++// one (they still run: a pipelined bridge keeps its worker). A frame is always drawn when the display capture is on
++// (the game reads the capture's bank next), when SIGUSR2 / SIM_FrameForceDraw asked for the next few frames (a
++// screenshot, port_run.py --skip), when the renderer is libntr's own (its 2D draws each frame, FrameSkip is ignored)
++// or when no frame renderer is registered. FrameSkip=N draws the frames whose V-blank count is a multiple of N + 1;
++// auto skips only when drawing would take the frame past 60 fps with the cap on: a credit of the frame time left over
++// (the cap's wait counts), drawn when the credit covers a drawn frame's cost, at most 4 skipped in a row.
++static int sDrawNow = 1;
++static volatile sig_atomic_t sFrameForce;
++static unsigned sFSRun;                 // frames skipped in a row
++static s64 sFSCredit;                   // ns of frame time in hand (auto)
++static s64 sFSBusyDrawn, sFSBusySkipped; // moving averages of the busy time of drawn / skipped frames (auto), ns
++static int sFSWasDrawn = 1;
++static unsigned sFSNDrawn, sFSNSkipped, sFSLongest; // BWPORT_FPSLOG: per second
++extern "C" int SIM_FrameSkipping(void) { return !sDrawNow; }
++extern "C" void SIM_FrameForceDraw(void) { sFrameForce = 3; }
++static void SIM_FrameForceHandler(int) { sFrameForce = 3; }
++
++static bool SIM_FrameSkipDecide(void) {
++  static bool installed;
++  if (!installed) {
++    installed = true;
++#ifndef SDK_BUILD_WIN64
++    signal(SIGUSR2, SIM_FrameForceHandler);
++#endif
++  }
++  const u8 fs = s_SIM_config.frameSkip;
++  const s64 kFrame = 16715000;
++  bool can = (sFrameRenderer != NULL || sFrameRendererGL != NULL) && s_SIM_config.renderer != SIM_CONFIG_RENDERER_LIBNTR;
++  bool force = sFrameForce > 0;
++  if (force) sFrameForce = sFrameForce - 1;
++  bool draw = true;
++  if (can && fs != 0 && !force && !(s_reg_GX_DISPCAPCNT & 0x80000000u) && sFSRun < 4 + (fs != SIM_CONFIG_FRAMESKIP_AUTO ? 100 : 0)) {
++    if (fs == SIM_CONFIG_FRAMESKIP_AUTO) {
++      if (s_SIM_config.capFrameRate && !sFastForward && sFSBusyDrawn > 0) {
++        // no skipped frame seen yet: skip one only when a drawn frame took more than the frame time
++        draw = sFSBusySkipped == 0 ? sFSBusyDrawn <= kFrame : sFSCredit + kFrame >= sFSBusyDrawn;
++      }
++    } else {
++      draw = (*((u32 *)HW_VBLANK_COUNT_BUF) % ((u32)fs + 1)) == 0;
++    }
++  }
++  sFSRun = draw ? 0 : sFSRun + 1;
++  if (draw) sFSNDrawn++; else sFSNSkipped++;
++  if (sFSRun > sFSLongest) sFSLongest = sFSRun;
++  sFSWasDrawn = draw;
++  sDrawNow = draw;
++  return draw;
++}
++
++// after the frame's swap (busy: ns from the last frame's end to here, the cap's wait not included)
++static void SIM_FrameSkipEnd(u64 busy) {
++  const s64 kFrame = 16715000;
++  s64 b = (s64)busy;
++  s64 &avg = sFSWasDrawn ? sFSBusyDrawn : sFSBusySkipped;
++  {
++    static int sLog = -1;
++    static u64 sLast;
++    if (sLog < 0) sLog = getenv("BWPORT_FPSLOG") != NULL;
++    if (sLog && s_SIM_config.frameSkip != 0) {
++      u64 now = SDL_GetPerformanceCounter(), fq = SDL_GetPerformanceFrequency();
++      if (sLast == 0) sLast = now;
++      if (now - sLast >= fq) {
++        fprintf(stderr, "skip drawn %u skipped %u longest %u busy drawn %.1f skipped %.1f ms\n", sFSNDrawn, sFSNSkipped, sFSLongest,
++                sFSBusyDrawn / 1e6, sFSBusySkipped / 1e6);
++        sFSNDrawn = sFSNSkipped = sFSLongest = 0;
++        sLast = now;
++      }
++    }
++  }
++  avg = avg == 0 ? b : avg + (b - avg) / 4;
++  if (s_SIM_config.frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
++    sFSCredit += kFrame - b;
++    if (sFSCredit > kFrame) sFSCredit = kFrame;
++    if (sFSCredit < -3 * kFrame) sFSCredit = -3 * kFrame;
++  }
++}
++
+ static bool SIM_DrawFrameRenderer(void) {
+   sFrameRendererDrew = 0;
+   bool gpu = s_SIM_config.renderer == SIM_CONFIG_RENDERER_GPU;
+@@ -1782,6 +1863,8 @@
+       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFb);
+     }
+ 
++    SIM_FrameSkipDecide();
++
+     SIM_VCapFrameBegin();
+ 
+     // bw-port: the in-process frame renderer (port/vcore) draws both screens when it is chosen
+@@ -1852,6 +1935,7 @@
+     frameNs = ((curTime.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+               (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
+     sFullFrameTime = frameNs;
++    SIM_FrameSkipEnd(frameNs);
+     sRenderWorkTime = frameNs > sGameWorkTime ? frameNs - sGameWorkTime : 0;
+ 
+     // Limit framerate to 60 fps: after the swap (a software GL does its drawing there, so the wait is only

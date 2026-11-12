@@ -1,0 +1,163 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), build/include/generated/text/system/0399.h: the
+// lines in use so far.
+#ifndef BWPORT_TEXT_SYSTEM_0399_H
+#define BWPORT_TEXT_SYSTEM_0399_H
+
+#include "types.h"
+
+// Black 2's, not checked against Black
+#define Bank0399_Text_000 0
+#define Bank0399_Text_001 1
+#define Bank0399_Text_002 2
+#define Bank0399_Text_003 3
+#define Bank0399_Text_004 4
+#define Bank0399_Text_005 5
+
+#define Bank0399_Text_012 12
+#define Bank0399_Text_013 13
+#define Bank0399_Text_014 14
+#define Bank0399_Text_015 15
+
+// Black 2's, not checked against Black
+#define Bank0399_Text_048 48
+#define Bank0399_Text_049 49
+#define Bank0399_Text_050 50
+#define Bank0399_Text_051 51
+#define Bank0399_Text_052 52
+#define Bank0399_Text_053 53
+#define Bank0399_Text_054 54
+#define Bank0399_Text_055 55
+#define Bank0399_Text_056 56
+#define Bank0399_Text_057 57
+#define Bank0399_Text_058 58
+#define Bank0399_Text_059 59
+#define Bank0399_Text_060 60
+#define Bank0399_Text_061 61
+#define Bank0399_Text_062 62
+#define Bank0399_Text_063 63
+#define Bank0399_Text_064 64
+#define Bank0399_Text_065 65
+#define Bank0399_Text_066 66
+#define Bank0399_Text_067 67
+#define Bank0399_Text_070 70
+#define Bank0399_Text_071 71
+#define Bank0399_Text_072 72
+#define Bank0399_Text_073 73
+#define Bank0399_Text_074 74
+#define Bank0399_Text_075 75
+#define Bank0399_Text_076 76
+#define Bank0399_Text_077 77
+#define Bank0399_Text_078 78
+#define Bank0399_Text_079 79
+#define Bank0399_Text_080 80
+#define Bank0399_Text_081 81
+#define Bank0399_Text_082 82
+#define Bank0399_Text_083 83
+#define Bank0399_Text_084 84
+#define Bank0399_Text_085 85
+#define Bank0399_Text_086 86
+#define Bank0399_Text_087 87
+#define Bank0399_Text_088 88
+#define Bank0399_Text_089 89
+#define Bank0399_Text_090 90
+#define Bank0399_Text_091 91
+#define Bank0399_Text_092 92
+#define Bank0399_Text_093 93
+#define Bank0399_Text_094 94
+#define Bank0399_Text_095 95
+#define Bank0399_Text_096 96
+#define Bank0399_Text_097 97
+#define Bank0399_Text_098 98
+#define Bank0399_Text_099 99
+#define Bank0399_Text_100 100
+#define Bank0399_Text_101 101
+#define Bank0399_Text_102 102
+#define Bank0399_Text_103 103
+#define Bank0399_Text_104 104
+#define Bank0399_Text_105 105
+#define Bank0399_Text_108 108
+#define Bank0399_Text_109 109
+#define Bank0399_Text_110 110
+#define Bank0399_Text_111 111
+#define Bank0399_Text_112 112
+#define Bank0399_Text_113 113
+#define Bank0399_Text_114 114
+#define Bank0399_Text_115 115
+#define Bank0399_Text_116 116
+#define Bank0399_Text_117 117
+#define Bank0399_Text_120 120
+#define Bank0399_Text_121 121
+#define Bank0399_Text_122 122
+#define Bank0399_Text_123 123
+#define Bank0399_Text_124 124
+#define Bank0399_Text_125 125
+#define Bank0399_Text_126 126
+#define Bank0399_Text_127 127
+#define Bank0399_Text_128 128
+#define Bank0399_Text_129 129
+#define Bank0399_Text_134 134
+#define Bank0399_Text_135 135
+#define Bank0399_Text_152 152
+#define Bank0399_Text_153 153
+#define Bank0399_Text_156 156
+#define Bank0399_Text_157 157
+#define Bank0399_Text_158 158
+#define Bank0399_Text_159 159
+#define Bank0399_Text_160 160
+#define Bank0399_Text_161 161
+#define Bank0399_Text_162 162
+#define Bank0399_Text_163 163
+#define Bank0399_Text_164 164
+#define Bank0399_Text_165 165
+#define Bank0399_Text_166 166
+#define Bank0399_Text_167 167
+#define Bank0399_Text_168 168
+#define Bank0399_Text_169 169
+#define Bank0399_Text_170 170
+#define Bank0399_Text_171 171
+#define Bank0399_Text_172 172
+#define Bank0399_Text_173 173
+#define Bank0399_Text_174 174
+#define Bank0399_Text_175 175
+#define Bank0399_Text_176 176
+#define Bank0399_Text_177 177
+#define Bank0399_Text_178 178
+#define Bank0399_Text_179 179
+#define Bank0399_Text_180 180
+#define Bank0399_Text_181 181
+#define Bank0399_Text_182 182
+#define Bank0399_Text_183 183
+#define Bank0399_Text_231 231
+#define Bank0399_Text_232 232
+#define Bank0399_Text_233 233
+#define Bank0399_Text_234 234
+#define Bank0399_Text_235 235
+#define Bank0399_Text_236 236
+#define Bank0399_Text_237 237
+#define Bank0399_Text_238 238
+#define Bank0399_Text_239 239
+#define Bank0399_Text_240 240
+#define Bank0399_Text_241 241
+#define Bank0399_Text_242 242
+#define Bank0399_Text_243 243
+#define Bank0399_Text_244 244
+#define Bank0399_Text_245 245
+#define Bank0399_Text_246 246
+#define Bank0399_Text_247 247
+#define Bank0399_Text_248 248
+#define Bank0399_Text_250 250
+#define Bank0399_Text_251 251
+#define Bank0399_Text_252 252
+#define Bank0399_Text_253 253
+#define Bank0399_Text_254 254
+
+#define Bank0399_Text_255 255
+#define Bank0399_Text_259 259
+#define Bank0399_Text_260 260
+#define Bank0399_Text_262 262
+
+// Black 2's, not checked against Black
+#define Bank0399_Text_335 335
+#define Bank0399_Text_336 336
+
+#endif // BWPORT_TEXT_SYSTEM_0399_H

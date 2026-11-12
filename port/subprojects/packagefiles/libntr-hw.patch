@@ -1,0 +1,165 @@
+diff --git a/include/nitro/hw/X86/mmap_global.h b/include/nitro/hw/X86/mmap_global.h
+index 3be08a2..2ec6704 100644
+--- a/include/nitro/hw/X86/mmap_global.h
++++ b/include/nitro/hw/X86/mmap_global.h
+@@ -94,7 +94,7 @@ extern u8 s_HW_BG_VRAM[0x80000];
+ extern u8 s_HW_DB_BG_VRAM[0x20000];
+ #define HW_DB_BG_VRAM              ((u64)s_HW_DB_BG_VRAM)
+ #define HW_DB_BG_VRAM_END          ((u64)s_HW_DB_BG_VRAM + 0x20000)
+-#define HW_DB_BG_VRAM_SIZE         (HW_BG_VRAM_END-HW_BG_VRAM)
++#define HW_DB_BG_VRAM_SIZE         (HW_DB_BG_VRAM_END-HW_DB_BG_VRAM)
+ 
+ //#define HW_OBJ_VRAM             0x06400000
+ //#define HW_OBJ_VRAM_END         0x06440000
+@@ -109,7 +109,7 @@ extern u8 s_HW_DB_OBJ_VRAM[0x20000];
+ //#define HW_DB_OBJ_VRAM          0x06600000
+ //#define HW_DB_OBJ_VRAM_END      0x06620000
+ #define HW_DB_OBJ_VRAM             ((u64)s_HW_DB_OBJ_VRAM)
+-#define HW_DB_OBJ_VRAM_END         ((u64)s_HW_DB_OBJ_VRAM + 0x40000)
++#define HW_DB_OBJ_VRAM_END         ((u64)s_HW_DB_OBJ_VRAM + 0x20000)
+ #define HW_DB_OBJ_VRAM_SIZE     (HW_DB_OBJ_VRAM_END-HW_DB_OBJ_VRAM)
+ //#define HW_LCDC_VRAM            0x06800000
+ //#ifdef SDK_TS
+@@ -138,7 +138,7 @@ extern u8 s_HW_OAM[0x400];
+ extern u8 s_HW_DB_OAM[0x400];
+ #define HW_DB_OAM              ((u64)s_HW_DB_OAM)
+ #define HW_DB_OAM_END          ((u64)s_HW_DB_OAM + 0x400)
+-#define HW_DB_OAM_SIZE         (HW_OAM_END-HW_OAM)
++#define HW_DB_OAM_SIZE         (HW_DB_OAM_END-HW_DB_OAM)
+ 
+ //----------------------------- Cartridge Bus
+ //#define HW_CTRDG_ROM            0x08000000
+diff --git a/include/twl/hw/X86/mmap_global.h b/include/twl/hw/X86/mmap_global.h
+index 78cf25d..6fefd9b 100644
+--- a/include/twl/hw/X86/mmap_global.h
++++ b/include/twl/hw/X86/mmap_global.h
+@@ -135,7 +135,7 @@ extern u8 s_HW_OBJ_VRAM[0x40000];
+ #define HW_OBJ_VRAM_SIZE (HW_OBJ_VRAM_END - HW_OBJ_VRAM)
+ extern u8 s_HW_DB_OBJ_VRAM[0x20000];
+ #define HW_DB_OBJ_VRAM             ((u64)s_HW_DB_OBJ_VRAM)
+-#define HW_DB_OBJ_VRAM_END         ((u64)s_HW_DB_OBJ_VRAM + 0x40000)
++#define HW_DB_OBJ_VRAM_END         ((u64)s_HW_DB_OBJ_VRAM + 0x20000)
+ #define HW_DB_OBJ_VRAM_SIZE (HW_DB_OBJ_VRAM_END - HW_DB_OBJ_VRAM)
+ extern u8 s_HW_LCDC_VRAM[0xA4000];
+ #define HW_LCDC_VRAM             ((u64)s_HW_LCDC_VRAM)
+diff --git a/libraries/gx/src/g3imm.c b/libraries/gx/src/g3imm.c
+index b8cf1f4..678290c 100644
+--- a/libraries/gx/src/g3imm.c
++++ b/libraries/gx/src/g3imm.c
+@@ -2,6 +2,23 @@
+ #include <nitro/mi/dma.h>
+ #include "../include/gxasm.h"
+ 
++#ifdef SDK_PORT
++// The geometry FIFO is one port on the DS (a send writes every word to it); libntr's G3 simulator takes commands as
++// messages, and the FIFO register is a 4-byte variable: a copy of the matrix to it overwrote GXSTAT and the registers
++// after it (the busy bit then held G3X_GetVectorMtx's loop forever)
++static void G3i_SendMtxMsg_(draw_command_type_t type, const void *m, u32 size)
++{
++    draw_msg_t * msg;
++    msg = malloc( sizeof( draw_msg_t ) );
++
++    msg->type = type;
++    memcpy( &msg->data, m, size );
++
++    SIM_HandleG3Command( msg );
++    free( msg );
++}
++#endif
++
+ void G3_LoadMtx44 (const MtxFx44 *m)
+ {
+ 	SDK_NULL_ASSERT(m);
+@@ -43,9 +60,13 @@ void G3_LoadMtx43 (const MtxFx43 *m)
+ void G3_MultMtx44 (const MtxFx44 *m)
+ {
+ 	SDK_NULL_ASSERT(m);
++    #ifdef SDK_PORT
++    G3i_SendMtxMsg_( DRAW_CMD_G3_MTXMULT44, m, sizeof( MtxFx44 ) );
++    #else
+ 
+ 	reg_G3X_GXFIFO = G3OP_MTX_MULT_4x4;
+ 	GX_SendFifo64B(&m->_00, (void *)&reg_G3X_GXFIFO);
++    #endif
+ }
+ 
+ void G3_MultMtx43 (const MtxFx43 *m)
+@@ -70,23 +91,42 @@ void G3_MultMtx43 (const MtxFx43 *m)
+ void G3_MultMtx33 (const MtxFx33 *m)
+ {
+ 	SDK_NULL_ASSERT(m);
++    #ifdef SDK_PORT
++    G3i_SendMtxMsg_( DRAW_CMD_G3_MTXMULT33, m, sizeof( MtxFx33 ) );
++    #else
+ 
+ 	reg_G3X_GXFIFO = G3OP_MTX_MULT_3x3;
+ 	GX_SendFifo36B(&m->_00, (void *)&reg_G3X_GXFIFO);
++    #endif
+ }
+ 
+ void G3_Shininess (const u32 *table)
+ {
+ 	SDK_NULL_ASSERT(table);
++    #ifdef SDK_PORT
++    (void)table;    // the simulator has no shininess table
++    #else
+ 
+ 	reg_G3X_GXFIFO = G3OP_SHININESS;
+ 	GX_SendFifo128B(&table[0], (void *)&reg_G3X_GXFIFO);
++    #endif
+ }
+ 
+ void G3_MultTransMtx33 (const MtxFx33 *mtx, const VecFx32 *trans)
+ {
+ 	SDK_NULL_ASSERT(mtx);
+ 	SDK_NULL_ASSERT(trans);
++    #ifdef SDK_PORT
++    {
++        MtxFx43 m;
++
++        m._00 = mtx->_00; m._01 = mtx->_01; m._02 = mtx->_02;
++        m._10 = mtx->_10; m._11 = mtx->_11; m._12 = mtx->_12;
++        m._20 = mtx->_20; m._21 = mtx->_21; m._22 = mtx->_22;
++        m._30 = trans->x; m._31 = trans->y; m._32 = trans->z;
++        G3i_SendMtxMsg_( DRAW_CMD_G3_MTXMULT43, &m, sizeof( MtxFx43 ) );
++    }
++    #else
+ 
+ 	reg_G3X_GXFIFO = G3OP_MTX_MULT_4x3;
+ 	GX_SendFifo36B(&mtx->_00, (void *)&reg_G3X_GXFIFO);
+@@ -94,4 +134,5 @@ void G3_MultTransMtx33 (const MtxFx33 *mtx, const VecFx32 *trans)
+ 	reg_G3X_GXFIFO = (u32)trans->x;
+ 	reg_G3X_GXFIFO = (u32)trans->y;
+ 	reg_G3X_GXFIFO = (u32)trans->z;
++    #endif
+ }
+diff --git a/libraries/mi/src/mi_memory.c b/libraries/mi/src/mi_memory.c
+index 876f6c4..39259e1 100644
+--- a/libraries/mi/src/mi_memory.c
++++ b/libraries/mi/src/mi_memory.c
+@@ -120,7 +120,11 @@ void MI_Copy36B(const void* pSrc, void* pDest)
+ void MIi_CpuSend32( const void *srcp, volatile void *destp, u32 size )
+ {
+     SIM_assert_msg(size < HW_MAIN_MEM_MAIN_SIZE, "Attempt to call MIi_CpuSend32 with a size of %d bytes, which is larger than the DS memory.", size);
+-    memcpy( destp, srcp, size );
++    // a send writes each word to the one address (a port such as the geometry FIFO), not a copy over what follows it
++    const u32 *src = (const u32 *)srcp;
++    for (u32 i = 0; i < size / 4; i++) {
++        *(volatile u32 *)destp = src[i];
++    }
+ }
+ 
+ void MIi_CpuCopyFast( const void *srcp, void *destp, u32 size )
+diff --git a/libraries/sim/src/sim_g2.cpp b/libraries/sim/src/sim_g2.cpp
+index b67717b..43928dd 100644
+--- a/libraries/sim/src/sim_g2.cpp
++++ b/libraries/sim/src/sim_g2.cpp
+@@ -1130,7 +1130,7 @@ static void DrawBGLine_Extended(u32 line, u32 bgnum, u8 mosaic, u8 isSub) {
+               u8 r;
+               u8 g;
+               u8 b;
+-              SIM_u16ToRGB(pal[color], &r, &g, &b);
++              SIM_u16ToRGB(color, &r, &g, &b);
+               G2SIM_PlotPixel(pixelBuf, r, g, b, i, line, isSub);
+             }
+           }

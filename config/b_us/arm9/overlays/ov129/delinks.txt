@@ -1,0 +1,21 @@
+    .text       start:0x021d85c0 end:0x021da62c kind:code align:32
+    .rodata     start:0x021da62c end:0x021da7f8 kind:rodata align:4
+    .ctor       start:0x021da7f8 end:0x021da7f8 kind:rodata align:4
+    .data       start:0x021da800 end:0x021da880 kind:data align:32
+    .bss        start:0x021da880 end:0x021da880 kind:bss align:32
+
+src/ov129/codein_pv.c:
+    complete
+    .text       start:0x021d8950 end:0x021d9838
+    .rodata     start:0x021da718 end:0x021da7f8
+    .data       start:0x021da830 end:0x021da880
+
+src/ov129/codein_disp.c:
+    complete
+    .text       start:0x021d9838 end:0x021da62c
+
+src/ov129/codein.c:
+    complete
+    .text       start:0x021d85c0 end:0x021d8950
+    .rodata     start:0x021da62c end:0x021da718
+    .data       start:0x021da800 end:0x021da830

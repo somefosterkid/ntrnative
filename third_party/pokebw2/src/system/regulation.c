@@ -1,0 +1,420 @@
+#include "types.h"
+#include "battle/regulation.h"
+#include "constants/arc.h"
+#include "constants/pokemon.h"
+#include "constants/text_banks.h"
+#include "gfl/heap.h"
+#include "gfl/msg.h"
+#include "gfl/std.h"
+#include "gfl/str.h"
+#include "pml/poke_party.h"
+#include "save/save_control.h"
+#include "save/tournament_block.h"
+#include <stddef.h>
+
+// The rules of a battle, and the save block of the competitions' regulations and the teams entered in them, which
+// swan calls the tournament block. Block 0x2f.
+
+#define REGULATION_NAME_STRBUF_SIZE 26
+
+static void loadBattleTypeTextToStrbuf(Regulation *regulation, StrBuf *strbuf);
+static void TournamentTeam_SetField(TournamentTeam *team, u32 field, u8 index, u32 value);
+
+u32 getSizeofTourneyBlock(void) {
+    return sizeof(TournamentBlock);
+}
+
+Regulation *Regulation_Create(HeapID heapId) {
+    return GFL_HeapAllocate(heapId, sizeof(Regulation), TRUE, "regulation.c", 115);
+}
+
+void Regulation_Copy(const Regulation *src, Regulation *dest) {
+    MI_CpuCopy8(src, dest, sizeof(Regulation));
+}
+
+Regulation *TournamentEntry_GetRegulation(TournamentEntry *entry) {
+    return &entry->regulation;
+}
+
+static void loadBattleTypeTextToStrbuf(Regulation *regulation, StrBuf *strbuf) {
+    MsgData *msgData =
+        GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_LOAD_BATTLE_TYPE_TEXT_TO_STRBUF, HEAPID_USER);
+
+    GFL_MsgDataLoadStrbuf(msgData, regulation->name, strbuf);
+    GFL_MsgDataFree(msgData);
+}
+
+StrBuf *makeStrbufLoadBattleTypeText(Regulation *regulation, HeapID heapId) {
+    StrBuf *strbuf = GFL_StrBufCreate(REGULATION_NAME_STRBUF_SIZE, heapId);
+
+    loadBattleTypeTextToStrbuf(regulation, strbuf);
+    return strbuf;
+}
+
+u32 Regulation_GetParam(Regulation *regulation, u32 param) {
+    u32 value = 0;
+
+    switch (param) {
+    case REGULATION_PARAM_NAME:
+        value = regulation->name;
+        break;
+    case REGULATION_PARAM_1:
+        value = regulation->unk1;
+        break;
+    case REGULATION_PARAM_MIN_COUNT:
+        value = regulation->minCount;
+        break;
+    case REGULATION_PARAM_MAX_COUNT:
+        value = regulation->maxCount;
+        break;
+    case REGULATION_PARAM_LEVEL:
+        value = regulation->level;
+        break;
+    case REGULATION_PARAM_LEVEL_MODE:
+        value = regulation->levelMode;
+        break;
+    case REGULATION_PARAM_MAX_LEVEL_TOTAL:
+        value = regulation->maxLevelTotal;
+        break;
+    case REGULATION_PARAM_ALLOW_SAME_SPECIES:
+        value = regulation->allowSameSpecies;
+        break;
+    case REGULATION_PARAM_ALLOW_SAME_ITEM:
+        value = regulation->allowSameItem;
+        break;
+    case REGULATION_PARAM_REQUIRED_SPECIES:
+        value = regulation->requiredSpecies;
+        break;
+    case REGULATION_PARAM_REQUIRED_FORM:
+        value = regulation->requiredForm;
+        break;
+    case REGULATION_PARAM_LAUNCHER:
+        value = regulation->launcher;
+        break;
+    case REGULATION_PARAM_GAME_TIME_LIMIT:
+        value = regulation->gameTimeLimit;
+        break;
+    case REGULATION_PARAM_COMMAND_TIME_LIMIT:
+        value = regulation->commandTimeLimit;
+        break;
+    case REGULATION_PARAM_ALLOW_NICKNAMES:
+        value = regulation->allowNicknames;
+        break;
+    case REGULATION_PARAM_IDLE_EFFECTS:
+        value = regulation->idleEffects;
+        break;
+    case REGULATION_PARAM_SHOW_PARTNERS:
+        value = regulation->showPartners;
+        break;
+    case REGULATION_PARAM_TIME_LIMIT:
+        value = regulation->timeLimit;
+        break;
+    case REGULATION_PARAM_BATTLE_TYPE:
+        value = regulation->battleType;
+        break;
+    case REGULATION_PARAM_MAX_BATTLES:
+        value = regulation->maxBattles;
+        break;
+    }
+    return value;
+}
+
+void Regulation_SetParam(Regulation *regulation, u32 param, int value) {
+    switch (param) {
+    case REGULATION_PARAM_NAME:
+        if (value < 7) {
+            regulation->name = value;
+        }
+        break;
+    case REGULATION_PARAM_1:
+        if (value < 6) {
+            regulation->unk1 = value;
+        }
+        break;
+    case REGULATION_PARAM_MIN_COUNT:
+        if (value < 6) {
+            regulation->minCount = value;
+        }
+        break;
+    case REGULATION_PARAM_MAX_COUNT:
+        if (value < 6) {
+            regulation->maxCount = value;
+        }
+        break;
+    case REGULATION_PARAM_LEVEL:
+        if (value <= 100) {
+            regulation->level = value;
+        }
+        break;
+    case REGULATION_PARAM_LEVEL_MODE:
+        if (value <= 6) {
+            regulation->levelMode = value;
+        }
+        break;
+    case REGULATION_PARAM_MAX_LEVEL_TOTAL:
+        if (value <= 600) {
+            regulation->maxLevelTotal = value;
+        }
+        break;
+    case REGULATION_PARAM_ALLOW_SAME_SPECIES:
+        if (value < 2) {
+            regulation->allowSameSpecies = value;
+        }
+        break;
+    case REGULATION_PARAM_ALLOW_SAME_ITEM:
+        if (value < 2) {
+            regulation->allowSameItem = value;
+        }
+        break;
+    case REGULATION_PARAM_REQUIRED_SPECIES:
+        if (value < 686) {
+            regulation->requiredSpecies = value;
+        }
+        break;
+    case REGULATION_PARAM_REQUIRED_FORM:
+        regulation->requiredForm = value;
+        break;
+    case REGULATION_PARAM_LAUNCHER:
+        if (value < 2) {
+            regulation->launcher = value;
+        }
+        break;
+    case REGULATION_PARAM_GAME_TIME_LIMIT:
+        regulation->gameTimeLimit = value;
+        break;
+    case REGULATION_PARAM_COMMAND_TIME_LIMIT:
+        regulation->commandTimeLimit = value;
+        break;
+    case REGULATION_PARAM_ALLOW_NICKNAMES:
+        if (value < 2) {
+            regulation->allowNicknames = value;
+        }
+        break;
+    case REGULATION_PARAM_IDLE_EFFECTS:
+        regulation->idleEffects = value;
+        break;
+    case REGULATION_PARAM_SHOW_PARTNERS:
+        if (value < 2) {
+            regulation->showPartners = value;
+        }
+        break;
+    case REGULATION_PARAM_TIME_LIMIT:
+        if (value <= 99) {
+            regulation->timeLimit = value;
+        }
+        break;
+    case REGULATION_PARAM_BATTLE_TYPE:
+        if (value < 6) {
+            regulation->battleType = value;
+        }
+        break;
+    case REGULATION_PARAM_MAX_BATTLES:
+        regulation->maxBattles = value;
+        break;
+    }
+}
+
+BOOL Regulation_CheckParamBit(Regulation *regulation, u32 param, int index) {
+    int byte = index / 8;
+    int bit = index % 8;
+
+    switch (param) {
+    case REGULATION_PARAM_BANNED_SPECIES:
+        if (regulation->bannedSpecies[byte] & (1 << bit)) {
+            return TRUE;
+        }
+        break;
+    case REGULATION_PARAM_BANNED_ITEMS:
+        if (regulation->bannedItems[byte] & (1 << bit)) {
+            return TRUE;
+        }
+        break;
+    case REGULATION_PARAM_SHOOTER_DISABLED_ITEMS:
+        if (regulation->shooterDisabledItems[byte] & (1 << bit)) {
+            return TRUE;
+        }
+        break;
+    }
+    return FALSE;
+}
+
+void Regulation_GetShooterSettings(Regulation *regulation, RegulationShooterSettings *out) {
+    MI_CpuFill8(out, 0, sizeof(RegulationShooterSettings));
+    out->launcher = Regulation_GetParam(regulation, REGULATION_PARAM_LAUNCHER);
+    if (out->launcher >= 2) {
+        out->launcher = 1;
+    }
+    MI_CpuCopy8(regulation->shooterDisabledItems, out->disabledItems, sizeof(out->disabledItems));
+}
+
+void *TournamentEntry_GetCardData(TournamentEntry *tournament) {
+    return tournament->cardData;
+}
+
+u32 TournamentEntry_GetField(TournamentEntry *tournament, u32 field) {
+    u32 value;
+
+    switch (field) {
+    case TOURNAMENT_FIELD_VERSION_MASK:
+        value = tournament->versionMask;
+        break;
+    case TOURNAMENT_FIELD_CUP_ID:
+        value = tournament->cupId;
+        break;
+    case TOURNAMENT_FIELD_UNK154:
+        value = tournament->unk154;
+        break;
+    case TOURNAMENT_FIELD_START_YEAR:
+        value = tournament->startYear;
+        break;
+    case TOURNAMENT_FIELD_START_MONTH:
+        value = tournament->startMonth;
+        break;
+    case TOURNAMENT_FIELD_START_DAY:
+        value = tournament->startDay;
+        break;
+    case TOURNAMENT_FIELD_END_YEAR:
+        value = tournament->endYear;
+        break;
+    case TOURNAMENT_FIELD_END_MONTH:
+        value = tournament->endMonth;
+        break;
+    case TOURNAMENT_FIELD_END_DAY:
+        value = tournament->endDay;
+        break;
+    case TOURNAMENT_FIELD_UNK15B:
+        value = tournament->unk15B;
+        break;
+    case TOURNAMENT_FIELD_VARIANT:
+        value = tournament->variant;
+        break;
+    case TOURNAMENT_FIELD_ALLOW_REMATCH:
+        value = tournament->allowRematch;
+        break;
+    }
+    return value;
+}
+
+void TournamentEntry_SetField(TournamentEntry *tournament, u32 field, u32 value) {
+    switch (field) {
+    case TOURNAMENT_FIELD_VERSION_MASK:
+        tournament->versionMask = value;
+        break;
+    case TOURNAMENT_FIELD_CUP_ID:
+        tournament->cupId = value;
+        break;
+    case TOURNAMENT_FIELD_UNK154:
+        tournament->unk154 = value;
+        break;
+    case TOURNAMENT_FIELD_START_YEAR:
+        tournament->startYear = value;
+        break;
+    case TOURNAMENT_FIELD_START_MONTH:
+        tournament->startMonth = value;
+        break;
+    case TOURNAMENT_FIELD_START_DAY:
+        tournament->startDay = value;
+        break;
+    case TOURNAMENT_FIELD_END_YEAR:
+        tournament->endYear = value;
+        break;
+    case TOURNAMENT_FIELD_END_MONTH:
+        tournament->endMonth = value;
+        break;
+    case TOURNAMENT_FIELD_END_DAY:
+        tournament->endDay = value;
+        break;
+    case TOURNAMENT_FIELD_UNK15B:
+        tournament->unk15B = value;
+        break;
+    case TOURNAMENT_FIELD_VARIANT:
+        tournament->variant = value;
+        break;
+    case TOURNAMENT_FIELD_ALLOW_REMATCH:
+        tournament->allowRematch = value;
+        break;
+    }
+}
+
+BOOL TournamentEntry_CheckCRC(TournamentEntry *tournament) {
+    if (tournament->crc == CRC16_350bytes(tournament)) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+u16 CRC16_350bytes(const TournamentEntry *entry) {
+    return getCRC16(entry, offsetof(TournamentEntry, crc));
+}
+
+TournamentEntry *TournamentBlock_GetEntry(TournamentBlock *tournament, u32 index) {
+    return &tournament->entries[index];
+}
+
+void TournamentBlock_SetEntry(TournamentBlock *tournament, u32 index, const TournamentEntry *entry) {
+    tournament->entries[index] = *entry;
+}
+
+void TournamentTeam_Clear(TournamentTeam *team) {
+    MI_CpuFill8(team, 0, sizeof(TournamentTeam));
+}
+
+TournamentTeam *TournamentBlock_GetTeam(TournamentBlock *tournament, u32 index) {
+    return &tournament->teams[index];
+}
+
+u32 TournamentTeam_GetField(TournamentTeam *team, u32 field, u8 index) {
+    switch (field) {
+    case TOURNAMENT_TEAM_SPECIES:
+        return team->species[index];
+    case TOURNAMENT_TEAM_FORM:
+        return team->form[index];
+    case TOURNAMENT_TEAM_HAS_ITEM:
+        return (team->hasItem >> index) & 1;
+    case TOURNAMENT_TEAM_GENDER:
+        return (team->gender >> index) & 1;
+    }
+    return 0;
+}
+
+static void TournamentTeam_SetField(TournamentTeam *team, u32 field, u8 index, u32 value) {
+    switch (field) {
+    case TOURNAMENT_TEAM_SPECIES:
+        team->species[index] = value;
+        break;
+    case TOURNAMENT_TEAM_FORM:
+        team->form[index] = value;
+        break;
+    case TOURNAMENT_TEAM_HAS_ITEM:
+        team->hasItem |= (value == 1) << index;
+        break;
+    case TOURNAMENT_TEAM_GENDER:
+        team->gender |= (value == 1) << index;
+        break;
+    }
+}
+
+void TournamentTeam_SetFromParty(TournamentTeam *team, PokeParty *party) {
+    s32 i;
+
+    TournamentTeam_Clear(team);
+    for (i = 0; i < PokeParty_GetPkmCount(party); i++) {
+        PartyPkm *pkm = PokeParty_GetPkm(party, i);
+
+        if (PokeParty_GetParam(pkm, PKM_PARAM_SPECIES_VALID, NULL)) {
+            TournamentTeam_SetField(team, TOURNAMENT_TEAM_SPECIES, i, PokeParty_GetParam(pkm, PKM_PARAM_SPECIES, NULL));
+            TournamentTeam_SetField(team, TOURNAMENT_TEAM_FORM, i, PokeParty_GetParam(pkm, PKM_PARAM_FORM, NULL));
+            TournamentTeam_SetField(team, TOURNAMENT_TEAM_HAS_ITEM, i,
+                                    PokeParty_GetParam(pkm, PKM_PARAM_ITEM, NULL) != 0);
+            TournamentTeam_SetField(team, TOURNAMENT_TEAM_GENDER, i, PokeParty_GetParam(pkm, PKM_PARAM_SEX, NULL));
+        }
+    }
+}
+
+void clearTournamentBlock(void *block) {
+    MI_CpuFill8(block, 0, sizeof(TournamentBlock));
+}
+
+TournamentBlock *getTournamentBlockAddress(SaveControl *save) {
+    return SaveControl_GetBlockPtr(save, SAVE_BLOCK_TOURNAMENT);
+}

@@ -1,0 +1,18 @@
+# Black (tools/route.py b). name | start | pilot tokens | end | save | flags
+# `grass` (wild battles) is chaotic: it ends ok or stuck from run to run, at 4x and Max alike; it is not in the quick set.
+# Not scripted: the catch demo (route1 -> caught, wild battle) and Accumula Town on from caught.
+new-b | NEWGAME | Pa M16000 | zone 391 5,6
+room-down | room | Pa 4,4 8,4 8,2 11,2! W300 | zone 390 3,2 | - | quick
+down-town | downstairs | Pa 5,9 5,12! W300 | zone 389 782,749 | - | quick
+town-lab | bianca | Pa 782,758 782,749 777,749 777,742 KU:20 M900 W100 | zone 396 3,7
+lab-townmap | lab | Pa 3,12! W300 | zone 389 777,742
+townmap-route1 | townmap | Pa 788,742 788,739 788,726 W100 | zone 317 788,725 | - | defaultopts
+grass-n | route1 | Pa 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 C | zone 317 788,720 | - | quick
+grass | route1 | Pa 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 788,726 788,720 C | zone 317 788,720 | - | encounters
+caught-accum | caught | Pa 788,696 789,696 789,690 790,690 790,670 Wz:397 790,660 796,660 KU:4 Ka:2 Wf:60 KU:4 Ka:2 Wf:60 7,20! Wf:60 790,658 780,658 Wf:200 S | zone 397 780,658 | black-accum
+route2 | black-accum | Pa Wf:60 G:warp:320 G:warp:319 Wf:100 S | zone 319 760,649 | black-route2 | quick
+# Striaton City (zone 6), 11-08 sb1w: the arrival is the leg below (no S: an S at the arrival gave a DIFFERENT screen hash x3).
+# Facts: the Center is zone 8 (nurse uid 0 across the counter: G:npc:0 heals, no story flag changes), uid 7 at the gym door
+# (788,587) talks without changing a flag, trigger T0 (750,584, 3x1) is a west-exit blocker that pushes the player back (uid 6
+# stands on 752,584: G:trig:0 gets stuck there, a bare G:751,585 G:751,584 steps on it); work 0x4088 stays 0.
+route2-striaton | black-route2 | Pa G:warp:6 Wf:60 | zone 6 784,607

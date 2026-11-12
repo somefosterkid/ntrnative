@@ -1,0 +1,4 @@
+# game: white
+# from: white-room
+# reaches: White: the saved room in Nuvema Town, idle, 100 frames after the field is up (a smoke test of the White path)
+keys a@f400

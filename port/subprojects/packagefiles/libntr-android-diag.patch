@@ -1,0 +1,29 @@
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+index 3047fe2..dde5b55 100644
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2472,11 +2472,23 @@ static void TouchOverlay() {
+             bwport_sys_line(6, l9, sizeof l9);
+         }
+     }
++    int diag = 0;
++#ifdef __ANDROID__
++    // libntr-android-diag.patch: a tester's first 20 seconds show what draws (renderer, Resolution, picture size) and the GL renderer
++    // string, even with the overlay's detail off: the screenshot of a bug report then says which GPU path it ran
++    if (!c->overlayDetail && SDL_GetTicks() < 20000) {
++        int pw = 0, ph = 0;
++        SIM_RendererPicture(&pw, &ph);
++        snprintf(l2, sizeof l2, "%s %dx %dx%d", ActiveRenderer(), SIM_RenderScale(), pw, ph);
++        snprintf(l3, sizeof l3, "%s", SIM_GLRendererName());
++        diag = 3;
++    }
++#endif
+     ImFont * font = ImGui::GetFont();
+     const float u = SimTouch_Unit();   // (Android: the window is in pixels; 1 elsewhere)
+     float fs = 9.5f * u;
+     float pad = 5.0f * u, gap = 2.0f * u;
+-    int lines = l3[0] ? (l7[0] ? 9 : 6) : 1;
++    int lines = diag ? diag : l3[0] ? (l7[0] ? 9 : 6) : 1;
+     const char * ls[9] = {l1, l2, l3, l4, l5, l6, l7, l8, l9};
+     float w = 0.0f;
+     for (int i = 0; i < lines; i++) {

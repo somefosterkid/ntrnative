@@ -1,0 +1,491 @@
+diff --git a/meson.build b/meson.build
+--- a/meson.build
++++ b/meson.build
+@@ -62,6 +62,13 @@
+     # The SDK's C was written for a compiler that never exploited signed overflow, type punning or a dereference
+     # before a null check; at -O2 (the bw-port's macOS and iOS builds) clang would, so keep the game's settings
+     c_args += ['-fwrapv', '-fno-strict-aliasing', '-fno-delete-null-pointer-checks']
++endif
++if host_machine.system() == 'darwin'
++    # bw-port (libntr-ios-reset.patch): the machine's data in its own sections, for the in-process restart
++    # (after nitro_pch.h, which is then included as a plain header: a header that is part of a precompiled one is not read
++    # again, and a precompiled header does not keep a #pragma clang section)
++    c_args += ['-fno-common', '-include', meson.current_source_dir() / 'include/pch/nitro_pch.h',
++               '-include', meson.current_source_dir() / 'include/sim_machine_section.h']
+ endif
+ 
+ add_project_arguments(c_args,
+@@ -220,6 +227,9 @@
+ ############################################################
+ subdir('gen')
+ nitro_pch = meson.current_source_dir() / 'include/pch/nitro_pch.h'
++if host_machine.system() == 'darwin'
++    nitro_pch = []   # bw-port (libntr-ios-reset.patch): included by c_args above instead
++endif
+ 
+ ############################################################
+ ###                    INCLUDE PATHS                     ###
+diff --git a/libraries/sim/meson.build b/libraries/sim/meson.build
+--- a/libraries/sim/meson.build
++++ b/libraries/sim/meson.build
+@@ -145,6 +145,11 @@
+ libsim_dependencies += libnx_dep
+ endif
+ 
++if host_machine.system() == 'darwin'
++    # bw-port (libntr-ios-reset.patch): libsim is the host, apart from sim_vars.c (it sets the machine sections itself)
++    libsim_args += ['-include', meson.project_source_root() / 'include/sim_host_section.h']
++endif
++
+ libsim = library('sim',
+     c_pch: nitro_pch,
+     include_directories: [nitrosdk_includes, libsim_includes],
+diff --git a/libraries/sim/src/sim_vars.c b/libraries/sim/src/sim_vars.c
+--- a/libraries/sim/src/sim_vars.c
++++ b/libraries/sim/src/sim_vars.c
+@@ -1,3 +1,7 @@
++/* bw-port (libntr-ios-reset.patch): the DS's memory and registers are the machine (include/sim_machine_section.h) */
++#ifdef __APPLE__
++#pragma clang section data = "__DATA,__machdata" bss = "__DATA,__machbss,zerofill"
++#endif
+ #include <nitro/os/common/arena.h>
+ #include <nitro/spi/ARM9/tp.h>
+ #define HW_MAIN_MEM_SYSTEM_SIZE         0x400
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1,4 +1,5 @@
+ extern "C" void NitroMain();
++extern "C" void SIM_RunGame(void);  // bw-port (libntr-ios-reset.patch): port/src/machine.c
+ extern "C" int NitroSpMain(void *arg);
+ #define SDL_MAIN_HANDLED
+ 
+@@ -1231,6 +1232,7 @@
+ static int sIpTestLate, sIpTestClock;  // libntr-ios-smoothhold.patch: cfgscript glate=N, glowclock=1 (LagDone)
+ extern "C" void bwport_press_restart(void);  // libntr-ios-restart.patch: port/src/restart_press.c
+ 
++static u32 sCfgMark = 0;  // the frame a performance log was last running or a step last applied, for the pN steps
+ static void SIM_CfgScript(void) {
+   std::vector<CfgStep> &sSteps = sCfgSteps;
+   size_t &sNext = sCfgNext;
+@@ -1241,7 +1243,7 @@
+     if (e != NULL && *e) SIM_CfgScriptLoad(e);
+   }
+   u32 now = *((u32 *)HW_VBLANK_COUNT_BUF);
+-  static u32 sMark = 0;  // the frame a performance log was last running or a step last applied, for the pN steps
++  u32 &sMark = sCfgMark;
+   while (sNext < sSteps.size()) {
+     bool busy = SIM::GUI::PerfLogBusy() || BenchBusy();
+     if (busy) sMark = now;
+@@ -3300,10 +3302,38 @@
+ static SIM_RendererIdleFn sIdleHook[3];
+ extern "C" void SIM_SetRendererIdle(int which, SIM_RendererIdleFn fn) {
+   if (which >= 1 && which <= 2) sIdleHook[which] = fn;
++}
++
++// bw-port (libntr-ios-reset.patch): the port's in-process restart (port/src/machine.c). The machine's globals that live
++// in this C++ file, which the port copies at the start and puts back at a reset with libntr's C (its own sections);
++// and after a reset, the host's side made new: both renderers give back what they hold at the next frame (as on a
++// switch: the next frame is drawn as the first), the cfgscript's pN steps count from the new boot's V-blank 0
++static bool sResetRenderers;
++extern "C" int SIM_MachineExtra(void **addr, size_t *size, int max) {
++  void *a[] = {OS_IRQTable, &s_SIM_GXVRamTex, &s_SIM_GXVRamTexPltt, &s_SIM_GXBgExtPltt, &s_SIM_GXSubBgExtPltt,
++               win_snd_channel_bufs, win_snd_channels, win_sndi_channels, win_snd_alarms, &win_SNDi_SharedWork};
++  size_t z[] = {sizeof(OS_IRQTable), sizeof(s_SIM_GXVRamTex), sizeof(s_SIM_GXVRamTexPltt), sizeof(s_SIM_GXBgExtPltt),
++                sizeof(s_SIM_GXSubBgExtPltt), sizeof(win_snd_channel_bufs), sizeof(win_snd_channels),
++                sizeof(win_sndi_channels), sizeof(win_snd_alarms), sizeof(win_SNDi_SharedWork)};
++  int n = (int)(sizeof(a) / sizeof(a[0]));
++  for (int i = 0; i < n && i < max; i++) {
++    addr[i] = a[i];
++    size[i] = z[i];
++  }
++  return n;
+ }
++extern "C" void SIM_ResetHost(void) {
++  sResetRenderers = true;
++  sCfgMark = 0;
++}
+ 
+ static bool SIM_DrawFrameRenderer(void) {
+   sFrameRendererDrew = 0;
++  if (sResetRenderers) {  // libntr-ios-reset.patch: after an in-process restart
++    sResetRenderers = false;
++    if (sIdleHook[1] != NULL) sIdleHook[1]();
++    if (sIdleHook[2] != NULL) sIdleHook[2]();
++  }
+   bool gpu = SIM_RendererWanted() == SIM_CONFIG_RENDERER_GPU;
+   {
+     static int sWasWanted;
+@@ -4948,6 +4978,8 @@
+     }
+   }
+ 
+-  NitroMain();
++  // bw-port (libntr-ios-reset.patch): the port's run loop (port/src/machine.c) calls NitroMain, and again after each
++  // in-process restart
++  SIM_RunGame();
+   return 0;
+ }
+diff --git a/libraries/sim7/src/pxi.c b/libraries/sim7/src/pxi.c
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -42,8 +42,13 @@
+ static SDL_sem * pxi7to9Semaphore;
+ static SDL_sem * osThreadSemaphore;
+ 
++static void SIM_PxiPendInit(void);
++static volatile int s_pxi7to9Pending = 0;
++
+ void SIM_pxiInit(void)
+ {
++	SIM_PxiPendInit();  // bw-port (libntr-ios-reset.patch): before the machine's snapshot, so a reset keeps it
++
+     SIM_drawQueue.head = 0;
+     SIM_drawQueue.tail = 0;
+     SIM_drawQueue.size = 2048;
+@@ -361,6 +366,14 @@
+ 	return (u64)d;
+ }
+ 
++static void SIM_PxiPendInit( void )
++{
++	if( s_pendMx == NULL )
++	{
++		s_pendMx = SDL_CreateMutex();
++	}
++}
++
+ void SIM_PxiQueueSoundList( SNDCommand * list )
+ {
+ 	if( !SIM_Audio_FrameClock() )
+@@ -557,6 +570,7 @@
+ 		TracyCZone(ctx, 1);
+ 		#endif
+ 		SIM_procPXI7to9();
++		__sync_fetch_and_sub(&s_pxi7to9Pending, 1);
+ 		#ifdef SDK_TRACY_ENABLE
+ 		TracyCZoneEnd(ctx);
+ 		#endif
+@@ -566,7 +580,35 @@
+ 
+ void SIM_PostPxi7to9Thread()
+ {
++	__sync_fetch_and_add(&s_pxi7to9Pending, 1);
+ 	SDL_SemPost(pxi7to9Semaphore);
++}
++
++// bw-port (libntr-ios-reset.patch): before the port's in-process restart puts the machine back: the messages both ways
++// handled (each message's callback may wait for the game's lock, which the reset lets go meanwhile: 500 ms at most),
++// the sound side's pending lists dropped and the ARM7's alarm threads stopped. Their state is the machine's.
++void SIM_PxiQuiesce(void)
++{
++	Uint32 t0 = SDL_GetTicks();
++	while( ( s_pxiPending > 0 || s_pxi7to9Pending > 0 ) && SDL_GetTicks() - t0 < 500 )
++	{
++		SDL_Delay( 1 );
++	}
++	if( s_pxiPending > 0 || s_pxi7to9Pending > 0 )
++	{
++		fprintf( stderr, "bwport: reset: PXI messages still pending (9 to 7: %d, 7 to 9: %d)\n", s_pxiPending, s_pxi7to9Pending );
++	}
++	SDL_LockMutex( s_pendMx );
++	s_pendRd = s_pendWr;
++	SDL_UnlockMutex( s_pendMx );
++	for( int i = 0; i < 32; i++ )
++	{
++		if( win_snd_alarms[i].isRunning )
++		{
++			win_snd_alarms[i].isRunning = 0;
++			pthread_join( win_snd_alarms[i].thread, NULL );
++		}
++	}
+ }
+ 
+ void * SIM_sndAlarm(void * arg)
+diff --git a/libraries/fs/src/fs_file.c b/libraries/fs/src/fs_file.c
+--- a/libraries/fs/src/fs_file.c
++++ b/libraries/fs/src/fs_file.c
+@@ -23,6 +23,50 @@
+ #include <string.h>
+ #include <SDL2/SDL.h>
+ #include <simulator/sim_RomExtractor.h>
++
++/* bw-port (libntr-ios-reset.patch): the host files the game's FSFiles hold open, so the port's in-process restart can
++   close them (the FSFiles themselves are the machine's memory, put back as they were before the game started) */
++#define FSi_PORT_FILES_MAX 64
++static FILE * s_portFiles[FSi_PORT_FILES_MAX];
++
++static FILE * FSi_PortFopen(const char * path, const char * mode)
++{
++	FILE * f = fopen(path, mode);
++	int i;
++	for (i = 0; f != NULL && i < FSi_PORT_FILES_MAX; i++) {
++		if (s_portFiles[i] == NULL) {
++			s_portFiles[i] = f;
++			break;
++		}
++	}
++	return f;
++}
++
++static int FSi_PortFclose(FILE * f)
++{
++	int i;
++	for (i = 0; i < FSi_PORT_FILES_MAX; i++) {
++		if (s_portFiles[i] == f) {
++			s_portFiles[i] = NULL;
++		}
++	}
++	return fclose(f);
++}
++
++int FS_PortCloseAll(void)
++{
++	int i, n = 0;
++	for (i = 0; i < FSi_PORT_FILES_MAX; i++) {
++		if (s_portFiles[i] != NULL) {
++			fclose(s_portFiles[i]);
++			s_portFiles[i] = NULL;
++			n++;
++		}
++	}
++	return n;
++}
++#define fopen FSi_PortFopen
++#define fclose FSi_PortFclose
+ #endif
+ 
+ #if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
+diff --git a/libraries/os/src/os_thread.c b/libraries/os/src/os_thread.c
+--- a/libraries/os/src/os_thread.c
++++ b/libraries/os/src/os_thread.c
+@@ -8,9 +8,18 @@
+ #include <pthread.h>
+ 
+ #include <SDL2/SDL.h>
++#include <setjmp.h>
+ 
+-pthread_mutex_t osiThreadMutex = PTHREAD_MUTEX_INITIALIZER;
++// bw-port (libntr-ios-reset.patch): the host's side of the threads (locks, the host thread table) stays out of the
++// machine's sections the port's in-process restart puts back (include/sim_machine_section.h)
++#ifdef __APPLE__
++#define OSi_HOST __attribute__((section("__DATA,__data")))
++#else
++#define OSi_HOST __attribute__((section(".bwhost")))   /* an orphan section: the machine's linker script (tools/port_overlays.py) takes only .data and .bss */
++#endif
+ 
++pthread_mutex_t osiThreadMutex OSi_HOST = PTHREAD_MUTEX_INITIALIZER;
++
+ // bw-port (libntr-threadwait.patch): OS_SleepThread blocks until a wakeup instead of returning after a millisecond
+ // (the SDK's callers loop on their condition, so that was a 1 kHz poll per waiting thread). Host threads run at the
+ // same time and OS_DisableInterrupts stops none of them, so a wakeup may come between a caller's check and its sleep:
+@@ -20,11 +29,22 @@
+ #include <errno.h>
+ #include <time.h>
+ #define OSi_WAIT_BACKSTOP_MS 50
+-static pthread_mutex_t s_waitLock = PTHREAD_MUTEX_INITIALIZER;
+-static pthread_cond_t s_waitCond = PTHREAD_COND_INITIALIZER;
+-static u32 s_wakeEpoch;
++static pthread_mutex_t s_waitLock OSi_HOST = PTHREAD_MUTEX_INITIALIZER;
++static pthread_cond_t s_waitCond OSi_HOST = PTHREAD_COND_INITIALIZER;
++static u32 s_wakeEpoch OSi_HOST;
+ static __thread u32 t_seenEpoch;
+ 
++// bw-port (libntr-ios-reset.patch): the threads the SDK makes once the game runs (CARD's and CTRDG's task threads, made
++// again at each boot) end at an in-process restart: SIM_OsStopThreads ends the boot, and such a thread leaves its
++// function from its next sleep (OS_SleepThread) and ends. The ones made before the port's snapshot are the host's: kept
++static int s_snapshotTaken OSi_HOST;
++static int s_bootGen OSi_HOST;
++static __thread int t_machine;     // this thread was made by the machine, in boot t_bootGen
++static __thread int t_bootGen;
++static __thread jmp_buf t_exitJmp;
++#define OSi_MACHINE_THREADS_MAX 64
++static SDL_Thread * s_machineThreads[OSi_MACHINE_THREADS_MAX] OSi_HOST;
++
+ void OSi_NoteWakeEpoch(void)
+ {
+     t_seenEpoch = __atomic_load_n(&s_wakeEpoch, __ATOMIC_ACQUIRE);
+@@ -42,24 +62,89 @@
+ typedef struct {
+     SDL_threadID threadId;
+     OSThread * thread;
++    int machine;    // bw-port (libntr-ios-reset.patch): made after the port's snapshot
+ } SIM_OSThreadList_t;
+ #define SIM_OS_THREAD_LIST_MAX 1024
+ 
+-static SIM_OSThreadList_t s_threadList[SIM_OS_THREAD_LIST_MAX] = {0};
+-static int s_curThreadListIdx = 0;
++static SIM_OSThreadList_t s_threadList[SIM_OS_THREAD_LIST_MAX] OSi_HOST = {0};
++static int s_curThreadListIdx OSi_HOST = 0;
++
++void SIM_OsMarkSnapshot(void)
++{
++    s_snapshotTaken = 1;
++}
++
++// The port's in-process restart, before the machine is put back: the machine's threads end (each from its sleep, which
++// the broadcast wakes; 1 s at most) and are joined
++void SIM_OsStopThreads(void)
++{
++    Uint32 t0 = SDL_GetTicks();
++    int i, left;
++
++    __atomic_add_fetch(&s_bootGen, 1, __ATOMIC_RELEASE);
++    do {
++        pthread_mutex_lock(&s_waitLock);
++        OSi_WakeLocked(TRUE);
++        pthread_mutex_unlock(&s_waitLock);
++        left = 0;
++        pthread_mutex_lock(&osiThreadMutex);
++        for (i = 0; i < SIM_OS_THREAD_LIST_MAX; i++) {
++            left += s_threadList[i].threadId != 0 && s_threadList[i].machine;
++        }
++        pthread_mutex_unlock(&osiThreadMutex);
++        if (left != 0) {
++            SDL_Delay(1);
++        }
++    } while (left != 0 && SDL_GetTicks() - t0 < 1000);
++    if (left != 0) {
++        fprintf(stderr, "bwport: reset: %d of the SDK's threads did not end\n", left);
++        return;   // (their handles are kept: a join would wait for good)
++    }
++    for (i = 0; i < OSi_MACHINE_THREADS_MAX; i++) {
++        if (s_machineThreads[i] != NULL) {
++            SDL_WaitThread(s_machineThreads[i], NULL);
++            s_machineThreads[i] = NULL;
++        }
++    }
++}
+ 
++// a thread of an ended boot, in a sleep: out of its function (the lock let go)
++static void OSi_ExitIfEnded(void)
++{
++    if (t_machine && t_bootGen != __atomic_load_n(&s_bootGen, __ATOMIC_ACQUIRE)) {
++        pthread_mutex_unlock(&s_waitLock);
++        longjmp(t_exitJmp, 1);
++    }
++}
+ 
++
+ int SIM_OS_RunThread(void * thread)
+ {
+ 	OSThread * curThread;
++	int listIdx;
+ 	curThread = (OSThread *)thread;
++    pthread_mutex_lock(&osiThreadMutex);   // libntr-ios-reset.patch: SIM_OsStopThreads reads the table
+     s_threadList[s_curThreadListIdx].thread = curThread;
+     s_threadList[s_curThreadListIdx].threadId = SDL_GetThreadID(NULL);
++    s_threadList[s_curThreadListIdx].machine = t_machine;
+     curThread->threadListIdx = s_curThreadListIdx;
++    listIdx = s_curThreadListIdx;
+     s_curThreadListIdx++;
+     if(s_curThreadListIdx >= SIM_OS_THREAD_LIST_MAX) {
+         s_curThreadListIdx = 0;
+     }
++    pthread_mutex_unlock(&osiThreadMutex);
++    t_bootGen = __atomic_load_n(&s_bootGen, __ATOMIC_ACQUIRE);
++    if (setjmp(t_exitJmp) != 0) {
++        // libntr-ios-reset.patch: its boot ended (OSi_ExitIfEnded): the OSThread is the machine's, put back as before the
++        // game; only the host's table entry goes
++        pthread_mutex_lock(&osiThreadMutex);
++        s_threadList[listIdx].threadId = 0;
++        s_threadList[listIdx].thread = NULL;
++        s_threadList[listIdx].machine = 0;
++        pthread_mutex_unlock(&osiThreadMutex);
++        return 0;
++    }
+ 
+ 	//curThread->state = OS_THREAD_STATE_WAITING;
+ 	void (*nitroThreadFuncPtr) (void *);
+@@ -88,6 +173,20 @@
+ 	return 0;
+ }
+ 
++// libntr-ios-reset.patch: whether the thread is the machine's is decided when it is made (it may start running later)
++typedef struct {
++    OSThread * thread;
++    int machine;
++} OSi_RunArg;
++
++static int SIM_OS_RunThreadArg(void * arg)
++{
++    OSi_RunArg a = *(OSi_RunArg *)arg;
++    free(arg);
++    t_machine = a.machine;
++    return SIM_OS_RunThread(a.thread);
++}
++
+ void SDK_SYS_STACKSIZE(void)
+ {
+ }
+@@ -651,8 +750,22 @@
+ #endif
+ 
+ #ifdef SDK_PORT
+-    thread->win_sdlThread = SDL_CreateThread(SIM_OS_RunThread, thread->funcName, (void*)thread);
++    {
++        OSi_RunArg * a = (OSi_RunArg *)malloc(sizeof(OSi_RunArg));
++        a->thread = thread;
++        a->machine = s_snapshotTaken;
++        thread->win_sdlThread = SDL_CreateThread(SIM_OS_RunThreadArg, thread->funcName, (void*)a);
++    }
+     thread->win_threadState = 1;
++    if (s_snapshotTaken) {   // libntr-ios-reset.patch: joined at the next in-process restart
++        int i;
++        for (i = 0; i < OSi_MACHINE_THREADS_MAX; i++) {
++            if (s_machineThreads[i] == NULL) {
++                s_machineThreads[i] = thread->win_sdlThread;
++                break;
++            }
++        }
++    }
+ #endif
+ 
+     thread->alarmForSleep = NULL;
+@@ -969,6 +1082,11 @@
+         return;
+     }
+     SDL_WaitThread(thread->win_sdlThread, NULL);
++    for (int i = 0; i < OSi_MACHINE_THREADS_MAX; i++) {   // libntr-ios-reset.patch: joined once
++        if (s_machineThreads[i] == thread->win_sdlThread) {
++            s_machineThreads[i] = NULL;
++        }
++    }
+     #else
+     SDK_ASSERT(thread);
+ 
+@@ -1012,6 +1130,7 @@
+     OSThread * currentThread = OSi_GetCurrentThread();
+ 
+     pthread_mutex_lock(&s_waitLock);
++    OSi_ExitIfEnded();
+     if (s_wakeEpoch == t_seenEpoch) {
+         struct timespec deadline;
+         int rc = 0;
+@@ -1030,6 +1149,7 @@
+         }
+         while (currentThread->state == OS_THREAD_STATE_WAITING && rc != ETIMEDOUT) {
+             rc = pthread_cond_timedwait(&s_waitCond, &s_waitLock, &deadline);
++            OSi_ExitIfEnded();
+         }
+ 
+         // the backstop, or OS_WakeupThreadDirect: still in the queue
+diff --git a/include/sim_machine_section.h b/include/sim_machine_section.h
+new file mode 100644
+--- /dev/null
++++ b/include/sim_machine_section.h
+@@ -0,0 +1,5 @@
++/* bw-port (libntr-ios-reset.patch): Apple builds put the writable data of libntr's C (the SDK libraries, sim7 and
++ * sim_vars.c: the DS's own state) in two sections of their own, __DATA,__machdata and the zero-fill __DATA,__machbss.
++ * The port's in-process restart (port/src/machine.c) copies them at the start and puts them back at a reset.
++ * libsim's other files include sim_host_section.h after this one: they are the host's. -fno-common goes with it. */
++#pragma clang section data = "__DATA,__machdata" bss = "__DATA,__machbss,zerofill"
+diff --git a/include/sim_host_section.h b/include/sim_host_section.h
+new file mode 100644
+--- /dev/null
++++ b/include/sim_host_section.h
+@@ -0,0 +1,4 @@
++/* bw-port (libntr-ios-reset.patch): libsim's C files are the host's (GL loader, config, queues ...): back to the
++ * default sections after sim_machine_section.h. sim_vars.c (the DS's memory and registers) sets the machine sections
++ * again itself. */
++#pragma clang section data = "" bss = ""

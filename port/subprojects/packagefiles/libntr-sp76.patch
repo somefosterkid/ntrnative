@@ -1,0 +1,898 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -17,6 +17,9 @@
+ } SIM_config_renderer_type;
+ 
+ #define SIM_CONFIG_FRAMESKIP_AUTO 255
++#define SIM_CONFIG_DISPLAYCAP_60 0
++#define SIM_CONFIG_DISPLAYCAP_120 1
++#define SIM_CONFIG_DISPLAYCAP_MONITOR 2
+ 
+ /* bw-port (libntr-acore.patch): what plays the sound */
+ typedef enum {
+@@ -94,6 +97,9 @@
+     u8 frameSkip; /* bw-port (libntr-frameskip.patch): frames not drawn between two drawn ones, 0 = every frame is drawn (the
+                      default); SIM_CONFIG_FRAMESKIP_AUTO = skip only when drawing would drop the game below 60 fps with the
+                      cap on. sim_config.ini FrameSkip=0|1|2|3|auto; BWPORT_FRAMESKIP=N (draw one frame in N) or auto overrides */
++    u8 speed; /* bw-port (libntr-sp76.patch): the game's speed, 1..4 (sim_config.ini Speed=1|2|3|4, BWPORT_SPEED): the game ticks 60 x Speed times a second; the sound is time-stretched back to its pitch */
++    u8 musicNormalSpeed; /* 1 (default): at Speed > 1 the music (BGM, fanfares) keeps its tempo while sound effects and cries follow the speed (MusicNormalSpeed=on|off, BWPORT_MUSICNORMAL) */
++    u8 displayCap; /* SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second (DisplayCap=60|120|monitor, BWPORT_DISPLAYCAP) */
+     u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -13,7 +13,8 @@
+ void NewFrame();
+ // bw-port (libntr-ui68.patch): true when the GUI took the event (a key being assigned, Esc closing a window)
+ bool ProcessEvent(SDL_Event * event);
+-void Render();
++void Render(bool draw = true);
++void RenderAgain();
+ void Toggle();
+ void Enable();
+ void OpenFileDialog(std::function<void(std::string)> callback);
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -125,6 +125,17 @@
+         int n = atoi(value);
+         config->frameSkip = strcmp(value, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(n < 0 ? 0 : n > 60 ? 60 : n);
+     }
++    if(MATCH("General", "Speed")) {
++        int n = atoi(value);
++        config->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++    }
++    if(MATCH("General", "MusicNormalSpeed")) {
++        config->musicNormalSpeed = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
++    }
++    if(MATCH("General", "DisplayCap")) {
++        config->displayCap = strcmp(value, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
++                           : atoi(value) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
++    }
+     if(MATCH("General", "Filter")) {
+         config->gpuFilter = strcmp(value, "bilinear") == 0;
+     }
+@@ -450,6 +461,21 @@
+     if(e != NULL) {
+         aConfig->gpuFilter = strcmp(e, "bilinear") == 0;
+     }
++    // bw-port (libntr-sp76.patch): BWPORT_SPEED=1..4, BWPORT_DISPLAYCAP=60|120|monitor
++    e = getenv("BWPORT_SPEED");
++    if(e != NULL && *e) {
++        int n = atoi(e);
++        aConfig->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++    }
++    e = getenv("BWPORT_MUSICNORMAL");
++    if(e != NULL && *e) {
++        aConfig->musicNormalSpeed = strcmp(e, "off") != 0 && strcmp(e, "0") != 0;
++    }
++    e = getenv("BWPORT_DISPLAYCAP");
++    if(e != NULL && *e) {
++        aConfig->displayCap = strcmp(e, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
++                            : atoi(e) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
++    }
+     // bw-port (libntr-frameskip.patch): BWPORT_FRAMESKIP=N draws one frame in N (1 and 0: all), auto
+     e = getenv("BWPORT_FRAMESKIP");
+     if(e != NULL && strcmp(e, "auto") == 0) {
+@@ -500,6 +526,9 @@
+     aConfig->gpuEdge = 0;
+     aConfig->gpuFilter = 0;
+     aConfig->frameSkip = 0;
++    aConfig->speed = 1;
++    aConfig->musicNormalSpeed = 1;
++    aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->sound = SIM_CONFIG_SOUND_ACORE; /* bw-port (libntr-sounddefault.patch, owner 10-29): our sound core by default */
+     aConfig->masterVolume = 127;
+ 
+@@ -602,6 +631,10 @@
+     fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
++    fprintf(configFile, "Speed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
++    fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
++    fprintf(configFile, "DisplayCap=%s\n", aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? "monitor"
++                                         : aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60");
+     if(aConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
+         fprintf(configFile, "FrameSkip=auto\n");
+     } else {
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -3,6 +3,7 @@
+ #include <simulator/sim.h>
+ #include <simulator/config/sim_config.h>
+ #include <SDL2/SDL.h>
++#include <math.h>
+ 
+ #include "blip_buf.h"
+ 
+@@ -95,6 +96,8 @@
+ #define SND_TARGET 1100.0
+ 
+ static int s_frameClock = 0;
++static int s_musicSlow = 1; // the factor the music's tempo is lowered by (libntr-sp76.patch)
++extern "C" void SIM_Snd_SetMusicSlow(int aSlow); // libraries/snd/src/snd_interface.c
+ static u64 s_sndCyc = 0; // the sound's time: ARM7 cycles
+ static u64 s_frameCyc = 0; // the games's frames x 560190
+ static u64 s_nextTick = SND_CYC_TICK;
+@@ -112,8 +115,16 @@
+ static u64 s_wavFrames = 0;
+ static u64 s_wavSince = 0;
+ 
++static FILE * s_outWav = NULL; // BWPORT_AUDIO_OUT=FILE: what the callback plays (the device's rate), silences included
++static u64 s_outFrames = 0;
++static void WavHeaderR(FILE * f, u64 frames, unsigned rate);
+ static void WavHeader(FILE * f, u64 frames)
+ {
++    WavHeaderR(f, frames, 32728); // the compare tool's form: a WAV says 32728 Hz
++}
++
++static void WavHeaderR(FILE * f, u64 frames, unsigned rate)
++{
+     unsigned char h[44];
+     unsigned data = (unsigned)(frames * 4);
+     unsigned v = 36 + data;
+@@ -127,9 +138,9 @@
+     memcpy(h + 20, &s, 2);
+     s = 2;
+     memcpy(h + 22, &s, 2);
+-    v = 32728; // the compare tool's form: a WAV says 32728 Hz
++    v = rate;
+     memcpy(h + 24, &v, 4);
+-    v = 32728 * 4;
++    v = rate * 4;
+     memcpy(h + 28, &v, 4);
+     s = 4;
+     memcpy(h + 32, &s, 2);
+@@ -144,6 +155,11 @@
+ 
+ static void WavClose(void)
+ {
++    if(s_outWav) {
++        WavHeaderR(s_outWav, s_outFrames, s_devRate);
++        fclose(s_outWav);
++        s_outWav = NULL;
++    }
+     if(s_wav) {
+         WavHeader(s_wav, s_wavFrames);
+         fclose(s_wav);
+@@ -151,8 +167,8 @@
+     }
+ }
+ 
+-// one DS-rate frame made by the sound side
+-static void RingPush(s16 l, s16 r)
++// one DS-rate frame for the ring (after the time-stretch)
++static void RingOut(s16 l, s16 r)
+ {
+     if(s_wav) {
+         s16 f[2] = {l, r};
+@@ -170,6 +186,190 @@
+ 
+ static s32 ClampS16(s32 v) { return v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
+ 
++// ---- bw-port (libntr-sp76.patch): Speed > 1 ----
++// At Speed S the game ticks S times as fast, so the sound side makes S times as many samples a second as the device
++// plays. The samples go through a time-stretch that gives them back at the real-time rate with the pitch unchanged:
++// WSOLA (waveform-similarity overlap-add; Verhelst & Roelands 1993, the public description). Output blocks of ST_HS
++// frames are made by overlap-adding Hann-windowed segments of ST_N frames; segment k is taken from the input near
++// k * S * ST_HS (so the input is consumed S times as fast as the output is made), at the offset within +-ST_DELTA whose
++// start best continues the previous segment (normalized cross-correlation over the overlap, on the mono sum). At Speed
++// 1 nothing of this runs: RingPush goes straight to the ring (the same samples as before). Engaging continues the
++// samples already played (the previous segment is the input itself, so there is no seam); disengaging cross-fades the
++// pending tail into the newest input and plays the rest of it as it is. All of it runs under SDL's audio lock, on the
++// producer side (a tick's samples), so the callback keeps playing a ring of normal-rate samples.
++#define ST_HS 512
++#define ST_N (2 * ST_HS)
++#define ST_DELTA 256
++#define ST_BUF 16384u
++
++static s16 st_in[ST_BUF][2];
++static u64 st_inN = 0;     // frames pushed since the start
++static int st_S = 1;       // 1 = bypassed
++static int st_armed = 0;   // engaged, the pending tail not made yet
++static s64 st_p = 0;       // engage position: the first input frame not played
++static s64 st_prevPos = 0; // where the previous segment starts
++static s64 st_nom = 0;     // nominal start of the next segment
++static float st_pend[ST_HS][2];
++static float st_win[ST_N];
++static int st_winInit = 0;
++
++static void RingOut(s16 l, s16 r);
++
++static inline s16 StIn(s64 i, int c) { return st_in[(u64)i % ST_BUF][c]; }
++static inline s16 StClamp(float v) { return (s16)(v > 32767.f ? 32767 : v < -32768.f ? -32768 : (int)(v < 0 ? v - 0.5f : v + 0.5f)); }
++
++static void StInit(void)
++{
++    if(!st_winInit) {
++        st_winInit = 1;
++        for(int i = 0; i < ST_N; i++) {
++            st_win[i] = (float)(0.5 - 0.5 * cos(2.0 * 3.14159265358979323846 * i / ST_N));
++        }
++    }
++}
++
++// the start in [lo, hi] whose ST_HS frames best continue the input from refPos (nearest to nom when nothing is better)
++static s64 StBestMatch(s64 lo, s64 hi, s64 refPos, s64 nom)
++{
++    s64 cn = nom < lo ? lo : nom > hi ? hi : nom;
++    if(hi <= lo) {
++        return lo;
++    }
++    float ref[ST_HS / 2];
++    double refE = 0;
++    for(int i = 0; i < ST_HS / 2; i++) {
++        s64 k = refPos + 2 * i;
++        ref[i] = (float)(StIn(k, 0) + StIn(k, 1));
++        refE += (double)ref[i] * ref[i];
++    }
++    if(refE < 1.0) {
++        return cn;
++    }
++    s64 best = cn;
++    double bestScore = -1e30;
++    for(s64 c = lo; c <= hi; c++) {
++        double corr = 0, en = 0;
++        for(int i = 0; i < ST_HS / 2; i++) {
++            s64 k = c + 2 * i;
++            float m = (float)(StIn(k, 0) + StIn(k, 1));
++            corr += (double)ref[i] * m;
++            en += (double)m * m;
++        }
++        double score = corr / sqrt(en + 1.0);
++        if(c == cn) {
++            score += 1e-6 * (fabs(score) + 1.0); // a tie goes to the nominal start
++        }
++        if(score > bestScore) {
++            bestScore = score;
++            best = c;
++        }
++    }
++    return best;
++}
++
++static void StEngage(int aS)
++{
++    StInit();
++    st_S = aS;
++    st_armed = 1;
++    st_p = (s64)st_inN;
++    st_prevPos = st_p - ST_HS;
++    st_nom = st_prevPos + (s64)aS * ST_HS;
++}
++
++// the time-stretched blocks the input allows
++static void StRun(void)
++{
++    if(st_S <= 1) {
++        return;
++    }
++    for(;;) {
++        if(st_armed) {
++            if((s64)st_inN < st_p + ST_HS) {
++                return;
++            }
++            for(int i = 0; i < ST_HS; i++) {
++                for(int c = 0; c < 2; c++) {
++                    st_pend[i][c] = st_win[ST_HS + i] * (float)StIn(st_p + i, c);
++                }
++            }
++            st_armed = 0;
++        }
++        s64 lo = st_nom - ST_DELTA;
++        if(lo < st_prevPos + 1) {
++            lo = st_prevPos + 1;
++        }
++        if((s64)st_inN - lo > (s64)ST_BUF - 2 * ST_N) { // far behind (a flood of input): jump to the newest
++            st_nom = (s64)st_inN - ST_N - ST_DELTA;
++            lo = st_nom - ST_DELTA;
++        }
++        if((s64)st_inN < lo + ST_N) {
++            return;
++        }
++        s64 hi = st_nom + ST_DELTA;
++        if(hi > (s64)st_inN - ST_N) {
++            hi = (s64)st_inN - ST_N;
++        }
++        s64 c = StBestMatch(lo, hi, st_prevPos + ST_HS, st_nom);
++        for(int i = 0; i < ST_HS; i++) {
++            float l = st_pend[i][0] + st_win[i] * (float)StIn(c + i, 0);
++            float r = st_pend[i][1] + st_win[i] * (float)StIn(c + i, 1);
++            RingOut(StClamp(l), StClamp(r));
++            st_pend[i][0] = st_win[ST_HS + i] * (float)StIn(c + ST_HS + i, 0);
++            st_pend[i][1] = st_win[ST_HS + i] * (float)StIn(c + ST_HS + i, 1);
++        }
++        st_prevPos = c;
++        st_nom += (s64)st_S * ST_HS;
++    }
++}
++
++// back to Speed 1: the pending tail cross-fades into the newest input, which then plays as it is
++static void StDisengage(void)
++{
++    if(st_S <= 1) {
++        return;
++    }
++    s64 from = st_p; // first input frame not played
++    if(!st_armed) {
++        s64 hi = (s64)st_inN - ST_HS;
++        s64 lo = hi - ST_DELTA;
++        if(lo < st_prevPos + 1) {
++            lo = st_prevPos + 1;
++        }
++        if(hi < lo) {
++            hi = lo;
++        }
++        s64 c = (s64)st_inN >= lo + ST_HS ? StBestMatch(lo, hi, st_prevPos + ST_HS, hi) : lo;
++        if((s64)st_inN >= c + ST_HS) {
++            for(int i = 0; i < ST_HS; i++) {
++                float l = st_pend[i][0] + st_win[i] * (float)StIn(c + i, 0);
++                float r = st_pend[i][1] + st_win[i] * (float)StIn(c + i, 1);
++                RingOut(StClamp(l), StClamp(r));
++            }
++            from = c + ST_HS;
++        } else {
++            from = (s64)st_inN;
++        }
++    }
++    for(s64 k = from; k < (s64)st_inN; k++) {
++        RingOut(StIn(k, 0), StIn(k, 1));
++    }
++    st_S = 1;
++}
++
++// one DS-rate frame made by the sound side
++static void RingPush(s16 l, s16 r)
++{
++    if(st_S > 1) {
++        st_in[st_inN % ST_BUF][0] = l;
++        st_in[st_inN % ST_BUF][1] = r;
++        st_inN++;
++        return;
++    }
++    RingOut(l, r);
++}
++
++
+ extern "C" void SIM_PxiRunPending(u64 aTickCycle, int aAll);
+ extern "C" u64 SIM_Audio_NowCycle(void) { return s_sndCyc; }
+ 
+@@ -219,6 +419,7 @@
+             }
+         }
+     }
++    StRun();
+     s_sndCyc = aTarget;
+     if(s_wav && ++s_wavSince >= 60) {
+         WavHeader(s_wav, s_wavFrames);
+@@ -236,7 +437,26 @@
+     }
+     SIM_PxiDrain();
+     s_frameCyc += SND_CYC_FRAME;
+-    SDL_LockAudio();
++    {
++        // libntr-sp76.patch: Speed > 1: the samples are time-stretched back to real time; the music's tempo is lowered by the
++        // same factor (the sound effects keep the speed)
++        int want = sConfigPtr->speed < 1 ? 1 : sConfigPtr->speed > 4 ? 4 : sConfigPtr->speed;
++        int slow = (sConfigPtr->musicNormalSpeed && want > 1) ? want : 1;
++        if(slow != s_musicSlow) {
++            s_musicSlow = slow;
++            SIM_Snd_SetMusicSlow(slow);
++        }
++        SDL_LockAudio();
++        if(want != st_S) {
++            if(st_S == 1) {
++                StEngage(want);
++            } else if(want == 1) {
++                StDisengage();
++            } else {
++                st_S = want;
++            }
++        }
++    }
+     SoundAdvance(s_frameCyc); // nothing when a wait for a command (WaitPump) ran the sound ahead of the frames
+     if(s_audioLog < 0) {
+         s_audioLog = getenv("BWPORT_AUDIOLOG") != NULL;
+@@ -344,6 +564,11 @@
+         if(getenv("BWPORT_SNDPHASE")) {
+             s_nextTick += (u64)atoll(getenv("BWPORT_SNDPHASE"));
+         }
++        const char * ow = getenv("BWPORT_AUDIO_OUT");
++        if(s_frameClock && ow != NULL && *ow != 0 && (s_outWav = fopen(ow, "wb")) != NULL) {
++            WavHeaderR(s_outWav, 0, s_devRate);
++            atexit(WavClose);
++        }
+         const char * w = getenv("BWPORT_AUDIO_WAV");
+         if(s_frameClock && w != NULL && *w != 0 && (s_wav = fopen(w, "wb")) != NULL) {
+             WavHeader(s_wav, 0);
+@@ -384,6 +609,15 @@
+     // bw-port (libntr-soundclock.patch): the frame clock made the samples; this only plays them
+     if(s_frameClock) {
+         PlayRing((s16 *)stream, len / 4, sConfigPtr->masterVolume);
++        if(s_outWav) {
++            fwrite(stream, 4, (size_t)(len / 4), s_outWav);
++            s_outFrames += (u64)(len / 4);
++            static int sOutCnt;
++            if(++sOutCnt % 100 == 0) {
++                WavHeaderR(s_outWav, s_outFrames, s_devRate);
++                fflush(s_outWav);
++            }
++        }
+         return;
+     }
+     // bw-port: the program's sound backend (port/acore) renders the callback's frames
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1942,9 +1942,18 @@
+ 
+ extern "C" int SIM_NoPresent(void); // libntr-vs70.patch: BWPORT_NOPRESENT
+ 
+-void Render() {
++void Render(bool draw) {
+     ImGui::Render();
+     // bw-port (libntr-norender.patch): a render pass with no vertices to draw cost ~5 ms a frame on llvmpipe
++    // (libntr-sp76.patch: draw = false for a tick that is not presented)
++    ImDrawData *dd = ImGui::GetDrawData();
++    if (draw && dd != NULL && dd->TotalVtxCount > 0 && !SIM_NoPresent()) {
++        ImGui_ImplOpenGL3_RenderDrawData(dd);
++    }
++}
++
++// bw-port (libntr-sp76.patch): the last frame's draw data again (a present that shows the same picture a second time)
++void RenderAgain() {
+     ImDrawData *dd = ImGui::GetDrawData();
+     if (dd != NULL && dd->TotalVtxCount > 0 && !SIM_NoPresent()) {
+         ImGui_ImplOpenGL3_RenderDrawData(dd);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1119,8 +1119,10 @@
+   glActiveTexture((GLenum)prevUnit);
+ }
+ 
++static GLuint sLastPicTex; // bw-port (libntr-sp76.patch): the picture the window shows (a present that shows it again)
+ // the screen quads with the picture in texture tex (unit 0), libntr's state back after
+ static void SIM_DrawFrameTexture(GLuint tex) {
++  sLastPicTex = tex;
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+   glActiveTexture(GL_TEXTURE0);
+@@ -1154,6 +1156,7 @@
+ // auto skips only when drawing would take the frame past 60 fps with the cap on: a credit of the frame time left over
+ // (the cap's wait counts), drawn when the credit covers a drawn frame's cost, at most 4 skipped in a row.
+ static int sDrawNow = 1;
++static int sTickPresent = 1; // libntr-sp76.patch: this tick has a present slot (SpPaceBegin)
+ static volatile sig_atomic_t sFrameForce;
+ static unsigned sFSRun;                 // frames skipped in a row
+ static s64 sFSCredit;                   // ns of frame time in hand (auto)
+@@ -1188,6 +1191,12 @@
+       draw = (*((u32 *)HW_VBLANK_COUNT_BUF) % ((u32)fs + 1)) == 0;
+     }
+   }
++  // bw-port (libntr-sp76.patch): a tick with no present slot is not gathered or drawn (unless the game reads the capture)
++  if (can && !sTickPresent && !force && !(s_reg_GX_DISPCAPCNT & 0x80000000u)) {
++    sDrawNow = 0;
++    sFSWasDrawn = 0;
++    return false;
++  }
+   sFSRun = draw ? 0 : sFSRun + 1;
+   if (draw) sFSNDrawn++; else sFSNSkipped++;
+   if (sFSRun > sFSLongest) sFSLongest = sFSRun;
+@@ -1224,6 +1233,171 @@
+   }
+ }
+ 
++// ---- bw-port (libntr-sp76.patch): game speed and display cap ----
++// The game ticks (one SIM_Render each) at 60 x Speed a second, on a timeline of absolute deadlines: tick n is due at
++// t0 + n * kSpFrame / Speed. The window presents on a second timeline, the slots t0 + phase + k * Q (Q = the DS frame
++// for DisplayCap=60, half of it for 120, the display's refresh period for monitor). The slots that fall inside a
++// tick's interval [due(n), due(n+1)) are that tick's presents: none = the tick is neither drawn nor presented (the frame
++// skip path), one = drawn and presented at the slot's time (so the presents are evenly spaced whatever the tick rate),
++// two = the same picture again at the second slot (1x at 120; where an in-between picture is slotted in later).
++// Uncapped (the cap off, Space held): every tick presents at once.
++static const u64 kSpFrame = 16715000; // ns: 59.8261 Hz, as the DS
++static struct {
++  bool on;
++  u64 t0, n;
++  int S;
++  u8 mode;
++  u64 Q;
++  s64 phase;
++  s64 first;
++  int count;
++  bool forced;
++  u64 waited; // ns spent waiting for the slot this tick
++} sPace;
++static FILE *sPresentLog;
++
++static u64 SpNowNs(void) {
++  u64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
++  return (c / f) * 1000000000ull + (c % f) * 1000000000ull / f;
++}
++
++// sleep until the time (SpNowNs): a coarse sleep, then a spin for the last bit
++static void SpSleepUntil(u64 target) {
++#ifdef SDK_BUILD_WIN64
++  static HANDLE sTimer;
++  static int sTried, sHiRes;
++  if (!sTried) {
++    sTried = 1;
++    HMODULE winmm = LoadLibraryA("winmm.dll");
++    FARPROC tbp = winmm ? GetProcAddress(winmm, "timeBeginPeriod") : NULL;
++    if (tbp) ((UINT(WINAPI *)(UINT))tbp)(1);
++    // a high-resolution waitable timer (Windows 10 1803+: CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = 2)
++    sTimer = CreateWaitableTimerExW(NULL, NULL, 0x2, 0x1F0003);
++    sHiRes = sTimer != NULL;
++    if (sTimer == NULL) sTimer = CreateWaitableTimerW(NULL, TRUE, NULL);
++  }
++  const u64 spin = sHiRes ? 600000 : 2500000;
++#else
++  const u64 spin = 150000;
++#endif
++  for (;;) {
++    u64 now = SpNowNs();
++    if (now >= target) return;
++    u64 rem = target - now;
++    if (rem > spin) {
++#ifdef SDK_BUILD_WIN64
++      if (sTimer != NULL) {
++        LARGE_INTEGER due;
++        due.QuadPart = -(LONGLONG)((rem - spin) / 100);
++        if (SetWaitableTimer(sTimer, &due, 0, NULL, NULL, FALSE)) {
++          WaitForSingleObject(sTimer, 100);
++          continue;
++        }
++      }
++      SDL_Delay((Uint32)((rem - spin) / 1000000));
++#else
++      struct timespec ts;
++      ts.tv_sec = 0;
++      ts.tv_nsec = (long)(rem - spin);
++      nanosleep(&ts, NULL);
++#endif
++    }
++  }
++}
++
++static u64 SpMonitorNs(void) {
++  static u64 ns;
++  static int calls;
++  if (ns == 0 || (++calls % 240) == 0) {
++    int hz = 60;
++    SDL_DisplayMode dm;
++    int di = window != NULL ? SDL_GetWindowDisplayIndex(window) : 0;
++    if (di >= 0 && SDL_GetCurrentDisplayMode(di, &dm) == 0 && dm.refresh_rate > 0) hz = dm.refresh_rate;
++    ns = 1000000000ull / (u64)hz;
++  }
++  return ns;
++}
++
++static s64 SpCeilDiv(s64 x, s64 q) { return x >= 0 ? (x + q - 1) / q : -((-x) / q); }
++static u64 SpSlotAbs(s64 k) { return (u64)((s64)sPace.t0 + sPace.phase + k * (s64)sPace.Q); }
++static u64 SpTickDue(u64 n) { return sPace.t0 + n * kSpFrame / (u64)sPace.S; }
++
++// at the top of a tick: which slots are this tick's
++static void SpPaceBegin(void) {
++  bool capped = s_SIM_config.capFrameRate && !sFastForward;
++  static int sLogInit;
++  if (!sLogInit) {
++    sLogInit = 1;
++    const char *lf = getenv("BWPORT_PRESENTLOG");
++    if (lf != NULL && *lf && (sPresentLog = fopen(lf, "w")) != NULL) {
++      setvbuf(sPresentLog, NULL, _IOFBF, 1 << 16);
++      atexit([]() { if (sPresentLog != NULL) { fclose(sPresentLog); sPresentLog = NULL; } });
++    }
++  }
++  if (!capped) {
++    sPace.on = false;
++    sPace.count = 1;
++    sPace.waited = 0;
++    sTickPresent = 1;
++    return;
++  }
++  int S = s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed;
++  u8 mode = s_SIM_config.displayCap;
++  u64 Q = mode == SIM_CONFIG_DISPLAYCAP_MONITOR ? SpMonitorNs() : mode == SIM_CONFIG_DISPLAYCAP_120 ? kSpFrame / 2 : kSpFrame;
++  u64 now = SpNowNs();
++  if (sPace.on && (S != sPace.S || mode != sPace.mode || Q != sPace.Q)) sPace.on = false;
++  // behind by more than three ticks (a slow machine, a pause, a window drag): start the timeline again
++  if (sPace.on && now > SpTickDue(sPace.n) + 3 * kSpFrame / (u64)S) sPace.on = false;
++  if (!sPace.on) {
++    sPace.on = true;
++    sPace.t0 = now;
++    sPace.n = 0;
++    sPace.S = S;
++    sPace.mode = mode;
++    sPace.Q = Q;
++    sPace.phase = 0;
++  }
++  s64 a = (s64)(sPace.n * kSpFrame / (u64)S), b = (s64)((sPace.n + 1) * kSpFrame / (u64)S);
++  s64 q = (s64)Q;
++  s64 k0 = SpCeilDiv(a - sPace.phase, q), k1 = SpCeilDiv(b - sPace.phase, q);
++  sPace.first = k0;
++  sPace.count = k1 > k0 ? (int)(k1 - k0) : 0;
++  sPace.forced = false;
++  sPace.waited = 0;
++  if (sFrameForce > 0 && sPace.count == 0) { // a screenshot asked for this frame
++    sPace.count = 1;
++    sPace.forced = true;
++  }
++  sTickPresent = sPace.count > 0;
++  if (sPresentLog != NULL) fprintf(sPresentLog, "T %llu %llu\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n);
++}
++
++// wait for the first slot of the tick (before the swap)
++static void SpWaitSlot(void) {
++  if (!sPace.on || sPace.forced) return;
++  u64 t = SpSlotAbs(sPace.first);
++  if (sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && t > 1500000) t -= 1500000; // the swap waits for the V-blank
++  u64 t0 = SpNowNs();
++  if (t > t0) {
++    SpSleepUntil(t);
++    sPace.waited += SpNowNs() - t0;
++  }
++}
++
++// after a swap that was the r-th present of the tick: the log; the monitor's slots follow the V-blank
++static void SpAfterSwap(int r, u64 callNs) {
++  u64 now = SpNowNs();
++  if (sPresentLog != NULL) fprintf(sPresentLog, "P %llu %llu %d\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n, r);
++  if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && now - callNs > 300000) {
++    s64 q = (s64)sPace.Q;
++    s64 e = ((s64)(now - sPace.t0) - sPace.phase - (sPace.first + r) * q) % q; // how late the V-blank came after the slot
++    if (e > q / 2) e -= q;
++    if (e < -q / 2) e += q;
++    sPace.phase += e / 8;
++  }
++}
++
++
+ // bw-port (rz68): a renderer that is no longer the wanted one gives back what it holds (the GPU path's textures and
+ // framebuffers, vcore's N x frames: ~180 MB a slot at 8x). SIM_SetRendererIdle(1 vcore / 2 gpu, fn): fn runs once, on
+ // the render thread with the GL context current, at the first frame the other renderer is wanted.
+@@ -1261,7 +1435,7 @@
+       if (sSwMeanWanted) SwMeanTex(tex, tw, th);
+       if (sLookWant) LookTex(tex, tw, th);
+       SIM_FrameInit();
+-      SIM_DrawFrameTexture(tex);
++      if (sTickPresent) SIM_DrawFrameTexture(tex);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+       sFrameRendererDrew = 1;
+       sActive = 2;
+@@ -1288,7 +1462,7 @@
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+   glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+   u64 tUp0 = sFLOn > 0 ? FLNow() : 0;
+-  if (SIM_NoPresent()) {
++  if (SIM_NoPresent() || !sTickPresent) {
+     // the picture is neither uploaded nor drawn
+   } else if (pw != sFrameTexW || ph != sFrameTexH) {
+     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+@@ -1299,7 +1473,7 @@
+   }
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+-  if (!SIM_NoPresent()) SIM_DrawFrameTexture(s_frameTexture);
++  if (!SIM_NoPresent() && sTickPresent) SIM_DrawFrameTexture(s_frameTexture);
+   if (sFLOn > 0) sFLUpload = FLNow() - tUp0;
+   // the DS clears DISPCAPCNT's enable bit when the captured frame ends; the renderer has stored the capture in its bank
+   s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+@@ -1860,6 +2034,7 @@
+     FLStamp(2);
+     SIM_RendererPoll();
+ 
++    SpPaceBegin();
+     SIM_FrameSkipDecide();
+ 
+     SIM_VCapFrameBegin();
+@@ -1883,7 +2058,7 @@
+     *((u32 *)HW_VBLANK_COUNT_BUF) = *((u32 *)HW_VBLANK_COUNT_BUF) + 1;
+     FLStamp(4);
+ 
+-    SIM::GUI::Render();
++    SIM::GUI::Render(sTickPresent != 0);
+     FLStamp(5);
+ 
+     // Calculate frametime
+@@ -1900,14 +2075,25 @@
+ 
+     // pacing is ours (below): a swap interval of 1 made the swap wait for the display's refresh on top of it (llvmpipe
+     // on Windows: 16 ms a frame, half speed)
+-    if (s_SIM_config.capFrameRate && !sFastForward && SDL_GL_GetSwapInterval() != 0) {
+-      SDL_GL_SetSwapInterval(0);
++    {
++      // libntr-sp76.patch: VSync only for DisplayCap=monitor (its swap waits for the V-blank, SpWaitSlot comes just before)
++      int wantInterval = (s_SIM_config.capFrameRate && !sFastForward) ? (s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? 1 : 0)
++                                                                       : s_SIM_config.vsyncInterval;
++      if (SDL_GL_GetSwapInterval() != wantInterval) {
++        SDL_GL_SetSwapInterval(wantInterval);
++      }
++    }
++    u64 swapCall = 0;
++    if (sTickPresent && !SIM_NoPresent()) {
++      SpWaitSlot();
+     }
+     u64 tSlept = SDL_GetPerformanceCounter();
+     if (SIM_NoPresent()) {
+       glFlush();
+-    } else {
++    } else if (sTickPresent) {
++      swapCall = SpNowNs();
+       SDL_GL_SwapWindow(window);
++      SpAfterSwap(0, swapCall);
+     }
+     FLStamp(6);
+     {
+@@ -1929,6 +2115,7 @@
+     clock_gettime(CLOCK_MONOTONIC, &curTime);
+     frameNs = ((curTime.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+               (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++    if (frameNs > sPace.waited) frameNs -= sPace.waited; // the wait for the present slot is not work
+     sFullFrameTime = frameNs;
+     SIM_FrameSkipEnd(frameNs);
+     sRenderWorkTime = frameNs > sGameWorkTime ? frameNs - sGameWorkTime : 0;
+@@ -1936,28 +2123,23 @@
+     SIM_SwitchTest();
+     SIM_LookTest();
+ 
+-    // Limit framerate to 60 fps: after the swap (a software GL does its drawing there, so the wait is only
+-    // what is left of the frame), coarse sleep then a spin for the last 2 ms (Windows' sleeps overshoot)
+-    if (s_SIM_config.capFrameRate && !sFastForward) {
+-      const u64 kFrameNs = 16715000; // 59.8261 Hz, as the DS
+-#ifdef SDK_BUILD_WIN64
+-      static int sTimerRes;
+-      if (!sTimerRes) { // SDL_Delay rounds up to the 15.6 ms tick otherwise
+-        sTimerRes = 1;
+-        HMODULE winmm = LoadLibraryA("winmm.dll");
+-        FARPROC tbp = winmm ? GetProcAddress(winmm, "timeBeginPeriod") : NULL;
+-        if (tbp) ((UINT (WINAPI *)(UINT))tbp)(1);
+-      }
+-#endif
+-      while (frameNs < kFrameNs) {
+-        u64 remain = kFrameNs - frameNs;
+-        if (remain > 3000000) {
+-          SDL_Delay((remain - 2000000) / 1000000);
+-        }
+-        clock_gettime(CLOCK_MONOTONIC, &curTime);
+-        frameNs = ((curTime.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+-                  (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++    // bw-port (libntr-sp76.patch): the cap. A tick of 1x at DisplayCap=120 shows its picture a second time at the second slot
++    // (an in-between picture can be slotted in here); then the wait for the next tick's due time (absolute, so the speed
++    // holds whatever one tick cost). Windows' sleeps: SpSleepUntil.
++    if (sPace.on && s_SIM_config.capFrameRate && !sFastForward) {
++      if (sTickPresent && !SIM_NoPresent()) {
++        for (int r = 1; r < sPace.count; r++) {
++          SpSleepUntil(SpSlotAbs(sPace.first + r));
++          glClear(GL_COLOR_BUFFER_BIT);
++          if (sLastPicTex != 0) SIM_DrawFrameTexture(sLastPicTex);
++          SIM::GUI::RenderAgain();
++          u64 call = SpNowNs();
++          SDL_GL_SwapWindow(window);
++          SpAfterSwap(r, call);
++        }
+       }
++      sPace.n++;
++      SpSleepUntil(SpTickDue(sPace.n));
+     }
+ 
+     FLStamp(7);
+--- a/libraries/snd/src/snd_interface.c
++++ b/libraries/snd/src/snd_interface.c
+@@ -1,6 +1,10 @@
+ #include <nitro/snd/ARM9/interface.h>
+ 
+ #include <nitro/misc.h>
++#ifdef SDK_PORT
++#include <stdio.h>
++#include <stdlib.h>
++#endif
+ #include <nitro/snd/common/command.h>
+ #include <nitro/snd/common/seq.h>
+ #include <nitro/snd/common/alarm.h>
+@@ -20,6 +24,74 @@
+ static void PushCommand_impl(SNDCommandID command, u32 arg0, u32 arg1, u32 arg2, u32 arg3);
+ #endif
+ 
++#ifdef SDK_PORT
++/* bw-port (libntr-sp76.patch): Speed > 1 plays the music at its normal tempo: the sound side makes Speed times as many
++ * samples a second (and the time-stretch gives them back at real time), so a music player's tempo ratio is divided by the
++ * Speed, whatever the game sets (the game's own ratio is kept and composed: sGameRatio), and a player that starts gets the
++ * division again (a start resets the ratio to 256). Which players are music: SIM_Snd_MusicPlayer. */
++static int SIM_Snd_MusicPlayerMask(void)
++{
++    static int mask = -2;
++    if (mask == -2) {
++        const char *e = getenv("BWPORT_MUSICPLAYERS"); /* a hex mask of the music players (BWPORT_SNDLOG=1 lists the starts) */
++        mask = e != NULL && *e ? (int)strtol(e, NULL, 16) : 0x41;
++    }
++    return mask;
++}
++static int sMusicSlow = 1;
++static int sGameRatio[32];
++
++static int MusicPlayer(int playerNo)
++{
++    return playerNo >= 0 && playerNo < 32 && ((SIM_Snd_MusicPlayerMask() >> playerNo) & 1);
++}
++
++static int ScaledRatio(int playerNo, int ratio)
++{
++    if (sMusicSlow > 1 && MusicPlayer(playerNo)) {
++        ratio = (ratio * 2 + sMusicSlow) / (2 * sMusicSlow);
++        if (ratio < 1) {
++            ratio = 1;
++        }
++    }
++    return ratio;
++}
++
++static void PushRatio(int playerNo)
++{
++    SNDi_SetPlayerParam(playerNo, GetOffset(SNDPlayer, tempo_ratio),
++                        (u32)ScaledRatio(playerNo, sGameRatio[playerNo] ? sGameRatio[playerNo] : 256),
++                        GetSize(SNDPlayer, tempo_ratio));
++}
++
++void SIM_Snd_SetMusicSlow(int aSlow)
++{
++    int p;
++    if (aSlow == sMusicSlow) {
++        return;
++    }
++    sMusicSlow = aSlow;
++    for (p = 0; p < 32; p++) {
++        if (MusicPlayer(p)) {
++            PushRatio(p);
++        }
++    }
++}
++
++static void MusicStarted(int playerNo)
++{
++    if (getenv("BWPORT_SNDLOG") != NULL) {
++        fprintf(stderr, "snd: start player %d\n", playerNo);
++    }
++    if (playerNo >= 0 && playerNo < 32) {
++        sGameRatio[playerNo] = 0;
++        if (sMusicSlow > 1 && MusicPlayer(playerNo)) {
++            PushRatio(playerNo);
++        }
++    }
++}
++#endif
++
+ void SND_StartSeq (int playerNo, const void * base, u32 offset, const struct SNDBankData * bank)
+ {
+     SDK_MINMAX_ASSERT(playerNo, SND_PLAYER_MIN, SND_PLAYER_MAX);
+@@ -27,6 +99,9 @@
+     SDK_NULL_ASSERT(bank);
+ 
+     PushCommand(SND_COMMAND_START_SEQ, playerNo, base, offset, bank);
++#ifdef SDK_PORT
++    MusicStarted(playerNo);
++#endif
+ }
+ 
+ void SND_StopSeq (int playerNo)
+@@ -42,6 +117,9 @@
+     SDK_NULL_ASSERT(bank);
+ 
+     PushCommand(SND_COMMAND_PREPARE_SEQ, playerNo, base, offset, bank);
++#ifdef SDK_PORT
++    MusicStarted(playerNo);
++#endif
+ }
+ 
+ void SND_StartPreparedSeq (int playerNo)
+@@ -61,6 +139,12 @@
+     SDK_MINMAX_ASSERT(playerNo, SND_PLAYER_MIN, SND_PLAYER_MAX);
+     SDK_MIN_ASSERT(ratio, 1);
+ 
++#ifdef SDK_PORT
++    if (playerNo >= 0 && playerNo < 32) {
++        sGameRatio[playerNo] = ratio;
++    }
++    ratio = ScaledRatio(playerNo, ratio);
++#endif
+     SNDi_SetPlayerParam(playerNo,
+                         GetOffset(SNDPlayer, tempo_ratio),
+                         (u32)ratio, GetSize(SNDPlayer, tempo_ratio));

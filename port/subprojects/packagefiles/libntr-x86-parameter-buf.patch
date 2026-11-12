@@ -1,0 +1,19 @@
+diff --git a/include/twl/hw/X86/mmap_main.h b/include/twl/hw/X86/mmap_main.h
+index 1499e6a..40c3b06 100644
+--- a/include/twl/hw/X86/mmap_main.h
++++ b/include/twl/hw/X86/mmap_main.h
+@@ -34,8 +34,12 @@ extern "C" {
+   (HW_TWL_MAIN_MEM_SHARED_END - HW_TWL_MAIN_MEM_SHARED_SIZE)
+ #define HW_TWL_MAIN_MEM_SHARED_END (HW_TWL_MAIN_MEM_END)
+ 
+-#define HW_MAIN_MEM_PARAMETER_BUF 0x02000000
+-#define HW_MAIN_MEM_PARAMETER_BUF_SIZE 0x4000
++// PC: the simulated main memory's start (s_HW_MAIN_MEM), as the DS's is at 0x02000000, below the main arena
++// (0xe3e0 on). The raw address faulted: OS_CreateExtraHeap (an NTR game's extra heap) builds its free list there, PM
++// writes the launch parameter. 32 KB, twice the DS's 16 KB as a PC game's heaps are (its records are bigger: Black's
++// heap 9 is WORK_AREA_SIZE(0x3f00) from it)
++#define HW_MAIN_MEM_PARAMETER_BUF (HW_MAIN_MEM)
++#define HW_MAIN_MEM_PARAMETER_BUF_SIZE 0x8000
+ #define HW_MAIN_MEM_PARAMETER_BUF_END                                          \
+   (HW_MAIN_MEM_PARAMETER_BUF + HW_MAIN_MEM_PARAMETER_BUF_SIZE)
+ 

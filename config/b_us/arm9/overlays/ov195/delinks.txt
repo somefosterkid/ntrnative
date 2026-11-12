@@ -1,0 +1,29 @@
+    .text       start:0x02203fa0 end:0x02208c40 kind:code align:32
+    .rodata     start:0x02208c40 end:0x02208f3c kind:rodata align:4
+    .ctor       start:0x02208f3c end:0x02208f3c kind:rodata align:4
+    .data       start:0x02208f40 end:0x02208fa0 kind:data align:32
+    .bss        start:0x02208fa0 end:0x02208fa0 kind:bss align:32
+
+src/ov195/shinka_demo_graphic.c:
+    complete
+    .text       start:0x02205854 end:0x02205c74
+    .rodata     start:0x02208c7c end:0x02208e24
+    .data       start:0x02208f50 end:0x02208f68
+
+src/ov195/shinka_demo_effect.c:
+    complete
+    .text       start:0x022086c8 end:0x02208c40
+    .rodata     start:0x02208e98 end:0x02208f3c
+    .data       start:0x02208f7c end:0x02208fa0
+
+src/ov195/shinka_demo.c:
+    complete
+    .text       start:0x02203fa0 end:0x02205854
+    .rodata     start:0x02208c40 end:0x02208c7c
+    .data       start:0x02208f40 end:0x02208f50
+
+src/ov195/shinka_demo_view.c:
+    complete
+    .text       start:0x02205c74 end:0x022086c8
+    .rodata     start:0x02208e24 end:0x02208e98
+    .data       start:0x02208f68 end:0x02208f7c

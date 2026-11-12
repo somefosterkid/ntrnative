@@ -1,0 +1,74 @@
+    .text       start:0x021b95a0 end:0x021c2e30 kind:code align:32
+    .rodata     start:0x021c2e30 end:0x021c3fcc kind:rodata align:4
+    .ctor       start:0x021c3fcc end:0x021c3fcc kind:rodata align:4
+    .data       start:0x021c3fe0 end:0x021c40a0 kind:data align:32
+    .bss        start:0x021c40a0 end:0x021c40a0 kind:bss align:32
+
+src/ov217/research_data.c:
+    complete
+    .text       start:0x021c2644 end:0x021c26e8
+
+src/ov217/queue.c:
+    complete
+    .text       start:0x021c0e08 end:0x021c0ef4
+    .data       start:0x021c4050 end:0x021c4058
+
+src/ov217/bg_font.c:
+    complete
+    .text       start:0x021c0ef4 end:0x021c10c8
+    .data       start:0x021c4058 end:0x021c4064
+
+src/ov217/research_list_recovery.c:
+    complete
+    .text       start:0x021c0dc4 end:0x021c0e08
+    .data       start:0x021c4034 end:0x021c4050
+
+src/ov217/percentage.c:
+    complete
+    .text       start:0x021c26e8 end:0x021c29c8
+    .data       start:0x021c407c end:0x021c408c
+
+src/ov217/research_common.c:
+    complete
+    .text       start:0x021c097c end:0x021c0dc4
+    .rodata     start:0x021c3f44 end:0x021c3fcc
+    .data       start:0x021c4020 end:0x021c4034
+
+src/ov217/palette_anime.c:
+    complete
+    .text       start:0x021c29c8 end:0x021c2e30
+    .data       start:0x021c408c end:0x021c40a0
+
+src/ov217/research_radar.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9ad0
+    .rodata     start:0x021c2e30 end:0x021c2ed0
+    .data       start:0x021c3fe0 end:0x021c3fec
+
+src/ov217/arrow.c:
+    complete
+    .text       start:0x021c2070 end:0x021c2644
+    .data       start:0x021c4074 end:0x021c407c
+
+src/ov217/research_list.c:
+    complete
+    .text       start:0x021bab80 end:0x021bd5f4
+    .rodata     start:0x021c305c end:0x021c3610
+    .data       start:0x021c3ffc end:0x021c400c
+
+src/ov217/circle_graph.c:
+    complete
+    .text       start:0x021c10c8 end:0x021c2070
+    .data       start:0x021c4064 end:0x021c4074
+
+src/ov217/research_top.c:
+    complete
+    .text       start:0x021b9ad0 end:0x021bab80
+    .rodata     start:0x021c2ed0 end:0x021c305c
+    .data       start:0x021c3fec end:0x021c3ffc
+
+src/ov217/research_graph.c:
+    complete
+    .text       start:0x021bd5f4 end:0x021c097c
+    .rodata     start:0x021c3610 end:0x021c3f44
+    .data       start:0x021c400c end:0x021c4020

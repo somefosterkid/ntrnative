@@ -1,0 +1,199 @@
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -671,7 +671,11 @@
+     aConfig->overlayCorner = 0;
+     aConfig->overlayDetail = 0;
+     aConfig->hideTouch = 1;
++#ifdef __APPLE__
++    aConfig->present = 1;   /* bw-port (libntr-ios-metaltune.patch): Metal is the Apple default (an ini with Present=gl stays GL) */
++#else
+     aConfig->present = 0;
++#endif
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -27,6 +27,11 @@
+ #ifdef __linux__
+ #include <unistd.h>
+ #endif
++#if TARGET_OS_OSX
++#include <crt_externs.h>
++#include <mach-o/dyld.h>
++#include <unistd.h>
++#endif
+ 
+ // bw-port (libntr-ui68.patch): the menu bar, the settings windows, the right side (metrics on top, the controller below)
+ // and the sharp text (a vector font at the pixel size drawn). the maintainers' notes "The UI".
+@@ -73,6 +78,8 @@
+ static bool sAltDown = false, sAltOther = false;
+ static bool sDirty = false;         // a setting changed: sim_config.ini is written when the mouse is up
+ static bool sResetAsk = false;
++static int sApiAsk = -1;   // bw-port (libntr-ios-metaltune.patch): the Graphics API just chosen, for its restart prompt
++static bool sApiOpen = false;
+ 
+ enum {
+     W_VIDEO, W_AUDIO, W_CONTROLS, W_VIEW, W_DEBUG, W_LEGACY_CONFIG, W_LEGACY_INPUT, W_NET, W_DEMO, W_APP, W_COUNT
+@@ -383,6 +390,10 @@
+                 OpenWin(i);
+             }
+         }
++        if (uo != nullptr && strstr(uo, "apiask") != nullptr) {  // libntr-ios-metaltune.patch: the Graphics API prompt (for the other API)
++            sApiAsk = !SIM_PresentMetal();
++            sApiOpen = true;
++        }
+     }
+ 
+     ImGuiIO & igIO = ImGui::GetIO();
+@@ -704,7 +715,11 @@
+         FormRow("Graphics API", "OpenGL or Metal: the window and the GPU renderer draw with it. Applies at the next start");
+         static const char * const ApiNames[] = {"OpenGL", "Metal"};
+         int api = c->present != 0;
+-        if (ComboIndex("##gpuapi", &api, ApiNames, 2)) { c->present = (u8)api; Dirty(); }
++        if (ComboIndex("##gpuapi", &api, ApiNames, 2)) {
++            c->present = (u8)api;
++            Dirty();
++            if (api != SIM_PresentMetal()) { sApiAsk = api; sApiOpen = true; }   // libntr-ios-metaltune.patch: the restart prompt
++        }
+         if (api != SIM_PresentMetal()) {
+             FormRow("");
+             ImGui::TextDisabled("%s now; %s from the next start", SIM_PresentMetal() ? "Metal" : "OpenGL", api ? "Metal" : "OpenGL");
+@@ -1083,7 +1098,7 @@
+ // ---- Game > Reset: the program starts again (the DS's reset: what was not saved is gone) ---------------------------
+ 
+ static bool RestartSupported() {
+-#if defined(__linux__) || defined(_WIN32)
++#if defined(__linux__) || defined(_WIN32) || TARGET_OS_OSX
+     return true;
+ #else
+     return false;
+@@ -1118,6 +1133,15 @@
+     std::string cmd = std::string("start \"\" ") + GetCommandLineA();
+     system(cmd.c_str());
+     exit(0);
++#elif TARGET_OS_OSX
++    // bw-port (libntr-ios-metaltune.patch): macOS, as Linux: the program itself again, same arguments and environment
++    char path[4096];
++    uint32_t n = sizeof path;
++    if (_NSGetExecutablePath(path, &n) == 0) {
++        fprintf(stderr, "bwport: restarting %s\n", path);
++        fflush(stderr);
++        execv(path, *_NSGetArgv());
++    }
+ #endif
+ }
+ 
+@@ -1774,6 +1798,27 @@
+     if (sWins[W_APP].open) { PrjMain(&sWins[W_APP].open); }
+     }
+ 
++    // libntr-ios-metaltune.patch: a new Graphics API takes effect when the program starts again: offer the restart (Game > Reset's)
++    if (sApiOpen) {
++        ImGui::OpenPopup("Graphics API");
++        sApiOpen = false;
++    }
++    ImGuiViewport * avp = ImGui::GetMainViewport();
++    ImGui::SetNextWindowPos(ImVec2(avp->Size.x * 0.5f, (sBarH + avp->Size.y) * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
++    if (ImGui::BeginPopupModal("Graphics API", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
++        ImGui::Text("%s takes effect when the program starts again.", sApiAsk == 1 ? "Metal" : "OpenGL");
++        if (RestartSupported()) ImGui::Text("Restarting resets the game: whatever was not saved in the game is lost.");
++        ImGui::Spacing();
++        if (RestartSupported() && ImGui::Button("Restart now", ImVec2(120.0f * sUiScale, 0.0f))) {
++            RestartProgram();
++        }
++        if (RestartSupported()) ImGui::SameLine();
++        if (ImGui::Button("Later", ImVec2(120.0f * sUiScale, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
++            sApiAsk = -1;
++            ImGui::CloseCurrentPopup();
++        }
++        ImGui::EndPopup();
++    }
+     if (sResetAsk) {
+         ImGui::OpenPopup("Reset the game");
+         sResetAsk = false;
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -82,6 +82,8 @@
+ unsigned long long bwport_mtl_fence(int next);
+ int bwport_mtl_wait(unsigned long long serial, unsigned long long timeoutNs, unsigned long long *doneNs);
+ double bwport_mtl_gpu_take(int *n);
++double bwport_mtl_renderer_bench(unsigned long long *n);  // libntr-ios-metaltune.patch
++double bwport_mtl_fetch_bench(unsigned long long *n);
+ void bwport_mtl_bench(unsigned long long *presents, double *gpuMean, double *gpuMax, unsigned long long *waits, double *waitMs,
+                       unsigned long long *nodrawable);
+ }
+@@ -1042,38 +1044,24 @@
+           (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
+           (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
+   static const char *const kScript =
+-      "p1:renderer=gpu,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0;p60:bench=gpu1-60;"
+-      "p1:resolution=2;p60:bench=gpu2-60;"
+-      "p1:resolution=4;p60:bench=gpu4-60;"
+-      "p1:resolution=2,antialias=2;p60:bench=gpu2-aa4s-60;"
+-      "p1:resolution=3,antialias=1;p60:bench=gpu3-60;"
+-      "p1:antialias=2;p60:bench=gpu3-aa4s-60;"
+-      "p1:antialias=3;p60:bench=gpu3-smaa-60;"  // (libntr-ios-smaa.patch: SMAA at 60, with Smooth, and its passes below)
+-      "p1:antialias=2,framerate=monitor,smooth=1;p60:bench=gpu3-aa4s-mon-sm;"
+-      "p1:bench=gpu3-aa4s-mon-sm-b;"  // (libntr-ios-smoothdrop.patch: a second window, and an overload where in-betweens drop one by one)
+-      "p1:resolution=5;p60:bench=gpu5-aa4s-mon-sm;"
+-      "p1:resolution=3,antialias=1;p60:bench=gpu3-mon-sm;"
+-      "p1:antialias=3;p60:bench=gpu3-smaa-mon-sm;"
+-      "p1:antialias=1,speed=4;p60:bench=gpu3-mon-sm-x4;"
+-      "p1:antialias=2;p60:bench=gpu3-aa4s-mon-sm-x4;"
+-      "p1:resolution=2,antialias=1,framerate=60,smooth=0,speed=1;"
+-      "p1:antialias=1,framerate=120;p60:bench=gpu2-120;"
+-      "p1:framerate=monitor;p60:bench=gpu2-monitor;"
+-      "p1:framerate=120,smooth=1;p60:bench=gpu2-120-smooth;"
+-      "p1:framerate=60,smooth=0,speed=2;p60:bench=gpu2-60-speed2;"
+-      "p1:speed=4;p60:bench=gpu2-60-speed4;"
+-      "p1:speed=1,ff=1;p60:bench=gpu2-ff;"
+-      "p1:ff=0,framerate=unlimited;p60:bench=gpu2-unlimited;"
+-      "p1:resolution=3;p60:bench=gpu3-unlimited;"  // (libntr-ios-passes.patch: drawn/s bounds the GPU's frame at 3x; then each pass's time)
+-      "p1:antialias=2;p60:bench=gpu3-aa4s-unlimited;"
+-      "p1:framerate=60,passes=1;p60:bench=gpu3-aa4s-passes;"
+-      "p1:antialias=1;p60:bench=gpu3-passes;"
+-      "p1:antialias=3;p60:bench=gpu3-smaa-passes;"
+-      "p1:passes=0,antialias=1;"
+-      "p1:renderer=vcore,resolution=1,framerate=60;p60:bench=vcore1-60;"
+-      "p1:resolution=2;p60:bench=vcore2-60;"
+-      "p1:framerate=120,smooth=1;p60:bench=vcore2-120-smooth;"
+-      "p1:framerate=60,smooth=0,resolution=1,ff=1;p60:bench=vcore1-ff;"
++      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu2-60;"  // (libntr-ios-metaltune.patch: 18 rows, each setting every key it depends on)
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-60;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-aa4s-60;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-smaa-60;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-smaa-mon-sm;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm-x4;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm-x4;"
++      "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu2-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-aa4s-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-smaa-ff;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-unlimited;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=unlimited,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-aa4s-unlimited;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-aa4s-passes;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-passes;"
++      "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=1;p60:bench=gpu3-smaa-passes;"
++      "p1:renderer=vcore,resolution=1,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=vcore1-60;"
+       "p1:restore=1";
+   sPerfRowsDone = sPerfRows = 0;
+   for (const char *q = strstr(kScript, "bench="); q != NULL; q = strstr(q + 6, "bench=")) sPerfRows++;  // (libntr-ios-testbadge.patch)
+@@ -2660,9 +2648,14 @@
+     if (sMetal) {  // libntr-ios-metal.patch: the presents' real GPU time (command buffer GPUStartTime..GPUEndTime) and nextDrawable's waits
+       unsigned long long p, w, nd;
+       double gm, gx, wm;
++      unsigned long long rn;  // libntr-ios-metaltune.patch: the renderer's command buffers beside the presents', as the sys line
++      const double rms = bwport_mtl_renderer_bench(&rn);
++      unsigned long long fn;  // (the drawable thread's waits: not the game's)
++      const double fms = bwport_mtl_fetch_bench(&fn);
+       bwport_mtl_bench(&p, &gm, &gx, &w, &wm, &nd);
+-      fprintf(stderr, "metal: %-20s GPU %.3f ms a present (max %.3f, %llu presents), drawable waits %.1f/s %.1f ms/s, no drawable %llu\n",
+-              sBench.name, gm, gx, p, w / dt, wm / dt, nd);
++      fprintf(stderr, "metal: %-20s GPU %.3f ms a present (max %.3f, %llu presents), renderer %.1f ms/s (%llu command buffers), "
++              "GPU spans ~%.0f%% of the time (overlaps count twice), drawable waits %.1f/s %.1f ms/s, no drawable %.1f/s, fetch thread waits %.1f/s %.1f ms/s\n",
++              sBench.name, gm, gx, p, rms / dt, rn, (gm * (double)p + rms) / dt / 10.0, w / dt, wm / dt, nd / dt, fn / dt, fms / dt);
+     }
+ #endif
+     fflush(stderr);

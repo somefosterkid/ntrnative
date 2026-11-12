@@ -1,0 +1,88 @@
+pokebw2-dsprot.patch (tools/pokebw2_fetch.sh, the maintainers' notes): DS Protect's callers checksum the first 37 words of the
+function they are about to call (DSProt_CallRunChecks1 to 4, overlay 165's DSProt_CallRunChecks) and call the tamper
+function instead when the sum is not the ROM code's. On the PC those functions are the port's stand-ins
+(port/src/stub_b2w2.c: a genuine cartridge, as Black's port/src/stub_dsprot.c), not ARM code, so under SDK_PORT the
+check passes (DSPROT_CODE_OK); otherwise every anti-piracy hook would fire (the random numbers skipping two more each
+frame, the party list's crash).
+
+diff --git a/lib/dsprot/include/dsprot/dsprot.h b/lib/dsprot/include/dsprot/dsprot.h
+index 9ca1be32d..d748bae0d 100644
+--- a/lib/dsprot/include/dsprot/dsprot.h
++++ b/lib/dsprot/include/dsprot/dsprot.h
+@@ -10,6 +10,14 @@
+ 
+ #define DSPROT_CHECKSUM 0x9f75a8d6
+ 
++// Whether a DS Protect function's code checksum says its code is unchanged. On the PC its code is the port's
++// stand-in's, not the ROM's ARM code (port/src/stub_b2w2.c), so the check passes as on a genuine cartridge
++#ifdef SDK_PORT
++#define DSPROT_CODE_OK(checksum) ((void)(checksum), TRUE)
++#else
++#define DSPROT_CODE_OK(checksum) ((checksum) == DSPROT_CHECKSUM)
++#endif
++
+ typedef void *(*DSProtCallback)(void *arg0, void *arg1);
+ 
+ extern u32 data_ov337_02182440;
+@@ -33,7 +41,7 @@ extern DSProtCallback data_ov337_02182444[2];
+             checksum ^= (*code >> i) | (*code << (32 - i));                                                            \
+             code++;                                                                                                    \
+         }                                                                                                              \
+-        if (checksum == DSPROT_CHECKSUM) {                                                                             \
++        if (DSPROT_CODE_OK(checksum)) {                                                                             \
+             func(arg0, arg1);                                                                                          \
+         } else {                                                                                                       \
+             data_ov337_02182444[tamperIndex](arg0, arg1);                                                              \
+@@ -51,7 +59,7 @@ extern DSProtCallback data_ov337_02182444[2];
+             checksum ^= (*code >> i) | (*code << (32 - i));                                                            \
+             code++;                                                                                                    \
+         }                                                                                                              \
+-        if (checksum == DSPROT_CHECKSUM) {                                                                             \
++        if (DSPROT_CODE_OK(checksum)) {                                                                             \
+             ret = func(callback, arg0, arg1);                                                                          \
+         } else {                                                                                                       \
+             ret = tamper(NULL, NULL);                                                                                  \
+diff --git a/src/ov012/event_battle.c b/src/ov012/event_battle.c
+index 7f1e7df69..00bc7bcda 100644
+--- a/src/ov012/event_battle.c
++++ b/src/ov012/event_battle.c
+@@ -480,7 +480,7 @@ static GameEventReturnCode EventBattleCall_Callback(GameEvent *event, u32 *state
+             checksum ^= (*code >> shift) | (*code << (32 - shift));
+             code++;
+         }
+-        if (checksum == DSPROT_CHECKSUM) {
++        if (DSPROT_CODE_OK(checksum)) {
+             DSProt_CallRunChecks1(&seed, wk);
+         } else {
+             data_ov337_02182444[data_ov337_02182440 ^ 1](&seed, wk);
+@@ -505,7 +505,7 @@ static GameEventReturnCode EventBattleCall_Callback(GameEvent *event, u32 *state
+             checksum ^= (*code >> shift) | (*code << (32 - shift));
+             code++;
+         }
+-        if (checksum == DSPROT_CHECKSUM) {
++        if (DSPROT_CODE_OK(checksum)) {
+             DSProt_CallRunChecks3(&seed, wk);
+         } else {
+             data_ov337_02182444[data_ov337_02182440 ^ 1](&seed, wk);
+diff --git a/src/system/game_system.c b/src/system/game_system.c
+index 10460ac71..25faf63f8 100644
+--- a/src/system/game_system.c
++++ b/src/system/game_system.c
+@@ -127,7 +127,7 @@ static BOOL GameSystem_Init(GameProc *proc, u32 *state, void *param, void *work)
+             checksum ^= (*code >> shift) | (*code << (32 - shift));
+             code++;
+         }
+-        if (checksum == DSPROT_CHECKSUM) {
++        if (DSPROT_CODE_OK(checksum)) {
+             DSProt_CallRunChecks2(&seed, &flag);
+         } else {
+             data_ov337_02182444[data_ov337_02182440 ^ 1](&seed, &flag);
+@@ -150,7 +150,7 @@ static BOOL GameSystem_Init(GameProc *proc, u32 *state, void *param, void *work)
+             checksum ^= (*code >> shift) | (*code << (32 - shift));
+             code++;
+         }
+-        if (checksum == DSPROT_CHECKSUM) {
++        if (DSPROT_CODE_OK(checksum)) {
+             DSProt_CallRunChecks1(&seed, &size);
+         } else {
+             data_ov337_02182444[data_ov337_02182440 ^ 1](&seed, &size);

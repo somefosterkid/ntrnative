@@ -1,0 +1,11 @@
+    .text       start:0x021b7560 end:0x021b9490 kind:code align:32
+    .rodata     start:0x021b9490 end:0x021b9664 kind:rodata align:4
+    .ctor       start:0x021b9664 end:0x021b9664 kind:rodata align:4
+    .data       start:0x021b9680 end:0x021b96a0 kind:data align:32
+    .bss        start:0x021b96a0 end:0x021b96a0 kind:bss align:32
+
+src/ov106/irc_ranking.c:
+    complete
+    .text       start:0x021b7560 end:0x021b9490
+    .rodata     start:0x021b9490 end:0x021b9664
+    .data       start:0x021b9680 end:0x021b96a0

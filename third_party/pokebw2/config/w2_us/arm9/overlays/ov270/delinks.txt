@@ -1,0 +1,11 @@
+    .text       start:0x021ef220 end:0x021efe40 kind:code align:32
+    .rodata     start:0x021efe40 end:0x021efe4c kind:rodata align:4
+    .ctor       start:0x021efe4c end:0x021efe4c kind:rodata align:4
+    .data       start:0x021efe60 end:0x021efe80 kind:data align:32
+    .bss        start:0x021efe80 end:0x021efe80 kind:bss align:32
+
+src/ov270/br_musical_look_proc.c:
+    complete
+    .text       start:0x021ef220 end:0x021efe40
+    .rodata     start:0x021efe40 end:0x021efe4c
+    .data       start:0x021efe60 end:0x021efe80

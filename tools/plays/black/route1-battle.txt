@@ -1,0 +1,4 @@
+# game: black
+# from: route1
+# reaches: a wild battle in Route 1's grass (random: any wild Pokemon; pacing in the grass)
+walk 300 40 up6 down6 up6 down6 up6 down6 up6 down6 up6 down6

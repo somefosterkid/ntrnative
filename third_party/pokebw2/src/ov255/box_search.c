@@ -1,0 +1,2534 @@
+#include "types.h"
+#include "app/box2_main.h"
+#include "app/box_search.h"
+#include "app/box_search_graphic.h"
+#include "app/ui/frame_list.h"
+#include "app/ui/touchbar.h"
+#include "app/ui/ui_scene.h"
+#include "constants/arc.h"
+#include "constants/sound.h"
+#include "constants/text_banks.h"
+#include "gfl/arc.h"
+#include "gfl/arc_util.h"
+#include "gfl/bg_sys.h"
+#include "gfl/bmp.h"
+#include "gfl/bmpwin.h"
+#include "gfl/clact.h"
+#include "gfl/heap.h"
+#include "gfl/key.h"
+#include "gfl/msg.h"
+#include "gfl/net.h"
+#include "gfl/overlay.h"
+#include "gfl/proc.h"
+#include "gfl/sound.h"
+#include "gfl/std.h"
+#include "gfl/str.h"
+#include "gfl/touchpanel.h"
+#include "gfl/ui.h"
+#include "pml/personal.h"
+#include "save/pokedex_savedata.h"
+#include "system/app_menu_common.h"
+#include "system/cursor_move.h"
+#include "system/game_data.h"
+#include "system/gf_font.h"
+#include "system/printsys.h"
+#include "system/wipe.h"
+#include "system/wordset.h"
+#include "text/system/btl_pokeparam_box_main_save_init.h"
+
+// The PC box's Pokémon search: lists to pick a species by its first letter, a nature, an ability by its first letter,
+// the sex, the held item and the markings that the box's Pokémon are filtered by. Names are ours
+
+// What the search's lists are of
+enum {
+    LIST_SPECIES,
+    LIST_NATURE,
+    LIST_ABILITY,
+    LIST_SEX,
+    LIST_ITEM,
+    LIST_MARKING,
+    LIST_SPECIES_LETTER = 8,
+    LIST_LETTER,
+    LIST_ABILITY_LETTER,
+    LIST_LETTER_2,
+};
+
+// The criteria of Box2SearchParam that SetCriterion sets
+enum {
+    CRITERION_SPECIES,
+    CRITERION_ITEM,
+    CRITERION_NATURE,
+    CRITERION_ABILITY,
+    CRITERION_SEX,
+    CRITERION_MARKS,
+    CRITERION_ACTIVE,
+};
+
+enum {
+    SEQ_LIST_WAIT = 37,
+    SEQ_BUTTON_ANM,
+    // The sequence that ends the search
+    SEQ_END,
+    SEQ_TOUCH_BAR_ANM,
+};
+
+#define WINDOW_INFO 14
+
+typedef struct {
+    u32 bg;
+    u8 x;
+    u8 y;
+    u8 width;
+    u8 height;
+    u16 palette;
+    u16 color;
+} BoxSearchWindowData;
+
+typedef struct {
+    u8 x;
+    u8 y;
+    u8 anim;
+    u8 bgPriority;
+    u8 visible;
+    u8 res;
+    u8 unk6;
+} BoxSearchActorData;
+
+typedef int (*BoxSearchSeqFunc)(BoxSearchWork *wk, int seq);
+
+static BOOL BoxSearchProc_Init(GameProc *proc, u32 *state, void *param, void *work);
+static BOOL BoxSearchProc_Exit(GameProc *proc, u32 *state, void *param, void *work);
+static BOOL BoxSearchProc_Main(GameProc *proc, u32 *state, void *param, void *work);
+static void BoxSearch_LoadBgGraphics(HeapID heapId);
+static TouchBar *BoxSearch_CreateTouchBar(BoxSearchWork *wk, ClActUnit *unit, HeapID heapId);
+static void BoxSearch_FreeTouchBar(BoxSearchWork *wk);
+static void BoxSearch_UpdateTouchBar(TouchBar *bar);
+static void BoxSearch_CreateWindows(BoxSearchWork *wk);
+static void BoxSearch_FreeWindows(BoxSearchWork *wk);
+static void BoxSearch_LoadObjs(BoxSearchWork *wk, ClActUnit *unit, HeapID heapId);
+static void BoxSearch_FreeObjs(BoxSearchWork *wk);
+static void BoxSearch_PrintInfo(BoxSearchWork *wk, int mode);
+static void BoxSearch_PushWindowScreen(BmpWin *window);
+static void BoxSearch_PrintMainMenu(BoxSearchWork *wk);
+static void BoxSearch_PrintListTitle(BoxSearchWork *wk, u32 index);
+static void BoxSearch_PrintChoice(BoxSearchWork *wk, MsgData *msgData, u32 msgId);
+static void BoxSearch_ShowMainMenu(BoxSearchWork *wk);
+static void BoxSearch_HideMainMenu(BoxSearchWork *wk);
+static void BoxSearch_SetMainMenuActorsVisible(BoxSearchWork *wk, BOOL visible);
+static int BoxSearch_SeqMainMenuStart(BoxSearchWork *wk, int seq);
+static int BoxSearch_ChooseMainMenuButton(BoxSearchWork *wk, int seq, u32 pos);
+static int BoxSearch_SeqMainMenu(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqUnused1(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesLetterOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesLetterList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesLetterClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSpeciesClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqNatureOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqNatureList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqNatureClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityLetterOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityLetterList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityLetterClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqAbilityClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSexOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSexList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSexClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqItemOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqItemList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqItemClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqMarkingOpen(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqMarkingList(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqMarkingClose(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSearchOn(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqSearchOff(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqClearCriteria(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqUnused2(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqListWait(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqListArrowWait(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqUnused3(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqButtonAnmWait(BoxSearchWork *wk, int seq);
+static int BoxSearch_SeqStartChosenList(BoxSearchWork *wk, int seq);
+static void BoxSearch_SetNextSeq(BoxSearchWork *wk, int seq);
+static int BoxSearch_StartTouchBarAnm(BoxSearchWork *wk, int actor, u32 anim, int next);
+static int BoxSearch_StartButtonAnm(BoxSearchWork *wk, int actor, u32 anim, int next);
+static void BoxSearch_MainMenuCursorOn(void *work, int pos, int prevPos);
+static void BoxSearch_MainMenuCursorOff(void *work, int pos, int prevPos);
+static void BoxSearch_MainMenuCursorMove(void *work, int pos, int prevPos);
+static void BoxSearch_MainMenuCursorTouch(void *work, int pos, int prevPos);
+static void BoxSearch_SetSwitchAnims(BoxSearchWork *wk, unsigned int type);
+static void BoxSearch_ShowSwitch(BoxSearchWork *wk);
+static void BoxSearch_LoadStrings(BoxSearchWork *wk);
+static void BoxSearch_FreeStrings(BoxSearchWork *wk);
+static void BoxSearch_PrintString(BoxSearchWork *wk, u32 win, u32 string, int x, int y);
+static void BoxSearch_PrintMsg(BoxSearchWork *wk, u32 win, u32 msgId, int x, int y);
+static void AbilityLetterList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void SpeciesLetterList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void ListMoveNone(void *work, u32 index, BOOL moved);
+static void ListScroll(void *work, s16 delta);
+static void SpeciesList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void SpeciesList_Move(void *work, u32 index, BOOL moved);
+static void SpeciesList_Scroll(void *work, s16 delta);
+static void NatureList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void NatureList_Move(void *work, u32 index, BOOL moved);
+static void NatureList_Scroll(void *work, s16 delta);
+static void AbilityList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void AbilityList_Move(void *work, u32 index, BOOL moved);
+static void AbilityList_Scroll(void *work, s16 delta);
+static void SexList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void ItemList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void MarkingList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG);
+static void PrintCenteredMsg(BoxSearchWork *wk, PrintWindow *window, PrintQueue *queue, MsgData *msgData, u32 msgId,
+                             u16 color, int y);
+static void PrintListMsg(BoxSearchWork *wk, PrintWindow *window, PrintQueue *queue, MsgData *msgData, u32 msgId);
+static void PrintListRow(BoxSearchWork *wk, u32 index, PrintWindow *window, MsgData *msgData);
+static void PrintListRowGray(BoxSearchWork *wk, u32 index, PrintWindow *window, MsgData *msgData);
+static int GetSpeciesGroupSize(int letter, int group);
+static void CountCaughtSpecies(BoxSearchWork *wk);
+static int GetCaughtGroupCount(BoxSearchWork *wk, int letter, int group);
+static int GetAbilityGroupSize(int letter, int group);
+static void PrintAbilityInfo(BoxSearchWork *wk, u32 ability);
+static void PrintSpeciesInfo(BoxSearchWork *wk, u32 species);
+static void CreateList(BoxSearchWork *wk, u32 mode, int pos);
+static void ClearListScreens(BoxSearchWork *wk);
+static void HideListMarkers(BoxSearchWork *wk);
+static void PutListMarker(BoxSearchWork *wk, u32 actor, s16 y);
+static void PutListMarkerAtRow(BoxSearchWork *wk, u32 actor, int row);
+static void ScrollListMarkers(BoxSearchWork *wk, s8 delta);
+static void PutCursorAtValue(BoxSearchWork *wk, u32 actor, int count, int value);
+static u16 *LoadSpeciesOrder(u32 heapId, u32 *count);
+static void LoadBg3Screen(BoxSearchWork *wk, u32 screen);
+static void PrintCriteria(BoxSearchWork *wk, BOOL show);
+static void SetCriterion(BoxSearchWork *wk, u32 criterion, u32 value);
+static void SetMark(BoxSearchWork *wk, u32 mark, u32 on);
+static u32 GetMark(BoxSearchWork *wk, u32 mark);
+static void SetActorAnim(BoxSearchWork *wk, u32 actor, u32 anim);
+static void ShowMarks(BoxSearchWork *wk, u32 actor);
+static void PutMarkActors(BoxSearchWork *wk, u32 layout);
+static void SetActorsVisible(BoxSearchWork *wk, u32 actor, BOOL visible);
+static void ShowScrollBar(BoxSearchWork *wk);
+static void MoveScrollBar(BoxSearchWork *wk);
+static void ShowListArrows(BoxSearchWork *wk, BOOL keep);
+static void ClearAllCriteria(BoxSearchWork *wk);
+static BOOL IsReturnPressed(BoxSearchWork *wk);
+static int GetTouchedRow(BoxSearchWork *wk);
+
+// The data is declared in the order that gives the ROM's layout once MWCC sorts it by size. The windows are listed in
+// sWindowData, and the callbacks of each list are given in CreateList
+
+// Where the scroll bar starts
+static const ClActorPos sScrollBarPos = { 244, 12 };
+
+// The messages of the held item's criterion
+static const u16 sItemCriterionMsgs[] = { BtlPokeparamBoxMainSaveInit_Text_199,
+                                          BtlPokeparamBoxMainSaveInit_Text_204,
+                                          BtlPokeparamBoxMainSaveInit_Text_203 };
+
+// The screens of the lower screen's frame
+static const u16 sBg3Screens[] = { 79, 81, 80 };
+
+// The messages of the sex's criterion
+static const u16 sSexCriterionMsgs[] = { BtlPokeparamBoxMainSaveInit_Text_199,
+                                         BtlPokeparamBoxMainSaveInit_Text_200,
+                                         BtlPokeparamBoxMainSaveInit_Text_201,
+                                         BtlPokeparamBoxMainSaveInit_Text_202 };
+
+static const BoxSearchWindowData sWinMarks = { 0, 16, 15, 14, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const FrameListCallbacks sMarkingListCallbacks = {
+    MarkingList_PrintRow,
+    ListMoveNone,
+    ListScroll,
+};
+
+static const BoxSearchWindowData sWinAbility = { 0, 16, 6, 14, 3, 1, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinItemButton = { 0, 3, 12, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinItem = { 0, 16, 12, 14, 3, 1, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinAbilityButton = { 0, 3, 6, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinChoice = { 0, 1, 11, 12, 2, 14, PRINT_COLOR(1, 2, 0) };
+
+static const BoxSearchWindowData sWinSex = { 0, 16, 9, 14, 3, 1, PRINT_COLOR(15, 2, 0) };
+
+static const FrameListCallbacks sAbilityLetterListCallbacks = {
+    AbilityLetterList_PrintRow,
+    ListMoveNone,
+    ListScroll,
+};
+
+static const BoxSearchWindowData sWinTitle = { 4, 1, 1, 20, 2, 14, PRINT_COLOR(1, 2, 0) };
+
+static const BoxSearchWindowData sWinGenderButton = { 0, 3, 9, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinFilter = { 4, 1, 10, 30, 2, 14, PRINT_COLOR(1, 2, 0) };
+
+static const BoxSearchWindowData sWinSpecies = { 0, 16, 0, 14, 3, 1, PRINT_COLOR(15, 2, 0) };
+
+static const FrameListCallbacks sItemListCallbacks = {
+    ItemList_PrintRow,
+    ListMoveNone,
+    ListScroll,
+};
+
+static const FrameListCallbacks sSexListCallbacks = {
+    SexList_PrintRow,
+    ListMoveNone,
+    ListScroll,
+};
+
+static const BoxSearchWindowData sWinListTitle = { 0, 1, 8, 12, 2, 14, PRINT_COLOR(1, 2, 0) };
+
+static const FrameListCallbacks sSpeciesListCallbacks = {
+    SpeciesList_PrintRow,
+    SpeciesList_Move,
+    SpeciesList_Scroll,
+};
+
+static const FrameListCallbacks sSpeciesLetterListCallbacks = {
+    SpeciesLetterList_PrintRow,
+    ListMoveNone,
+    ListScroll,
+};
+
+// The string of each list's title
+static const u8 sListTitleStrings[] = {
+#include "asset/box_search_sListTitleStrings.inc"
+};
+
+static const BoxSearchWindowData sWinNameButton = { 0, 3, 0, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const FrameListCallbacks sNatureListCallbacks = {
+    NatureList_PrintRow,
+    NatureList_Move,
+    NatureList_Scroll,
+};
+
+static const BoxSearchWindowData sWinMarkButton = { 0, 3, 15, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+static const BoxSearchWindowData sWinInfo = { 4, 1, 13, 30, 10, 14, PRINT_COLOR(1, 2, 0) };
+
+static const BoxSearchWindowData sWinNature = { 0, 16, 3, 14, 3, 1, PRINT_COLOR(15, 2, 0) };
+
+static const FrameListCallbacks sAbilityListCallbacks = {
+    AbilityList_PrintRow,
+    AbilityList_Move,
+    AbilityList_Scroll,
+};
+
+static const BoxSearchWindowData sWinNatureButton = { 0, 3, 3, 9, 3, 14, PRINT_COLOR(15, 2, 0) };
+
+// The animations of the buttons that turn the search on and off
+static const u32 sSwitchAnims[][2] = {
+    { 5, 4 },
+    { 4, 5 },
+};
+
+// The messages of BoxSearchWork's strings
+static const u16 sStringMsgs[BOX_SEARCH_STRING_COUNT - 1] = {
+    BtlPokeparamBoxMainSaveInit_Text_149,    BtlPokeparamBoxMainSaveInit_Text_150,
+    BtlPokeparamBoxMainSaveInit_Text_151, BtlPokeparamBoxMainSaveInit_Text_152,
+    BtlPokeparamBoxMainSaveInit_Text_153,  BtlPokeparamBoxMainSaveInit_Text_154,
+    BtlPokeparamBoxMainSaveInit_Text_199,  BtlPokeparamBoxMainSaveInit_Text_114
+};
+
+// The main menu's cursor
+static const CursorMoveCallbacks sMainMenuCursorCallbacks = {
+    BoxSearch_MainMenuCursorOn,
+    BoxSearch_MainMenuCursorOff,
+    BoxSearch_MainMenuCursorMove,
+    BoxSearch_MainMenuCursorTouch,
+};
+
+// How many groups of species each first letter has
+static const u8 sSpeciesGroupCounts[] = {
+#include "asset/box_search_sSpeciesGroupCounts.inc"
+};
+
+// The animations of the main menu's buttons, off and on
+static const u8 sMainMenuButtonAnims[][3] = {
+#include "asset/box_search_sMainMenuButtonAnims.inc"
+};
+
+// The rows of a list of 7 items or fewer, and of a longer one with its scroll bar and arrows
+// clang-format off
+static const FrameListTouch sShortListTouch[] = {
+#include "asset/box_search_sShortListTouch.inc"
+};
+
+// clang-format on
+
+// clang-format off
+static const FrameListTouch sLongListTouch[] = {
+#include "asset/box_search_sLongListTouch.inc"
+};
+
+// clang-format on
+
+static const UIObjResSetup sObjResSetup = { 0, 0, ARCID_BOX2, 93, 92, 90, 91, 3, 0, 6 };
+
+// The rows of the lists
+static const TouchRect sListRowRects[] = {
+#include "asset/box_search_sListRowRects.inc"
+};
+
+static const FrameListSetup sFrameListSetup = {
+    { 2, FRAMELIST_BG_NONE, 14, 0, 16, 3, 3, 0, 12, 3, 1, 24, 12, 8, 6, 4, 3, 5, 21, 0 },
+    7,
+    2,
+    0,
+    7,
+    0,
+    sLongListTouch,
+    NULL,
+    NULL,
+};
+
+// Where each group of species starts and ends in the Pokédex's order by name
+static const u16 sSpeciesGroupStarts[] = {
+#include "asset/box_search_sSpeciesGroupStarts.inc"
+};
+
+static const u16 sSpeciesGroupEnds[] = {
+#include "asset/box_search_sSpeciesGroupEnds.inc"
+};
+
+// Where each group of abilities starts and ends in sAbilityOrder, from 1
+// clang-format off
+static const u8 sAbilityGroups[][2] = {
+#include "asset/box_search_sAbilityGroups.inc"
+};
+
+// clang-format on
+
+// The messages of the first letters
+static const u16 sLetterMsgs[] = {
+    BtlPokeparamBoxMainSaveInit_Text_199, BtlPokeparamBoxMainSaveInit_Text_155, BtlPokeparamBoxMainSaveInit_Text_156,
+    BtlPokeparamBoxMainSaveInit_Text_157,        BtlPokeparamBoxMainSaveInit_Text_158, BtlPokeparamBoxMainSaveInit_Text_159,
+    BtlPokeparamBoxMainSaveInit_Text_160,        BtlPokeparamBoxMainSaveInit_Text_161, BtlPokeparamBoxMainSaveInit_Text_162,
+    BtlPokeparamBoxMainSaveInit_Text_163,        BtlPokeparamBoxMainSaveInit_Text_164, BtlPokeparamBoxMainSaveInit_Text_165,
+    BtlPokeparamBoxMainSaveInit_Text_166,        BtlPokeparamBoxMainSaveInit_Text_167, BtlPokeparamBoxMainSaveInit_Text_168,
+    BtlPokeparamBoxMainSaveInit_Text_169,        BtlPokeparamBoxMainSaveInit_Text_170, BtlPokeparamBoxMainSaveInit_Text_171,
+    BtlPokeparamBoxMainSaveInit_Text_172,        BtlPokeparamBoxMainSaveInit_Text_173, BtlPokeparamBoxMainSaveInit_Text_174,
+    BtlPokeparamBoxMainSaveInit_Text_175,        BtlPokeparamBoxMainSaveInit_Text_176, BtlPokeparamBoxMainSaveInit_Text_177,
+    BtlPokeparamBoxMainSaveInit_Text_178,        BtlPokeparamBoxMainSaveInit_Text_179, BtlPokeparamBoxMainSaveInit_Text_180,
+};
+
+const GameProcFunctions BOX_SEARCH_PROC_FUNCTIONS = {
+    BoxSearchProc_Init,
+    BoxSearchProc_Main,
+    BoxSearchProc_Exit,
+};
+
+// The first group of each first letter
+static const u32 sLetterFirstGroups[] = {
+#include "asset/box_search_sLetterFirstGroups.inc"
+};
+
+// The main menu
+// clang-format off
+static const CursorMoveData sMainMenuCursorData[] = {
+#include "asset/box_search_sMainMenuCursorData.inc"
+};
+
+// clang-format on
+
+// The abilities in the order of their names
+static const u8 sAbilityOrder[] = {
+#include "asset/box_search_sAbilityOrder.inc"
+};
+
+// clang-format off
+static const BoxSearchSeqFunc sSeqFuncs[] = {
+    BoxSearch_SeqMainMenuStart, BoxSearch_SeqMainMenu, BoxSearch_SeqUnused1, BoxSearch_SeqSpeciesLetterOpen, BoxSearch_SeqSpeciesLetterList,
+    BoxSearch_SeqSpeciesLetterClose, NULL,                NULL,                NULL,                BoxSearch_SeqSpeciesOpen,
+    BoxSearch_SeqSpeciesList, BoxSearch_SeqSpeciesClose, BoxSearch_SeqNatureOpen, BoxSearch_SeqNatureList, BoxSearch_SeqNatureClose,
+    BoxSearch_SeqAbilityLetterOpen, BoxSearch_SeqAbilityLetterList, BoxSearch_SeqAbilityLetterClose, NULL,                NULL,
+    NULL,                BoxSearch_SeqAbilityOpen, BoxSearch_SeqAbilityList, BoxSearch_SeqAbilityClose, BoxSearch_SeqSexOpen,
+    BoxSearch_SeqSexList, BoxSearch_SeqSexClose, BoxSearch_SeqItemOpen, BoxSearch_SeqItemList, BoxSearch_SeqItemClose,
+    BoxSearch_SeqMarkingOpen, BoxSearch_SeqMarkingList, BoxSearch_SeqMarkingClose, BoxSearch_SeqSearchOn, BoxSearch_SeqSearchOff,
+    BoxSearch_SeqClearCriteria, BoxSearch_SeqUnused2, BoxSearch_SeqListWait, BoxSearch_SeqListArrowWait, BoxSearch_SeqUnused3,
+    BoxSearch_SeqButtonAnmWait, BoxSearch_SeqStartChosenList,
+};
+
+// clang-format on
+
+// clang-format off
+static const BoxSearchActorData sSearchActorData[BOX_SEARCH_ACTOR_COUNT] = {
+#include "asset/box_search_sSearchActorData.inc"
+};
+
+// clang-format on
+
+// The sequence that each button of the main menu starts
+static u32 sMainMenuSeqs[] = { 3, 12, 15, 24, 27, 30 };
+
+static const BoxSearchWindowData *sWindowData[BOX_SEARCH_WINDOW_COUNT] = {
+    &sWinTitle,      &sWinNameButton, &sWinNatureButton, &sWinAbilityButton, &sWinGenderButton, &sWinItemButton,
+    &sWinMarkButton, &sWinSpecies,    &sWinNature,       &sWinAbility,       &sWinSex,          &sWinItem,
+    &sWinMarks,      &sWinFilter,     &sWinInfo,         &sWinListTitle,     &sWinChoice,
+};
+
+static BOOL BoxSearchProc_Init(GameProc *proc, u32 *state, void *param, void *work) {
+    BoxSearchParam *searchParam = param;
+    BoxSearchWork *wk;
+
+    GFL_OvlLoad(OVERLAY_APP_UI);
+    GFL_HeapCreateChild(HEAPID_USER, HEAPID_BOX_SEARCH, 0x30000);
+    wk = GFL_ProcInitSubsystem(proc, sizeof(BoxSearchWork), HEAPID_BOX_SEARCH);
+    MI_CpuFill8(wk, 0, sizeof(BoxSearchWork));
+    wk->param = searchParam;
+    wk->heapId = HEAPID_BOX_SEARCH;
+    wk->pokedex = GameData_GetPokedex(searchParam->syswk->param->gameData);
+    wk->graphic = BoxSearchGraphic_Create(0, wk->heapId);
+    wk->font = GFL_FontCreate(ARCID_FONT, 0, 0, FALSE, wk->heapId);
+    wk->msgData =
+        GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_BTL_POKEPARAM_BOX_MAIN_SAVE_INIT, wk->heapId);
+    wk->natureNames = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_NATURES, wk->heapId);
+    wk->abilityNames = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_ABILITY_NAMES, wk->heapId);
+    wk->abilityInfo = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_ABILITY_DESCRIPTIONS, wk->heapId);
+    wk->speciesNames = GFL_MsgSysLoadData(FALSE, ARCID_SYSTEM_MESSAGE, TEXT_BANK_SPECIES_NAMES, wk->heapId);
+    wk->printQueue = PrintQueue_CreateDefault(wk->heapId);
+    wk->wordSet = GFL_WordSetSystemCreateDefault(wk->heapId);
+    BoxSearch_LoadBgGraphics(wk->heapId);
+    BoxSearch_LoadStrings(wk);
+    wk->touchBar = BoxSearch_CreateTouchBar(wk, BoxSearchGraphic_GetClActUnit(wk->graphic), wk->heapId);
+    BoxSearch_LoadObjs(wk, BoxSearchGraphic_GetClActUnit(wk->graphic), wk->heapId);
+    BoxSearch_CreateWindows(wk);
+    CountCaughtSpecies(wk);
+    BoxSearch_PrintMainMenu(wk);
+    BoxSearch_SeqMainMenuStart(wk, 0);
+    GFL_NetSetIconScreen(TRUE, wk->heapId);
+    GFL_WipeSet(WIPE_MODE_BOTH, WIPE_TYPE_FADE_IN, WIPE_TYPE_FADE_IN, 0, 6, 1, wk->heapId);
+    return TRUE;
+}
+
+static BOOL BoxSearchProc_Exit(GameProc *proc, u32 *state, void *param, void *work) {
+    BoxSearchWork *wk = work;
+    HeapID heapId;
+
+    BoxSearch_FreeStrings(wk);
+    BoxSearch_FreeObjs(wk);
+    BoxSearch_FreeWindows(wk);
+    BoxSearch_FreeTouchBar(wk);
+    GFL_WordSetSystemFree(wk->wordSet);
+    GFL_MsgDataFree(wk->speciesNames);
+    GFL_MsgDataFree(wk->natureNames);
+    GFL_MsgDataFree(wk->abilityNames);
+    GFL_MsgDataFree(wk->abilityInfo);
+    GFL_MsgDataFree(wk->msgData);
+    PrintQueue_Free(wk->printQueue);
+    GFL_FontFree(wk->font);
+    BoxSearchGraphic_Delete(wk->graphic);
+    heapId = wk->heapId;
+    GFL_ProcReleaseSubsystem(proc);
+    GFL_HeapDelete(heapId);
+    GFL_OvlUnload(OVERLAY_APP_UI);
+    return TRUE;
+}
+
+static BOOL BoxSearchProc_Main(GameProc *proc, u32 *state, void *param, void *work) {
+    BoxSearchWork *wk = work;
+    u32 i;
+
+    switch (*state) {
+    case 0:
+        if (GFL_WipeIsFinished() == TRUE) {
+            *state = 1;
+            wk->seq = 1;
+        }
+        break;
+    case 1:
+        if (PrintQueue_IsEmpty(wk->printQueue)) {
+            wk->seq = sSeqFuncs[wk->seq](wk, wk->seq);
+            if (wk->seq == SEQ_END) {
+                *state = 2;
+            }
+            BoxSearch_UpdateTouchBar(wk->touchBar);
+        }
+        break;
+    case 2:
+        GFL_WipeSet(WIPE_MODE_BOTH, WIPE_TYPE_FADE_OUT, WIPE_TYPE_FADE_OUT, 0, 6, 1, wk->heapId);
+        *state = 3;
+        break;
+    case 3:
+        if (GFL_WipeIsFinished() == TRUE) {
+            return TRUE;
+        }
+        break;
+    }
+    PrintQueue_Main(wk->printQueue);
+    for (i = 0; i < BOX_SEARCH_WINDOW_COUNT; i++) {
+        PrintWindow_Flush(&wk->printWindows[i], wk->printQueue);
+    }
+    BoxSearchGraphic_Update(wk->graphic);
+    BoxSearchGraphic_Begin3D(wk->graphic);
+    BoxSearchGraphic_End3D(wk->graphic);
+    return FALSE;
+}
+
+// Loads the BGs' graphics
+static void BoxSearch_LoadBgGraphics(HeapID heapId) {
+    ArcTool *arc = GFL_ArcSysCreateFileHandle(ARCID_BOX2, heapId);
+
+    GFL_G2DIOLoadArcNCLRDefault(arc, 84, 0, 0, 0x80, heapId);
+    GFL_G2DIOLoadArcNCLRDefault(arc, 86, 4, 0, 0x20, heapId);
+    GFL_BGSysLoadArcNCGRStatic(arc, 85, 6, 0, 0, FALSE, heapId);
+    loadBGScrToVramByFileNoReserveNegAlign(arc, 82, 6, 0, 0, FALSE, heapId);
+    loadBGScrToVramByFileNoReserveNegAlign(arc, 89, 5, 0, 0, FALSE, heapId);
+    GFL_BGSysLoadArcNCGRStatic(arc, 83, 3, 0, 0, FALSE, heapId);
+    GFL_ArcToolFree(arc);
+    GFL_BGSysLoadNCLRDefault(ARCID_FONT, 5, 0, 14 * 0x20, 0x20, heapId);
+    GFL_BGSysLoadNCLRDefault(ARCID_FONT, 5, 4, 14 * 0x20, 0x20, heapId);
+}
+
+// Creates the bar at the bottom with its return button
+static TouchBar *BoxSearch_CreateTouchBar(BoxSearchWork *wk, ClActUnit *unit, HeapID heapId) {
+    TouchBarSetup setup;
+    TouchBarItem item = { TOUCHBAR_ICON_RETURN, { 232, 168 } };
+
+    MI_CpuFill8(&setup, 0, sizeof(TouchBarSetup));
+    setup.items = &item;
+    setup.count = 1;
+    setup.unit = unit;
+    setup.bg = 1;
+    setup.bgPalette = 13;
+    setup.objPalette = 0;
+    setup.vramType = 2;
+    return TouchBar_Create(&setup, heapId);
+}
+
+static void BoxSearch_FreeTouchBar(BoxSearchWork *wk) {
+    TouchBar_Free(wk->touchBar);
+}
+
+static void BoxSearch_UpdateTouchBar(TouchBar *bar) {
+    TouchBar_Main(bar);
+}
+
+static void BoxSearch_CreateWindows(BoxSearchWork *wk) {
+    u32 i;
+
+    for (i = 0; i < BOX_SEARCH_WINDOW_COUNT; i++) {
+        const BoxSearchWindowData *data = sWindowData[i];
+
+        wk->windows[i] =
+            BmpWin_CreateDynamic(data->bg, data->x, data->y, data->width, data->height, data->palette, TRUE);
+        GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[i]), 0);
+        wk->printWindows[i].window = wk->windows[i];
+        wk->printWindows[i].flushPending = FALSE;
+    }
+}
+
+static void BoxSearch_FreeWindows(BoxSearchWork *wk) {
+    u32 i;
+
+    for (i = 0; i < BOX_SEARCH_WINDOW_COUNT; i++) {
+        BmpWin_Free(wk->windows[i]);
+    }
+}
+
+// Loads the OBJs' resources and creates the actors
+static void BoxSearch_LoadObjs(BoxSearchWork *wk, ClActUnit *unit, HeapID heapId) {
+    UIObjResSetup setup = sObjResSetup;
+    int i;
+
+    UIObjRes_Load(&wk->objRes[0], &setup, unit, heapId);
+    setup.vramType = 0;
+    setup.flags = 0;
+    setup.arcId = getUINarcIdx();
+    setup.paletteFile = AppMenuCommon_GetMarkingIconPaletteFile();
+    setup.charFile = AppMenuCommon_GetMarkingIconCharFile(2);
+    setup.cellFile = AppMenuCommon_GetMarkingIconCellFile(2);
+    setup.animFile = AppMenuCommon_GetMarkingIconAnimFile(2);
+    setup.paletteOffset = 9;
+    setup.paletteStart = 0;
+    setup.paletteCount = 1;
+    UIObjRes_Load(&wk->objRes[1], &setup, unit, heapId);
+    setup.paletteFile = AppMenuCommon_GetTouchBarPaletteFile();
+    setup.charFile = AppMenuCommon_GetTouchBarCharFile();
+    setup.cellFile = AppMenuCommon_GetTouchBarCellFile(2);
+    setup.animFile = AppMenuCommon_GetTouchBarAnimFile(2);
+    setup.paletteOffset = 10;
+    setup.paletteStart = 0;
+    setup.paletteCount = 3;
+    UIObjRes_Load(&wk->objRes[2], &setup, unit, heapId);
+    for (i = 0; i < BOX_SEARCH_ACTOR_COUNT; i++) {
+        const BoxSearchActorData *data = &sSearchActorData[i];
+
+        wk->actors[i] =
+            UIObjRes_CreateActor(&wk->objRes[data->res], unit, sSearchActorData[i].x, data->y, data->anim, heapId);
+        ClActor_SetBgPriority(wk->actors[i], data->bgPriority);
+        ClActor_SetVisible(wk->actors[i], data->visible);
+        ClActor_SetAutoAnim(wk->actors[i], TRUE);
+        ClActor_SetVisible(wk->actors[i], FALSE);
+    }
+    GFL_BGSysLoadNCLRDefault(ARCID_BOX2, 94, 1, 9 * 0x20, 0x20, heapId);
+}
+
+static void BoxSearch_FreeObjs(BoxSearchWork *wk) {
+    int i;
+
+    for (i = 0; i < 3; i++) {
+        UIObjRes_Free(&wk->objRes[i]);
+    }
+}
+
+// Prints the title of a list, or the explanation of the item under the cursor
+static void BoxSearch_PrintInfo(BoxSearchWork *wk, int mode) {
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[WINDOW_INFO]), 0);
+    switch (mode) {
+    case 0:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_115, 1, 0);
+        break;
+    case 3:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_116, 1, 0);
+        break;
+    case 9:
+        PrintSpeciesInfo(wk, FrameList_GetValue(wk->list, 0));
+        break;
+    case 15:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_144, 1, 0);
+        break;
+    case 21:
+        PrintAbilityInfo(wk, FrameList_GetValue(wk->list, 0));
+        break;
+    case 24:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_146, 1, 0);
+        break;
+    case 27:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_147, 1, 0);
+        break;
+    case 30:
+        BoxSearch_PrintMsg(wk, WINDOW_INFO, BtlPokeparamBoxMainSaveInit_Text_148, 1, 0);
+        break;
+    }
+    BoxSearch_PushWindowScreen(wk->windows[WINDOW_INFO]);
+}
+
+static void BoxSearch_PushWindowScreen(BmpWin *window) {
+    BmpWin_FlushMap(window);
+    GFL_BGSysQueueScrLoad(BmpWin_GetBGIndex(window));
+}
+
+// Prints the main menu
+static void BoxSearch_PrintMainMenu(BoxSearchWork *wk) {
+    u32 i;
+
+    BoxSearch_PrintString(wk, 0, 8, 0, 0);
+    BoxSearch_PushWindowScreen(wk->windows[0]);
+    BoxSearch_PrintString(wk, 13, 7, 1, 0);
+    BoxSearch_PushWindowScreen(wk->windows[13]);
+    for (i = 0; i < 6; i++) {
+        BoxSearch_PrintString(wk, i + 1, i, 0, 4);
+    }
+}
+
+static void BoxSearch_PrintListTitle(BoxSearchWork *wk, u32 index) {
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[15]), 0);
+    BoxSearch_PrintString(wk, 15, sListTitleStrings[index], 0, 0);
+    BoxSearch_PushWindowScreen(wk->windows[15]);
+}
+
+static void BoxSearch_PrintChoice(BoxSearchWork *wk, MsgData *msgData, u32 msgId) {
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[16]), 0);
+    PrintCenteredMsg(wk, &wk->printWindows[16], wk->printQueue, msgData, msgId, PRINT_COLOR(15, 2, 0), 0);
+    BoxSearch_PushWindowScreen(wk->windows[16]);
+}
+
+// Shows the main menu
+static void BoxSearch_ShowMainMenu(BoxSearchWork *wk) {
+    u32 i;
+
+    BoxSearch_PrintInfo(wk, 0);
+    LoadBg3Screen(wk, 0);
+    for (i = 0; i < 6; i++) {
+        BoxSearch_PushWindowScreen(wk->windows[i + 1]);
+    }
+    PrintCriteria(wk, TRUE);
+    BoxSearch_ShowSwitch(wk);
+    ShowMarks(wk, 22);
+    PutMarkActors(wk, 0);
+    BoxSearch_SetMainMenuActorsVisible(wk, TRUE);
+}
+
+// Hides the main menu
+static void BoxSearch_HideMainMenu(BoxSearchWork *wk) {
+    int i;
+
+    BoxSearch_SetMainMenuActorsVisible(wk, FALSE);
+    for (i = 6; i <= 10; i++) {
+        ClActor_SetVisible(wk->actors[i], FALSE);
+    }
+    for (i = 1; i <= 6; i++) {
+        BmpWin *window = wk->windows[i];
+
+        BmpWin_ClearScreen(window);
+        GFL_BGSysQueueScrLoad(BmpWin_GetBGIndex(window));
+    }
+    PrintCriteria(wk, FALSE);
+}
+
+static void BoxSearch_SetMainMenuActorsVisible(BoxSearchWork *wk, BOOL visible) {
+    u32 i;
+
+    for (i = 0; i <= 10; i++) {
+        ClActor_SetVisible(wk->actors[i], visible);
+    }
+    SetActorsVisible(wk, 22, visible);
+}
+
+// Starts the main menu
+static int BoxSearch_SeqMainMenuStart(BoxSearchWork *wk, int seq) {
+    if (GCTX_HIDIsUsingTouch() == FALSE) {
+        wk->cursorMove =
+            CursorMove_Create(sMainMenuCursorData, &sMainMenuCursorCallbacks, wk, TRUE, wk->menuPos, wk->heapId);
+        BoxSearch_MainMenuCursorOn(wk, wk->menuPos, wk->menuPos);
+    } else {
+        wk->cursorMove =
+            CursorMove_Create(sMainMenuCursorData, &sMainMenuCursorCallbacks, wk, FALSE, wk->menuPos, wk->heapId);
+    }
+    CursorMove_SetHideOnTouch(wk->cursorMove);
+    ClearListScreens(wk);
+    BoxSearch_ShowMainMenu(wk);
+    return 1;
+}
+
+// A button of the main menu was chosen
+static int BoxSearch_ChooseMainMenuButton(BoxSearchWork *wk, int seq, u32 pos) {
+    switch (pos) {
+    case 7:
+        CursorMove_Delete(wk->cursorMove);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        seq = BoxSearch_StartTouchBarAnm(wk, 7, 14, 33);
+        break;
+    case 8:
+        CursorMove_Delete(wk->cursorMove);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        seq = BoxSearch_StartTouchBarAnm(wk, 8, 17, 34);
+        break;
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+        wk->group = 0;
+        CursorMove_Delete(wk->cursorMove);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        seq = BoxSearch_StartTouchBarAnm(wk, pos, 8, 41);
+        break;
+    case 6:
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        seq = BoxSearch_StartTouchBarAnm(wk, 6, 11, 35);
+        break;
+    case 9:
+        CursorMove_Delete(wk->cursorMove);
+        seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, SEQ_END);
+        break;
+    }
+    wk->menuPos = pos;
+    return seq;
+}
+
+// The main menu
+static int BoxSearch_SeqMainMenu(BoxSearchWork *wk, int seq) {
+    u32 ret;
+
+    if (IsReturnPressed(wk) == TRUE) {
+        CursorMove_Delete(wk->cursorMove);
+        return BoxSearch_StartTouchBarAnm(wk, -1, 0, SEQ_END);
+    }
+    if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+        GCTX_HIDSetUsingTouch(FALSE);
+        CursorMove_SetPos(wk->cursorMove, 6);
+        CursorMove_SetCursorVisible(wk->cursorMove, TRUE);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        return BoxSearch_StartTouchBarAnm(wk, 6, 11, 35);
+    }
+    if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_START) {
+        GCTX_HIDSetUsingTouch(FALSE);
+        CursorMove_SetPos(wk->cursorMove, 7);
+        CursorMove_SetCursorVisible(wk->cursorMove, TRUE);
+        CursorMove_Delete(wk->cursorMove);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        return BoxSearch_StartTouchBarAnm(wk, 7, 14, 33);
+    }
+    ret = CursorMove_Update(wk->cursorMove);
+    switch (ret) {
+    case CURSOR_MOVE_EDGE_UP:
+    case CURSOR_MOVE_EDGE_DOWN:
+    case CURSOR_MOVE_EDGE_LEFT:
+    case CURSOR_MOVE_EDGE_RIGHT:
+    case CURSOR_MOVE_CANCEL:
+    case CURSOR_MOVE_NONE:
+        break;
+    case CURSOR_MOVE_CURSOR_ON:
+    case CURSOR_MOVE_MOVED:
+        GFL_SndSEPlay(SEQ_SE_SELECT1);
+        break;
+    default:
+        seq = BoxSearch_ChooseMainMenuButton(wk, seq, ret);
+        break;
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqUnused1(BoxSearchWork *wk, int seq) {
+    return seq;
+}
+
+// Opens the list of first letters of species
+static int BoxSearch_SeqSpeciesLetterOpen(BoxSearchWork *wk, int seq) {
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_SPECIES_LETTER, wk->group);
+    ShowListArrows(wk, FALSE);
+    BoxSearch_PrintInfo(wk, 3);
+    LoadBg3Screen(wk, 1);
+    BoxSearch_PrintListTitle(wk, 8);
+    if (wk->param->syswk->search.species == 0) {
+        BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+    } else {
+        BoxSearch_PrintChoice(wk, wk->speciesNames, wk->param->syswk->search.species);
+    }
+    ShowScrollBar(wk);
+    BoxSearch_SetNextSeq(wk, 4);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of first letters of species
+static int BoxSearch_SeqSpeciesLetterList(BoxSearchWork *wk, int seq) {
+    int pos;
+
+    switch (FrameList_Main(wk->list)) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        wk->group = FrameList_GetSelected(wk->list);
+        if (wk->group == 0) {
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            SetCriterion(wk, CRITERION_SPECIES, 0);
+            PutListMarkerAtRow(wk, 11, 0);
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            return 5;
+        }
+        ClActor_SetVisible(wk->actors[11], FALSE);
+        if (GetCaughtGroupCount(wk, wk->group - 1, 0) != 0) {
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            return 5;
+        }
+        GFL_SndSEPlay(SEQ_SE_BEEP);
+        break;
+    case FRAMELIST_CURSOR_MOVE:
+    case FRAMELIST_SCROLL:
+    case FRAMELIST_BAR:
+    case FRAMELIST_DRAG:
+        ShowListArrows(wk, FALSE);
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        if (wk->param->syswk->search.species == 0) {
+            PutCursorAtValue(wk, 11, 8, 0);
+        } else {
+            ClActor_SetVisible(wk->actors[11], FALSE);
+        }
+        break;
+    case FRAMELIST_PAGE_UP:
+        return BoxSearch_StartButtonAnm(wk, 34, 12, 4);
+    case FRAMELIST_PAGE_DOWN:
+        return BoxSearch_StartButtonAnm(wk, 35, 13, 4);
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_SPECIES, 0);
+            if (FrameList_GetScroll(wk->list) == 0) {
+                PutListMarkerAtRow(wk, 11, 0);
+            }
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            wk->group = 0;
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 5);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 6) {
+                wk->group = pos + FrameList_GetScroll(wk->list);
+                if (wk->group == 0) {
+                    GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                    SetCriterion(wk, CRITERION_SPECIES, 0);
+                    PutListMarkerAtRow(wk, 11, pos);
+                    BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+                    FrameList_SetCursor(wk->list, pos);
+                    return 5;
+                }
+                ClActor_SetVisible(wk->actors[11], FALSE);
+                if (GetCaughtGroupCount(wk, wk->group - 1, 0) != 0) {
+                    GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                    FrameList_SetCursor(wk->list, pos);
+                    return 5;
+                }
+                FrameList_SetCursor(wk->list, pos);
+                GFL_SndSEPlay(SEQ_SE_BEEP);
+            }
+        }
+        break;
+    }
+    MoveScrollBar(wk);
+    return seq;
+}
+
+static int BoxSearch_SeqSpeciesLetterClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    if (wk->group != 0) {
+        wk->subGroup = 0;
+        return 9;
+    }
+    return 0;
+}
+
+// Opens the list of species of a first letter
+static int BoxSearch_SeqSpeciesOpen(BoxSearchWork *wk, int seq) {
+    u16 count;
+    u16 i;
+
+    HideListMarkers(wk);
+    CreateList(wk, LIST_SPECIES, 0);
+    BoxSearch_PrintInfo(wk, 9);
+    count = GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup);
+    if (count <= 7) {
+        LoadBg3Screen(wk, 2);
+    } else {
+        LoadBg3Screen(wk, 1);
+        ShowListArrows(wk, FALSE);
+        ShowScrollBar(wk);
+        count = 7;
+    }
+    for (i = 0; i < count; i++) {
+        if (wk->param->syswk->search.species == FrameList_GetValue(wk->list, i)) {
+            PutListMarkerAtRow(wk, 11, i);
+            break;
+        }
+    }
+    BoxSearch_SetNextSeq(wk, 10);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of species of a first letter
+static int BoxSearch_SeqSpeciesList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    int i, count, scroll;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        if (wk->listCount > 7 || GCTX_HIDIsUsingTouch() == FALSE) {
+            SetCriterion(wk, CRITERION_SPECIES, FrameList_GetValue(wk->list, FrameList_GetSelected(wk->list)));
+            PutListMarkerAtRow(wk, 11, ret);
+            BoxSearch_PrintChoice(wk, wk->speciesNames, wk->param->syswk->search.species);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            wk->chosen = TRUE;
+            seq = 11;
+        }
+        break;
+    case FRAMELIST_CURSOR_MOVE:
+    case FRAMELIST_SCROLL:
+    case FRAMELIST_BAR:
+    case FRAMELIST_DRAG:
+        if (GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup) > 7) {
+            ShowListArrows(wk, FALSE);
+        }
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        ClActor_SetVisible(wk->actors[11], FALSE);
+        scroll = FrameList_GetScroll(wk->list);
+        count = GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup);
+        if (count > 8) {
+            count = 8;
+        }
+        for (i = 0; i < count; i++) {
+            if (wk->param->syswk->search.species == FrameList_GetValue(wk->list, scroll + i)) {
+                PutListMarkerAtRow(wk, 11, i);
+                break;
+            }
+        }
+        break;
+    case FRAMELIST_PAGE_UP:
+        if (GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup) > 7) {
+            return BoxSearch_StartButtonAnm(wk, 34, 12, 10);
+        }
+        break;
+    case FRAMELIST_PAGE_DOWN:
+        if (GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup) > 7) {
+            return BoxSearch_StartButtonAnm(wk, 35, 13, 10);
+        }
+        break;
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_SPECIES, 0);
+            ClActor_SetVisible(wk->actors[11], FALSE);
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            wk->chosen = FALSE;
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 11);
+        } else {
+            i = GetTouchedRow(wk);
+            if (i >= 0 && i <= 6 && i < wk->listRows) {
+                SetCriterion(wk, CRITERION_SPECIES, FrameList_GetValue(wk->list, i + FrameList_GetScroll(wk->list)));
+                PutListMarkerAtRow(wk, 11, i);
+                BoxSearch_PrintChoice(wk, wk->speciesNames, wk->param->syswk->search.species);
+                FrameList_SetCursor(wk->list, i);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                wk->chosen = TRUE;
+                seq = 11;
+            }
+        }
+        break;
+    }
+    if (GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup) > 7) {
+        MoveScrollBar(wk);
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqSpeciesClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    if (wk->chosen == FALSE) {
+        return 3;
+    }
+    return 0;
+}
+
+// Opens the list of natures
+static int BoxSearch_SeqNatureOpen(BoxSearchWork *wk, int seq) {
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_NATURE, 0);
+    ShowListArrows(wk, FALSE);
+    BoxSearch_PrintInfo(wk, 12);
+    LoadBg3Screen(wk, 1);
+    BoxSearch_PrintListTitle(wk, 1);
+    if (wk->param->syswk->search.nature == 0) {
+        BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+    } else {
+        BoxSearch_PrintChoice(wk, wk->natureNames, wk->param->syswk->search.nature - 1);
+    }
+    ShowScrollBar(wk);
+    BoxSearch_SetNextSeq(wk, 13);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of natures
+static int BoxSearch_SeqNatureList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    int pos;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        SetCriterion(wk, CRITERION_NATURE, FrameList_GetSelected(wk->list));
+        PutListMarkerAtRow(wk, 11, ret);
+        if (wk->param->syswk->search.nature == 0) {
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+        } else {
+            BoxSearch_PrintChoice(wk, wk->natureNames, wk->param->syswk->search.nature - 1);
+        }
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        seq = 14;
+        break;
+    case FRAMELIST_CURSOR_MOVE:
+    case FRAMELIST_SCROLL:
+    case FRAMELIST_BAR:
+    case FRAMELIST_DRAG:
+        ShowListArrows(wk, FALSE);
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        PutCursorAtValue(wk, 11, 8, wk->param->syswk->search.nature);
+        break;
+    case FRAMELIST_PAGE_UP:
+        return BoxSearch_StartButtonAnm(wk, 34, 12, 13);
+    case FRAMELIST_PAGE_DOWN:
+        return BoxSearch_StartButtonAnm(wk, 35, 13, 13);
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_NATURE, 0);
+            if (FrameList_GetScroll(wk->list) == 0) {
+                PutListMarkerAtRow(wk, 11, 0);
+            } else {
+                ClActor_SetVisible(wk->actors[11], FALSE);
+            }
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 14);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 6) {
+                SetCriterion(wk, CRITERION_NATURE, pos + FrameList_GetScroll(wk->list));
+                PutListMarkerAtRow(wk, 11, pos);
+                if (wk->param->syswk->search.nature == 0) {
+                    BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+                } else {
+                    BoxSearch_PrintChoice(wk, wk->natureNames, wk->param->syswk->search.nature - 1);
+                }
+                FrameList_SetCursor(wk->list, pos);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                seq = 14;
+            }
+        }
+        break;
+    }
+    MoveScrollBar(wk);
+    return seq;
+}
+
+static int BoxSearch_SeqNatureClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    return 0;
+}
+
+// Opens the list of first letters of abilities
+static int BoxSearch_SeqAbilityLetterOpen(BoxSearchWork *wk, int seq) {
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_ABILITY_LETTER, wk->group);
+    ShowListArrows(wk, FALSE);
+    BoxSearch_PrintInfo(wk, 15);
+    LoadBg3Screen(wk, 1);
+    BoxSearch_PrintListTitle(wk, 10);
+    if (wk->param->syswk->search.ability == 0) {
+        BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+    } else {
+        BoxSearch_PrintChoice(wk, wk->abilityNames, wk->param->syswk->search.ability);
+    }
+    ShowScrollBar(wk);
+    BoxSearch_SetNextSeq(wk, 16);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of first letters of abilities
+static int BoxSearch_SeqAbilityLetterList(BoxSearchWork *wk, int seq) {
+    int pos;
+
+    switch (FrameList_Main(wk->list)) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        wk->group = FrameList_GetSelected(wk->list);
+        if (wk->group == 0) {
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            SetCriterion(wk, CRITERION_ABILITY, 0);
+            PutListMarkerAtRow(wk, 11, 0);
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            return 17;
+        }
+        ClActor_SetVisible(wk->actors[11], FALSE);
+        if (GetAbilityGroupSize(wk->group - 1, 0) != 0) {
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            return 17;
+        }
+        GFL_SndSEPlay(SEQ_SE_BEEP);
+        break;
+    case FRAMELIST_CURSOR_MOVE:
+    case FRAMELIST_SCROLL:
+    case FRAMELIST_BAR:
+    case FRAMELIST_DRAG:
+        ShowListArrows(wk, FALSE);
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        if (wk->param->syswk->search.ability == 0) {
+            PutCursorAtValue(wk, 11, 8, 0);
+        } else {
+            ClActor_SetVisible(wk->actors[11], FALSE);
+        }
+        break;
+    case FRAMELIST_PAGE_UP:
+        return BoxSearch_StartButtonAnm(wk, 34, 12, 16);
+    case FRAMELIST_PAGE_DOWN:
+        return BoxSearch_StartButtonAnm(wk, 35, 13, 16);
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_ABILITY, 0);
+            if (FrameList_GetScroll(wk->list) == 0) {
+                PutListMarkerAtRow(wk, 11, 0);
+            }
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            wk->group = 0;
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 17);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 6) {
+                wk->group = pos + FrameList_GetScroll(wk->list);
+                if (wk->group == 0) {
+                    SetCriterion(wk, CRITERION_ABILITY, 0);
+                    PutListMarkerAtRow(wk, 11, pos);
+                    BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+                    FrameList_SetCursor(wk->list, pos);
+                    return 17;
+                }
+                ClActor_SetVisible(wk->actors[11], FALSE);
+                if (GetAbilityGroupSize(wk->group - 1, 0) != 0) {
+                    GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                    FrameList_SetCursor(wk->list, pos);
+                    return 17;
+                }
+                FrameList_SetCursor(wk->list, pos);
+                GFL_SndSEPlay(SEQ_SE_BEEP);
+            }
+        }
+        break;
+    }
+    MoveScrollBar(wk);
+    return seq;
+}
+
+static int BoxSearch_SeqAbilityLetterClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    if (wk->group != 0) {
+        wk->subGroup = 0;
+        return 21;
+    }
+    return 0;
+}
+
+// Opens the list of abilities of a first letter
+static int BoxSearch_SeqAbilityOpen(BoxSearchWork *wk, int seq) {
+    u16 count;
+    u16 i;
+
+    HideListMarkers(wk);
+    CreateList(wk, LIST_ABILITY, 0);
+    BoxSearch_PrintInfo(wk, 21);
+    count = GetAbilityGroupSize(wk->group - 1, wk->subGroup);
+    if (count <= 7) {
+        LoadBg3Screen(wk, 2);
+    } else {
+        LoadBg3Screen(wk, 1);
+        ShowListArrows(wk, FALSE);
+        ShowScrollBar(wk);
+        count = 7;
+    }
+    for (i = 0; i < count; i++) {
+        if (wk->param->syswk->search.ability == FrameList_GetValue(wk->list, i)) {
+            PutListMarkerAtRow(wk, 11, i);
+            break;
+        }
+    }
+    BoxSearch_SetNextSeq(wk, 22);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of abilities of a first letter
+static int BoxSearch_SeqAbilityList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    int i, count, scroll;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        if (wk->listCount > 7 || GCTX_HIDIsUsingTouch() == FALSE) {
+            SetCriterion(wk, CRITERION_ABILITY, FrameList_GetValue(wk->list, FrameList_GetSelected(wk->list)));
+            PutListMarkerAtRow(wk, 11, ret);
+            BoxSearch_PrintChoice(wk, wk->abilityNames, wk->param->syswk->search.ability);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            wk->chosen = TRUE;
+            seq = 23;
+        }
+        break;
+    case FRAMELIST_CURSOR_MOVE:
+    case FRAMELIST_SCROLL:
+    case FRAMELIST_BAR:
+    case FRAMELIST_DRAG:
+        if (GetAbilityGroupSize(wk->group - 1, wk->subGroup) > 7) {
+            ShowListArrows(wk, FALSE);
+        }
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        ClActor_SetVisible(wk->actors[11], FALSE);
+        scroll = FrameList_GetScroll(wk->list);
+        count = GetAbilityGroupSize(wk->group - 1, wk->subGroup);
+        if (count > 8) {
+            count = 8;
+        }
+        for (i = 0; i < count; i++) {
+            if (wk->param->syswk->search.ability == FrameList_GetValue(wk->list, scroll + i)) {
+                PutListMarkerAtRow(wk, 11, i);
+                break;
+            }
+        }
+        break;
+    case FRAMELIST_PAGE_UP:
+        if (GetAbilityGroupSize(wk->group - 1, wk->subGroup) > 7) {
+            return BoxSearch_StartButtonAnm(wk, 34, 12, 22);
+        }
+        break;
+    case FRAMELIST_PAGE_DOWN:
+        if (GetAbilityGroupSize(wk->group - 1, wk->subGroup) > 7) {
+            return BoxSearch_StartButtonAnm(wk, 35, 13, 22);
+        }
+        break;
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_ABILITY, 0);
+            ClActor_SetVisible(wk->actors[11], FALSE);
+            BoxSearch_PrintChoice(wk, wk->msgData, BtlPokeparamBoxMainSaveInit_Text_199);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            wk->chosen = FALSE;
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 23);
+        } else {
+            i = GetTouchedRow(wk);
+            if (i >= 0 && i <= 6 && i < wk->listRows) {
+                SetCriterion(wk, CRITERION_ABILITY, FrameList_GetValue(wk->list, i + FrameList_GetScroll(wk->list)));
+                PutListMarkerAtRow(wk, 11, i);
+                BoxSearch_PrintChoice(wk, wk->abilityNames, wk->param->syswk->search.ability);
+                FrameList_SetCursor(wk->list, i);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                wk->chosen = TRUE;
+                seq = 23;
+            }
+        }
+        break;
+    }
+    if (GetAbilityGroupSize(wk->group - 1, wk->subGroup) > 7) {
+        MoveScrollBar(wk);
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqAbilityClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    if (wk->chosen == FALSE) {
+        return 15;
+    }
+    return 0;
+}
+
+// Opens the list of sexes
+static int BoxSearch_SeqSexOpen(BoxSearchWork *wk, int seq) {
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_SEX, 0);
+    BoxSearch_PrintInfo(wk, 24);
+    LoadBg3Screen(wk, 2);
+    BoxSearch_PrintListTitle(wk, 3);
+    BoxSearch_PrintChoice(wk, wk->msgData, sSexCriterionMsgs[wk->param->syswk->search.sex]);
+    PutListMarkerAtRow(wk, 11, wk->param->syswk->search.sex);
+    BoxSearch_SetNextSeq(wk, 25);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of sexes
+static int BoxSearch_SeqSexList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    int pos;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+        if (GCTX_HIDIsUsingTouch() == FALSE) {
+            SetCriterion(wk, CRITERION_SEX, ret);
+            PutListMarkerAtRow(wk, 11, ret);
+            BoxSearch_PrintChoice(wk, wk->msgData, sSexCriterionMsgs[wk->param->syswk->search.sex]);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            seq = 26;
+        }
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        break;
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_SEX, 0);
+            PutListMarkerAtRow(wk, 11, 0);
+            BoxSearch_PrintChoice(wk, wk->msgData, sSexCriterionMsgs[wk->param->syswk->search.sex]);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 26);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 3) {
+                SetCriterion(wk, CRITERION_SEX, pos);
+                PutListMarkerAtRow(wk, 11, pos);
+                BoxSearch_PrintChoice(wk, wk->msgData, sSexCriterionMsgs[wk->param->syswk->search.sex]);
+                FrameList_SetCursor(wk->list, pos);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                seq = 26;
+            }
+        }
+        break;
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqSexClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    return 0;
+}
+
+// Opens the list of held item choices
+static int BoxSearch_SeqItemOpen(BoxSearchWork *wk, int seq) {
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_ITEM, 0);
+    BoxSearch_PrintInfo(wk, 27);
+    LoadBg3Screen(wk, 2);
+    BoxSearch_PrintListTitle(wk, 4);
+    BoxSearch_PrintChoice(wk, wk->msgData, sItemCriterionMsgs[wk->param->syswk->search.item]);
+    PutListMarkerAtRow(wk, 11, wk->param->syswk->search.item);
+    BoxSearch_SetNextSeq(wk, 28);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of held item choices
+static int BoxSearch_SeqItemList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    int pos;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+        if (GCTX_HIDIsUsingTouch() == FALSE) {
+            SetCriterion(wk, CRITERION_ITEM, ret);
+            PutListMarkerAtRow(wk, 11, ret);
+            BoxSearch_PrintChoice(wk, wk->msgData, sItemCriterionMsgs[wk->param->syswk->search.item]);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            seq = 29;
+        }
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        break;
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            SetCriterion(wk, CRITERION_ITEM, 0);
+            PutListMarkerAtRow(wk, 11, 0);
+            BoxSearch_PrintChoice(wk, wk->msgData, sItemCriterionMsgs[wk->param->syswk->search.item]);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 29);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 2) {
+                SetCriterion(wk, CRITERION_ITEM, pos);
+                PutListMarkerAtRow(wk, 11, pos);
+                BoxSearch_PrintChoice(wk, wk->msgData, sItemCriterionMsgs[wk->param->syswk->search.item]);
+                FrameList_SetCursor(wk->list, pos);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+                seq = 29;
+            }
+        }
+        break;
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqItemClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    return 0;
+}
+
+// Opens the list of markings
+static int BoxSearch_SeqMarkingOpen(BoxSearchWork *wk, int seq) {
+    int i;
+
+    BoxSearch_HideMainMenu(wk);
+    CreateList(wk, LIST_MARKING, 0);
+    BoxSearch_PrintInfo(wk, 30);
+    LoadBg3Screen(wk, 2);
+    BoxSearch_PrintListTitle(wk, 5);
+    for (i = 0; i < 6; i++) {
+        PutListMarkerAtRow(wk, i + 11, i);
+        ClActor_SetVisible(wk->actors[i + 11], GetMark(wk, i));
+    }
+    ShowMarks(wk, 22);
+    ShowMarks(wk, 28);
+    PutMarkActors(wk, 1);
+    SetActorsVisible(wk, 22, TRUE);
+    SetActorsVisible(wk, 28, TRUE);
+    BoxSearch_SetNextSeq(wk, 31);
+    return SEQ_LIST_WAIT;
+}
+
+// The list of markings, which turns each on and off
+static int BoxSearch_SeqMarkingList(BoxSearchWork *wk, int seq) {
+    u32 ret;
+    u32 i;
+    int pos;
+    u32 on;
+
+    ret = FrameList_Main(wk->list);
+    switch (ret) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+        if (GCTX_HIDIsUsingTouch() != FALSE) {
+            break;
+        }
+        on = GetMark(wk, ret) ^ 1;
+        SetMark(wk, ret, on);
+        ClActor_SetVisible(wk->actors[ret + 11], on);
+        ShowMarks(wk, 22);
+        ShowMarks(wk, 28);
+        GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        break;
+    case FRAMELIST_JUMP_TOP:
+    case FRAMELIST_JUMP_BOTTOM:
+        FrameList_SetCursor(wk->list, FrameList_GetCursor(wk->list));
+        break;
+    case FRAMELIST_NONE:
+        if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_SELECT) {
+            for (i = 0; i < 6; i++) {
+                SetMark(wk, i, FALSE);
+                ClActor_SetVisible(wk->actors[i + 11], FALSE);
+            }
+            ShowMarks(wk, 22);
+            ShowMarks(wk, 28);
+            GFL_SndSEPlay(SEQ_SE_DECIDE1);
+        } else if (IsReturnPressed(wk) == TRUE) {
+            seq = BoxSearch_StartTouchBarAnm(wk, -1, 0, 26);
+        } else {
+            pos = GetTouchedRow(wk);
+            if (pos >= 0 && pos <= 5) {
+                on = GetMark(wk, pos) ^ 1;
+                SetMark(wk, pos, on);
+                ClActor_SetVisible(wk->actors[pos + 11], on);
+                FrameList_SetCursor(wk->list, pos);
+                ShowMarks(wk, 22);
+                ShowMarks(wk, 28);
+                GFL_SndSEPlay(SEQ_SE_DECIDE1);
+            }
+        }
+        break;
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqMarkingClose(BoxSearchWork *wk, int seq) {
+    FrameList_Free(wk->list);
+    return 0;
+}
+
+// Turns the search on
+static int BoxSearch_SeqSearchOn(BoxSearchWork *wk, int seq) {
+    BoxSearch_SetSwitchAnims(wk, 7);
+    SetCriterion(wk, CRITERION_ACTIVE, TRUE);
+    if (CursorMove_IsCursorVisible(wk->cursorMove) == TRUE) {
+        ClActor_SetSequence(wk->actors[7], 13);
+    }
+    return SEQ_END;
+}
+
+// Turns the search off
+static int BoxSearch_SeqSearchOff(BoxSearchWork *wk, int seq) {
+    BoxSearch_SetSwitchAnims(wk, 8);
+    SetCriterion(wk, CRITERION_ACTIVE, FALSE);
+    if (CursorMove_IsCursorVisible(wk->cursorMove) == TRUE) {
+        ClActor_SetSequence(wk->actors[8], 16);
+    }
+    return SEQ_END;
+}
+
+// Clears the criteria
+static int BoxSearch_SeqClearCriteria(BoxSearchWork *wk, int seq) {
+    ClearAllCriteria(wk);
+    PrintCriteria(wk, TRUE);
+    ShowMarks(wk, 22);
+    if (CursorMove_IsCursorVisible(wk->cursorMove) == TRUE) {
+        ClActor_SetSequence(wk->actors[6], 10);
+    }
+    return 1;
+}
+
+static int BoxSearch_SeqUnused2(BoxSearchWork *wk, int seq) {
+    return seq;
+}
+
+// Waits for a list to be drawn
+static int BoxSearch_SeqListWait(BoxSearchWork *wk, int seq) {
+    if (FrameList_Draw(wk->list) == FALSE) {
+        if (GCTX_HIDIsUsingTouch() == FALSE) {
+            FrameList_ShowCursor(wk->list);
+        }
+        seq = wk->nextSeq;
+    }
+    return seq;
+}
+
+// Waits for a list's arrow to be animated
+static int BoxSearch_SeqListArrowWait(BoxSearchWork *wk, int seq) {
+    switch (wk->btnAnmSeq) {
+    case 0:
+        if (FrameList_Main(wk->list) == FRAMELIST_NONE) {
+            wk->btnAnmSeq++;
+        }
+        MoveScrollBar(wk);
+        break;
+    case 1:
+        if (ClActor_IsAnimActive(wk->actors[wk->btnActor]) == FALSE) {
+            wk->btnAnmSeq = 0;
+            ShowListArrows(wk, FALSE);
+            return wk->nextSeq;
+        }
+        break;
+    }
+    return SEQ_BUTTON_ANM;
+}
+
+static int BoxSearch_SeqUnused3(BoxSearchWork *wk, int seq) {
+    return seq;
+}
+
+// Waits for a button to be animated
+static int BoxSearch_SeqButtonAnmWait(BoxSearchWork *wk, int seq) {
+    if (wk->btnActor == -1) {
+        if (TouchBar_GetDecided(wk->touchBar) == TOUCHBAR_ICON_RETURN) {
+            return wk->nextSeq;
+        }
+    } else if (ClActor_IsAnimActive(wk->actors[wk->btnActor]) == FALSE) {
+        return wk->nextSeq;
+    }
+    return seq;
+}
+
+static int BoxSearch_SeqStartChosenList(BoxSearchWork *wk, int seq) {
+    return sMainMenuSeqs[wk->menuPos];
+}
+
+static void BoxSearch_SetNextSeq(BoxSearchWork *wk, int seq) {
+    wk->nextSeq = seq;
+}
+
+// Animates a button, then goes on to next
+static int BoxSearch_StartTouchBarAnm(BoxSearchWork *wk, int actor, u32 anim, int next) {
+    if (actor != -1) {
+        SetActorAnim(wk, actor, anim);
+    }
+    wk->btnActor = actor;
+    BoxSearch_SetNextSeq(wk, next);
+    return SEQ_TOUCH_BAR_ANM;
+}
+
+static int BoxSearch_StartButtonAnm(BoxSearchWork *wk, int actor, u32 anim, int next) {
+    SetActorAnim(wk, actor, anim);
+    wk->btnActor = actor;
+    wk->btnAnmSeq = 0;
+    BoxSearch_SetNextSeq(wk, next);
+    return SEQ_BUTTON_ANM;
+}
+
+// The main menu's cursor shows on a button
+static void BoxSearch_MainMenuCursorOn(void *work, int pos, int prevPos) {
+    BoxSearchWork *wk = work;
+    int i;
+
+    for (i = 0; i <= 8; i++) {
+        if (pos == i) {
+            ClActor_SetSequence(wk->actors[i], sMainMenuButtonAnims[i][1]);
+        } else {
+            ClActor_SetSequence(wk->actors[i], sMainMenuButtonAnims[i][0]);
+        }
+    }
+}
+
+static void BoxSearch_MainMenuCursorOff(void *work, int pos, int prevPos) {
+    BoxSearchWork *wk = work;
+    int i;
+
+    for (i = 0; i <= 8; i++) {
+        ClActor_SetSequence(wk->actors[i], sMainMenuButtonAnims[i][0]);
+    }
+}
+
+static void BoxSearch_MainMenuCursorMove(void *work, int pos, int prevPos) {
+    BoxSearchWork *wk = work;
+    int i;
+
+    for (i = 0; i <= 8; i++) {
+        if (pos == i) {
+            ClActor_SetSequence(wk->actors[i], sMainMenuButtonAnims[i][1]);
+        } else {
+            ClActor_SetSequence(wk->actors[i], sMainMenuButtonAnims[i][0]);
+        }
+    }
+}
+
+static void BoxSearch_MainMenuCursorTouch(void *work, int pos, int prevPos) {
+}
+
+static void BoxSearch_SetSwitchAnims(BoxSearchWork *wk, unsigned int type) {
+    ClActor_SetSequence(wk->actors[9], sSwitchAnims[type - 7][0]);
+    ClActor_SetSequence(wk->actors[10], sSwitchAnims[type - 7][1]);
+}
+
+static void BoxSearch_ShowSwitch(BoxSearchWork *wk) {
+    if (wk->param->syswk->search.active) {
+        BoxSearch_SetSwitchAnims(wk, 7);
+    } else {
+        BoxSearch_SetSwitchAnims(wk, 8);
+    }
+}
+
+static void BoxSearch_LoadStrings(BoxSearchWork *wk) {
+    int i;
+
+    for (i = 0; i < BOX_SEARCH_STRING_COUNT - 1; i++) {
+        wk->strings[i] = GFL_MsgDataLoadStrbufNew(wk->msgData, sStringMsgs[i]);
+    }
+    if (wk->param->param->mode == BOX2_MODE_MOVE_POKEMON) {
+        wk->strings[8] = GFL_MsgDataLoadStrbufNew(wk->msgData, BtlPokeparamBoxMainSaveInit_Text_112);
+    } else {
+        wk->strings[8] = GFL_MsgDataLoadStrbufNew(wk->msgData, BtlPokeparamBoxMainSaveInit_Text_113);
+    }
+    wk->strbuf = GFL_StrBufCreate(128, wk->heapId);
+}
+
+static void BoxSearch_FreeStrings(BoxSearchWork *wk) {
+    int i;
+
+    GFL_StrBufFree(wk->strbuf);
+    for (i = 0; i < BOX_SEARCH_STRING_COUNT; i++) {
+        GFL_StrBufFree(wk->strings[i]);
+    }
+}
+
+static void BoxSearch_PrintString(BoxSearchWork *wk, u32 win, u32 string, int x, int y) {
+    PrintWindow_Print(&wk->printWindows[win], wk->printQueue, x, y, wk->strings[string], wk->font,
+                      sWindowData[win]->color);
+}
+
+static void BoxSearch_PrintMsg(BoxSearchWork *wk, u32 win, u32 msgId, int x, int y) {
+    StrBuf *str = GFL_MsgDataLoadStrbufNew(wk->msgData, msgId);
+
+    PrintWindow_Print(&wk->printWindows[win], wk->printQueue, x, y, str, wk->font, sWindowData[win]->color);
+    GFL_StrBufFree(str);
+}
+
+// Prints a first letter of abilities, grayed out when no ability starts with it
+static void AbilityLetterList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    if (index == 0 || GetAbilityGroupSize(index - 1, 0) != 0) {
+        PrintListRow(wk, index, window, wk->msgData);
+    } else {
+        PrintListRowGray(wk, index, window, wk->msgData);
+    }
+    if (index == 0 && wk->param->syswk->search.ability == 0) {
+        PutListMarker(wk, 11, y + 12);
+    }
+}
+
+// Prints a first letter of species, grayed out when no species caught starts with it
+static void SpeciesLetterList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    if (index == 0 || GetCaughtGroupCount(wk, index - 1, 0) != 0) {
+        PrintListRow(wk, index, window, wk->msgData);
+    } else {
+        PrintListRowGray(wk, index, window, wk->msgData);
+    }
+    if (index == 0 && wk->param->syswk->search.species == 0) {
+        PutListMarker(wk, 11, y + 12);
+    }
+}
+
+static void ListMoveNone(void *work, u32 index, BOOL moved) {
+}
+
+static void ListScroll(void *work, s16 delta) {
+    BoxSearchWork *wk = work;
+
+    ScrollListMarkers(wk, -delta);
+    ShowListArrows(wk, TRUE);
+}
+
+static void SpeciesList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    PrintListRow(wk, index, window, wk->speciesNames);
+    if (wk->param->syswk->search.species == FrameList_GetValue(wk->list, index)) {
+        PutListMarker(wk, 11, y + 12);
+    }
+}
+
+static void SpeciesList_Move(void *work, u32 index, BOOL moved) {
+    BoxSearchWork *wk = work;
+
+    PrintSpeciesInfo(wk, FrameList_GetValue(wk->list, index));
+}
+
+static void SpeciesList_Scroll(void *work, s16 delta) {
+    BoxSearchWork *wk = work;
+
+    if (GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup) > 7) {
+        ScrollListMarkers(wk, -delta);
+        ShowListArrows(wk, TRUE);
+    }
+}
+
+static void NatureList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+    int width, windowWidth;
+    PrintQueue *queue = FrameList_GetPrintQueue(wk->list);
+    u32 nature = FrameList_GetValue(wk->list, index);
+    StrBuf *str;
+
+    if (nature == 0) {
+        str = wk->strings[6];
+    } else {
+        str = GFL_MsgDataLoadStrbufNew(wk->natureNames, nature - 1);
+    }
+    width = GFL_FontGetBlockWidth(str, wk->font, 0);
+    windowWidth = BmpWin_GetSizeX(window->window) * 8;
+    PrintWindow_Print(window, queue, (windowWidth - width) / 2, 4, str, wk->font, PRINT_COLOR(15, 14, 0));
+    if (nature != 0) {
+        GFL_StrBufFree(str);
+    }
+    if (wk->param->syswk->search.nature == nature) {
+        PutListMarker(wk, 11, y + 12);
+    }
+}
+
+static void NatureList_Move(void *work, u32 index, BOOL moved) {
+    BoxSearchWork *wk = work;
+    StrBuf *str;
+
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[WINDOW_INFO]), 0);
+    if (index != 0) {
+        str = GFL_MsgDataLoadStrbufNew(wk->msgData, index + 118);
+        PrintWindow_Print(&wk->printWindows[WINDOW_INFO], wk->printQueue, 1, 0, str, wk->font,
+                          sWindowData[WINDOW_INFO]->color);
+        GFL_StrBufFree(str);
+        BoxSearch_PushWindowScreen(wk->windows[WINDOW_INFO]);
+    } else {
+        BmpWin_Transfer(wk->windows[WINDOW_INFO]);
+    }
+}
+
+static void NatureList_Scroll(void *work, s16 delta) {
+    BoxSearchWork *wk = work;
+
+    ScrollListMarkers(wk, -delta);
+    ShowListArrows(wk, TRUE);
+}
+
+static void AbilityList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    PrintListRow(wk, index, window, wk->abilityNames);
+    if (wk->param->syswk->search.ability == FrameList_GetValue(wk->list, index)) {
+        PutListMarker(wk, 11, y + 12);
+    }
+}
+
+static void AbilityList_Move(void *work, u32 index, BOOL moved) {
+    BoxSearchWork *wk = work;
+
+    PrintAbilityInfo(wk, FrameList_GetValue(wk->list, index));
+}
+
+static void AbilityList_Scroll(void *work, s16 delta) {
+    BoxSearchWork *wk = work;
+
+    if (GetAbilityGroupSize(wk->group - 1, wk->subGroup) > 7) {
+        ScrollListMarkers(wk, -delta);
+        ShowListArrows(wk, TRUE);
+    }
+}
+
+static void SexList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    PrintListRow(wk, index, window, wk->msgData);
+}
+
+static void ItemList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+
+    PrintListRow(wk, index, window, wk->msgData);
+}
+
+static void MarkingList_PrintRow(void *work, u32 index, PrintWindow *window, s16 y, BOOL firstBG) {
+    BoxSearchWork *wk = work;
+    PrintQueue *queue = FrameList_GetPrintQueue(wk->list);
+
+    PrintQueue_PrintColor(queue, BmpWin_GetBitmap(window->window), 0, 4, wk->strings[6], wk->font, 0);
+    window->flushPending = TRUE;
+}
+
+// Prints a message centered in a list's row
+static void PrintCenteredMsg(BoxSearchWork *wk, PrintWindow *window, PrintQueue *queue, MsgData *msgData, u32 msgId,
+                             u16 color, int y) {
+    StrBuf *str = GFL_MsgDataLoadStrbufNew(msgData, msgId);
+    int width = GFL_FontGetBlockWidth(str, wk->font, 0);
+    int windowWidth = BmpWin_GetSizeX(window->window) * 8;
+
+    PrintWindow_Print(window, queue, (windowWidth - width) / 2, y, str, wk->font, color);
+    GFL_StrBufFree(str);
+}
+
+static void PrintListMsg(BoxSearchWork *wk, PrintWindow *window, PrintQueue *queue, MsgData *msgData, u32 msgId) {
+    PrintCenteredMsg(wk, window, queue, msgData, msgId, PRINT_COLOR(15, 14, 0), 4);
+}
+
+static void PrintListRow(BoxSearchWork *wk, u32 index, PrintWindow *window, MsgData *msgData) {
+    PrintQueue *queue = FrameList_GetPrintQueue(wk->list);
+
+    PrintListMsg(wk, window, queue, msgData, FrameList_GetValue(wk->list, index));
+}
+
+// Prints an item grayed out
+static void PrintListRowGray(BoxSearchWork *wk, u32 index, PrintWindow *window, MsgData *msgData) {
+    PrintQueue *queue = FrameList_GetPrintQueue(wk->list);
+
+    PrintCenteredMsg(wk, window, queue, msgData, FrameList_GetValue(wk->list, index), PRINT_COLOR(13, 12, 0), 4);
+}
+
+// How many species a group has
+static int GetSpeciesGroupSize(int letter, int group) {
+    return sSpeciesGroupEnds[sLetterFirstGroups[letter] + group] -
+           sSpeciesGroupStarts[sLetterFirstGroups[letter] + group];
+}
+
+// Counts the species caught of each group
+static void CountCaughtSpecies(BoxSearchWork *wk) {
+    u32 letter, i;
+    u32 len;
+    u16 *species;
+    u32 group;
+
+    MI_CpuFill8(wk->caughtCounts, 0, sizeof(wk->caughtCounts));
+    species = LoadSpeciesOrder(wk->heapId, &len);
+    for (letter = 0; letter < 26; letter++) {
+        for (group = 0; group < sSpeciesGroupCounts[letter]; group++) {
+            u32 count = GetSpeciesGroupSize(letter, group);
+            u16 start = sSpeciesGroupStarts[sLetterFirstGroups[letter] + group];
+            u32 *caught = &wk->caughtCounts[group + sLetterFirstGroups[letter]];
+
+            *caught = 0;
+            for (i = 0; i < count; i++) {
+                if (PokeDex_IsCaught(wk->pokedex, species[start + i])) {
+                    (*caught)++;
+                }
+            }
+        }
+    }
+    GFL_HeapFree(species);
+}
+
+static int GetCaughtGroupCount(BoxSearchWork *wk, int letter, int group) {
+    return wk->caughtCounts[sLetterFirstGroups[letter] + group];
+}
+
+// How many abilities a group has
+static int GetAbilityGroupSize(int letter, int group) {
+    return sAbilityGroups[sLetterFirstGroups[letter] + group][1] -
+           sAbilityGroups[sLetterFirstGroups[letter] + group][0];
+}
+
+// Prints an ability's name and explanation
+static void PrintAbilityInfo(BoxSearchWork *wk, u32 ability) {
+    StrBuf *fmt;
+    StrBuf *str;
+
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[WINDOW_INFO]), 0);
+    fmt = GFL_MsgDataLoadStrbufNew(wk->msgData, BtlPokeparamBoxMainSaveInit_Text_145);
+    loadAbilityNameToStrbuf(wk->wordSet, 0, ability);
+    GFL_WordSetFormatStrbuf(wk->wordSet, wk->strbuf, fmt);
+    PrintWindow_Print(&wk->printWindows[WINDOW_INFO], wk->printQueue, 1, 0, wk->strbuf, wk->font,
+                      sWindowData[WINDOW_INFO]->color);
+    GFL_StrBufFree(fmt);
+    str = GFL_MsgDataLoadStrbufNew(wk->abilityInfo, ability);
+    PrintWindow_Print(&wk->printWindows[WINDOW_INFO], wk->printQueue, 1, 48, str, wk->font,
+                      sWindowData[WINDOW_INFO]->color);
+    GFL_StrBufFree(str);
+    BoxSearch_PushWindowScreen(wk->windows[WINDOW_INFO]);
+}
+
+// Prints a species' name and types
+static void PrintSpeciesInfo(BoxSearchWork *wk, u32 species) {
+    PersonalData *personal = PML_PersonalLoad(species, 0, wk->heapId);
+    u32 type1 = PML_PersonalGetParam(personal, PERSONAL_TYPE_1);
+    u32 type2 = PML_PersonalGetParam(personal, PERSONAL_TYPE_2);
+    StrBuf *fmt;
+
+    PML_PersonalFree(personal);
+    GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[WINDOW_INFO]), 0);
+    if (type1 != type2) {
+        fmt = GFL_MsgDataLoadStrbufNew(wk->msgData, BtlPokeparamBoxMainSaveInit_Text_117);
+        loadTypeTextToStrbuf(wk->wordSet, 2, type2);
+    } else {
+        fmt = GFL_MsgDataLoadStrbufNew(wk->msgData, BtlPokeparamBoxMainSaveInit_Text_118);
+    }
+    WordSet_LoadSpeciesName(wk->wordSet, 0, (u16)species);
+    loadTypeTextToStrbuf(wk->wordSet, 1, type1);
+    GFL_WordSetFormatStrbuf(wk->wordSet, wk->strbuf, fmt);
+    PrintWindow_Print(&wk->printWindows[WINDOW_INFO], wk->printQueue, 1, 0, wk->strbuf, wk->font,
+                      sWindowData[WINDOW_INFO]->color);
+    GFL_StrBufFree(fmt);
+    BoxSearch_PushWindowScreen(wk->windows[WINDOW_INFO]);
+}
+
+// Creates a list, with the cursor on pos
+static void CreateList(BoxSearchWork *wk, u32 mode, int pos) {
+    FrameListSetup setup = sFrameListSetup;
+    u32 len;
+    ArcTool *arc;
+    int i;
+    u16 start;
+    int first;
+    u16 *species;
+    int j;
+
+    setup.work = wk;
+    arc = GFL_ArcSysCreateFileHandle(ARCID_BOX2, wk->heapId);
+    wk->listRows = 7;
+    switch (mode) {
+    case LIST_SPECIES_LETTER:
+        setup.count = 27;
+        setup.callbacks = &sSpeciesLetterListCallbacks;
+        break;
+    case LIST_SPECIES:
+        setup.count = GetCaughtGroupCount(wk, wk->group - 1, wk->subGroup);
+        setup.callbacks = &sSpeciesListCallbacks;
+        if (setup.count < wk->listRows) {
+            wk->listRows = setup.count;
+        }
+        break;
+    case LIST_NATURE:
+        setup.callbacks = &sNatureListCallbacks;
+        setup.count = 26;
+        break;
+    case LIST_ABILITY_LETTER:
+        setup.callbacks = &sAbilityLetterListCallbacks;
+        setup.count = 27;
+        break;
+    case LIST_ABILITY:
+        setup.callbacks = &sAbilityListCallbacks;
+        setup.count = GetAbilityGroupSize(wk->group - 1, wk->subGroup);
+        if (setup.count < wk->listRows) {
+            wk->listRows = setup.count;
+        }
+        break;
+    case LIST_SEX:
+        setup.callbacks = &sSexListCallbacks;
+        setup.count = 4;
+        wk->listRows = 4;
+        break;
+    case LIST_ITEM:
+        setup.callbacks = &sItemListCallbacks;
+        setup.count = 3;
+        wk->listRows = 3;
+        break;
+    case LIST_MARKING:
+        setup.callbacks = &sMarkingListCallbacks;
+        setup.count = 6;
+        wk->listRows = 6;
+        break;
+    case LIST_LETTER:
+    case LIST_LETTER_2:
+        break;
+    }
+    if (setup.count <= 7) {
+        setup.touch = sShortListTouch;
+    }
+    if (pos >= wk->listRows) {
+        setup.scroll = pos - (wk->listRows - 1);
+        setup.cursorPos = pos - setup.scroll;
+    } else {
+        setup.scroll = 0;
+        setup.cursorPos = pos;
+    }
+    wk->list = FrameList_Create(&setup, wk->heapId);
+    wk->listCount = setup.count;
+    FrameList_LoadScreen(wk->list, arc, 88, FALSE, 0);
+    FrameList_LoadScreen(wk->list, arc, 87, FALSE, 1);
+    FrameList_LoadCursorPalette(wk->list, arc, 84, 1, 5);
+    GFL_ArcToolFree(arc);
+    switch (mode) {
+    case LIST_SPECIES_LETTER:
+        FrameList_AddItem(wk->list, 0, 199);
+        for (j = 1; j < setup.count; j++) {
+            FrameList_AddItem(wk->list, 1, sLetterMsgs[j]);
+        }
+        break;
+    case LIST_LETTER:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 1, i + sLetterMsgs[wk->group]);
+        }
+        break;
+    case LIST_SPECIES:
+        start = sSpeciesGroupStarts[sLetterFirstGroups[wk->group - 1] + wk->subGroup];
+        species = LoadSpeciesOrder(wk->heapId, &len);
+        for (i = 0; i < GetSpeciesGroupSize(wk->group - 1, wk->subGroup); i++) {
+            if (PokeDex_IsCaught(wk->pokedex, species[start + i])) {
+                FrameList_AddItem(wk->list, 0, species[start + i]);
+            }
+        }
+        GFL_HeapFree(species);
+        break;
+    case LIST_NATURE:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 0, i);
+        }
+        break;
+    case LIST_ABILITY_LETTER:
+        FrameList_AddItem(wk->list, 0, 199);
+        for (j = 1; j < setup.count; j++) {
+            FrameList_AddItem(wk->list, 1, sLetterMsgs[j]);
+        }
+        break;
+    case LIST_LETTER_2:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 1, i + sLetterMsgs[wk->group]);
+        }
+        break;
+    case LIST_ABILITY:
+        first = sAbilityGroups[sLetterFirstGroups[wk->group - 1] + wk->subGroup][0] - 1;
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 0, sAbilityOrder[first + i]);
+        }
+        break;
+    case LIST_SEX:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 0, sSexCriterionMsgs[i]);
+        }
+        break;
+    case LIST_ITEM:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 0, sItemCriterionMsgs[i]);
+        }
+        break;
+    case LIST_MARKING:
+        for (i = 0; i < setup.count; i++) {
+            FrameList_AddItem(wk->list, 0, 0);
+        }
+        break;
+    }
+}
+
+static void ClearListScreens(BoxSearchWork *wk) {
+    GFL_BGSysClearScr(0);
+    GFL_BGSysQueueScrLoad(0);
+    HideListMarkers(wk);
+}
+
+// Hides the list's cursor, markings and arrows
+static void HideListMarkers(BoxSearchWork *wk) {
+    u32 i;
+
+    GFL_BGSysClearScr(2);
+    GFL_BGSysQueueScrLoad(2);
+    for (i = 11; i <= 21; i++) {
+        ClActor_SetVisible(wk->actors[i], FALSE);
+    }
+    SetActorsVisible(wk, 22, FALSE);
+    SetActorsVisible(wk, 28, FALSE);
+    ClActor_SetVisible(wk->actors[34], FALSE);
+    ClActor_SetVisible(wk->actors[35], FALSE);
+}
+
+static void PutListMarker(BoxSearchWork *wk, u32 actor, s16 y) {
+    ClActorPos pos;
+
+    pos.x = 127;
+    pos.y = y;
+    ClActor_SetPos(wk->actors[actor], &pos);
+    ClActor_SetVisible(wk->actors[actor], TRUE);
+}
+
+static void PutListMarkerAtRow(BoxSearchWork *wk, u32 actor, int row) {
+    PutListMarker(wk, actor, row * 24 + 12);
+}
+
+// Scrolls the list's cursor and markings, hiding them off the list
+static void ScrollListMarkers(BoxSearchWork *wk, s8 delta) {
+    ClActorPos pos;
+    u32 i;
+
+    for (i = 11; i <= 20; i++) {
+        if (ClActor_IsVisible(wk->actors[i])) {
+            ClActor_GetPos(wk->actors[i], &pos);
+            pos.y += delta;
+            ClActor_SetPos(wk->actors[i], &pos);
+            if (pos.y <= -12 || pos.y >= 204) {
+                ClActor_SetVisible(wk->actors[i], FALSE);
+            }
+        }
+    }
+}
+
+// Puts the cursor on the row of value, if it shows
+static void PutCursorAtValue(BoxSearchWork *wk, u32 actor, int count, int value) {
+    int scroll = FrameList_GetScroll(wk->list);
+    int i;
+
+    for (i = 0; i < count; i++) {
+        if (value == scroll + i) {
+            PutListMarkerAtRow(wk, actor, i);
+            return;
+        }
+    }
+    ClActor_SetVisible(wk->actors[actor], FALSE);
+}
+
+// Loads the species in the order of their names
+static u16 *LoadSpeciesOrder(u32 heapId, u32 *count) {
+    u32 size;
+    u16 *species = GFL_ArcSysReadHeapNewLZGetLen(ARCID_POKEDEX_DATA, 5, FALSE, heapId, &size);
+
+    *count = size / 2;
+    return species;
+}
+
+static void LoadBg3Screen(BoxSearchWork *wk, u32 screen) {
+    NNSG2dScreenData *scr;
+    void *buf = GFL_G2DIOReadNSCR(ARCID_BOX2, sBg3Screens[screen], FALSE, &scr, wk->heapId);
+
+    GFL_BGSysLoadScrAreaAll(3, scr->rawData, 0, 0, 32, 24);
+    GFL_HeapFree(buf);
+    GFL_BGSysQueueScrLoad(3);
+}
+
+// Prints the criteria of the main menu, or clears them
+static void PrintCriteria(BoxSearchWork *wk, BOOL show) {
+    Box2SearchParam *search = &wk->param->syswk->search;
+    int i;
+
+    if (show == FALSE) {
+        for (i = 7; i <= 11; i++) {
+            BmpWin_ClearScreen(wk->windows[i]);
+        }
+    } else {
+        for (i = 7; i <= 11; i++) {
+            GFL_BitmapFill(BmpWin_GetBitmap(wk->windows[i]), 0);
+        }
+        if (search->species == 0) {
+            PrintListMsg(wk, &wk->printWindows[7], wk->printQueue, wk->msgData,
+                         BtlPokeparamBoxMainSaveInit_Text_199);
+        } else {
+            PrintListMsg(wk, &wk->printWindows[7], wk->printQueue, wk->speciesNames, search->species);
+        }
+        if (search->nature == 0) {
+            PrintListMsg(wk, &wk->printWindows[8], wk->printQueue, wk->msgData,
+                         BtlPokeparamBoxMainSaveInit_Text_199);
+        } else {
+            PrintListMsg(wk, &wk->printWindows[8], wk->printQueue, wk->natureNames, search->nature - 1);
+        }
+        if (search->ability == 0) {
+            PrintListMsg(wk, &wk->printWindows[9], wk->printQueue, wk->msgData,
+                         BtlPokeparamBoxMainSaveInit_Text_199);
+        } else {
+            PrintListMsg(wk, &wk->printWindows[9], wk->printQueue, wk->abilityNames, search->ability);
+        }
+        PrintListMsg(wk, &wk->printWindows[10], wk->printQueue, wk->msgData, sSexCriterionMsgs[search->sex]);
+        PrintListMsg(wk, &wk->printWindows[11], wk->printQueue, wk->msgData, sItemCriterionMsgs[search->item]);
+        for (i = 7; i <= 11; i++) {
+            BmpWin_FlushMap(wk->windows[i]);
+        }
+    }
+    GFL_BGSysQueueScrLoad(BmpWin_GetBGIndex(wk->windows[7]));
+}
+
+static void SetCriterion(BoxSearchWork *wk, u32 criterion, u32 value) {
+    Box2SearchParam *search = &wk->param->syswk->search;
+
+    switch (criterion) {
+    case CRITERION_SPECIES:
+        search->species = value;
+        break;
+    case CRITERION_ITEM:
+        search->item = value;
+        break;
+    case CRITERION_NATURE:
+        search->nature = value;
+        break;
+    case CRITERION_ABILITY:
+        search->ability = value;
+        break;
+    case CRITERION_SEX:
+        search->sex = value;
+        break;
+    case CRITERION_MARKS:
+        search->marks = value;
+        break;
+    case CRITERION_ACTIVE:
+        search->active = value;
+        break;
+    }
+}
+
+static void SetMark(BoxSearchWork *wk, u32 mark, u32 on) {
+    Box2SearchParam *search = &wk->param->syswk->search;
+
+    search->marks = (u8)(search->marks & (0xff ^ (1 << mark))) | (on << mark);
+}
+
+static u32 GetMark(BoxSearchWork *wk, u32 mark) {
+    return (wk->param->syswk->search.marks >> mark) & 1;
+}
+
+static void SetActorAnim(BoxSearchWork *wk, u32 actor, u32 anim) {
+    ClActor_SetAnimTime(wk->actors[actor], 0);
+    ClActor_SetSequence(wk->actors[actor], anim);
+    ClActor_SetAutoAnim(wk->actors[actor], TRUE);
+}
+
+// Shows each marking on or off
+static void ShowMarks(BoxSearchWork *wk, u32 actor) {
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        u32 on = GetMark(wk, i);
+
+        ClActor_SetSequence(wk->actors[actor + i], on + i * 2);
+    }
+}
+
+static void PutMarkActors(BoxSearchWork *wk, u32 layout) {
+    ClActorPos pos;
+    u32 i;
+
+    if (layout == 0) {
+        pos.x = 136;
+        pos.y = 128;
+    } else {
+        pos.x = 12;
+        pos.y = 92;
+    }
+    for (i = 22; i <= 27; i++) {
+        ClActor_SetSurfacePos(wk->actors[i], &pos, 0);
+        pos.x += 16;
+    }
+}
+
+static void SetActorsVisible(BoxSearchWork *wk, u32 actor, BOOL visible) {
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        ClActor_SetVisible(wk->actors[actor + i], visible);
+    }
+}
+
+// Shows the scroll bar
+static void ShowScrollBar(BoxSearchWork *wk) {
+    ClActorPos pos = sScrollBarPos;
+
+    ClActor_SetSurfacePos(wk->actors[21], &pos, 0);
+    ClActor_SetVisible(wk->actors[21], TRUE);
+}
+
+// Moves the scroll bar
+static void MoveScrollBar(BoxSearchWork *wk) {
+    ClActorPos pos;
+
+    ClActor_GetPos(wk->actors[21], &pos);
+    pos.y = FrameList_ClampBarPos(wk->list, pos.y);
+    if (pos.y < 12) {
+        pos.y = 12;
+    } else if (pos.y > 156) {
+        pos.y = 156;
+    }
+    ClActor_SetPos(wk->actors[21], &pos);
+}
+
+// Shows the list's arrows, grayed out at its ends
+static void ShowListArrows(BoxSearchWork *wk, BOOL keep) {
+    int pos = FrameList_GetCursor(wk->list);
+
+    if (keep == FALSE) {
+        ClActor_SetVisible(wk->actors[34], TRUE);
+        ClActor_SetVisible(wk->actors[35], TRUE);
+    }
+    if (ClActor_GetSequence(wk->actors[34]) != 12 || keep == FALSE) {
+        if (FrameList_GetScroll(wk->list) == 0 && pos == 0) {
+            SetActorAnim(wk, 34, 18);
+        } else {
+            SetActorAnim(wk, 34, 4);
+        }
+    }
+    if (ClActor_GetSequence(wk->actors[35]) != 13 || keep == FALSE) {
+        if (FrameList_CanScrollDown(wk->list) == FALSE && pos == wk->listRows - 1) {
+            SetActorAnim(wk, 35, 19);
+        } else {
+            SetActorAnim(wk, 35, 5);
+        }
+    }
+}
+
+static void ClearAllCriteria(BoxSearchWork *wk) {
+    SetCriterion(wk, CRITERION_SPECIES, 0);
+    SetCriterion(wk, CRITERION_ITEM, 0);
+    SetCriterion(wk, CRITERION_NATURE, 0);
+    SetCriterion(wk, CRITERION_ABILITY, 0);
+    SetCriterion(wk, CRITERION_SEX, 0);
+    SetCriterion(wk, CRITERION_MARKS, 0);
+}
+
+// Whether the return button or B was pressed
+static BOOL IsReturnPressed(BoxSearchWork *wk) {
+    if (TouchBar_GetTouched(wk->touchBar) == TOUCHBAR_ICON_RETURN) {
+        return TRUE;
+    }
+    if (GCTX_HIDGetPressedKeys() & PAD_BUTTON_B) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// The row of the list touched, or TOUCH_RECT_NONE
+static int GetTouchedRow(BoxSearchWork *wk) {
+    int pos = GFL_HIDGetTouchPressedRect(sListRowRects);
+
+    if (pos >= 0 && pos < wk->listRows && GCTX_HIDIsUsingTouch() == FALSE) {
+        GCTX_HIDSetUsingTouch(TRUE);
+    }
+    return pos;
+}

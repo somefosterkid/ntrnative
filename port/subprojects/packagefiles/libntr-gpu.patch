@@ -1,0 +1,236 @@
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+index 1901355..affa7b1 100644
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -12,7 +12,8 @@ typedef enum {
+ /* bw-port (libntr-vbridge.patch): what draws the picture */
+ typedef enum {
+     SIM_CONFIG_RENDERER_VCORE, /* the in-process frame renderer (bw-port's port/vcore), when the program has one */
+-    SIM_CONFIG_RENDERER_LIBNTR /* libntr's own 2D and 3D */
++    SIM_CONFIG_RENDERER_LIBNTR, /* libntr's own 2D and 3D */
++    SIM_CONFIG_RENDERER_GPU /* bw-port's port/gpu (libntr-gpu.patch): the 3D upscaled on the GPU, vcore when it cannot */
+ } SIM_config_renderer_type;
+ 
+ /* bw-port (libntr-acore.patch): what plays the sound */
+@@ -74,8 +75,9 @@ typedef struct {
+     u8 vsyncInterval; /* Vertical sync interval. Set to 0 to disable vsync, 1 every vblank, 2 every second vblank etc*/
+     u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+-    u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=vcore|libntr (BWPORT_RENDERER overrides it) */
++    u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=vcore|gpu|libntr (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
++    u8 gpuScale; /* Renderer=gpu: the 3D at this many times the DS resolution, 1..8 (sim_config.ini Scale, BWPORT_GPU_SCALE) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+index a83753c..ed4db96 100644
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -70,7 +70,12 @@ static int IniHandler(void* user, const char* section, const char* name,
+         config->sound = strcmp(value, "acore") == 0 ? SIM_CONFIG_SOUND_ACORE : SIM_CONFIG_SOUND_LIBNTR;
+     }
+     if(MATCH("General", "Renderer")) {
+-        config->renderer = strcmp(value, "libntr") == 0 ? SIM_CONFIG_RENDERER_LIBNTR : SIM_CONFIG_RENDERER_VCORE;
++        config->renderer = strcmp(value, "libntr") == 0 ? SIM_CONFIG_RENDERER_LIBNTR
++                         : strcmp(value, "gpu") == 0 ? SIM_CONFIG_RENDERER_GPU : SIM_CONFIG_RENDERER_VCORE;
++    }
++    if(MATCH("General", "Scale")) {
++        int n = atoi(value);
++        config->gpuScale = (u8)(n < 1 ? 1 : n > 8 ? 8 : n);
+     }
+ 
+     if(MATCH("General", "MacAddr")) {
+@@ -362,6 +367,13 @@ static void RendererFromEnv(SIM_config_type * aConfig)
+         aConfig->renderer = SIM_CONFIG_RENDERER_LIBNTR;
+     } else if(e != NULL && strcmp(e, "vcore") == 0) {
+         aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
++    aConfig->gpuScale = 2;
++    } else if(e != NULL && strcmp(e, "gpu") == 0) {
++        aConfig->renderer = SIM_CONFIG_RENDERER_GPU;
++    }
++    e = getenv("BWPORT_GPU_SCALE");
++    if(e != NULL && atoi(e) >= 1) {
++        aConfig->gpuScale = (u8)(atoi(e) > 8 ? 8 : atoi(e));
+     }
+ }
+ 
+@@ -476,7 +488,9 @@ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+     fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
+     fprintf(configFile, "Sound=%s\n", aConfig->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
+-    fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_LIBNTR ? "libntr" : "vcore");
++    fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_LIBNTR ? "libntr"
++                                         : aConfig->renderer == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore");
++    fprintf(configFile, "Scale=%d\n", aConfig->gpuScale);
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+                                                               aConfig->macAddr[2],
+diff --git a/libraries/sim/src/sim_gui_config.cpp b/libraries/sim/src/sim_gui_config.cpp
+index cb1ce8d..e18e39c 100644
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -28,7 +28,8 @@ static constexpr const char * ScreenLayoutStrings[] = {
+ // bw-port (libntr-vbridge.patch): SIM_config_renderer_type's order
+ static constexpr const char * RendererStrings[] = {
+     "vcore (port/vcore)",
+-    "libntr"
++    "libntr",
++    "gpu (port/gpu, upscaled 3D)"
+ };
+ 
+ static constexpr const char * VblankStrings[] = {
+@@ -50,6 +51,7 @@ void AppConfigMain(bool *openState) {
+     bool fullScreen = sConfig->fullScreen;
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
++    int gpuScale = sConfig->gpuScale;
+     
+     ImGui::Begin("Config", openState);
+ 
+@@ -63,9 +65,14 @@ void AppConfigMain(bool *openState) {
+         configChanged = true;
+     }
+ 
+-    if(ImGui::Combo("Renderer", &renderer, RendererStrings, 2, 2)) {
++    if(ImGui::Combo("Renderer", &renderer, RendererStrings, 3, 3)) {
+         configChanged = true;
+     }
++    if(renderer == SIM_CONFIG_RENDERER_GPU) {
++        if(ImGui::SliderInt("GPU scale", &gpuScale, 1, 8, "%dx DS")) {
++            configChanged = true;
++        }
++    }
+ 
+     if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
+         configChanged = true;
+@@ -95,6 +102,7 @@ void AppConfigMain(bool *openState) {
+         sConfig->swapScreens = swapScreens;
+         sConfig->showInputPanel = showPanel;
+         sConfig->renderer = (u8)renderer;
++        sConfig->gpuScale = (u8)gpuScale;
+         sConfig->fullScreen = fullScreen;
+         if(sConfig->fullScreen) {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), SDL_WINDOW_FULLSCREEN_DESKTOP);
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index 7c05e14..ab0700f 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -249,6 +249,15 @@ extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d,
+ typedef const unsigned char *(*SIM_FrameRendererFn)(void);
+ static SIM_FrameRendererFn sFrameRenderer;
+ static int sFrameRendererDrew;
++// libntr-gpu.patch: the GL variant (port/gpu through port/bridge/gpu_bridge.c, sim_config.ini Renderer=gpu): fn runs with
++// libntr's GL context current, draws the picture into a GL texture of its own and returns its name and size (256 N x
++// 384 N, the top screen in the upper half), which the screen quads draw (the bridge keeps it GL_NEAREST). It saves and
++// restores the GL state it changes. 0: no picture this frame (the vcore renderer draws it). The bridge gets its GL
++// functions by name from SIM_GLGetProc and the scale from SIM_GLRendererScale.
++typedef unsigned (*SIM_FrameRendererGLFn)(int *w, int *h);
++static SIM_FrameRendererGLFn sFrameRendererGL;
++extern "C" void SIM_SetFrameRendererGL(SIM_FrameRendererGLFn fn) { sFrameRendererGL = fn; }
++extern "C" void *SIM_GLGetProc(const char *name) { return (void *)SDL_GL_GetProcAddress(name); }
+ extern "C" void SIM_SetFrameRenderer(SIM_FrameRendererFn fn) { sFrameRenderer = fn; }
+ extern "C" int SIM_HasFrameRenderer(void) { return sFrameRenderer != NULL; }
+ extern "C" int SIM_FrameRendererActive(void) { return sFrameRendererDrew; }
+@@ -1190,44 +1199,80 @@ static GLuint SIM_FrameShader(GLenum kind, const char *src) {
+   return id;
+ }
+ 
++static void SIM_FrameInit(void) {
++  if (s_frameProgram != 0) return;
++  GLint prevTex = 0, prevUnit = 0;
++  glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
++  glActiveTexture(GL_TEXTURE0);
++  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++  glGenTextures(1, &s_frameTexture);
++  glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, 0, GL_RGBA,
++               GL_UNSIGNED_BYTE, NULL);
++  GLuint vs = SIM_FrameShader(GL_VERTEX_SHADER, kFrameVertexShader);
++  GLuint fs = SIM_FrameShader(GL_FRAGMENT_SHADER, kFrameFragmentShader);
++  s_frameProgram = glCreateProgram();
++  glAttachShader(s_frameProgram, vs);
++  glAttachShader(s_frameProgram, fs);
++  glLinkProgram(s_frameProgram);
++  glProgramUniform1i(s_frameProgram, glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
++  glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++  glActiveTexture((GLenum)prevUnit);
++}
++
++// the screen quads with the picture in texture tex (unit 0), libntr's state back after
++static void SIM_DrawFrameTexture(GLuint tex) {
++  GLint prevTex = 0, prevUnit = 0;
++  glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
++  glActiveTexture(GL_TEXTURE0);
++  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++  glBindTexture(GL_TEXTURE_2D, tex);
++  glUseProgram(s_frameProgram);
++  DrawScreenQuad();
++  glUseProgram(g2shaderProgramID);
++  glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++  glActiveTexture((GLenum)prevUnit);
++}
++
++extern "C" int SIM_GLRendererScale(void) { return s_SIM_config.gpuScale; }
++
+ static bool SIM_DrawFrameRenderer(void) {
+   sFrameRendererDrew = 0;
+-  if (sFrameRenderer == NULL || s_SIM_config.renderer != SIM_CONFIG_RENDERER_VCORE) {
++  bool gpu = s_SIM_config.renderer == SIM_CONFIG_RENDERER_GPU;
++  if (gpu && sFrameRendererGL != NULL) {
++    int tw = 0, th = 0;
++    GLuint tex = (GLuint)sFrameRendererGL(&tw, &th);
++    if (tex != 0) {
++      SIM_FrameInit();
++      SIM_DrawFrameTexture(tex);
++      s_reg_GX_DISPCAPCNT &= ~0x80000000u;
++      sFrameRendererDrew = 1;
++      return true;
++    }
++  }
++  // Renderer=gpu falls back to vcore for a frame the GL renderer did not draw
++  if (sFrameRenderer == NULL || (s_SIM_config.renderer != SIM_CONFIG_RENDERER_VCORE && !gpu)) {
+     return false;
+   }
+   const unsigned char *rgba = sFrameRenderer();
+   if (rgba == NULL) {
+     return false;
+   }
++  SIM_FrameInit();
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+   glActiveTexture(GL_TEXTURE0);
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+-  if (s_frameProgram == 0) {
+-    glGenTextures(1, &s_frameTexture);
+-    glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, 0, GL_RGBA,
+-                 GL_UNSIGNED_BYTE, NULL);
+-    GLuint vs = SIM_FrameShader(GL_VERTEX_SHADER, kFrameVertexShader);
+-    GLuint fs = SIM_FrameShader(GL_FRAGMENT_SHADER, kFrameFragmentShader);
+-    s_frameProgram = glCreateProgram();
+-    glAttachShader(s_frameProgram, vs);
+-    glAttachShader(s_frameProgram, fs);
+-    glLinkProgram(s_frameProgram);
+-    glProgramUniform1i(s_frameProgram, glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
+-  }
+   glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+   glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2, GL_RGBA,
+                   GL_UNSIGNED_BYTE, rgba);
+-  glUseProgram(s_frameProgram);
+-  DrawScreenQuad();
+-  glUseProgram(g2shaderProgramID);
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
++  SIM_DrawFrameTexture(s_frameTexture);
+   // the DS clears DISPCAPCNT's enable bit when the captured frame ends; the renderer has stored the capture in its
+   // bank (libntr's own capture, in DrawEngine, does the same)
+   s_reg_GX_DISPCAPCNT &= ~0x80000000u;

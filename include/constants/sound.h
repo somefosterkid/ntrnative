@@ -1,0 +1,572 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), include/constants/sound.h, the lines in use so far.
+#ifndef BWPORT_CONSTANTS_SOUND_H
+#define BWPORT_CONSTANTS_SOUND_H
+
+// Sound sequences, with the names that the sound archive's symbols give them (Black's wb_sound_data.sdat gives the
+// same names to these numbers)
+
+#define SEQ_SE_MESSAGE 0x547
+#define SEQ_SE_SELECT1 0x548
+#define SEQ_SE_DECIDE1 0x54c
+#define SEQ_SE_CANCEL1 0x551
+#define SEQ_SE_DANSA 0x55e
+#define SEQ_SE_NAGERU 0x566
+#define SEQ_SE_BOWA2 0x567
+#define SEQ_SE_KON 0x56b
+#define SEQ_SE_W307_03 0x593
+#define SEQ_SE_W028_02 0x5a7
+#define SEQ_SE_W054_01 0x5af
+#define SEQ_SE_W179_02 0x5ce
+#define SEQ_SE_FLD_92 0x6ed
+#define SEQ_SE_BREC_06 0x703
+#define SEQ_SE_SYS_83 0x76d
+#define SEQ_SE_W554_PAKIN 0x781
+#define SEQ_SE_TDEMO_001 0x785
+#define SEQ_SE_TDEMO_002 0x786
+#define SEQ_SE_TDEMO_003 0x787
+#define SEQ_SE_TDEMO_004 0x788
+#define SEQ_SE_TDEMO_005 0x789
+#define SEQ_SE_TDEMO_006 0x78a
+#define SEQ_SE_TDEMO_007 0x78b
+#define SEQ_SE_TDEMO_008 0x78c
+#define SEQ_SE_TDEMO_009 0x78d
+#define SEQ_SE_TDEMO_010 0x78e
+#define SEQ_SE_TDEMO_011 0x78f
+#define SEQ_SE_FLD_171 0x7eb
+#define SEQ_SE_FLD_173 0x7ed
+
+#define SEQ_SE_SYS_31 0x65e
+#define SEQ_SE_SYS_32 0x65f
+#define SEQ_SE_SYS_33 0x660
+#define SEQ_SE_SYS_34 0x661
+#define SEQ_SE_SYS_35 0x662
+
+#define SEQ_BGM_SILENCE_FIELD 0x3e9
+#define SEQ_BGM_STARTING2 0x3f1
+#define SEQ_BGM_BICYCLE 0x3f4
+#define SEQ_BGM_NAMINORI 0x3f5
+
+#define SEQ_SE_DECIDE2 0x54d
+#define SEQ_SE_CANCEL3 0x553
+
+#define SEQ_BGM_GURUGURU 0x485
+#define SEQ_ME_ITEM 0x516
+
+#define SEQ_SE_CANCEL2 0x552
+
+#define SEQ_SE_FLD_65 0x6d0
+#define SEQ_SE_FLD_95 0x6f0
+
+#define SEQ_SE_SYS_06 0x645
+
+#define SEQ_SE_WALL_HIT 0x55a
+#define SEQ_SE_FLD_50 0x6a3
+#define SEQ_SE_FLD_63 0x6ce
+
+#define SEQ_SE_CLOSE1 0x556
+
+#define SEQ_SE_BREC_02 0x6ff
+#define SEQ_SE_BREC_03 0x700
+
+#define SEQ_SE_MSCL_10 0x62b
+#define SEQ_SE_MSCL_11 0x62c
+
+#define SEQ_SE_SELECT3 0x54a
+
+#define SEQ_SE_OPEN2 0x555
+#define SEQ_SE_NAGERU 0x566
+
+#define SEQ_SE_FLD_05 0x676
+
+#define SEQ_SE_DECIDE3 0x54e
+#define SEQ_SE_BEEP 0x557
+#define SEQ_SE_MSCL_01 0x622
+#define SEQ_SE_MSCL_02 0x623
+
+#define SEQ_SE_MSCL_04 0x625
+#define SEQ_SE_MSCL_05 0x626
+#define SEQ_SE_MSCL_06 0x627
+
+#define SEQ_SE_SYS_12 0x64b
+
+#define SEQ_SE_SYS_21 0x654
+#define SEQ_SE_SYS_43 0x66a
+#define SEQ_SE_SYS_44 0x66b
+
+#define SEQ_SE_SAVE 0x558
+
+#define SEQ_BGM_WIN2 0x47d
+
+#define SEQ_SE_SYS_07 0x646
+
+#define SEQ_SE_SYS_76 0x63d
+#define SEQ_SE_SYS_77 0x63e
+
+#define SEQ_SE_FLD_25 0x68a
+
+#define SEQ_SE_SELECT4 0x54b
+
+#define SEQ_SE_SYS_45 0x66c
+
+// Black's, read from the ROM by tools/black_constants.py
+#define SEQ_BGM_R_F 0x41e
+#define SEQ_BGM_E_TSURETEKE2 0x43e
+#define SEQ_BGM_E_PLASMA 0x443
+#define SEQ_SE_OPEN_01 0x7f7
+#define SEQ_SE_OPEN_02 0x7f8
+#define SEQ_SE_OPEN_03 0x7f9
+#define SEQ_SE_SYS_92 0x7cd
+#define SEQ_SE_SYS_51 0x725
+#define SEQ_SE_SYS_52 0x726
+#define SEQ_SE_SYS_53 0x727
+#define SEQ_SE_SYS_54 0x728
+#define SEQ_SE_SYS_55 0x729
+#define SEQ_SE_SYS_09 0x648
+#define SEQ_SE_SYS_10 0x649
+#define SEQ_SE_FLD_140 0x77e
+#define SEQ_SE_FLD_141 0x77f
+#define SEQ_SE_FLD_120 0x760
+#define SEQ_SE_FLD_122 0x762
+#define SEQ_ME_BPGET 0x526
+#define SEQ_SE_SYS_74 0x63a
+#define SEQ_SE_SYS_102 0x80d
+#define SEQ_BGM_STARTING 0x3f0
+#define SEQ_BGM_STARTING2 0x3f1
+#define SEQ_SE_TOUJOU_INTRO 0x7f5
+#define SEQ_BGM_MSL_DRESSUP 0x454
+#define SEQ_SE_MSCL_03 0x624
+#define SEQ_SE_MSCL_07 0x628
+#define SEQ_SE_MSCL_08 0x629
+#define SEQ_SE_MSCL_21 0x7aa
+#define SEQ_SE_SYS_13 0x64c
+#define SEQ_SE_SYS_14 0x64d
+#define SEQ_SE_SYS_15 0x64e
+#define SEQ_SE_SYS_16 0x64f
+#define SEQ_SE_SYS_17 0x650
+#define SEQ_ME_AISHOU_H 0x527
+#define SEQ_ME_AISHOU_M 0x528
+#define SEQ_ME_AISHOU_L 0x529
+#define SEQ_SE_SYS_20 0x653
+#define SEQ_SE_FLD_164 0x7ce
+#define SEQ_SE_FLD_165 0x7d0
+#define SEQ_BGM_VS_NORAPOKE 0x468
+#define SEQ_BGM_VS_SUBWAY_TRAINER 0x46b
+#define SEQ_BGM_VS_CHAMP 0x470
+#define SEQ_BGM_WIN1 0x47c
+#define SEQ_BGM_WIN3 0x47e
+#define SEQ_BGM_WIN4 0x47f
+#define SEQ_BGM_WIN5 0x480
+#define SEQ_BGM_WIN6 0x491
+#define SEQ_SE_FLD_162 0x7cb
+#define SEQ_SE_FLD_163 0x7cc
+#define SEQ_SE_FLD_175 0x7f2
+#define SEQ_SE_FLD_134 0x776
+#define SEQ_SE_FLD_138 0x77a
+#define SEQ_SE_FLD_139 0x77b
+#define SEQ_SE_FLD_20 0x685
+#define SEQ_SE_FLD_21 0x686
+#define SEQ_SE_FLD_22 0x687
+#define SEQ_SE_FLD_24 0x689
+#define SEQ_SE_FLD_26 0x68b
+#define SEQ_SE_FLD_27 0x68c
+#define SEQ_SE_FLD_67 0x6d2
+#define SEQ_SE_FLD_76 0x6db
+#define SEQ_SE_SELECT2 0x549
+#define SEQ_SE_SYS_11 0x64a
+#define SEQ_SE_SYS_100 0x7e3
+#define SEQ_SE_SYS_79 0x763
+#define SEQ_SE_SYS_69 0x73b
+#define SEQ_SE_SYS_70 0x73c
+#define SEQ_BGM_N_CASTLE_BRIDGE 0x433
+#define SEQ_BGM_E_DOCTOR 0x441
+#define SEQ_BGM_E_DOCTOR2 0x442
+#define SEQ_BGM_EYE_01 0x45a
+#define SEQ_BGM_EYE_02 0x45b
+#define SEQ_BGM_EYE_03 0x45c
+#define SEQ_BGM_EYE_04 0x45d
+#define SEQ_BGM_EYE_05 0x45e
+#define SEQ_BGM_EYE_06 0x45f
+#define SEQ_BGM_EYE_07 0x460
+#define SEQ_BGM_EYE_08 0x461
+#define SEQ_BGM_EYE_09 0x462
+#define SEQ_BGM_EYE_10 0x463
+#define SEQ_BGM_EYE_11 0x464
+#define SEQ_BGM_EYE_12 0x465
+#define SEQ_BGM_EYE_13 0x466
+#define SEQ_BGM_EYE_PLASMA 0x467
+#define SEQ_BGM_E_FRIEND 0x489
+#define SEQ_BGM_E_SOUND_DESIGNER 0x48a
+#define SEQ_SE_SYS_84 0x76f
+#define SEQ_ME_HYOUKA1 0x51f
+#define SEQ_ME_HYOUKA2 0x520
+#define SEQ_ME_HYOUKA3 0x521
+#define SEQ_ME_HYOUKA4 0x522
+#define SEQ_ME_HYOUKA5 0x523
+#define SEQ_SE_W235_03 0x5d8
+#define SEQ_SE_SYS_65 0x733
+#define SEQ_SE_SYS_66 0x734
+#define SEQ_SE_SYS_67 0x735
+#define SEQ_SE_WCS_02 0x801
+#define SEQ_SE_WCS_03 0x802
+#define SEQ_SE_WCS_04 0x803
+#define SEQ_SE_DDEMO_01 0x79a
+#define SEQ_SE_DDEMO_02A 0x79b
+#define SEQ_SE_DDEMO_02B 0x79c
+#define SEQ_SE_DDEMO_03 0x79d
+#define SEQ_SE_DDEMO_04 0x79e
+#define SEQ_ME_POKEGET 0x518
+#define SEQ_SE_TRIPLE_S 0x57b
+#define SEQ_SE_SDEMO_03 0x7b8
+#define SEQ_SE_ZORO_01 0x7f3
+#define SEQ_SE_FLD_60 0x6cb
+#define SEQ_SE_FLD_75 0x6da
+#define SEQ_SE_FLD_124 0x764
+#define SEQ_BGM_E_LEGEND_BORN_B 0x451
+#define SEQ_BGM_E_LEGEND_BORN_W 0x452
+#define SEQ_BGM_E_EPIROGUE 0x493
+#define SEQ_BGM_E_EPIROGUE_W 0x494
+#define SEQ_SE_DUMMY5 0x560
+#define SEQ_SE_W307_02 0x592
+#define SEQ_SE_W348_02 0x5ea
+#define SEQ_SE_SHINKA_W060C 0x636
+#define SEQ_SE_FLD_78 0x6dd
+#define SEQ_SE_FLD_79 0x6de
+#define SEQ_SE_W245_BUCKL 0x71a
+#define SEQ_SE_W307_EXP 0x75d
+#define SEQ_SE_FLD_127 0x767
+#define SEQ_SE_FLD_131 0x773
+#define SEQ_SE_LBDEMO_01 0x7b9
+#define SEQ_SE_LBDEMO_02 0x7ba
+#define SEQ_SE_LBDEMO_03 0x7bb
+#define SEQ_SE_LBDEMO_04 0x7bc
+#define SEQ_SE_LBDEMO_05 0x7bd
+#define SEQ_SE_LBDEMO_06 0x7be
+#define SEQ_SE_LBDEMO_07 0x7bf
+#define SEQ_SE_LBDEMO_09 0x7c1
+#define SEQ_SE_FLD_166 0x7d6
+#define SEQ_SE_VDEMO_01 0x7d7
+#define SEQ_SE_VDEMO_02 0x7d8
+#define SEQ_SE_FLD_167 0x7e5
+#define SEQ_SE_FLD_169 0x7e7
+#define SEQ_SE_VDEMO_03 0x7e9
+#define SEQ_SE_END_03 0x7f6
+#define SEQ_SE_END_04 0x7fa
+#define SEQ_SE_END_05 0x7fb
+#define SEQ_SE_MEET_02 0x7fd
+#define SEQ_SE_MEET_04 0x7ff
+#define SEQ_SE_LCDEMO_01 0x804
+#define SEQ_SE_LCDEMO_02 0x805
+#define SEQ_SE_END_06 0x807
+#define SEQ_SE_END_07 0x808
+#define SEQ_SE_SYS_101 0x806
+#define SEQ_BGM_GTS 0x486
+#define SEQ_SE_SYS_75 0x63b
+#define SEQ_SE_FLD_07 0x678
+#define SEQ_SE_SYS_62 0x730
+#define SEQ_SE_SYS_63 0x731
+#define SEQ_SE_TB_START 0x570
+#define SEQ_SE_TB_KON 0x571
+#define SEQ_SE_TB_KARA 0x572
+#define SEQ_BGM_GAME_SYNC 0x483
+#define SEQ_BGM_VS_TRAINER_M 0x48b
+#define SEQ_BGM_VS_TRAINER_S 0x48c
+#define SEQ_BGM_VS_WCS 0x48d
+#define SEQ_BGM_VS_TRAINER_WIFI 0x490
+#define SEQ_SE_W157_01 0x588
+#define SEQ_SE_W014_02 0x59b
+#define SEQ_SE_W225_01 0x5d3
+#define SEQ_SE_W401_01 0x5f0
+#define SEQ_SE_W465_01 0x5f1
+#define SEQ_SE_FLD_39 0x698
+#define SEQ_SE_W008_01 0x6a4
+#define SEQ_SE_FLD_74 0x6d9
+#define SEQ_SE_NDEMO_02 0x798
+#define SEQ_SE_LBDEMO_08 0x7c0
+#define SEQ_SE_BGDEMO_02 0x7db
+#define SEQ_SE_NDEMO_03 0x7e1
+#define SEQ_SE_RIZDEMO_01 0x7e4
+#define SEQ_SE_RIZDEMO_02 0x7ea
+#define SEQ_SE_MEET_03 0x7fe
+#define SEQ_SE_MEET_01 0x7fc
+#define SEQ_BGM_E_OPENING 0x44e
+#define SEQ_BGM_E_N_CASTLE 0x450
+#define SEQ_BGM_E_LEGEND_COME_B 0x48e
+#define SEQ_BGM_E_LEGEND_COME_W 0x48f
+#define SEQ_ME_DEL_POWER 0x531
+#define SEQ_SE_W319_02 0x5e6
+#define SEQ_SE_MSCL_16 0x631
+#define SEQ_SE_MSCL_17 0x632
+#define SEQ_SE_MSCL_18 0x633
+#define SEQ_SE_MSCL_19 0x634
+#define SEQ_SE_SYS_56 0x72a
+#define SEQ_SE_SYS_57 0x72b
+#define SEQ_SE_SYS_49 0x670
+#define SEQ_SE_SYS_80 0x76a
+#define SEQ_SE_RECOVERY 0x56f
+#define SEQ_SE_SYS_02 0x641
+#define SEQ_SE_MSCL_20 0x7a9
+#define SEQ_SE_SHOOTER 0x573
+#define SEQ_SE_W181_01 0x5d0
+#define SEQ_SE_EDEMO_01 0x7a2
+#define SEQ_SE_EDEMO_02 0x7a3
+#define SEQ_SE_EDEMO_03 0x7a8
+#define SEQ_SE_EDEMO_04 0x7af
+#define SEQ_SE_EDEMO_05 0x7b0
+#define SEQ_BGM_POKECEN 0x424
+#define SEQ_SE_FLD_32 0x691
+#define SEQ_BGM_WCS 0x487
+#define SEQ_SE_SYS_08 0x647
+#define SEQ_SE_SYS_22 0x655
+#define SEQ_SE_SYS_36 0x663
+#define SEQ_SE_SYS_90 0x79f
+#define SEQ_SE_SYS_99 0x7d9
+#define SEQ_SE_SYS_24 0x657
+#define SEQ_SE_SYS_25 0x658
+#define SEQ_SE_SYS_26 0x659
+#define SEQ_SE_SYS_81 0x76b
+#define SEQ_SE_SYS_82 0x76c
+
+#define SEQ_SE_OPEN1 0x554
+#define SEQ_SE_BICYCLE 0x55f
+#define SEQ_SE_FLD_08 0x679
+#define SEQ_SE_FLD_09 0x67a
+#define SEQ_SE_FLD_10 0x67b
+#define SEQ_SE_FLD_11 0x67c
+#define SEQ_SE_FLD_12 0x67d
+#define SEQ_SE_FLD_13 0x67e
+#define SEQ_SE_FLD_14 0x67f
+#define SEQ_SE_FLD_49 0x6a2
+#define SEQ_SE_FLD_84 0x6e3
+#define SEQ_SE_FLD_85 0x6e4
+#define SEQ_SE_FLD_91 0x6ec
+#define SEQ_SE_SHDEMO_01 0x7dc
+#define SEQ_SE_SHDEMO_02 0x7dd
+#define SEQ_SE_SHDEMO_03 0x7de
+#define SEQ_SE_SHDEMO_04 0x7df
+#define SEQ_SE_SHDEMO_05 0x7e0
+
+#define SEQ_BGM_WIFI_PRESENT 0x482
+#define SEQ_SE_SYS_88 0x794
+#define SEQ_SE_SYS_89 0x795
+#define SEQ_SE_SYS_71 0x73d
+#define SEQ_SE_SYS_72 0x73e
+#define SEQ_SE_SYS_46 0x66d
+
+#define SEQ_SE_ROTATION_S 0x579
+#define SEQ_SE_SYS_39 0x666
+#define SEQ_SE_SYS_40 0x667
+#define SEQ_SE_SYS_42 0x669
+#define SEQ_BGM_BATTLEPINCH 0x47a
+#define SEQ_SE_EXP 0x56d
+#define SEQ_SE_EXPMAX 0x56e
+
+#define SEQ_SE_SYS_86 0x790
+#define SEQ_SE_SYS_87 0x791
+#define SEQ_SE_END 0x81b
+
+// Black 2's: Black has nothing of this name (tools/black_constants.py)
+#define SEQ_SE_SW_CARD_01 0x85f
+#define SEQ_SE_SW_CARD_02 0x860
+#define SEQ_SE_SW_CARD_03 0x861
+#define SEQ_SE_SW_CARD_04 0x862
+#define SEQ_SE_SW_CARD_05 0x863
+#define SEQ_SE_SW_CARD_08 0x866
+#define SEQ_SE_SW_CARD_09 0x867
+#define SEQ_SE_SW_CARD_10 0x868
+#define SEQ_SE_SW_CARD_11 0x869
+#define SEQ_SE_SW_CARD_12 0x86a
+#define SEQ_SE_SW_CARD_13 0x86b
+#define SEQ_SE_SW_CARD_14 0x86c
+#define SEQ_SE_SW_CARD_15 0x86d
+#define SEQ_SE_SW_CARD_16 0x86e
+#define SEQ_SE_SW_CARD_17 0x86f
+#define SEQ_SE_SW_CARD_18 0x870
+#define SEQ_SE_SW_CARD_19 0x871
+#define SEQ_SE_SW_CARD_20 0x872
+#define SEQ_SE_SW_CARD_21 0x873
+#define SEQ_SE_SW_BELLBOX_01 0x8cf
+#define SEQ_SE_SW_BELLBOX_02 0x8d0
+#define SEQ_SE_SW_BELLBOX_03 0x8d1
+#define SEQ_SE_SW_CARD_22 0x874
+#define SEQ_SE_SW_KERTIO_FORM_01 0x8dc
+#define SEQ_SE_SW_KERTIO_FORM_02 0x8dd
+#define SEQ_SE_SW_KERTIO_FORM_06 0x8e1
+#define SEQ_BGM_SW_DEMO_OPENING 0x44e
+#define SEQ_BGM_SW_DEMO_SHIP 0x4cc
+#define SEQ_BGM_SW_DEMO_UNION_00 0x4ce
+#define SEQ_BGM_SW_DEMO_UNION_01 0x4cf
+#define SEQ_BGM_SW_DEMO_UNION_02 0x4d0
+#define SEQ_BGM_SW_DEMO_UNION_03B 0x4d1
+#define SEQ_BGM_SW_DEMO_UNION_03W 0x4d2
+#define SEQ_BGM_SW_DEMO_AJITO_SHIP 0x4d3
+#define SEQ_BGM_SW_DEMO_FRIGATE 0x4d4
+#define SEQ_SE_SW_TACHIWAKI_01 0x90c
+#define SEQ_SE_SW_TACHIWAKI_02 0x90d
+#define SEQ_SE_SW_TACHIWAKI_03 0x90e
+#define SEQ_SE_SW_AIRPLANE_01 0x90f
+#define SEQ_SE_SW_AIRPLANE_02_L 0x910
+#define SEQ_SE_SW_AIRPLANE_02_R 0x911
+#define SEQ_SE_SW_AIRPLANE_03 0x912
+#define SEQ_SE_SW_FRIGATE_01 0x913
+#define SEQ_SE_SW_FRIGATE_02 0x914
+#define SEQ_SE_SW_FRIGATE_03 0x915
+#define SEQ_SE_SW_FRIGATE_04 0x916
+#define SEQ_SE_SW_FRIGATE_05 0x917
+#define SEQ_SE_SW_FRIGATE_06 0x918
+#define SEQ_SE_SW_FRIGATE_07 0x919
+#define SEQ_SE_SW_FRIGATE_08 0x91a
+#define SEQ_SE_SW_FRIGATE_09 0x91b
+#define SEQ_SE_SW_FRIGATE_10 0x91c
+#define SEQ_SE_SW_FRIGATE_11 0x91d
+#define SEQ_SE_SW_FRIGATE_12 0x91e
+#define SEQ_SE_SW_FRIGATE_13 0x91f
+#define SEQ_SE_SW_FRIGATE_14 0x920
+#define SEQ_SE_SW_FRIGATE_15 0x921
+#define SEQ_SE_SW_FRIGATE_16 0x922
+#define SEQ_SE_SW_FRIGATE_17 0x923
+#define SEQ_SE_SW_FRIGATE_18 0x924
+#define SEQ_SE_SW_SOURYUCITY_01 0x925
+#define SEQ_SE_SW_SOURYUCITY_02 0x926
+#define SEQ_SE_SW_SOURYUCITY_03 0x927
+#define SEQ_SE_SW_SOURYUCITY_05 0x929
+#define SEQ_SE_SW_SOURYUCITY_06 0x92a
+#define SEQ_SE_SW_SOURYUCITY_07 0x92b
+#define SEQ_SE_SW_SOURYUCITY_08 0x92c
+#define SEQ_SE_SW_SOURYUCITY_09 0x92d
+#define SEQ_SE_SW_SOURYUCITY_10 0x92e
+#define SEQ_SE_SW_SOURYUCITY_11 0x92f
+#define SEQ_SE_SW_SOURYUCITY_12 0x930
+#define SEQ_SE_SW_SOURYUCITY_13 0x931
+#define SEQ_SE_SW_SOURYUCITY_14 0x932
+#define SEQ_SE_SW_SOURYUCITY_15 0x933
+#define SEQ_SE_SW_SOURYUCITY_16 0x934
+#define SEQ_SE_SW_SOURYUCITY_17 0x935
+#define SEQ_SE_SW_SOURYUCITY_18 0x936
+#define SEQ_SE_SW_KYUREON_00_01 0x937
+#define SEQ_SE_SW_KYUREON_00_02a 0x938
+#define SEQ_SE_SW_KYUREON_00_02b 0x939
+#define SEQ_SE_SW_KYUREON_00_02d 0x93b
+#define SEQ_SE_SW_KYUREON_00_03a 0x93c
+#define SEQ_SE_SW_KYUREON_00_03b 0x93d
+#define SEQ_SE_SW_KYUREON_01_01 0x93e
+#define SEQ_SE_SW_KYUREON_01_01b 0x93f
+#define SEQ_SE_SW_KYUREON_01_02a 0x940
+#define SEQ_SE_SW_KYUREON_01_02b 0x941
+#define SEQ_SE_SW_KYUREON_01_03 0x942
+#define SEQ_SE_SW_KYUREON_01_04 0x943
+#define SEQ_SE_SW_KYUREON_01_05 0x944
+#define SEQ_SE_SW_KYUREON_01_06 0x945
+#define SEQ_SE_SW_KYUREON_01_07 0x946
+#define SEQ_SE_SW_KYUREON_01_07b 0x947
+#define SEQ_SE_SW_KYUREON_01_08 0x948
+#define SEQ_SE_SW_KYUREON_01_09 0x949
+#define SEQ_SE_SW_KYUREON_01_10 0x94a
+#define SEQ_SE_SW_KYUREON_01_11 0x94b
+#define SEQ_SE_SW_KYUREON_01_12 0x94c
+#define SEQ_SE_SW_KYUREON_01_13 0x94d
+#define SEQ_SE_SW_KYUREON_01_14b 0x94e
+#define SEQ_SE_SW_KYUREON_01_14w 0x94f
+#define SEQ_SE_SW_KYUREON_01_15 0x950
+#define SEQ_SE_SW_KYUREON_01_16 0x951
+#define SEQ_SE_SW_KYUREON_02_01 0x952
+#define SEQ_SE_SW_KYUREON_02_02 0x953
+#define SEQ_SE_SW_KYUREON_02_03 0x954
+#define SEQ_SE_SW_KYUREON_02_04 0x955
+#define SEQ_SE_SW_KYUREON_02_05 0x956
+#define SEQ_SE_SW_KYUREON_02_06 0x957
+#define SEQ_SE_SW_KYUREON_02_06w 0x958
+#define SEQ_SE_SW_KYUREON_02_07 0x959
+#define SEQ_SE_SW_KYUREON_02_08 0x95a
+#define SEQ_SE_SW_KYUREON_02_09 0x95b
+#define SEQ_SE_SW_KYUREON_02_10 0x95c
+#define SEQ_SE_SW_KYUREON_03_01 0x95d
+#define SEQ_SE_SW_KYUREON_03_02 0x95e
+#define SEQ_SE_SW_KYUREON_03_03 0x95f
+#define SEQ_SE_SW_KYUREON_03_04 0x960
+#define SEQ_SE_SW_KYUREON_03_05 0x961
+#define SEQ_SE_SW_KYUREON_03_06b 0x962
+#define SEQ_SE_SW_KYUREON_03_06w 0x963
+#define SEQ_SE_SW_KYUREON_03_07b 0x964
+#define SEQ_SE_SW_KYUREON_03_07w 0x965
+#define SEQ_BGM_EYE_NEO_PLASMA 0x467
+#define SEQ_BGM_EYE_DANCER 0x4db
+#define SEQ_BGM_EYE_CLOWN 0x4dc
+#define SEQ_SE_DECIDE6 0x80d
+#define SEQ_SE_SW_FES_14 0x850
+#define SEQ_SE_SW_FES_15 0x851
+#define SEQ_SE_SW_FES_16 0x852
+
+#define SEQ_SE_FLD_59 0x6ca
+
+#define SEQ_SE_SYS_78 0x63f
+
+#define SEQ_ME_HYOUKA6 0x524
+// Black 2's, not checked against Black
+
+#define SEQ_SE_ROTATION_B 0x57a
+#define SEQ_SE_SYS_03 0x642
+
+#define SEQ_BGM_E_DENDOUIRI 0x3f7
+// Black 2's, not checked against Black
+
+#define SEQ_ME_AISHOU_KIDOU 0x52a
+
+#define SEQ_BGM_WIFI_ACCESS 0x481
+// Black 2's, not checked against Black
+
+#define SEQ_SE_BREC_04 0x701
+
+#define SEQ_SE_W295_01 0x5e0
+
+#define SEQ_ME_LVUP 0x515
+
+#define SEQ_SE_MSCL_14 0x62f
+
+#define SEQ_SE_FLD_33 0x692
+
+#define SEQ_BGM_KOUKAN 0x3f3
+
+#define SEQ_SE_SYS_37 0x664
+
+#define SEQ_SE_SYS_50 0x671
+
+#define SEQ_SE_SYS_48 0x66f
+
+#define SEQ_SE_MSCL_09 0x62a
+
+#define SEQ_SE_PC_LOGIN 0x55c
+#define SEQ_SE_PC_LOGOFF 0x55d
+
+#define SEQ_SE_DUMMY 0x546
+
+#define SEQ_SE_SYS_41 0x668
+
+#define SEQ_SE_FLD_31 0x690
+#define SEQ_SE_FLD_34 0x693
+#define SEQ_SE_FLD_98 0x71e
+#define SEQ_SE_FLD_99 0x71f
+
+#define SEQ_SE_SYS_18 0x651
+#define SEQ_SE_SYS_23 0x656
+
+#define SEQ_SE_BREC_07 0x704
+
+#define SEQ_SE_SYS_38 0x665
+
+#define SEQ_BGM_SHINKA 0x3f2
+#define SEQ_ME_SHINKAOME 0x519
+
+#define SEQ_SE_SYS_47 0x66e
+
+#define SEQ_SE_W010_01 0x58f
+#define SEQ_SE_W043_01 0x5a9
+#define SEQ_SE_W319_01 0x5e5
+#define SEQ_SE_W009_01 0x5f2
+#define SEQ_SE_FLD_01 0x672
+#define SEQ_SE_NDEMO_01 0x797
+#define SEQ_SE_FLD_152 0x7b7
+#define SEQ_SE_FLD_157 0x7c6
+#define SEQ_SE_BGDEMO_01 0x7da
+#define SEQ_SE_FLD_172 0x7ec
+
+#endif // BWPORT_CONSTANTS_SOUND_H

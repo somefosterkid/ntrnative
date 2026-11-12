@@ -1,0 +1,40 @@
+pokebw2-evalorder.patch (tools/pokebw2_fetch.sh, the maintainers' notes): the trainer AI's three table commands read the table's
+offset before they add it to the script pointer. `vm->pc + (s32)VM_Read32(vm)`, where VM_Read32 moves vm->pc on by 4:
+Metrowerks reads vm->pc after the call (the ROM's scripts are laid out for that), clang before, so on the PC the table
+started 4 bytes early (Black's N-battle hang, port/extern/src/ov096/tr_ai.c). tools/evalorder_scan.py --b2w2 found no
+other instance of the shape.
+
+diff --git a/src/ov170/tr_ai.c b/src/ov170/tr_ai.c
+index 9f90f279a..d7df44458 100644
+--- a/src/ov170/tr_ai.c
++++ b/src/ov170/tr_ai.c
+@@ -996,7 +996,8 @@ void CheckMove(VM *vm, TrAIContext *wk, u32 op) {
+ // The list is 32-bit values, stored as 16-bit halves, and ends with 0xffffffff
+ BOOL AIIfResultInList(VM *vm, void *work) {
+     TrAIContext *wk = work;
+-    const u16 *list = (const u16 *)(vm->pc + (s32)VM_Read32(vm));
++    s32 listOffset = VM_Read32(vm);
++    const u16 *list = (const u16 *)(vm->pc + listOffset);
+     s32 offset = VM_Read32(vm);
+     s32 i = 0;
+     u32 value;
+@@ -1014,7 +1015,8 @@ BOOL AIIfResultInList(VM *vm, void *work) {
+ 
+ BOOL AIIfResultNotInList(VM *vm, void *work) {
+     TrAIContext *wk = work;
+-    const u16 *list = (const u16 *)(vm->pc + (s32)VM_Read32(vm));
++    s32 listOffset = VM_Read32(vm);
++    const u16 *list = (const u16 *)(vm->pc + listOffset);
+     s32 offset = VM_Read32(vm);
+     s32 i = 0;
+     u32 value;
+@@ -2066,7 +2068,8 @@ BOOL AIJumpByMoveEffect(VM *vm, void *work) {
+     TrAIContext *wk = work;
+     u32 mode = VM_Read32(vm);
+     s32 max = VM_Read32(vm);
+-    const u16 *table = (const u16 *)(vm->pc + (s32)VM_Read32(vm));
++    s32 tableOffset = VM_Read32(vm);
++    const u16 *table = (const u16 *)(vm->pc + tableOffset);
+     int index;
+     BOOL end = FALSE;
+ 

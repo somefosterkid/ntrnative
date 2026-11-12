@@ -1,0 +1,233 @@
+#include "types.h"
+#include "constants/arc.h"
+#include "field/field.h"
+#include "field/field_exp_obj.h"
+#include "field/field_map.h"
+#include "field/gimmick_marine_tube.h"
+#include "gfl/g3d.h"
+#include "gfl/std.h"
+#include "nitro/fx.h"
+#include "system/game_data.h"
+#include "system/game_system.h"
+
+#define GIMMICK_WORK_ID 1
+#define GIMMICK_STATE_ID 50
+
+#define MODEL_COUNT 13
+#define FRAME_COUNT 20
+
+// What the save keeps of the tube: the frame of each animation, and which of the tube's stages is shown
+typedef struct {
+    // A model's frames start at its own index, so they overlap those of the next model when it has two animations
+    fx32 frames[FRAME_COUNT];
+    u32 stage;
+} MarineTubeState;
+
+typedef struct {
+    FieldExpObjSystem *expObj;
+    Field *field;
+    MarineTubeState *state;
+} MarineTubeWork;
+
+static void MarineTube_PlaceModels(MarineTubeWork *work);
+static void MarineTube_ShowStage(MarineTubeWork *work);
+static void MarineTube_FreeScene(MarineTubeWork *work);
+static void MarineTube_StepAnimations(MarineTubeWork *work);
+static void MarineTube_InitModel(FieldExpObjSystem *expObj, u16 model, int animCount, VecFx32 pos);
+static void MarineTube_ShowModel(FieldExpObjSystem *expObj, u16 model);
+static void MarineTube_SaveFrames(MarineTubeWork *work);
+static void MarineTube_LoadFrames(MarineTubeWork *work);
+
+static const union { u8 raw[348]; G3DSceneResourceSetup t[29]; } sResources_raw = { {
+#include "asset/gimmick_marine_tube_sResources.inc"
+} };
+_Static_assert(sizeof(sResources_raw.t) <= sizeof(sResources_raw.raw), "sResources: the ROM's bytes are its layout");
+#define sResources (sResources_raw.t)
+
+static const G3DSceneAnimationSetup sModel0Animations[] = { { 1, 0 } };
+static const G3DSceneAnimationSetup sModel1Animations[] = { { 3, 0 } };
+static const G3DSceneAnimationSetup sModel2Animations[] = { { 5, 0 } };
+static const G3DSceneAnimationSetup sModel3Animations[] = { { 7, 0 } };
+static const G3DSceneAnimationSetup sModel4Animations[] = { { 9, 0 }, { 10, 0 } };
+static const G3DSceneAnimationSetup sModel5Animations[] = { { 12, 0 } };
+static const G3DSceneAnimationSetup sModel6Animations[] = { { 14, 0 } };
+static const G3DSceneAnimationSetup sModel7Animations[] = { { 16, 0 }, { 17, 0 } };
+static const G3DSceneAnimationSetup sModel8Animations[] = { { 19, 0 }, { 20, 0 } };
+static const G3DSceneAnimationSetup sModel9Animations[] = { { 22, 0 } };
+static const G3DSceneAnimationSetup sModel10Animations[] = { { 24, 0 } };
+static const G3DSceneAnimationSetup sModel11Animations[] = { { 26, 0 } };
+static const G3DSceneAnimationSetup sModel12Animations[] = { { 28, 0 } };
+
+static const G3DSceneActorSetup sActors[MODEL_COUNT] = {
+#include "asset/gimmick_marine_tube_sActors.inc"
+};
+
+static const G3DSceneSetup sSceneSetup = { sResources, NELEMS(sResources), sActors, NELEMS(sActors) };
+
+// How many animations each model has
+static const int sAnimationCounts[MODEL_COUNT] = {
+#include "asset/gimmick_marine_tube_sAnimationCounts.inc"
+};
+
+void MarineTube_Init(Field *field) {
+    GameData *gameData = GSYS_GetGameData(Field_GetGameSystem(field));
+    MarineTubeWork *work;
+
+    Field_AllocGimmickWorkBlock(field, GIMMICK_WORK_ID, Field_GetHeapID(field), sizeof(MarineTubeWork));
+    work = Field_GetGimmickWorkBlock(field, GIMMICK_WORK_ID);
+    work->field = field;
+    work->expObj = Field_GetExpObjSystem(field);
+    work->state = GimmickState_GetUserData(GameData_GetGimmickState(gameData), GIMMICK_STATE_ID);
+    MarineTube_PlaceModels(work);
+    MarineTube_ShowStage(work);
+    MarineTube_LoadFrames(work);
+}
+
+void MarineTube_End(Field *field) {
+    MarineTubeWork *work = Field_GetGimmickWorkBlock(field, GIMMICK_WORK_ID);
+
+    MarineTube_SaveFrames(work);
+    MarineTube_FreeScene(work);
+    Field_DeleteGimmickWorkBlock(field, GIMMICK_WORK_ID);
+}
+
+void MarineTube_Update(Field *field) {
+    MarineTube_StepAnimations(Field_GetGimmickWorkBlock(field, GIMMICK_WORK_ID));
+}
+
+// Shows the models of the saved stage, which loop
+static void MarineTube_ShowStage(MarineTubeWork *work) {
+    switch (work->state->stage) {
+    case 0:
+        MarineTube_ShowModel(work->expObj, 0);
+        MarineTube_ShowModel(work->expObj, 1);
+        MarineTube_ShowModel(work->expObj, 2);
+        MarineTube_ShowModel(work->expObj, 3);
+        MarineTube_ShowModel(work->expObj, 5);
+        MarineTube_ShowModel(work->expObj, 6);
+        MarineTube_ShowModel(work->expObj, 7);
+        MarineTube_ShowModel(work->expObj, 8);
+        break;
+    case 1:
+        MarineTube_ShowModel(work->expObj, 0);
+        MarineTube_ShowModel(work->expObj, 1);
+        MarineTube_ShowModel(work->expObj, 2);
+        MarineTube_ShowModel(work->expObj, 3);
+        MarineTube_ShowModel(work->expObj, 9);
+        MarineTube_ShowModel(work->expObj, 10);
+        MarineTube_ShowModel(work->expObj, 11);
+        MarineTube_ShowModel(work->expObj, 12);
+        break;
+    case 2:
+        MarineTube_ShowModel(work->expObj, 4);
+        break;
+    }
+}
+
+// Places the models, hidden
+static void MarineTube_PlaceModels(MarineTubeWork *work) {
+    VecFx32 positions[7] = {
+        { FX32_CONST(256), FX32_CONST(0), FX32_CONST(256) },  { FX32_CONST(256), FX32_CONST(0), FX32_CONST(768) },
+        { FX32_CONST(256), FX32_CONST(0), FX32_CONST(1280) }, { FX32_CONST(256), FX32_CONST(0), FX32_CONST(1792) },
+        { FX32_CONST(256), FX32_CONST(0), FX32_CONST(2304) }, { FX32_CONST(256), FX32_CONST(0), FX32_CONST(2816) },
+        { FX32_CONST(256), FX32_CONST(0), FX32_CONST(3328) },
+    };
+    VecFx32 posA;
+    VecFx32 posB;
+    VecFx32 posC;
+
+    LoadFieldExpandObjData(work->expObj, &sSceneSetup, 0);
+    posA = positions[3];
+    MarineTube_InitModel(work->expObj, 0, 1, posA);
+    posB = positions[1];
+    MarineTube_InitModel(work->expObj, 1, 1, posB);
+    MarineTube_InitModel(work->expObj, 2, 1, posA);
+    MarineTube_InitModel(work->expObj, 3, 1, posB);
+    MarineTube_InitModel(work->expObj, 4, 2, posA);
+    posC = positions[4];
+    MarineTube_InitModel(work->expObj, 5, 1, posC);
+    MarineTube_InitModel(work->expObj, 6, 1, posB);
+    MarineTube_InitModel(work->expObj, 7, 2, posC);
+    MarineTube_InitModel(work->expObj, 8, 2, posB);
+    MarineTube_InitModel(work->expObj, 9, 1, posA);
+    MarineTube_InitModel(work->expObj, 10, 1, posB);
+    MarineTube_InitModel(work->expObj, 11, 1, posA);
+    MarineTube_InitModel(work->expObj, 12, 1, posB);
+}
+
+static void MarineTube_FreeScene(MarineTubeWork *work) {
+    FieldExpObj_FreeScene(work->expObj, 0);
+}
+
+static void MarineTube_StepAnimations(MarineTubeWork *work) {
+    FieldExpObj_StepAllAnimations(work->expObj);
+}
+
+// Places the model, hidden, with its animations set looping and paused
+static void MarineTube_InitModel(FieldExpObjSystem *expObj, u16 model, int animCount, VecFx32 pos) {
+    SRTMatrix *matrix;
+    FieldExpObjAnm *anm;
+    int i;
+    fx32 z = pos.z;
+    fx32 y = pos.y;
+
+    matrix = FieldExpObj_GetActorMatrixPtr(expObj, 0, model);
+    matrix->translation.x = pos.x;
+    matrix->translation.y = y;
+    matrix->translation.z = z;
+    FieldExpObj_SetActorCulling(expObj, 0, model, 0);
+    FieldExpObj_SetActorHidden(expObj, 0, model, TRUE);
+    for (i = 0; i < animCount; i++) {
+        anm = FieldExpObj_GetAnmInfo(expObj, 0, model, i);
+        FieldExpObjAnm_SetLooped(anm, TRUE);
+        FieldExpObjAnm_SetPaused(anm, TRUE);
+        FieldExpObj_SetAnm(expObj, 0, model, i, FALSE);
+    }
+}
+
+// Shows the model with its animations playing in a loop
+static void MarineTube_ShowModel(FieldExpObjSystem *expObj, u16 model) {
+    int animCount = sAnimationCounts[model];
+    FieldExpObjAnm *anm;
+    int i;
+
+    FieldExpObj_SetActorHidden(expObj, 0, model, FALSE);
+    for (i = 0; i < animCount; i++) {
+        anm = FieldExpObj_GetAnmInfo(expObj, 0, model, i);
+        FieldExpObj_SetAnm(expObj, 0, model, i, TRUE);
+        FieldExpObjAnm_SetLooped(anm, TRUE);
+        FieldExpObjAnm_SetPaused(anm, FALSE);
+    }
+}
+
+// Keeps the frame of each animation in the save
+static void MarineTube_SaveFrames(MarineTubeWork *work) {
+    FieldExpObjSystem *expObj = work->expObj;
+    MarineTubeState *state = work->state;
+    int i;
+    int j;
+    int animCount;
+
+    for (i = 0; i < MODEL_COUNT; i++) {
+        animCount = sAnimationCounts[i];
+        for (j = 0; j < animCount; j++) {
+            state->frames[i + j] = FieldExpObj_GetAnmFrame(expObj, 0, i, (u16)j);
+        }
+    }
+}
+
+// Sets each animation to the frame that the save kept
+static void MarineTube_LoadFrames(MarineTubeWork *work) {
+    FieldExpObjSystem *expObj = work->expObj;
+    MarineTubeState *state = work->state;
+    int i;
+    int j;
+    int animCount;
+
+    for (i = 0; i < MODEL_COUNT; i++) {
+        animCount = sAnimationCounts[i];
+        for (j = 0; j < animCount; j++) {
+            FieldExpObj_SetAnmFrame(expObj, 0, i, j, state->frames[i + j]);
+        }
+    }
+}

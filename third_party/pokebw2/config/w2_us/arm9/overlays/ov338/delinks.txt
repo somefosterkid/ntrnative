@@ -1,0 +1,10 @@
+    .text       start:0x0217c980 end:0x0217cb50 kind:code align:32
+    .ctor       start:0x0217cb50 end:0x0217cb50 kind:rodata align:4
+    .data       start:0x0217cb60 end:0x0217cb80 kind:data align:32
+    .bss        start:0x0217cb80 end:0x0217cc60 kind:bss align:32
+
+src/ov338/ir_check.c:
+    complete
+    .text       start:0x0217c980 end:0x0217cb50
+    .data       start:0x0217cb60 end:0x0217cb80
+    .bss        start:0x0217cb80 end:0x0217cc60

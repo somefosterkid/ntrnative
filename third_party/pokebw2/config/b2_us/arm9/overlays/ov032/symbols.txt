@@ -1,0 +1,5 @@
+WFCUserInfoWarning_Show kind:function(thumb,size=0xf8) addr:0x021998c0
+WFCUserInfoWarning_Init kind:function(thumb,size=0xa0) addr:0x021999b8
+WFCUserInfoWarning_LoadWindow kind:function(thumb,size=0xd0) addr:0x02199a58
+WFCUserInfoWarning_PrintMessage kind:function(thumb,size=0xb8) addr:0x02199b28
+WFCUserInfoWarning_Exit kind:function(thumb,size=0x7c) addr:0x02199be0

@@ -1,0 +1,5 @@
+# game: b2
+# from: b2-hugh
+# reaches: Hugh battle (b2-hugh, 2 tiles away), fought out with A; BWPORT_TESTCHEAT=win one-shots
+keys down*f32@f260
+keys a@f400 a@f440 a@f480 a@f520 a@f560 a@f600 a@f640 a@f680 a@f720 a@f760 a@f800 a@f840 a@f880 a@f920 a@f960 a@f1000 a@f1040 a@f1080 a@f1120 a@f1160 a@f1200 a@f1240 a@f1280 a@f1320 a@f1360 a@f1400 a@f1440 a@f1480 a@f1520 a@f1560 a@f1600 a@f1640 a@f1680 a@f1720 a@f1760 a@f1800 a@f1840 a@f1880 a@f1920 a@f1960 a@f2000 a@f2040 a@f2080 a@f2120 a@f2160 a@f2200 a@f2240 a@f2280 a@f2320 a@f2360 a@f2400 a@f2440 a@f2480 a@f2520 a@f2560 a@f2600 a@f2640 a@f2680 a@f2720 a@f2760 a@f2800 a@f2840 a@f2880 a@f2920 a@f2960 a@f3000 a@f3040 a@f3080 a@f3120 a@f3160 a@f3200 a@f3240 a@f3280 a@f3320 a@f3360 a@f3400 a@f3440 a@f3480 a@f3520 a@f3560 a@f3600 a@f3640 a@f3680 a@f3720 a@f3760 a@f3800 a@f3840 a@f3880 a@f3920 a@f3960 a@f4000 a@f4040 a@f4080 a@f4120 a@f4160 a@f4200 a@f4240 a@f4280 a@f4320 a@f4360

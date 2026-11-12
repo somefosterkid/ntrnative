@@ -1,0 +1,180 @@
+--- a/libraries/gx/src/gx_vramcnt.c
++++ b/libraries/gx/src/gx_vramcnt.c
+@@ -23,6 +23,7 @@
+ 
+ #ifdef SDK_PORT
+ #include <simulator/sim.h>
++#include <string.h>
+ #endif
+ 
+ typedef enum {
+@@ -152,6 +153,149 @@
+ 	GX_VRAMCNT_I_SUBOBJEXTPLTT     = (3 << REG_GX_VRAMCNT_I_MST_SHIFT) | (1 << REG_GX_VRAMCNT_I_E_SHIFT)
+ } GX_VRAMCNT_I;
+ 
++#ifdef SDK_PORT
++/*
++ * bw-port: the VRAM banks as one memory each, seen where VRAMCNT maps them. On the DS a bank (A-I) is one memory that
++ * the CPU sees at its LCDC address and the 2D engines see where VRAMCNT puts it (BG, OBJ). libntr keeps the LCDC
++ * view (s_HW_LCDC_VRAM, which is also where its 3D engine reads the textures, the texture palettes and the extended
++ * palettes) apart from the main/sub BG and OBJ arrays its 2D engines and the CPU's BG/OBJ addresses use, so a bank
++ * written or cleared through its LCDC address and then mapped to BG showed the BG array's old data.
++ *
++ * A bank's data lives in one place, its home: the BG or OBJ array at the bank's offset while it is mapped there, else
++ * its own part of s_HW_LCDC_VRAM (LCDC, textures, palettes, ARM7, disabled). When VRAMCNT changes (every register
++ * write of this file ends in GX_VRAMCNT_SetLCDC_ or disableBankForX_, which call GXi_SimSyncVramBanks), each bank
++ * whose home changed is moved: first every leaving bank back to its LCDC part, its old place cleared (unmapped VRAM
++ * reads 0) unless a bank that stays covers it, then every arriving bank into its new place. Copies, not aliased
++ * pages: Windows maps views at 64 KB granularity and banks F, G, I are 16 KB.
++ */
++extern u8 s_HW_BG_VRAM[0x80000];
++extern u8 s_HW_DB_BG_VRAM[0x20000];
++extern u8 s_HW_OBJ_VRAM[0x40000];
++extern u8 s_HW_DB_OBJ_VRAM[0x20000];
++extern u8 s_HW_LCDC_VRAM[0xA4000];
++
++#define GXI_SIM_VRAM_BANKS 9
++
++static const u32 sSimVramLcdcOffset[GXI_SIM_VRAM_BANKS] = {
++	0x00000, 0x20000, 0x40000, 0x60000, 0x80000, 0x90000, 0x94000, 0x98000, 0xA0000
++};
++static const u32 sSimVramSize[GXI_SIM_VRAM_BANKS] = {
++	0x20000, 0x20000, 0x20000, 0x20000, 0x10000, 0x4000, 0x4000, 0x8000, 0x4000
++};
++static u8 sSimVramCnt[GXI_SIM_VRAM_BANKS]; /* VRAMCNT as last synced: all disabled at start, as the simulator sets them */
++
++static u8 GXi_SimVramCnt (int bank)
++{
++	switch (bank) {
++	case 0: return reg_GX_VRAMCNT_A;
++	case 1: return reg_GX_VRAMCNT_B;
++	case 2: return reg_GX_VRAMCNT_C;
++	case 3: return reg_GX_VRAMCNT_D;
++	case 4: return reg_GX_VRAMCNT_E;
++	case 5: return reg_GX_VRAMCNT_F;
++	case 6: return reg_GX_VRAMCNT_G;
++	case 7: return reg_GX_VRAMCNT_H;
++	default: return reg_GX_VRAMCNT_I;
++	}
++}
++
++/* Where the bank's data is while VRAMCNT is cnt: a BG/OBJ array at the bank's offset, else the bank's LCDC part. */
++static u8 *GXi_SimVramHome (int bank, u8 cnt)
++{
++	if (cnt & 0x80) {
++		u32 mst = (u32)cnt & (bank < 2 ? 3 : 7);
++		u32 ofs = ((u32)cnt >> 3) & 3;
++		u32 ofsFG = (ofs & 1) * 0x4000 + (ofs >> 1) * 0x10000;
++
++		switch (bank) {
++		case 0: /* A */
++		case 1: /* B */
++			if (mst == 1) return s_HW_BG_VRAM + ofs * 0x20000;
++			if (mst == 2) return s_HW_OBJ_VRAM + (ofs & 1) * 0x20000;
++			break;
++		case 2: /* C */
++		case 3: /* D */
++			if (mst == 1) return s_HW_BG_VRAM + ofs * 0x20000;
++			if (mst == 4) return bank == 2 ? s_HW_DB_BG_VRAM : s_HW_DB_OBJ_VRAM;
++			break;
++		case 4: /* E */
++			if (mst == 1) return s_HW_BG_VRAM;
++			if (mst == 2) return s_HW_OBJ_VRAM;
++			break;
++		case 5: /* F */
++		case 6: /* G */
++			if (mst == 1) return s_HW_BG_VRAM + ofsFG;
++			if (mst == 2) return s_HW_OBJ_VRAM + ofsFG;
++			break;
++		case 7: /* H */
++			if (mst == 1) return s_HW_DB_BG_VRAM;
++			break;
++		case 8: /* I */
++			if (mst == 1) return s_HW_DB_BG_VRAM + 0x8000;
++			if (mst == 2) return s_HW_DB_OBJ_VRAM;
++			break;
++		}
++	}
++	return s_HW_LCDC_VRAM + sSimVramLcdcOffset[bank];
++}
++
++void GXi_SimSyncVramBanks (void)
++{
++	u8 cnt[GXI_SIM_VRAM_BANKS];
++	u8 *oldHome[GXI_SIM_VRAM_BANKS];
++	u8 *newHome[GXI_SIM_VRAM_BANKS];
++	BOOL moved = FALSE;
++	int i, j;
++
++	for (i = 0; i < GXI_SIM_VRAM_BANKS; i++) {
++		cnt[i] = GXi_SimVramCnt(i);
++		oldHome[i] = GXi_SimVramHome(i, sSimVramCnt[i]);
++		newHome[i] = GXi_SimVramHome(i, cnt[i]);
++		if (oldHome[i] != newHome[i]) {
++			moved = TRUE;
++		}
++	}
++	if (moved) {
++		/* the leaving banks back to their LCDC parts */
++		for (i = 0; i < GXI_SIM_VRAM_BANKS; i++) {
++			u8 *lcdc = s_HW_LCDC_VRAM + sSimVramLcdcOffset[i];
++			if (oldHome[i] != newHome[i] && oldHome[i] != lcdc) {
++				memmove(lcdc, oldHome[i], sSimVramSize[i]);
++			}
++		}
++		/* their old places cleared, 16 KB at a time, where no bank that stays mapped there covers them */
++		for (i = 0; i < GXI_SIM_VRAM_BANKS; i++) {
++			u32 at;
++			if (oldHome[i] == newHome[i] || oldHome[i] == s_HW_LCDC_VRAM + sSimVramLcdcOffset[i]) {
++				continue;
++			}
++			for (at = 0; at < sSimVramSize[i]; at += 0x4000) {
++				u8 *p = oldHome[i] + at;
++				BOOL covered = FALSE;
++				for (j = 0; j < GXI_SIM_VRAM_BANKS; j++) {
++					if (j != i && oldHome[j] == newHome[j] && p >= newHome[j] && p < newHome[j] + sSimVramSize[j]) {
++						covered = TRUE;
++					}
++				}
++				if (!covered) {
++					memset(p, 0, 0x4000);
++				}
++			}
++		}
++		/* the arriving banks into their new places */
++		for (i = 0; i < GXI_SIM_VRAM_BANKS; i++) {
++			u8 *lcdc = s_HW_LCDC_VRAM + sSimVramLcdcOffset[i];
++			if (oldHome[i] != newHome[i] && newHome[i] != lcdc) {
++				memmove(newHome[i], lcdc, sSimVramSize[i]);
++			}
++		}
++	}
++	for (i = 0; i < GXI_SIM_VRAM_BANKS; i++) {
++		sSimVramCnt[i] = cnt[i];
++	}
++}
++#endif
++
+ #ifdef SDK_CW_WARNOFF_SAFESTRB
+     #include <nitro/code32.h>
+ #endif
+@@ -184,6 +328,9 @@
+ 
+ 	if (lcdc & GX_VRAM_LCDC_I)
+ 		reg_GX_VRAMCNT_I = (u8)GX_VRAMCNT_I_LCDC_0x068A0000;
++#ifdef SDK_PORT
++	GXi_SimSyncVramBanks();
++#endif
+ }
+ 
+ static inline void GX_VRAMCNT_SetBG_ (GXVRamBG bg)
+@@ -1319,6 +1466,9 @@
+ 	if (rval & GX_VRAM_LCDC_I)
+ 		reg_GX_VRAMCNT_I = 0;
+ 
++#ifdef SDK_PORT
++	GXi_SimSyncVramBanks();
++#endif
+ 	OSi_UnlockVram((u16)rval, GXi_VRamLockId);
+ 	return rval;
+ }

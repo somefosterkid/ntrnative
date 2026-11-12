@@ -1,0 +1,187 @@
+--- a/libraries/sim/src/g3_draw.cpp
++++ b/libraries/sim/src/g3_draw.cpp
+@@ -213,12 +213,22 @@
+ 	glDisableVertexAttribArray(2);
+ }
+ 
++// bw-port (libntr-norender.patch): sim_main.cpp's SIM_G3RasterOn is 0 while a frame renderer (port/vcore, port/gpu)
++// draws the picture: nothing reads libntr's own 3D raster then, so the batch of vertices is dropped before its
++// textures are decoded and uploaded and its triangles drawn (the geometry engine's results, the counts, the swap
++// state are all computed before the batch is flushed)
++extern "C" int SIM_G3RasterOn(void);
++
+ void G3SIM_FlushArray()
+ {
+ 	if(s_G3DrawCurVertIdx == 0) {
+ 		// No verts to draw
+ 		return;
+ 	}
++	if(!SIM_G3RasterOn()) {
++		G3SIM_DrawCleanUp();
++		return;
++	}
+ 
+ 	#ifdef SDK_TRACY_ENABLE
+ 	TracyCZone(FlushArrayZone, 1);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -262,6 +262,24 @@
+ extern "C" void SIM_SetFrameRenderer(SIM_FrameRendererFn fn) { sFrameRenderer = fn; }
+ extern "C" int SIM_HasFrameRenderer(void) { return sFrameRenderer != NULL; }
+ extern "C" int SIM_FrameRendererActive(void) { return sFrameRendererDrew; }
++// libntr-norender.patch: does libntr rasterize the 3D for its own picture? Not while a frame renderer draws the screens
++// (Renderer=vcore or gpu; nothing the game reads comes from libntr's raster: the geometry engine's results, the counts,
++// the swap state and the display capture are the simulator's or the renderer's), so the 3D pass, its texture decodes and
++// uploads, the shown-frame blit and the clear are skipped. On: Renderer=libntr, no frame renderer registered, a frame
++// the renderers did not draw (they failed: libntr's picture from then on), the file capture (BWPORT_VCAPTURE records
++// libntr's 3D frame), BWPORT_G3RASTER=1.
++extern "C" int SIM_VCapFileOn(void);
++static bool sFrameRendererFailed;
++extern "C" int SIM_G3RasterOn(void) {
++  static int sForce = -1;
++  if (sForce < 0) {
++    const char *e = getenv("BWPORT_G3RASTER");
++    sForce = e != NULL && e[0] == '1';
++  }
++  if (sForce || s_SIM_config.renderer == SIM_CONFIG_RENDERER_LIBNTR || sFrameRendererFailed) return 1;
++  if (sFrameRenderer == NULL && sFrameRendererGL == NULL) return 1;
++  return SIM_VCapFileOn();
++}
+ static bool SIM_DrawFrameRenderer(void);
+ 
+ static u8 s_numG3CommandsThisFrame = 0;
+@@ -439,6 +457,23 @@
+                   std::string(makerCode) + "]";
+   }
+ 
++  // bw-port (libntr-norender.patch): with a frame renderer drawing the screens, GL only presents one textured quad.
++  // Mesa's llvmpipe (the Windows build's software GL, WSL's) starts a raster thread per CPU, and waking them all costs
++  // several times the quad's own work (28 threads: 5 cores at 300 fps, 0.6 cores at the 60 fps cap): 4 threads at most.
++  // Before the GL context exists (Mesa reads it at its first context); a user's own LP_NUM_THREADS stands, a real GPU
++  // driver ignores it, and Renderer=gpu / libntr (the N x 3D or libntr's 3D on the software GL) keep Mesa's default.
++  if (s_SIM_config.renderer == SIM_CONFIG_RENDERER_VCORE && sFrameRenderer != NULL && getenv("LP_NUM_THREADS") == NULL) {
++    int n = SDL_GetCPUCount();
++    n = n > 4 ? 4 : (n < 1 ? 1 : n);
++    char nbuf[8];
++    snprintf(nbuf, sizeof nbuf, "%d", n);
++#ifdef SDK_BUILD_WIN64
++    _putenv_s("LP_NUM_THREADS", nbuf);
++#else
++    setenv("LP_NUM_THREADS", nbuf, 0);
++#endif
++  }
++
+   window = SDL_CreateWindow(
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
+       SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+@@ -1830,27 +1865,8 @@
+       SIM::GUI::DrawInputPanel((float)panelPxX, (float)viewY, (float)panelPxW, (float)viewHeight, lit);
+     }
+ 
+-    memset(bgtex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg0tex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg1tex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg2tex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg3tex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg0stex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg1stex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg2stex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-    memset(bg3stex, 0,
+-           sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+-
+     // A swapped 3D frame becomes the displayed one (kept until the next swap, as the DS's)
+-    if (G3SIM_SwapBuffersCalledThisFrame()) {
++    if (G3SIM_SwapBuffersCalledThisFrame() && SIM_G3RasterOn()) {
+       GLint readFb, drawFb;
+       int w = SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale;
+       int h = SIM_NDS_SCREEN_HEIGHT * 2 * s_SIM_config.internalResolutionScale;
+@@ -1869,6 +1885,28 @@
+ 
+     // bw-port: the in-process frame renderer (port/vcore) draws both screens when it is chosen
+     if (!SIM_DrawFrameRenderer()) {
++      // the renderers drew nothing: libntr's own picture, with its 3D, from now on (the 3D of this frame is lost)
++      if (s_SIM_config.renderer != SIM_CONFIG_RENDERER_LIBNTR && (sFrameRenderer != NULL || sFrameRendererGL != NULL))
++        sFrameRendererFailed = true;
++      // libntr's 2D layers start clear (libntr-norender.patch: only libntr's own 2D uses them)
++      memset(bgtex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg0tex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg1tex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg2tex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg3tex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg0stex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg1stex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg2stex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
++      memset(bg3stex, 0,
++             sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+       // Draw MAIN engine
+       DrawEngine(FALSE);
+ 
+@@ -1976,13 +2014,11 @@
+ #endif
+ 
+     s_numG3CommandsThisFrame = 0;
++    // the window's next frame (the same clear was done twice here); its depth buffer is only drawn into by libntr's 3D
+     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
++    glClear(SIM_G3RasterOn() ? (GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT) : GL_COLOR_BUFFER_BIT);
+     s_curPolygonAttr.alpha = 1.0f;
+ 
+-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+-
+     // bw-port (libntr-soundclock.patch): the sound side advances by this frame (not while the game is paused)
+     if (!SIM::GUI::IsGameLogicPaused()) {
+       SIM_Audio_FrameTick();
+@@ -2074,7 +2110,7 @@
+ 
+ void SIM_PostRenderVBlank() {
+   if (G3SIM_SwapBuffersCalledThisFrame()) {
+-    SIM_ClearG3();
++    if (SIM_G3RasterOn()) SIM_ClearG3();
+     G3SIM_ResetSwapBuffersCall();
+   }
+   // The game's V-blank work (after OS_WaitIrq) starts at line 192 too
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -275,6 +275,9 @@
+   return sEnabled > 0;
+ }
+ 
++// libntr-norender.patch: the file capture records libntr's own 3D frame, so libntr rasterizes it while the capture is on
++extern "C" int SIM_VCapFileOn(void) { return FileOn(); }
++
+ static void Record(u32 op, const u32 *p, u32 n, u32 flags) {
+   if (sCur.words.size() > (1u << 24)) {
+     // 64 MB of commands with no SWAP_BUFFERS (tests only, never drawn): start again from the state here
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -254,7 +254,12 @@
+ 
+ void Render() {
+     ImGui::Render();
+-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
++    // bw-port (libntr-norender.patch): the backend's render pass with no vertices to draw (the debug GUI is closed) cost
++    // ~5 ms a frame on llvmpipe (it syncs with the pending draws); it draws nothing
++    ImDrawData *dd = ImGui::GetDrawData();
++    if (dd != NULL && dd->TotalVtxCount > 0) {
++        ImGui_ImplOpenGL3_RenderDrawData(dd);
++    }
+ }
+ 
+ void Toggle() {

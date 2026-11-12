@@ -1,0 +1,26 @@
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -23,6 +23,10 @@
+ 
+ extern PXIFifoCallback FifoRecvCallbackTable7[PXI_MAX_FIFO_TAG];
+ 
++// bw-port: set by port/src/acapture.c (BWPORT_ACAPTURE); called with each sound command list before it runs, NULL for
++// a wakeup word
++void (*SIM_sndCaptureHook)(const SNDCommand * list) = NULL;
++
+ // sim7's snd_seq.c (no header declares them)
+ void SNDi_SetPlayerParam7(int playerNo, u32 offset, u32 data, int size);
+ void SNDi_SetTrackParam7(int playerNo, u32 trackBitMask, u32 offset, u32 data, int size);
+@@ -78,6 +82,12 @@
+ 					SNDCommand * sndCommandList;
+ 					sndCommandList = (SNDCommand * )msg->e.data;
+ 
++					// bw-port: the sound capture (port/src/acapture.c) sees each list before it runs, and each wakeup word
++					if( SIM_sndCaptureHook != NULL )
++					{
++						SIM_sndCaptureHook( sndCommandList );
++					}
++
+ 					if( sndCommandList == NULL )
+ 					{
+ 						break;

@@ -1,0 +1,24 @@
+    .text       start:0x021b6100 end:0x021b800c kind:code align:32
+    .rodata     start:0x021b800c end:0x021b8318 kind:rodata align:4
+    .ctor       start:0x021b8318 end:0x021b8318 kind:rodata align:4
+    .bss        start:0x021b8320 end:0x021b8320 kind:bss align:32
+
+src/ov180/ddemo_seq.c:
+    complete
+    .text       start:0x021b6a10 end:0x021b7318
+    .rodata     start:0x021b814c end:0x021b8174
+
+src/ov180/ddemo_obj.c:
+    complete
+    .text       start:0x021b7318 end:0x021b800c
+    .rodata     start:0x021b8174 end:0x021b8318
+
+src/ov180/ddemo_main.c:
+    complete
+    .text       start:0x021b6158 end:0x021b6a10
+    .rodata     start:0x021b8018 end:0x021b814c
+
+src/ov180/dendou_demo.c:
+    complete
+    .text       start:0x021b6100 end:0x021b6158
+    .rodata     start:0x021b800c end:0x021b8018

@@ -1,0 +1,22 @@
+PleasureBoat_SetUpRooms kind:function(thumb,size=0x204) addr:0x021eec80
+PickRandom kind:function(thumb,size=0x48) addr:0x021eee84
+RoomPicker_Reset kind:function(thumb,size=0x40) addr:0x021eeecc
+RoomPicker_Find kind:function(thumb,size=0x18) addr:0x021eef0c
+RoomPicker_Get kind:function(thumb,size=0x10) addr:0x021eef24
+RoomPicker_Remove kind:function(thumb,size=0x24) addr:0x021eef34
+RoomPicker_PickOrder kind:function(thumb,size=0xfc) addr:0x021eef58
+sFirstRooms kind:data(any) addr:0x021ef054
+sStarboardRooms kind:data(any) addr:0x021ef05a
+sPortRooms kind:data(any) addr:0x021ef068
+sPairs kind:data(any) addr:0x021ef070
+sRoomSides kind:data(any) addr:0x021ef0ac
+data_ov089_021ef0f5 kind:data(any) addr:0x021ef0f5 ambiguous
+data_ov089_021ef105 kind:data(any) addr:0x021ef105 ambiguous
+sTrainers kind:data(any) addr:0x021ef124
+sTrainersAlt kind:data(any) addr:0x021ef1c4
+data_ov089_021ef211 kind:data(any) addr:0x021ef211 ambiguous
+data_ov089_021ef231 kind:data(any) addr:0x021ef231 ambiguous
+sPeople kind:data(any) addr:0x021ef264
+data_ov089_021ef289 kind:data(any) addr:0x021ef289 ambiguous
+data_ov089_021ef29d kind:data(any) addr:0x021ef29d ambiguous
+data_ov089_021ef2e1 kind:data(any) addr:0x021ef2e1 ambiguous

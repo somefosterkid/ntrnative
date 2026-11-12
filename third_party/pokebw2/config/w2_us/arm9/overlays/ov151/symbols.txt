@@ -1,0 +1,12 @@
+EncEffRipple_CreateWhite kind:function(thumb,size=0x3c) addr:0x021f5de0
+EncEffRipple_CreateBlack kind:function(thumb,size=0x3c) addr:0x021f5e1c
+EncEffRipple_InitWhite kind:function(thumb,size=0xb0) addr:0x021f5e58
+EncEffRipple_EventCallback kind:function(thumb,size=0x8c) addr:0x021f5f08
+EncEffRipple_ClearAndDraw kind:function(thumb,size=0x2c) addr:0x021f5f94
+EncEffRipple_Draw kind:function(thumb,size=0x150) addr:0x021f5fc0
+EncEffRipple_Update kind:function(thumb,size=0x1ac) addr:0x021f6110
+EncEffRipple_InitBlack kind:function(thumb,size=0xb4) addr:0x021f62bc
+data_ov151_021f6330 kind:data(any) addr:0x021f6370
+data_ov151_021f633c kind:data(any) addr:0x021f637c
+data_ov151_021f6348 kind:data(any) addr:0x021f6388
+data_ov151_021f6354 kind:data(any) addr:0x021f6394

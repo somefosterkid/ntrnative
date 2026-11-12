@@ -1,0 +1,9 @@
+EncEffCapture_CreateFlashEvent kind:function(thumb,size=0x3c) addr:0x021f5a20
+EncEffCapture_CreateEvent kind:function(thumb,size=0x3c) addr:0x021f5a5c
+EncEffCapture_Draw kind:function(thumb,size=0x94) addr:0x021f5a98
+EncEffCaptureFlash_Callback kind:function(thumb,size=0x132) addr:0x021f5b2c
+EncEffCapture_StartCapture kind:function(thumb,size=0x20) addr:0x021f5c60
+EncEffCapture_CaptureTask kind:function(thumb,size=0x20) addr:0x021f5c80
+EncEffCapture_GetTexKey kind:function(thumb,size=0x36) addr:0x021f5ca0
+EncEffCapture_Callback kind:function(thumb,size=0xde) addr:0x021f5cd8
+data_ov148_021f5d78 kind:data(any) addr:0x021f5db8

@@ -1,0 +1,18 @@
+    .text       start:0x01ff8000 end:0x01ff8804 kind:code align:32
+    .bss        start:0x01ff8820 end:0x01ff8820 kind:bss align:32
+
+lib/nitro/src/mi/mi_dma_itcm.c:
+    complete
+    .text       start:0x01ff8020 end:0x01ff80f0
+
+lib/nitro/src/os/os_irqHandler_itcm.c:
+    complete
+    .text       start:0x01ff80f0 end:0x01ff82a8
+
+lib/nitro/src/os/os_reset_itcm.c:
+    complete
+    .text       start:0x01ff82a8 end:0x01ff87d4
+
+lib/twl/src/scfg/scfg_proc_itcm.c:
+    complete
+    .text       start:0x01ff87d4 end:0x01ff8804

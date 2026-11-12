@@ -1,0 +1,51 @@
+orig
+build/
+extract/
+*.nds
+.venv
+__pycache__/
+
+# Tools downloaded by configure.py
+tools/dsd
+tools/dsd.rev
+tools/wibo
+tools/mwccarm
+build.ninja
+.ninja_*
+.claude/worktrees/
+
+# Android signing keys and APKs (the maintainers' notes, "Android"): the release key lives outside the repo
+# (outside the repo); an APK holds bytes from the ROM
+*.jks
+*.keystore
+*.p12
+*.pem
+signing.properties
+local.properties
+*.apk
+*.aab
+/config/w_us/arm9/
+/config/w_us/assets.tsv
+
+# ROM-derived files: never committed (tools/rom_leak_check.py)
+*.sav
+*.vcs
+*.srl
+*.narc
+*.ncgr
+*.nclr
+*.nscr
+*.nanr
+*.ncer
+*.nsbmd
+*.nsbtx
+*.nsbca
+*.sdat
+*.sseq
+*.swar
+*.strm
+
+# saves and exported keys
+save.bin
+*.dsv
+saves/

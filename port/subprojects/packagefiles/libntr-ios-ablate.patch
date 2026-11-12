@@ -1,0 +1,119 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -965,6 +965,7 @@
+ // frame loop reads (renderer, Resolution, Frame rate; the swap interval follows in SIM_Render). A step logs "cfgscript: fN ..." to
+ // stderr when it applies. "pN:..." instead of "fN:..." applies N frames after the previous step and after any performance log has finished. Keys: renderer=auto|vcore|gpu, resolution=1..8, framerate=60|120|monitor|unlimited, antialias=1|2|4,
+ // shot=NAME (the window's picture to NAME.png), quit=1 (ends the run), perflog=NAME (records 5 s of per-frame stage times to perf_NAME.txt, as Debug > Save performance log).
++// ablate=NAME+NAME (libntr-ios-ablate.patch: test-only, a piece of the frame taken out: r, e, pslow, p, c, gpu, present, spin; none = off).
+ extern "C" void SIM_FrameForceDraw(void);
+ static int sCfgPauseMs;    // pause=MS (libntr-ios-pacefix.patch): the next frame stands still MS ms at its top, as under the settings sheet
+ static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch) writes NAME.png at the next present
+@@ -1021,6 +1022,33 @@
+ static u64 sPassNc, sPassNg;
+ static u64 sPass2dN, sPass2dA, sPass2dB;  // libntr-ios-2dskip.patch: the frames whose engine A / B 2D the GPU path reused
+ extern "C" int SIM_PassTiming(void) { return sPassOn; }
++// libntr-ios-ablate.patch: test-only ablations (the maintainers' notes): cfgscript ablate=NAME+NAME..., a piece of the frame taken out or
++// faked so a bench row measures the frame without it (a ceiling for making that piece cheaper). Metal only for the GPU pieces.
++// Off (0) by default and reset by ablate=none; the pictures are wrong while one is on.
++static unsigned sAblate;
++extern "C" unsigned SIM_Ablation(void) { return sAblate; }
++static unsigned AblateParse(const char *v) {
++  static const struct { const char *name; unsigned bit; } k[] = {
++    {"r", 1},         // pass R draws no polygon (GPU_ABL_R)
++    {"e", 2},         // no pass E
++    {"pslow", 4},     // pass P without its slow-pixel draw
++    {"p", 8},         // no pass P
++    {"c", 16},        // no pass C
++    {"gpu", 32},      // no GL/Metal half at all (uploads, S, R, E, P, C; the in-between pictures too): the picture stays
++    {"present", 64},  // the present commits an empty command buffer: no drawable, no quad, no UI draw (the screen keeps its picture)
++    {"spin", 128},    // the pacing sleep's last 150 us are slept, not spun
++  };
++  unsigned m = 0;
++  for (const char *q = v; *q != 0;) {
++    const char *e = strchr(q, '+');
++    size_t n = e != NULL ? (size_t)(e - q) : strlen(q);
++    for (size_t i = 0; i < sizeof k / sizeof k[0]; i++) {
++      if (strlen(k[i].name) == n && strncmp(k[i].name, q, n) == 0) m |= k[i].bit;
++    }
++    q += n + (e != NULL ? 1 : 0);
++  }
++  return m;
++}
+ extern "C" void SIM_PassCpu(double geo, double spans, double twod) {
+   if (!sPassOn) return;
+   sPassCpu[0] += geo, sPassCpu[1] += spans, sPassCpu[2] += twod;
+@@ -1069,7 +1097,7 @@
+       "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm;"
+       "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-smaa-mon-sm;"
+       "p1:renderer=gpu,resolution=3,antialias=1,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm-x4;"
+-      "p1:renderer=gpu,resolution=3,antialias=2,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm-x4;"
++      "p1:renderer=gpu,resolution=3,antialias=2,speed=4,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-aa4s-mon-sm-x4;p10:perflog=gpu3-aa4s-mon-sm-x4;"  // (libntr-ios-ablate.patch: the FF button's stages too)
+       "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu2-ff;"
+       "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-aa4s-ff;"
+       "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=1,passes=0;p60:bench=gpu3-smaa-ff;"
+@@ -1182,6 +1210,9 @@
+       } else if (strcmp(kv, "passes") == 0) {  // libntr-ios-passes.patch: the GPU path's parts, glFinish after each pass (see sPassOn)
+         sPassOn = atoi(v) != 0;
+         PassReset();
++      } else if (strcmp(kv, "ablate") == 0) {  // libntr-ios-ablate.patch: test-only ablations (AblateParse); none = all off
++        sAblate = AblateParse(v);
++        fprintf(stderr, "cfgscript: ablate mask 0x%x (%s)\n", sAblate, v);
+       } else if (strcmp(kv, "bench") == 0) {
+         BenchStart(v);
+       } else if (strcmp(kv, "restore") == 0) {
+@@ -1469,7 +1500,7 @@
+   SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");   // bw-port (libntr-ios-input2.patch): the phone's motion sensor is not a controller
+   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
+            SDL_INIT_JOYSTICK);
+-  SIM_Audio_Init(44100);
++  SIM_Audio_Init(s_SIM_config.audioRate > 0 ? (int)s_SIM_config.audioRate : 44100);   // (libntr-ios-ablate.patch: ini AudioRate=)
+ 
+ #if SIM_GLES
+   // bw-port (libntr-ios-gles.patch): iOS has OpenGL ES only (Apple's OpenGLES.framework, 3.0); Android too (libntr-android-gles.patch)
+@@ -2744,7 +2775,7 @@
+   }
+   const u64 spin = sHiRes ? 600000 : 2500000;
+ #else
+-  const u64 spin = 150000;
++  const u64 spin = (sAblate & 128) ? 0 : 150000;   // (libntr-ios-ablate.patch: ablate=spin)
+ #endif
+   const u64 tIn = SpNowNs();
+   for (;;) {
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -212,6 +212,9 @@
+     if(MATCH("General", "Present")) {
+         config->present = strcmp(value, "metal") == 0;   /* bw-port (libntr-ios-metal.patch) */
+     }
++    if(MATCH("General", "AudioRate")) {
++        config->audioRate = (u32)atoi(value);   /* bw-port (libntr-ios-ablate.patch): 0 or absent = 44100 */
++    }
+     if(MATCH("General", "HideTouchWithController")) {
+         config->hideTouch = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
+     }
+@@ -714,6 +717,7 @@
+ #else
+     aConfig->present = 0;
+ #endif
++    aConfig->audioRate = 0;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+@@ -857,6 +861,7 @@
+     fprintf(configFile, "OverlayCorner=%s\n", aConfig->overlayCorner ? "right" : "left");
+     fprintf(configFile, "HideTouchWithController=%s\n", aConfig->hideTouch ? "on" : "off");
+ #ifdef __APPLE__
++    if(aConfig->audioRate != 0) fprintf(configFile, "AudioRate=%u\n", (unsigned)aConfig->audioRate);   /* (libntr-ios-ablate.patch: kept only when set) */
+     fprintf(configFile, "Present=%s\n", aConfig->present ? "metal" : "gl");   /* bw-port (libntr-ios-metal.patch): Apple builds only */
+ #endif
+     fprintf(configFile, "OverlayDetail=%s\n", aConfig->overlayDetail ? "detailed" : "compact");
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -109,6 +109,7 @@
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+     u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
++    u32 audioRate; /* bw-port (libntr-ios-ablate.patch): the rate asked of SDL's audio device (AudioRate=48000); 0 = 44100 as before. A phone whose device runs at 48 kHz then skips SDL's second resample (a test of that cost; off by default) */
+     u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */

@@ -1,0 +1,11 @@
+    .text       start:0x021b9de0 end:0x021bc110 kind:code align:32
+    .rodata     start:0x021bc110 end:0x021bc20c kind:rodata align:4
+    .ctor       start:0x021bc20c end:0x021bc20c kind:rodata align:4
+    .data       start:0x021bc220 end:0x021bc240 kind:data align:32
+    .bss        start:0x021bc240 end:0x021bc240 kind:bss align:32
+
+src/ov206/zukan_info.c:
+    complete
+    .text       start:0x021b9de0 end:0x021bc110
+    .rodata     start:0x021bc110 end:0x021bc20c
+    .data       start:0x021bc220 end:0x021bc240

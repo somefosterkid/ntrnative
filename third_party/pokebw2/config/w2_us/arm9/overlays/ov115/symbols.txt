@@ -1,0 +1,16 @@
+LeagueCenter_Init kind:function(thumb,size=0x48) addr:0x021eecc0
+LeagueCenter_End kind:function(thumb,size=0x20) addr:0x021eed08
+LeagueCenter_Update kind:function(thumb,size=0x20) addr:0x021eed28
+LeagueCenter_PlayModel kind:function(thumb,size=0x1e) addr:0x021eed48
+LeagueCenter_LoadBG kind:function(thumb,size=0xa0) addr:0x021eed68
+LeagueCenter_FreeBG kind:function(thumb,size=0xc) addr:0x021eee08
+LeagueCenter_LoadModel kind:function(thumb,size=0x84) addr:0x021eee14
+LeagueCenter_FreeScene kind:function(thumb,size=0xc) addr:0x021eee98
+LeagueCenter_StepAnimations kind:function(thumb,size=0xc) addr:0x021eeea4
+LeagueCenter_PlayActor kind:function(thumb,size=0x5e) addr:0x021eeeb0
+sAnimations kind:data(any) addr:0x021eef10
+sActors kind:data(any) addr:0x021eef1c
+sSceneSetup kind:data(any) addr:0x021eef2c
+sResources kind:data(any) addr:0x021eef3c
+data_ov115_021eef29 kind:data(any) addr:0x021eef69 ambiguous
+data_ov115_021eef2c kind:data(any) addr:0x021eef6c

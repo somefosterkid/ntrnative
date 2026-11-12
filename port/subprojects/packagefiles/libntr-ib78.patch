@@ -1,0 +1,193 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -100,6 +100,7 @@
+     u8 speed; /* bw-port (libntr-sp76.patch): the game's speed, 1..4 (sim_config.ini Speed=1|2|3|4, BWPORT_SPEED): the game ticks 60 x Speed times a second; the sound is time-stretched back to its pitch */
+     u8 musicNormalSpeed; /* 1 (default): at Speed > 1 the music (BGM, fanfares) keeps its tempo while sound effects and cries follow the speed (MusicNormalSpeed=on|off, BWPORT_MUSICNORMAL) */
+     u8 displayCap; /* SIM_CONFIG_DISPLAYCAP_60 / _120 / _MONITOR: the window presents at most that many pictures a second (DisplayCap=60|120|monitor, BWPORT_DISPLAYCAP) */
++    u8 interpolation; /* bw-port (libntr-ib78.patch): 1 = in-between pictures (real renders of the 3D between two keyframes) in the present slots a keyframe leaves free (Interpolation=off|on, BWPORT_INTERP=on|off); default 0 */
+     u8 gpuFilter; /* 0 = textures nearest, the DS look (Filter=nearest), 1 = bilinear on the decoded texels (Filter=bilinear); BWPORT_GPU_FILTER */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -136,6 +136,9 @@
+         config->displayCap = strcmp(value, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+                            : atoi(value) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
+     }
++    if(MATCH("General", "Interpolation")) {
++        config->interpolation = strcmp(value, "on") == 0 || strcmp(value, "1") == 0 || strcmp(value, "true") == 0;
++    }
+     if(MATCH("General", "Filter")) {
+         config->gpuFilter = strcmp(value, "bilinear") == 0;
+     }
+@@ -476,6 +479,11 @@
+         aConfig->displayCap = strcmp(e, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+                             : atoi(e) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
+     }
++    // bw-port (libntr-ib78.patch): BWPORT_INTERP=on|off
++    e = getenv("BWPORT_INTERP");
++    if(e != NULL && *e) {
++        aConfig->interpolation = strcmp(e, "on") == 0 || strcmp(e, "1") == 0;
++    }
+     // bw-port (libntr-frameskip.patch): BWPORT_FRAMESKIP=N draws one frame in N (1 and 0: all), auto
+     e = getenv("BWPORT_FRAMESKIP");
+     if(e != NULL && strcmp(e, "auto") == 0) {
+@@ -529,6 +537,7 @@
+     aConfig->speed = 1;
+     aConfig->musicNormalSpeed = 1;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
++    aConfig->interpolation = 0;
+     aConfig->sound = SIM_CONFIG_SOUND_ACORE; /* bw-port (libntr-sounddefault.patch, owner 10-29): our sound core by default */
+     aConfig->masterVolume = 127;
+ 
+@@ -633,6 +642,7 @@
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+     fprintf(configFile, "Speed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
++    fprintf(configFile, "Interpolation=%s\n", aConfig->interpolation ? "on" : "off");
+     fprintf(configFile, "DisplayCap=%s\n", aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? "monitor"
+                                          : aConfig->displayCap == SIM_CONFIG_DISPLAYCAP_120 ? "120" : "60");
+     if(aConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -509,6 +509,8 @@
+     }
+ }
+ 
++static const char * const InterpTip = "in-between pictures: with the display cap above the game's picture rate the window shows the game's own 3D drawn at positions between two of its frames (real renders, not blended pictures). The 3D then shows one game frame later in 30 fps scenes. Needs the frame cap on and a Display cap above 60, or a 30 fps scene";
++
+ static int DisplayCapIndex() {
+     return C()->displayCap > 2 ? 0 : C()->displayCap;
+ }
+@@ -712,6 +714,9 @@
+         FormRow("Display cap", DisplayCapTip);
+         int dc = DisplayCapIndex();
+         if (ComboIndex("##dcap", &dc, DisplayCapNames, 3)) { SetDisplayCap(dc); }
++        FormRow("Interpolation", InterpTip);
++        bool ip = c->interpolation != 0;
++        if (ImGui::Checkbox("##interp", &ip)) { c->interpolation = ip; Dirty(); }
+         ImGui::EndTable();
+     }
+     ImGui::End();
+@@ -1156,6 +1161,10 @@
+             ImGui::TextDisabled(c->capFrameRate ? "Pictures a second the window shows" : "Needs the frame cap (Tab)");
+             ImGui::EndMenu();
+         }
++        {
++            bool ip = c->interpolation != 0;
++            if (ImGui::MenuItem("Interpolation", nullptr, &ip)) { c->interpolation = ip; Dirty(); }
++        }
+         ImGui::EndMenu();
+     }
+     if (ImGui::BeginMenu("Audio")) {
+@@ -1826,6 +1835,11 @@
+             if (ImGui::Checkbox("##qmusic", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+             ItemRect(12);
+         }
++        FormRow("Interpolation", InterpTip);
++        {
++            bool ip = c->interpolation != 0;
++            if (ImGui::Checkbox("##qinterp", &ip)) { c->interpolation = ip; Dirty(); }
++        }
+         ImGui::EndTable();
+     }
+     sMetricsContentH = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1255,6 +1255,17 @@
+   u64 waited; // ns spent waiting for the slot this tick
+ } sPace;
+ static FILE *sPresentLog;
++// bw-port (libntr-ib78.patch): the P lines of BWPORT_PRESENTLOG also say whether the slot showed an in-between picture and
++// the hash of the pixels it showed (BWPORT_PRESENTHASH=1; the vcore path's pictures only)
++static int sPresentMid;
++static u64 sPresentHash;
++static int sPresentHashOn = -1;
++static u64 SpHashRgba(const unsigned char *p, size_t n) {
++  u64 h = 1469598103934665603ull;
++  const u64 *q = (const u64 *)p;
++  for (size_t i = 0; i < n / 8; i++) h = (h ^ q[i]) * 1099511628211ull;
++  return h;
++}
+ 
+ static u64 SpNowNs(void) {
+   u64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
+@@ -1407,7 +1418,7 @@
+ // after a swap that was the r-th present of the tick: the log; the monitor's slots follow the V-blank
+ static void SpAfterSwap(int r, u64 callNs) {
+   u64 now = SpNowNs();
+-  if (sPresentLog != NULL) fprintf(sPresentLog, "P %llu %llu %d\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n, r);
++  if (sPresentLog != NULL) fprintf(sPresentLog, "P %llu %llu %d %d %016llx\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n, r, sPresentMid, (unsigned long long)sPresentHash);
+   if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && now - callNs > 300000) {
+     s64 q = (s64)sPace.Q;
+     s64 e = ((s64)(now - sPace.t0) - sPace.phase - (sPace.first + r) * q) % q; // how late the V-blank came after the slot
+@@ -1418,6 +1429,28 @@
+ }
+ 
+ 
++// bw-port (libntr-ib78.patch): in-between pictures. A frame renderer's bridge asks (at its call, SpPaceBegin has run) where this
++// tick's present slots are and hands back pictures for the slots after the first; the cap loop presents them.
++// SIM_InterpPace: 0 when the tick is not on the present timeline (cap off, no slot) or Interpolation is off; else the number of
++// slots of this tick, the timeline's serial (it changes when the timeline starts again), the tick's nominal time and the
++// nominal length of one game tick (ns), the slots' offsets from the tick's nominal time (off[0..n-1]) and the offset of the
++// first slot after this tick's last (*next).
++typedef const unsigned char *(*SIM_InterpPicFn)(int slot, int *w, int *h);
++static SIM_InterpPicFn sInterpPic;
++extern "C" void SIM_SetInterpPicture(SIM_InterpPicFn fn) { sInterpPic = fn; }
++extern "C" int SIM_InterpWanted(void) { return s_SIM_config.interpolation != 0; }
++extern "C" int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next) {
++  if (!s_SIM_config.interpolation || !sPace.on || sPace.forced || sPace.count <= 0 || !s_SIM_config.capFrameRate || sFastForward) return 0;
++  long long due = (long long)SpTickDue(sPace.n);
++  *serial = (long long)sPace.t0;
++  *nominal = due;
++  *tick = (long long)(kSpFrame / (u64)sPace.S);
++  int n = sPace.count < max ? sPace.count : max;
++  for (int j = 0; j < n; j++) off[j] = (long long)SpSlotAbs(sPace.first + j) - due;
++  *next = (long long)SpSlotAbs(sPace.first + sPace.count) - due;
++  return n;
++}
++
+ // bw-port (rz68): a renderer that is no longer the wanted one gives back what it holds (the GPU path's textures and
+ // framebuffers, vcore's N x frames: ~180 MB a slot at 8x). SIM_SetRendererIdle(1 vcore / 2 gpu, fn): fn runs once, on
+ // the render thread with the GL context current, at the first frame the other renderer is wanted.
+@@ -1491,6 +1524,9 @@
+   } else {
+     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, pw, ph, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+   }
++  if (sPresentLog != NULL && sPresentHashOn < 0) sPresentHashOn = getenv("BWPORT_PRESENTHASH") != NULL;
++  if (sPresentHashOn > 0) sPresentHash = SpHashRgba(rgba, (size_t)pw * (size_t)ph * 4);
++  sPresentMid = 0;
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+   if (!SIM_NoPresent() && sTickPresent) SIM_DrawFrameTexture(s_frameTexture);
+@@ -2151,6 +2187,30 @@
+         for (int r = 1; r < sPace.count; r++) {
+           SpSleepUntil(SpSlotAbs(sPace.first + r));
+           glClear(GL_COLOR_BUFFER_BIT);
++          sPresentMid = 0;
++          if (sInterpPic != NULL && s_SIM_config.interpolation) { // an in-between picture of the renderer's bridge for this slot
++            int mw = 0, mh = 0;
++            const unsigned char *mid = sInterpPic(r, &mw, &mh);
++            if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent()) {
++              GLint prevTex = 0, prevUnit = 0;
++              glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
++              glActiveTexture(GL_TEXTURE0);
++              glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++              glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++              if (mw != sFrameTexW || mh != sFrameTexH) {
++                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, mw, mh, 0, GL_RGBA, GL_UNSIGNED_BYTE, mid);
++                sFrameTexW = mw;
++                sFrameTexH = mh;
++              } else {
++                glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mw, mh, GL_RGBA, GL_UNSIGNED_BYTE, mid);
++              }
++              glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++              glActiveTexture((GLenum)prevUnit);
++              sLastPicTex = s_frameTexture;
++              sPresentMid = 1;
++              if (sPresentHashOn > 0) sPresentHash = SpHashRgba(mid, (size_t)mw * (size_t)mh * 4);
++            }
++          }
+           if (sLastPicTex != 0) SIM_DrawFrameTexture(sLastPicTex);
+           SIM::GUI::RenderAgain();
+           u64 call = SpNowNs();

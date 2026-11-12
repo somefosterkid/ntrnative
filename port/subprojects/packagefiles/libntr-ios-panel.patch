@@ -1,0 +1,62 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -2206,9 +2206,27 @@
+   }
+ }
+ 
++// libntr-ios-panel.patch: the panel's real rate. On iOS SDL reports the screen's maximum (120 on ProMotion) whatever the panel
++// runs at; a CADisplayLink (port/src/ios_input.m) gives the refresh period the panel really has for us (60 under Low Power Mode,
++// lower when ProMotion or heat holds it back). Monitor's slots (and so Smooth motion's in-between pictures) follow it: at 60 one
++// present a tick, no in-between. Rounded to whole Hz so the pace timeline restarts only when the rate really changes.
++// BWPORT_PANELHZ=N pretends the panel runs at N Hz (a test aid, every platform).
+ static u64 SpMonitorNs(void) {
+   static u64 ns;
+-  static int calls;
++  static int calls, sEnvHz = -1, sLoggedHz;
++  if (sEnvHz < 0) sEnvHz = getenv("BWPORT_PANELHZ") != NULL ? atoi(getenv("BWPORT_PANELHZ")) : 0;
++  int panelHz = sEnvHz > 0 ? sEnvHz : 0;
++#if SIM_IOS
++  u64 vs = 0, per = 0;
++  if (panelHz == 0 && bwport_ios_vsync(&vs, &per) && per >= 4000000 && per <= 50000000) panelHz = (int)((1000000000ull + per / 2) / per);
++#endif
++  if (panelHz > 0) {
++    if (panelHz != sLoggedHz) {
++      fprintf(stderr, "bwport: the panel runs at %d Hz: Monitor's presents follow it\n", panelHz);
++      sLoggedHz = panelHz;
++    }
++    return 1000000000ull / (u64)panelHz;
++  }
+   if (ns == 0 || (++calls % 240) == 0) {
+     int hz = 60;
+     SDL_DisplayMode dm;
+@@ -2377,6 +2395,22 @@
+ static void SpAfterSwap(int r, u64 callNs) {
+   u64 now = SpNowNs();
+   if (sPresentLog != NULL) fprintf(sPresentLog, "P %llu %llu %d %d %016llx\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n, r, sPresentMid, (unsigned long long)sPresentHash);
++#if SIM_IOS
++  // libntr-ios-panel.patch: the swap does not wait for the panel here, so the slots follow the CADisplayLink's refreshes instead:
++  // each present (the slot less SpWaitSlot's 1.5 ms) aimed 1 ms after a refresh, the GPU then has most of the refresh for it and
++  // the present is never a second one in the same refresh
++  if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR) {
++    u64 vs = 0, per = 0;
++    if (bwport_ios_vsync(&vs, &per) && per > 0) {
++      s64 q = (s64)sPace.Q;
++      s64 e = ((s64)SpSlotAbs(sPace.first + r) - (s64)vs - 2500000) % q;  // how far the slot is past its aim
++      if (e > q / 2) e -= q;
++      if (e < -q / 2) e += q;
++      sPace.phase -= e / 8;
++    }
++  }
++  (void)callNs;
++#else
+   if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && now - callNs > 300000) {
+     s64 q = (s64)sPace.Q;
+     s64 e = ((s64)(now - sPace.t0) - sPace.phase - (sPace.first + r) * q) % q; // how late the V-blank came after the slot
+@@ -2384,6 +2418,7 @@
+     if (e < -q / 2) e += q;
+     sPace.phase += e / 8;
+   }
++#endif
+ }
+ 
+ 

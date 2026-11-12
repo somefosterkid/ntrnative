@@ -1,0 +1,103 @@
+// NitroSDK's real-time OS_GetTick. From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2),
+// lib/nitro/include/nitro/rtc.h, trimmed to what Black's C uses so far.
+#ifndef BWPORT_NITRO_RTC_H
+#define BWPORT_NITRO_RTC_H
+
+#include "types.h"
+
+typedef enum {
+    RTC_WEEK_SUNDAY = 0,
+    RTC_WEEK_MONDAY,
+    RTC_WEEK_TUESDAY,
+    RTC_WEEK_WEDNESDAY,
+    RTC_WEEK_THURSDAY,
+    RTC_WEEK_FRIDAY,
+    RTC_WEEK_SATURDAY,
+} RTCWeek;
+
+typedef struct {
+    u32 year;
+    u32 month;
+    u32 day;
+    RTCWeek week;
+} RTCDate;
+
+typedef struct {
+    u32 hour;
+    u32 minute;
+    u32 second;
+} RTCTime;
+
+void RTC_Init(void);
+s32 RTC_ConvertDateToDay(const RTCDate *date);
+s64 RTC_ConvertDateTimeToSecond(const RTCDate *date, const RTCTime *time);
+
+// What the RTC functions return
+typedef enum {
+    RTC_RESULT_SUCCESS = 0,
+    RTC_RESULT_BUSY,
+    RTC_RESULT_ILLEGAL_PARAMETER,
+    RTC_RESULT_SEND_ERROR,
+    RTC_RESULT_INVALID_COMMAND,
+    RTC_RESULT_ILLEGAL_STATUS,
+    RTC_RESULT_FATAL_ERROR,
+} RTCResult;
+
+// The callbacks of the asynchronous functions take their result
+typedef void (*RTCCallback)(RTCResult result, void *arg);
+RTCResult RTC_GetDateTimeAsync(RTCDate *date, RTCTime *time, RTCCallback callback, void *arg);
+
+// The date and time now (RTC_GetDateTime)
+RTCResult RTC_GetDateTime(RTCDate *date, RTCTime *time);
+
+// The date and time a number of seconds since 2000 make
+void RTC_ConvertSecondToDateTime(RTCDate *date, RTCTime *time, s64 seconds);
+
+// The commands that the ARM7's RTC driver takes in the bits 8 to 14 of the PXI word, and answers with the same
+// command and, in the low byte, one of these results
+#define RTC_PXI_COMMAND_MASK 0x7f00
+
+#define RTC_PXI_COMMAND_SHIFT 8
+#define RTC_PXI_COMMAND_READ_DATETIME 0x10
+#define RTC_PXI_COMMAND_READ_DATE 0x11
+#define RTC_PXI_COMMAND_READ_TIME 0x12
+#define RTC_PXI_COMMAND_WRITE_STATUS2 0x27
+#define RTC_PXI_COMMAND_INTERRUPT 0x30
+#define RTC_PXI_RESULT_SUCCESS 0
+#define RTC_PXI_RESULT_INVALID_COMMAND 1
+#define RTC_PXI_RESULT_ILLEGAL_STATUS 2
+#define RTC_PXI_RESULT_BUSY 3
+#define RTC_PXI_RESULT_FATAL_ERROR 4
+
+typedef void (*RTCAlarmCallback)(void);
+
+// The work of the command under way (NitroSDK's RTCWork, which main's rtc_api.c keeps after a flag that says the
+// library is set up; TwlSDK's code in the LTD autoload gets it from RTCi_GetSysWork)
+typedef struct RTCWork {
+    vu32 lock;                      // 0x00: set from the start of a command to the end of its answer
+    RTCCallback callback;           // 0x04: called with the result when the command is done
+    void *data[2];                  // 0x08: where a command reads or writes its date, time or value
+    void *callbackArg;              // 0x10
+    u32 command;                    // 0x14: the sequence that the answer of the ARM7 goes on with
+    u32 busy;                       // 0x18: set while commands that the sequence sent are still to be answered
+    RTCAlarmCallback alarmCallback; // 0x1c: called when the ARM7 says the alarm went off
+    int commonResult;               // 0x20: the result of the functions that wait for it
+} RTCWork;
+
+// NitroSDK's RTC_GetDateAsync, RTC_GetDate, RTC_GetTimeAsync and RTC_GetTime: read the clock and fill the date or the
+// time. The asynchronous ones answer by calling the callback; the others wait for the answer. Each returns
+// RTC_RESULT_SUCCESS when it read the clock
+RTCResult RTC_GetDateAsync(RTCDate *date, RTCCallback callback, void *arg);
+RTCResult RTC_GetTimeAsync(RTCTime *time, RTCCallback callback, void *arg);
+// The work of the command under way, for TwlSDK's RTC code in the LTD autoload
+RTCWork *RTCi_GetSysWork(void);
+// NitroSDK's RTCi_ReadRawDateTimeAsync, RTCi_ReadRawDateAsync and RTCi_ReadRawTimeAsync, which ask the ARM7 to put the
+// clock in the shared memory, and RTCi_WriteRawStatus2Async, which asks it to write the second status register of the
+// clock chip from the shared memory. They return TRUE when the command was sent
+BOOL RTCi_ReadRawDateTimeAsync(void);
+BOOL RTCi_ReadRawTimeAsync(void);
+// NitroSDK's RTCi_ConvertTimeToSecond: the seconds since midnight
+s32 RTCi_ConvertTimeToSecond(const RTCTime *time);
+void RTCi_ConvertSecondToTime(RTCTime *time, s32 second);
+
+#endif // BWPORT_NITRO_RTC_H

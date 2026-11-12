@@ -1,0 +1,37 @@
+    .text       start:0x021b6100 end:0x021b942c kind:code align:32
+    .rodata     start:0x021b942c end:0x021b9524 kind:rodata align:4
+    .ctor       start:0x021b9524 end:0x021b9524 kind:rodata align:4
+    .data       start:0x021b9540 end:0x021b95a0 kind:data align:32
+    .bss        start:0x021b95a0 end:0x021b95a0 kind:bss align:32
+
+src/ov067/yesno_menu.c:
+    complete
+    .text       start:0x021b6dc0 end:0x021b7754
+    .rodata     start:0x021b94b8 end:0x021b94f8
+    .data       start:0x021b9564 end:0x021b9574
+
+src/ov067/ui_scene.c:
+    complete
+    .text       start:0x021b6100 end:0x021b62e0
+    .data       start:0x021b9540 end:0x021b954c
+
+src/ov067/msgsearch.c:
+    complete
+    .text       start:0x021b6c74 end:0x021b6dc0
+    .data       start:0x021b9558 end:0x021b9564
+
+src/ov067/print_msg.c:
+    complete
+    .text       start:0x021b6ae4 end:0x021b6c74
+
+src/ov067/touchbar.c:
+    complete
+    .text       start:0x021b62e0 end:0x021b6ae4
+    .rodata     start:0x021b942c end:0x021b94b8
+    .data       start:0x021b954c end:0x021b9558
+
+src/ov067/frame_list.c:
+    complete
+    .text       start:0x021b7754 end:0x021b942c
+    .rodata     start:0x021b94f8 end:0x021b9524
+    .data       start:0x021b9574 end:0x021b95a0

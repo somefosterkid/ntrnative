@@ -1,0 +1,86 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index 9ac5469..41357ac 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -65,6 +65,13 @@ static GLuint sDefaultFbo;   // SDL's UIKit view draws into a framebuffer object
+ #define SIM_ANDROID 0
+ #endif
+ #define SIM_GLES (SIM_IOS || SIM_ANDROID)
++// bw-port (libntr-hidden-pc.patch): BWPORT_HIDDEN / BWPORT_SHOTS / cfgscript shot= work on macOS/iOS and on the desktop GL builds
++// (Windows, Linux); not on Android (SIM_GLES without Apple)
++#if defined(__APPLE__) || ((defined(SDK_BUILD_WIN64) || defined(SDK_BUILD_LINUX)) && !SIM_GLES)
++#define SIM_HIDDEN_OK 1
++#else
++#define SIM_HIDDEN_OK 0
++#endif
+ // bw-port (libntr-ios-metal.patch): Apple builds can present with Metal instead of OpenGL (sim_config.ini Present=metal,
+ // BWPORT_PRESENT=metal; decided at window creation, sMetal): the program's port/src/metal_present.mm draws the picture, ImGui and
+ // the fences. Renderer=gpu keeps the GL present until its Metal picture exists (docs/gpu-backends.md M3).
+@@ -1276,7 +1283,7 @@ static void SIM_CfgScript(void) {
+         char fn[128];
+         snprintf(fn, sizeof fn, "perf_%s.txt", v);
+         SIM::GUI::PerfLogStartNamed(fn);
+-      } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (macOS, BWPORT_HIDDEN)
++      } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (BWPORT_HIDDEN)
+         snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
+         SIM_FrameForceDraw();   // frame skip (libntr-ios-shotdraw.patch): the shot frame and the next two are drawn
+       } else if (strcmp(kv, "pause") == 0) {  // libntr-ios-pacefix.patch: a pause like the settings sheet's, at the next frame's top
+@@ -1547,7 +1554,7 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
+   //           type, severity, message );
+ }
+ 
+-#ifdef __APPLE__
++#if SIM_HIDDEN_OK
+ // bw-port (libntr-ios-hidden.patch): BWPORT_HIDDEN=1 runs without a visible window or Dock icon (a test Mac is not for
+ // test windows); BWPORT_SHOTS=DIR,S,S,... then writes DIR/sNNN.png (the window's composed frame, read back before the swap)
+ // at S seconds of run time through the program's vcore_write_png
+@@ -1629,8 +1636,12 @@ void *SIM_RenderInit(void *arg) {
+   // bw-port (libntr-ui68.patch): per-monitor DPI awareness on Windows: the window's pixels are the screen's (Windows
+   // otherwise stretches the whole window, text and picture, on a scaled display); the UI scales by the display's DPI
+   SDL_SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2");
++#if SIM_HIDDEN_OK
++  if (SIM_HiddenWanted()) {
+ #ifdef __APPLE__
+-  if (SIM_HiddenWanted()) SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
++    SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
++#endif
++  }
+ #endif
+   SimTouch_Hints();
+   if (getenv("BWPORT_VPAD") != NULL) SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");   // (the test window is hidden)
+@@ -1779,7 +1790,7 @@ void *SIM_RenderInit(void *arg) {
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
+ #if SIM_GLES
+       SDL_WINDOW_SHOWN | apiFlag | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI
+-#elif defined(__APPLE__)
++#elif SIM_HIDDEN_OK
+       (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | apiFlag
+ #else
+       SDL_WINDOW_SHOWN | apiFlag
+@@ -2039,7 +2050,7 @@ static bool SIM_FrameSkipDecide(void) {
+   const s64 kFrame = 16715000 / (s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed);
+   bool can = sFrameRenderer != NULL || sFrameRendererGL != NULL;
+   bool force = sFrameForce > 0;
+-#ifdef __APPLE__
++#if SIM_HIDDEN_OK
+   force = force || SIM_ShotDue();
+ #endif
+   if (force) sFrameForce = sFrameForce - 1;
+@@ -4500,7 +4511,7 @@ void *SIM_Render(void *arg) {
+       if (!sMetal) glFlush();
+     } else if (sTickPresent && !(touchMode && SimTouch_Background())) {  // (libntr-ios-inputprio.patch: no GL in the background)
+       swapCall = SpNowNs();
+-#ifdef __APPLE__
++#if SIM_HIDDEN_OK
+       SIM_ShotMaybe(window);
+ #endif
+       if (LagSubmit()) {  // libntr-ios-lag.patch
+@@ -4804,7 +4815,7 @@ extern "C" void SIM_LauncherFrame(void) {
+     glClear(GL_COLOR_BUFFER_BIT);
+   }
+   SIM::GUI::Render(true);
+-#ifdef __APPLE__
++#if SIM_HIDDEN_OK
+   SIM_ShotMaybe(window);
+ #endif
+   SIM_Swap();

@@ -1,0 +1,9 @@
+EncEffModel_CreateModel7 kind:function(thumb,size=0xe) addr:0x021f5a20
+EncEffModel_CreateModel9 kind:function(thumb,size=0xe) addr:0x021f5a30
+EncEffModel_CreateModel5 kind:function(thumb,size=0xe) addr:0x021f5a40
+EncEffModel_CreateModel3 kind:function(thumb,size=0xe) addr:0x021f5a50
+EncEffModel_CreateModel1 kind:function(thumb,size=0xe) addr:0x021f5a60
+EncEffModel_CreateZoroark kind:function(thumb,size=0x28) addr:0x021f5a70
+EncEffModel_Create kind:function(thumb,size=0x4c) addr:0x021f5a98
+EncEffModel_Render kind:function(thumb,size=0xe) addr:0x021f5ae4
+EncEffModel_EventCallback kind:function(thumb,size=0x1c2) addr:0x021f5af4

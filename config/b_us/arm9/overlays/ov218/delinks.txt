@@ -1,0 +1,17 @@
+    .text       start:0x021b95a0 end:0x021bab10 kind:code align:32
+    .rodata     start:0x021bab10 end:0x021bb05c kind:rodata align:4
+    .ctor       start:0x021bb05c end:0x021bb05c kind:rodata align:4
+    .data       start:0x021bb060 end:0x021bb0c0 kind:data align:32
+    .bss        start:0x021bb0c0 end:0x021bb0c0 kind:bss align:32
+
+src/ov218/un_select.c:
+    complete
+    .text       start:0x021b95a0 end:0x021ba7a4
+    .rodata     start:0x021bab10 end:0x021bae88
+    .data       start:0x021bb060 end:0x021bb094
+
+src/ov218/un_select_graphic.c:
+    complete
+    .text       start:0x021ba7a4 end:0x021bab10
+    .rodata     start:0x021bae88 end:0x021bb05c
+    .data       start:0x021bb094 end:0x021bb0c0

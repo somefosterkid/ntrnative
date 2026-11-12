@@ -1,0 +1,128 @@
+    .text       start:0x02700000 end:0x02707fcc kind:code align:32
+    .rodata     start:0x02707fcc end:0x02767480 kind:rodata align:4
+    .ctor       start:0x02767480 end:0x02767480 kind:rodata align:4
+    .ltdmain    start:0x027674a0 end:0x0276ae98 kind:code align:32
+    .data       start:0x0276ae98 end:0x0276aee0 kind:data align:8
+    .bss        start:0x0276aee0 end:0x0276dde0 kind:bss align:32
+
+lib/twl/src/photo_sign_client.c:
+    complete
+    .text       start:0x02707628 end:0x02707870
+    .bss        start:0x0276dd4c end:0x0276dd80
+
+lib/twl/src/photo_sign.c:
+    complete
+    .text       start:0x02707870 end:0x02707cac
+    .bss        start:0x0276dd80 end:0x0276ddc0
+
+lib/twl/src/photo_sign_util.c:
+    complete
+    .text       start:0x02707cac end:0x02707fcc
+    .bss        start:0x0276ddc0 end:0x0276dde0
+
+lib/twl/src/rtc/rtc_api_ex.c:
+    complete
+    .text       start:0x02700000 end:0x02700078
+
+lib/twl/src/camera/camera_api.c:
+    complete
+    .text       start:0x02700078 end:0x02702080
+    .bss        start:0x0276b104 end:0x0276c2e4
+
+lib/twl/src/camera/camera.c:
+    complete
+    .text       start:0x02702080 end:0x02702434
+
+lib/twl/src/nwm/nwm.c:
+    complete
+    .text       start:0x02702a98 end:0x02703c60
+    .bss        start:0x0276c30c end:0x0276c520
+
+lib/twl/src/mic/mic_twl.c:
+    complete
+    .text       start:0x02703c60 end:0x027040b4
+
+lib/twl/src/fatfs/fatfs_api.c:
+    complete
+    .text       start:0x027040b4 end:0x02704364
+    .bss        start:0x0276c520 end:0x0276c590
+
+lib/twl/src/snd/sndex.c:
+    complete
+    .text       start:0x02704364 end:0x02704e90
+    .bss        start:0x0276c590 end:0x0276c5ec
+
+lib/twl/src/dsp/dsp_if.c:
+    complete
+    .text       start:0x02704e90 end:0x027052b4
+
+lib/twl/src/dsp/dsp_process.c:
+    complete
+    .text       start:0x027052b4 end:0x02705f64
+    .data       start:0x0276ae98 end:0x0276aebc
+    .bss        start:0x0276c5ec end:0x0276c618
+
+lib/twl/src/dsp/dsp_util.c:
+    complete
+    .text       start:0x02705f64 end:0x0270633c
+    .data       start:0x0276aebc end:0x0276aec0
+    .bss        start:0x0276c618 end:0x0276c668
+
+lib/twl/src/dsp/dsp_pipe.c:
+    complete
+    .text       start:0x0270633c end:0x0270723c
+    .bss        start:0x0276c668 end:0x0276da80
+
+lib/twl/src/dsp/dsp_g711.c:
+    complete
+    .text       start:0x0270723c end:0x02707310
+    .data       start:0x0276aec0 end:0x0276aec8
+    .bss        start:0x0276da80 end:0x0276dbdc
+
+lib/twl/src/dsp/dsp_graphics.c:
+    complete
+    .text       start:0x02707310 end:0x02707628
+    .data       start:0x0276aec8 end:0x0276aee0
+    .bss        start:0x0276dbdc end:0x0276dd4c
+
+lib/twl/src/syscall/syscall_twl_ltd.c:
+    complete
+    .ltdmain    start:0x027696e8 end:0x02769930
+
+lib/twl/src/dsp/dsp_g711_image.c:
+    complete
+    .rodata     start:0x02707fcc end:0x0272ecec
+
+lib/twl/src/dsp/dsp_graphics_image.c:
+    complete
+    .rodata     start:0x0272ecec end:0x02767480
+
+lib/twl/src/card/card_hash.c:
+    complete
+    .ltdmain    start:0x02767674 end:0x02767f08
+    .bss        start:0x0276af74 end:0x0276b03c
+
+lib/twl/src/mi/mi_ndma.c:
+    complete
+    .ltdmain    start:0x02767f08 end:0x027683d4
+    .bss        start:0x0276b03c end:0x0276b07c
+
+lib/twl/src/mi/mi_ndma_gxcommand.c:
+    complete
+    .ltdmain    start:0x027683d4 end:0x02768614
+    .bss        start:0x0276b07c end:0x0276b09c
+
+lib/nitrowifi/src/wcm/wcm_dsi.c:
+    complete
+    .ltdmain    start:0x02769930 end:0x0276ae98
+    .bss        start:0x0276b100 end:0x0276b104
+
+lib/twl/src/nwm/nwm_setup.c:
+    complete
+    .text       start:0x02702434 end:0x027026dc
+    .bss        start:0x0276c2e4 end:0x0276c2e8
+
+lib/twl/src/nwm/nwm_events.c:
+    complete
+    .text       start:0x027026dc end:0x02702a98
+    .bss        start:0x0276c2e8 end:0x0276c30c

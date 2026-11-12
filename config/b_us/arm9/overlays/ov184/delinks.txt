@@ -1,0 +1,9 @@
+    .text       start:0x021f8480 end:0x021f8a04 kind:code align:32
+    .rodata     start:0x021f8a04 end:0x021f8a10 kind:rodata align:4
+    .ctor       start:0x021f8a10 end:0x021f8a10 kind:rodata align:4
+    .bss        start:0x021f8a20 end:0x021f8a20 kind:bss align:32
+
+src/ov184/br_musical_send_proc.c:
+    complete
+    .text       start:0x021f8480 end:0x021f8a04
+    .rodata     start:0x021f8a04 end:0x021f8a10

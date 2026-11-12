@@ -1,0 +1,17 @@
+    .text       start:0x021b95a0 end:0x021bc6fc kind:code align:32
+    .rodata     start:0x021bc6fc end:0x021bcae4 kind:rodata align:4
+    .ctor       start:0x021bcae4 end:0x021bcae4 kind:rodata align:4
+    .data       start:0x021bcb00 end:0x021bcb20 kind:data align:32
+    .bss        start:0x021bcb20 end:0x021bcb20 kind:bss align:32
+
+src/ov223/psel.c:
+    complete
+    .text       start:0x021b95a0 end:0x021bc34c
+    .rodata     start:0x021bc6fc end:0x021bc910
+    .data       start:0x021bcb00 end:0x021bcb08
+
+src/ov223/psel_graphic.c:
+    complete
+    .text       start:0x021bc34c end:0x021bc6fc
+    .rodata     start:0x021bc910 end:0x021bcae4
+    .data       start:0x021bcb08 end:0x021bcb20

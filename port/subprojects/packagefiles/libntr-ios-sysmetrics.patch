@@ -1,0 +1,120 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1140,7 +1140,11 @@
+ void PerfGpuNote(const char * note) { snprintf(sGpuNote, sizeof sGpuNote, "%s", note != nullptr ? note : ""); }
+ void PerfGlVersion(const char * version) { sGlVersion = version != nullptr ? version : ""; }
+ 
++extern "C" void bwport_sys_gpu_add(double ms) __attribute__((weak));   // libntr-ios-sysmetrics.patch
+ void PerfAdd(const char * name, int kind, double ms) {
++    if (kind == 3 && bwport_sys_gpu_add != nullptr) {
++        bwport_sys_gpu_add(ms);
++    }
+     for (int i = 0; i < sPerfN; i++) {
+         PerfStage & p = sPerf[i];
+         if (p.kind == kind && (p.key == name || strcmp(p.name, name) == 0)) {
+@@ -2158,6 +2162,14 @@
+     }
+ }
+ 
++// libntr-ios-sysmetrics.patch: port/src/sysmetrics.c (CPU use, clock estimate, GPU busy time, heat state; a line each)
++extern "C" void bwport_sys_line(int i, char * buf, int n) __attribute__((weak));
++static void SysLines(char (*l)[112], int n) {
++    for (int i = 0; i < n; i++) {
++        l[i][0] = 0;
++        if (bwport_sys_line != nullptr) { bwport_sys_line(i, l[i], 112); }
++    }
++}
+ static void SideMetrics(float x, float y, float w, float h) {
+     SIM_config_type * c = C();
+     ImGui::SetNextWindowPos(ImVec2(x, y));
+@@ -2180,6 +2192,13 @@
+     ImGui::TextDisabled("last %g s: avg %.1f  worst %.1f ms", kRefreshS[c->metricsRefresh < 3 ? c->metricsRefresh : 1], m.avgMs, m.worstMs);
+     ImGui::TextColored(budget > 1.0f ? ImVec4(1.0f, 0.45f, 0.35f, 1.0f) : budget > 0.7f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(0.6f, 0.9f, 0.65f, 1.0f),
+                        "game %.2f + draw %.2f ms", m.gameMs, m.drawMs);
++    {
++        char sl[4][112];
++        SysLines(sl, 4);
++        for (int i = 0; i < 4; i++) {
++            if (sl[i][0] != 0) { ImGui::TextDisabled("%s", sl[i]); }
++        }
++    }
+     // the graph's header: its name and the period buttons on the right
+     ImGui::TextDisabled("Frame time");
+     {
+@@ -2419,7 +2438,7 @@
+         return;
+     }
+     const Snap & m = sSnap;
+-    char l1[64], l2[64] = "", l3[64] = "", l4[64] = "", l5[64] = "", l6[64] = "";
++    char l1[64], l2[64] = "", l3[64] = "", l4[64] = "", l5[64] = "", l6[64] = "", l7[64] = "", l8[64] = "", l9[64] = "";
+     // libntr-ios-pace.patch: the presents a second and the game's speed as it runs (m.fps counts game ticks)
+     snprintf(l1, sizeof l1, "%.0f fps  %.1fx", SIM_PresentRate(), SIM_GameSpeedNow());
+     if (c->overlayDetail) {
+@@ -2442,12 +2461,21 @@
+         float hz = 0.0f, shown = SIM_DisplayShown(&wait, &hz);   // (iOS: the swap call to the estimated refresh that shows it)
+         if (hz > 0.0f) snprintf(l6, sizeof l6, "display lag %.0f ms (GPU %.0f) / %d in flight, %d waiting, %.0f Hz", shown, lag, fl, wait, hz);
+         else snprintf(l6, sizeof l6, "display lag %.0f ms / %d in flight", lag, fl);
++        // libntr-ios-sysmetrics.patch: the CPU, the clock estimate and heat state, the GPU (short forms, port/src/sysmetrics.c)
++        if (bwport_sys_line != nullptr) {
++            char ck[32], th[32];
++            bwport_sys_line(4, l7, sizeof l7);
++            bwport_sys_line(5, ck, sizeof ck);
++            bwport_sys_line(7, th, sizeof th);
++            snprintf(l8, sizeof l8, "%s, %s", ck, th);
++            bwport_sys_line(6, l9, sizeof l9);
++        }
+     }
+     ImFont * font = ImGui::GetFont();
+     float fs = 9.5f;
+     float pad = 5.0f, gap = 2.0f;
+-    int lines = l3[0] ? 6 : 1;
+-    const char * ls[6] = {l1, l2, l3, l4, l5, l6};
++    int lines = l3[0] ? (l7[0] ? 9 : 6) : 1;
++    const char * ls[9] = {l1, l2, l3, l4, l5, l6, l7, l8, l9};
+     float w = 0.0f;
+     for (int i = 0; i < lines; i++) {
+         w = std::max(w, font->CalcTextSizeA(fs, FLT_MAX, 0.0f, ls[i]).x);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -180,6 +180,15 @@
+ extern "C" void SIM_PerfStage(const char *name, int kind, double ms) {
+   if (sPerfOn) SIM::GUI::PerfAdd(name, kind, ms);
+ }
++// bw-port (libntr-ios-sysmetrics.patch): port/src/sysmetrics.c, the system readout (CPU, clock estimate, GPU busy time).
++// bwport_sys_frame once a frame (1 = a second has passed); bwport_sys_want_gpu: run the GPU timer queries this frame (a burst of
++// frames each second, through the readout's own switch sPerfOn); the GPU times of the reported frames come from PerfAdd (kind 3).
++extern "C" int bwport_sys_frame(void) __attribute__((weak));
++extern "C" void bwport_sys_fence(float meanMs) __attribute__((weak));
++extern "C" int bwport_sys_want_gpu(void) __attribute__((weak));
++extern "C" void bwport_sys_gpu_timers(int ok) __attribute__((weak));
++extern "C" void bwport_sys_gpu_end(void) __attribute__((weak));
++extern "C" float SIM_DisplayLag(int *inflight, float *maxMs);
+ static int sGqOk = -1;
+ extern "C" int SIM_PerfGpuTimers(void) { return sGqOk > 0; }
+ // GPU time of libntr's own GL work: the picture's present (vcore's upload and the screens' quad, the GPU path's quad) and the
+@@ -2994,7 +3003,17 @@
+                       (tStart.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
+       if (sFLOn < 0) FLInit();
+       sPerfOn = SIM::GUI::PerfWanted();
++      if (bwport_sys_frame != NULL) {
++        int sec = bwport_sys_frame();
++        if (!sPerfOn && bwport_sys_want_gpu()) sPerfOn = 1;
++        if (sec) {
++          int fl = 0;
++          float lmax = 0.0f;
++          bwport_sys_fence(SIM_DisplayLag(&fl, &lmax));
++        }
++      }
+       GqFrame();
++      if (bwport_sys_gpu_timers != NULL) bwport_sys_gpu_timers(sGqOk > 0);
+       if (sFLOn > 0 || sPerfOn) {
+         sFLT[0] = (u64)tStart.tv_sec * 1000000000ull + (u64)tStart.tv_nsec;
+         sFLUpload = 0;
+@@ -3730,6 +3749,7 @@
+         if (sGqGot[k]) SIM::GUI::PerfAdd(k == 0 ? "present (picture quad)" : "UI draw", 3, sGqMs[k]);
+       }
+       SIM::GUI::PerfFrameEnd((double)sRealFrameTime / 1e6);
++      if (bwport_sys_gpu_end != NULL) bwport_sys_gpu_end();
+     } else {
+       sPerfSoundPrev = 0.0;
+     }

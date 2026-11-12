@@ -1,0 +1,390 @@
+diff --git a/include/nitro/card/backup.h b/include/nitro/card/backup.h
+index 3906011..d9a024c 100644
+--- a/include/nitro/card/backup.h
++++ b/include/nitro/card/backup.h
+@@ -110,6 +110,28 @@ u32 CARD_GetBackupPageSize(void);
+                                        MIDmaCallback callback, void * arg, BOOL is_async);
+ 
+ 
++  #ifdef SDK_PORT
++  // libntr-ios-appfix.patch: a write into save.bin that checks the open, the write and the close (a full disk, a file the player
++  // replaced) and says so on stderr; the game gets a failure result instead of a crash or a false success
++  static inline BOOL CARDi_PortWriteSave(u32 dst, const void *src, u32 len)
++  {
++    FILE * backupFilePtr = fopen("save.bin", "rb+");
++    BOOL ok;
++    if(!backupFilePtr) {
++      fprintf(stderr, "bwport: save.bin: cannot open for writing\n");
++      return FALSE;
++    }
++    ok = fseek(backupFilePtr, dst, SEEK_SET) == 0 && fwrite(src, 1, len, backupFilePtr) == len && fflush(backupFilePtr) == 0;
++    if(fclose(backupFilePtr) != 0) {
++      ok = FALSE;
++    }
++    if(!ok) {
++      fprintf(stderr, "bwport: save.bin: write of %u bytes at %u failed\n", (unsigned)len, (unsigned)dst);
++    }
++    return ok;
++  }
++  #endif
++
+   SDK_INLINE BOOL CARDi_ReadBackup(u32 src, void *dst, u32 len,
+                                    MIDmaCallback callback, void *arg, BOOL is_async)
+   {
+@@ -119,20 +141,26 @@ u32 CARD_GetBackupPageSize(void);
+     if(!backupFilePtr) {
+       // File does not exist. Create the file
+       backupFilePtr = fopen("save.bin", "wb");
+-
+-      // Zero out the file with the len
+-      u8 * buf = (u8*)malloc(len + src);
+-      memset(buf, 0, len + src);
+-      fwrite(buf, 1, len + src, backupFilePtr);
+-      fclose(backupFilePtr);
+-      free(buf);
++      if(backupFilePtr) {
++        // Zero out the file with the len
++        u8 * buf = (u8*)malloc(len + src);
++        memset(buf, 0, len + src);
++        fwrite(buf, 1, len + src, backupFilePtr);
++        fclose(backupFilePtr);
++        free(buf);
++      }
+ 
+       // Reopen file
+       backupFilePtr = fopen("save.bin", "rb");
+     }
+-    fseek(backupFilePtr, src, SEEK_SET);
+-    fread(dst, 1, len, backupFilePtr);
+-    fclose(backupFilePtr);
++    if(backupFilePtr) {
++      fseek(backupFilePtr, src, SEEK_SET);
++      (void)fread(dst, 1, len, backupFilePtr);
++      fclose(backupFilePtr);
++    } else {
++      fprintf(stderr, "bwport: save.bin: cannot open for reading\n");
++      memset(dst, 0, len);
++    }
+     if( callback != NULL )
+     {
+       callback(arg);
+@@ -164,16 +192,12 @@ u32 CARD_GetBackupPageSize(void);
+                                     MIDmaCallback callback, void *arg, BOOL is_async)
+   {
+     #ifdef SDK_PORT
+-    FILE * backupFilePtr;
+-    backupFilePtr = fopen("save.bin", "rb+");
+-    fseek(backupFilePtr, dst, SEEK_SET);
+-    fwrite(src, 1, len, backupFilePtr);
+-    fclose(backupFilePtr);
++    BOOL ok = CARDi_PortWriteSave(dst, src, len);
+     if( callback != NULL )
+     {
+       callback(arg);
+     }
+-    return TRUE;
++    return ok;
+     #else
+     return CARDi_RequestStreamCommand((u32)src, (u32)dst, len, callback, arg, is_async,
+                                       CARD_REQ_WRITE_BACKUP, CARD_RETRY_COUNT_MAX,
+@@ -211,16 +235,12 @@ u32 CARD_GetBackupPageSize(void);
+                                              MIDmaCallback callback, void *arg, BOOL is_async)
+   {
+     #ifdef SDK_PORT
+-    FILE * backupFilePtr;
+-    backupFilePtr = fopen("save.bin", "rb+");
+-    fseek(backupFilePtr, dst, SEEK_SET);
+-    fwrite(src, 1, len, backupFilePtr);
+-    fclose(backupFilePtr);
++    BOOL ok = CARDi_PortWriteSave(dst, src, len);
+     if( callback != NULL )
+     {
+       callback(arg);
+     }
+-    return CARD_RESULT_SUCCESS;
++    return ok ? CARD_RESULT_SUCCESS : CARD_RESULT_FAILURE;
+     #else
+     return CARDi_RequestStreamCommand((u32)src, (u32)dst, len, callback, arg, is_async,
+                                       CARD_REQ_WRITE_BACKUP, CARD_RETRY_COUNT_MAX,
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+index 3437b99..8be4cf6 100644
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -122,6 +122,7 @@ extern "C" {
+ BOOL SIM_Config_LoadConfigFile(SIM_config_type * aConfig);
+ void SIM_Config_LoadDefaults(SIM_config_type * aConfig);
+ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig);
++extern int s_SIM_configNoSave;   // libntr-ios-appfix.patch: nonzero: SaveConfigFile does nothing
+ void SIM_Config_SetOSNVRAMConfig(SIM_config_type * aConfig);
+ 
+ #ifdef __cplusplus
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+index 196e677..179e4c7 100644
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -8,6 +8,8 @@
+ #include <simulator/config/sim_config.h>
+ 
+ #include <string.h>
++#include <errno.h>
++#include <stdio.h>
+ #include <wchar.h>
+ 
+ #include <SDL2/SDL.h>
+@@ -722,10 +724,21 @@ void SIM_Config_LoadDefaults(SIM_config_type * aConfig)
+     strcpy(aConfig->netSettings.serverIp, "127.0.0.1");
+ }
+ 
+-// Save a SIM_config_type to the configuration file
++// libntr-ios-appfix.patch: nonzero while a test run has its own settings in the config: nothing is saved (the player's file stays)
++int s_SIM_configNoSave = 0;
++
++// libntr-ios-appfix.patch: written to a temporary file and renamed over the old one, the open and the write checked: a full disk or
++// a read-only folder leaves the old sim_config.ini (it used to crash on the open and truncate the file on a failed write)
+ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+ {
+-    FILE * configFile = fopen(SIM_CONFIG_FILE_PATH, "w");
++    if (s_SIM_configNoSave) {
++        return;
++    }
++    FILE * configFile = fopen(SIM_CONFIG_FILE_PATH ".tmp", "w");
++    if (configFile == NULL) {
++        fprintf(stderr, "bwport: sim_config.ini: cannot write (%s); the old file stays\n", strerror(errno));
++        return;
++    }
+     
+     fprintf(configFile, "[General]\n");
+     fprintf(configFile, "WindowHeight=%d\n", aConfig->windowHeight);
+@@ -851,7 +864,17 @@ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+     fprintf(configFile, "\n");
+ 
+     
+-    fclose(configFile);
++    if (ferror(configFile) | (fclose(configFile) != 0)) {
++        fprintf(stderr, "bwport: sim_config.ini: write failed (%s); the old file stays\n", strerror(errno));
++        remove(SIM_CONFIG_FILE_PATH ".tmp");
++        return;
++    }
++#ifdef _WIN32
++    remove(SIM_CONFIG_FILE_PATH);   // (rename does not replace there)
++#endif
++    if (rename(SIM_CONFIG_FILE_PATH ".tmp", SIM_CONFIG_FILE_PATH) != 0) {
++        fprintf(stderr, "bwport: sim_config.ini: rename failed (%s)\n", strerror(errno));
++    }
+ }
+ 
+ void SIM_Config_SetOSNVRAMConfig(SIM_config_type * aConfig)
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+index 6bd8d4e..96ae4f5 100644
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2628,7 +2628,12 @@ extern "C" void SIM_UISettingSet(const char * k, int v) {
+     else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
+     else if (!strcmp(k, "ffspeed")) c->ffSpeed = (u8)(v < 2 ? 2 : v > 5 ? 5 : v);   // libntr-ios-speedui.patch: 2..4 or 5 = Max
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);
+-    else if (!strcmp(k, "volume")) c->masterVolume = (u8)(((v < 0 ? 0 : v > 100 ? 100 : v) * 127 + 50) / 100);
++    else if (!strcmp(k, "volume") || !strcmp(k, "volumelive")) {
++        // libntr-ios-appfix.patch: "volumelive" (a slider being dragged) applies without writing the ini or the log; "volume" (the
++        // finger lifted) saves, as the desktop does when the mouse comes up
++        c->masterVolume = (u8)(((v < 0 ? 0 : v > 100 ? 100 : v) * 127 + 50) / 100);
++        if (!strcmp(k, "volumelive")) return;
++    }
+     else if (!strcmp(k, "overlay")) c->overlay = (u8)(v != 0);
+     else if (!strcmp(k, "corner")) c->overlayCorner = (u8)(v != 0);
+     else if (!strcmp(k, "detail")) c->overlayDetail = (u8)(v != 0);
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index ec2e8a1..766c864 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -866,6 +866,7 @@ static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch)
+ static void BenchStart(const char *name);
+ static bool BenchBusy(void);
+ static void BenchDone(void);
++static void BenchCancel(void);
+ struct CfgStep { u32 frame; bool rel; char text[96]; };
+ static std::vector<CfgStep> sCfgSteps;
+ static size_t sCfgNext = 0;
+@@ -889,6 +890,7 @@ static void SIM_CfgScriptLoad(const char *e) {
+   free(dup);
+ }
+ extern "C" void SIM_PerfTestStart(void);
++extern "C" void SIM_PerfTestAbort(const char *why);
+ // the iOS performance test (Settings > About > Run performance test; port/src/ios_settings.m): from where the player stands, each step
+ // settles 1 s and measures 4 s (bench rows, no frame skip), then the settings as they were; the table goes to the log
+ static bool sPerfTestOn;
+@@ -900,6 +902,7 @@ extern "C" void SIM_PerfTestStart(void) {
+     return;
+   }
+   sPerfTestOn = true;
++  s_SIM_configNoSave = 1;  // libntr-ios-appfix.patch: the test's settings are never saved (sim_config.ini keeps the player's)
+   fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d)\n",
+           (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
+           (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
+@@ -924,6 +927,34 @@ extern "C" void SIM_PerfTestStart(void) {
+   sCfgSaved.speed = 1;  // (play is 1x on iOS: a fast-forward the sheet just switched off must not come back with the settings)
+ #endif
+ }
++// the settings as they were when the script (or the test) started; after a performance test they are written again, in case anything
++// changed the file meanwhile (libntr-ios-appfix.patch)
++static void PerfTestRestore(void) {
++  s_SIM_config.renderer = sCfgSaved.renderer;
++  s_SIM_config.resolution = sCfgSaved.resolution;
++  s_SIM_config.antialias = sCfgSaved.antialias;
++  s_SIM_config.speed = sCfgSaved.speed;
++  s_SIM_config.frameSkip = sCfgSaved.frameSkip;
++  s_SIM_config.interpolation = sCfgSaved.interpolation;
++  s_SIM_config.displayCap = sCfgSaved.displayCap;
++  s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
++  sFastForward = false;
++  if (sPerfTestOn) {
++    sPerfTestOn = false;
++    s_SIM_configNoSave = 0;
++    SIM_Config_SaveConfigFile(&s_SIM_config);
++  }
++}
++// the sheet opened or the app left during the test: its windows are wall clock, so the rows would count the pause as play. The rest
++// of the steps are dropped, the player's settings come back (and are saved), the rows so far go to the log.
++extern "C" void SIM_PerfTestAbort(const char *why) {
++  if (!sPerfTestOn) return;
++  sCfgNext = sCfgSteps.size();
++  BenchCancel();
++  PerfTestRestore();
++  BenchDone();
++  fprintf(stderr, "perftest: aborted (%s); settings restored\n", why);
++}
+ static void SIM_CfgScript(void) {
+   std::vector<CfgStep> &sSteps = sCfgSteps;
+   size_t &sNext = sCfgNext;
+@@ -988,17 +1019,8 @@ static void SIM_CfgScript(void) {
+       } else if (strcmp(kv, "bench") == 0) {
+         BenchStart(v);
+       } else if (strcmp(kv, "restore") == 0) {
+-        s_SIM_config.renderer = sCfgSaved.renderer;
+-        s_SIM_config.resolution = sCfgSaved.resolution;
+-        s_SIM_config.antialias = sCfgSaved.antialias;
+-        s_SIM_config.speed = sCfgSaved.speed;
+-        s_SIM_config.frameSkip = sCfgSaved.frameSkip;
+-        s_SIM_config.interpolation = sCfgSaved.interpolation;
+-        s_SIM_config.displayCap = sCfgSaved.displayCap;
+-        s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
+-        sFastForward = false;
++        PerfTestRestore();
+         BenchDone();
+-        sPerfTestOn = false;
+         fprintf(stderr, "perftest: settings restored\n");
+       } else if (strcmp(kv, "framerate") == 0) {
+         u8 r = strcmp(v, "unlimited") == 0 ? SIM_CONFIG_DISPLAYCAP_UNLIMITED : strcmp(v, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+@@ -1779,12 +1801,29 @@ static void InputTickEnd(void) {
+   }
+ }
+ static int sLagLog = -1;
++// libntr-ios-appfix.patch: a line that can repeat all session (slow settings, a drop condition) is printed at most `perMin` times a
++// minute; the lines left out are counted and the next one says how many
++struct LogBudget { u64 winStart; int used; int skipped; };
++static bool LogBudgetOk(LogBudget &b, int perMin, int *skippedBefore) {
++  struct timespec ts;
++  clock_gettime(CLOCK_MONOTONIC, &ts);
++  u64 now = (u64)ts.tv_sec * 1000000000ull + (u64)ts.tv_nsec;
++  if (b.winStart == 0 || now - b.winStart > 60000000000ull) { b.winStart = now; b.used = 0; }
++  if (b.used >= perMin) { b.skipped++; return false; }
++  b.used++;
++  *skippedBefore = b.skipped;
++  b.skipped = 0;
++  return true;
++}
+ static void InputGpuDone(InTrack &in, u64 done, int inflight) {
+   const int k = (int)(&in - sIn);
+   in.stage = 0;
+   in.gpu = (float)((done - in.t0) / 1e6);
+   if (sLagLog < 0) sLagLog = getenv("BWPORT_PACELOG") != NULL || getenv("BWPORT_LAGLOG") != NULL;
+-  if (sLagLog || in.gpu > 100.0f) {
++  static LogBudget sLateBudget;
++  int more = 0;
++  if (sLagLog || (in.gpu > 100.0f && LogBudgetOk(sLateBudget, 20, &more))) {
++    if (more > 0) fprintf(stderr, "input: (%d more late presses and releases not shown)\n", more);
+     fprintf(stderr, "input: %s shown %.0f ms late (glass to pad %.0f, pad to tick end %.0f, to present %.0f, to GPU done %.0f; %d in flight)\n",
+             k ? "release" : "press", in.gpu, (in.pad - in.t0) / 1e6, (in.end - in.pad) / 1e6, (in.present - in.end) / 1e6,
+             (done - in.present) / 1e6, inflight);
+@@ -2052,6 +2091,7 @@ static void BenchStart(const char *name) {
+   snprintf(sBench.name, sizeof sBench.name, "%s", name);
+ }
+ static bool BenchBusy(void) { return sBench.on; }
++static void BenchCancel(void) { sBench.on = false; }
+ // the rows so far as a table (the end of a script, the iOS test's end)
+ static void BenchDone(void) {
+   if (!sBench.any) return;
+@@ -2102,7 +2142,10 @@ static void PaceTick(void) {
+         if (sVsPeriod) fprintf(stderr, "pace panel %.1f Hz, shown lag %.1f ms mean (est.), %.1f max, %d waiting max, %llu dropped\n", 1e9 / (double)sVsPeriod,
+                                sShownMean, sSc.maxNs / 1e6, sShownMaxWait, (unsigned long long)(sSc.drops - sScPrev.drops));
+       }
+-      if (sSc.drops > sScPrev.drops && !(sLog > 0)) {
++      static LogBudget sDropBudget;
++      int dropMore = 0;
++      if (sSc.drops > sScPrev.drops && !(sLog > 0) && LogBudgetOk(sDropBudget, 6, &dropMore)) {
++        if (dropMore > 0) fprintf(stderr, "display: (%d more seconds with dropped presents not shown)\n", dropMore);
+         fprintf(stderr, "display: %llu presents dropped in the last second (the panel at %.1f Hz was two pictures behind)\n",
+                 (unsigned long long)(sSc.drops - sScPrev.drops), sVsPeriod ? 1e9 / (double)sVsPeriod : 0.0);
+       }
+@@ -2814,6 +2857,7 @@ extern "C" void SIM_Audio_Pause(int aPause); // sim_audio.cpp (libntr-ios-sound.
+ static void SimTouchBackgroundWait(void) {
+   if (!SimTouch_Active() || !SimTouch_Background()) return;
+   fprintf(stderr, "bwport: in the background: paused\n");
++  SIM_PerfTestAbort("the app left");   // libntr-ios-appfix.patch
+   SIM_Audio_Pause(1);
+   while (SimTouch_Background()) {
+     SDL_PumpEvents();
+@@ -2839,16 +2883,21 @@ static void SimTouchSettingsWait(void) {
+   if (bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
+   if (!SimTouch_MenuOpen()) return;
+   fprintf(stderr, "bwport: settings open: paused\n");
++  SIM_PerfTestAbort("the settings opened");   // libntr-ios-appfix.patch
+   SIM_Audio_Pause(1);
+   bwport_ios_settings_present();
+-  while (bwport_ios_settings_is_open() && !SimTouch_Background()) {
+-    bwport_ios_settings_run(0.1);  // the run loop, asleep between its events (was a pump every 10 ms: the sheet judders)
++  // (libntr-ios-appfix.patch: one loop: after a trip to the background with the sheet up it returned to the run-loop wait only
++  // after the sheet closed, a pump every 50 ms for the rest of it: the sheet's scrolling at 20 fps)
++  while (bwport_ios_settings_is_open()) {
++    if (!SimTouch_Background()) {
++      bwport_ios_settings_run(0.1);  // the run loop, asleep between its events (was a pump every 10 ms: the sheet judders)
++    } else {
++      // (backgrounded with the sheet up: wait for the foreground. SDL_PumpEvents runs the run loop for 2 us a call: the scene's return
++      // to the foreground was only served when the sheet closed, and the pump loop (a turn every 50 ms) went on all that time)
++      bwport_ios_settings_run(0.05);
++    }
+   }
+   SDL_PumpEvents();  // (SDL's GL context made current again)
+-  while (bwport_ios_settings_is_open()) {  // (backgrounded with the sheet up: wait for the foreground, then for its end)
+-    SDL_PumpEvents();
+-    SDL_Delay(50);
+-  }
+   SDL_FlushEvents(SDL_FINGERDOWN, SDL_FINGERMOTION);
+   SimTouch_MenuClose();
+   SIM_Audio_Pause(0);
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+index 3717124..fe8f86e 100644
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -374,8 +374,21 @@ void Event(const SDL_Event * e) {
+ }
+ 
+ int Watch(void *, SDL_Event * e) {
++    if (e->type >= SDL_APP_TERMINATING && e->type <= SDL_APP_DIDENTERFOREGROUND) {   // (a few a session: libntr-ios-appfix.patch)
++        fprintf(stderr, "bwport: app event %s\n", e->type == SDL_APP_TERMINATING ? "terminating" : e->type == SDL_APP_LOWMEMORY ? "low memory"
++                : e->type == SDL_APP_WILLENTERBACKGROUND ? "will enter background" : e->type == SDL_APP_DIDENTERBACKGROUND ? "did enter background"
++                : e->type == SDL_APP_WILLENTERFOREGROUND ? "will enter foreground" : "did enter foreground");
++    }
+     // on the delegate's callback itself (the event queue is read too late: iOS kills an app that draws in the background)
+-    if (e->type == SDL_APP_WILLENTERBACKGROUND || e->type == SDL_APP_DIDENTERBACKGROUND) sBackground = true;
++    if (e->type == SDL_APP_WILLENTERBACKGROUND || e->type == SDL_APP_DIDENTERBACKGROUND) {
++        // libntr-ios-appfix.patch: nothing stays held across a trip to the background (a finger whose cancel never comes, or fast
++        // forward the player did not switch off): the fingers die (their slots free when they lift), fast forward goes off
++        if (!sBackground) {
++            ReleaseAll();
++            if (sFF) { sFF = false; sFFEdge = 0; }
++        }
++        sBackground = true;
++    }
+     if (e->type == SDL_APP_WILLENTERFOREGROUND || e->type == SDL_APP_DIDENTERFOREGROUND) sBackground = false;
+     return 0;
+ }

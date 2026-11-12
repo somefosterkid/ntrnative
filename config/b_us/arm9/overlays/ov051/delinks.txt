@@ -1,0 +1,11 @@
+    .text       start:0x021f36c0 end:0x021f3db4 kind:code align:32
+    .rodata     start:0x021f3db4 end:0x021f409c kind:rodata align:4
+    .ctor       start:0x021f409c end:0x021f409c kind:rodata align:4
+    .data       start:0x021f40a0 end:0x021f40c0 kind:data align:32
+    .bss        start:0x021f40c0 end:0x021f40c0 kind:bss align:32
+
+src/ov051/field_gimmick_d06.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f3db4
+    .rodata     start:0x021f3db4 end:0x021f409c
+    .data       start:0x021f40a0 end:0x021f40c0

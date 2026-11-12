@@ -1,0 +1,31 @@
+--- a/libraries/mi/src/mi_dma_gxcommand.c
++++ b/libraries/mi/src/mi_dma_gxcommand.c
+@@ -87,6 +87,14 @@
+ 		return;
+ 	}
+ 
++    #ifdef SDK_PORT
++	/* The PC sends the whole list to the simulator now; the DS's FIFO interrupts and DMA end that finish the
++	   transfer and call the callback never come, so the callback runs here, the transfer done. */
++	MI_SendGXCommand(dmaNo, src, commandLength);
++	MIi_CallCallback(callback, arg);
++	return;
++    #endif
++
+     #ifndef SDK_PORT
+ 	while (MIi_GXDmaParams.isBusy  ) {
+ 	}
+@@ -202,6 +210,13 @@
+ 		return;
+ 	}
+ 
++    #ifdef SDK_PORT
++	/* As MI_SendGXCommandAsync: the PC's DMA registers send nothing, so the list goes to the simulator now. */
++	MI_SendGXCommand(dmaNo, src, commandLength);
++	MIi_CallCallback(callback, arg);
++	return;
++    #endif
++
+ 	while (MIi_GXDmaParams.isBusy  ) {
+ 	}
+ 

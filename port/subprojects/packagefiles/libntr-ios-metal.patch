@@ -1,0 +1,720 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -109,6 +109,7 @@
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+     u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
++    u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -161,6 +161,9 @@
+     if(MATCH("General", "OverlayCorner")) {
+         config->overlayCorner = strcmp(value, "right") == 0;
+     }
++    if(MATCH("General", "Present")) {
++        config->present = strcmp(value, "metal") == 0;   /* bw-port (libntr-ios-metal.patch) */
++    }
+     if(MATCH("General", "HideTouchWithController")) {
+         config->hideTouch = strcmp(value, "off") != 0 && strcmp(value, "0") != 0;
+     }
+@@ -490,6 +493,10 @@
+     } else if(e != NULL && strcmp(e, "gpu") == 0) {
+         aConfig->renderer = SIM_CONFIG_RENDERER_GPU;
+     }
++    e = getenv("BWPORT_PRESENT");   /* bw-port (libntr-ios-metal.patch) */
++    if(e != NULL && (strcmp(e, "metal") == 0 || strcmp(e, "gl") == 0)) {
++        aConfig->present = strcmp(e, "metal") == 0;
++    }
+     e = getenv("BWPORT_GPU_SCALE");
+     if(e != NULL && atoi(e) >= 1) {
+         aConfig->resolution = (u8)(atoi(e) > 8 ? 8 : atoi(e));
+@@ -657,6 +664,7 @@
+     aConfig->overlayCorner = 0;
+     aConfig->overlayDetail = 0;
+     aConfig->hideTouch = 1;
++    aConfig->present = 0;
+     aConfig->displayCap = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->displayCapBack = SIM_CONFIG_DISPLAYCAP_60;
+     aConfig->interpolation = 0;
+@@ -779,6 +787,9 @@
+     fprintf(configFile, "Overlay=%s\n", aConfig->overlay ? "on" : "off");
+     fprintf(configFile, "OverlayCorner=%s\n", aConfig->overlayCorner ? "right" : "left");
+     fprintf(configFile, "HideTouchWithController=%s\n", aConfig->hideTouch ? "on" : "off");
++#ifdef __APPLE__
++    fprintf(configFile, "Present=%s\n", aConfig->present ? "metal" : "gl");   /* bw-port (libntr-ios-metal.patch): Apple builds only */
++#endif
+     fprintf(configFile, "OverlayDetail=%s\n", aConfig->overlayDetail ? "detailed" : "compact");
+     fprintf(configFile, "SmoothMotion=%s\n", aConfig->interpolation ? "on" : "off");
+     fprintf(configFile, "FrameRate=%s\n", FrameRateToString(aConfig->displayCap));
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -359,6 +359,15 @@
+ }
+ 
+ // ---- the draw state -----------------------------------------------------------------------------------------------
++
++// bw-port (libntr-ios-metal.patch): Present=metal draws ImGui with Dear ImGui's Metal backend (port/src/imgui_impl_metal.mm, through
++// port/src/metal_present.mm, which draws the draw data in the present's pass)
++extern "C" int SIM_PresentMetal(void);
++extern "C" const char *SIM_PresentName(void);   // "Metal: <GPU>" or GL_RENDERER (sim_main.cpp)
++#if defined(__APPLE__)
++extern "C" int bwport_mtl_imgui_init(void);
++extern "C" void bwport_mtl_ui(int on);
++#endif
+ 
+ void Init(SDL_Window * window, SDL_GLContext context) {
+     sWindow = window;
+@@ -381,6 +390,13 @@
+     igIO.DisplaySize.x = (float)(SIM_NDS_SCREEN_WIDTH*SIM_NDS_WINDOW_SCALE_FACTOR);
+     igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
+ 
++#if defined(__APPLE__)
++    if (SIM_PresentMetal()) {
++        ImGui_ImplSDL2_InitForMetal(sWindow);
++        bwport_mtl_imgui_init();
++    } else
++#endif
++    {
+     ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
+ #if (defined(__APPLE__) && TARGET_OS_IOS) || defined(__ANDROID__)
+     const char * glsl_version = "#version 300 es";   // bw-port (libntr-ios-gles.patch, libntr-android-gles.patch): OpenGL ES 3.0
+@@ -390,6 +406,7 @@
+     const char * glsl_version = "#version 420";
+ #endif
+     ImGui_ImplOpenGL3_Init(glsl_version);
++    }
+ 
+     ImGui::StyleColorsDark(NULL);
+     // a vector font: sharp at any size, scaled with the UI and drawn at the pixel size
+@@ -1182,7 +1199,7 @@
+              "# GL renderer: %s\n# GL version: %s\n"
+              "# Renderer: %s, Resolution %d (picture %d x %d), Antialiasing %s, Smooth motion %s, Frame rate %s, Fast-forward speed %s,"
+              " Skip frames when slow %s, Sound %s, window %d x %d\n",
+-             SIM_GLRendererName(), sGlVersion.c_str(), ActiveRenderer(), SIM_RenderScale(), pw, ph,
++             SIM_PresentName(), sGlVersion.c_str(), ActiveRenderer(), SIM_RenderScale(), pw, ph,
+              AntialiasNames[AntialiasIndex(c->antialias)], c->interpolation ? "on" : "off", DisplayCapShort[DisplayCapIndex()],
+              FFShort[FFIndex()], skip.c_str(), c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr", ww, wh);
+     return b;
+@@ -2228,7 +2245,7 @@
+     ImGui::Text("%s %dx", ActiveRenderer(), SIM_RenderScale());
+     ImGui::SameLine();
+     ImGui::TextDisabled("%d x %d", pw, ph);
+-    ImGui::TextDisabled("%s", SIM_GLRendererName());
++    ImGui::TextDisabled("%s", SIM_PresentName());
+     ImGui::Text("Sound: %s", c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
+     ImGui::SameLine();
+     ImGui::TextDisabled("   skip: %s", c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? "auto" : c->frameSkip == 0 ? "off" : std::to_string((int)c->frameSkip).c_str());
+@@ -2482,7 +2499,7 @@
+         int pw = 0, ph = 0;
+         SIM_RendererPicture(&pw, &ph);
+         snprintf(l2, sizeof l2, "%s %dx %dx%d", ActiveRenderer(), SIM_RenderScale(), pw, ph);
+-        snprintf(l3, sizeof l3, "%s", SIM_GLRendererName());
++        snprintf(l3, sizeof l3, "%s", SIM_PresentName());
+         diag = 3;
+     }
+ #endif
+@@ -2562,7 +2579,7 @@
+ }
+ 
+ void NewFrame() {
+-    ImGui_ImplOpenGL3_NewFrame();
++    if (!SIM_PresentMetal()) ImGui_ImplOpenGL3_NewFrame();
+     ImGui_ImplSDL2_NewFrame();
+     ImGui::NewFrame();
+ }
+@@ -2575,6 +2592,9 @@
+     // (libntr-sp76.patch: draw = false for a tick that is not presented)
+     ImDrawData *dd = ImGui::GetDrawData();
+     if (draw && dd != NULL && dd->TotalVtxCount > 0 && !SIM_NoPresent()) {
++#if defined(__APPLE__)
++        if (SIM_PresentMetal()) bwport_mtl_ui(1); else
++#endif
+         ImGui_ImplOpenGL3_RenderDrawData(dd);
+     }
+ }
+@@ -2583,6 +2603,9 @@
+ void RenderAgain() {
+     ImDrawData *dd = ImGui::GetDrawData();
+     if (dd != NULL && dd->TotalVtxCount > 0 && !SIM_NoPresent()) {
++#if defined(__APPLE__)
++        if (SIM_PresentMetal()) bwport_mtl_ui(1); else
++#endif
+         ImGui_ImplOpenGL3_RenderDrawData(dd);
+     }
+ }
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -64,6 +64,36 @@
+ #define SIM_ANDROID 0
+ #endif
+ #define SIM_GLES (SIM_IOS || SIM_ANDROID)
++// bw-port (libntr-ios-metal.patch): Apple builds can present with Metal instead of OpenGL (sim_config.ini Present=metal,
++// BWPORT_PRESENT=metal; decided at window creation, sMetal): the program's port/src/metal_present.mm draws the picture, ImGui and
++// the fences. Renderer=gpu keeps the GL present until its Metal picture exists (docs/gpu-backends.md M3).
++#if defined(__APPLE__)
++#define SIM_METAL 1
++extern "C" {
++int bwport_mtl_init(void *layer, unsigned long long (*now)(void));
++const char *bwport_mtl_device_name(void);
++void bwport_mtl_drawable_size(int *w, int *h);
++void bwport_mtl_set_sync(int on);
++void bwport_mtl_upload(const void *rgba, int w, int h);
++void bwport_mtl_quad(void *tex, const float *xyst, int n, int vx, int vy, int vw, int vh, int linear);
++unsigned long long bwport_mtl_present(unsigned char *shot, int shotW, int shotH);
++void bwport_mtl_discard(void);
++int bwport_mtl_shot(unsigned char *shot, int shotW, int shotH);
++unsigned long long bwport_mtl_fence(int next);
++int bwport_mtl_wait(unsigned long long serial, unsigned long long timeoutNs, unsigned long long *doneNs);
++double bwport_mtl_gpu_take(int *n);
++void bwport_mtl_bench(unsigned long long *presents, double *gpuMean, double *gpuMax, unsigned long long *waits, double *waitMs,
++                      unsigned long long *nodrawable);
++}
++#else
++#define SIM_METAL 0
++#endif
++static bool sMetal;   // the window presents with Metal (SIM_METAL builds, Present=metal)
++extern "C" int SIM_PresentMetal(void) { return sMetal; }
++#if SIM_METAL
++static int sMtlVp[4];          // Metal: the screens' viewport in drawable pixels (origin top left)
++static char sMtlShot[640];     // Metal: a screenshot's path, written at the next present (SIM_ShotMaybe)
++#endif
+ 
+ // bw-port (libntr-ios-touch.patch): the phone's on-screen controls (sim_touch.cpp)
+ extern "C" {
+@@ -199,6 +229,7 @@
+ extern "C" int bwport_sys_want_gpu(void) __attribute__((weak));
+ extern "C" void bwport_sys_gpu_timers(int ok) __attribute__((weak));
+ extern "C" void bwport_sys_gpu_end(void) __attribute__((weak));
++extern "C" void bwport_sys_gpu_add(double ms) __attribute__((weak));   // (libntr-ios-metal.patch)
+ extern "C" float SIM_DisplayLag(int *inflight, float *maxMs);
+ static int sGqOk = -1;
+ extern "C" int SIM_PerfGpuTimers(void) { return sGqOk > 0; }
+@@ -213,6 +244,7 @@
+ static u8 sGqGot[2];
+ static double sPerfSoundPrev; // the last frame's sound step: it ran after that frame's end mark, inside this frame's "game" time
+ static void GqBegin(int k) {
++  if (sMetal) return;  // (libntr-ios-metal.patch: the command buffers' own times, GqFrame)
+   if (!sPerfOn || sGqOk <= 0 || sGqActive >= 0 || sGqUsed[sGqFrame % kGqLag][k]) return;
+   GLuint *q = &sGq[sGqFrame % kGqLag][k];
+   if (*q == 0) glGenQueries(1, q);
+@@ -227,6 +259,25 @@
+ }
+ // at the frame's start (the GL context current): the slot used kGqLag frames ago is read and reused
+ static void GqFrame(void) {
++#if SIM_METAL
++  if (sMetal) {  // libntr-ios-metal.patch: every present's GPU time (GPUEndTime - GPUStartTime), no queries
++    if (sGqOk < 0) {
++      sGqOk = 1;
++      SIM::GUI::PerfGlVersion("Metal");
++      SIM::GUI::PerfGpuNote("");
++    }
++    int n = 0;
++    double ms = bwport_mtl_gpu_take(&n);
++    if (n > 0 && sPerfOn) {
++      sGqMs[0] = ms;
++      sGqGot[0] = 1;
++    } else if (n > 0 && bwport_sys_gpu_add != NULL) {  // (the sys line's figure, every frame: a real GPU time costs nothing here)
++      bwport_sys_gpu_add(ms);
++      bwport_sys_gpu_end();
++    }
++    return;
++  }
++#endif
+   if (sGqOk < 0) {
+     const char *v = (const char *)glGetString(GL_VERSION);
+     sGqOk = glad_glGetQueryObjectui64v != NULL && glad_glBeginQuery != NULL && glad_glGenQueries != NULL &&
+@@ -431,6 +482,17 @@
+ // object (a weak definition in a library member of its own was not linked in the win64 build), any strong one replaces them
+ extern "C" __attribute__((weak)) int SIM_GLIsHardware(void) { return 0; }
+ extern "C" __attribute__((weak)) const char *SIM_GLRendererName(void) { return ""; }
++// what draws the window: "Metal: <the GPU>" under Present=metal, else GL_RENDERER (the Metrics window, the overlay)
++extern "C" const char *SIM_PresentName(void) {
++#if SIM_METAL
++  if (sMetal) {
++    static char b[160];
++    snprintf(b, sizeof b, "Metal: %s", bwport_mtl_device_name());
++    return b;
++  }
++#endif
++  return SIM_GLRendererName();
++}
+ static unsigned sRendererSerial = 1;
+ static int sLastWanted = -1, sLastRes = -1, sLastAA = -1;
+ static int sAAUsed;               // the supersampling the bridge that drew the last frame used (SIM_RendererAAUsed), 0 none yet
+@@ -504,7 +566,14 @@
+ extern "C" int SIM_RendererWanted(void) {
+   int r = s_SIM_config.renderer;
+   if (r == SIM_CONFIG_RENDERER_AUTO) {
+-    r = (sFrameRendererGL != NULL && SIM_GLIsHardware()) ? SIM_CONFIG_RENDERER_GPU : SIM_CONFIG_RENDERER_VCORE;
++    r = (sFrameRendererGL != NULL && !sMetal && SIM_GLIsHardware()) ? SIM_CONFIG_RENDERER_GPU : SIM_CONFIG_RENDERER_VCORE;
++  }
++  // libntr-ios-metal.patch: the GPU renderer draws with GL until M3 hands the Metal present its picture: vcore draws (said once)
++  if (sMetal && r == SIM_CONFIG_RENDERER_GPU) {
++    static bool said;
++    if (!said) fprintf(stderr, "bwport: Present=metal: Renderer=gpu needs the GL present until its Metal picture exists; vcore draws\n");
++    said = true;
++    r = SIM_CONFIG_RENDERER_VCORE;
+   }
+   // a renderer the program did not register is not wanted
+   if (r == SIM_CONFIG_RENDERER_GPU && sFrameRendererGL == NULL) r = SIM_CONFIG_RENDERER_VCORE;
+@@ -1339,6 +1408,16 @@
+   bool now = sCfgShot[0] != 0;
+   if (!now && (next >= n || (SDL_GetTicks64() - t0) / 1000.0 < at[next])) return;
+   int w = 0, h = 0;
++#if SIM_METAL
++  if (sMetal) {  // libntr-ios-metal.patch: the present reads its frame back (SIM_Swap)
++    if (now) snprintf(sMtlShot, sizeof sMtlShot, "%s/%s.png", dir, sCfgShot);
++    else snprintf(sMtlShot, sizeof sMtlShot, "%s/s%03d.png", dir, (int)at[next]);
++    if (now) sCfgShot[0] = 0;
++    else next++;
++    if (!now) sShotDueAt = next < n ? at[next] : 1e30;
++    return;
++  }
++#endif
+   SDL_GL_GetDrawableSize(win, &w, &h);
+   if (w <= 0 || h <= 0) return;
+   std::vector<unsigned char> px((size_t)w * h * 4), flip((size_t)w * h * 4);
+@@ -1361,6 +1440,10 @@
+ }
+ #endif
+ 
++#if SIM_METAL
++static u64 SpNowNs(void);
++static unsigned long long MtlNow(void) { return SpNowNs(); }   // (libntr-ios-metal.patch: the done times on the pacing clock)
++#endif
+ void *SIM_RenderInit(void *arg) {
+ 
+   // bw-port (libntr-ui68.patch): per-monitor DPI awareness on Windows: the window's pixels are the screen's (Windows
+@@ -1486,7 +1569,17 @@
+   // several times the quad's own work (28 threads: 5 cores at 300 fps, 0.6 cores at the 60 fps cap): 4 threads at most.
+   // Before the GL context exists (Mesa reads it at its first context); a user's own LP_NUM_THREADS stands, a real GPU
+   // driver ignores it, and Renderer=gpu / libntr (the N x 3D or libntr's 3D on the software GL) keep Mesa's default.
+-  if (sGLPre != NULL) {
++  // bw-port (libntr-ios-metal.patch): Present=metal, unless Renderer=gpu (it draws with GL until M3: the GL present)
++#if SIM_METAL
++  sMetal = s_SIM_config.present != 0;
++  if (sMetal && s_SIM_config.renderer == SIM_CONFIG_RENDERER_GPU) {
++    fprintf(stderr, "bwport: Present=metal: Renderer=gpu draws with OpenGL until its Metal picture exists (M3): the GL present\n");
++    sMetal = false;
++  }
++#endif
++  if (sMetal) {
++    // no GL at all
++  } else if (sGLPre != NULL) {
+     sGLPre(s_SIM_config.renderer != SIM_CONFIG_RENDERER_GPU);   // the program sets it (and picks the GL)
+   } else if (s_SIM_config.renderer != SIM_CONFIG_RENDERER_GPU && getenv("LP_NUM_THREADS") == NULL) {
+     int n = SDL_GetCPUCount();
+@@ -1501,20 +1594,46 @@
+   }
+ 
+   sBaseTitle = windowTitle;
++#if SIM_METAL
++  const Uint32 apiFlag = sMetal ? SDL_WINDOW_METAL : SDL_WINDOW_OPENGL;   // (libntr-ios-metal.patch)
++#else
++  const Uint32 apiFlag = SDL_WINDOW_OPENGL;
++#endif
+   window = SDL_CreateWindow(
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
+ #if SIM_GLES
+-      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI
++      SDL_WINDOW_SHOWN | apiFlag | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI
+ #elif defined(__APPLE__)
+-      (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | SDL_WINDOW_OPENGL
++      (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | apiFlag
+ #else
+-      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
++      SDL_WINDOW_SHOWN | apiFlag
+ #endif
+       #if defined(SDK_BUILD_WIN64) || defined(SDK_BUILD_LINUX)
+       | SDL_WINDOW_RESIZABLE
+       #endif
+     );
+   SimTouch_Window(window);
++#if SIM_METAL
++  if (sMetal) {
++    // libntr-ios-metal.patch: SDL's Metal view and its CAMetalLayer; the program's port/src/metal_present.mm does the rest
++    SDL_MetalView view = SDL_Metal_CreateView(window);
++    void *layer = view != NULL ? SDL_Metal_GetLayer(view) : NULL;
++    if (layer == NULL || !bwport_mtl_init(layer, MtlNow)) {
++      fprintf(stderr, "libntr: no Metal view: %s\n", SDL_GetError());
++      printf("libntr: no Metal view (Present=metal): %s\n", SDL_GetError());
++      fflush(stdout);
++      _Exit(1);   // not exit(): the game's exit() (port/src/boot_exit.c) returns
++    }
++    if (s_SIM_config.fullScreen) SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
++    int dw = 0, dh = 0, ww = 0, wh = 0;
++    bwport_mtl_drawable_size(&dw, &dh);
++    SDL_GetWindowSize(window, &ww, &wh);
++    fprintf(stderr, "bwport: present: Metal on %s, drawable %dx%d, window %dx%d\n", bwport_mtl_device_name(), dw, dh, ww, wh);
++    SIM::GUI::Init(window, NULL);
++    clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
++    return nullptr;
++  }
++#endif
+   context = SDL_GL_CreateContext(window);
+   if (context == NULL) {
+     // no 4.2 core context: say so, not a crash in the first GL call
+@@ -1623,6 +1742,10 @@
+ 
+ static void SIM_FrameInit(void) {
+   if (s_frameProgram != 0) return;
++  if (sMetal) {  // libntr-ios-metal.patch: a name for "the picture uploaded last" (metal_present.mm holds the textures)
++    s_frameProgram = s_frameTexture = 1;
++    return;
++  }
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+   glActiveTexture(GL_TEXTURE0);
+@@ -1657,6 +1780,22 @@
+ // the screen quads with the picture in texture tex (unit 0), libntr's state back after
+ static void SIM_DrawFrameTexture(GLuint tex) {
+   sLastPicTex = tex;
++#if SIM_METAL
++  if (sMetal) {  // libntr-ios-metal.patch: the present draws the picture uploaded last with the screen quads
++    G3SIM_Vertex_t *q = sim_GetScreenQuadArray(s_SIM_config.screenLayout, s_SIM_config.swapScreens);
++    int n = sim_GetScreenQuadVertexCount(s_SIM_config.screenLayout, s_SIM_config.swapScreens);
++    float v[64 * 4];
++    if (n > 64) n = 64;
++    for (int i = 0; i < n; i++) {
++      v[i * 4] = q[i].x;
++      v[i * 4 + 1] = q[i].y;
++      v[i * 4 + 2] = q[i].s;
++      v[i * 4 + 3] = q[i].t;
++    }
++    bwport_mtl_quad(NULL, v, n, sMtlVp[0], sMtlVp[1], sMtlVp[2], sMtlVp[3], 0);
++    return;
++  }
++#endif
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+   glActiveTexture(GL_TEXTURE0);
+@@ -2000,17 +2139,40 @@
+   *inflight = sLagMaxIn;
+   *maxMs = sLagMaxMs;
+   return sLagMean;
++}
++#if SIM_METAL
++// libntr-ios-metal.patch: under Metal the fences are the presents' command buffers (their completion handlers, metal_present.mm):
++// a "sync" is the serial of the present it waits for (LagSubmit's: the present about to be made, right after it)
++static GLsync APIENTRY MtlFence(GLenum, GLbitfield) { return (GLsync)(uintptr_t)bwport_mtl_fence(1); }
++static GLenum APIENTRY MtlWait(GLsync f, GLbitfield, GLuint64 timeout) {
++  return bwport_mtl_wait((unsigned long long)(uintptr_t)f, timeout, NULL) ? (timeout ? GL_CONDITION_SATISFIED : GL_ALREADY_SIGNALED)
++                                                                           : GL_TIMEOUT_EXPIRED;
+ }
++static void APIENTRY MtlDelete(GLsync) {}
++#endif
+ static bool LagReady(void) {
+   if (!sLagInit) {
+     sLagInit = 1;
+-    sLagFence = (LagFenceFn)SDL_GL_GetProcAddress("glFenceSync");
+-    sLagWait = (LagWaitFn)SDL_GL_GetProcAddress("glClientWaitSync");
+-    sLagDelete = (LagDeleteFn)SDL_GL_GetProcAddress("glDeleteSync");
++#if SIM_METAL
++    if (sMetal) {
++      sLagFence = MtlFence;
++      sLagWait = MtlWait;
++      sLagDelete = MtlDelete;
++    } else
++#endif
++    {
++      sLagFence = (LagFenceFn)SDL_GL_GetProcAddress("glFenceSync");
++      sLagWait = (LagWaitFn)SDL_GL_GetProcAddress("glClientWaitSync");
++      sLagDelete = (LagDeleteFn)SDL_GL_GetProcAddress("glDeleteSync");
++    }
+     const char *e = getenv("BWPORT_GPUQUEUE");
+     if (e != NULL && *e) sLagBound = atoi(e) < 0 ? 0 : atoi(e) > 15 ? 15 : atoi(e);
+     e = getenv("BWPORT_GPUSLOW");
+     if (e != NULL && *e) sLagSlow = atoi(e);
++    if (sMetal && sLagSlow > 0) {
++      fprintf(stderr, "bwport: BWPORT_GPUSLOW is GL only: off under Present=metal\n");
++      sLagSlow = 0;
++    }
+     fprintf(stderr, "bwport: GPU queue: fences %s, at most %d frames in flight%s\n",
+             sLagFence && sLagWait && sLagDelete ? "on" : "unavailable", sLagBound, sLagSlow > 0 ? " (BWPORT_GPUSLOW on)" : "");
+   }
+@@ -2137,7 +2299,15 @@
+     if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED) {
+       sLagBusyNs = SpNowNs();
+       return;
++    }
++#if SIM_METAL
++    // libntr-ios-metal.patch: the command buffer's GPU end is known: the done time itself, not the polls around it
++    unsigned long long dn = 0;
++    if (sMetal && bwport_mtl_wait((unsigned long long)(uintptr_t)sLagQ[0].f, 0, &dn) && dn != 0) {
++      LagDone(dn, dn);
++      continue;
+     }
++#endif
+     LagDone(SpNowNs(), sLagBusyNs);
+   }
+ }
+@@ -2233,7 +2403,11 @@
+     sDrCnt--;
+   }
+   DrRec &d = sDrQ[(sDrHead + sDrCnt) & 15];
++#if SIM_METAL
++  d.f = sMetal ? (GLsync)(uintptr_t)bwport_mtl_fence(0) : sLagFence(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);   // (the present just made)
++#else
+   d.f = sLagFence(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
++#endif
+   d.busy = SpNowNs();
+   d.done = d.shown = 0;
+   if (d.f != NULL) sDrCnt++;
+@@ -2312,6 +2486,13 @@
+   PassReset();  // libntr-ios-passes.patch
+   sDrBenchNs = sDrWaitNs;  // libntr-ios-smoothfix.patch
+   sDrBenchN = sDrWaits;
++#if SIM_METAL
++  if (sMetal) {  // libntr-ios-metal.patch: (the Metal line's counts from here)
++    unsigned long long p, w, nd;
++    double gm, gx, wm;
++    bwport_mtl_bench(&p, &gm, &gx, &w, &wm, &nd);
++  }
++#endif
+ }
+ static bool BenchBusy(void) { return sBench.on; }
+ static void BenchCancel(void) { sBench.on = false; }
+@@ -2470,6 +2651,15 @@
+     if (sDrN >= 2)  // libntr-ios-smoothfix.patch: the test aid's waits for a drawable (BWPORT_DRAWABLES)
+       fprintf(stderr, "drawables: %-20s %d, waits %.1f/s, %.1f ms/s\n", sBench.name, sDrN, (sDrWaits - sDrBenchN) / dt,
+               (sDrWaitNs - sDrBenchNs) / 1e6 / dt);
++#if SIM_METAL
++    if (sMetal) {  // libntr-ios-metal.patch: the presents' real GPU time (command buffer GPUStartTime..GPUEndTime) and nextDrawable's waits
++      unsigned long long p, w, nd;
++      double gm, gx, wm;
++      bwport_mtl_bench(&p, &gm, &gx, &w, &wm, &nd);
++      fprintf(stderr, "metal: %-20s GPU %.3f ms a present (max %.3f, %llu presents), drawable waits %.1f/s %.1f ms/s, no drawable %llu\n",
++              sBench.name, gm, gx, p, w / dt, wm / dt, nd);
++    }
++#endif
+     fflush(stderr);
+   }
+ }
+@@ -2908,16 +3098,26 @@
+   if (sLookWant) LookRgba(rgba, pw, ph);
+   SIM_FrameInit();
+   GLint prevTex = 0, prevUnit = 0;
+-  glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+-  glActiveTexture(GL_TEXTURE0);
+-  glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+-  glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++  if (!sMetal) {
++    glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
++    glActiveTexture(GL_TEXTURE0);
++    glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
++    glBindTexture(GL_TEXTURE_2D, s_frameTexture);
++  }
+   u64 tUp0 = sFLOn > 0 || sPerfOn ? FLNow() : 0;
+   GqBegin(0);
+   if (SIM_NoPresent() || !sTickPresent) {
+     // the picture is neither uploaded nor drawn
+   } else if (!sDrawNow && rgba == sFrameTexSrc && pw == sFrameTexW && ph == sFrameTexH) {
+     // libntr-ios-pace.patch: a skipped frame shows the picture the texture holds (it was uploaded again: 6 MB a frame at 4x)
++  } else if (sMetal) {  // libntr-ios-metal.patch
++#if SIM_METAL
++    bwport_mtl_upload(rgba, pw, ph);
++#endif
++    sFrameTexW = pw;
++    sFrameTexH = ph;
++    sFrameTexSrc = rgba;
++    sPc.upBytes += (u64)pw * ph * 4;
+   } else if (pw != sFrameTexW || ph != sFrameTexH) {
+     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+     sFrameTexW = pw;
+@@ -2932,8 +3132,10 @@
+   if (sPresentLog != NULL && sPresentHashOn < 0) sPresentHashOn = getenv("BWPORT_PRESENTHASH") != NULL;
+   if (sPresentHashOn > 0) sPresentHash = SpHashRgba(rgba, (size_t)pw * (size_t)ph * 4);
+   sPresentMid = 0;
+-  glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+-  glActiveTexture((GLenum)prevUnit);
++  if (!sMetal) {
++    glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
++    glActiveTexture((GLenum)prevUnit);
++  }
+   if (!SIM_NoPresent() && sTickPresent) SIM_DrawFrameTexture(s_frameTexture);
+   GqEnd();
+   if (sFLOn > 0 || sPerfOn) sFLUpload = FLNow() - tUp0;
+@@ -3300,8 +3502,43 @@
+ #else
+   if (SimTouch_MenuOpen()) SimTouch_MenuClose();
+   return false;
++#endif
++}
++
++// bw-port (libntr-ios-metal.patch): the window's swap: GL's, or the Metal present (one command buffer), which also writes a
++// screenshot SIM_ShotMaybe asked for (its frame read back)
++static void SIM_Swap(void) {
++#if SIM_METAL
++  if (sMetal) {
++    if (sMtlShot[0] == 0) {
++      bwport_mtl_present(NULL, 0, 0);
++      return;
++    }
++    int w = 0, h = 0;
++    bwport_mtl_drawable_size(&w, &h);
++    std::vector<unsigned char> px((size_t)(w > 0 ? w : 1) * (h > 0 ? h : 1) * 4);
++    bwport_mtl_present(w > 0 && h > 0 ? px.data() : NULL, w, h);
++    if (w > 0 && h > 0 && vcore_write_png != NULL) vcore_write_png(sMtlShot, px.data(), w, h);
++    sMtlShot[0] = 0;
++    return;
++  }
+ #endif
++  SDL_GL_SwapWindow(window);
+ }
++// a present LagSubmit dropped: what was drawn for it goes (GL clears it at the next draw); a screenshot asked for is still taken
++// (GL read the back buffer before LagSubmit)
++static void SIM_SwapDropped(void) {
++#if SIM_METAL
++  if (sMetal && sMtlShot[0] != 0) {
++    int w = 0, h = 0;
++    bwport_mtl_drawable_size(&w, &h);
++    std::vector<unsigned char> px((size_t)(w > 0 ? w : 1) * (h > 0 ? h : 1) * 4);
++    if (w > 0 && h > 0 && bwport_mtl_shot(px.data(), w, h) && vcore_write_png != NULL) vcore_write_png(sMtlShot, px.data(), w, h);
++    sMtlShot[0] = 0;
++  }
++  if (sMetal) bwport_mtl_discard();
++#endif
++}
+ 
+ void *SIM_Render(void *arg) {
+ 
+@@ -3363,8 +3600,10 @@
+       SIM_Net_SendBeaconIndication();
+     }
+ 
+-    glDisable(GL_DEPTH_TEST);
+-    glDisable(GL_CULL_FACE);
++    if (!sMetal) {
++      glDisable(GL_DEPTH_TEST);
++      glDisable(GL_CULL_FACE);
++    }
+ 
+     int windowHeight;
+     int windowWidth;
+@@ -3459,6 +3698,19 @@
+       viewWidth = screensW;
+     }
+ 
++#if SIM_METAL
++    if (sMetal) {
++      // libntr-ios-metal.patch: the window and the layout are in points, the drawable in pixels; Metal's viewport is from the top
++      int dw = windowWidth, dh = windowHeight;
++      bwport_mtl_drawable_size(&dw, &dh);
++      float px = (float)dw / (float)windowWidth, py = (float)dh / (float)windowHeight;
++      sMtlVp[0] = (int)(viewX * px + 0.5f);
++      sMtlVp[1] = (int)(viewTop * py + 0.5f);
++      sMtlVp[2] = (int)(viewWidth * px + 0.5f);
++      sMtlVp[3] = (int)(viewHeight * py + 0.5f);
++    } else
++#endif
++    {
+ #if SIM_IOS
+     glBindFramebuffer(GL_FRAMEBUFFER, sDefaultFbo);   // (a renderer may have left another one bound)
+ #endif
+@@ -3473,6 +3725,7 @@
+ #else
+     glViewport(viewX, viewY, viewWidth, viewHeight);
+ #endif
++    }
+ 
+     // The touch screen's rectangle, from the quads (sim_screenquads.c): vertical = one above the other, horizontal = side
+     // by side, large = the first screen over the left two thirds and the second in the lower right third
+@@ -3922,6 +4175,10 @@
+       wantInterval = 0; // libntr-ios-pace.patch: SDL's UIKit view has no swap interval (the set failed every frame); a present always waits for the display
+ #endif
+       if (SpPanelEnvHz() > 0) wantInterval = 0;  // libntr-ios-ffpace.patch: a pretended display link (SpLink): as on iOS
++#if SIM_METAL
++      if (sMetal) bwport_mtl_set_sync(wantInterval);   // libntr-ios-metal.patch: the layer's displaySyncEnabled (macOS)
++      else
++#endif
+       if (SDL_GL_GetSwapInterval() != wantInterval) {
+         SDL_GL_SetSwapInterval(wantInterval);
+       }
+@@ -3932,16 +4189,18 @@
+     }
+     u64 tSlept = SDL_GetPerformanceCounter();
+     if (SIM_NoPresent()) {
+-      glFlush();
++      if (!sMetal) glFlush();
+     } else if (sTickPresent && !(touchMode && SimTouch_Background())) {  // (libntr-ios-inputprio.patch: no GL in the background)
+       swapCall = SpNowNs();
+ #ifdef __APPLE__
+       SIM_ShotMaybe(window);
+ #endif
+       if (LagSubmit()) {  // libntr-ios-lag.patch
+-        SDL_GL_SwapWindow(window);
++        SIM_Swap();
+         PacePresented(SpNowNs() - swapCall);
+         SpAfterSwap(0, swapCall);
++      } else {
++        SIM_SwapDropped();
+       }
+     }
+     FLStamp(6);
+@@ -4008,7 +4267,7 @@
+             }
+           }
+           sIpLateNow = false;
+-          if (sInterpTex != NULL && s_SIM_config.interpolation && ipWhy == 3) { // the GPU path's in-between: drawn now, shown at the slot
++          if (sInterpTex != NULL && !sMetal && s_SIM_config.interpolation && ipWhy == 3) { // the GPU path's in-between: drawn now, shown at the slot
+             long long left = (long long)at - (long long)SpNowNs();
+             midTex = (GLuint)sInterpTex(r, &tw, &th, left);
+             // libntr-ios-smoothdrop.patch: its GL work to the GPU now, not at the slot's swap (GL keeps it until a flush): the GPU
+@@ -4018,7 +4277,7 @@
+           SpSleepUntil(at);
+           if (touchMode && SimTouch_Background()) break;  // (libntr-ios-inputprio.patch: no GL in the background)
+           SpDrawable();  // libntr-ios-smoothfix.patch: (a test aid: BWPORT_DRAWABLES)
+-          glClear(GL_COLOR_BUFFER_BIT);
++          if (!sMetal) glClear(GL_COLOR_BUFFER_BIT);   // (libntr-ios-metal.patch: the present's pass clears)
+           sPresentMid = 0;
+           if (midTex != 0 && tw > 0 && th > 0) {
+             sLastPicTex = midTex;
+@@ -4028,7 +4287,18 @@
+           if (midTex == 0 && sInterpPic != NULL && s_SIM_config.interpolation && sActive == 1 && ipWhy == 3) {  // (only vcore's own tick: libntr-ios-render.patch) // an in-between picture of the renderer's bridge for this slot
+             int mw = 0, mh = 0;
+             const unsigned char *mid = sInterpPic(r, &mw, &mh);
+-            if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent()) {
++            if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent() && sMetal) {  // libntr-ios-metal.patch
++#if SIM_METAL
++              bwport_mtl_upload(mid, mw, mh);
++#endif
++              sFrameTexW = mw;
++              sFrameTexH = mh;
++              sPc.upBytes += (u64)mw * mh * 4;
++              sFrameTexSrc = mid;
++              sLastPicTex = s_frameTexture;
++              sPresentMid = 1;
++              if (sPresentHashOn > 0) sPresentHash = SpHashRgba(mid, (size_t)mw * (size_t)mh * 4);
++            } else if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent()) {
+               GLint prevTex = 0, prevUnit = 0;
+               glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+               glActiveTexture(GL_TEXTURE0);
+@@ -4067,10 +4337,11 @@
+           const u64 by = sPresentMid ? SpSlotAbs(sPace.first + r) + 2 * sPace.Q - (SpLink(&lvs, &lper) ? 2500000 : 0) : 0;
+           if (!LagSubmit(by)) {  // libntr-ios-lag.patch
+             if (sPresentMid) sPc.ipDrop++;  // libntr-ios-smoothfix.patch
++            SIM_SwapDropped();
+             continue;
+           }
+           u64 call = SpNowNs();
+-          SDL_GL_SwapWindow(window);
++          SIM_Swap();
+           PacePresented(SpNowNs() - call);
+           if (sPresentMid) sPc.mids++;
+           SpAfterSwap(r, call);
+@@ -4102,8 +4373,10 @@
+     // the window's next frame (libntr-ios-render.patch: not in the background, iOS allows no GL there)
+     if (!(touchMode && SimTouch_Background())) {
+       SpDrawable();  // libntr-ios-smoothfix.patch: (a test aid: BWPORT_DRAWABLES)
+-      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+-      glClear(GL_COLOR_BUFFER_BIT);
++      if (!sMetal) {   // (libntr-ios-metal.patch: the present's pass clears)
++        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
++        glClear(GL_COLOR_BUFFER_BIT);
++      }
+     }
+     s_curPolygonAttr.alpha = 1.0f;
+ 

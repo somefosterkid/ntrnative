@@ -1,0 +1,17 @@
+GimmickHumilau_Init kind:function(thumb,size=0x30) addr:0x021eecc0
+GimmickHumilau_End kind:function(thumb,size=0x18) addr:0x021eecf0
+GimmickHumilau_Update kind:function(thumb,size=0xe) addr:0x021eed08
+GimmickHumilau_ShowSplash kind:function(thumb,size=0x60) addr:0x021eed18
+GimmickHumilau_CreateJumpEvent kind:function(thumb,size=0xbc) addr:0x021eed78
+GimmickHumilau_LoadSplash kind:function(thumb,size=0x74) addr:0x021eee34
+GimmickHumilau_FreeScene kind:function(thumb,size=0xc) addr:0x021eeea8
+GimmickHumilau_StepAnimations kind:function(thumb,size=0xc) addr:0x021eeeb4
+GimmickHumilau_PlayActor kind:function(thumb,size=0x5e) addr:0x021eeec0
+GimmickHumilau_JumpEvent kind:function(thumb,size=0xf8) addr:0x021eef20
+sAnimations kind:data(any) addr:0x021ef018
+sActors kind:data(any) addr:0x021ef020
+data_ov113_021eefe1 kind:data(any) addr:0x021ef021 ambiguous
+sSceneSetup kind:data(any) addr:0x021ef030
+sResources kind:data(any) addr:0x021ef040
+data_ov113_021ef011 kind:data(any) addr:0x021ef051 ambiguous
+sJumpHeights kind:data(any) addr:0x021ef064

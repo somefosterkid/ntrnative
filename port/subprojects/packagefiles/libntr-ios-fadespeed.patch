@@ -1,0 +1,140 @@
+diff --git a/include/simulator/config/sim_config.h b/include/simulator/config/sim_config.h
+index a23cc86..d786ea0 100644
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -112,6 +112,7 @@ typedef struct {
+     u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
+     u8 textSpeed; /* bw-port (libntr-ios-textspeed.patch): the text printers' speed, 0 = the game's own (Options), 1 = Faster (4 characters a frame), 2 = Fastest (8), 3 = Instant (TextSpeed=game|faster|fastest|instant, default game; BWPORT_TEXTSPEED); port/extern/src/system/text_speed.c reads it */
++    u8 fadeSpeed; /* bw-port (libntr-ios-fadespeed.patch): the game's screen fades and wipes (map changes, doors, menus and apps opening and closing), 0 = the game's, 1 = 2x, 2 = 4x, 3 = Instant (FadeSpeed=1|2|4|instant, default 1; BWPORT_FADESPEED); port/extern/lib/gfl/src/fade.c and port/extern/src/system/wipe.c read it */
+     u8 battleSpeed; /* bw-port (libntr-ios-battlespeed.patch): the Game speed while a battle runs, 1..4 (BattleSpeed=1..4, default 1 = off; BWPORT_BATTLESPEED); the higher of it and the Game speed applies */
+     u32 audioRate; /* bw-port (libntr-ios-ablate.patch): the rate asked of SDL's audio device (AudioRate=48000); 0 = 44100 as before. A phone whose device runs at 48 kHz then skips SDL's second resample (a test of that cost; off by default) */
+     u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+index 836865f..3bcb61c 100644
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -44,6 +44,7 @@ static int SpOptIndex(const char *v, const char * const *names, int n) {
+     return i < n ? i : -1;
+ }
+ static const char * const sTextSpeedNames[] = {"game", "faster", "fastest", "instant"};
++static const char * const sFadeSpeedNames[] = {"1", "2", "4", "instant"};   /* bw-port (libntr-ios-fadespeed.patch) */
+ static u8 FrameRateFromString(const char * v);
+ static int OnOffFromString(const char * v);
+ static const char * FrameRateToString(u8 r);
+@@ -214,6 +215,10 @@ static int IniHandler(void* user, const char* section, const char* name,
+         int i = SpOptIndex(value, sTextSpeedNames, 4);
+         config->textSpeed = (u8)(i < 0 ? 0 : i);
+     }
++    if(MATCH("General", "FadeSpeed")) { /* bw-port (libntr-ios-fadespeed.patch) */
++        int i = SpOptIndex(value, sFadeSpeedNames, 4);
++        config->fadeSpeed = (u8)(i < 0 ? 0 : i);
++    }
+     if(MATCH("General", "BattleSpeed")) { /* bw-port (libntr-ios-battlespeed.patch) */
+         int n = atoi(value);
+         config->battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+@@ -614,6 +619,11 @@ static void RendererFromEnv(SIM_config_type * aConfig)
+         int i = SpOptIndex(e, sTextSpeedNames, 4);
+         aConfig->textSpeed = (u8)(i < 0 ? 0 : i);
+     }
++    e = getenv("BWPORT_FADESPEED");   /* bw-port (libntr-ios-fadespeed.patch): 1|2|4|instant */
++    if(e != NULL && *e) {
++        int i = SpOptIndex(e, sFadeSpeedNames, 4);
++        aConfig->fadeSpeed = (u8)(i < 0 ? 0 : i);
++    }
+     e = getenv("BWPORT_BATTLESPEED");   /* bw-port (libntr-ios-battlespeed.patch): 1..4 */
+     if(e != NULL && *e) {
+         int n = atoi(e);
+@@ -745,6 +755,7 @@ void SIM_Config_LoadDefaults(SIM_config_type * aConfig)
+     aConfig->speed = 1;
+     aConfig->ffSpeed = 4;
+     aConfig->battleSpeed = 1;
++    aConfig->fadeSpeed = 0;   /* bw-port (libntr-ios-fadespeed.patch) */
+     aConfig->textSpeed = 0;   /* bw-port (libntr-ios-textspeed.patch) */
+     aConfig->soundQuality = 1;
+     aConfig->musicNormalSpeed = 1;
+@@ -901,6 +912,7 @@ void SIM_Config_SaveConfigFile(SIM_config_type * aConfig)
+         fprintf(configFile, "GameSpeed=%d\n", sp);
+     }
+     fprintf(configFile, "TextSpeed=%s\n", sTextSpeedNames[aConfig->textSpeed < 4 ? aConfig->textSpeed : 0]);   /* bw-port (libntr-ios-textspeed.patch) */
++    fprintf(configFile, "FadeSpeed=%s\n", sFadeSpeedNames[aConfig->fadeSpeed < 4 ? aConfig->fadeSpeed : 0]);   /* bw-port (libntr-ios-fadespeed.patch) */
+     fprintf(configFile, "BattleSpeed=%d\n", aConfig->battleSpeed < 1 ? 1 : aConfig->battleSpeed > 4 ? 4 : aConfig->battleSpeed);
+     fprintf(configFile, "FastForwardSpeed=%s\n", aConfig->ffSpeed >= 5 ? "max" : aConfig->ffSpeed == 3 ? "3" : aConfig->ffSpeed == 4 ? "4" : "2");
+     fprintf(configFile, "SoundQuality=%s\n", aConfig->soundQuality ? "enhanced" : "ds");
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+index 5d54165..46e5be9 100644
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -598,6 +598,20 @@ static void SetTextSpeed(int i) {
+     }
+ }
+ 
++// libntr-ios-fadespeed.patch: the game's screen fades and wipes (Normal, 2x, 4x, Instant)
++static const char * const FadeSpeedTip = "how fast the screen fades: map changes, doors and warps, and menus and screens opening and closing. Normal = the game's speed; the walk through a door and the map's loading keep theirs";
++static const char * const FadeSpeedNames[] = {"Normal", "2x", "4x", "Instant"};
++static int FadeSpeedIndex() {
++    SIM_config_type * c = C();
++    return c->fadeSpeed > 3 ? 0 : c->fadeSpeed;
++}
++static void SetFadeSpeed(int i) {
++    if (i != FadeSpeedIndex()) {
++        C()->fadeSpeed = (u8)i;
++        Dirty();
++    }
++}
++
+ // libntr-desktop-speed.patch: the Fast-forward speed (2x 3x 4x Max = ffSpeed 2..5); Space switches fast forward on and off (sim_main.cpp)
+ extern "C" int SIM_FFOn(void);
+ extern "C" void SIM_FFSet(int on);
+@@ -896,6 +910,9 @@ static void AudioWindow() {
+         FormRow("Text speed", TextSpeedTip);   // libntr-ios-textspeed.patch
+         int tsp = TextSpeedIndex();
+         if (ComboIndex("##atspd", &tsp, TextSpeedNames, 4)) { SetTextSpeed(tsp); }
++        FormRow("Transitions", FadeSpeedTip);   // libntr-ios-fadespeed.patch
++        int fsp = FadeSpeedIndex();
++        if (ComboIndex("##afspd", &fsp, FadeSpeedNames, 4)) { SetFadeSpeed(fsp); }
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+@@ -2409,6 +2426,11 @@ static void SideMetrics(float x, float y, float w, float h) {
+             int tsp = TextSpeedIndex();
+             if (ComboIndex("##qtspeed", &tsp, TextSpeedNames, 4)) { SetTextSpeed(tsp); }
+         }
++        FormRow("Transitions", FadeSpeedTip);   // libntr-ios-fadespeed.patch
++        {
++            int fsp = FadeSpeedIndex();
++            if (ComboIndex("##qfspeed", &fsp, FadeSpeedNames, 4)) { SetFadeSpeed(fsp); }
++        }
+         FormRow("Music, normal speed", MusicNormalTip);
+         {
+             bool mn = c->musicNormalSpeed != 0;
+@@ -2794,6 +2816,7 @@ extern "C" int SIM_UISettingGet(const char * k) {
+     if (!strcmp(k, "frameskip")) return FrameSkipIndex();
+     if (!strcmp(k, "ffspeed")) return c->ffSpeed < 2 ? 2 : c->ffSpeed > 5 ? 5 : c->ffSpeed;   // libntr-ios-speedui.patch
+     if (!strcmp(k, "textspeed")) return TextSpeedIndex();   // libntr-ios-textspeed.patch: 0 (game) .. 3 (instant)
++    if (!strcmp(k, "fadespeed")) return FadeSpeedIndex();   // libntr-ios-fadespeed.patch: 0 (1x), 1 (2x), 2 (4x), 3 (instant)
+     if (!strcmp(k, "battlespeed")) return BattleSpeedIndex() + 1;   // libntr-ios-battlespeed.patch: 1 (off) .. 4
+     if (!strcmp(k, "skipslow")) return c->frameSkip != 0;
+     if (!strcmp(k, "volume")) return (int)((c->masterVolume * 100 + 63) / 127);
+@@ -2831,6 +2854,7 @@ extern "C" void SIM_UISettingSet(const char * k, int v) {
+     else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
+     else if (!strcmp(k, "ffspeed")) c->ffSpeed = (u8)(v < 2 ? 2 : v > 5 ? 5 : v);   // libntr-ios-speedui.patch: 2..4 or 5 = Max
+     else if (!strcmp(k, "textspeed")) c->textSpeed = (u8)(v < 0 ? 0 : v > 3 ? 3 : v);   // libntr-ios-textspeed.patch
++    else if (!strcmp(k, "fadespeed")) c->fadeSpeed = (u8)(v < 0 ? 0 : v > 3 ? 3 : v);   // libntr-ios-fadespeed.patch
+     else if (!strcmp(k, "battlespeed")) c->battleSpeed = (u8)(v < 1 ? 1 : v > 4 ? 4 : v);   // libntr-ios-battlespeed.patch
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);
+     else if (!strcmp(k, "volume") || !strcmp(k, "volumelive")) {
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index a66dc6e..fdb53a4 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1276,6 +1276,9 @@ static void SIM_CfgScript(void) {
+       } else if (strcmp(kv, "textspeed") == 0) {  // libntr-ios-textspeed.patch: TextSpeed 0..3 (game, faster, fastest, instant)
+         int n = atoi(v);
+         s_SIM_config.textSpeed = (u8)(n < 0 ? 0 : n > 3 ? 3 : n);
++      } else if (strcmp(kv, "fadespeed") == 0) {  // libntr-ios-fadespeed.patch: screen fades 0..3 (1x, 2x, 4x, instant)
++        int n = atoi(v);
++        s_SIM_config.fadeSpeed = (u8)(n < 0 ? 0 : n > 3 ? 3 : n);
+       } else if (strcmp(kv, "frameskip") == 0) {
+         s_SIM_config.frameSkip = strcmp(v, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(atoi(v) < 0 ? 0 : atoi(v) > 3 ? 3 : atoi(v));
+       } else if (strcmp(kv, "smooth") == 0) {

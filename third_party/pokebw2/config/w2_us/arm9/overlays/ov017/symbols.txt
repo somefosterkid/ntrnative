@@ -1,0 +1,2 @@
+EventCommTvt_Callback kind:function(thumb,size=0x13c) addr:0x0216e6a0
+EventCommTvt_Create kind:function(thumb,size=0x30) addr:0x0216e7dc

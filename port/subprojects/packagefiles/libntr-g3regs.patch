@@ -1,0 +1,52 @@
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -7,9 +7,29 @@
+ #include <cstring>
+ #include <cstdlib>
+ 
++#include <simulator/simvariables.h>
++
+ 
+ static xyz_s_t prevXYZ;
+ 
++// Games that write the TEXCOORD and NORMAL registers themselves (reg_G3_TEXCOORD = st, as the DS's geometry engine
++// takes them: Black's mcss.c, its sprites' quads) only set the variables that stand for the registers here, which send
++// no command. The values last sent as commands are kept in the variables; a vertex takes a register's value that
++// differs from it as a command first
++static u32 s_sentTexCoord;
++static u32 s_sentNormal;
++
++static void CatchUpRegisterWrites(void) {
++  if (s_reg_G3_TEXCOORD != s_sentTexCoord) {
++    s_sentTexCoord = s_reg_G3_TEXCOORD;
++    G3SIM_TexCoord(s_sentTexCoord);
++  }
++  if (s_reg_G3_NORMAL != s_sentNormal) {
++    s_sentNormal = s_reg_G3_NORMAL;
++    G3SIM_Normal(s_sentNormal);
++  }
++}
++
+ static draw_command_type_t DecodeG3Op(u32 op) {
+   switch (op) {
+   case G3OP_NOP:
+@@ -455,6 +475,7 @@
+     SIM_HandleG3Command(msg);
+     break;
+   case DRAW_CMD_G3_VTX16:
++    CatchUpRegisterWrites();
+     prevXYZ.x = msg->data.xyz.x;
+     prevXYZ.y = msg->data.xyz.y;
+     prevXYZ.z = msg->data.xyz.z;
+@@ -533,9 +554,11 @@
+     G3SIM_LightVector(msg->data.numU32);
+     break;
+   case DRAW_CMD_G3_NORMAL:
++    s_reg_G3_NORMAL = s_sentNormal = msg->data.numU32;
+     G3SIM_Normal(msg->data.numU32);
+     break;
+   case DRAW_CMD_G3_TEXCOORD:
++    s_reg_G3_TEXCOORD = s_sentTexCoord = msg->data.numU32;
+     G3SIM_TexCoord(msg->data.numU32);
+     break;
+   case DRAW_CMD_G3_POLYGONATTR:

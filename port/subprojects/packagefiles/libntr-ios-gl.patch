@@ -1,0 +1,81 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -979,7 +979,13 @@
+   SIM_Audio_Init(44100);
+ 
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
++#ifdef __APPLE__
++  // bw-port (libntr-ios-gl.patch): macOS has GL 4.1 core at most, and only a forward-compatible one
++  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
++  SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
++#else
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
++#endif
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+@@ -1118,8 +1124,11 @@
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+   glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+ 
+-  glEnable(GL_DEBUG_OUTPUT);
+-  glDebugMessageCallback(MessageCallback, 0);
++  // (macOS has no KHR_debug: the loader leaves the function NULL)
++  if (glad_glDebugMessageCallback != NULL) {
++    glEnable(GL_DEBUG_OUTPUT);
++    glDebugMessageCallback(MessageCallback, 0);
++  }
+ 
+   glGenVertexArrays(1, &g2vertexArray);
+   glBindVertexArray(g2vertexArray);
+@@ -1141,8 +1150,12 @@
+ // bw-port (libntr-vbridge.patch): the frame renderer's picture, a 256x384 RGBA8 texture (top screen in its first
+ // rows) drawn with the window's screen quads (sim_screenquads.c: the layout and the swap), which sample the top screen
+ // from the upper half of t: t is flipped for the picture's rows, which go down
+-static const char *kFrameVertexShader = R""(
+-#version 420 core
++#ifdef __APPLE__
++#define SIM_FRAME_GLSL "#version 410 core"
++#else
++#define SIM_FRAME_GLSL "#version 420 core"
++#endif
++static const char *kFrameVertexShader = SIM_FRAME_GLSL R""(
+ layout (location = 0) in vec3 position;
+ layout (location = 1) in vec2 texCoord;
+ smooth out vec2 fragTexCoord;
+@@ -1152,8 +1165,7 @@
+     fragTexCoord = vec2(texCoord.x, 1.0 - texCoord.y);
+ }
+ )"";
+-static const char *kFrameFragmentShader = R""(
+-#version 420 core
++static const char *kFrameFragmentShader = SIM_FRAME_GLSL R""(
+ smooth in vec2 fragTexCoord;
+ out vec4 fragColor;
+ uniform sampler2D frameTexture;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -354,7 +354,11 @@
+     igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
+ 
+     ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
++#ifdef __APPLE__
++    const char * glsl_version = "#version 410";   // bw-port (libntr-ios-gl.patch): macOS stops at GL 4.1
++#else
+     const char * glsl_version = "#version 420";
++#endif
+     ImGui_ImplOpenGL3_Init(glsl_version);
+ 
+     ImGui::StyleColorsDark(NULL);
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -441,7 +441,8 @@
+     }
+     snprintf(debugMessage, 50, "GX_Begin %s", typeString);
+ 
+-    glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 1337, GL_DEBUG_SEVERITY_NOTIFICATION, 50, debugMessage);
++    if (glad_glDebugMessageInsert != NULL)   // bw-port (libntr-ios-gl.patch): macOS has no KHR_debug
++        glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 1337, GL_DEBUG_SEVERITY_NOTIFICATION, 50, debugMessage);
+     s_primType = type;
+     s_g3BeginPolygonAttr = s_g3RawPolygonAttr;
+     s_G3numInPoly = 0;

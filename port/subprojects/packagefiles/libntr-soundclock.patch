@@ -1,0 +1,385 @@
+--- a/include/simulator/sim_audio.h
++++ b/include/simulator/sim_audio.h
+@@ -23,10 +23,28 @@
+ typedef struct SIM_SoundBackend {
+     int (*start)(int aAudioFrequency);
+     void (*mix)(s16 * aStereo, int aFrames, int aMasterVolume); // aFrames interleaved L R frames
++    // bw-port (libntr-soundclock.patch): the frame clock. Runs the backend's sound to aToCycle (ARM7 cycles since the
++    // start, 33513982 Hz) and writes the DS-rate frames (32728.5 Hz, interleaved s16 L R, no master volume) that
++    // time produced into aStereo (room for aMaxFrames); returns their number. May be NULL (the device clock only).
++    int (*run)(u64 aToCycle, s16 * aStereo, int aMaxFrames);
+ } SIM_SoundBackend;
+ extern const SIM_SoundBackend * SIM_soundBackend;
+ extern int SIM_soundBackendOn;
+ 
++// bw-port (libntr-soundclock.patch): the sound clock follows the game's frames, not the audio device's real time. One
++// game frame is 560190 ARM7 cycles; the driver's alarm ticks every 174592 and a channel advances 512 timer ticks per
++// 1024 cycles, whatever the speed of the game or of the device. SIM_Audio_FrameTick (once per V-blank, SIM_Render)
++// runs the sound for one frame into a ring of DS-rate samples; the audio callback only plays the ring (resampled to the
++// device's rate; silence when it runs dry, a sample dropped when it is full). BWPORT_SOUNDCLOCK=device brings back
++// the old behaviour (the callback runs the sound).
++void SIM_Audio_FrameTick(void);
++// The ARM9 side waits for a sound command's completion (SND_RecvCommandReply): iteration 0 only lets the PXI thread
++// finish the lists sent so far, later ones advance the sound by one driver tick (the DS's ARM7 would have run it).
++void SIM_Audio_WaitPump(int aIteration);
++// sim7/pxi.c: waits (20 ms at most) until the PXI thread has handled every message sent so far
++void SIM_PxiDrain(void);
++int SIM_Audio_FrameClock(void);
++
+ void SIM_Audio_Init(int aAudioFrequency);
+ void SIM_Audio_Callback(void *userdata, Uint8 *stream, int len);
+ 
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -78,6 +78,231 @@
+ 
+ static SIM_config_type * sConfigPtr;
+ 
++// ---- bw-port (libntr-soundclock.patch): the sound clock follows the game's frames ----
++//
++// The DS runs its sound on the clock of its frames: 560190 ARM7 cycles per frame, the driver's alarm every 174592, a
++// sample (the mixer's output) every 1024. Here the sound side is stepped by SIM_Audio_FrameTick, once per game frame
++// (the V-blank in SIM_Render), with sim7's driver and channels or with the program's backend (port/acore), and what it
++// makes goes into a ring of DS-rate samples. The audio callback plays the ring, resampled (cubic) to the device's
++// rate with a rate that follows the ring's fill: a game that runs at 60 fps neither starves nor overflows it, one
++// that runs uncapped fills it and the samples that do not fit are dropped, one that runs slow leaves silence.
++#define SND_CYC_FRAME 560190ull
++#define SND_CYC_TICK 174592ull
++#define SND_CYC_SAMPLE 1024ull
++#define SND_DS_RATE (33513982.0 / 1024.0)
++#define SND_RING 4096u // DS-rate frames (125 ms)
++#define SND_PRIME 820u // the callback starts (again) when the ring holds this much (1.5 frames)
++#define SND_TARGET 1100.0
++
++static int s_frameClock = 0;
++static u64 s_sndCyc = 0; // the sound's time: ARM7 cycles
++static u64 s_frameCyc = 0; // the games's frames x 560190
++static u64 s_nextTick = SND_CYC_TICK;
++static u64 s_nextSample = SND_CYC_SAMPLE;
++static s16 s_ring[SND_RING][2];
++static u64 s_ringWr = 0, s_ringRd = 0; // frames written / read (the callback and the tick are mutually exclusive)
++static u64 s_ringDropped = 0;
++static u64 s_ringUnderruns = 0;
++static int s_audioLog = -1; // BWPORT_AUDIOLOG=1: the ring's state once a second (stderr)
++static int s_ringPrimed = 0;
++static double s_ringFrac = 1.0; // position between s_hist[1] and s_hist[2]
++static s16 s_hist[4][2];
++static unsigned s_devRate = 44100;
++static FILE * s_wav = NULL;
++static u64 s_wavFrames = 0;
++static u64 s_wavSince = 0;
++
++static void WavHeader(FILE * f, u64 frames)
++{
++    unsigned char h[44];
++    unsigned data = (unsigned)(frames * 4);
++    unsigned v = 36 + data;
++    unsigned short s;
++    memcpy(h, "RIFF", 4);
++    memcpy(h + 4, &v, 4);
++    memcpy(h + 8, "WAVEfmt ", 8);
++    v = 16;
++    memcpy(h + 16, &v, 4);
++    s = 1;
++    memcpy(h + 20, &s, 2);
++    s = 2;
++    memcpy(h + 22, &s, 2);
++    v = 32728; // the compare tool's form: a WAV says 32728 Hz
++    memcpy(h + 24, &v, 4);
++    v = 32728 * 4;
++    memcpy(h + 28, &v, 4);
++    s = 4;
++    memcpy(h + 32, &s, 2);
++    s = 16;
++    memcpy(h + 34, &s, 2);
++    memcpy(h + 36, "data", 4);
++    memcpy(h + 40, &data, 4);
++    fseek(f, 0, SEEK_SET);
++    fwrite(h, 1, 44, f);
++    fseek(f, 0, SEEK_END);
++}
++
++static void WavClose(void)
++{
++    if(s_wav) {
++        WavHeader(s_wav, s_wavFrames);
++        fclose(s_wav);
++        s_wav = NULL;
++    }
++}
++
++// one DS-rate frame made by the sound side
++static void RingPush(s16 l, s16 r)
++{
++    if(s_wav) {
++        s16 f[2] = {l, r};
++        fwrite(f, 4, 1, s_wav);
++        s_wavFrames++;
++    }
++    if(s_ringWr - s_ringRd >= SND_RING - 1) {
++        s_ringDropped++;
++        return;
++    }
++    s_ring[s_ringWr % SND_RING][0] = l;
++    s_ring[s_ringWr % SND_RING][1] = r;
++    s_ringWr++;
++}
++
++static s32 ClampS16(s32 v) { return v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
++
++static void PanOutput(s32 in, s32 * left, s32 * right, int chNo);
++
++// one mixer sample of sim7's channels (the callback's old loop body without the master volume and the blip)
++static void Sim7Sample(void)
++{
++    s32 left = 0;
++    s32 right = 0;
++    for(int chNo = 0; chNo < 16; chNo++) {
++        s32 channel = SIM_Audio_RunChannel(512, chNo);
++        PanOutput(channel, &left, &right, chNo);
++    }
++    left >>= 8;
++    right >>= 8;
++    left += (0x200 << 6) - 0x8000;
++    right += (0x200 << 6) - 0x8000;
++    RingPush((s16)ClampS16(left), (s16)ClampS16(right));
++}
++
++// run the sound to cycle aTarget (the caller holds SDL's audio lock)
++static void SoundAdvance(u64 aTarget)
++{
++    if(aTarget <= s_sndCyc) {
++        return;
++    }
++    if(SIM_soundBackendOn) {
++        s16 buf[2048 * 2];
++        int n = SIM_soundBackend->run(aTarget, buf, 2048);
++        for(int i = 0; i < n; i++) {
++            RingPush(buf[2 * i], buf[2 * i + 1]);
++        }
++    } else {
++        for(;;) {
++            if(s_nextTick <= aTarget && s_nextTick <= s_nextSample) {
++                SND_UpdateExChannel();
++                SND_SeqMain(TRUE);
++                SND_ExChannelMain(TRUE);
++                s_nextTick += SND_CYC_TICK;
++            } else if(s_nextSample <= aTarget) {
++                Sim7Sample();
++                s_nextSample += SND_CYC_SAMPLE;
++            } else {
++                break;
++            }
++        }
++    }
++    s_sndCyc = aTarget;
++    if(s_wav && ++s_wavSince >= 60) {
++        WavHeader(s_wav, s_wavFrames);
++        fflush(s_wav);
++        s_wavSince = 0;
++    }
++}
++
++extern "C" int SIM_Audio_FrameClock(void) { return s_frameClock; }
++
++extern "C" void SIM_Audio_FrameTick(void)
++{
++    if(!s_frameClock) {
++        return;
++    }
++    SIM_PxiDrain();
++    s_frameCyc += SND_CYC_FRAME;
++    SDL_LockAudio();
++    SoundAdvance(s_frameCyc); // nothing when a wait for a command (WaitPump) ran the sound ahead of the frames
++    if(s_audioLog < 0) {
++        s_audioLog = getenv("BWPORT_AUDIOLOG") != NULL;
++    }
++    if(s_audioLog && (s_frameCyc / SND_CYC_FRAME) % 60 == 0) {
++        fprintf(stderr, "audio: frame %llu ring %llu dropped %llu underruns %llu\n",
++                (unsigned long long)(s_frameCyc / SND_CYC_FRAME), (unsigned long long)(s_ringWr - s_ringRd),
++                (unsigned long long)s_ringDropped, (unsigned long long)s_ringUnderruns);
++    }
++    SDL_UnlockAudio();
++}
++
++extern "C" void SIM_Audio_WaitPump(int aIteration)
++{
++    if(!s_frameClock) {
++        return;
++    }
++    SIM_PxiDrain();
++    if(aIteration > 0) {
++        SDL_LockAudio();
++        SoundAdvance(s_sndCyc + SND_CYC_TICK);
++        SDL_UnlockAudio();
++    }
++}
++
++static s16 Cubic4(int a, int b, int c, int d, double t)
++{
++    double v = b + 0.5 * t * (c - a + t * (2.0 * a - 5.0 * b + 4.0 * c - d + t * (3.0 * (b - c) + d - a)));
++    return (s16)(v > 32767 ? 32767 : v < -32768 ? -32768 : v);
++}
++
++// the callback, frame clock: the ring played at the device's rate (SDL holds the audio lock)
++static void PlayRing(s16 * aOut, int aFrames, int aVolume)
++{
++    double fill = (double)(s_ringWr - s_ringRd);
++    double adj = (fill - SND_TARGET) / SND_TARGET * 0.06;
++    adj = adj > 0.05 ? 0.05 : adj < -0.05 ? -0.05 : adj;
++    double step = SND_DS_RATE / (double)s_devRate * (1.0 + adj);
++
++    if(!s_ringPrimed) {
++        if(s_ringWr - s_ringRd >= SND_PRIME) {
++            s_ringPrimed = 1;
++        } else {
++            memset(aOut, 0, (size_t)aFrames * 4);
++            return;
++        }
++    }
++    for(int i = 0; i < aFrames; i++) {
++        while(s_ringFrac >= 1.0) {
++            if(s_ringRd >= s_ringWr) {
++                // dry: silence until the ring has filled again
++                s_ringPrimed = 0;
++                s_ringUnderruns++;
++                memset(aOut + 2 * i, 0, (size_t)(aFrames - i) * 4);
++                return;
++            }
++            memmove(s_hist[0], s_hist[1], 3 * sizeof s_hist[0]);
++            s_hist[3][0] = s_ring[s_ringRd % SND_RING][0];
++            s_hist[3][1] = s_ring[s_ringRd % SND_RING][1];
++            s_ringRd++;
++            s_ringFrac -= 1.0;
++        }
++        for(int c = 0; c < 2; c++) {
++            int v = Cubic4(s_hist[0][c], s_hist[1][c], s_hist[2][c], s_hist[3][c], s_ringFrac);
++            aOut[2 * i + c] = (s16)(aVolume >= 127 ? v : v * aVolume / 127);
++        }
++        s_ringFrac += step;
++    }
++}
++
+ void SIM_Audio_Init(int aAudioFrequency)
+ {
+     sConfigPtr = SIM_GetConfigPtr();
+@@ -98,11 +323,27 @@
+         s_requestedAudioSpec.samples += 1;
+     }
+     s_requestedAudioSpec.callback = SIM_Audio_Callback;
++    s_devRate = (unsigned)aAudioFrequency;
+     // bw-port: Sound=acore and the program has a backend: it is on before the first command can arrive
+     if(sConfigPtr->sound == SIM_CONFIG_SOUND_ACORE && SIM_soundBackend != NULL) {
+         SIM_soundBackendOn = SIM_soundBackend->start(aAudioFrequency);
+         printf("audio: Sound=acore %s\n", SIM_soundBackendOn ? "on" : "failed, libntr's driver plays");
+     }
++    // bw-port (libntr-soundclock.patch): the frame clock, unless BWPORT_SOUNDCLOCK=device or the backend cannot run
++    // by cycles
++    {
++        const char * e = getenv("BWPORT_SOUNDCLOCK");
++        s_frameClock = !(e != NULL && strcmp(e, "device") == 0);
++        if(SIM_soundBackendOn && SIM_soundBackend->run == NULL) {
++            s_frameClock = 0;
++        }
++        const char * w = getenv("BWPORT_AUDIO_WAV");
++        if(s_frameClock && w != NULL && *w != 0 && (s_wav = fopen(w, "wb")) != NULL) {
++            WavHeader(s_wav, 0);
++            atexit(WavClose);
++        }
++        printf("audio: sound clock %s\n", s_frameClock ? "follows the game's frames" : "is the audio device's");
++    }
+     // bw-port: with no output device at all, WASAPI spends ~8 s looking for one before it fails (the window waits):
+     // go to the silent driver at once
+     if(SDL_GetNumAudioDevices(0) == 0) {
+@@ -133,6 +374,11 @@
+ 
+ void SIM_Audio_Callback(void *userdata, Uint8 *stream, int len)
+ {
++    // bw-port (libntr-soundclock.patch): the frame clock made the samples; this only plays them
++    if(s_frameClock) {
++        PlayRing((s16 *)stream, len / 4, sConfigPtr->masterVolume);
++        return;
++    }
+     // bw-port: the program's sound backend (port/acore) renders the callback's frames
+     if(SIM_soundBackendOn) {
+         SIM_soundBackend->mix((s16 *)stream, len / 4, sConfigPtr->masterVolume);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1890,6 +1890,10 @@
+     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+ 
++    // bw-port (libntr-soundclock.patch): the sound side advances by this frame (not while the game is paused)
++    if (!SIM::GUI::IsGameLogicPaused()) {
++      SIM_Audio_FrameTick();
++    }
+   } while (SIM::GUI::IsGameLogicPaused());
+   // Bind 3D Framebuffer & Renderbuffer
+   glBindFramebuffer(GL_FRAMEBUFFER, g3FrameBuffer);
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -33,6 +33,8 @@
+ void SNDi_SetTrackParam7(int playerNo, u32 trackBitMask, u32 offset, u32 data, int size);
+ 
+ static SDL_sem * pxiSemaphore;
++// bw-port (libntr-soundclock.patch): posts to the PXI thread not yet handled
++static volatile int s_pxiPending = 0;
+ static SDL_sem * pxi7to9Semaphore;
+ static SDL_sem * osThreadSemaphore;
+ 
+@@ -436,6 +438,7 @@
+ 		TracyCZone(ctx, 1);
+ 		#endif
+ 		SIM_procPXI();
++		__sync_fetch_and_sub(&s_pxiPending, 1);
+ 		#ifdef SDK_TRACY_ENABLE
+ 		TracyCZoneEnd(ctx);
+ 		#endif
+@@ -445,9 +448,22 @@
+ 
+ void SIM_PostPxiThread()
+ {
++	__sync_fetch_and_add(&s_pxiPending, 1);
+ 	SDL_SemPost(pxiSemaphore);
+ }
+ 
++// bw-port (libntr-soundclock.patch): the sound clock steps when the game's frame ends; every command the game sent
++// before it must have reached the sound side then, or which frame a command lands in would depend on the thread
++// scheduler. A message that never finishes (blocked on the game's lock) is not waited for beyond 20 ms.
++void SIM_PxiDrain(void)
++{
++	Uint32 t0 = SDL_GetTicks();
++	while( s_pxiPending > 0 && SDL_GetTicks() - t0 < 20 )
++	{
++		SDL_Delay( 0 );
++	}
++}
++
+ int SIM_procPxi7to9Thread( void * arg )
+ {
+ 	while(1)
+--- a/libraries/snd/src/snd_command.c
++++ b/libraries/snd/src/snd_command.c
+@@ -15,6 +15,7 @@
+ 
+ #if defined( SDK_PORT )
+ #define ATTRIBUTE_ALIGN(x) __attribute__((aligned(x)))
++void SIM_Audio_WaitPump(int aIteration); // bw-port (libntr-soundclock.patch): include/simulator/sim_audio.h
+ #endif
+ 
+ #define SND_COMMAND_NUM 256
+@@ -125,8 +126,14 @@
+     SNDCommand * commandListEnd;
+ 
+     if (flags & SND_COMMAND_BLOCK) {
++        int pumpIteration = 0;
+         while (sFinishedTag == SNDi_GetFinishedCommandTag()) {
+             (void)OS_RestoreInterrupts(bak_psr);
++            #ifdef SDK_PORT
++            // bw-port (libntr-soundclock.patch): the sound clock follows the game's frames: a spin here would wait
++            // for a frame that cannot come, so the wait itself steps the sound
++            SIM_Audio_WaitPump(pumpIteration++);
++            #endif
+             OS_SpinWait(100);
+             bak_psr = OS_DisableInterrupts();
+         }

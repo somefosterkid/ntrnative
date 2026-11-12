@@ -1,0 +1,11 @@
+    .text       start:0x021e5840 end:0x021e58e4 kind:code align:32
+    .rodata     start:0x021e58e4 end:0x021e58f0 kind:rodata align:4
+    .ctor       start:0x021e58f0 end:0x021e58f0 kind:rodata align:4
+    .data       start:0x021e5900 end:0x021e5920 kind:data align:32
+    .bss        start:0x021e5920 end:0x021e5920 kind:bss align:32
+
+src/ov053/scrcmd_palpark.c:
+    complete
+    .text       start:0x021e5840 end:0x021e58e4
+    .rodata     start:0x021e58e4 end:0x021e58f0
+    .data       start:0x021e5900 end:0x021e5920

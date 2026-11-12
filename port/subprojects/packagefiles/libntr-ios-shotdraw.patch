@@ -1,0 +1,58 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -822,6 +822,7 @@
+ // frame loop reads (renderer, Resolution, Frame rate; the swap interval follows in SIM_Render). A step logs "cfgscript: fN ..." to
+ // stderr when it applies. "pN:..." instead of "fN:..." applies N frames after the previous step and after any performance log has finished. Keys: renderer=auto|vcore|gpu, resolution=1..8, framerate=60|120|monitor|unlimited, antialias=1|2|4,
+ // shot=NAME (the window's picture to NAME.png), quit=1 (ends the run), perflog=NAME (records 5 s of per-frame stage times to perf_NAME.txt, as Debug > Save performance log).
++extern "C" void SIM_FrameForceDraw(void);
+ static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch) writes NAME.png at the next present
+ static void SIM_CfgScript(void) {
+   struct Step { u32 frame; bool rel; char text[96]; };
+@@ -875,6 +876,7 @@
+         SIM::GUI::PerfLogStartNamed(fn);
+       } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (macOS, BWPORT_HIDDEN)
+         snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
++        SIM_FrameForceDraw();   // frame skip (libntr-ios-shotdraw.patch): the shot frame and the next two are drawn
+       } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);
+         fflush(stderr);
+@@ -1080,6 +1082,12 @@
+   return e != NULL && *e != 0 && *e != '0';
+ }
+ extern "C" int vcore_write_png(const char *path, const unsigned char *rgba, int w, int h) __attribute__((weak));
++// bw-port (libntr-ios-shotdraw.patch): a screenshot never shows a skipped frame's stale picture: SIM_FrameSkipDecide draws every
++// frame from 0.2 s before a BWPORT_SHOTS time (sShotDueAt: seconds of run time of the next shot, SIM_ShotDue); a cfgscript shot=
++// forces the frames that follow it
++static double sShotDueAt = 1e30;
++static Uint64 sShotT0;
++static bool SIM_ShotDue() { return sShotDueAt < 1e29 && (SDL_GetTicks64() - sShotT0) / 1000.0 >= sShotDueAt - 0.2; }
+ static void SIM_ShotMaybe(SDL_Window *win) {
+   static int state = 0, n = 0, next = 0;   // 0: not read yet, 1: on, 2: off
+   static char dir[512] = ".";
+@@ -1097,6 +1105,8 @@
+     if (n == 0) return;
+     state = 1;
+     t0 = SDL_GetTicks64();
++    sShotT0 = t0;
++    sShotDueAt = at[0];
+   }
+   bool now = sCfgShot[0] != 0;
+   if (!now && (next >= n || (SDL_GetTicks64() - t0) / 1000.0 < at[next])) return;
+@@ -1119,6 +1129,7 @@
+   vcore_write_png(path, flip.data(), w, h);
+   if (now) sCfgShot[0] = 0;
+   else next++;
++  if (!now) sShotDueAt = next < n ? at[next] : 1e30;
+ }
+ #endif
+ 
+@@ -1471,6 +1482,9 @@
+   const s64 kFrame = 16715000;
+   bool can = sFrameRenderer != NULL || sFrameRendererGL != NULL;
+   bool force = sFrameForce > 0;
++#ifdef __APPLE__
++  force = force || SIM_ShotDue();
++#endif
+   if (force) sFrameForce = sFrameForce - 1;
+   bool draw = true;
+   if (can && fs != 0 && !force && !(s_reg_GX_DISPCAPCNT & 0x80000000u) && sFSRun < 4 + (fs != SIM_CONFIG_FRAMESKIP_AUTO ? 100 : 0)) {

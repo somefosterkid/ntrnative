@@ -1,0 +1,84 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1266,6 +1266,34 @@
+   for (size_t i = 0; i < n / 8; i++) h = (h ^ q[i]) * 1099511628211ull;
+   return h;
+ }
++// bw-port (libntr-ib79.patch): the same hash of a GL texture's pixels (the GPU path's pictures), read back through an FBO
++static int SpHashWanted(void) {
++  if (sPresentLog != NULL && sPresentHashOn < 0) sPresentHashOn = getenv("BWPORT_PRESENTHASH") != NULL;
++  return sPresentHashOn > 0;
++}
++static u64 SpHashTex(unsigned tex, int w, int h) {
++  if (w <= 0 || h <= 0) return 0;
++  unsigned char *buf = (unsigned char *)malloc((size_t)w * h * 4);
++  if (buf == NULL) return 0;
++  GLint prevRead = 0, prevPack = 4;
++  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
++  glGetIntegerv(GL_PACK_ALIGNMENT, &prevPack);
++  GLuint fbo = 0;
++  glGenFramebuffers(1, &fbo);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
++  glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
++  glPixelStorei(GL_PACK_ALIGNMENT, 1);
++  u64 r = 0;
++  if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
++    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, buf);
++    r = SpHashRgba(buf, (size_t)w * h * 4);
++  }
++  glPixelStorei(GL_PACK_ALIGNMENT, prevPack);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)prevRead);
++  glDeleteFramebuffers(1, &fbo);
++  free(buf);
++  return r;
++}
+ 
+ static u64 SpNowNs(void) {
+   u64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
+@@ -1437,6 +1465,14 @@
+ // first slot after this tick's last (*next).
+ typedef const unsigned char *(*SIM_InterpPicFn)(int slot, int *w, int *h);
+ static SIM_InterpPicFn sInterpPic;
++// bw-port (libntr-ib79.patch): the GPU path's variant. fn(slot, &w, &h, waitNs) draws the in-between picture of the tick's present
++// slot into a GL texture on this thread (the GL context is current; fn saves and restores the GL state it changes) and returns
++// the texture, or 0: the slot shows the picture before it again. It is called right after the slot before has been presented,
++// so the GPU works while this thread sleeps for the slot; waitNs = how long the slot is away: fn may wait that long (less a
++// margin) for the CPU half to be ready.
++typedef unsigned (*SIM_InterpTexFn)(int slot, int *w, int *h, long long waitNs);
++static SIM_InterpTexFn sInterpTex;
++extern "C" void SIM_SetInterpTexture(SIM_InterpTexFn fn) { sInterpTex = fn; }
+ extern "C" void SIM_SetInterpPicture(SIM_InterpPicFn fn) { sInterpPic = fn; }
+ extern "C" int SIM_InterpWanted(void) { return s_SIM_config.interpolation != 0; }
+ extern "C" int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next) {
+@@ -1489,6 +1525,8 @@
+       if (sLookWant) LookTex(tex, tw, th);
+       SIM_FrameInit();
+       if (sTickPresent) SIM_DrawFrameTexture(tex);
++      sPresentMid = 0;
++      if (SpHashWanted()) sPresentHash = SpHashTex(tex, tw, th);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+       sFrameRendererDrew = 1;
+       sActive = 2;
+@@ -2185,10 +2223,21 @@
+     if (sPace.on && s_SIM_config.capFrameRate && !sFastForward) {
+       if (sTickPresent && !SIM_NoPresent()) {
+         for (int r = 1; r < sPace.count; r++) {
++          GLuint midTex = 0;
++          int tw = 0, th = 0;
++          if (sInterpTex != NULL && s_SIM_config.interpolation) { // the GPU path's in-between: drawn now, shown at the slot
++            long long left = (long long)SpSlotAbs(sPace.first + r) - (long long)SpNowNs();
++            midTex = (GLuint)sInterpTex(r, &tw, &th, left);
++          }
+           SpSleepUntil(SpSlotAbs(sPace.first + r));
+           glClear(GL_COLOR_BUFFER_BIT);
+           sPresentMid = 0;
+-          if (sInterpPic != NULL && s_SIM_config.interpolation) { // an in-between picture of the renderer's bridge for this slot
++          if (midTex != 0 && tw > 0 && th > 0) {
++            sLastPicTex = midTex;
++            sPresentMid = 1;
++            if (SpHashWanted()) sPresentHash = SpHashTex(midTex, tw, th);
++          }
++          if (midTex == 0 && sInterpPic != NULL && s_SIM_config.interpolation) { // an in-between picture of the renderer's bridge for this slot
+             int mw = 0, mh = 0;
+             const unsigned char *mid = sInterpPic(r, &mw, &mh);
+             if (mid != NULL && mw > 0 && mh > 0 && !SIM_NoPresent()) {

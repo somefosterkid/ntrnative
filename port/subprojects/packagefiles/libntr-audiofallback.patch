@@ -1,0 +1,27 @@
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -95,8 +95,24 @@
+         s_requestedAudioSpec.samples += 1;
+     }
+     s_requestedAudioSpec.callback = SIM_Audio_Callback;
++    // bw-port: with no output device at all, WASAPI spends ~8 s looking for one before it fails (the window waits):
++    // go to the silent driver at once
++    if(SDL_GetNumAudioDevices(0) == 0) {
++        printf("audio: no output device, the sound runs silently\n");
++        SDL_AudioQuit();
++        SDL_AudioInit("dummy");
++    }
+     if(SDL_OpenAudio(&s_requestedAudioSpec, NULL) < 0) {
+         printf("SDL Error %s\n", SDL_GetError());
++        // bw-port: no output device (a server, a remote session without audio). The sound driver runs inside this
++        // callback, so without it the game waits forever on a cry or a jingle; SDL's dummy driver calls it at the
++        // real rate and plays nothing.
++        SDL_AudioQuit();
++        if(SDL_AudioInit("dummy") == 0 && SDL_OpenAudio(&s_requestedAudioSpec, NULL) == 0) {
++            printf("audio: no output device, the sound runs silently\n");
++        } else {
++            printf("audio: the silent driver failed too (%s): the game may wait on sounds\n", SDL_GetError());
++        }
+     }
+     SDL_PauseAudio(0);
+ }

@@ -1,0 +1,147 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -15,6 +15,12 @@
+     SIM_CONFIG_RENDERER_LIBNTR /* libntr's own 2D and 3D */
+ } SIM_config_renderer_type;
+ 
++/* bw-port (libntr-acore.patch): what plays the sound */
++typedef enum {
++    SIM_CONFIG_SOUND_LIBNTR, /* libntr's ARM7 sound driver (sim7) and mixer */
++    SIM_CONFIG_SOUND_ACORE /* the program's own DS sound core (bw-port's port/acore), when it has one */
++} SIM_config_sound_type;
++
+ #define SIM_CONFIG_JOY_HAT_MASK (0x10000)
+ #define SIM_CONFIG_JOY_AXIS_PLUS_MASK (0x20000)
+ #define SIM_CONFIG_JOY_AXIS_MINUS_MASK (0x40000)
+@@ -69,6 +75,7 @@
+     u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=vcore|libntr (BWPORT_RENDERER overrides it) */
++    u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -66,6 +66,9 @@
+     if(MATCH("General", "ShowInputPanel")) {
+         config->showInputPanel = StringToBool(value);
+     }
++    if(MATCH("General", "Sound")) {
++        config->sound = strcmp(value, "acore") == 0 ? SIM_CONFIG_SOUND_ACORE : SIM_CONFIG_SOUND_LIBNTR;
++    }
+     if(MATCH("General", "Renderer")) {
+         config->renderer = strcmp(value, "libntr") == 0 ? SIM_CONFIG_RENDERER_LIBNTR : SIM_CONFIG_RENDERER_VCORE;
+     }
+@@ -340,6 +343,17 @@
+ 
+ 
+ // Loads the configuration file. If it does not exist, return false
++// bw-port: BWPORT_SOUND=acore|libntr overrides sim_config.ini's Sound for a run
++static void SoundFromEnv(SIM_config_type * aConfig)
++{
++    const char * e = getenv("BWPORT_SOUND");
++    if(e != NULL && strcmp(e, "libntr") == 0) {
++        aConfig->sound = SIM_CONFIG_SOUND_LIBNTR;
++    } else if(e != NULL && strcmp(e, "acore") == 0) {
++        aConfig->sound = SIM_CONFIG_SOUND_ACORE;
++    }
++}
++
+ // bw-port: BWPORT_RENDERER=vcore|libntr overrides sim_config.ini's Renderer for a run
+ static void RendererFromEnv(SIM_config_type * aConfig)
+ {
+@@ -355,6 +369,7 @@
+ {
+     BOOL ok = (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
+     RendererFromEnv(aConfig);
++    SoundFromEnv(aConfig);
+     return ok;
+ }
+ 
+@@ -377,6 +392,7 @@
+     aConfig->capFrameRate = TRUE;
+     aConfig->showInputPanel = TRUE;
+     aConfig->renderer = SIM_CONFIG_RENDERER_VCORE;
++    aConfig->sound = SIM_CONFIG_SOUND_LIBNTR;
+     aConfig->masterVolume = 127;
+ 
+     aConfig->padSettings.joyAxisDeadzone = 32767 / 4;
+@@ -459,6 +475,7 @@
+     fprintf(configFile, "VsyncInterval=%d\n", aConfig->vsyncInterval);
+     fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
+     fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
++    fprintf(configFile, "Sound=%s\n", aConfig->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
+     fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_LIBNTR ? "libntr" : "vcore");
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+--- a/include/simulator/sim_audio.h
++++ b/include/simulator/sim_audio.h
+@@ -16,6 +16,17 @@
+ extern u16 s_SIM_sndpnt[16];
+ extern u32 s_SIM_sndlen[16];
+ 
++// bw-port (libntr-acore.patch): a sound backend the program registers (port/src/acore_glue.c). With sim_config.ini's
++// Sound=acore (BWPORT_SOUND) SIM_Audio_Init calls start(); when that returns nonzero the backend plays: the audio
++// callback asks it for the samples instead of running sim7's driver and mixer, and the PXI thread skips sim7's sound
++// commands (the program's SIM_sndCaptureHook has them, sim7/pxi.c).
++typedef struct SIM_SoundBackend {
++    int (*start)(int aAudioFrequency);
++    void (*mix)(s16 * aStereo, int aFrames, int aMasterVolume); // aFrames interleaved L R frames
++} SIM_SoundBackend;
++extern const SIM_SoundBackend * SIM_soundBackend;
++extern int SIM_soundBackendOn;
++
+ void SIM_Audio_Init(int aAudioFrequency);
+ void SIM_Audio_Callback(void *userdata, Uint8 *stream, int len);
+ 
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -10,6 +10,9 @@
+ #include "tracy/TracyC.h"
+ #endif
+ 
++const SIM_SoundBackend * SIM_soundBackend = NULL;
++int SIM_soundBackendOn = 0;
++
+ static SDL_AudioSpec s_requestedAudioSpec, s_actualAudioSpec;
+ static SDL_AudioDeviceID s_audioDevice;
+ 
+@@ -95,6 +98,11 @@
+         s_requestedAudioSpec.samples += 1;
+     }
+     s_requestedAudioSpec.callback = SIM_Audio_Callback;
++    // bw-port: Sound=acore and the program has a backend: it is on before the first command can arrive
++    if(sConfigPtr->sound == SIM_CONFIG_SOUND_ACORE && SIM_soundBackend != NULL) {
++        SIM_soundBackendOn = SIM_soundBackend->start(aAudioFrequency);
++        printf("audio: Sound=acore %s\n", SIM_soundBackendOn ? "on" : "failed, libntr's driver plays");
++    }
+     // bw-port: with no output device at all, WASAPI spends ~8 s looking for one before it fails (the window waits):
+     // go to the silent driver at once
+     if(SDL_GetNumAudioDevices(0) == 0) {
+@@ -125,6 +133,11 @@
+ 
+ void SIM_Audio_Callback(void *userdata, Uint8 *stream, int len)
+ {
++    // bw-port: the program's sound backend (port/acore) renders the callback's frames
++    if(SIM_soundBackendOn) {
++        SIM_soundBackend->mix((s16 *)stream, len / 4, sConfigPtr->masterVolume);
++        return;
++    }
+     #ifdef SDK_TRACY_ENABLE
+     TracyCZone(ctx, 1);
+     #endif
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -92,6 +92,11 @@
+ 					{
+ 						break;
+ 					}
++					// bw-port: the program's sound backend (sim_audio.h) has taken the list through the hook above
++					if( SIM_soundBackendOn )
++					{
++						break;
++					}
+ 					// The DS's ARM7 runs its sound commands and its sequencer in one thread; here the commands run in
+ 					// this one and the sequencer and channels in SDL's audio callback (sim_audio.cpp): a player stopped
+ 					// or started under a running sequencer read freed banks. SDL_LockAudio keeps the callback out

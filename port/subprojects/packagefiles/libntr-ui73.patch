@@ -1,0 +1,537 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -13,6 +13,7 @@
+ 
+ #include <algorithm>
+ #include <format>
++#include <functional>
+ #include <math.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -159,7 +160,7 @@
+ }
+ 
+ static float sSideRect[4];
+-static float sItemRect[8][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items)
++static float sItemRect[10][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items, qaa, qcap)
+ static int sJoyClicks;
+ static void ItemRect(int i) {
+     ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+@@ -483,6 +484,14 @@
+     Dirty();
+ }
+ 
++// the frame cap, as the Tab key does it (sim_main.cpp): the cap and VSync together (on = capped, VSync every V-blank)
++static void ApplyCap(bool on) {
++    C()->capFrameRate = on;
++    C()->vsyncInterval = on ? 1 : 0;
++    SDL_GL_SetSwapInterval(C()->vsyncInterval);
++    Dirty();
++}
++
+ static void SetUiScale(int percent) {
+     C()->uiScale = (u8)percent;
+     ApplyScale(WantedScale());
+@@ -671,7 +680,7 @@
+         if (ComboIndex("##vs", &vs, VsyncNames, 3)) { ApplyVsync(vs); }
+         FormRow("Cap at 60 fps (Tab)");
+         bool cap = c->capFrameRate;
+-        if (ImGui::Checkbox("##cap", &cap)) { c->capFrameRate = cap; Dirty(); }
++        if (ImGui::Checkbox("##cap", &cap)) { ApplyCap(cap); }
+         ImGui::EndTable();
+     }
+     ImGui::End();
+@@ -1287,53 +1296,62 @@
+ static const ImGuiWindowFlags kSideFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                                            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+ 
+-// ---- frame times: the metrics and the graph (libntr-ui70.patch) ----------------------------------------------------
++// ---- frame times: the metrics and the graph (libntr-ui70.patch, reworked in libntr-ui73.patch) --------------------------
+ // FrameRecord() is called once a frame with the frame's period (from one frame's end to the next's, the cap's wait
+-// included) and costs a few table writes. Kept: a ring of every frame (for the 1 % low, by a sliding log histogram per
+-// graph period: O(1) a frame), 10 ms buckets with min / max / sum (for the graph's columns and the exact min and max)
+-// and the sums of the metrics' refresh window. The graph's columns are aligned to absolute time (a column is the same
+-// buckets until it is complete): the picture scrolls by whole columns and a spike stays one column wide.
++// included) and costs a few table writes. Kept: a ring of every frame (for the 1 % low), 10 ms buckets with count / min /
++// max / sum (the graph's columns and the exact min, max and mean) and the sums of the metrics' refresh window.
++// The graph shows ncols columns of colB buckets each, aligned to absolute time (a column is the same buckets until it
++// is complete): the picture scrolls by whole columns and a spike stays one column wide. The graph's statistics (min,
++// mean, max, 1 % low) are those of exactly the frames of the columns drawn, taken at each metrics refresh: the buckets
++// give the min / max / mean, the ring (a selection over the frames of the period, no sorting, no 10 ms steps) the 1 %
++// low. Nothing is rescanned per frame.
+ 
+ namespace {
+ const int kRing = 1 << 18;      // frames kept: 120 s at up to 2180 fps (older ones leave when the ring is full)
+-const int kHistBins = 640;      // 32 bins an octave from 0.01 ms up
+ const int kBuckets = 16384;     // 10 ms each: 163 s
+ const int kColCap = 4096;
+ const double kPeriodS[4] = {15.0, 30.0, 60.0, 120.0};
++const double kRefreshS[3] = {0.25, 0.5, 1.0};
+ 
+-struct FrameRec { unsigned long long end; float ms; unsigned short bin; };
+-struct Bucket { unsigned stamp; unsigned short n; float mn, mx, sum; };
+-struct PeriodStat { unsigned long long tail, count; double sumMs; unsigned hist[kHistBins]; };
++struct FrameRec { unsigned long long end; float ms; };
++struct Bucket { unsigned stamp; unsigned short n; float mn, mx; double sum; };
+ struct Col { unsigned long long abs; bool final; unsigned short n; float mn, mx, avg; };
+ 
+ FrameRec sRing[kRing];
+ unsigned long long sRingHead;
+ unsigned long long sTotalNs;    // the sum of the periods: the graph's clock
+ Bucket sBuckets[kBuckets];
+-PeriodStat sPer[4];
+ Col sCols[kColCap];
+ unsigned sColsKey;
++int sGraphCols = 300;           // the columns the graph drew last (its width); the statistics cover those columns
++unsigned long long sSnapB0;     // the first bucket the last statistics covered
+ 
+ // the metrics' refresh window
+ unsigned long long sWinN, sWinNs, sWinMaxNs, sWinGameNs, sWinDrawNs, sSnapAt;
+ struct Snap {
+     float fps = 0.0f, avgMs = 0.0f, worstMs = 0.0f, gameMs = 0.0f, drawMs = 0.0f;      // the last refresh window
+-    float pMin = 0.0f, pAvg = 0.0f, pMax = 0.0f, pLowMs = 0.0f, pP99 = 0.0f;           // the graph period
++    float pMin = 0.0f, pAvg = 0.0f, pMax = 0.0f, pLowMs = 0.0f;                        // the graph's frames
++    unsigned long long pFrames = 0;
+     float top = 0.0f;                                                                 // the graph's y axis (ms)
+     int lowerCount = 0;
+     int period = -1;
+ } sSnap;
+-double sCostFrameUs, sCostDrawUs;     // BWPORT_GRAPHCOST=1: mean cost of FrameRecord and of the graph's drawing
+-unsigned long long sCostN;
++double sCostFrameUs, sCostDrawUs, sCostSnapUs;     // BWPORT_GRAPHCOST=FILE: mean cost of FrameRecord, of a statistics refresh and of the graph's drawing
++unsigned long long sCostN, sCostSnaps;
+ 
+-int BinOf(float ms) {
+-    if (ms < 0.01f) {
+-        return 0;
+-    }
+-    int b = (int)(log2f(ms * 100.0f) * 32.0f);
+-    return b < 0 ? 0 : b >= kHistBins ? kHistBins - 1 : b;
++int GraphCols(float w) { return (int)w < 40 ? 40 : (int)w > 2000 ? 2000 : (int)w; }
++// the graph shows exactly the last kPeriodS[p] seconds: bw buckets of 10 ms up to now. A column is colB buckets, aligned
++// to absolute time (so a complete column never changes); the oldest column is cut at the period's edge. nslots columns
++// are drawn at most (one more than the period fills), at most the graph's width in pixels.
++unsigned PeriodBuckets(int p) { return (unsigned)(kPeriodS[p] * 100.0 + 0.5); }
++unsigned ColBuckets(int p, int width) {
++    unsigned bw = PeriodBuckets(p), b = (bw + (unsigned)width - 2) / ((unsigned)width - 1);
++    return b < 1 ? 1 : b;
++}
++unsigned long long PeriodStart(int p, unsigned long long cb) {      // the first bucket of the period ending at bucket cb
++    unsigned bw = PeriodBuckets(p);
++    return cb + 1 >= bw ? cb + 1 - bw : 0;
+ }
+-float BinMs(int b) { return 0.01f * exp2f(((float)b + 0.5f) / 32.0f); }
+ 
+ float NiceTop(float v) {
+     static const float steps[] = {1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 8.0f, 10.0f};
+@@ -1344,44 +1362,139 @@
+     return 10.0f * e;
+ }
+ 
+-// the numbers of the graph's period: the average (exact), the 1 % low (the mean of the slowest 1 % of the frames, from
+-// the histogram), the minimum and maximum (exact, from the buckets), and the axis
++// BWPORT_FTTEST=base_ms,spike_ms,every_s,stop_s[,per_frame] (test hook): the frame times are a pattern instead of the
++// real ones (base_ms frames, one spike_ms frame every every_s seconds until stop_s of the clock), per_frame of them
++// for each real frame so the clock runs fast; BWPORT_FTTEST_OUT=FILE gets a line at each refresh with the labels and the
++// same statistics worked out by brute force over every frame (min / mean / max / 1 % low of the frames of the 10 ms
++// buckets of the period, and of the frames in the last period to the nanosecond)
++struct FtTest {
++    int on = -1;
++    double base = 8.0, spike = 30.0, every = 2.0, stop = 1e9;
++    int perFrame = 8;
++    unsigned long long t = 0, nextSpike = 0;
++    FILE * out = nullptr;
++    std::vector<FrameRec> all;
++} sFt;
++
++void FtInit() {
++    const char * e = getenv("BWPORT_FTTEST");
++    sFt.on = 0;
++    if (e == nullptr || *e == 0) { return; }
++    sscanf(e, "%lf,%lf,%lf,%lf,%d", &sFt.base, &sFt.spike, &sFt.every, &sFt.stop, &sFt.perFrame);
++    if (sFt.perFrame < 1) { sFt.perFrame = 1; }
++    sFt.nextSpike = (unsigned long long)(sFt.every * 1e9);
++    const char * o = getenv("BWPORT_FTTEST_OUT");
++    if (o != nullptr && *o) { sFt.out = fopen(o, "w"); }
++    sFt.on = 1;
++}
++
++unsigned long long FtNext() {
++    double ms = sFt.base;
++    if (sFt.every > 0.0 && sFt.t >= sFt.nextSpike) {
++        sFt.nextSpike += (unsigned long long)(sFt.every * 1e9);
++        if ((double)sFt.t < sFt.stop * 1e9) { ms = sFt.spike; }
++    }
++    unsigned long long ns = (unsigned long long)(ms * 1e6 + 0.5);
++    sFt.t += ns;
++    return ns;
++}
++
++// BWPORT_FTTEST_HOVER=N: the graph acts as if the mouse were over its Nth column from the right, and writes what the
++// tooltip shows beside the same numbers by brute force (a "hover" line, now and then)
++int FtHoverCol() {
++    static int h = -2;
++    if (sFt.on < 0) { return -1; }      // the test hook is not read yet
++    if (h == -2) { const char * e = getenv("BWPORT_FTTEST_HOVER"); h = e && sFt.on > 0 ? atoi(e) : -1; }
++    return h;
++}
++void FtHoverReport(long long c, unsigned colB, long long b0, int n, float mn, float avg, float mx, bool final) {
++    static int cnt;
++    if (sFt.out == nullptr || (cnt++ % 3) != 0) { return; }
++    double sum = 0.0;
++    float bmn = 1e9f, bmx = 0.0f;
++    size_t bn = 0;
++    for (const FrameRec & f : sFt.all) {
++        long long b = (long long)(f.end / 10000000ull);
++        if (b < c * (long long)colB || b >= (c + 1) * (long long)colB || b < b0) { continue; }
++        bn++; sum += f.ms; bmn = std::min(bmn, f.ms); bmx = std::max(bmx, f.ms);
++    }
++    fprintf(sFt.out, "hover t=%.2f col=%lld final=%d tooltip: n=%d min=%.3f avg=%.3f max=%.3f | brute: n=%zu min=%.3f avg=%.3f max=%.3f\n",
++            (double)sTotalNs / 1e9, c, (int)final, n, mn, avg, mx, bn, bn ? bmn : 0.0f, bn ? sum / (double)bn : 0.0, bmx);
++    fflush(sFt.out);
++}
++
++void FtReport(int p, unsigned colB) {
++    if (sFt.out == nullptr) { return; }
++    double lim = kPeriodS[p] * 1e9;
++    for (int pass = 0; pass < 2; pass++) {
++        std::vector<float> v;
++        double sum = 0.0;
++        float mn = 1e9f, mx = 0.0f;
++        for (const FrameRec & f : sFt.all) {
++            bool in = pass == 0 ? f.end / 10000000ull >= sSnapB0 : (double)(sTotalNs - f.end) < lim;
++            if (!in) { continue; }
++            v.push_back(f.ms); sum += f.ms; mn = std::min(mn, f.ms); mx = std::max(mx, f.ms);
++        }
++        if (v.empty()) { return; }
++        std::sort(v.begin(), v.end(), std::greater<float>());
++        size_t want = (v.size() + 99) / 100;
++        double ls = 0.0;
++        for (size_t i = 0; i < want; i++) { ls += v[i]; }
++        if (pass == 0) {
++            fprintf(sFt.out, "t=%.2f p=%d ncols=%d colB=%u label: n=%llu min=%.3f avg=%.3f max=%.3f low=%.3f top=%.1f | cols: n=%zu min=%.3f avg=%.3f max=%.3f low=%.3f",
++                    (double)sTotalNs / 1e9, p, sGraphCols, colB, sSnap.pFrames, sSnap.pMin, sSnap.pAvg, sSnap.pMax, sSnap.pLowMs, sSnap.top,
++                    v.size(), mn, sum / (double)v.size(), mx, ls / (double)want);
++        } else {
++            fprintf(sFt.out, " | strict: n=%zu min=%.3f avg=%.3f max=%.3f low=%.3f\n", v.size(), mn, sum / (double)v.size(), mx, ls / (double)want);
++            fflush(sFt.out);
++        }
++    }
++}
++
++// the numbers of the graph: the frames of the period drawn (the last PeriodBuckets buckets, up to now)
+ void PeriodSnapshot(bool settle) {
+     SIM_config_type * c = C();
+     int p = c->graphPeriod < 4 ? c->graphPeriod : 1;
+-    PeriodStat & ps = sPer[p];
+     sSnap.period = p;
+-    if (ps.count == 0) {
+-        return;
+-    }
+-    sSnap.pAvg = (float)(ps.sumMs / (double)ps.count);
+-    unsigned long long want = (ps.count + 99) / 100, got = 0;
++    unsigned long long t0 = SDL_GetPerformanceCounter();
++    unsigned colB = ColBuckets(p, sGraphCols);
++    unsigned long long cb = sTotalNs / 10000000ull, b0 = PeriodStart(p, cb);
++    sSnapB0 = b0;
++    unsigned long long n = 0;
+     double sum = 0.0;
+-    float p99 = 0.0f;
+-    for (int b = kHistBins - 1; b >= 0 && got < want; b--) {
+-        unsigned n = ps.hist[b];
+-        if (n == 0) { continue; }
+-        unsigned long long take = std::min<unsigned long long>(n, want - got);
+-        sum += (double)take * BinMs(b);
+-        got += take;
+-        p99 = BinMs(b);
+-    }
+-    sSnap.pLowMs = got ? (float)(sum / (double)got) : 0.0f;
+-    sSnap.pP99 = p99;
+-    unsigned long long cb = sTotalNs / 10000000ull, n = (unsigned long long)(kPeriodS[p] * 100.0);
+     float mn = 1e9f, mx = 0.0f;
+-    for (unsigned long long i = 0; i <= n && i <= cb; i++) {
+-        const Bucket & bk = sBuckets[(cb - i) % kBuckets];
+-        if (bk.stamp == (unsigned)(cb - i) + 1u && bk.n) {
+-            mn = std::min(mn, bk.mn);
+-            mx = std::max(mx, bk.mx);
++    for (unsigned long long b = b0; b <= cb; b++) {
++        const Bucket & bk = sBuckets[b % kBuckets];
++        if (bk.stamp == (unsigned)b + 1u && bk.n) {
++            n += bk.n; sum += bk.sum;
++            mn = std::min(mn, bk.mn); mx = std::max(mx, bk.mx);
+         }
+     }
+-    sSnap.pMin = mn > 1e8f ? 0.0f : mn;
+-    sSnap.pMax = mx;
+-    // the axis: up to the largest frame, but at most 5 times the 1 % mark (a spike beyond it is marked at the top);
+-    // it rises at once and falls only after three refreshes, so it does not jump
+-    float want_top = NiceTop(std::max(0.5f, std::min(mx, 5.0f * std::max(p99, sSnap.pAvg))));
++    if (n == 0) {
++        return;
++    }
++    sSnap.pFrames = n;
++    sSnap.pMin = mn; sSnap.pMax = mx; sSnap.pAvg = (float)(sum / (double)n);
++    // the 1 % low: the mean of the slowest ceil(n / 100) frames of those columns, by a selection over the ring
++    unsigned long long lo = sRingHead > (unsigned long long)kRing ? sRingHead - kRing : 0, hi = sRingHead;
++    unsigned long long edge = b0 * 10000000ull;
++    while (lo < hi) {       // the first frame of the columns (the ring's ends rise)
++        unsigned long long mid = lo + (hi - lo) / 2;
++        if (sRing[mid % kRing].end >= edge) { hi = mid; } else { lo = mid + 1; }
++    }
++    static std::vector<float> v;
++    v.clear();
++    for (unsigned long long i = lo; i < sRingHead; i++) { v.push_back(sRing[i % kRing].ms); }
++    if (!v.empty()) {
++        size_t want = (v.size() + 99) / 100;
++        if (want < v.size()) { std::nth_element(v.begin(), v.begin() + want, v.end(), std::greater<float>()); }
++        double ls = 0.0;
++        for (size_t i = 0; i < want; i++) { ls += v[i]; }
++        sSnap.pLowMs = (float)(ls / (double)want);
++    }
++    // the axis: up to the largest frame drawn (nothing is cut off); it rises at once and falls only after three
++    // refreshes, so it does not jump
++    float want_top = NiceTop(std::max(0.5f, mx));
+     if (settle || sSnap.top == 0.0f || want_top > sSnap.top) {
+         sSnap.top = want_top;
+         sSnap.lowerCount = 0;
+@@ -1393,6 +1506,13 @@
+     } else {
+         sSnap.lowerCount = 0;
+     }
++    if (sFt.on > 0) { FtReport(p, colB); }
++    static int sCost = -1;
++    if (sCost < 0) { sCost = getenv("BWPORT_GRAPHCOST") != nullptr; }
++    if (sCost) {
++        sCostSnapUs += (double)(SDL_GetPerformanceCounter() - t0) * 1e6 / (double)SDL_GetPerformanceFrequency();
++        sCostSnaps++;
++    }
+ }
+ 
+ void FrameSnapshot() {
+@@ -1408,52 +1528,44 @@
+     sSnapAt = sTotalNs;
+     PeriodSnapshot(false);
+ }
+-} // namespace
+ 
+-void FrameRecord(unsigned long long ns, unsigned long long gameNs, unsigned long long drawNs) {
+-    if (ns == 0 || ns > 10000000000ull) {
+-        return;
+-    }
+-    static int sCost = -1;
+-    unsigned long long t0 = 0;
+-    if (sCost < 0) { sCost = getenv("BWPORT_GRAPHCOST") != nullptr; }
+-    if (sCost) { t0 = SDL_GetPerformanceCounter(); }
++void RecordOne(unsigned long long ns, unsigned long long gameNs, unsigned long long drawNs) {
+     float ms = (float)((double)ns / 1e6);
+-    int bin = BinOf(ms);
+-    for (PeriodStat & ps : sPer) {      // the ring is full: the oldest frame goes first
+-        while (ps.count && sRingHead - ps.tail >= (unsigned long long)kRing) {
+-            const FrameRec & o = sRing[ps.tail % kRing];
+-            ps.hist[o.bin]--; ps.count--; ps.sumMs -= o.ms; ps.tail++;
+-        }
+-        if (ps.count == 0) { ps.tail = sRingHead; }
+-    }
+     sTotalNs += ns;
+     FrameRec & r = sRing[sRingHead % kRing];
+-    r.end = sTotalNs; r.ms = ms; r.bin = (unsigned short)bin;
++    r.end = sTotalNs; r.ms = ms;
+     sRingHead++;
++    if (sFt.on > 0) { sFt.all.push_back(r); }
+     unsigned long long bi = sTotalNs / 10000000ull;
+     Bucket & bk = sBuckets[bi % kBuckets];
+     if (bk.stamp != (unsigned)bi + 1u) {
+-        bk.stamp = (unsigned)bi + 1u; bk.n = 0; bk.mn = ms; bk.mx = ms; bk.sum = 0.0f;
++        bk.stamp = (unsigned)bi + 1u; bk.n = 0; bk.mn = ms; bk.mx = ms; bk.sum = 0.0;
+     }
+     bk.n++; bk.sum += ms; bk.mn = std::min(bk.mn, ms); bk.mx = std::max(bk.mx, ms);
+-    for (int p = 0; p < 4; p++) {
+-        PeriodStat & ps = sPer[p];
+-        ps.hist[bin]++; ps.count++; ps.sumMs += ms;
+-        unsigned long long lim = (unsigned long long)(kPeriodS[p] * 1e9);
+-        while (ps.count > 1 && sTotalNs - sRing[ps.tail % kRing].end > lim) {
+-            const FrameRec & o = sRing[ps.tail % kRing];
+-            ps.hist[o.bin]--; ps.count--; ps.sumMs -= o.ms; ps.tail++;
+-        }
+-    }
+     sWinN++; sWinNs += ns; sWinMaxNs = std::max(sWinMaxNs, ns); sWinGameNs += gameNs; sWinDrawNs += drawNs;
+-    static const unsigned long long interval[3] = {250000000ull, 500000000ull, 1000000000ull};
+     SIM_config_type * c = C();
+-    if (sTotalNs - sSnapAt >= interval[c->metricsRefresh < 3 ? c->metricsRefresh : 1] || (sSnap.fps == 0.0f && sWinN >= 5)) {
++    if ((double)(sTotalNs - sSnapAt) >= kRefreshS[c->metricsRefresh < 3 ? c->metricsRefresh : 1] * 1e9 || (sSnap.fps == 0.0f && sWinN >= 5)) {
+         FrameSnapshot();
+     } else if (sSnap.period != c->graphPeriod) {
+         PeriodSnapshot(true);
+     }
++}
++} // namespace
++
++void FrameRecord(unsigned long long ns, unsigned long long gameNs, unsigned long long drawNs) {
++    if (sFt.on < 0) { FtInit(); }
++    static int sCost = -1;
++    unsigned long long t0 = 0;
++    if (sCost < 0) { sCost = getenv("BWPORT_GRAPHCOST") != nullptr; }
++    if (sCost) { t0 = SDL_GetPerformanceCounter(); }
++    if (sFt.on > 0) {
++        for (int i = 0; i < sFt.perFrame; i++) { RecordOne(FtNext(), 0, 0); }
++    } else {
++        if (ns == 0 || ns > 10000000000ull) {
++            return;
++        }
++        RecordOne(ns, gameNs, drawNs);
++    }
+     if (sCost) {
+         sCostFrameUs += (double)(SDL_GetPerformanceCounter() - t0) * 1e6 / (double)SDL_GetPerformanceFrequency();
+     }
+@@ -1468,11 +1580,14 @@
+     ImVec2 pos = ImGui::GetCursorScreenPos();
+     ImGui::InvisibleButton("##ftgraph", ImVec2(w, h));
+     bool hov = ImGui::IsItemHovered();
++    int ftHover = FtHoverCol();
++    if (ftHover >= 0) { hov = true; }
+     unsigned long long t0 = SDL_GetPerformanceCounter();
+     int p = C()->graphPeriod < 4 ? C()->graphPeriod : 1;
+-    int ncols = (int)w < 40 ? 40 : (int)w > 2000 ? 2000 : (int)w;
+-    unsigned colB = (unsigned)ceil(kPeriodS[p] * 100.0 / (double)ncols);
+-    if (colB < 1) { colB = 1; }
++    int width = GraphCols(w);
++    sGraphCols = width;     // the statistics (PeriodSnapshot) use the same column size
++    unsigned colB = ColBuckets(p, width);
++    int ncols = (int)((PeriodBuckets(p) + colB - 1) / colB) + 1;     // the slots: the period's columns, the oldest one cut
+     if (sColsKey != colB) {
+         sColsKey = colB;
+         memset(sCols, 0, sizeof sCols);
+@@ -1480,6 +1595,7 @@
+     long long cb = (long long)(sTotalNs / 10000000ull);
+     long long clast = cb / (long long)colB;
+     long long first = clast - ncols + 1;
++    long long b0 = (long long)PeriodStart(p, (unsigned long long)cb);       // the period's first bucket
+     float top = sSnap.top > 0.0f ? sSnap.top : 1.0f;
+     float x0 = pos.x + (w - (float)ncols) * 0.5f;
+     auto yOf = [&](float ms) {
+@@ -1491,22 +1607,24 @@
+     int np = 0;
+     const ImU32 band = IM_COL32(70, 130, 200, 255), line = IM_COL32(130, 200, 255, 255), spike = IM_COL32(255, 90, 70, 255);
+     int hoverCol = hov ? (int)(ImGui::GetIO().MousePos.x - x0) : -1;
++    if (ftHover >= 0) { hoverCol = ncols - 1 - ftHover; }
+     for (long long c = std::max(first, 0ll); c <= clast; c++) {
+         Col & k = sCols[c % kColCap];
+-        if (k.abs != (unsigned long long)c + 1 || !k.final) {
++        if (k.abs != (unsigned long long)c + 1 || !k.final || c * (long long)colB < b0) {
+             k.abs = (unsigned long long)c + 1;
+             k.n = 0; k.mn = 1e9f; k.mx = 0.0f;
+-            float sum = 0.0f;
++            double sum = 0.0;
+             for (unsigned i = 0; i < colB; i++) {
+                 unsigned long long bi = (unsigned long long)c * colB + i;
++                if ((long long)bi < b0) { continue; }       // before the period
+                 const Bucket & bk = sBuckets[bi % kBuckets];
+                 if (bk.stamp == (unsigned)bi + 1u && bk.n) {
+                     k.n = (unsigned short)(k.n + bk.n); sum += bk.sum;
+                     k.mn = std::min(k.mn, bk.mn); k.mx = std::max(k.mx, bk.mx);
+                 }
+             }
+-            k.avg = k.n ? sum / (float)k.n : 0.0f;
+-            k.final = c < clast;
++            k.avg = k.n ? (float)(sum / (double)k.n) : 0.0f;
++            k.final = c < clast && c * (long long)colB >= b0;
+         }
+         if (k.n == 0) { continue; }
+         float x = floorf(x0 + (float)(c - first));
+@@ -1520,7 +1638,9 @@
+     if (16.715f < top) {
+         float y = floorf(yOf(16.715f)) + 0.5f;
+         dl->AddLine(ImVec2(pos.x, y), ImVec2(pos.x + w, y), IM_COL32(255, 205, 60, 150), 1.0f);
+-        dl->AddText(ImVec2(pos.x + 3.0f, y - ImGui::GetTextLineHeight() - 1.0f), IM_COL32(255, 205, 60, 200), "16.7 ms");
++        if (pos.y + h - y > 2.0f * ImGui::GetTextLineHeight() + 2.0f) {     // not over the "-30 s" label
++            dl->AddText(ImVec2(pos.x + 3.0f, y - ImGui::GetTextLineHeight() - 1.0f), IM_COL32(255, 205, 60, 200), "16.7 ms");
++        }
+     }
+     char tb[32];
+     snprintf(tb, sizeof tb, "%g ms", top);
+@@ -1529,9 +1649,17 @@
+     dl->AddText(ImVec2(pos.x + 3.0f, pos.y + h - ImGui::GetTextLineHeight() - 1.0f), IM_COL32(160, 162, 176, 255), tb);
+     dl->AddRect(pos, ImVec2(pos.x + w, pos.y + h), IM_COL32(90, 92, 108, 255));
+     if (hov && hoverCol <= -2) {
++        // the hovered column's own frames: the time it covers (seconds before now) and its min / mean / max
+         const Col & k = sCols[(-2 - hoverCol)];
+-        double ago = (double)(clast - (long long)k.abs + 1) * (double)colB * 0.01;
+-        ImGui::SetTooltip("%.1f s ago: %d frames\nmin %.2f  avg %.2f  max %.2f ms", ago, (int)k.n, k.mn, k.avg, k.mx);
++        long long hc = (long long)k.abs - 1;
++        double nowS = (double)sTotalNs / 1e9;
++        double a0 = nowS - (double)(hc * (long long)colB) * 0.01, a1 = nowS - (double)((hc + 1) * (long long)colB) * 0.01;
++        if (a1 < 0.0) { a1 = 0.0; }
++        if (ftHover >= 0) { FtHoverReport(hc, colB, b0, (int)k.n, k.mn, k.avg, k.mx, k.final); }
++        float hx = floorf(x0 + (float)(hc - first));
++        dl->AddRectFilled(ImVec2(hx, pos.y), ImVec2(hx + 1.0f, pos.y + h), IM_COL32(255, 255, 255, 60));
++        ImGui::SetTooltip("-%.2f .. -%.2f s%s\n%d frames\nmin %.1f  avg %.1f  max %.1f ms", a0, a1, k.final ? "" : " (filling)", (int)k.n,
++                          k.mn, k.avg, k.mx);
+     }
+     static int sCostOn = -1;
+     if (sCostOn < 0) { sCostOn = getenv("BWPORT_GRAPHCOST") != nullptr; }
+@@ -1541,8 +1669,9 @@
+         static FILE * cf; static int ci;
+         if (!ci) { ci = 1; if (getenv("BWPORT_GRAPHCOST")) { cf = fopen(getenv("BWPORT_GRAPHCOST"), "a"); } }
+         if (cf != nullptr && sCostN % 600 == 0) {
+-            fprintf(cf, "graph cost: frames %llu  FrameRecord %.2f us  graph %.2f us (per frame)  ring %llu\n", sCostN,
+-                    sCostFrameUs / (double)sCostN, sCostDrawUs / (double)sCostN, sRingHead);
++            fprintf(cf, "graph cost: frames %llu  FrameRecord %.2f us (of it refreshes %.2f us: %llu, %.1f us each)  graph %.2f us (per frame)  ring %llu\n", sCostN,
++                    sCostFrameUs / (double)sCostN, sCostSnapUs / (double)sCostN, sCostSnaps, sCostSnaps ? sCostSnapUs / (double)sCostSnaps : 0.0,
++                    sCostDrawUs / (double)sCostN, sRingHead);
+             fflush(cf);
+         }
+     }
+@@ -1566,7 +1695,8 @@
+     ImVec4 fc = fps >= 55.0f ? ImVec4(0.5f, 1.0f, 0.5f, 1.0f) : fps >= 30.0f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(1.0f, 0.4f, 0.3f, 1.0f);
+     ImGui::TextColored(fc, "%.0f fps", fps);
+     ImGui::SameLine();
+-    ImGui::TextDisabled("avg %.2f ms  worst %.1f ms", m.avgMs, m.worstMs);
++    // the last refresh window (MetricsRefresh) only: not the graph's period, whose numbers are under the graph
++    ImGui::TextDisabled("last %g s: avg %.1f  worst %.1f ms", kRefreshS[c->metricsRefresh < 3 ? c->metricsRefresh : 1], m.avgMs, m.worstMs);
+     ImGui::TextColored(budget > 1.0f ? ImVec4(1.0f, 0.45f, 0.35f, 1.0f) : budget > 0.7f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(0.6f, 0.9f, 0.65f, 1.0f),
+                        "game %.2f + draw %.2f ms", m.gameMs, m.drawMs);
+     // the graph's header: its name and the period buttons on the right
+@@ -1587,8 +1717,9 @@
+     }
+     float gh = std::max(56.0f * sUiScale, std::min(140.0f * sUiScale, sSideH * 0.14f));
+     FrameGraph(ImGui::GetContentRegionAvail().x, gh);
+-    ImGui::TextDisabled("min %.2f  avg %.2f  max %.1f ms", m.pMin, m.pAvg, m.pMax);
+-    ImGui::TextDisabled("1%% low %.1f ms (%.0f fps)", m.pLowMs, m.pLowMs > 0.0f ? 1000.0f / m.pLowMs : 0.0f);
++    // the frames of the graph above, exactly (the period selected), refreshed with the metrics
++    ImGui::TextDisabled("%g s: min %.1f  avg %.1f  max %.1f ms", kPeriodS[m.period < 0 ? 1 : m.period], m.pMin, m.pAvg, m.pMax);
++    ImGui::TextDisabled("%g s: 1%% low %.1f ms (%.0f fps)", kPeriodS[m.period < 0 ? 1 : m.period], m.pLowMs, m.pLowMs > 0.0f ? 1000.0f / m.pLowMs : 0.0f);
+     int pw = 0, ph = 0;
+     SIM_RendererPicture(&pw, &ph);
+     ImGui::Text("%s %dx", ActiveRenderer(), SIM_RenderScale());
+@@ -1606,6 +1737,19 @@
+         FormRow("Resolution");
+         ResolutionCombo("##qres");
+         ItemRect(1);
++        FormRow("Antialiasing", "draws the 3D at Resolution x 2 or x 4 and shows the average");
++        {
++            static const char * const aaShort[] = {"off", "2x", "4x"};
++            int aa = AntialiasIndex(c->antialias);
++            if (ComboIndex("##qaa", &aa, aaShort, 3)) { c->antialias = (u8)(aa == 2 ? 4 : aa == 1 ? 2 : 1); Dirty(); }
++            ItemRect(8);
++        }
++        FormRow("Frame cap (Tab)", "capped at 60 fps with VSync; off runs as fast as it can");
++        {
++            bool cap = c->capFrameRate;
++            if (ImGui::Checkbox("##qcap", &cap)) { ApplyCap(cap); }
++            ItemRect(9);
++        }
+         ImGui::EndTable();
+     }
+     sMetricsContentH = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+@@ -1745,9 +1889,9 @@
+ void RectsString(char * buf, int n) {
+     int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
+                      sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
+-    static const char * const itemNames[8] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb"};
++    static const char * const itemNames[10] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb", "qaa", "qcap"};
+     k += snprintf(buf + k, n - k, " joyn %d", sJoyClicks);
+-    for (int i = 0; i < 8 && k < n - 80; i++) {
++    for (int i = 0; i < 10 && k < n - 80; i++) {
+         if (sItemRect[i][2] > 0.0f) {
+             k += snprintf(buf + k, n - k, " %s %.0f %.0f %.0f %.0f", itemNames[i],
+                           sItemRect[i][0], sItemRect[i][1], sItemRect[i][2], sItemRect[i][3]);

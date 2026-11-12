@@ -1,0 +1,124 @@
+#include "types.h"
+#include "constants/arc.h"
+#include "field/net_devirc.h"
+#include "gfl/net.h"
+#include "gfl/net_devwifi.h"
+#include "gfl/net_devwireless.h"
+#include "gfl/overlay.h"
+#include "gfl/wm_icon.h"
+#include "system/net_define.h"
+
+// What the game gives the network library: the Wi-Fi icon's files, the device of each kind of connection with the
+// overlays it needs, the network's step of each frame and the kind of the game commands. The ROM has no string for
+// the file, so the name is a guess. getWifiIconNarcIdxNum is swan's name.
+
+// The field's overlays 12 and 27 make room for the Wi-Fi library's 11 and 29, and the GTS's 189
+#define OVERLAY_DWC_RAP OVERLAY_ID(11)
+#define OVERLAY_NET_WIRELESS OVERLAY_ID(30)
+#define OVERLAY_NET_IRC OVERLAY_ID(31)
+
+static u8 sSkipFrame;
+
+u32 getWifiIconNarcIdxNum(void) {
+    return ARCID_WM_ICON;
+}
+
+void WmIconFiles_Init(WmIconFiles *files) {
+    files->chars[0] = 2;
+    files->chars[1] = 4;
+    files->pltt = 1;
+}
+
+const GFLNetDevTable *NetDefine_LoadDevice(int type) {
+    switch (type) {
+    case GFL_NET_TYPE_WIFI_GTS:
+        GFL_OvlUnload(OVERLAY_ID(12));
+        GFL_OvlUnload(OVERLAY_ID(27));
+        GFL_OvlLoad(OVERLAY_DWC_RAP);
+        GFL_OvlLoad(OVERLAY_ID(29));
+        GFL_OvlLoad(OVERLAY_ID(189));
+        return NetDevWifi_GetTable();
+    case GFL_NET_TYPE_WIFI:
+        GFL_OvlUnload(OVERLAY_ID(12));
+        GFL_OvlUnload(OVERLAY_ID(27));
+        GFL_OvlLoad(OVERLAY_DWC_RAP);
+        GFL_OvlLoad(OVERLAY_ID(29));
+        return NetDevWifi_GetTable();
+    case GFL_NET_TYPE_WIFI_LOBBY:
+        GFL_OvlUnload(OVERLAY_ID(12));
+        GFL_OvlUnload(OVERLAY_ID(27));
+        GFL_OvlLoad(OVERLAY_DWC_RAP);
+        GFL_OvlLoad(OVERLAY_ID(29));
+        return NetDevWifi_GetTable();
+    case GFL_NET_TYPE_WIRELESS:
+    case GFL_NET_TYPE_WIRELESS_LISTEN:
+        GFL_OvlLoad(OVERLAY_NET_WIRELESS);
+        return NetDevWireless_GetTable();
+    case GFL_NET_TYPE_IRC:
+    case GFL_NET_TYPE_IRC_WIRELESS:
+        GFL_OvlLoad(OVERLAY_NET_IRC);
+        return NetDevIrc_GetTable();
+    }
+    return NULL;
+}
+
+void NetDefine_UnloadDevice(int type) {
+    switch (type) {
+    case GFL_NET_TYPE_WIFI_GTS:
+        GFL_OvlUnload(OVERLAY_ID(189));
+        GFL_OvlUnload(OVERLAY_DWC_RAP);
+        GFL_OvlUnload(OVERLAY_ID(29));
+        GFL_OvlLoad(OVERLAY_ID(12));
+        GFL_OvlLoad(OVERLAY_ID(27));
+        break;
+    case GFL_NET_TYPE_WIFI:
+        GFL_OvlUnload(OVERLAY_DWC_RAP);
+        GFL_OvlUnload(OVERLAY_ID(29));
+        GFL_OvlLoad(OVERLAY_ID(12));
+        GFL_OvlLoad(OVERLAY_ID(27));
+        break;
+    case GFL_NET_TYPE_WIFI_LOBBY:
+        GFL_OvlUnload(OVERLAY_DWC_RAP);
+        GFL_OvlUnload(OVERLAY_ID(29));
+        GFL_OvlLoad(OVERLAY_ID(12));
+        GFL_OvlLoad(OVERLAY_ID(27));
+        break;
+    case GFL_NET_TYPE_WIRELESS:
+    case GFL_NET_TYPE_WIRELESS_LISTEN:
+        GFL_OvlUnload(OVERLAY_NET_WIRELESS);
+        break;
+    case GFL_NET_TYPE_IRC:
+    case GFL_NET_TYPE_IRC_WIRELESS:
+        GFL_OvlUnload(OVERLAY_NET_IRC);
+        break;
+    }
+}
+
+void NetDefine_Update(void) {
+    if (GFL_NetGetGameCommandBase() == 0x35) {
+        if (!sSkipFrame) {
+            sSkipFrame = GFL_NetMainWhileWaiting();
+        } else {
+            sSkipFrame = FALSE;
+        }
+    } else {
+        GFL_NetMainWhileWaiting();
+    }
+}
+
+BOOL GflNet_IsWifiGameKind(void) {
+    switch (GFL_NetGetGameCommandBase()) {
+    case 0xc:
+    case 0xd:
+    case 0xe:
+    case 0xf:
+    case 0x10:
+    case 0x1c:
+    case 0x1f:
+    case 0x25:
+    case 0x26:
+    case 0x30:
+        return TRUE;
+    }
+    return FALSE;
+}

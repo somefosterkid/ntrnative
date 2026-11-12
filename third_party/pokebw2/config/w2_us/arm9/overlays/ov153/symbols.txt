@@ -1,0 +1,5 @@
+EncEffColumns_Create kind:function(thumb,size=0x3c) addr:0x021f6240
+EncEffColumns_CreateGridEvent kind:function(thumb,size=0x2c) addr:0x021f627c
+EncEffColumns_Update kind:function(thumb,size=0x5a) addr:0x021f62a8
+EncEffColumns_UpdateCell kind:function(thumb,size=0x1e) addr:0x021f6304
+data_ov153_021f62e4 kind:data(any) addr:0x021f6324

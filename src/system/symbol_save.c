@@ -1,0 +1,208 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), src/system/symbol_save.c, ported by tools/port_file.py.
+// The names are Black's; pokebw2's own guesses are in the comments.
+#include <stddef.h>
+#include "types.h"
+#include "save/symbol_save.h"
+#include "field/entree_forest.h"
+#include "gfl/heap.h"
+#include "gfl/std.h"
+#include "nitro/os.h"
+#include "save/save_control.h"
+#include "field/symbol_save_field.h"
+#include "stddef.h"
+
+// The symbol encounters of the Entree Forest: the Pokémon that came from the Dream World, kept encrypted in ranges
+// of slots by kind. The file's name is the ROM's string. Block 0x3c.
+
+#define SAVE_BLOCK_SYMBOL 0x3d
+#define SYMBOL_SLOT_NONE 0xffff
+
+// The slots of the last kind are the deep areas', 60 each after the first two
+#define SYMBOL_DEEP_AREA_FIRST_SLOT 50
+#define SYMBOL_DEEP_AREA_SLOTS 60
+#define SYMBOL_DEEP_AREA_MAX 6
+
+typedef struct {
+    u16 start;
+    u16 end;
+} SymbolSlotRange;
+
+static SymbolKind func_0200e0bc(u32 slot);
+static u32 func_0200e0e8(AreaNPCSave *npcData, u32 kind);
+static void func_0200e124(AreaNPCSave *npcData, u32 slot);
+
+// pokebw2's sSlotRanges
+static const SymbolSlotRange data_0209de90[SYMBOL_KIND_COUNT] = {
+    { 0, 10 },
+    { 10, 20 },
+    { 20, 50 },
+    { 50, SYMBOL_POKEMON_MAX },
+};
+
+
+void decryptNpcData(AreaNPCSave *npcData) {
+    npcData->unk84e = (OS_GetVBlankCount() << 8) | OS_GetVBlankCount();
+    if (npcData->unk84e == 0) {
+        npcData->unk84e = 1;
+    }
+    npcData->unk84c = addUpDataStream((const u8 *)npcData, offsetof(AreaNPCSave, unk84c));
+    decryptData(npcData, offsetof(AreaNPCSave, unk84c), npcData->unk84c + (npcData->unk84e << 16));
+}
+
+void func_0200e06c(AreaNPCSave *npcData) {
+    _decryptData(npcData, offsetof(AreaNPCSave, unk84c), npcData->unk84c + (npcData->unk84e << 16));
+    npcData->unk84e = 0;
+}
+
+
+u32 getSizeofNpcData(void) {
+    return sizeof(AreaNPCSave);
+}
+
+void initNpcData(AreaNPCSave *npcData) {
+    MI_CpuFill8(npcData, 0, sizeof(AreaNPCSave));
+    decryptNpcData(npcData);
+}
+
+AreaNPCSave *getAreaNPCData(SaveControl *save) {
+    return SaveControl_GetBlockPtr(save, SAVE_BLOCK_SYMBOL);
+}
+
+// pokebw2's getKindOfSlot
+static SymbolKind func_0200e0bc(u32 slot) {
+    SymbolKind i;
+    SymbolKind kind = SYMBOL_KIND_FREE_SMALL;
+
+    for (i = SYMBOL_KIND_KEEP_LARGE; i < NELEMS(data_0209de90); i++) {
+        if (slot < data_0209de90[i].end) {
+            kind = i;
+            break;
+        }
+    }
+    return kind;
+}
+
+// pokebw2's findFreeSlot
+static u32 func_0200e0e8(AreaNPCSave *npcData, u32 kind) {
+    u32 end;
+    u32 i;
+    EntreeForestPokemon *pokemon;
+    u32 slot = SYMBOL_SLOT_NONE;
+
+    i = data_0209de90[kind].start;
+    end = data_0209de90[kind].end;
+    pokemon = &npcData->pokemon[i];
+    for (; i < end; i++, pokemon++) {
+        if (pokemon->species == 0) {
+            slot = i;
+            break;
+        }
+    }
+    return slot;
+}
+
+// Moves the Pokémon after the slot down, within the slots of its kind, and frees the last
+// pokebw2's removeSlot
+static void func_0200e124(AreaNPCSave *npcData, u32 slot) {
+    u32 end = data_0209de90[func_0200e0bc(slot)].end;
+
+    if (slot < end) {
+        MI_CpuCopy8(&npcData->pokemon[slot + 1], &npcData->pokemon[slot],
+                   (end - (slot + 1)) * sizeof(EntreeForestPokemon));
+    }
+    npcData->pokemon[end - 1].species = 0;
+}
+
+// The first free slot of a kind, or SYMBOL_SLOT_NONE
+u32 func_0200e164(AreaNPCSave *npcData, u32 kind) {
+    u32 slot;
+
+    func_0200e06c(npcData);
+    slot = func_0200e0e8(npcData, kind);
+    decryptNpcData(npcData);
+    return slot;
+}
+
+u32 func_0200e184(u32 index) {
+    return func_0200e0bc(index);
+}
+
+void func_0200e18c(AreaNPCSave *npcData, u32 index) {
+    func_0200e06c(npcData);
+    func_0200e124(npcData, index);
+    decryptNpcData(npcData);
+}
+
+void func_0200e1a8(AreaNPCSave *npcData, u16 species, u16 a2, u8 sex, u8 form, u8 a5, u32 size) {
+    u32 start;
+    u32 end;
+    u32 slot;
+    EntreeForestPokemon *pokemon;
+
+    func_0200e06c(npcData);
+    start = data_0209de90[size].start;
+    end = data_0209de90[size].end;
+    slot = func_0200e0e8(npcData, size);
+    if (slot == SYMBOL_SLOT_NONE) {
+        func_0200e124(npcData, start);
+        pokemon = &npcData->pokemon[end - 1];
+    } else {
+        pokemon = &npcData->pokemon[slot];
+    }
+    pokemon->species = species;
+    pokemon->move = a2;
+    pokemon->sex = sex;
+    pokemon->form = form;
+    pokemon->actorType = a5;
+    if (size == SYMBOL_KIND_FREE_LARGE) {
+        if (npcData->unk848 < 1) {
+            npcData->unk848++;
+        }
+    } else if (size == SYMBOL_KIND_FREE_SMALL) {
+        func_0200e27c(npcData, slot);
+    }
+    decryptNpcData(npcData);
+}
+
+void func_0200e27c(AreaNPCSave *npcData, u16 index) {
+    u8 area = (index - SYMBOL_DEEP_AREA_FIRST_SLOT) / SYMBOL_DEEP_AREA_SLOTS - 1;
+
+    if (index != SYMBOL_SLOT_NONE && index >= SYMBOL_DEEP_AREA_FIRST_SLOT + 2 * SYMBOL_DEEP_AREA_SLOTS &&
+        index <= SYMBOL_POKEMON_MAX) {
+        if (area > SYMBOL_DEEP_AREA_MAX) {
+            area = SYMBOL_DEEP_AREA_MAX;
+        }
+        npcData->unk849 = area;
+    }
+}
+
+
+BOOL func_0200e2bc(SaveControl *save, u32 *pokemon, HeapID heapId, BOOL check) {
+    BOOL found = FALSE;
+    AreaNPCSave *npcData = GFL_HeapAllocate(heapId, sizeof(AreaNPCSave), TRUE, "symbol_save.c", 428);
+    const EntreeForestPokemon *wanted = (const EntreeForestPokemon *)pokemon;
+    int copy;
+    int i;
+
+    for (copy = 0; copy < 2; copy++) {
+        if (func_02007248(save, SAVE_BLOCK_SYMBOL, copy, npcData, sizeof(AreaNPCSave)) == TRUE) {
+            func_0200e06c(npcData);
+            for (i = 0; i < SYMBOL_POKEMON_MAX; i++) {
+                if (check == TRUE) {
+                    if (wanted->species == npcData->pokemon[i].species && wanted->form == npcData->pokemon[i].form) {
+                        found = TRUE;
+                        break;
+                    }
+                } else if (GFL_STD_MemCmp(&npcData->pokemon[i], pokemon, sizeof(EntreeForestPokemon)) == 0) {
+                    found = TRUE;
+                    break;
+                }
+            }
+        }
+        if (found == TRUE) {
+            break;
+        }
+    }
+    GFL_HeapFree(npcData);
+    return found;
+}

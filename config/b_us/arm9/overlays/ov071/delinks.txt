@@ -1,0 +1,47 @@
+    .text       start:0x021b6100 end:0x021ba758 kind:code align:32
+    .rodata     start:0x021ba758 end:0x021babd4 kind:rodata align:4
+    .ctor       start:0x021babd4 end:0x021babd4 kind:rodata align:4
+    .data       start:0x021babe0 end:0x021bac00 kind:data align:32
+    .bss        start:0x021bac00 end:0x021bac00 kind:bss align:32
+
+src/ov071/monolith_top.c:
+    complete
+    .text       start:0x021b7e60 end:0x021b8494
+    .rodata     start:0x021ba978 end:0x021baa40
+    .data       start:0x021babf8 end:0x021babfc
+
+src/ov071/monolith_status.c:
+    complete
+    .text       start:0x021b8494 end:0x021b889c
+    .rodata     start:0x021baa40 end:0x021baaa4
+
+src/ov071/monolith_power_info.c:
+    complete
+    .text       start:0x021ba1fc end:0x021ba758
+    .rodata     start:0x021bab88 end:0x021babd4
+
+src/ov071/monolith_record.c:
+    complete
+    .text       start:0x021b889c end:0x021b8ee8
+    .rodata     start:0x021baaa4 end:0x021baaf8
+
+src/ov071/monolith_power_select.c:
+    complete
+    .text       start:0x021b8ee8 end:0x021ba1fc
+    .rodata     start:0x021baaf8 end:0x021bab88
+    .data       start:0x021babfc end:0x021bac00
+
+src/ov071/ov071_021b7234.c:
+    .text       start:0x021b7234 end:0x021b7e60
+    .rodata     start:0x021ba85c end:0x021ba978
+    .data       start:0x021babe4 end:0x021babf8
+
+src/ov071/monolith_tool.c:
+    .text       start:0x021b6a0c end:0x021b7234
+    .rodata     start:0x021ba804 end:0x021ba85c
+    .data       start:0x021babe0 end:0x021babe4
+
+src/ov071/ov071_021b6100.c:
+    complete
+    .text       start:0x021b6100 end:0x021b6a0c
+    .rodata     start:0x021ba758 end:0x021ba804

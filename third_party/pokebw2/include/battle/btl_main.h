@@ -1,0 +1,498 @@
+#ifndef POKEBW2_BATTLE_BTL_MAIN_H
+#define POKEBW2_BATTLE_BTL_MAIN_H
+
+#include "types.h"
+#include "battle/btl_calc.h"
+#include "battle/btl_rec.h"
+#include "battle/btl_setup.h"
+#include "constants/battle.h"
+#include "gfl/proc.h"
+#include "struct_decls.h"
+
+// What IsAdjacentOpponent looks up for a position
+struct AdjacentOpponentData {
+    u16 count1;
+    u16 count2;
+    u8 list1[3];
+    u8 list2[3];
+};
+
+// The battle positions, 0 to 5. Even positions are on one side and odd positions on the other
+#define BTL_POS_MAX 6
+
+// Layout reconstructed from the party accessors in the game code.
+struct BattleParty {
+    BattleMon *mons[6];
+    u8 count;
+    u8 unk19[3];
+};
+
+// The parties of the four clients and every BattleMon by mon ID, 0xe8 bytes as the main module holds two
+struct BtlPokeCon {
+    BtlMainModule *mainModule;
+    BattleParty parties[4];
+    // The parties the clients' Pokémon come from
+    PokeParty *srcParties[4];
+    BattleMon *mons[24];
+    // Whether it is the server's, whose parties are copies of the clients' (GetClientSrcParty)
+    u32 forServer;
+};
+
+// A buffer of the main module that BtlMain_LoadStudioData allocates with the movie's rules
+typedef struct {
+    u8 unk00[8];
+    // The move index that replaces the AI's choice, which a scene's choice sets; -1 for none
+    s8 aiMoveIndex;
+    u8 unk09[0xb];
+} BtlStudioWork;
+
+// A step of the main module's setup or cleanup, run until it returns TRUE
+typedef BOOL (*BtlMainSeqFunc)(u32 *state, BtlMainModule *mainModule);
+
+typedef struct {
+    BtlMainSeqFunc func;
+    BtlMainSeqFunc nextFunc;
+    BtlMainModule *mainModule;
+    u32 state;
+} BtlMainSeq;
+
+// What the clients of a link battle exchange before it starts
+struct BtlMainSyncData {
+    MATHRandContext32 rand;
+    u16 unk18;
+    u16 gameTimeLimit;
+    u16 commandTimeLimit;
+    u8 textSpeed;
+    u8 battleSceneOff : 4;
+    u8 unk1F_4 : 4;
+};
+
+// A client's trainer, 0x28 bytes
+typedef struct {
+    PlayerInfo *playerInfo;
+    StrBuf *name;
+    u16 trainerClass;
+    u16 trainerId;
+    u32 aiFlags;
+    u16 items[4];
+    // The phrases the trainer says on winning and on losing
+    PMSData winWords;
+    PMSData loseWords;
+} BtlTrainerData;
+
+// A choice the player is offered in a Pokestar Studios scene
+typedef struct {
+    // -1 for none
+    s16 msgId;
+    s16 msgId2;
+    // The move index the foe's AI uses once the choice is made (BtlStudioWork)
+    s16 aiMoveIndex;
+    // The field the choice changes to, -1 for none (Studio_SetChoiceField)
+    s16 field;
+    s16 points;
+    s16 unk0A;
+} BtlStudioChoice;
+
+// One entry of a Pokestar Studios movie's script
+typedef struct {
+    // The turn the scene plays at; 100 and 101 are the endings', which score its points
+    s16 turn;
+    // The choice recorded before that the scene follows, -1 for any
+    s16 requiredChoice;
+    // What else starts it, -1 for nothing else: 0 the faint of the species triggerValue, 1 the use of the move
+    // triggerValue, and at turn 101 the outcome of the battle (Studio_FindScene)
+    s16 trigger;
+    s16 triggerValue;
+    // How the audience reacts to the scene's choices (StudioScore_AddChoicePoints)
+    s16 reaction;
+    // The points the scene adds to the score; 60 and more make the ending strange (Studio_DecideEnding)
+    s16 points;
+    // The messages of two kinds, by step, which the cut-ins' message command picks between
+    s16 messages[2][10];
+    // The script event each step waits for, -1 for none
+    s16 events[10];
+    BtlStudioChoice choices[4];
+} BtlStudioScene;
+
+typedef struct {
+    s16 turn;
+    s16 value;
+} BtlStudioTurnEvent;
+
+// The rules of a scripted battle, which seem to be the Pokestar Studios movies
+typedef struct {
+    s16 movie;
+    u8 unk02[2];
+    // What the score's sum is multiplied by (StudioScore_CalcTotal)
+    s16 scoreMultiplier;
+    s16 unk06;
+    // Which of the studio's message files the movie uses
+    s16 msgFile;
+    s16 turnLimit;
+    // The turns the movie should take: each turn away from it costs a point, and the turn messages change past it
+    s16 targetTurnCount;
+    // The scene whose end is the bad ending
+    s16 badEndingScene;
+    s16 rule;
+    s16 species1;
+    s16 species2;
+    // The move the player's first action must use for rule 2's win (CheckScriptedBattleRules)
+    s16 requiredMove;
+    u8 unk18[0xc];
+    // The field of the movie, which btlv_effect.c passes to BtlvField_Create
+    s16 field;
+    u8 unk26[0xa];
+    BtlStudioTurnEvent turnEvents[3];
+    u8 unk3C[0x6c];
+    // The two messages of each turn, -1 for none (Studio_PlayTurnMessages)
+    s16 turnMsgIds1[20];
+    s16 turnMsgIds2[20];
+    BtlStudioScene scenes[];
+} BtlScriptedRules;
+
+struct BtlMainModule {
+    BtlSetup *setup;
+    BtlvCore *viewCore;
+    BtlServer *server;
+    // The server a link battle's client runs to check the commands it receives
+    BtlServer *cmdCheckServer;
+    BtlClient *clients[4];
+    BtlTrainerData trainers[4];
+    PlayerInfo *playerInfo;
+    // Which clients' main functions have returned TRUE, in a link battle the server runs
+    u8 clientsDone[4];
+    BtlPokeCon pokeCons[2];
+    // The parties the clients' and the server's Pokémon come from (GetClientSrcParty)
+    PokeParty *clientSrcParties[4];
+    PokeParty *serverSrcParties[4];
+    PokeParty *tempParty;
+    BtlField *field;
+    // The Pokémon a wild Zoroark disguises itself as
+    PartyPkm *wildIllusionPkm;
+    BtlNetPartyPacket *partyPacket;
+    BtlRecReader recReader;
+    PerapVoice *chatters[4];
+    MATHRandContext32 rand;
+    // What the clients of a link battle agree on before it starts
+    BtlMainSyncData syncData;
+    u8 posClientIds[6];
+    u8 unk42e[2];
+    // The prize money, which FixPrizeMoney doubles and finalizes
+    u32 prizeMoney;
+    u32 money;
+    u32 lossMoney;
+    u32 textSpeed;
+    u16 gameTimeLimit;
+    u16 commandTimeLimit;
+    u32 result;
+    BtlClientIDList clientIdList;
+    BtlMainSeq seq;
+    // The sequence of the link battle's setup step being run, and the brightness of the exit's fade
+    s32 subSeq;
+    BOOL (*mainFunc)(BtlMainModule *mainModule);
+    u16 heapId;
+    u8 unk46A;
+    u8 clientCount;
+    u8 playerClientId;
+    u8 playerPos;
+    // Whether this machine runs the battle's server
+    u8 isServer;
+    u8 unk46F;
+    // The link battle's server sends the parties and trainers of npcCount NPC partners, one at a time
+    u8 npcIndex;
+    u8 npcCount;
+    u8 npcClientId;
+    u8 commError : 1;
+    // Set when a link error ended the setup
+    u8 setupFailed : 1;
+    u8 battleSceneOff : 1;
+    u8 prizeMoneyFixed : 1;
+    u8 lossMoneyCalculated : 1;
+    u8 skipExitBgmFadeOut : 1;
+    u8 moneyDoubled : 1;
+    // Set when the module set the sound volume callbacks, which it restores on exit
+    u8 volumeCallbacksSet : 1;
+    BtlScriptedRules *studioRules;
+    BtlStudioWork *studioWork;
+    PokewoodCutin *cutin;
+};
+
+// Swan's names for these two take the main module, whose first field points to the BtlSetup
+u32 BtlSetup_GetBattleStyle(BtlMainModule *mainModule);
+u32 IsBattleSceneOff(BtlMainModule *mainModule);
+u8 GetBadgeCount(BtlMainModule *mainModule);
+u32 BtlSetup_GetBattleType(BtlMainModule *mainModule);
+u8 GetMultiMode(BtlMainModule *mainModule);
+u8 GetCommMode(BtlMainModule *mainModule);
+BOOL IsMultiMode(BtlMainModule *mainModule);
+u16 GetWinBGM(BtlMainModule *mainModule);
+u16 GetStudioEndingBGM0(BtlMainModule *mainModule);
+u16 GetStudioEndingBGM2(BtlMainModule *mainModule);
+u32 BtlSetup_IsBattleType(BtlMainModule *mainModule, u32 flag);
+u8 IsRecPlayMode(BtlMainModule *mainModule);
+void BtlMain_StoreSlotNthResult(BtlMainModule *mainModule, u8 pos);
+void SetBattleResult(BtlMainModule *mainModule, u32 result);
+u32 GetBattleResult(BtlMainModule *mainModule);
+void AddBonusMoney(BtlMainModule *mainModule, u32 money);
+void SetMoneyDoubled(BtlMainModule *mainModule);
+void IncRecord(BtlMainModule *mainModule, u32 record);
+BOOL IsGameTimeUp(BtlMainModule *mainModule);
+BOOL BtlMain_CheckOwnWindowDone(BtlMainModule *mainModule);
+u32 GetStudioMode(BtlMainModule *mainModule);
+BOOL IsSwitchMode(BtlMainModule *mainModule);
+u32 GetValidPosMax(BtlMainModule *mainModule);
+u32 GetActivePosCount(BtlMainModule *mainModule);
+BOOL IsActivePos(BtlMainModule *mainModule, u32 pos);
+// What the player's Run does (GetRunMode), each with its message
+enum {
+    // Tries to escape, as from a wild battle
+    BTL_RUN_MODE_ESCAPE,
+    // Running is not allowed in a Trainer battle
+    BTL_RUN_MODE_NO_RUNNING,
+    // Asks to forfeit, in a link battle, a facility's and a Pokéstar Studios movie's
+    BTL_RUN_MODE_FORFEIT,
+};
+
+u32 GetRunMode(BtlMainModule *mainModule);
+BtlFieldSituation *GetFieldEffectData(BtlMainModule *mainModule);
+
+// The position at index on the same side as pos
+u8 GetPosOnSameSide(u8 pos, u8 index);
+BOOL DoesClientExist(BtlMainModule *mainModule, u8 clientId);
+u8 GetClientSide(BtlMainModule *mainModule, u8 clientId);
+BOOL AreClientsOnOppositeSides(BtlMainModule *mainModule, u8 clientId1, u8 clientId2);
+u8 BattlePosToClientID(BtlMainModule *mainModule, u8 pos);
+u8 MonIDToClientID(u8 monId);
+u8 GetClientBattlePos(BtlMainModule *mainModule, u8 clientId, u8 slot);
+s32 PokeCon_FindClientMonIndex(BtlPokeCon *pokeCon, u8 clientId, u8 monId);
+u8 MonIDToBattlePos(BtlMainModule *mainModule, BtlPokeCon *pokeCon, u8 monId);
+// What a position's flags expand to (ExpandPosFlags), in the high byte over the position in the low one: the
+// position itself, or around it the foes, the others, its side, its allies or all of them, the adjacent ones in a
+// triple battle or every one
+enum {
+    BTL_EXPOS_SELF,
+    BTL_EXPOS_ADJACENT_FOES,
+    BTL_EXPOS_ADJACENT_OTHERS,
+    // The position and its adjacent allies
+    BTL_EXPOS_ADJACENT_SIDE,
+    BTL_EXPOS_ADJACENT_ALLIES,
+    // The position and every adjacent one
+    BTL_EXPOS_ADJACENT_ALL,
+    BTL_EXPOS_ALL_FOES,
+    // Every position on its side
+    BTL_EXPOS_ALL_SIDE,
+    BTL_EXPOS_ALL,
+    // Expands as BTL_EXPOS_ADJACENT_ALLIES does
+    BTL_EXPOS_9,
+};
+
+// The flags of the positions of the kind type around pos
+#define BTL_EXPOS_FLAGS(type, pos) (((type) << 8) | (pos))
+
+u8 ExpandPosFlags(BtlMainModule *mainModule, u16 posFlags, u8 *out);
+u8 GetOpposingPos(BtlMainModule *mainModule, u8 pos, u8 index);
+u8 ExpandPosFlagsToMonIDs(BtlMainModule *mainModule, BtlPokeCon *pokeCon, u16 posFlags, u8 *monIds);
+u8 GetClientIDFromMonID(u8 monId);
+u8 GetPosIndexInClient(BtlMainModule *mainModule, u8 pos);
+u8 GetPlayerClientID(BtlMainModule *mainModule);
+u8 GetPlayerAllyClientID(BtlMainModule *mainModule);
+u8 GetAllyClientID(BtlMainModule *mainModule, u8 clientId);
+BOOL IsAllyClientID(u8 clientId1, u8 clientId2);
+u8 GetPlayerOpponentClientID(BtlMainModule *mainModule, u8 other);
+u32 GetOpponentClientID(BtlMainModule *mainModule, u8 clientId, u8 other);
+void BattleClient_SubItem(BtlMainModule *mainModule, u8 clientId, u16 item);
+void BattleClient_AddItem(BtlMainModule *mainModule, u8 clientId, u16 item);
+void ChangeFriendshipWhenFainted(BtlMainModule *mainModule, BattleMon *mon, BOOL reason);
+void ChangeFriendship(BtlMainModule *mainModule, BattleMon *mon, u32 reason);
+u8 GetClientIDFromPos(BtlMainModule *mainModule, u8 pos);
+BattleMon *PokeCon_GetPosMonInner(const BtlPokeCon *pokeCon, u8 pos);
+BattleMon *GetClientMonData(BtlPokeCon *pokeCon, u8 clientId, u8 monId);
+BattleMon *GetPokeParam(BtlPokeCon *pokeCon, u8 monId);
+const BattleMon *GetPokeParamConst(const BtlPokeCon *pokeCon, u8 monId);
+// Underlying battle-type-dependent count used by GetClientBattlerCount.
+u8 CalcClientBattlerCount(BtlMainModule *mainModule, u8 clientId);
+// How many of the client's Pokemon are in battle at once. They come first in the party, so this is also the index of
+// the first Pokemon waiting to switch in
+u8 GetClientBattlerCount(BtlMainModule *mainModule, u8 clientId);
+BOOL IsAllyMonID(u8 monId1, u8 monId2);
+// The side of the battle a mon ID is on: IDs from 12 are the second side's
+typedef enum { BTL_SIDE_1ST, BTL_SIDE_2ND } BtlSide;
+u8 GetSideFromMonID(u8 monId);
+u8 GetSideFromOpposingMonID(u8 monId);
+u8 GetOpposingSide(u8 side);
+// Returns the opponent-position lookup entry for a battle position.
+const AdjacentOpponentData *GetAdjacentOpponentData(u8 pos);
+// Whether pos2 is an opponent next to pos1 in a triple battle
+BOOL IsAdjacentOpponent(u8 pos1, u8 pos2);
+BattleParty *GetClientParty(BtlPokeCon *pokeCon, u32 clientId);
+BattleParty *GetPartyData(BtlPokeCon *pokeCon, u32 clientId);
+
+s32 FindPartyMon(const BattleParty *party, BattleMon *mon);
+s32 GetPartyPkmnEligibleForBattle(PokeParty *party);
+void AddBattleMonToParty(BattleParty *party, BattleMon *mon);
+void BattleParty_Clear(BattleParty *party);
+void BattleParty_MoveFaintedToEnd(BattleParty *party);
+u8 BattleParty_CountAliveFrom(BattleParty *party, s32 index);
+BattleMon *BattleParty_GetMon(BattleParty *party, u8 index);
+void BattleParty_Swap(BattleParty *party, u32 first, u32 second);
+void BattleParty_MoveToEnd(BattleParty *party, u8 index);
+void BattleParty_Rotate(BattleParty *party, u32 pos, BattleMon **oldOut, BattleMon **newOut);
+s32 BattleParty_FindMonID(const BattleParty *party, u32 monId);
+BattleMon *BattleParty_GetFirstAlive(const BattleParty *party);
+u8 GetRotationInSlot(u32 pos);
+u32 GetRotationOutSlot(u32 pos);
+BattleMon *GetBattleMonFromParty(const BattleParty *party, u8 index);
+u8 GetNumMonsInParty(const BattleParty *party);
+u8 GetAlivePartyCount(BattleParty *party);
+
+u8 BtlMain_IsCommCompetitor(BtlSetup *setup);
+void BtlMain_SetupPlayerAndParties(BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_LoadSetupParties(BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_ForceQuitClients(BtlMainModule *mainModule);
+BOOL BtlMain_AreAllClientsDone(BtlMainModule *mainModule);
+s32 GetTextWait(BtlMainModule *mainModule);
+void SetFastestTextSpeed(BtlMainModule *mainModule);
+BOOL IsExpGainEnabled(BtlMainModule *mainModule);
+CommPlayerSupport *GetCommPlayerSupport(BtlMainModule *mainModule);
+PlayerInfo *GetPlayerInfo(BtlMainModule *mainModule);
+BOOL IsMonCaught(BtlMainModule *mainModule, BattleMon *mon);
+u32 GetDexCaughtCount(BtlMainModule *mainModule);
+GameData *GetGameData(BtlMainModule *mainModule);
+void RegisterDexMon(BtlMainModule *mainModule, u8 clientId, BattleMon *mon);
+u8 ExpandPosFlagsSingle(BtlMainModule *mainModule, u8 type, u8 pos, u8 *out);
+u8 ExpandPosFlagsDouble(BtlMainModule *mainModule, u8 type, u8 pos, u8 *out);
+u8 ExpandPosFlagsTriple(BtlMainModule *mainModule, u8 type, u8 pos, u8 *out);
+u32 GetClientPosCount(BtlMainModule *mainModule, u8 clientId);
+BOOL IsPlayerSide(BtlMainModule *mainModule, u8 side);
+u8 GetOpposingPosForStyle(u32 battleStyle, u8 pos, u8 index);
+u8 GetFacingPos(u32 battleStyle, u8 pos);
+u8 GetPartnerPos(BtlMainModule *mainModule, u8 pos);
+u8 MonIDToViewPos(BtlMainModule *mainModule, BtlPokeCon *pokeCon, u8 monId);
+void GetPosClientAndIndex(BtlMainModule *mainModule, u8 pos, u8 *clientId, u8 *index);
+u8 BattlePosToViewPos(BtlMainModule *mainModule, u8 pos);
+u8 ViewPosToBattlePos(BtlMainModule *mainModule, u8 index);
+BOOL BtlMain_IsCommMulti(BtlMainModule *mainModule);
+PokeParty *GetClientPokeParty(BtlMainModule *mainModule, u8 clientId);
+PokeParty *GetAllyPokeParty(BtlMainModule *mainModule, u8 clientId);
+u8 GetMultiTrainerIndex(BtlMainModule *mainModule, u8 clientId);
+u8 GetPlayerMultiTrainerIndex(BtlMainModule *mainModule);
+BagSave *GetBagSave(BtlMainModule *mainModule);
+BagCursor *GetBagCursor(BtlMainModule *mainModule);
+BOOL IsRecordingEnabled(BtlMainModule *mainModule);
+u32 func_ov167_0219c99c(BtlMainModule *mainModule);
+u8 GetStudioMovieId(BtlMainModule *mainModule);
+u32 IsStudioSkipDisabled(BtlMainModule *mainModule);
+void SetRecPlayQuit(BtlMainModule *mainModule);
+u32 GetScriptedRulesOutcome(BtlMainModule *mainModule);
+u32 ReturnZero(BtlMainModule *mainModule, u32 flag);
+void SetCmdCheckError(BtlMainModule *mainModule);
+u32 FixPrizeMoney(BtlMainModule *mainModule);
+u32 GetBonusMoney(BtlMainModule *mainModule);
+u32 CalcLossMoney(BtlMainModule *mainModule);
+void SkipExitBGMFadeOut(BtlMainModule *mainModule);
+void SyncServerMonMoves(BtlMainModule *mainModule, u8 monId);
+BattleMon *GetIllusionDisguise(BtlMainModule *mainModule, BtlPokeCon *pokeCon, BattleMon *mon);
+void PokeCon_Init(BtlPokeCon *pokeCon, BtlMainModule *mainModule, u32 forServer);
+void PokeCon_Clear(BtlPokeCon *pokeCon);
+void PokeCon_CreateClientParty(BtlPokeCon *pokeCon, BtlMainModule *mainModule, u8 clientId);
+void PokeCon_FreeMons(BtlPokeCon *pokeCon);
+void PokeCon_StoreClientSrcParty(BtlPokeCon *pokeCon, BtlMainModule *mainModule, u8 clientId, BOOL keepBaseForm);
+void PokeCon_StoreClientSrcPartyInOrder(BtlPokeCon *pokeCon, BtlMainModule *mainModule, u8 clientId);
+PokeParty *PokeCon_GetSrcParty(BtlPokeCon *pokeCon, u8 clientId);
+BattleMon *PokeCon_GetPosMon(BtlPokeCon *pokeCon, u8 pos);
+BattleMon *PokeCon_GetClientPartyMon(BtlPokeCon *pokeCon, u8 clientId, u8 index);
+BOOL GetViewPosChatter(BtlMainModule *mainModule, u32 index, PerapVoice **out);
+u8 GetClientChatterEffect(BtlMainModule *mainModule, u8 clientId);
+u8 GetClientBenchStart(BtlMainModule *mainModule, u8 clientId);
+BOOL IsTripleCenterPos(u8 pos);
+BOOL GetNonAdjacentOpponentPos(u8 pos, u8 *out);
+u8 GetPosSide(u8 pos);
+u32 GetServerTurnCount(BtlMainModule *mainModule);
+u8 PokeCon_GetClientAliveCount(BtlPokeCon *pokeCon, u8 clientId);
+void AddClientShooterEnergy(BtlMainModule *mainModule, u8 clientId, u8 value);
+void UpdatePartyIllusionDisguises(BtlMainModule *mainModule, BattleParty *party, u8 clientId);
+void BtlMain_InitTrainers(BtlMainModule *mainModule);
+void BtlMain_FreeTrainers(BtlMainModule *mainModule);
+void TrainerData_SetFromPlayer(BtlTrainerData *trainer, HeapID heapId, PlayerInfo *src);
+BOOL IsClientNPCTrainer(BtlMainModule *mainModule, u8 clientId);
+u16 GetClientTrainerItem(BtlMainModule *mainModule, u8 clientId, u8 index);
+StrBuf *GetClientTrainerName(BtlMainModule *mainModule, u8 clientId, u32 *trainerClass);
+u32 GetClientAIFlags(BtlMainModule *mainModule, u8 clientId);
+u16 GetClientTrainerID(BtlMainModule *mainModule, u8 clientId);
+u32 GetClientTrainerClass(BtlMainModule *mainModule, u8 clientId);
+PMSData *GetClientTrainerMsg(BtlMainModule *mainModule, u8 clientId, u32 which);
+PlayerInfo *GetClientPlayerInfo(BtlMainModule *mainModule, u8 clientId);
+PlayerInfo *GetCommSupporterInfo(BtlMainModule *mainModule);
+BtlField *GetBtlField(BtlMainModule *mainModule);
+void BtlMain_CreateSrcParties(BtlMainModule *mainModule);
+void BtlMain_FreeSrcParties(BtlMainModule *mainModule);
+void SetClientSrcParty(BtlMainModule *mainModule, u8 clientId, const PokeParty *party);
+PokeParty *GetClientSrcParty(BtlMainModule *mainModule, u8 clientId, u32 forServer);
+void AddRecord(BtlMainModule *mainModule, u32 record, u32 value);
+u8 *GetShooterSettings(BtlMainModule *mainModule);
+BOOL IsShooterEnabled(BtlMainModule *mainModule);
+BOOL IsBagEnabled(BtlMainModule *mainModule);
+void NotifyMonLevelUp(BtlMainModule *mainModule, BattleMon *mon);
+void ChangeFriendshipByItem(BtlMainModule *mainModule, BattleMon *mon, u16 item);
+void NotifyMonCaught(BtlMainModule *mainModule, BattleMon *mon);
+void BtlMain_StorePartiesToSetup(BtlMainModule *mainModule);
+BOOL BtlMain_IsCommTrainerBattle(BtlMainModule *mainModule);
+u32 BtlMain_DetermineResult(BtlMainModule *mainModule);
+u16 GetCommandTimeLimit(BtlMainModule *mainModule);
+u16 GetGameTimeLimit(BtlMainModule *mainModule);
+void SetSetupParty(BtlMainModule *mainModule, u8 clientId, const PokeParty *party);
+void SetSetupPlayerInfo(BtlMainModule *mainModule, u8 clientId, const PlayerInfo *src);
+void SetSetupChatterEffect(BtlMainModule *mainModule, u8 clientId);
+void BtlMain_StoreRecData(BtlMainModule *mainModule);
+u8 ClientIDToSetupIndex(u8 playerClientId, u8 clientId);
+void BtlMain_StartRecSkip(BtlMainModule *mainModule, u32 chapter);
+void BtlMain_EndRecSkip(BtlMainModule *mainModule);
+BtlServerFlow *GetServerFlow(BtlMainModule *mainModule);
+void BtlSetup_ClearResults(BtlSetup *setup);
+void BtlMain_StoreResultStats(BtlMainModule *mainModule);
+u32 GetPlayerFirstActionMove(BtlMainModule *mainModule);
+BtlSetup *GetBattleSetup(BtlMainModule *mainModule);
+BtlSetup *GetBattleSetupParam(BtlMainModule *mainModule);
+void BtlMain_LoadStudioData(BtlMainModule *mainModule, u8 movie);
+void BtlMain_FreeStudioData(BtlMainModule *mainModule);
+BtlScriptedRules *GetStudioRules(BtlMainModule *mainModule);
+BtlStudioWork *GetStudioWork(BtlMainModule *mainModule);
+PokewoodCutin *GetPokewoodCutin(BtlMainModule *mainModule);
+void func_ov167_0219e3c8(BtlScriptedRules *data);
+
+BOOL BtlMain_ProcInit(GameProc *proc, u32 *state, void *param, void *work);
+BOOL BtlMain_ProcMain(GameProc *proc, u32 *state, void *param, void *work);
+BOOL BtlMain_IsRecReadComplete(BtlMainModule *mainModule);
+BOOL BtlMain_ProcExit(GameProc *proc, u32 *state, void *param, void *work);
+void BtlMain_SetSetupSeq(BtlMainSeq *seq, BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_SetCleanupSeq(BtlMainSeq *seq, BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_SetupClientTrainer(BtlMainModule *mainModule, u8 clientId);
+void BtlMain_SetupTrainers(BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_SetupRecReader(BtlMainModule *mainModule, BtlSetup *setup);
+void BtlMain_CreateViewCore(BtlMainModule *mainModule, BtlSetup *setup, u32 commCompetitor);
+BOOL BtlMain_SetupAloneSingle(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_Cleanup(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupAloneDouble(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupAloneMulti(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupAloneTriple(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupAloneRotation(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupCommSingle(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupCommDouble(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupCommRotation(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_SetupCommTriple(u32 *state, BtlMainModule *mainModule);
+BOOL BtlMain_CommExchangeSyncData(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommExchangeParties(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommExchangeTrainers(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommExchangeChatter(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommCreateSingle(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommCreateDouble(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommCreateTriple(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommCreateRotation(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_CommCreateViewCore(BtlMainModule *mainModule, s32 *state);
+BOOL BtlMain_MainLoopAlone(BtlMainModule *mainModule);
+BOOL BtlMain_MainLoopCommServer(BtlMainModule *mainModule);
+BOOL BtlMain_MainLoopCommClient(BtlMainModule *mainModule);
+void TrainerData_SetFromSetup(BtlTrainerData *trainer, const BtlSetupTrainer *src);
+void TrainerData_SetFromComm(BtlTrainerData *trainer, const BtlCommTrainerData *src);
+
+#endif // POKEBW2_BATTLE_BTL_MAIN_H

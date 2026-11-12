@@ -1,0 +1,4 @@
+# game: black
+# from: bianca
+# reaches: the lab door from Bianca's scene (README: right6 up9 left5 up7)
+walk 300 48 right6 up9 left5 up7

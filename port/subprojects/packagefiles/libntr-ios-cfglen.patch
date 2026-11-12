@@ -1,0 +1,31 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -996,7 +996,7 @@
+ static bool BenchBusy(void);
+ static void BenchDone(void);
+ static void BenchCancel(void);
+-struct CfgStep { u32 frame; bool rel; char text[96]; };
++struct CfgStep { u32 frame; bool rel; char text[256]; };  // (libntr-ios-cfglen.patch: was 96; a 110-character settings step lost its last keys)
+ static std::vector<CfgStep> sCfgSteps;
+ static size_t sCfgNext = 0;
+ static SIM_config_type sCfgSaved;
+@@ -1013,6 +1013,10 @@
+     CfgStep st;
+     st.frame = (u32)atoi(tok + 1);
+     st.rel = tok[0] == 'p';
++    if (strlen(colon + 1) >= sizeof st.text) {  // (libntr-ios-cfglen.patch) a cut step would drop its last keys without a word
++      fprintf(stderr, "cfgscript: step '%.40s...' is %zu characters, over %zu: skipped\n", tok, strlen(colon + 1), sizeof st.text - 1);
++      continue;
++    }
+     snprintf(st.text, sizeof st.text, "%s", colon + 1);
+     sCfgSteps.insert(sCfgSteps.begin() + (long)at++, st);
+   }
+@@ -1182,7 +1186,7 @@
+     if (cur.rel ? (busy || now < sMark + cur.frame) : now < cur.frame) break;
+     sMark = now;
+     char *save = NULL;
+-    char text[96];
++    char text[sizeof sSteps[sNext].text];
+     snprintf(text, sizeof text, "%s", sSteps[sNext].text);
+     for (char *kv = strtok_r(text, ",", &save); kv != NULL; kv = strtok_r(NULL, ",", &save)) {
+       char *eq = strchr(kv, '=');

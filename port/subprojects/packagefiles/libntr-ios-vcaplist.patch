@@ -1,0 +1,233 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -998,6 +998,7 @@
+ static void BenchCancel(void);
+ struct CfgStep { u32 frame; bool rel; char text[256]; };  // (libntr-ios-cfglen.patch: was 96; a 110-character settings step lost its last keys)
+ static int sTestNoSide, sTestPump;   // libntr-ios-testkeys.patch: cfgscript side=0 / pump=1 (measurement only, off unless set)
++extern "C" int SIM_VCapTestOff;      // libntr-ios-vcaplist.patch: cfgscript vcapwalk=0 (sim_vcapture.cpp)
+ static std::vector<CfgStep> sCfgSteps;
+ static size_t sCfgNext = 0;
+ static SIM_config_type sCfgSaved;
+@@ -1254,6 +1255,8 @@
+         sTestNoSide = atoi(v) == 0;
+       } else if (strcmp(kv, "pump") == 0) {  // pump=1 polls SDL's events only on a tick after a presented one
+         sTestPump = atoi(v) != 0;
++      } else if (strcmp(kv, "vcapwalk") == 0) {  // libntr-ios-vcaplist.patch: vcapwalk=0 records no 3D command (the picture is wrong)
++        SIM_VCapTestOff = atoi(v) == 0;
+       } else if (strcmp(kv, "soundquality") == 0) {  // 0 = DS (exact), 1 = Enhanced
+         s_SIM_config.soundQuality = (u8)(atoi(v) != 0);
+       } else if (strcmp(kv, "framerate") == 0) {
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -221,9 +221,32 @@
+   }
+ }
+ 
++// libntr-ios-vcaplist.patch: the stream's words (a std::vector before): Grow hands out room for a list's worst case at
++// once, so a list is written by plain stores and its length set once (push_back checked the capacity at every word)
++struct Words {
++  u32 *p = NULL;
++  u32 n = 0, cap = 0;
++  u32 size() const { return n; }
++  const u32 *data() const { return p; }
++  const u32 *begin() const { return p; }
++  const u32 *end() const { return p + n; }
++  void clear() { n = 0; }
++  // room for k more words at the end (not counted until the caller sets n)
++  u32 *Grow(u32 k) {
++    if (n + k > cap) {
++      u32 want = (n + k) + (n + k) / 2 + 4096;
++      u32 *q = (u32 *)realloc(p, (size_t)want * 4);
++      if (q == NULL) abort();
++      p = q;
++      cap = want;
++    }
++    return p + n;
++  }
++};
++
+ struct Stream {
+   G3State start; // the engine's state when the stream began
+-  std::vector<u32> words;
++  Words words;
+   u32 commands = 0;
+   u32 swapFrame = 0; // the V-blank count when its SWAP_BUFFERS came
+ };
+@@ -289,31 +312,110 @@
+ 
+ // libntr-norender.patch: the file capture records libntr's own 3D frame, so libntr rasterizes it while the capture is on
+ 
+-static void Record(u32 op, const u32 *p, u32 n, u32 flags) {
++// the finished stream (its SWAP_BUFFERS recorded and followed) becomes the shown one; the old one's buffer takes the next
++// (no reallocation each frame)
++static void SwapStreams() {
++  sCur.swapFrame = *(u32 *)HW_VBLANK_COUNT_BUF;
++  std::swap(sDone, sCur);
++  sDoneValid = true;
++  sCur.words.clear();
++  sCur.commands = 0;
++  sCur.swapFrame = 0;
++  sCur.start = sG3;
++}
++
++static void CheckSize() {
+   if (sCur.words.size() > (1u << 24)) {
+     // 64 MB of commands with no SWAP_BUFFERS (tests only, never drawn): start again from the state here
+-    sCur = Stream();
++    sCur.words.clear();
++    sCur.commands = 0;
++    sCur.swapFrame = 0;
+     sCur.start = sG3;
+   }
+-  sCur.words.push_back(op | (n << 8) | (flags << 16));
+-  for (u32 i = 0; i < n; i++) sCur.words.push_back(p[i]);
++}
++
++// one command of the immediate calls or a caught-up register (each with its whole parameter count); a list's go through
++// RecordList
++static void Record(u32 op, const u32 *p, u32 n, u32 flags) {
++  CheckSize();
++  u32 *o = sCur.words.Grow(n + 1);
++  o[0] = op | (n << 8) | (flags << 16);
++  for (u32 i = 0; i < n; i++) o[1 + i] = p[i];
++  sCur.words.n += n + 1;
+   sCur.commands++;
+-  // a list cut short: the command is kept as it came, the state not followed (only a list's can be: the other callers give
+-  // each command its whole parameter count)
+-  if ((flags & FLAG_LIST) && n < (u32)NumParams(op)) return;
+   if (op == G3OP_NORMAL) sLastNormal = p[0];
+   if (op == G3OP_TEXCOORD) sLastTexcoord = p[0];
+   G3Apply(sG3, op, p);
+-  if (op == G3OP_SWAP_BUFFERS) {
+-    sCur.swapFrame = *(u32 *)HW_VBLANK_COUNT_BUF;
+-    // the finished stream becomes the shown one; the old one's buffer takes the next (no reallocation each frame)
+-    std::swap(sDone, sCur);
+-    sDoneValid = true;
+-    sCur.words.clear();
+-    sCur.commands = 0;
+-    sCur.swapFrame = 0;
+-    sCur.start = sG3;
++  if (op == G3OP_SWAP_BUFFERS) SwapStreams();
++}
++
++// libntr-ios-vcaplist.patch: a raw list's commands as Record made them one call each (the same words, the same state):
++// the parameter counts from a table, the parameters stored straight into room grown once for the list, the commands that
++// are most of a list (the vertices, NORMAL, TEXCOORD, COLOR, BEGIN/END) followed inline, the rest through G3Apply
++static u8 sNumParams[256];
++static void RecordList(const u32 *w, u32 nw) {
++  if (sNumParams[G3OP_MTX_MODE] == 0)
++    for (int op = 0; op < 256; op++) sNumParams[op] = (u8)NumParams((u32)op);
++  CheckSize();
++  G3State &g = sG3;
++  // room: each parameter once and a header for each of a command word's 4 slots: nw + 3 a command word at most
++  u32 *o = sCur.words.Grow(4 * nw + 4);
++  u32 count = 0, i = 0;
++  while (i < nw) {
++    u32 cmds = w[i++];
++    for (int k = 0; k < 4; k++, cmds >>= 8) {
++      u32 op = cmds & 0xFF;
++      if (op == 0) continue;
++      u32 n = sNumParams[op];
++      const u32 *p = w + i;
++      count++;
++      if (i + n > nw) {
++        // a list cut short: the command is kept as it came, the state not followed (only a list's can be: the other callers
++        // give each command its whole parameter count)
++        n = nw - i;
++        *o++ = op | (n << 8) | (FLAG_LIST << 16);
++        for (u32 j = 0; j < n; j++) *o++ = p[j];
++        i += n;
++        continue;
++      }
++      *o++ = op | (n << 8) | (FLAG_LIST << 16);
++      if (n == 1) *o++ = p[0];
++      else { memcpy(o, p, (size_t)n * 4); o += n; }
++      i += n;
++      switch (op) {
++      case G3OP_VTX_16:
++        g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[1] = (s16)(p[0] >> 16); g.vtx[2] = (s16)(p[1] & 0xFFFF); g.vtxSet = true;
++        break;
++      case G3OP_VTX_10:
++        g.vtx[0] = (s16)((p[0] & 0x3FF) << 6); g.vtx[1] = (s16)(((p[0] >> 10) & 0x3FF) << 6);
++        g.vtx[2] = (s16)(((p[0] >> 20) & 0x3FF) << 6); g.vtxSet = true;
++        break;
++      case G3OP_VTX_XY: g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[1] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++      case G3OP_VTX_XZ: g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[2] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++      case G3OP_VTX_YZ: g.vtx[1] = (s16)(p[0] & 0xFFFF); g.vtx[2] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++      case G3OP_VTX_DIFF:
++        g.vtx[0] = (s16)(g.vtx[0] + ((s16)((p[0] & 0x3FF) << 6) >> 6));
++        g.vtx[1] = (s16)(g.vtx[1] + ((s16)(((p[0] >> 10) & 0x3FF) << 6) >> 6));
++        g.vtx[2] = (s16)(g.vtx[2] + ((s16)(((p[0] >> 20) & 0x3FF) << 6) >> 6));
++        g.vtxSet = true;
++        break;
++      case G3OP_NORMAL: sLastNormal = g.normal = p[0]; g.lazy |= LZ_NV | LZ_NT; g.lastColorSrc = 3; break;
++      case G3OP_TEXCOORD: sLastTexcoord = g.texcoord = p[0]; g.lazy |= LZ_TT; g.set |= SET_TEXCOORD; break;
++      case G3OP_COLOR: g.color = p[0]; g.lastColorSrc = 1; break;
++      case G3OP_BEGIN: case G3OP_END: break;
++      case G3OP_SWAP_BUFFERS:
++        sCur.words.n = (u32)(o - sCur.words.p);
++        sCur.commands += count;
++        count = 0;
++        SwapStreams();
++        o = sCur.words.Grow(4 * (nw - i) + 4);
++        break;
++      default: G3Apply(g, op, p); break;
++      }
++    }
+   }
++  sCur.words.n = (u32)(o - sCur.words.p);
++  sCur.commands += count;
+ }
+ 
+ static u32 Pack16(s32 a, s32 b) { return (u32)(u16)a | ((u32)(u16)b << 16); }
+@@ -329,6 +431,10 @@
+   if (nn != sLastNormal) Record(G3OP_NORMAL, &nn, 1, FLAG_REG);
+ }
+ 
++// libntr-ios-vcaplist.patch: cfgscript vcapwalk=0 (measurement only): no command is recorded or followed, the renderers keep
++// drawing the last stream (the picture is wrong); the walk's ceiling
++extern "C" { int SIM_VCapTestOff; }
++
+ extern "C" void SIM_VCapSuppress(int delta) {
+   if (On()) sSuppress += delta;
+ }
+@@ -336,27 +442,24 @@
+ // a raw command list (packed command words, then each command's parameters), as MI_SendGXCommand sends it; its
+ // commands are recorded with the parameter counts libntr's list parser (RunCommandList) gives them
+ extern "C" void SIM_VCapList(const void *data, u32 bytes) {
+-  if (!On() || sSuppress) return;
++  if (!On() || sSuppress || SIM_VCapTestOff) return;
+   // libntr catches the registers up at the list's first vertex; a TEXCOORD the list sends before it overrides ours
+   CatchUpRegs();
+-  const u32 *w = (const u32 *)data;
+-  u32 nw = bytes / 4, i = 0;
+-  while (i < nw) {
+-    u32 cmds = w[i++];
+-    for (int k = 0; k < 4; k++) {
+-      u32 op = (cmds >> (8 * k)) & 0xFF;
+-      u32 n = NumParams(op);
+-      if (op == 0) continue;
+-      if (i + n > nw) n = nw - i;
+-      Record(op, w + i, n, FLAG_LIST);
+-      i += n;
+-    }
+-  }
++  RecordList((const u32 *)data, bytes / 4);
+ }
+ 
+ // a libntr draw message, before libntr runs it
++static void VCapMsgRecord(const draw_msg_t *msg);
+ extern "C" void SIM_VCapMsg(const draw_msg_t *msg) {
+-  if (!On() || sSuppress) return;
++  // libntr-ios-vcaplist.patch: every command of a list comes here again as libntr decodes it, with sSuppress set (and
++  // sSuppress is 0 while the capture is off): that test first, before the recording's stack frame (it was ~35 instructions
++  // a command, 0.25 M a frame in the town)
++  if (sSuppress) return;
++  if (!On() || SIM_VCapTestOff) return;
++  VCapMsgRecord(msg);
++}
++
++static void __attribute__((noinline)) VCapMsgRecord(const draw_msg_t *msg) {
+   u32 p[16];
+   const draw_msg_data_t &d = msg->data;
+   switch (msg->type) {

@@ -1,0 +1,29 @@
+    .text       start:0x0217ae20 end:0x0217ffe4 kind:code align:32
+    .rodata     start:0x0217ffe4 end:0x021807d4 kind:rodata align:4
+    .ctor       start:0x021807d4 end:0x021807d4 kind:rodata align:4
+    .data       start:0x021807e0 end:0x02180820 kind:data align:32
+    .bss        start:0x02180820 end:0x02180820 kind:bss align:32
+
+src/ov019/union_eff.c:
+    complete
+    .text       start:0x0217f7e4 end:0x0217ffe4
+    .rodata     start:0x02180718 end:0x021807d4
+    .data       start:0x02180808 end:0x02180820
+
+src/ov019/union_msg.c:
+    complete
+    .text       start:0x0217ec04 end:0x0217f7e4
+    .rodata     start:0x021802f0 end:0x02180718
+    .data       start:0x021807f8 end:0x02180808
+
+src/ov019/union_oneself.c:
+    complete
+    .text       start:0x0217b75c end:0x0217ec04
+    .rodata     start:0x02180074 end:0x021802f0
+    .data       start:0x021807e4 end:0x021807f8
+
+src/ov019/union_actor.c:
+    complete
+    .text       start:0x0217ae20 end:0x0217b75c
+    .rodata     start:0x0217ffe4 end:0x02180074
+    .data       start:0x021807e0 end:0x021807e4

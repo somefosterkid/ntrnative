@@ -1,0 +1,87 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -126,6 +126,10 @@
+ 
+ // FBOs
+ static GLuint g3FrameBuffer;
++// The 3D frame on the screen: the render target's copy at the last G3_SwapBuffers. The render target is cleared after
++// a swap, so a game that swaps every other frame (the field at 30 fps) showed an empty 3D layer every other frame
++static GLuint g3DisplayFrameBuffer;
++static GLuint g3DisplayTextureId;
+ static GLuint fboId;
+ static GLuint g2FrameBuffer;
+ 
+@@ -289,6 +293,13 @@
+                SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale,
+                SIM_NDS_SCREEN_HEIGHT * 2 * s_SIM_config.internalResolutionScale,
+                0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
++  if (g3DisplayTextureId != 0) {
++    glBindTexture(GL_TEXTURE_2D, g3DisplayTextureId);
++    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
++                 SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale,
++                 SIM_NDS_SCREEN_HEIGHT * 2 * s_SIM_config.internalResolutionScale,
++                 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
++  }
+ 
+   glBindRenderbuffer(GL_RENDERBUFFER, g3RenderBufferId);
+   glRenderbufferStorage(
+@@ -490,6 +501,14 @@
+   GenerateTexture(objWindowTextureId, SIM_NDS_SCREEN_WIDTH,
+                   SIM_NDS_SCREEN_HEIGHT * 2);
+ 
++  // The displayed 3D frame's texture (sized with the render target's by SIM_SetInternalResolution)
++  glGenTextures(1, &g3DisplayTextureId);
++  glBindTexture(GL_TEXTURE_2D, g3DisplayTextureId);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
++  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
++
+   // 3D Framebuffer render texture
+   glGenFramebuffers(1, &g3FrameBuffer);
+   glBindFramebuffer(GL_FRAMEBUFFER, g3FrameBuffer);
+@@ -514,6 +533,14 @@
+     printf("Framebuffer error: %d\n", fboStatus);
+   }
+ 
++  // The displayed 3D frame's framebuffer, empty until the first swap
++  glGenFramebuffers(1, &g3DisplayFrameBuffer);
++  glBindFramebuffer(GL_FRAMEBUFFER, g3DisplayFrameBuffer);
++  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
++                         g3DisplayTextureId, 0);
++  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
++  glClear(GL_COLOR_BUFFER_BIT);
++
+   // Unbind all that stuff
+   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+   glBindRenderbuffer(GL_RENDERBUFFER, 0);
+@@ -772,7 +799,7 @@
+ 
+   if (bgEnabled[0]) {
+     if (bg0as3d) {
+-      glBindTexture(GL_TEXTURE_2D, g3RenderTextureId);
++      glBindTexture(GL_TEXTURE_2D, g3DisplayTextureId);
+     } else {
+       glBindTexture(GL_TEXTURE_2D, s_bgTextureId[0]);
+     }
+@@ -1289,6 +1316,20 @@
+     memset(bg3stex, 0,
+            sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+ 
++    // A swapped 3D frame becomes the displayed one (kept until the next swap, as the DS's)
++    if (G3SIM_SwapBuffersCalledThisFrame()) {
++      GLint readFb, drawFb;
++      int w = SIM_NDS_SCREEN_WIDTH * s_SIM_config.internalResolutionScale;
++      int h = SIM_NDS_SCREEN_HEIGHT * 2 * s_SIM_config.internalResolutionScale;
++      glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFb);
++      glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFb);
++      glBindFramebuffer(GL_READ_FRAMEBUFFER, g3FrameBuffer);
++      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g3DisplayFrameBuffer);
++      glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
++      glBindFramebuffer(GL_READ_FRAMEBUFFER, readFb);
++      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFb);
++    }
++
+     // Draw MAIN engine
+     DrawEngine(FALSE);
+ 

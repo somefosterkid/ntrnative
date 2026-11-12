@@ -1,0 +1,7 @@
+    .text       start:0x021f5260 end:0x021f54f8 kind:code align:32
+    .ctor       start:0x021f54f8 end:0x021f54f8 kind:rodata align:4
+    .bss        start:0x021f5500 end:0x021f5500 kind:bss align:32
+
+src/ov076/encounter_effect_model.c:
+    complete
+    .text       start:0x021f5260 end:0x021f54f8

@@ -1,0 +1,23 @@
+# Game Freak's own library (GFL): the same C as pokebw2's src/gfl, but in Black it is linked after the game's code as
+# ARM, built with a newer compiler than the game. tools/twins.py with these flags pairs 1,889 of Black's functions with
+# pokebw2's; dsi/1.2 through 1.3p1 match the same set, dsi/1.1p1 misses GFL_RandomMT, and -ipa file is needed.
+compiler = "dsi/1.2"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-inline on,noauto",   # Only inline functions marked inline
+    "-ipa file",           # Interprocedural analysis within each file
+    "-sym on",             # Debug info
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]

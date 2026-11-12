@@ -1,0 +1,76 @@
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -19,16 +19,14 @@
+ static u32 s_sentTexCoord;
+ static u32 s_sentNormal;
+ 
+-static void CatchUpRegisterWrites(void) {
+-  if (s_reg_G3_TEXCOORD != s_sentTexCoord) {
+-    s_sentTexCoord = s_reg_G3_TEXCOORD;
+-    G3SIM_TexCoord(s_sentTexCoord);
+-  }
+-  if (s_reg_G3_NORMAL != s_sentNormal) {
+-    s_sentNormal = s_reg_G3_NORMAL;
+-    G3SIM_Normal(s_sentNormal);
+-  }
+-}
++// bw-port (libntr-ios-g3skip.patch): since libntr-onerender.patch libntr has no rasterizer of its own (G3SIM_AddVtx
++// and G3SIM_FlushArray are empty, the file capture's 3D layer is zeros): nothing read what the geometry engine made of
++// a vertex, yet every vertex was still multiplied by the clip matrix, every normal lit, every polygon clipped and
++// assembled (about 13% of the game thread, docs/perf.md 2026-11-04). The renderers (port/vcore, port/gpu) draw from the
++// capture (SIM_VCapMsg below: the raw message, before any of that), and the game reads back only the box test, the
++// clip matrix and the vector matrix (src/ov010/field_g3d_map.c; NNS g3d sbc.c, util.c), which the matrix commands and
++// G3SIM_BoxTest keep up to date without a vertex. So a vertex now only records the position the XY/XZ/YZ/DIFF forms
++// build on, and a NORMAL only its register; the matrix stack, the tests, COLOR, TEXCOORD and all registers are as before.
+ 
+ static draw_command_type_t DecodeG3Op(u32 op) {
+   switch (op) {
+@@ -556,10 +554,11 @@
+     SIM_HandleG3Command(msg);
+     break;
+   case DRAW_CMD_G3_VTX16:
+-    CatchUpRegisterWrites();
+     prevXYZ.x = msg->data.xyz.x;
+     prevXYZ.y = msg->data.xyz.y;
+     prevXYZ.z = msg->data.xyz.z;
++    break;   // libntr-ios-g3skip.patch: no transform, lighting, clipping or polygon (see above)
++#if 0
+     G3SIM_Vtx(msg->data.xyz.x, msg->data.xyz.y, msg->data.xyz.z);
+     if (s_G3numInPoly == 0 || s_G3drawPoly == 1) {
+       s_G3drawPoly = 0;
+@@ -628,6 +627,7 @@
+       }
+     }
+     break;
++#endif
+   case DRAW_CMD_G3_LIGHTCOLOR:
+     G3SIM_LightColor(msg->data.numU32);
+     break;
+@@ -635,8 +635,7 @@
+     G3SIM_LightVector(msg->data.numU32);
+     break;
+   case DRAW_CMD_G3_NORMAL:
+-    s_reg_G3_NORMAL = s_sentNormal = msg->data.numU32;
+-    G3SIM_Normal(msg->data.numU32);
++    s_reg_G3_NORMAL = s_sentNormal = msg->data.numU32;   // libntr-ios-g3skip.patch: no G3SIM_Normal (its colour was a vertex's)
+     break;
+   case DRAW_CMD_G3_TEXCOORD:
+     s_reg_G3_TEXCOORD = s_sentTexCoord = msg->data.numU32;
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -423,6 +423,7 @@
+ //Begin vertices
+ void G3SIM_Begin(GXBegin type)
+ {
++#if 0   // libntr-ios-g3skip.patch: no GL debug label (a snprintf per primitive list): libntr draws no primitives
+     char debugMessage[50] = {0};
+     char * typeString = "";
+     switch(type) {
+@@ -443,6 +444,7 @@
+ 
+     if (glad_glDebugMessageInsert != NULL)   // bw-port (libntr-ios-gl.patch): macOS has no KHR_debug
+         glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 1337, GL_DEBUG_SEVERITY_NOTIFICATION, 50, debugMessage);
++#endif
+     s_primType = type;
+     s_g3BeginPolygonAttr = s_g3RawPolygonAttr;
+     s_G3numInPoly = 0;

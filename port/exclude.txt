@@ -1,0 +1,24 @@
+# The game's C files the PC build leaves out (tools/port_sources.py): <path or glob> <category> <reason>
+# dsi: DSi-only and unused (the PC runs Black as an original DS: OS_IsRunOnTwl is FALSE); stub what the link needs
+# hw: drives DS hardware libntr has no model of; port/src replaces the file
+# online: online play (DWC, NitroWiFi), stubbed in port/src/stub_online.c
+# sdk: the SDK's own code in the game's dirs; libntr has it
+# todo: doesn't compile yet; fix the C (matching) or port/include, then remove the line
+
+# DSi only: the C-Gear Xtransceiver (camera, SSP JPEG, DSP sounds, TWL mic; the overlay's other files call into
+# those), parental control
+src/ov172/*.c               dsi  the Xtransceiver's DSi camera, JPEG codec, DSP and TWL mic, and the files that call them
+src/system/dsi.c            dsi  TWL parental control (OSTWLParentalControl's bits by unk names)
+
+# hardware libntr lacks: the card's infrared chip, through the card SPI registers (port/src/stub_ir.c)
+src/ov015/irc_spi.c         hw   IR over the card SPI registers 0x040001a0/a2
+src/ov231/ir_check.c        hw   IR presence check over the card SPI registers
+
+# online
+src/ov013/dwc_rap_vchat.c   online  DWC voice chat (TWL mic limited sampling)
+
+# the SDK's code that libntr has
+src/main/main_020821c0.c    sdk  NitroSDK's MI DMA (MIi_DmaFill32, MI_WaitDma ...): libntr's MI on the simulated registers
+src/main/main_02087f60.c    sdk  TwlSDK's DeliverArg (os_argument.c: OS_InitDeliverArg ...); func_02088150 with it
+src/main/main_0207f7a0.c    sdk  NitroSDK's GX texture, palette and clear image loads (GX_BeginLoadTex ...): libntr defines them
+src/main/main_02086004.c    sdk  NitroSDK's OS_InitMutex, OS_LockMutex, OS_UnlockMutex: libntr defines them

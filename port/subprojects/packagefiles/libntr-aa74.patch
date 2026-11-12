@@ -1,0 +1,43 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -404,13 +404,14 @@
+ static const char * const FilterNames[] = {"nearest (the DS look)", "bilinear"};
+ static const char * const DotTip = "this game never draws 1-dot polygons, so the setting changes nothing in it";
+ static const char * const FilterTip = "how textures are sampled when the picture is drawn at 2x and above (the GPU and vcore renderers)";
+-// bw-port (libntr-fx71.patch): the look options (Dot, Line, Edge, Filter) act on the grid the 3D is drawn on, Resolution x the
+-// Antialiasing k in use (SIM_InternalScale), in both renderers: true when they can act now, else why not in 'why'
+-// the head of a look option's menu: when the options cannot act, say so and grey the items (BeginDisabled .. EndDisabled)
++// bw-port (libntr-fx71.patch, libntr-aa74.patch): the look options (Dot, Line, Edge, Filter) follow the RESOLUTION only: they
++// act on the output pixel's grid (with Antialiasing, one pixel of it is k x k samples), so at Resolution 1 they change nothing
++// whatever the Antialiasing, in both renderers. LookMenuBegin: when the options cannot act, say so and grey the items
++// (BeginDisabled .. EndDisabled)
+ static void LookMenuBegin() {
+-    bool on = SIM_InternalScale() > 1;
++    bool on = SIM_RenderScale() > 1;
+     if (!on) {
+-        ImGui::TextDisabled("Only at 2x and above (the 3D is drawn at 1x now)");
++        ImGui::TextDisabled("Only at 2x and above (Resolution is 1x now)");
+         ImGui::Separator();
+     }
+     ImGui::BeginDisabled(!on);
+@@ -421,17 +422,12 @@
+     ImGui::PopStyleColor();
+ }
+ static bool LookNote(char * why, size_t n) {
+-    int in = SIM_InternalScale();
+     int res = SIM_RenderScale();
+-    if (in > 1) {
+-        if (res > 1) {
+-            snprintf(why, n, "In force: the 3D is drawn at %dx.", in);
+-        } else {
+-            snprintf(why, n, "In force: the 3D is drawn at %dx (Resolution 1x, Antialiasing %dx), then averaged to 1x.", in, in);
+-        }
++    if (res > 1) {
++        snprintf(why, n, "In force: the picture is %dx.", res);
+         return true;
+     }
+-    snprintf(why, n, "Only at 2x and above: the 3D is drawn at 1x now. Raise Resolution, or turn Antialiasing on.");
++    snprintf(why, n, "Only at 2x and above: Resolution is 1x now. Raise Resolution.");
+     return false;
+ }
+ static const char * const FrameSkipNames[] = {

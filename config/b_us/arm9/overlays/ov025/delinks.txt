@@ -1,0 +1,11 @@
+    .text       start:0x021ee740 end:0x021ef75c kind:code align:32
+    .rodata     start:0x021ef75c end:0x021ef8e4 kind:rodata align:4
+    .ctor       start:0x021ef8e4 end:0x021ef8e4 kind:rodata align:4
+    .data       start:0x021ef900 end:0x021efa40 kind:data align:32
+    .bss        start:0x021efa40 end:0x021efa40 kind:bss align:32
+
+src/ov025/weather_particles.c:
+    complete
+    .text       start:0x021ee740 end:0x021ef75c
+    .rodata     start:0x021ef75c end:0x021ef8e4
+    .data       start:0x021ef900 end:0x021efa40

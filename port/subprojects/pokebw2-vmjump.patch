@@ -1,0 +1,59 @@
+pokebw2-vmjump.patch (tools/pokebw2_fetch.sh, the maintainers' notes): the field script VM's jumps and calls (VMCall, VMJump,
+VMJumpIf, VMCallIf) and the actor movement command read their offset from the script as u32 and add it to vm->pc. A
+backward offset is a large u32: on the DS the 32-bit sum wraps to the right address, on the PC it lands 4 GB past the
+script (Black 2's crash in VM_Run at Bianca's yes/no at the lookout, whose "no" loops back). As Black's
+src/ov010/scrcmd_vm.c and src/ov021/scrcmd_fldmmdl.c have them, the offsets are s32.
+
+diff --git a/src/ov012/scrcmd_vm.c b/src/ov012/scrcmd_vm.c
+index 8783032..cf1a18f 100644
+--- a/src/ov012/scrcmd_vm.c
++++ b/src/ov012/scrcmd_vm.c
+@@ -880,7 +880,7 @@ BOOL Scrcmd_Vm_VMSleep(VM *vm, FieldScriptEnv *env) {
+ }
+ 
+ BOOL Scrcmd_Vm_VMCall(VM *vm, FieldScriptEnv *env) {
+-    u32 offset = VM_Read32(vm);
++    s32 offset = VM_Read32(vm);
+ 
+     VM_Call(vm, vm->pc + offset);
+     return FALSE;
+@@ -1128,7 +1128,7 @@ BOOL Scrcmd_Vm_RTEndGlobal(VM *vm, FieldScriptEnv *env) {
+ }
+ 
+ BOOL Scrcmd_Vm_VMJump(VM *vm, FieldScriptEnv *env) {
+-    u32 offset = VM_Read32(vm);
++    s32 offset = VM_Read32(vm);
+ 
+     VM_Jump(vm, vm->pc + offset);
+     return FALSE;
+@@ -1136,7 +1136,7 @@ BOOL Scrcmd_Vm_VMJump(VM *vm, FieldScriptEnv *env) {
+ 
+ BOOL Scrcmd_Vm_VMJumpIf(VM *vm, FieldScriptEnv *env) {
+     u8 condition = VM_Read8(vm);
+-    u32 offset = VM_Read32(vm);
++    s32 offset = VM_Read32(vm);
+ 
+     if (condition == CMP_STACK) {
+         if (VM_StackPop(vm) != 1) {
+@@ -1150,7 +1150,7 @@ BOOL Scrcmd_Vm_VMJumpIf(VM *vm, FieldScriptEnv *env) {
+ 
+ BOOL Scrcmd_Vm_VMCallIf(VM *vm, FieldScriptEnv *env) {
+     u8 condition = VM_Read8(vm);
+-    u32 offset = VM_Read32(vm);
++    s32 offset = VM_Read32(vm);
+ 
+     if (VM_CMP_LUT[condition][vm->cmpResult] == 1) {
+         VM_Call(vm, vm->pc + offset);
+diff --git a/src/ov036/scrcmd_field_actor.c b/src/ov036/scrcmd_field_actor.c
+index 63a2f7f..8badcb6 100644
+--- a/src/ov036/scrcmd_field_actor.c
++++ b/src/ov036/scrcmd_field_actor.c
+@@ -115,7 +115,7 @@ static FieldActor *FindScriptActor(FieldScriptEnv *env, u16 id) {
+ BOOL Scrcmd_FieldActor_ActorCmdExec(VM *vm, FieldScriptEnv *env) {
+     FieldScriptEnv_GetScriptWork(env);
+     u16 id = ScriptReadAny(vm, env);
+-    u32 offset = VM_Read32(vm);
++    s32 offset = VM_Read32(vm);
+     FieldActor *actor = FindScriptActor(env, id);
+ 
+     if (actor == NULL) {

@@ -1,0 +1,34 @@
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -445,7 +445,7 @@
+                     (unsigned long long)id, x, y, k, hw ? (app - hw) / 1e6 : -1.0, hw ? (now - app) / 1e6 : -1.0);
+         }
+         if (k == K_TOGGLE) {
+-            if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; if (sFF) { sFF = false; sFFEdge = 0; } }
++            if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; }   // (libntr-ios-ffkeep.patch: fast forward stays on)
+             else if (!SIM_PerfTestProgress(nullptr, nullptr)) { sFF = !sFF; sFFEdge = sFF; }   // (the test owns the speed: libntr-ios-testbadge.patch)
+         } else if (k == K_STYLUS) {
+             if (sStylusDown) { f->kind = K_DEAD; return; }
+@@ -694,6 +694,13 @@
+ // press anything (the maintainer's "the game stops taking button presses after changing settings"). A finger still down now is ignored
+ // until it lifts (FindFinger finds nothing).
+ void SimTouch_MenuClose(void) {
++    // libntr-ios-ffkeep.patch: the maintainer's "exiting settings shouldn't disable fast forward": fast forward stays as it was across
++    // the settings, and comes back at the Fast-forward speed the settings may just have changed; a performance test the settings
++    // started owns the speed, so then it goes off (as a tap on it does nothing while the test runs)
++    if (sFF) {
++        if (SIM_PerfTestProgress(nullptr, nullptr)) { sFF = false; sFFEdge = 0; }
++        else sFFEdge = 1;
++    }
+ #if SIM_TOUCH_IOS
+     bwport_ios_touch_setup(sWindow);   // libntr-ios-inputprio.patch: (again: the sheet's presentation may bring new recognizers)
+ #endif
+@@ -752,7 +759,7 @@
+ 
+ // libntr-ios-settings.patch: the game's screens (x, y, w, h), where the performance overlay sits; a native sheet asks to open
+ void SimTouch_Screens(float * r) { memcpy(r, sL.scr, sizeof sL.scr); }
+-void SimTouch_MenuRequest(void) { sMenuOpen = true; ReleaseAll(); if (sFF) { sFF = false; sFFEdge = 0; } }
++void SimTouch_MenuRequest(void) { sMenuOpen = true; ReleaseAll(); }   // (libntr-ios-ffkeep.patch: fast forward stays on)
+ 
+ // the controls, in the frame being built (under the settings window)
+ void SimTouch_Draw(void) {

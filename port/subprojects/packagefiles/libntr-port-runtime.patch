@@ -1,0 +1,270 @@
+diff --git a/libraries/card/src/card_backup.c b/libraries/card/src/card_backup.c
+index 62e05c5..355e259 100644
+--- a/libraries/card/src/card_backup.c
++++ b/libraries/card/src/card_backup.c
+@@ -567,9 +567,46 @@ u32 CARD_GetBackupPageSize (void)
+ 	return cardi_common.cmd->spec.page_size;
+ }
+ 
++#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++/* PC (bw-port): the backup chip is the host file save.bin in the working directory, which nitro/card/backup.h's
++   PC inlines read and write. Make it the chip's size, its new bytes 0xFF as an erased flash reads. */
++static BOOL CARDi_PortPrepareBackupFile(u32 size)
++{
++	static const u8 erased[256] = {[0 ... 255] = 0xFF};
++	FILE *f = fopen("save.bin", "rb+");
++	long have;
++	if (f == NULL)
++		f = fopen("save.bin", "wb+");
++	if (f == NULL)
++		return FALSE;
++	fseek(f, 0, SEEK_END);
++	have = ftell(f);
++	while (have >= 0 && (u32)have < size) {
++		u32 n = size - (u32)have > sizeof(erased) ? sizeof(erased) : size - (u32)have;
++		if (fwrite(erased, 1, n, f) != n)
++			break;
++		have += (long)n;
++	}
++	fclose(f);
++	return have >= 0 && (u32)have >= size;
++}
++#endif
++
+ BOOL CARD_IdentifyBackup (CARDBackupType type)
+ {
+-	#if SDK_VERSION_MAJOR == 4
++	#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++	/* no ARM7 answers the CARD PXI requests on PC (CARDi_Request waits for it forever): the type is taken as given */
++	if (type == CARD_BACKUP_TYPE_NOT_USE) {
++		OS_TPanic("cannot specify CARD_BACKUP_TYPE_NOT_USE.");
++	}
++	cardi_common.cmd->result = CARD_RESULT_SUCCESS;
++	CARDi_IdentifyBackupCore2(type);
++	if (cardi_common.cmd->result == CARD_RESULT_SUCCESS &&
++	    !CARDi_PortPrepareBackupFile(cardi_common.cmd->spec.total_size)) {
++		cardi_common.cmd->result = CARD_RESULT_NO_RESPONSE;
++	}
++	return (cardi_common.cmd->result == CARD_RESULT_SUCCESS);
++	#elif SDK_VERSION_MAJOR == 4
+ 	CARDiCommon *const p = &cardi_common;
+ 
+ 	SDK_USING_BACKUP();
+diff --git a/libraries/fs/src/fs_file.c b/libraries/fs/src/fs_file.c
+index b5b6523..1154043 100644
+--- a/libraries/fs/src/fs_file.c
++++ b/libraries/fs/src/fs_file.c
+@@ -22,6 +22,78 @@
+ #include <simulator/sim_RomExtractor.h>
+ #endif
+ 
++#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++/* PC (bw-port): TwlSDK's FS sends every command to an archive, and the "rom" archive has no card behind it on PC
++   (its tables are kept in 32-bit fields, its reads go to CARD). A file FS_OpenFile opens is a host file under the
++   working directory instead, as libntr's SDK 4 path has it (the extracted ROM's files), and a file
++   FS_CreateFileFromMemory makes is a block of memory: both with arc NULL, top 0, bottom the size, pos the position.
++   These do their reads, seeks, lengths and positions; every other file goes to its archive as before. */
++static BOOL FSi_PortIsMemFile(const FSFile *f)
++{
++	return f->pcFilePtr == NULL && f->arc == NULL && f->userdata != NULL && (f->stat & FS_FILE_STATUS_IS_FILE);
++}
++
++static BOOL FSi_PortIsFile(const FSFile *f)
++{
++	return f->pcFilePtr != NULL || FSi_PortIsMemFile(f);
++}
++
++static s32 FSi_PortReadFile(FSFile *f, void *dst, s32 len)
++{
++	u32 rest = f->prop.file.bottom - f->prop.file.pos;
++	if (len < 0)
++		len = 0;
++	if ((u32)len > rest)
++		len = (s32)rest;
++	if (f->pcFilePtr != NULL) {
++		if (fseek(f->pcFilePtr, (long)f->prop.file.pos, SEEK_SET) != 0)
++			return -1;
++		len = (s32)fread(dst, 1, (size_t)len, f->pcFilePtr);
++	} else {
++		memcpy(dst, (const u8 *)f->userdata + f->prop.file.pos, (size_t)len);
++	}
++	f->prop.file.pos += (u32)len;
++	return len;
++}
++
++static BOOL FSi_PortSeekFile(FSFile *f, s32 offset, FSSeekFileMode origin)
++{
++	s64 pos;
++	switch (origin) {
++	case FS_SEEK_SET:
++		pos = (s64)f->prop.file.top + offset;
++		break;
++	case FS_SEEK_CUR:
++		pos = (s64)f->prop.file.pos + offset;
++		break;
++	case FS_SEEK_END:
++		pos = (s64)f->prop.file.bottom + offset;
++		break;
++	default:
++		return FALSE;
++	}
++	if (pos < (s64)f->prop.file.top)
++		pos = f->prop.file.top;
++	if (pos > (s64)f->prop.file.bottom)
++		pos = f->prop.file.bottom;
++	f->prop.file.pos = (u32)pos;
++	return TRUE;
++}
++
++BOOL FSi_PortCreateFileFromMemory(FSFile *f, void *buf, u32 size)
++{
++	f->arc = NULL;
++	f->pcFilePtr = NULL;
++	f->userdata = buf;
++	f->stat |= FS_FILE_STATUS_IS_FILE;
++	f->stat &= ~FS_FILE_STATUS_IS_DIR;
++	f->prop.file.top = 0;
++	f->prop.file.bottom = size;
++	f->prop.file.pos = 0;
++	return buf != NULL;
++}
++#endif
++
+ #if SDK_VERSION_MAJOR == 5
+ #define FS_DEBUG_TRACE(...) (void)0
+ #endif
+@@ -194,6 +266,9 @@ void FS_InitFile (FSFile *p_file)
+     p_file->argument = NULL;
+     p_file->error = FS_RESULT_SUCCESS;
+ 	#endif
++	#ifdef SDK_PORT
++	p_file->pcFilePtr = NULL;
++	#endif
+ }
+ 
+ #if SDK_VERSION_MAJOR == 4
+@@ -499,7 +574,7 @@ BOOL FS_OpenFileFast (FSFile *p_file, FSFileID file_id)
+ 
+ BOOL FS_OpenFile (FSFile *p_file, const char *path)
+ {
+-	#if SDK_VERSION_MAJOR == 5
++	#if SDK_VERSION_MAJOR == 5 && !defined(SDK_PORT)
+ 	return FS_OpenFileEx(p_file, path, FS_FILEMODE_R);
+ 	#endif
+ 	FSFileID id;
+@@ -538,8 +613,22 @@ BOOL FS_OpenFile (FSFile *p_file, const char *path)
+ 		fseek(p_file->pcFilePtr, 0, SEEK_SET);
+ 		p_file->prop.file.top = 0;
+ 		p_file->prop.file.bottom = fileSize;
++		#if SDK_VERSION_MAJOR == 5
++		p_file->prop.file.pos = 0;
++		p_file->arc = NULL;
++		p_file->userdata = NULL;
++		#endif
+ 		return TRUE;
+ 	}
++	#if SDK_VERSION_MAJOR == 5
++	else if ((p_file->pcFilePtr = fopen("header.bin", "rb")) != NULL)
++	{
++		/* the ROM is extracted (its header.bin is there): this file is not in it */
++		fclose(p_file->pcFilePtr);
++		p_file->pcFilePtr = NULL;
++		return FALSE;
++	}
++	#endif
+ 	else
+ 	{
+         #if FS_FILE_OPEN_DEBUG
+@@ -620,9 +709,14 @@ BOOL FS_CloseFile (FSFile *p_file)
+ 	p_file->command = FS_COMMAND_INVALID;
+   #endif
+ 	p_file->stat &= ~(FS_FILE_STATUS_IS_FILE | FS_FILE_STATUS_IS_DIR);
++	#if SDK_VERSION_MAJOR == 5
++	p_file->userdata = NULL;
++	#endif
+ 	if( p_file->pcFilePtr != NULL )
+ 	{
+-		if( fclose( p_file->pcFilePtr ) == 0 )
++		FILE *pcFilePtr = p_file->pcFilePtr;
++		p_file->pcFilePtr = NULL;
++		if( fclose( pcFilePtr ) == 0 )
+ 		{
+ 			return TRUE;
+ 		}else{
+@@ -692,6 +786,11 @@ BOOL FS_SetSeekCache(FSFile *file, void *buf, u32 buf_size) {
+ 
+ u32 FS_GetFileLength(FSFile *file) {
+   u32 retval = 0;
++#ifdef SDK_PORT
++  if (FSi_PortIsFile(file)) {
++    return file->prop.file.bottom - file->prop.file.top;
++  }
++#endif
+   SDK_ASSERT(FS_IsAvailable());
+   SDK_ASSERT(FS_IsFile(file));
+ 
+@@ -708,6 +807,11 @@ u32 FS_GetFileLength(FSFile *file) {
+ 
+ u32 FS_GetFilePosition(FSFile *file) {
+   u32 retval = 0;
++#ifdef SDK_PORT
++  if (FSi_PortIsFile(file)) {
++    return file->prop.file.pos - file->prop.file.top;
++  }
++#endif
+   SDK_ASSERT(FS_IsAvailable());
+   SDK_ASSERT(FS_IsFile(file));
+ 
+@@ -1394,6 +1498,10 @@ FSResult FS_SetFileLength(FSFile *file, u32 length) {
+ 
+ s32 FS_ReadFileAsync (FSFile *p_file, void *dst, s32 len)
+ {
++	#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++	if (FSi_PortIsFile(p_file))
++		return FSi_PortReadFile(p_file, dst, len);
++	#endif
+ 	#if SDK_VERSION_MAJOR == 4
+ 	return FSi_ReadFileCore(p_file, dst, len, TRUE);
+ 	#elif SDK_VERSION_MAJOR == 5
+@@ -1423,6 +1531,10 @@ s32 FS_ReadFileAsync (FSFile *p_file, void *dst, s32 len)
+ 
+ s32 FS_ReadFile (FSFile *p_file, void *dst, s32 len)
+ {
++	#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++	if (FSi_PortIsFile(p_file))
++		return FSi_PortReadFile(p_file, dst, len);
++	#endif
+ 	#if SDK_VERSION_MAJOR == 4
+ 	FS_ASSERT_IRQ_ENABLED(-1);
+ 	return FSi_ReadFileCore(p_file, dst, len, FALSE);
+@@ -1516,6 +1628,10 @@ s32 FS_WriteFile (FSFile *p_file, const void *src, s32 len)
+ 
+ BOOL FS_SeekFile (FSFile *p_file, s32 offset, FSSeekFileMode origin)
+ {
++	#if defined(SDK_PORT) && SDK_VERSION_MAJOR == 5
++	if (FSi_PortIsFile(p_file))
++		return FSi_PortSeekFile(p_file, offset, origin);
++	#endif
+ 	#if SDK_VERSION_MAJOR == 4
+ 	#ifdef SDK_BUILD_ARM
+ 	FS_ASSERT_INIT(FALSE);
+diff --git a/libraries/fs/src/fs_proc_mem.c b/libraries/fs/src/fs_proc_mem.c
+index 7411fc2..0024cf6 100644
+--- a/libraries/fs/src/fs_proc_mem.c
++++ b/libraries/fs/src/fs_proc_mem.c
+@@ -63,7 +63,15 @@ static void FSi_InitMemArchive(void) {
+   (void)OS_RestoreInterrupts(bak_cpsr);
+ }
+ 
++#ifdef SDK_PORT
++BOOL FSi_PortCreateFileFromMemory(FSFile *p_file, void *buf, u32 size);
++#endif
++
+ BOOL FS_CreateFileFromMemory(FSFile *p_file, void *buf, u32 size) {
++#ifdef SDK_PORT
++  /* PC (bw-port): the memory archive keeps 32-bit addresses; fs_file.c's port layer reads the block itself */
++  return FSi_PortCreateFileFromMemory(p_file, buf, size);
++#endif
+   FSi_InitMemArchive();
+   return FS_OpenFileDirect(p_file, &fsi_arc_mem, (u32)buf, (u32)buf + size, 0);
+ }

@@ -1,0 +1,44 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), lib/nnsys/src/fnd/heapcommoni.h.
+#ifndef POKEBW2_NNSYS_FND_HEAPCOMMONI_H
+#define POKEBW2_NNSYS_FND_HEAPCOMMONI_H
+
+#include "nitro/mi.h"
+#include "nnsys/fnd.h"
+#include <stddef.h>
+
+// What FND's heaps share among themselves: address arithmetic and the heap options
+
+// A stretch of memory, from start up to end
+typedef struct {
+    void *start;
+    void *end;
+} NNSiMemRegion;
+
+// The address of p, for arithmetic
+static inline uintptr_t NNSiGetUIntPtr(const void *p) {
+    return (uintptr_t)p;
+}
+
+// How many bytes lie from from up to to
+static inline u32 GetOffsetFromPtr(const void *from, const void *to) {
+    return NNSiGetUIntPtr(to) - NNSiGetUIntPtr(from);
+}
+
+// The heap's options (NNS_FND_HEAP_OPT_0_CLEAR) sit in the low byte of its attribute
+#define HEAP_OPT_MASK 0xFF
+
+static inline u16 GetOptForHeap(const NNSiFndHeapHead *heap) {
+    return (u16)(heap->attribute & HEAP_OPT_MASK);
+}
+
+// Zeroes memory just handed out, when the heap asked for it
+static inline void FillAllocMemory(NNSiFndHeapHead *heap, void *address, u32 size) {
+    if (GetOptForHeap(heap) & NNS_FND_HEAP_OPT_0_CLEAR) {
+        MI_CpuClear32(address, size);
+    }
+}
+
+void NNSi_FndInitHeapHead(NNSiFndHeapHead *heap, u32 signature, void *heapStart, void *heapEnd, u16 optFlag);
+void NNSi_FndFinalizeHeap(NNSiFndHeapHead *heap);
+
+#endif // POKEBW2_NNSYS_FND_HEAPCOMMONI_H

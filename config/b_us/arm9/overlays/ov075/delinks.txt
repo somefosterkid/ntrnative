@@ -1,0 +1,9 @@
+    .text       start:0x021f5260 end:0x021f55f8 kind:code align:32
+    .rodata     start:0x021f55f8 end:0x021f5604 kind:rodata align:4
+    .ctor       start:0x021f5604 end:0x021f5604 kind:rodata align:4
+    .bss        start:0x021f5620 end:0x021f5620 kind:bss align:32
+
+src/ov075/encounter_effect_capture.c:
+    complete
+    .text       start:0x021f5260 end:0x021f55f8
+    .rodata     start:0x021f55f8 end:0x021f5604

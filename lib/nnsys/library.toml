@@ -1,0 +1,57 @@
+# From pokebw2's lib/nnsys/library.toml (GPL-3.0, https://github.com/fuddlesworth/pokebw2), with the compiler, mode and -ipa of the
+# variant that gives Black its twins of this library (tools/lib_twins.py: 2.0sp2p2-arm; tools/port_lib.py wrote it).
+# Nintendo's NitroSystem (FND, GFD, G2D, G3D and sound), built apart from the game as Thumb code with CodeWarrior for
+# NITRO 2.0: the dsi compilers that build the game miss its GFD pool loops, and every 2.0 build matches what has been
+# tested, so the exact service pack is a guess.
+# 2.0/sp2p3 rather than sp2p2: g2d_Renderer.c (-ipa file) reaches mcRenderState_ (data_02148718) through its own
+# symbol only from sp2p3 on, as Black does; sp2p2 folds it into the .bss base. No nnsys function judges differently.
+compiler = "2.0/sp2p3"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",          # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-inline on,noauto",   # Inline only what is declared inline
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+# Files built with other flags, each replacing the library's flag of the same option. The capture is built without
+# -ipa file: its code reaches each object through its own symbol (the struct as well as the flag and the queue), and
+# its .bss keeps a word and a message buffer that no surviving code uses, both of which only function-level analysis
+# gives. With -ipa file every object is reached from the .bss base and the unused ones are dropped
+[file_flags]
+"gfd/VramManager/gfd_LinkedListTexVramMan.c" = ["-ipa file"]
+"gfd/VramManager/gfd_LinkedListPlttVramMan.c" = ["-ipa file"]
+"snd/snd_capture.c" = ["-ipa function"]
+# The renderer reaches its scalar statics (stackPos_, pCurrentInstance_, firstSRTransformedMtxIdx_, ...) from one
+# base, data_02147b88 and data_020a81f8 in Black: -ipa file
+"g2d/g2d_Renderer.c" = ["-ipa file"]
+# So do g2d_CharCanvas.c and gfd_VramTransferManager.c (tools/flag_search.py: -ipa file as the library's default loses
+# functions of files that are -ipa function, like snd_capture.c)
+"g2d/g2d_CharCanvas.c" = ["-ipa file"]
+"gfd/VramTransferMan/gfd_VramTransferManager.c" = ["-ipa file"]
+# sndarc_stream.c reaches its small statics from its .bss base too (sPrepareThread at data_0214ea90 + 4)
+"snd/sndarc_stream.c" = ["-ipa file"]
+# main.c reaches its small statics (sCurDriverInfo .. sPostSleepCallback, 0x0214bac0) from one base and gives its
+# 32-aligned sDriverInfo[2] (0x0214bb00) a section of its own: -ipa file, over NitroSystem's statics as they are
+"snd/nns_snd_main.c" = ["-ipa file"]
+# g2d_OamSoftwareSpriteDraw.c reaches its .bss statics (s_pUVFlipCorrectFunc, zOffset_, bAutoZOffsetAdd_: data_02148b2c in Black)
+# from one base: -ipa file, over NitroSystem's statics
+"g2d/g2d_OamSoftwareSpriteDraw.c" = ["-ipa file"]
+# g2d_CellTransferManager.c reaches s_pTaskRegisterFunc, s_numCellState and s_pCellStateArray from one base (data_02148b20)
+"g2d/g2d_CellTransferManager.c" = ["-ipa file"]
+# g2d_RendererCore.c: -ipa file sorts the four posZ objects (s16 -1) before mtxIdentity_, as Black has them (0x020a18a4)
+"g2d/g2d_RendererCore.c" = ["-ipa file"]
+# sbc.c lays out its data sorted by size in one list, NitroSystem's function statics among its tables (the
+# PRJMAP and ENVMAP commands first, the command table last), and ENVMAP reaches its command from the .data base: -ipa file
+"g3d/sbc.c" = ["-ipa file"]

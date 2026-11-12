@@ -1,0 +1,11 @@
+    .text       start:0x021b95a0 end:0x021bb65c kind:code align:32
+    .rodata     start:0x021bb65c end:0x021bb7e0 kind:rodata align:4
+    .ctor       start:0x021bb7e0 end:0x021bb7e0 kind:rodata align:4
+    .data       start:0x021bb800 end:0x021bb8c0 kind:data align:32
+    .bss        start:0x021bb8c0 end:0x021bb8c0 kind:bss align:32
+
+src/ov100/ircbattlematch.c:
+    complete
+    .text       start:0x021b95a0 end:0x021bb65c
+    .rodata     start:0x021bb65c end:0x021bb7e0
+    .data       start:0x021bb800 end:0x021bb8c0

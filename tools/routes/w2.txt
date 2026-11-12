@@ -1,0 +1,18 @@
+# White 2 (tools/route.py w2). name | start | pilot tokens | end | save | flags
+new-w2 | NEWGAME | Pa M12000 | zone 428 14,3
+room-town | w2-room | Pa 14,8 8,8 8,9 3,9 W120 5,9 5,12! W200 | zone 427 47,762 | - | quick
+town-save | w2-room | Pa 14,8 8,8 8,9 3,9 W120 5,9 5,12! W200 S | zone 427 47,762 | w2-town
+hhouse | w2-town | 43,762 43,758 Wf:60 43,750! Wf:60 6,6 6,4 KL:2 Pa Ka:2 Wf:120 Pb 6,12! Wf:60 S | zone 427 43,751 | w2-town2
+tocenter | w2-town2 | 38,751 38,740 Wf:30 48,741 Pa KU:2 Wf:200 S | zone 427 48,741 | w2-pc
+togate | w2-pc | Pa 53,741 53,712 KU:2 Wf:300 | zone 427 53,712
+# sw1 (r101): town-save .. togate play Hugh's scenes (at 43,760 outside the house, in his house, at 39,740, "Wait!" at the Center door,
+# "That goes to Route 19" at the gate: those need A (Pa), B loops them). The lookout (mp2, r102): the planner's G:36,715 finds
+# the way (east to x 52, north to 727, west to 38, north: Hugh's "the outlook" scene at 38,719, then the stairs).
+lookout | w2-pc | Pa Wf:60 G:36,715 Wf:100 S | zone 427 36,715 | w2-lookout
+starter | w2-lookout | Pa G:npc:2 S | zone 427 36,710 | w2-starter
+# sw2 (r105): the first Bianca talk (leg starter) only sets work 0x40a1 = 3 (Hugh below says "Go and get your Pokemon!"); the SECOND
+# talk to her is the starter case (work 3 -> 4, flags 0x0961 0x0962) and makes T3 (36,714) live.
+starter2 | w2-starter | Pa G:npc:2 Wf S | zone 427 36,710 | w2-starter2
+# T5 (36,716) starts Hugh's battle, then the scene runs on (Bianca, the walk to the Center, the tour, the Poke Balls: work 6) in one
+# event that moves the player: G:trig:5 would keep walking after it, so KD:8 (2 tiles down from T3's tile) steps onto T5.
+hugh | w2-starter2 | Pa G:trig:3 Wf KD:8 Wf S | zone 435 9,16 | w2-balls

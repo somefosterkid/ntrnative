@@ -1,0 +1,194 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -78,6 +78,11 @@
+ static bool sAltDown = false, sAltOther = false;
+ static bool sDirty = false;         // a setting changed: sim_config.ini is written when the mouse is up
+ static bool sResetAsk = false;
++// bw-port (libntr-ios-launcher.patch): the desktop's launcher (port/src/launcher_gui.cpp). While it is up its window is drawn
++// under the settings windows (top: the menu bar's height this frame) and the Game menu has none of the game's items.
++// Game > Games... (macOS, where the restart is in the process) asks, then the soft reset flagged "then the launcher".
++static void (*sLauncher)(float top);
++static bool sGamesAsk = false;
+ static int sApiAsk = -1;   // bw-port (libntr-ios-metaltune.patch): the Graphics API just chosen, for its restart prompt
+ static bool sApiOpen = false;
+ 
+@@ -395,6 +400,7 @@
+             sApiAsk = !SIM_PresentMetal();
+             sApiOpen = true;
+         }
++        if (uo != nullptr && strstr(uo, "gamesask") != nullptr) sGamesAsk = true;   // libntr-ios-launcher.patch: Game > Games...'s question
+     }
+ 
+     ImGuiIO & igIO = ImGui::GetIO();
+@@ -1191,7 +1197,15 @@
+ // ---- Game > Reset: the program starts again (the DS's reset: what was not saved is gone) ---------------------------
+ 
+ extern "C" void bwport_press_restart(void);  // libntr-ios-restart.patch: port/src/restart_press.c
++extern "C" void bwport_press_games(void);    // libntr-ios-launcher.patch: port/src/restart_press.c
++extern "C" void PORT_SetLauncherWanted(int on);   // port/src/main_start.c
+ 
++// libntr-ios-launcher.patch: the launcher's hooks (port/src/launcher_gui.cpp)
++extern "C" void SIM_GuiSetLauncher(void (*draw)(float top)) { sLauncher = draw; }
++extern "C" void SIM_GuiOpenSettings(int which) {   // 0 Video, 1 Audio, 2 Controls, 3 View
++    if (which >= 0 && which <= W_VIEW) OpenWin(W_VIDEO + which);
++}
++
+ static bool RestartSupported() {
+ #if defined(__linux__) || defined(_WIN32) || TARGET_OS_OSX
+     return true;
+@@ -1613,10 +1627,12 @@
+     bool mgame = ImGui::BeginMenu("Game");
+     ItemRect(3);
+     if (mgame) {
++        if (sLauncher == nullptr) {
+         ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
++        }
+         bool ffOn = SIM_FFOn() != 0;
+-        if (ImGui::MenuItem("Fast forward", "Space", &ffOn)) { SIM_FFSet(ffOn); }
+-        if (ImGui::BeginMenu("Fast-forward speed")) {
++        if (sLauncher == nullptr && ImGui::MenuItem("Fast forward", "Space", &ffOn)) { SIM_FFSet(ffOn); }
++        if (sLauncher == nullptr && ImGui::BeginMenu("Fast-forward speed")) {
+             ImGui::BeginDisabled(FrameRateUnlimited());
+             for (int i = 0; i < 4; i++) {
+                 if (MenuRadio(FFNames[i], FFIndex() == i)) { SetFF(i); }
+@@ -1626,9 +1642,16 @@
+             ImGui::TextDisabled(FrameRateUnlimited() ? "No effect at Unlimited (Frame rate)" : "Normal play is 1x; Space switches");
+             ImGui::EndMenu();
+         }
++        if (sLauncher == nullptr) {
+         if (RestartSupported() && ImGui::MenuItem("Restart to title...")) {
+             sResetAsk = true;
+         }
++#if defined(__APPLE__) && TARGET_OS_OSX
++        if (ImGui::MenuItem("Games...")) {
++            sGamesAsk = true;
++        }
++#endif
++        }
+         ImGui::Separator();
+         if (ImGui::MenuItem("Quit")) {
+             SIM_Config_SaveConfigFile(c);
+@@ -1892,6 +1915,9 @@
+     } else {
+     if (sBarVisible) {
+         MenuBar();
++    }
++    if (sLauncher != nullptr) {
++        sLauncher((float)sBarReserve);
+     }
+     VideoWindow();
+     AudioWindow();
+@@ -1938,6 +1964,7 @@
+         ImGui::Spacing();
+         if (ImGui::Button("Restart", ImVec2(120.0f * sUiScale, 0.0f))) {
+             ImGui::CloseCurrentPopup();
++            PORT_SetLauncherWanted(0);  // libntr-ios-launcher.patch: (a Games... the game ignored, during a save, is forgotten)
+             bwport_press_restart();  // the game's own L+R+START+SELECT: it resets itself, and not while it saves
+         }
+         ImGui::SameLine();
+@@ -1945,7 +1972,27 @@
+             ImGui::CloseCurrentPopup();
+         }
+         ImGui::EndPopup();
++    }
++    // libntr-ios-launcher.patch: Game > Games...
++    if (sGamesAsk && sLauncher == nullptr) {
++        ImGui::OpenPopup("Games");
++        sGamesAsk = false;
+     }
++    ImGui::SetNextWindowPos(ImVec2(vp->Size.x * 0.5f, (sBarH + vp->Size.y) * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
++    if (ImGui::BeginPopupModal("Games", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove)) {
++        ImGui::Text("Leave the game for the Games window?");
++        ImGui::Text("Unsaved progress is lost.");
++        ImGui::Spacing();
++        if (ImGui::Button("Leave", ImVec2(120.0f * sUiScale, 0.0f))) {
++            ImGui::CloseCurrentPopup();
++            bwport_press_games();  // port/src/restart_press.c: the launcher wanted, then the soft reset
++        }
++        ImGui::SameLine();
++        if (ImGui::Button("Cancel", ImVec2(120.0f * sUiScale, 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
++            ImGui::CloseCurrentPopup();
++        }
++        ImGui::EndPopup();
++    }
+ 
+     UiLog();
+     // the settings are written when the mouse is up (a slider is not written at every step)
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1231,6 +1231,7 @@
+ }
+ static int sIpTestLate, sIpTestClock;  // libntr-ios-smoothhold.patch: cfgscript glate=N, glowclock=1 (LagDone)
+ extern "C" void bwport_press_restart(void);  // libntr-ios-restart.patch: port/src/restart_press.c
++extern "C" void bwport_press_games(void);    // libntr-ios-launcher.patch: port/src/restart_press.c
+ 
+ static u32 sCfgMark = 0;  // the frame a performance log was last running or a step last applied, for the pN steps
+ static void SIM_CfgScript(void) {
+@@ -1283,6 +1284,8 @@
+         nanosleep(&ts, NULL);
+       } else if (strcmp(kv, "restart") == 0) {  // libntr-ios-restart.patch: the game's soft reset (L+R+START+SELECT)
+         bwport_press_restart();
++      } else if (strcmp(kv, "games") == 0) {  // libntr-ios-launcher.patch: Game > Games... (macOS): the soft reset, then the launcher
++        bwport_press_games();
+       } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
+         BenchDone();
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);
+@@ -4746,6 +4749,58 @@
+   return nullptr;
+ }
+ 
++// bw-port (libntr-ios-launcher.patch): a frame of the desktop's launcher (port/src/launcher_gui.cpp), before the game boots or
++// between a reset and the next boot: the window's events, the GUI (the menu bar, the settings windows and the launcher's own
++// window, SIM::GUI::SetLauncher), the present. Nothing of the machine runs or is written (no interrupts, no V-blank count, no
++// keys to the pad, no renderer, no sound step): at a first start the snapshot is taken after the launcher (port/src/machine.c).
++// Paced at about 60 a second by a sleep (no swap interval). The cfgscript's steps count V-blanks and are not read here:
++// SIM_ShotRequest asks for a screenshot (NAME.png in the working directory, as cfgscript shot=).
++extern "C" void SIM_ShotRequest(const char *name) {
++  snprintf(sCfgShot, sizeof sCfgShot, "%s", name);
++}
++
++extern "C" void SIM_LauncherFrame(void) {
++  SDL_Event e;
++  Uint64 t0 = SDL_GetTicks64();
++  while (SDL_PollEvent(&e)) {
++    if (SIM::GUI::ProcessEvent(&e)) continue;
++    if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
++      SIM_Config_SaveConfigFile(&s_SIM_config);
++      exit(0);
++    }
++    if (e.type == SDL_KEYDOWN && !e.key.repeat && !SIM::GUI::WantKeyboard() &&
++        (e.key.keysym.sym == SDLK_F11 || (e.key.keysym.sym == SDLK_RETURN && (e.key.keysym.mod & KMOD_ALT)))) {
++      s_SIM_config.fullScreen = !s_SIM_config.fullScreen;
++      SDL_SetWindowFullscreen(window, s_SIM_config.fullScreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
++      SIM_Config_SaveConfigFile(&s_SIM_config);
++    }
++  }
++#if SIM_METAL
++  if (sMetal) bwport_mtl_set_sync(0);
++  else
++#endif
++  if (SDL_GL_GetSwapInterval() != 0) SDL_GL_SetSwapInterval(0);
++  int w = 0, h = 0;
++  SDL_GetWindowSize(window, &w, &h);
++  SIM::GUI::BarBegin(w, h, s_TouchPanelCoords);
++  SIM::GUI::NewFrame();
++  SIM::GUI::Main();
++  if (!sMetal) {
++    int dw = 0, dh = 0;
++    SDL_GL_GetDrawableSize(window, &dw, &dh);
++    glViewport(0, 0, dw, dh);
++    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
++    glClear(GL_COLOR_BUFFER_BIT);
++  }
++  SIM::GUI::Render(true);
++#ifdef __APPLE__
++  SIM_ShotMaybe(window);
++#endif
++  SIM_Swap();
++  Uint64 spent = SDL_GetTicks64() - t0;
++  if (spent < 16) SDL_Delay((Uint32)(16 - spent));
++}
++
+ u64 SIM_GetGameWorkTime() { return sGameWorkTime; }
+ u64 SIM_GetRenderWorkTime() { return sRenderWorkTime; }
+ 

@@ -1,0 +1,686 @@
+// The Union Room's commands (a menu's choice, such as a trade or a battle), each run as a field event. The file's name
+// is a guess from the UnionSystem's subproc, which the ROM's asserts name: the ROM only shows that it is a file of its
+// own, by the assert file name ("") that its asserts share
+#include "types.h"
+#include "app/p_status.h"
+#include "app/pms_select.h"
+#include "app/pokelist.h"
+#include "app/pokemon_trade.h"
+#include "constants/zones.h"
+#include "demo/evolution_demo.h"
+#include "field/colosseum.h"
+#include "field/event_colosseum_battle.h"
+#include "field/event_mapchange.h"
+#include "field/field.h"
+#include "field/field_controller.h"
+#include "field/field_event.h"
+#include "field/field_sound.h"
+#include "field/union_app.h"
+#include "field/union_comm.h"
+#include "field/union_main.h"
+#include "field/union_msg.h"
+#include "field/union_oneself.h"
+#include "field/zone.h"
+#include "gfl/heap.h"
+#include "gfl/net.h"
+#include "gfl/net_command.h"
+#include "gfl/net_handle.h"
+#include "gfl/net_sync.h"
+#include "gfl/overlay.h"
+#include "gfl/sound.h"
+#include "gfl/std.h"
+#include "nitro/fx.h"
+#include "pml/poke_party.h"
+#include "save/join_avenue.h"
+#include "save/player_info.h"
+#include "save/pokedex_savedata.h"
+#include "save/save_control.h"
+#include "save/wifi_list.h"
+#include "system/game_comm.h"
+#include "system/game_data.h"
+#include "system/game_event.h"
+#include "system/game_system.h"
+
+// What a command's handler gets: the GameSystem, the UnionSystem, the Field, the command's argument, the event that
+// runs it, a place for an event to run before the next call, and the step, which starts at 0. It returns whether it is
+// done
+typedef BOOL (*UnionCommandFunc)(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                 GameEvent **next, u8 *step);
+
+// A row of the command table: what a command does, and the activity that this machine is in while it does:
+// UNION_ACTIVITY_NONE leaves it as it is
+typedef struct {
+    UnionCommandFunc func;
+    u8 startActivity;
+    u8 endActivity;
+} UnionCommandInfo;
+
+// The event that runs a command
+typedef struct {
+    GameSystem *gsys;
+    Field *field;
+    UnionSystem *unisys;
+} UnionCommandEvent;
+
+static GameEventReturnCode UnionMain_RunCommand(GameEvent *event, u32 *seq, void *work);
+static BOOL UnionCommand_TrainerCard(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                     GameEvent **next, u8 *step);
+static BOOL UnionCommand_Trade(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step);
+static BOOL UnionCommand_App(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                             GameEvent **next, u8 *step);
+static BOOL UnionCommand_WarpA(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step);
+static BOOL UnionCommand_WarpB(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step);
+static BOOL UnionCommand_WarpRoom(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                  GameEvent **next, u8 *step);
+static BOOL UnionCommand_Colosseum(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                   GameEvent **next, u8 *step);
+static BOOL Colosseum_CommandBattle(GameSystem *gsys, UnionSystem *unisys, Field *field, void *param, GameEvent *event,
+                                    GameEvent **next, u8 *step);
+static BOOL Colosseum_CommandPmsSelect(GameSystem *gsys, UnionSystem *unisys, Field *field, void *param,
+                                       GameEvent *event, GameEvent **next, u8 *step);
+
+GameEvent *UnionCommand_CreateEvent(GameSystem *gsys, Field *field, UnionSystem *unisys) {
+    GameEvent *event = GameEvent_Create(gsys, NULL, UnionMain_RunCommand, sizeof(UnionCommandEvent));
+    UnionCommandEvent *data = GameEvent_GetData(event);
+
+    data->gsys = gsys;
+    data->field = field;
+    data->unisys = unisys;
+    unisys->subproc.active = TRUE;
+    return event;
+}
+
+// The commands, by the id that UnionCommand_Set starts one with. Each is run as an event by UnionMain_RunCommand:
+// 1 the trainer card, 2 a trade, 3 and 4 the app's procs, 5 to 20 and 21 to 24 the warps into a room of a seat, 25 a
+// warp, 26 the colosseum's party select, 27 the colosseum's battle, 28 the trainer card again, and 29 the phrase select
+static const UnionCommandInfo sUnionCommands[] = {
+    { NULL, 0, 0 },
+    { UnionCommand_TrainerCard, UNION_ACTIVITY_CARD, UNION_ACTIVITY_TALKING },
+    { UnionCommand_Trade, UNION_ACTIVITY_TRADE, UNION_ACTIVITY_TALKING },
+    { UnionCommand_App, UNION_ACTIVITY_DRAW, 0 },
+    { UnionCommand_App, UNION_ACTIVITY_SPIN_TRADE, 0 },
+    { UnionCommand_WarpA, UNION_ACTIVITY_SINGLE, UNION_ACTIVITY_SINGLE },
+    { UnionCommand_WarpA, UNION_ACTIVITY_SINGLE_NO_LAUNCHER, UNION_ACTIVITY_SINGLE_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_SINGLE_FLAT, UNION_ACTIVITY_SINGLE_FLAT },
+    { UnionCommand_WarpA, UNION_ACTIVITY_SINGLE_FLAT_NO_LAUNCHER, UNION_ACTIVITY_SINGLE_FLAT_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_DOUBLE, UNION_ACTIVITY_DOUBLE },
+    { UnionCommand_WarpA, UNION_ACTIVITY_DOUBLE_NO_LAUNCHER, UNION_ACTIVITY_DOUBLE_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_DOUBLE_FLAT, UNION_ACTIVITY_DOUBLE_FLAT },
+    { UnionCommand_WarpA, UNION_ACTIVITY_DOUBLE_FLAT_NO_LAUNCHER, UNION_ACTIVITY_DOUBLE_FLAT_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_TRIPLE, UNION_ACTIVITY_TRIPLE },
+    { UnionCommand_WarpA, UNION_ACTIVITY_TRIPLE_NO_LAUNCHER, UNION_ACTIVITY_TRIPLE_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_TRIPLE_FLAT, UNION_ACTIVITY_TRIPLE_FLAT },
+    { UnionCommand_WarpA, UNION_ACTIVITY_TRIPLE_FLAT_NO_LAUNCHER, UNION_ACTIVITY_TRIPLE_FLAT_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_ROTATION, UNION_ACTIVITY_ROTATION },
+    { UnionCommand_WarpA, UNION_ACTIVITY_ROTATION_NO_LAUNCHER, UNION_ACTIVITY_ROTATION_NO_LAUNCHER },
+    { UnionCommand_WarpA, UNION_ACTIVITY_ROTATION_FLAT, UNION_ACTIVITY_ROTATION_FLAT },
+    { UnionCommand_WarpA, UNION_ACTIVITY_ROTATION_FLAT_NO_LAUNCHER, UNION_ACTIVITY_ROTATION_FLAT_NO_LAUNCHER },
+    { UnionCommand_WarpB, UNION_ACTIVITY_MULTI, UNION_ACTIVITY_MULTI },
+    { UnionCommand_WarpB, UNION_ACTIVITY_MULTI_NO_LAUNCHER, UNION_ACTIVITY_MULTI_NO_LAUNCHER },
+    { UnionCommand_WarpB, UNION_ACTIVITY_MULTI_FLAT, UNION_ACTIVITY_MULTI_FLAT },
+    { UnionCommand_WarpB, UNION_ACTIVITY_MULTI_FLAT_NO_LAUNCHER, UNION_ACTIVITY_MULTI_FLAT_NO_LAUNCHER },
+    { UnionCommand_WarpRoom, UNION_ACTIVITY_NONE, UNION_ACTIVITY_NONE },
+    { UnionCommand_Colosseum, UNION_ACTIVITY_NONE, UNION_ACTIVITY_NONE },
+    { Colosseum_CommandBattle, UNION_ACTIVITY_NONE, UNION_ACTIVITY_NONE },
+    { UnionCommand_TrainerCard, UNION_ACTIVITY_NONE, UNION_ACTIVITY_NONE },
+    { Colosseum_CommandPmsSelect, UNION_ACTIVITY_NONE, UNION_ACTIVITY_NONE },
+};
+
+static GameEventReturnCode UnionMain_RunCommand(GameEvent *event, u32 *seq, void *work) {
+    UnionCommandEvent *data = work;
+    GameSystem *gsys = data->gsys;
+    UnionSystem *unisys = data->unisys;
+    UnionSubproc *subproc = &unisys->subproc;
+    GameEvent *next = NULL;
+    BOOL done;
+
+    switch (*seq) {
+    case 0:
+        UnionMsg_FreeAll(unisys);
+        if (sUnionCommands[subproc->id].startActivity != UNION_ACTIVITY_NONE) {
+            UnionComm_SetSelf(unisys, UNION_SELF_ACTIVITY, sUnionCommands[subproc->id].startActivity);
+        }
+        (*seq)++;
+        // fallthrough
+    case 1:
+        done = sUnionCommands[subproc->id].func(gsys, unisys, data->field, subproc->arg, event, &next, &subproc->step);
+        if (next != NULL) {
+            GameEvent_ChainNext(event, next);
+        } else if (done == TRUE) {
+            (*seq)++;
+        }
+        break;
+    case 2:
+        if (sUnionCommands[subproc->id].endActivity != UNION_ACTIVITY_NONE) {
+            UnionComm_SetSelf(unisys, UNION_SELF_ACTIVITY, sUnionCommands[subproc->id].endActivity);
+        }
+        subproc->id = 0;
+        subproc->arg = NULL;
+        subproc->step = 0;
+        subproc->active = FALSE;
+        return GAMEEVENT_DONE;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+void UnionCommand_Set(UnionSystem *unisys, u32 id, void *arg) {
+    GFL_ASSERT(unisys->subproc.id == UNION_SUBPROC_ID_NULL && unisys->subproc.active == FALSE);
+    unisys->subproc.id = id;
+    unisys->subproc.arg = arg;
+    unisys->subproc.step = 0;
+}
+
+BOOL UnionCommand_IsActive(UnionSystem *unisys) {
+    if (unisys->subproc.id == UNION_SUBPROC_ID_NULL && unisys->subproc.active == FALSE) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static BOOL UnionCommand_TrainerCard(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                     GameEvent **next, u8 *step) {
+    if (*step == 0) {
+        *next =
+            EventFieldSubprocessTransition_Create(gsys, field, OVERLAY_ID(186), &TRCARD_SYS_VIEW_PROC_FUNCTIONS, arg);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}
+
+enum {
+    STEP_FADE_OUT,
+    STEP_CLOSE_FIELD,
+    STEP_START_TRADE,
+    STEP_WAIT_TRADE,
+    STEP_START_EVOLVE,
+    STEP_WAIT_EVOLVE,
+    STEP_OPEN_FIELD,
+    STEP_FADE_IN,
+    STEP_END,
+};
+
+static BOOL UnionCommand_Trade(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step) {
+    PokemonTradeParam *trade = arg;
+    EvolutionDemoParam *evolution;
+
+    switch (*step) {
+    case STEP_FADE_OUT:
+        *next = CallFieldMapEntranceOutTransitionDefault(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0);
+        (*step)++;
+        break;
+    case STEP_CLOSE_FIELD:
+        *next = CreateFieldCloseEvent(gsys, field);
+        (*step)++;
+        break;
+    case STEP_START_TRADE:
+        GSYS_QueueProc(gsys, OVERLAY_POKEMONTRADE, &POKEMONTRADE_UNION_PROC_FUNCTIONS, trade);
+        (*step)++;
+        break;
+    case STEP_WAIT_TRADE:
+        if (GSYS_GetProcMgrState(gsys) != 0) {
+            break;
+        }
+        if (trade->next == TRADE_NEXT_EVOLVE) {
+            *step = STEP_START_EVOLVE;
+        } else {
+            *step = STEP_OPEN_FIELD;
+        }
+        break;
+    case STEP_START_EVOLVE:
+        evolution = trade->evolution;
+        evolution->gameData = trade->gameData;
+        evolution->party = trade->party;
+        evolution->species = trade->evolveSpecies;
+        evolution->partyIndex = 0;
+        evolution->method = trade->evolveMethod;
+        evolution->unkC = 1;
+        evolution->canCancel = FALSE;
+        trade->evolution = evolution;
+        GSYS_QueueProc(gsys, OVERLAY_EVOLUTION_DEMO, &EVOLUTION_DEMO_PROC_FUNCTIONS, evolution);
+        (*step)++;
+        break;
+    case STEP_WAIT_EVOLVE:
+        if (GSYS_GetProcMgrState(gsys) != 0) {
+            break;
+        }
+        if (GFL_NetErrCheck()) {
+            *step = STEP_OPEN_FIELD;
+        } else {
+            trade->next = TRADE_NEXT_EVOLVE;
+            *step = STEP_START_TRADE;
+        }
+        break;
+    case STEP_OPEN_FIELD:
+        *next = EventFieldOpen_CreateHeadless(gsys);
+        *step = STEP_FADE_IN;
+        break;
+    case STEP_FADE_IN:
+        *next = CallFieldMapEntranceInTransition(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0, 1, 0, 0);
+        *step = STEP_END;
+        break;
+    default:
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL UnionCommand_App(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                             GameEvent **next, u8 *step) {
+    UnionSelf *self = &unisys->situ;
+    UnionSubproc *subproc = &unisys->subproc;
+    UnionProcParam *param;
+    GameEvent *chain;
+    u32 joined;
+
+    if (GFL_NetErrCheck() && *step > 2 && *step <= 13) {
+        *step = 16;
+    }
+    if (unisys->alloc.uniapp != NULL) {
+        UnionApp_Update(unisys->alloc.uniapp, unisys);
+    }
+    switch (*step) {
+    case 0:
+        chain = CallFieldMapEntranceOutTransitionDefault(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 1:
+        chain = CreateFieldCloseEvent(gsys, field);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 2:
+        GFL_OvlLoad(OVERLAY_ID(69));
+        unisys->alloc.uniapp = UnionApp_Create(unisys, 3, 5, GetGameDataPlayerInfo(unisys->param->gameData));
+        if (self->mycomm.joinedRecruit == 1) {
+            *step = 5;
+        } else {
+            (*step)++;
+        }
+        break;
+    case 3:
+        NetHandle_SendTimingPair(NetHandle_GetOwn(), 9, 0x14);
+        (*step)++;
+        break;
+    case 4:
+        if (NetHandle_IsTimingPairRecv(NetHandle_GetOwn(), 9, 0x14) == TRUE) {
+            *step = 7;
+        }
+        break;
+    case 5:
+        if (UnionMain_SendEnqueue() == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 6:
+        if (UnionApp_IsTurnReceived(unisys->alloc.uniapp) == TRUE) {
+            *step = 7;
+        }
+        break;
+    case 7:
+        if (UnionMain_SendRequestStatus() == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 8:
+        if (UnionApp_HasMembers(unisys->alloc.uniapp) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 9:
+        joined = UnionApp_GetJoined(unisys->alloc.uniapp);
+        if (UnionMain_SendAppProfile(joined, GetGameDataPlayerInfo(unisys->param->gameData)) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 10:
+        if (UnionApp_AllProfilesReceived(unisys->alloc.uniapp) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 11:
+        if (self->mycomm.joinedRecruit == 1) {
+            joined = UnionApp_GetJoined(unisys->alloc.uniapp);
+            if (UnionMain_SendConfirmProfile(joined, GetGameDataPlayerInfo(unisys->param->gameData)) == TRUE) {
+                UnionApp_JoinSelf(unisys->alloc.uniapp);
+                *step = 13;
+            }
+        } else {
+            UnionComm_SetCommandBase(self->activity);
+            NetHandle_SendTimingPair(NetHandle_GetOwn(), 10, 0x14);
+            *step = 12;
+        }
+        break;
+    case 12:
+        if (NetHandle_IsTimingPairRecv(NetHandle_GetOwn(), 10, 0x14) == TRUE) {
+            GFL_NetSetAcceptConnect(NetHandle_GetOwn(), TRUE);
+            *step = 13;
+        }
+        break;
+    case 13:
+        GFL_NetSetDisconnectError(FALSE);
+        if (self->activity == 3) {
+            param = subproc->arg;
+            param->app = unisys->alloc.uniapp;
+            GSYS_QueueProc(gsys, OVERLAY_ID(70), &DRAWING_PROC_FUNCTIONS, param);
+        } else {
+            param = subproc->arg;
+            param->app = unisys->alloc.uniapp;
+            GSYS_QueueProc(gsys, OVERLAY_ID(216), &SPIN_TRADE_PROC_FUNCTIONS, param);
+        }
+        (*step)++;
+        break;
+    case 14:
+        if (GSYS_GetProcMgrState(gsys) != 0) {
+            break;
+        }
+        if (self->activity == 0x19) {
+            param = subproc->arg;
+            if (param->unk14 == 1) {
+                GFL_SndBGMRequestChange((u16)GetMapBGMIDByPlayerState2(unisys->param->gameData, ZONE_UNION_ROOM,
+                                                                       GameData_GetSeason(unisys->param->gameData)),
+                                        0xffff, 6, 0x3c);
+                *step = 15;
+            } else {
+                *step = 16;
+            }
+        } else {
+            *step = 16;
+        }
+        break;
+    case 15:
+        if (GFL_SndBGMIsFading()) {
+            break;
+        }
+        *step = 16;
+        break;
+    case 16:
+        if (unisys->alloc.uniapp != NULL) {
+            UnionApp_Free(unisys->alloc.uniapp);
+            unisys->alloc.uniapp = NULL;
+            GFL_OvlUnload(OVERLAY_ID(69));
+        }
+        *step = 17;
+        break;
+    case 17:
+        chain = EventFieldOpen_CreateHeadless(gsys);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 18:
+        chain = CallFieldMapEntranceInTransition(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0, 1, 0, 0);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 19:
+    default:
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL UnionCommand_WarpA(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step) {
+    VecFx32 pos;
+
+    if (*step == 0) {
+        pos.x = (GFL_NetGetHandleNetId(NetHandle_GetOwn()) * 16 + 88) << FX32_SHIFT;
+        pos.y = 0;
+        pos.z = FX32_CONST(152);
+        *next = EventMapChangeWarp_CreateGrid(gsys, field, ZONE_UNION_ROOM_COLOSSEUM, &pos, 0, FALSE);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}
+
+static BOOL UnionCommand_WarpB(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                               GameEvent **next, u8 *step) {
+    VecFx32 pos;
+
+    if (*step == 0) {
+        pos.x = (GFL_NetGetHandleNetId(NetHandle_GetOwn()) * 16 + 88) << FX32_SHIFT;
+        pos.y = 0;
+        pos.z = FX32_CONST(152);
+        *next = EventMapChangeWarp_CreateGrid(gsys, field, ZONE_UNION_ROOM_COLOSSEUM_2, &pos, 0, FALSE);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}
+
+static BOOL UnionCommand_WarpRoom(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                  GameEvent **next, u8 *step) {
+    VecFx32 pos;
+
+    if (*step == 0) {
+        pos.x = FX32_CONST(184);
+        pos.y = 0;
+        pos.z = FX32_CONST(232);
+        *next = EventMapChangeWarp_CreateGrid(gsys, field, ZONE_UNION_ROOM, &pos, 0, FALSE);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}
+
+static BOOL UnionCommand_Colosseum(GameSystem *gsys, UnionSystem *unisys, Field *field, void *arg, GameEvent *event,
+                                   GameEvent **next, u8 *step) {
+    UnionColosseumParam *param = arg;
+    UnionColosseum *colosseum = unisys->colosseum_sys;
+    UnionSelf *self = &unisys->situ;
+    PStatusParam *status = &param->status;
+    ColosseumBattleParam *battle = param->battle;
+    u32 selfId = GFL_NetGetHandleNetId(NetHandle_GetOwn());
+    PokeParty *tmpParty;
+    PokeParty *party;
+    GameEvent *chain;
+    WifiList *wifiList;
+    u32 friendIndex;
+    int count;
+    u32 isRedTeam;
+    int i;
+
+    if (*step > 2 && *step < 7) {
+        NetSync_Update((NetSyncWork *)param);
+    }
+    switch (*step) {
+    case 0:
+        chain = CallFieldMapEntranceOutTransitionDefault(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 1:
+        chain = CreateFieldCloseEvent(gsys, field);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 2:
+        GFL_OvlLoad(OVERLAY_ID(164));
+        NetSync_Init((NetSyncWork *)param);
+        (*step)++;
+        break;
+    case 3:
+        GSYS_QueueProc(gsys, OVERLAY_ID(165), &POKELIST_PROC_FUNCTIONS, param);
+        (*step)++;
+        break;
+    case 4:
+        if (GSYS_GetProcMgrState(gsys) != 0) {
+            break;
+        }
+        if (param->list.result == 1) {
+            *step = 5;
+        } else {
+            *step = 7;
+        }
+        break;
+    case 5:
+        status->party = param->list.party;
+        status->trainerData = param->list.trainerData;
+        status->gameData = GSYS_GetGameData(gsys);
+        status->dataType = PSTATUS_DATA_PARTY;
+        status->partyCount = PokeParty_GetPkmCount(param->list.party);
+        status->mode = PSTATUS_MODE_NORMAL;
+        status->partyIndex = param->list.index;
+        status->page = PSTATUS_PAGE_INFO;
+        status->isNationalDex = PokeDex_IsNationalObtained(GameData_GetPokedex(status->gameData));
+        GSYS_QueueProc(gsys, OVERLAY_PSTATUS, &PSTATUS_PROC_FUNCTIONS, status);
+        (*step)++;
+        break;
+    case 6:
+        if (GSYS_GetProcMgrState(gsys) != 0) {
+            break;
+        }
+        param->list.index = status->partyIndex;
+        *step = 3;
+        break;
+    case 7:
+        NetSync_Exit((NetSyncWork *)param);
+        GFL_OvlUnload(OVERLAY_ID(164));
+        *step = 8;
+        break;
+    case 8:
+        if (GFL_NetErrCheck()) {
+            *step = 17;
+            break;
+        }
+        GFL_ASSERT_MSG(param->list.result == 0, "plist->ret_mode \x95\x73\x90\xb3 %d\n", param->list.result);
+        GFL_ASSERT_MSG(param->list.index == 6, "ret_sel=%d\n", param->list.index);
+        party = colosseum->party[selfId];
+        tmpParty = PokeParty_Create(0x41);
+        PokeParty_Copy(party, tmpParty);
+        PokeParty_Init(party);
+        for (i = 0; i < 6; i++) {
+            if (param->list.picked[i] == 0) {
+                break;
+            }
+            PokeParty_AddPkm(party, PokeParty_GetPkm(tmpParty, param->list.picked[i] - 1));
+        }
+        GFL_HeapFree(tmpParty);
+        Colosseum_ClearParties(colosseum, TRUE);
+        NetHandle_SendTimingPair(NetHandle_GetOwn(), 22, 0x14);
+        (*step)++;
+        break;
+    case 9:
+        if (GFL_NetErrCheck()) {
+            *step = 17;
+            break;
+        }
+        if (NetHandle_IsTimingPairRecv(NetHandle_GetOwn(), 22, 0x14) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 10:
+        if (GFL_NetErrCheck()) {
+            *step = 17;
+            break;
+        }
+        if (Colosseum_SendParty(colosseum->party[selfId]) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 11:
+        if (GFL_NetErrCheck()) {
+            *step = 17;
+            break;
+        }
+        if (Colosseum_AreAllPartiesReceived(colosseum) == TRUE) {
+            (*step)++;
+        }
+        break;
+    case 12:
+        battle->party = colosseum->party[selfId];
+        battle->clientId = colosseum->positions[selfId];
+        battle->regulation = unisys->alloc.regulation;
+        if (selfId == 0 || (colosseum->positions[0] & 2) == (colosseum->positions[selfId] & 2)) {
+            battle->bgm = 0x489;
+        } else {
+            battle->bgm = 0x48a;
+        }
+        Colosseum_BuildBattlePlayers(colosseum, gsys, &battle->players, 0x41);
+        *next = EventColosseumBattle_Create(gsys, field, self->activity, battle);
+        (*step)++;
+        break;
+    case 13:
+        if (!GFL_NetErrCheck()) {
+            wifiList = GameData_GetWifiList(GSYS_GetGameData(gsys));
+            count = GFL_NetGetNegotiatedCount();
+            isRedTeam = colosseum->positions[selfId] & 1;
+            for (i = 0; i < count; i++) {
+                if (i == selfId) {
+                    continue;
+                }
+                if (WifiList_FindFriendByPlayerInfo(wifiList, &colosseum->members[i].info, &friendIndex) != TRUE) {
+                    continue;
+                }
+                if (isRedTeam == (colosseum->positions[i] & 1)) {
+                    WifiList_SetFriendLastDateToNow(wifiList, friendIndex);
+                } else {
+                    switch (battle->players.battle.result) {
+                    case 0:
+                        WifiList_AddFriendRecord(wifiList, friendIndex, 1, 0, 0);
+                        break;
+                    case 1:
+                        WifiList_AddFriendRecord(wifiList, friendIndex, 0, 1, 0);
+                        break;
+                    case 2:
+                        WifiList_SetFriendLastDateToNow(wifiList, friendIndex);
+                        break;
+                    }
+                }
+            }
+        }
+        Colosseum_ClearPlayers(&battle->players);
+        *step = 16;
+        break;
+    case 14:
+        chain = EventFieldOpen_CreateHeadless(gsys);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    case 15:
+        chain = CallFieldMapEntranceInTransition(gsys, field, FIELD_TRANSITION_FADE_BLACK, 0, 1, 0, 0);
+        GameEvent_ChainNext(event, chain);
+        (*step)++;
+        break;
+    default:
+        return TRUE;
+    case 17:
+        *step = 14;
+        break;
+    }
+    return FALSE;
+}
+
+static BOOL Colosseum_CommandBattle(GameSystem *gsys, UnionSystem *unisys, Field *field, void *param, GameEvent *event,
+                                    GameEvent **next, u8 *step) {
+    UnionSelf *self = &unisys->situ;
+
+    if (*step == 0) {
+        *next = EventColosseumBattle_Create(gsys, field, self->activity, param);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}
+
+static BOOL Colosseum_CommandPmsSelect(GameSystem *gsys, UnionSystem *unisys, Field *field, void *param,
+                                       GameEvent *event, GameEvent **next, u8 *step) {
+    if (*step == 0) {
+        *next = EventFieldSubprocessTransition_Create(gsys, field, OVERLAY_ID(185), &PMS_SELECT_PROC_FUNCTIONS, param);
+    } else {
+        return TRUE;
+    }
+    (*step)++;
+    return FALSE;
+}

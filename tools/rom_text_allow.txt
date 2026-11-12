@@ -1,0 +1,250 @@
+# tools/rom_text_allow.txt: what tools/rom_text_check.py reports but is generic wording, not game text. This file is
+# not scanned. One entry per line, each with a reason after " # ":
+#   @ID # reason                  the finding with that id (the id is printed after each finding: nobody needs to read
+#                                 the text to allow it)
+#   some generic phrase # reason  every 4-word window of that phrase (normalised: lower case, no punctuation)
+# Never put game text here: a finding that is dialogue gets deleted from the file it is in.
+@6f37877469d9 # pret's own enum constant name (MOVE_REMINDER_YES_NO_..._DELETE) in code: identifier words, not text
+@59f7ab8c214f # a countdown of integer literals (3, 2, 1, 0) in a table or call: numbers, not text
+@3203b12df547 # a list of integer literals in a table: numbers, not text
+@fa63eefd29b2 # C identifiers (hallOfFame->entries[hallOfFame->nextEntryIndex]): code, not text
+@1798dc8c10b4 # a countdown of integer literals (3, 2, 1, 0) as macro or call arguments: numbers, not text
+@120419166ce3 # a static const u8 table of the integers 3, 2, 1, 0: numbers, not text
+@19c5ea561250 # C variable names (cool, beauty, cute, smart, tough, sheen: pret's names for the contest stats): code, not text
+# tc2: our own files (not third_party/pokebw2/): the stretches were ordinary wording that the game's text happens to share;
+# the findings that were real game text were reworded in place instead
+@7e5393792f6c # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@50dd4c00f889 # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@0473fae5bab4 # generic: ordinary English in our own doc
+@48bc30c07285 # generic: ordinary English in our own doc
+@413d5473a2ed # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@3cffa1b30f0b # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@8fe602b8bc0f # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@8208a17d6c6c # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@36bec3b133a4 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@5753f533f265 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@d6a86a528707 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@79e8131e661d # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@eebc71b7964a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@6a0777daee51 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@b9ff8a249cb2 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@207998f64610 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@658b465ede83 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@6933280e595c # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@16be2eaf65d6 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@9a981dd206a6 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@1c98567e5521 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@5323c01531a9 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@a7ea1b6fcc58 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@8f92f097993f # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@6963a1808ae6 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@435a31859336 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@5e355aa71dbf # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@cf887615b39f # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@cd9ff4a1dc53 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@310f937ca68c # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@068bdf9e74f9 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@edfc6656f172 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@eb5486f2686b # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@e27eff7ec1bb # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@395d5c30a0c8 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@32429ddd6871 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@7a74e6d78e06 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@ebeba46f4208 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@6fa3d6d24817 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@7b881eca42ef # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@2438d6ca4368 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@1f06797e216f # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@37269f585a15 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@5e3f69a1da26 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@cf7f6e8a1740 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@1607383d8f3b # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@ad8574bed52e # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@5adefb7ddeaf # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@c04b1e62b1d4 # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@284ce22c3a54 # generic: license text (GPL/LGPL/Apache/winpthreads boilerplate)
+@417c087f9106 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@ba2ec20eb76a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@e80e91475241 # generic: the four directions (up, down, left, right) in a comment
+@cc65b72ee4b6 # our own app dialog (the Restart setting's confirmation in the iOS/Android/ImGui settings), not the game's text
+@57de428b1712 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@4f7af6e30508 # generic: comment in the stb single-file library (third-party, ordinary English)
+@77d98cbf850c # generic: comment in the stb single-file library (third-party, ordinary English)
+@5b5d4b017e90 # generic: comment in the stb single-file library (third-party, ordinary English)
+@6b98e4b98341 # generic: comment in the stb single-file library (third-party, ordinary English)
+@90209bd9c85b # generic: comment in the stb single-file library (third-party, ordinary English)
+@c373c21462d2 # generic: the stock phrase for a line's end, in a stb comment and in our own fishing-ripple comment
+@3ab6ec576ddc # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@0b9f29280787 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@b9c0f81d8464 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@6211a825ae20 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@5aa19a7b1184 # generic: numeric arguments of a call (7, 8, 9): numbers, not text
+@dc4e7a4a7144 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@f62831ca03fa # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@e5274ee2b068 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@f41279c209da # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@f78f75cb82f4 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@924672f8aadc # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@6a9aebc2a310 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@d48d71320fa2 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@0d2e6453bfd9 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@750674c0d442 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@e32b156b2c75 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@1b047d3e880f # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@63440bef462a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@dc988eae3959 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@8c053f0dbc25 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@fa608ae3fddd # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@3bf520795f11 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@79c4d03f535b # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@4e49b336ab2d # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@aa4dfe0b4fe0 # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@78272ec8523b # generic: our own comment naming a feature of the game (Wi-Fi service, trade station, ...): proper names and ordinary words
+@bb2dd59ac306 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@01dc45cba6f9 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@e80ed1d0c85a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@d759949eb2e1 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@56be868e7d7a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@a19d4aadd006 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@9fb156677501 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@91c9dc0d93eb # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@d2a0049e415a # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@92910592662e # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@99693d75de5c # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@0088eba4c381 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@9668b1dbc170 # generic: ordinary English in our own neutral comment (a field, state or function described in plain words)
+@1147b112f7e2 # generic: ordinary English in a tools/ script's docstring or message
+@f6ba009a45d6 # generic: ordinary English in a tools/ script's docstring or message
+@5131c0735ce9 # generic: ordinary English in a tools/ script's docstring or message
+@376d2e3430b0 # generic: ordinary English in a tools/ script's docstring or message
+
+# tc3: third_party/pokebw2 (GPL-3.0 code vendored in this repo): generic comment, license and constant wording
+@7e5393792f6c # generic: the GPL-3.0 license text of pokebw2 (LICENSE), standard legal wording
+@50dd4c00f889 # generic: the GPL-3.0 license text of pokebw2 (LICENSE), standard legal wording
+@9c3d97b05372 # generic: BGM constant names in a #define (sound.h): identifiers, not text
+@ec3098a0959f # generic: BGM constant names in a #define (sound.h): identifiers, not text
+@18eae9232805 # generic: BGM constant names in a #define (sound.h): identifiers, not text
+@3f6a8163cd27 # generic: plain English describing code in a comment (bag_item.h:47)
+@7a039a141e11 # generic: plain English describing code in a comment (box2.h:35) and 1 more
+@3bcbdd5b1b0c # generic: plain English describing code in a comment (box2_obj.h:101)
+@924672f8aadc # generic: plain English describing code in a comment (cdemo.h:56) and 54 more
+@413d5473a2ed # generic: plain English describing code in a comment (comm_btl_demo.h:44)
+@b70281db68c0 # generic: plain English describing code in a comment (comm_tvt_field.h:16)
+@3cffa1b30f0b # generic: plain English describing code in a comment (dwc_utility.h:8) and 1 more
+@8fe602b8bc0f # generic: plain English describing code in a comment (gds_rap.h:69) and 1 more
+@8208a17d6c6c # generic: plain English describing code in a comment (gds_rap.h:137) and 1 more
+@36bec3b133a4 # generic: plain English describing code in a comment (gsync_disp.h:20)
+@99693d75de5c # generic: plain English describing code in a comment (irc_appbar.h:10) and 1 more
+@5753f533f265 # generic: plain English describing code in a comment (local_tvt_callselect.h:14) and 2 more
+@89e4259809d6 # generic: plain English describing code in a comment (local_tvt_message.h:40)
+@d6a86a528707 # generic: plain English describing code in a comment (mb_parent.h:14)
+@134ef928bdf8 # generic: plain English describing code in a comment (medal_info.h:16)
+@8467906a7071 # generic: plain English describing code in a comment (musical_system.h:6)
+@79e8131e661d # generic: plain English describing code in a comment (sta_acting.h:49)
+@5e45610bc466 # generic: plain English describing code in a comment (pokedex_habitat_graphic.h:85)
+@658b465ede83 # generic: plain English describing code in a comment (pokedex_list_main.h:93) and 1 more
+@eebc71b7964a # generic: plain English describing code in a comment (pokelist.h:55)
+@ed28c1755014 # generic: plain English describing code in a comment (pokemon_trade.h:59)
+@63440bef462a # generic: plain English describing code in a comment (unova_link.h:253) and 3 more
+@12c606b51a1e # generic: plain English describing code in a comment (wifibattlematch_net.h:245)
+@207998f64610 # generic: plain English describing code in a comment (worldtrade.h:9)
+@12689a6820c4 # generic: plain English describing code in a comment (tr_ai.inc:496)
+@ecb421d15320 # generic: plain English describing code in a comment (btlv_effect.h:29)
+@16be2eaf65d6 # generic: plain English describing code in a comment (btlv_input.h:29) and 1 more
+@9a981dd206a6 # generic: plain English describing code in a comment (condition_effects.h:5) and 3 more
+@1c98567e5521 # generic: plain English describing code in a comment (pokemon.h:124)
+@9d6630258d09 # generic: plain English describing code in a comment (hall_of_fame_demo.h:12) and 1 more
+@5323c01531a9 # generic: plain English describing code in a comment (hall_of_fame_demo_main.h:42)
+@8f92f097993f # generic: plain English describing code in a comment (beacon_view.h:124) and 3 more
+@6963a1808ae6 # generic: plain English describing code in a comment (enc_pokeset.h:72)
+@6bc4847e8e59 # generic: plain English describing code in a comment (encounter.h:103) and 1 more
+@92910592662e # generic: plain English describing code in a comment (event_save.h:18)
+@b62a63a91638 # generic: plain English describing code in a comment (event_wbt.h:14) and 1 more
+@aa0f5ebb6245 # generic: plain English describing code in a comment (festival.h:35)
+@463cb8784c48 # generic: plain English describing code in a comment (field_async_proc.h:26)
+@5e355aa71dbf # generic: plain English describing code in a comment (field_camera.h:245)
+@435a31859336 # generic: plain English describing code in a comment (field_effect.h:131) and 4 more
+@3297d0322d57 # generic: plain English describing code in a comment (field_msgbg.h:80)
+@8ac0f8be48b7 # generic: plain English describing code in a comment (fmission_view_local.h:203)
+@83a8ac53226d # generic: plain English describing code in a comment (gimmick_humilau.h:16)
+@044e187608fd # generic: plain English describing code in a comment (mus_comm_func.h:31)
+@d4ac2cf2716d # generic: plain English describing code in a comment (pleasure_boat.h:9)
+@7e8179e175b2 # generic: plain English describing code in a comment (resort.h:38)
+@4e49b336ab2d # generic: plain English describing code in a comment (rival_select.h:9) and 1 more
+@a3856c6336bf # generic: plain English describing code in a comment (trcard_sys.h:163)
+@cf887615b39f # generic: plain English describing code in a comment (wbt.h:171)
+@e6cd6293481c # generic: plain English describing code in a comment (wbt.h:320)
+@cd9ff4a1dc53 # generic: plain English describing code in a comment (ui.h:99)
+@310f937ca68c # generic: plain English describing code in a comment (poke_party.h:216) and 1 more
+@068bdf9e74f9 # generic: plain English describing code in a comment (poke_party.h:251)
+@edfc6656f172 # generic: plain English describing code in a comment (poke_party.h:346)
+@1d8d5d121855 # generic: plain English describing code in a comment (poke_party.h:350)
+@cac21a4014ae # generic: plain English describing code in a comment (hollow_rival_savedata.h:15)
+@eb5486f2686b # generic: plain English describing code in a comment (memory_link_savedata.h:48)
+@e27eff7ec1bb # generic: plain English describing code in a comment (tournament_block.h:63)
+@395d5c30a0c8 # generic: plain English describing code in a comment (trainer_card.h:18) and 2 more
+@a19d4aadd006 # generic: plain English describing code in a comment (app_keycursor.h:9) and 2 more
+@7a74e6d78e06 # generic: plain English describing code in a comment (dsi.h:13)
+@6fa3d6d24817 # generic: plain English describing code in a comment (error.h:46)
+@7b881eca42ef # generic: plain English describing code in a comment (gt2Main.h:182)
+@219de239eb8c # generic: plain English describing code in a comment (match.h:89)
+@9e4887c3cea2 # generic: plain English describing code in a comment (utility.h:6)
+@5e3f69a1da26 # generic: plain English describing code in a comment (net_ring_buff.c:78)
+@dc4e7a4a7144 # generic: plain English describing code in a comment (event_gsync.c:72)
+@d2a3b848028a # generic: plain English describing code in a comment (musical_event.c:89)
+@db9864c9617c # generic: plain English describing code in a comment (trcard_sys.c:60)
+@b612d54bfa55 # generic: plain English describing code in a comment (union_comm.c:443)
+@4c761ab8a1d5 # generic: plain English describing code in a comment (comm_entry_menu.c:1499)
+@e5274ee2b068 # generic: plain English describing code in a comment (event_entrance_effect.c:516)
+@d9e35f831716 # generic: plain English describing code in a comment (event_name_entry.c:25)
+@0b54229a7d87 # generic: plain English describing code in a comment (event_name_entry.c:53)
+@cc31ca8d7056 # generic: plain English describing code in a comment (field_actor_rail.c:63) and 1 more
+@736693c59ba2 # generic: plain English describing code in a comment (fldeff_encount.c:1)
+@c373c21462d2 # generic: plain English describing code in a comment (fldeff_fishing.c:85)
+@697f80294a61 # generic: plain English describing code in a comment (scrcmd_encount.c:115)
+@4b3162a50751 # generic: plain English describing code in a comment (scrcmd_hidden_hollow.c:96)
+@f78f75cb82f4 # generic: plain English describing code in a comment (pleasure_boat_rooms.c:35)
+@e1cc8c8d6d19 # generic: plain English describing code in a comment (gimmick_roller_coaster.c:143)
+@6a9aebc2a310 # generic: plain English describing code in a comment (itemmenu_disp.c:47) and 3 more
+@30a158d0567e # generic: plain English describing code in a comment (event_encounter_cutin.c:23)
+@0d2e6453bfd9 # generic: plain English describing code in a comment (btl_field.c:25)
+@542086e8f099 # generic: plain English describing code in a comment (btl_server_flow.c:6895)
+@750674c0d442 # generic: plain English describing code in a comment (btl_server_flow_sub.c:184)
+@19d91f924295 # generic: plain English describing code in a comment (btl_server_flow_sub.c:1151)
+@417c087f9106 # generic: plain English describing code in a comment (btlv_input.c:2052)
+@e32b156b2c75 # generic: plain English describing code in a comment (field_handlers.c:145)
+@84d5db641edf # generic: plain English describing code in a comment (tr_ai.c:1718)
+@1b047d3e880f # generic: plain English describing code in a comment (wifi_p2pmatch.c:455)
+@7e0ce5ef1a6e # generic: plain English describing code in a comment (badge_view.c:125)
+@dc988eae3959 # generic: plain English describing code in a comment (wifi_bsubway.c:74)
+@8c053f0dbc25 # generic: plain English describing code in a comment (wifi_bsubway.c:257)
+@8b198791599b # generic: plain English describing code in a comment (pokemontrade_nego.c:973)
+@a52bd21f2d9a # generic: plain English describing code in a comment (musical_system.c:22)
+@79c4d03f535b # generic: plain English describing code in a comment (worldtrade_enter.c:26)
+@9810daa349bd # generic: plain English describing code in a comment (worldtrade_local.h:348)
+@ecb8599eaf02 # generic: plain English describing code in a comment (worldtrade_local.h:370)
+@5aa19a7b1184 # generic: a table of integer literals: numbers, not text
+@9d034c14d4ed # generic: plain English describing code in a comment (box2_seq.c:7248)
+@f5a6c432bf8d # generic: plain English describing code in a comment (local_tvt_scriptmode.c:38)
+@8f495bce0543 # generic: plain English describing code in a comment (local_tvt_util.c:42) and 3 more
+@aa4dfe0b4fe0 # generic: plain English describing code in a comment (wifibattlematch_link.c:4)
+@78272ec8523b # generic: plain English describing code in a comment (wifibattlematch_link_competition.c:82)
+@d7724ebb3557 # generic: plain English describing code in a comment (hall_of_fame_demo_main.c:434)
+@bb2dd59ac306 # generic: plain English describing code in a comment (br_bvsearch_proc.c:33) and 1 more
+@01dc45cba6f9 # generic: plain English describing code in a comment (br_record_proc.c:35) and 1 more
+@e80ed1d0c85a # generic: plain English describing code in a comment (br_pokesearch.c:1)
+@d759949eb2e1 # generic: plain English describing code in a comment (name_input.c:293)
+@a7ea1b6fcc58 # generic: plain English describing code in a comment (evolution_demo_view.c:187)
+@56be868e7d7a # generic: plain English describing code in a comment (pokedex_detail_form.c:254)
+@3bf520795f11 # generic: plain English describing code in a comment (pokedex_detail_voice.c:32)
+@0b9f29280787 # generic: plain English describing code in a comment (comm_btl_demo.c:46)
+@47f72b5358b6 # generic: plain English describing code in a comment (btl_rec_sel.c:49)
+@c74ea3f3b3e6 # generic: plain English describing code in a comment (cygnus_flow.c:356)
+@049205ae9b38 # generic: plain English describing code in a comment (data_convert_flow.c:32)
+@9fb156677501 # generic: plain English describing code in a comment (gf_font.c:28)
+@ab3b943a6d21 # generic: plain English describing code in a comment (key_data_savedata.c:155)
+@0088eba4c381 # generic: plain English describing code in a comment (move_tool.c:12)
+@91c9dc0d93eb # generic: plain English describing code in a comment (poke_tool.c:791)
+@d2a0049e415a # generic: plain English describing code in a comment (pokeparty.c:259)
+@4941f47d3057 # generic: plain English describing code in a comment (resonance_resort_data.c:50)
+@9668b1dbc170 # generic: plain English describing code in a comment (wipe.c:209)

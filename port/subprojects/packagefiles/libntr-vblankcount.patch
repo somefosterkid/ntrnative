@@ -1,0 +1,48 @@
+diff --git a/include/nitro/os/common/interrupt.h b/include/nitro/os/common/interrupt.h
+index e0bf4e3..f5f6fe9 100644
+--- a/include/nitro/os/common/interrupt.h
++++ b/include/nitro/os/common/interrupt.h
+@@ -173,14 +173,18 @@ static inline OSIrqMask OS_GetIrqCheckFlag (void)
+ void OS_WaitIrq(BOOL clear, OSIrqMask irqFlags);
+ void OS_WaitAnyIrq(void);
+ 
++// The simulator counts in s_HW_MAIN_MEM_SYSTEM + 0x3c (nitro/hw/X86/mmap_shared.h's HW_VBLANK_COUNT_BUF); the TWL
++// headers' HW_VBLANK_COUNT_BUF is an offset into the 8 MB main memory that is past its end, and which of the two this
++// inline got depended on the include order
++extern u8 s_HW_MAIN_MEM_SYSTEM[0x400];
+ static inline vu32 OS_GetVBlankCount (void)
+ {
+-	return *(vu32 *)HW_VBLANK_COUNT_BUF;
++	return *(vu32 *)((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c);
+ }
+ 
+ static inline void OSi_SetVBlankCount (u32 count)
+ {
+-	*(u32 *)HW_VBLANK_COUNT_BUF = count;
++	*(u32 *)((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c) = count;
+ }
+ 
+ extern void OS_SetIrqStackWarningOffset(u32 offset);
+diff --git a/include/twl/os/common/interrupt.h b/include/twl/os/common/interrupt.h
+index 295810f..e56a2db 100644
+--- a/include/twl/os/common/interrupt.h
++++ b/include/twl/os/common/interrupt.h
+@@ -278,12 +278,16 @@ void OS_WaitAnyIrq(void);
+ void OS_WaitAnyIrqEx(void);
+ #endif
+ 
++// The simulator counts in s_HW_MAIN_MEM_SYSTEM + 0x3c (nitro/hw/X86/mmap_shared.h's HW_VBLANK_COUNT_BUF); the TWL
++// headers' HW_VBLANK_COUNT_BUF is an offset into the 8 MB main memory that is past its end, and which of the two this
++// inline got depended on the include order
++extern u8 s_HW_MAIN_MEM_SYSTEM[0x400];
+ static inline vu32 OS_GetVBlankCount(void) {
+-  return *(vu32 *)HW_VBLANK_COUNT_BUF;
++  return *(vu32 *)((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c);
+ }
+ 
+ static inline void OSi_SetVBlankCount(u32 count) {
+-  *(u32 *)HW_VBLANK_COUNT_BUF = count;
++  *(u32 *)((u64)(s_HW_MAIN_MEM_SYSTEM) + 0x3c) = count;
+ }
+ 
+ extern void OS_SetIrqStackWarningOffset(u32 offset);

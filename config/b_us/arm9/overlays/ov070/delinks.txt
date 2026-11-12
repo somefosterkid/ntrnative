@@ -1,0 +1,16 @@
+    .text       start:0x021b6100 end:0x021bb95c kind:code align:32
+    .rodata     start:0x021bb95c end:0x021bbba0 kind:rodata align:4
+    .ctor       start:0x021bbba0 end:0x021bbba0 kind:rodata align:4
+    .data       start:0x021bbbc0 end:0x021bbc20 kind:data align:32
+    .bss        start:0x021bbc20 end:0x021bbc20 kind:bss align:32
+
+src/ov070/itemmenu_disp.c:
+    .text       start:0x021b8f98 end:0x021bb95c
+    .rodata     start:0x021bba64 end:0x021bbba0
+    .data       start:0x021bbbcc end:0x021bbc20
+
+src/ov070/itemmenu.c:
+    complete
+    .text       start:0x021b6100 end:0x021b8f98
+    .rodata     start:0x021bb95c end:0x021bba64
+    .data       start:0x021bbbc0 end:0x021bbbcc

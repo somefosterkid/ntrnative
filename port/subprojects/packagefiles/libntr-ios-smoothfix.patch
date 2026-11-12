@@ -1,0 +1,343 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1848,7 +1848,10 @@
+ // pictures, picture uploads, the time in the swap and in the pacing's sleeps, the longest gap between two presents, the process CPU.
+ // libntr-ios-smoothdrop.patch: with Smooth motion on, the slots after a tick's first that showed its picture again, by why (the
+ // in-between rule above SpPaceBegin): behind, gpu, late, none
+-static struct PaceCount { u64 ticks, presents, drawn, mids, upBytes, swapNs, sleepNs, maxGapNs, maxGapLogNs, lastPresentNs, ipBehind, ipGpu, ipLate, ipNone; } sPc;
++// libntr-ios-smoothfix.patch: ipHeld (the slots after a late one, while the rule waits: they were counted as late or gpu),
++// ipLateGpu (in-betweens shown but finished by the GPU past their deadline: they start a wait as a late CPU half does),
++// ipDrop (in-betweens made, then dropped at the present: the panel two pictures behind, LagSubmit)
++static struct PaceCount { u64 ticks, presents, drawn, mids, upBytes, swapNs, sleepNs, maxGapNs, maxGapLogNs, lastPresentNs, ipBehind, ipGpu, ipLate, ipNone, ipHeld, ipLateGpu, ipDrop; } sPc;
+ static u64 SpNowNs(void);
+ static double PaceCpuSec(void) {
+ #ifdef SDK_BUILD_WIN64
+@@ -2097,16 +2100,22 @@
+ // maintainer's phone: 1-5 a second, 20-38 at heavier settings). Presents that really outrun the panel still pile up in the chain.
+ static u64 sLagBusyNs;  // the last poll that found sLagQ[0] not done
+ // libntr-ios-smoothdrop.patch: an in-between picture's present carries the time its GPU work must be done by to be on the glass at
+-// the refresh after its slot (sLagBy, LagRec::by); one the GPU finished later (its earliest possible done time past it) makes the
+-// next ones wait as a late CPU half does (SpIpLate), one done in time ends the wait's doubling
+-static u64 sLagBy;
+-static void SpIpLate(int why);
++// the refresh after its slot (LagSubmit's by, LagRec::by); one the GPU finished later (its earliest possible done time past it) makes
++// the next ones wait as a late CPU half does (SpIpLate), one done in time ends the wait's doubling
++// libntr-ios-smoothfix.patch: "in time" is that earliest done time too (it was a poll before the deadline, so one done in time but
++// found after it counted as neither), and the deadline goes in with the present (it was a global that a dropped in-between left set:
++// the next present, the tick's own, got its tight deadline and was judged late: M2, pretended 120 Hz, BWPORT_GPUSLOW=90, 8 of 8)
++static void SpIpLate(void);
+ static void SpIpOnTime(void);
+ static void LagDone(u64 now, u64 earliest) {
+   LagRec &r = sLagQ[0];
+   sLagDelete(r.f);
+-  if (r.by != 0 && (earliest > r.submit ? earliest : r.submit) > r.by) SpIpLate(2);
+-  else if (r.by != 0 && now <= r.by) SpIpOnTime();
++  if (r.by != 0 && (earliest > r.submit ? earliest : r.submit) > r.by) {
++    SpIpLate();
++    sPc.ipLateGpu++;
++  } else if (r.by != 0) {
++    SpIpOnTime();
++  }
+   LagShown(r.submit, earliest > r.submit ? earliest : r.submit);
+   u64 lag = now - r.submit;
+   sLc.n++;
+@@ -2119,7 +2128,10 @@
+   memmove(&sLagQ[0], &sLagQ[1], (size_t)(sLagN - 1) * sizeof(LagRec));
+   sLagN--;
+ }
++static void DrPoll(bool wait);
++static int sDrCnt;
+ static void LagPoll(void) {
++  if (sDrCnt > 0) DrPoll(false);  // libntr-ios-smoothfix.patch: (the test aid's done times)
+   while (sLagN > 0) {
+     GLenum st = sLagWait(sLagQ[0].f, 0, 0);
+     if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED) {
+@@ -2167,9 +2179,67 @@
+   if (!blend) glDisable(GL_BLEND);
+   glViewport(vp[0], vp[1], vp[2], vp[3]);
+   glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)prevFbo);
++}
++// libntr-ios-smoothfix.patch: BWPORT_DRAWABLES=N (a test aid, with BWPORT_PANELHZ): the window has N drawables, as iOS's GL layer
++// (3). A present holds its drawable until the present after it is on the glass (the first pretended refresh after the GPU finished
++// it, one refresh after the one before at the earliest); the first draw into the window after a swap (the cap's glClears, SpDrawable)
++// waits for a free one, as on the phone. BWPORT_PANELHZ alone never blocks a swap or a draw, so pacing rules that counted that wait
++// looked right on the Mac and failed on the phone. The wait is counted (`drawables:` after each bench row).
++static struct DrRec { GLsync f; u64 busy, done, shown; } sDrQ[16];  // (busy: the submit, then the last poll that found it not done)
++static int sDrN = -1, sDrHead;  // a ring, the oldest at sDrHead
++static u64 sDrShownPrev, sDrWaitNs, sDrWaits;
++static u64 sDrBenchNs, sDrBenchN;  // (at the bench window's start)
++static void DrPoll(bool wait) {  // the GPU done and on-the-glass times, in order; wait: for the second oldest's
++  const u64 per = 1000000000ull / (u64)SpPanelEnvHz();
++  for (int i = 0; i < sDrCnt; i++) {
++    DrRec &d = sDrQ[(sDrHead + i) & 15];
++    if (d.done != 0) continue;
++    const bool w = wait && i <= 1;
++    GLenum st = sLagWait(d.f, w ? GL_SYNC_FLUSH_COMMANDS_BIT : 0, w ? 100000000ull : 0);
++    if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED && !w) {
++      d.busy = SpNowNs();
++      return;
++    }
++    d.done = st == GL_ALREADY_SIGNALED ? d.busy : SpNowNs();  // (the earliest it can have been done, as the panel model takes it)
++    u64 at = (d.done + per - 1) / per * per;
++    if (at < sDrShownPrev + per) at = sDrShownPrev + per;
++    d.shown = sDrShownPrev = at;
++  }
+ }
++static void SpDrawable(void) {
++  if (sDrN < 0) sDrN = getenv("BWPORT_DRAWABLES") != NULL && SpPanelEnvHz() > 0 ? atoi(getenv("BWPORT_DRAWABLES")) : 0;
++  if (sDrN < 2 || !LagReady()) return;
++  DrPoll(false);
++  while (sDrCnt >= sDrN) {  // the oldest is free once the one after it is on the glass
++    if (sDrQ[(sDrHead + 1) & 15].done == 0) DrPoll(true);
++    u64 t0 = SpNowNs(), until = sDrQ[(sDrHead + 1) & 15].shown;
++    while (SpNowNs() < until) {
++      struct timespec ts = {0, (long)(until - SpNowNs())};
++      nanosleep(&ts, NULL);
++    }
++    sDrWaitNs += SpNowNs() - t0;
++    sDrWaits += SpNowNs() - t0 > 100000;
++    sLagDelete(sDrQ[sDrHead].f);
++    sDrHead = (sDrHead + 1) & 15;
++    sDrCnt--;
++    DrPoll(false);
++  }
++}
++static void DrPresented(void) {
++  if (sDrN < 2) return;
++  if (sDrCnt == 16) {
++    sLagDelete(sDrQ[sDrHead].f);
++    sDrHead = (sDrHead + 1) & 15;
++    sDrCnt--;
++  }
++  DrRec &d = sDrQ[(sDrHead + sDrCnt) & 15];
++  d.f = sLagFence(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
++  d.busy = SpNowNs();
++  d.done = d.shown = 0;
++  if (d.f != NULL) sDrCnt++;
++}
+ // just before a swap: the bound, then this frame's fence; false: drop this present (iOS: the panel is two pictures behind)
+-static bool LagSubmit(void) {
++static bool LagSubmit(u64 by = 0) {
+   if (!LagReady()) return true;
+   if (sLagSlow > 0) LagSlowGpu();
+   LagPoll();
+@@ -2199,8 +2269,7 @@
+   sLagN++;
+   r.serial = ++sLagSerial;
+   r.submit = SpNowNs();
+-  r.by = sLagBy;
+-  sLagBy = 0;
++  r.by = by;
+   r.inflight = sLagN;
+   if (sLagN > sLc.maxIn) sLc.maxIn = sLagN;
+   if (sLagN > sLc.bMaxIn) sLc.bMaxIn = sLagN;
+@@ -2214,6 +2283,7 @@
+   if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapNs) sPc.maxGapNs = now - sPc.lastPresentNs;
+   if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapLogNs) sPc.maxGapLogNs = now - sPc.lastPresentNs;
+   sPc.lastPresentNs = now;
++  DrPresented();  // libntr-ios-smoothfix.patch
+ }
+ 
+ static struct {
+@@ -2240,6 +2310,8 @@
+   sBench.sc0 = sSc;
+   snprintf(sBench.name, sizeof sBench.name, "%s", name);
+   PassReset();  // libntr-ios-passes.patch
++  sDrBenchNs = sDrWaitNs;  // libntr-ios-smoothfix.patch
++  sDrBenchN = sDrWaits;
+ }
+ static bool BenchBusy(void) { return sBench.on; }
+ static void BenchCancel(void) { sBench.on = false; }
+@@ -2316,12 +2388,14 @@
+     double dt = (now - sLast) / 1e9, cpu = PaceCpuSec();
+     u64 t = sPc.ticks - sPrev.ticks;
+     fprintf(stderr, "pace ticks %llu pres %llu drawn %llu mid %llu upMB %.1f swap %.1f sleep %.1f gap %.1f cores %.2f ms/tick %.2f"
+-            " mid not: behind %llu gpu %llu late %llu none %llu\n",
++            " mid not: behind %llu gpu %llu late %llu held %llu none %llu dropped %llu, late on the GPU %llu\n",
+             (unsigned long long)t, (unsigned long long)(sPc.presents - sPrev.presents), (unsigned long long)(sPc.drawn - sPrev.drawn),
+             (unsigned long long)(sPc.mids - sPrev.mids), (sPc.upBytes - sPrev.upBytes) / 1e6 / dt, (sPc.swapNs - sPrev.swapNs) / 1e6 / dt,
+             (sPc.sleepNs - sPrev.sleepNs) / 1e6 / dt, sPc.maxGapLogNs / 1e6, (cpu - sCpuPrev) / dt, t ? (cpu - sCpuPrev) * 1e3 / t : 0.0,
+             (unsigned long long)(sPc.ipBehind - sPrev.ipBehind), (unsigned long long)(sPc.ipGpu - sPrev.ipGpu),
+-            (unsigned long long)(sPc.ipLate - sPrev.ipLate), (unsigned long long)(sPc.ipNone - sPrev.ipNone));
++            (unsigned long long)(sPc.ipLate - sPrev.ipLate), (unsigned long long)(sPc.ipHeld - sPrev.ipHeld),
++            (unsigned long long)(sPc.ipNone - sPrev.ipNone), (unsigned long long)(sPc.ipDrop - sPrev.ipDrop),
++            (unsigned long long)(sPc.ipLateGpu - sPrev.ipLateGpu));
+     // libntr-ios-input.patch: the second's presses (count, mean and longest ms to the present) and on iOS the main run loop's turns
+     // (port/src/ios_input.m: entries, the longest time between two, the display frames a CADisplayLink got, missed, and how late)
+     if (sIn[0].n > 0) fprintf(stderr, "pace input %d presses, %.0f ms mean, %.0f max\n", sIn[0].n, sIn[0].sum / sIn[0].n, sIn[0].max);
+@@ -2349,10 +2423,15 @@
+     if (now - sIpLogT >= 10000000000ull) {
+       u64 b = sPc.ipBehind - sIpLogC.ipBehind, g = sPc.ipGpu - sIpLogC.ipGpu, l = sPc.ipLate - sIpLogC.ipLate;
+       u64 n = sPc.ipNone - sIpLogC.ipNone;
+-      if (b + g + l + n > 0)
++      // libntr-ios-smoothfix.patch: held and dropped too, and late on the GPU (shown, but they start a wait); not for nothing to
++      // blend alone (a static or 2D scene printed it forever)
++      u64 h = sPc.ipHeld - sIpLogC.ipHeld, d = sPc.ipDrop - sIpLogC.ipDrop, lg = sPc.ipLateGpu - sIpLogC.ipLateGpu;
++      if (b + g + l + h + d + lg > 0)
+         fprintf(stderr, "smooth motion: %llu in-between pictures shown, %llu not in the last %.0f s (the game behind %llu, the GPU behind %llu, "
+-                "late %llu, nothing to blend %llu)\n", (unsigned long long)(sPc.mids - sIpLogC.mids), (unsigned long long)(b + g + l + n),
+-                (now - sIpLogT) / 1e9, (unsigned long long)b, (unsigned long long)g, (unsigned long long)l, (unsigned long long)n);
++                "late %llu, held after a late one %llu, nothing to blend %llu, dropped at the present %llu); %llu shown late on the GPU\n",
++                (unsigned long long)(sPc.mids - sIpLogC.mids), (unsigned long long)(b + g + l + h + n + d), (now - sIpLogT) / 1e9,
++                (unsigned long long)b, (unsigned long long)g, (unsigned long long)l, (unsigned long long)h, (unsigned long long)n,
++                (unsigned long long)d, (unsigned long long)lg);
+       sIpLogT = now;
+       sIpLogC = sPc;
+     }
+@@ -2362,21 +2441,23 @@
+     double dt = (now - sBench.t0) / 1e9, cpu = PaceCpuSec() - sBench.cpu0;
+     const PaceCount &a = sBench.c0;
+     u64 t = sPc.ticks - a.ticks;
+-    char row[320];
++    char row[400];
+     if (!sBench.any) {
+       sBench.any = true;
+-      sBench.table = "bench: step                 renderer      speed x  pres/s drawn/s  mid/s  upMB/s  swap ms/s  gap ms  cores  CPU ms/tick  gpu lag ms  max  in flight  shown ms  drops  behind/s  gpu/s  late/s  none/s\n";
++      sBench.table = "bench: step                 renderer      speed x  pres/s drawn/s  mid/s  upMB/s  swap ms/s  gap ms  cores  CPU ms/tick  gpu lag ms  max  in flight  shown ms  drops  behind/s  gpu/s  late/s  none/s  held/s  mdrop/s  glate/s\n";
+     }
+     // libntr-ios-lag.patch: the window's GPU lag (the swap call to the GPU done with the frame: mean, max) and the most frames in flight
+     // libntr-ios-smoothdrop.patch: behind/s, gpu/s, late/s, none/s: the in-between slots that showed the tick's picture again, by why
++    // libntr-ios-smoothfix.patch: held/s (after a late one), mdrop/s (made, dropped at the present), glate/s (shown, the GPU late)
+     const u64 ln = sLc.n - sBench.lc0.n;
+-    snprintf(row, sizeof row, "bench: %-20s %-13s %7.2f %7.1f %7.1f %6.1f %7.1f %10.1f %7.1f %6.2f %12.2f %11.1f %4.0f %10d %9.1f %6llu %9.1f %6.1f %7.1f %7.1f\n", sBench.name, RendererShort(),
++    snprintf(row, sizeof row, "bench: %-20s %-13s %7.2f %7.1f %7.1f %6.1f %7.1f %10.1f %7.1f %6.2f %12.2f %11.1f %4.0f %10d %9.1f %6llu %9.1f %6.1f %7.1f %7.1f %7.1f %8.1f %8.1f\n", sBench.name, RendererShort(),
+              t / dt / 59.8261, (sPc.presents - a.presents) / dt, (sPc.drawn - a.drawn) / dt, (sPc.mids - a.mids) / dt,
+              (sPc.upBytes - a.upBytes) / 1e6 / dt, (sPc.swapNs - a.swapNs) / 1e6 / dt, sPc.maxGapNs / 1e6, cpu / dt, t ? cpu * 1e3 / t : 0.0,
+              ln ? (sLc.sumNs - sBench.lc0.sumNs) / 1e6 / ln : 0.0, sLc.bMaxNs / 1e6, sLc.bMaxIn,
+              sSc.n > sBench.sc0.n ? (sSc.sumNs - sBench.sc0.sumNs) / 1e6 / (sSc.n - sBench.sc0.n) : 0.0,
+              (unsigned long long)(sSc.drops - sBench.sc0.drops), (sPc.ipBehind - a.ipBehind) / dt, (sPc.ipGpu - a.ipGpu) / dt,
+-             (sPc.ipLate - a.ipLate) / dt, (sPc.ipNone - a.ipNone) / dt);
++             (sPc.ipLate - a.ipLate) / dt, (sPc.ipNone - a.ipNone) / dt, (sPc.ipHeld - a.ipHeld) / dt, (sPc.ipDrop - a.ipDrop) / dt,
++             (sPc.ipLateGpu - a.ipLateGpu) / dt);
+     sBench.table += row;
+     fputs(row, stderr);
+     if (sPerfTestOn) sPerfRowsDone++;  // libntr-ios-testbadge.patch
+@@ -2386,6 +2467,9 @@
+               sBench.name, (unsigned long long)sPassNg, sPassCpu[0] / nc, sPassCpu[1] / nc, sPassCpu[2] / nc, sPassGpu[0] / ng,
+               sPassGpu[1] / ng, sPassGpu[2] / ng, sPassGpu[4] / ng, sPassGpu[3] / ng);
+     }
++    if (sDrN >= 2)  // libntr-ios-smoothfix.patch: the test aid's waits for a drawable (BWPORT_DRAWABLES)
++      fprintf(stderr, "drawables: %-20s %d, waits %.1f/s, %.1f ms/s\n", sBench.name, sDrN, (sDrWaits - sDrBenchN) / dt,
++              (sDrWaitNs - sDrBenchNs) / 1e6 / dt);
+     fflush(stderr);
+   }
+ }
+@@ -2541,13 +2625,32 @@
+ //   in time (on the GPU too) ends the doubling.
+ // - none: the bridge had none (nothing to blend: the 3D did not move, a repeated frame, 3D off).
+ // Counted per second in the pace line, per bench window, and logged every 10 s while any were not shown.
++// libntr-ios-smoothfix.patch: the rules measured the wrong things on a test iPhone (120 Hz, gpu 3x, Monitor: 4 samples 0.0
++// in-betweens/s with behind 60/s at 1.00x, AA off 34/s; docs/perf.md 'Smooth motion's skip rules, fixed'):
++// - behind was the time at the tick's top, after the whole tick's game logic, the event pump (a UIKit run-loop turn), the UI and
++//   the post-sleep glClear (on iOS it waits for a free drawable, longer the more the GPU lags). Now it is how late the cap's sleep
++//   ended past the tick's due time (SpIpLateMark), and only its growth over the least of the last 64 ticks counts: a steady offset
++//   (the sleep's own overshoot) is no lateness, a tick that overran is.
++// - gpu counted the tick's own present, just sent: two in flight is normal pipelining. Now: LagSubmit would still block without it,
++//   or the oldest is older than an in-between's deadline window (2 slots less 2.5 ms; a GPU that slow makes this one late too).
++// - behind: a repeated picture whose slot has passed is not presented (a swap that waits for the refresh, as on desktop Monitor,
++//   Android or iOS without a free drawable, cost a refresh for nothing, so a 40 ms hitch kept them off for ~15 s at 120 Hz).
++// - the slots the rule holds after a late one count as held (they read as late or gpu: vcore 4x "late 59/s" for ~2 real misses).
+ static bool sIpBehind, sIpHold, sIpLateNow;
+-static int sIpLateRun, sIpHoldTicks, sIpHoldWhy;
++static u64 sIpLateRing[64], sIpLateNs;
++static int sIpLateI;
++static bool sIpLateSet;
++static void SpIpLateMark(u64 due) {  // right after the cap's sleep for the next tick (due: its due time)
++  u64 now = SpNowNs();
++  sIpLateNs = now > due ? now - due : 0;
++  sIpLateRing[sIpLateI++ & 63] = sIpLateNs;
++  sIpLateSet = true;
++}
++static int sIpLateRun, sIpHoldTicks;
+ extern "C" void SIM_InterpLate(void) { sIpLateNow = true; }
+-static void SpIpLate(int why) {
++static void SpIpLate(void) {
+   sIpLateRun++;
+   sIpHoldTicks = sIpLateRun > 6 ? 32 : 1 << (sIpLateRun - 1);
+-  sIpHoldWhy = why;
+ }
+ static void SpIpOnTime(void) { sIpLateRun = 0; }
+ 
+@@ -2636,7 +2739,12 @@
+       sPace.phase = ph < 0 ? ph + (s64)Q : ph;
+     }
+   }
+-  sIpBehind = now > SpTickDue(sPace.n) + kSpFrame / (u64)S / 4;  // libntr-ios-smoothdrop.patch: (0 just after a restart: due = now)
++  {  // libntr-ios-smoothfix.patch: (none just after a restart, or when the cap's sleep did not run)
++    u64 least = sIpLateNs;
++    for (int i = 0; i < 64 && i < sIpLateI; i++) least = sIpLateRing[i] < least ? sIpLateRing[i] : least;
++    sIpBehind = sIpLateSet && sPace.n > 0 && sIpLateNs - least > kSpFrame / (u64)S / 4;
++    sIpLateSet = false;
++  }
+   if (!s_SIM_config.interpolation) sIpLateRun = sIpHoldTicks = 0;  // (switched off and on: afresh)
+   sIpHold = sIpHoldTicks > 0;
+   if (sIpHold) sIpHoldTicks--;
+@@ -3885,9 +3993,19 @@
+           if (s_SIM_config.interpolation && (sInterpTex != NULL || sInterpPic != NULL)) {
+             ipWhy = 3;
+             if (LagReady() && sLagBound > 0) LagPoll();
++            // libntr-ios-smoothfix.patch: (gpu: the present just sent, within the last slot, is not counted; held: 5)
++            const u64 tnow = SpNowNs();
++            int older = sLagN;
++            if (older > 0 && sLagQ[older - 1].serial == sLagSerial && tnow - sLagQ[older - 1].submit < sPace.Q) older--;
+             if (sIpBehind) ipWhy = 1;
+-            else if (sIpHold) ipWhy = sIpHoldWhy;
+-            else if (LagReady() && sLagBound > 0 && sLagN >= sLagBound) ipWhy = 2;
++            else if (sIpHold) ipWhy = 5;
++            else if (LagReady() && sLagBound > 0 && (older >= sLagBound || (older > 0 && tnow - sLagQ[0].submit > 2 * sPace.Q - 2500000)))
++              ipWhy = 2;
++            // libntr-ios-smoothfix.patch: behind, and this slot has passed: no present of the repeated picture
++            if (ipWhy == 1 && tnow >= at) {
++              sPc.ipBehind++;
++              continue;
++            }
+           }
+           sIpLateNow = false;
+           if (sInterpTex != NULL && s_SIM_config.interpolation && ipWhy == 3) { // the GPU path's in-between: drawn now, shown at the slot
+@@ -3899,6 +4017,7 @@
+           }
+           SpSleepUntil(at);
+           if (touchMode && SimTouch_Background()) break;  // (libntr-ios-inputprio.patch: no GL in the background)
++          SpDrawable();  // libntr-ios-smoothfix.patch: (a test aid: BWPORT_DRAWABLES)
+           glClear(GL_COLOR_BUFFER_BIT);
+           sPresentMid = 0;
+           if (midTex != 0 && tw > 0 && th > 0) {
+@@ -3938,14 +4057,18 @@
+           if (!sPresentMid && ipWhy == 3 && sIpLateNow) ipWhy = 4;
+           if (!sPresentMid && ipWhy == 3) sPc.ipNone++;
+           if (!sPresentMid && ipWhy == 4) sPc.ipLate++;
+-          if (!sPresentMid && sIpLateNow) SpIpLate(4);
++          if (!sPresentMid && ipWhy == 5) sPc.ipHeld++;
++          if (!sPresentMid && sIpLateNow) SpIpLate();
+           if (sPresentMid && !LagReady()) SpIpOnTime();  // (no fences: shown counts as in time)
+           // the GPU must be done by the refresh after the next slot's (the slot aims 2.5 ms past a refresh with a display link,
+           // SpAfterSwap; at the V-blank without one): one refresh later than it should only shares that refresh with the next present
+           // (a GPU a little behind now and then: M2, gpu 3x 4 samples, a mid done ~6 ms after its swap at a pretended 120 Hz, 15-25 a
+           // second past the first refresh, no more drops than with every one shown); past the second it has made the next one late
+-          if (sPresentMid) sLagBy = SpSlotAbs(sPace.first + r) + 2 * sPace.Q - (SpLink(&lvs, &lper) ? 2500000 : 0);
+-          if (!LagSubmit()) continue;  // libntr-ios-lag.patch
++          const u64 by = sPresentMid ? SpSlotAbs(sPace.first + r) + 2 * sPace.Q - (SpLink(&lvs, &lper) ? 2500000 : 0) : 0;
++          if (!LagSubmit(by)) {  // libntr-ios-lag.patch
++            if (sPresentMid) sPc.ipDrop++;  // libntr-ios-smoothfix.patch
++            continue;
++          }
+           u64 call = SpNowNs();
+           SDL_GL_SwapWindow(window);
+           PacePresented(SpNowNs() - call);
+@@ -3955,6 +4078,7 @@
+       }
+       sPace.n++;
+       SpSleepUntil(SpTickDue(sPace.n));
++      SpIpLateMark(SpTickDue(sPace.n));  // libntr-ios-smoothfix.patch: (before the next glClear and tick: the "behind" rule)
+     }
+ 
+     FLStamp(7);
+@@ -3977,6 +4101,7 @@
+     s_numG3CommandsThisFrame = 0;
+     // the window's next frame (libntr-ios-render.patch: not in the background, iOS allows no GL there)
+     if (!(touchMode && SimTouch_Background())) {
++      SpDrawable();  // libntr-ios-smoothfix.patch: (a test aid: BWPORT_DRAWABLES)
+       glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+       glClear(GL_COLOR_BUFFER_BIT);
+     }

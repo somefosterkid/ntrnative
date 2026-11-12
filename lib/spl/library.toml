@@ -1,0 +1,22 @@
+# Nintendo's SPL particle library, in Black's ARM9 main. It was built apart from the game: with an older compiler, which emits a file's functions in reverse source order, as ARM
+# code, without interprocedural analysis, and against an older NitroSDK whose headers differ (OLD_NITRO_SDK). From
+# pokebw2's lib/spl/library.toml (GPL-3.0): its SPL C compiles to code identical to Black's with these.
+compiler = "1.2/base"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-sym on",             # Debug info
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+    "-d OLD_NITRO_SDK",
+]

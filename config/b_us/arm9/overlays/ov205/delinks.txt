@@ -1,0 +1,14 @@
+    .text       start:0x021b95a0 end:0x021b9e50 kind:code align:32
+    .rodata     start:0x021b9e50 end:0x021b9f2c kind:rodata align:4
+    .ctor       start:0x021b9f2c end:0x021b9f2c kind:rodata align:4
+    .bss        start:0x021b9f40 end:0x021b9f40 kind:bss align:32
+
+src/ov205/battle_lose_message.c:
+    complete
+    .text       start:0x021b9bac end:0x021b9e50
+    .rodata     start:0x021b9ec0 end:0x021b9f2c
+
+src/ov205/game_clear_save.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9bac
+    .rodata     start:0x021b9e50 end:0x021b9ec0

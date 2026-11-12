@@ -1,0 +1,10 @@
+FestSparkle_Show kind:function(thumb,size=0x1c) addr:0x021e8c20
+FestSparkle_End kind:function(thumb,size=0x24) addr:0x021e8c3c
+FestSparkle_CheckPickUpGrid kind:function(thumb,size=0x66) addr:0x021e8c60
+FestSparkle_CheckPickUpRail kind:function(thumb,size=0x6c) addr:0x021e8cc8
+FestSparkle_IsOnTile kind:function(thumb,size=0xbe) addr:0x021e8d34
+FestSparkle_PickUp kind:function(thumb,size=0x58) addr:0x021e8df4
+FestSparkle_ShowAll kind:function(thumb,size=0xac) addr:0x021e8e4c
+FestSparkle_IsBlockedGrid kind:function(thumb,size=0x68) addr:0x021e8ef8
+FestSparkle_IsBlockedRail kind:function(thumb,size=0x3c) addr:0x021e8f60
+FestSparkle_GetZone kind:function(thumb,size=0x3a) addr:0x021e8f9c

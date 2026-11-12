@@ -1,0 +1,9 @@
+    .text       start:0x021e5440 end:0x021e5b30 kind:code align:32
+    .rodata     start:0x021e5b30 end:0x021e5b48 kind:rodata align:4
+    .ctor       start:0x021e5b48 end:0x021e5b48 kind:rodata align:4
+    .bss        start:0x021e5b60 end:0x021e5b60 kind:bss align:32
+
+src/ov178/wifibattlematch_subproc.c:
+    complete
+    .text       start:0x021e5440 end:0x021e5b30
+    .rodata     start:0x021e5b30 end:0x021e5b48

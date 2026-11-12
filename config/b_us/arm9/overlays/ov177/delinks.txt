@@ -1,0 +1,23 @@
+    .text       start:0x021e5440 end:0x021e8b00 kind:code align:32
+    .rodata     start:0x021e8b00 end:0x021e8d9c kind:rodata align:4
+    .ctor       start:0x021e8d9c end:0x021e8d9c kind:rodata align:4
+    .data       start:0x021e8da0 end:0x021e8e00 kind:data align:32
+    .bss        start:0x021e8e00 end:0x021e8e00 kind:bss align:32
+
+src/ov177/wifibattlematch_util.c:
+    complete
+    .text       start:0x021e8568 end:0x021e8b00
+    .rodata     start:0x021e8d68 end:0x021e8d9c
+    .data       start:0x021e8dd4 end:0x021e8e00
+
+src/ov177/wifibattlematch_view.c:
+    complete
+    .text       start:0x021e567c end:0x021e8568
+    .rodata     start:0x021e8cbc end:0x021e8d68
+    .data       start:0x021e8dbc end:0x021e8dd4
+
+src/ov177/wifibattlematch_graphic.c:
+    complete
+    .text       start:0x021e5440 end:0x021e567c
+    .rodata     start:0x021e8b00 end:0x021e8cbc
+    .data       start:0x021e8da0 end:0x021e8dbc

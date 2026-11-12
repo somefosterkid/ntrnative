@@ -1,0 +1,104 @@
+// From libntr (MIT, https://github.com/cybervisi0n/libntr) at 1555d91: include/nitro/os/common/emulator.h, as it is (tools/port_lib.py)
+#ifndef NITRO_OS_EMULATOR_H_
+#define NITRO_OS_EMULATOR_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define OSi_CONSOLE_NOT_DETECT    0xffffffff
+
+#define OS_CONSOLE_MASK           0xf0000000
+#if SDK_VERSION_MAJOR == 5
+#define OS_CONSOLE_TWL 0x01000000
+#define OS_CONSOLE_TWLDEBUGGER 0x02000000
+#define OS_CONSOLE_RESERVE1 0x04000000
+#define OS_CONSOLE_RESERVE2 0x08000000
+#endif
+#define OS_CONSOLE_ENSATA         0x10000000
+#define OS_CONSOLE_ISEMULATOR     0x20000000
+#define OS_CONSOLE_ISDEBUGGER     0x40000000
+#define OS_CONSOLE_NITRO          0x80000000
+
+#if SDK_VERSION_MAJOR == 5
+#define OS_CONSOLE_BOARD_MASK 0x00300000
+#define OS_CONSOLE_BOARD_A9_A7 0x00100000
+#define OS_CONSOLE_BOARD_A9 0x00200000
+
+#define OS_CONSOLE_TWLTYPE_MASK 0x00c00000
+#define OS_CONSOLE_TWLTYPE_RETAIL 0x00800000
+#define OS_CONSOLE_TWLTYPE_DEV 0x00400000
+
+#define OS_CONSOLE_EVALUATE 0x00080000
+#endif
+
+#define OS_CONSOLE_DEV_MASK       0x03000000
+#define OS_CONSOLE_DEV_CARTRIDGE  0x01000000
+#define OS_CONSOLE_DEV_CARD       0x02000000
+#if SDK_VERSION_MAJOR == 5
+#define OS_CONSOLE_DEV_NAND 0x00040000
+#define OS_CONSOLE_DEV_SDCARD 0x00080000
+#define OS_CONSOLE_DEV_MEMORY 0x00008000
+#define OS_CONSOLE_DEV_DOWNLOAD 0x00004000
+#endif
+
+#define OS_CONSOLE_SIZE_MASK      0x00000003
+#define OS_CONSOLE_SIZE_4MB       0x00000001
+#define OS_CONSOLE_SIZE_8MB       0x00000002
+#if SDK_VERSION_MAJOR == 5
+#define OS_CONSOLE_SIZE_16MB 0x00000004
+#define OS_CONSOLE_SIZE_32MB 0x00000008
+
+#define OS_CHIPTYPE_DEBUGGER_ADDR (HW_SYS_CONF_BUF + 4)
+#define OS_CHIPTYPE_DEBUGGER_SIZE 1
+#define OS_CHIPTYPE_DEBUGGER_MASK 0x3
+
+#define OS_CHIPTYPE_JTAG_ADDR (HW_SYS_CONF_BUF + 5)
+#define OS_CHIPTYPE_JTAG_SIZE 1
+#define OS_CHIPTYPE_JTAG_MASK 0x2
+
+#define OS_CHIPTYPE_SMX_ADDR (HW_MMEMCHECKER_SUB)
+#define OS_CHIPTYPE_SMX_SIZE 2
+#define OS_CHIPTYPE_SMX_MASK 0x8000
+
+typedef enum {
+  OS_CHIPTYPE_TWL = 0,
+  OS_CHIPTYPE_DEBUGGER_1 = 1,
+  OS_CHIPTYPE_DEBUGGER_2 = 2,
+  OS_CHIPTYPE_EVALUATE = 3
+} OSChipType;
+#endif
+
+BOOL OS_IsRunOnEmulator(void);
+
+u32 OS_GetConsoleType(void);
+
+// Black is a TwlSDK 5 hybrid: whether it runs on a DSi is a function (this SDK 4 header made it a FALSE macro
+// without SDK_TWL)
+BOOL OS_IsRunOnTwl(void);
+
+#if SDK_VERSION_MAJOR == 5
+u32 OS_GetRunningConsoleType(void);
+BOOL OS_IsRunOnDebugger(void);
+
+#ifndef SDK_FINALROM
+void OS_SetConsoleType(u32 type);
+#else
+#define OS_SetConsoleType(x) ((void)0)
+#endif
+
+u32 OSi_DetectDebugger(void);
+u32 OSi_DetectEmulator(void);
+
+#ifndef SDK_TWLLTD
+BOOL OSi_IsNitroModeOnTwl(void);
+#else
+#define OSi_IsNitroModeOnTwl() (FALSE)
+#endif
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

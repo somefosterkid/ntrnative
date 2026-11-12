@@ -1,0 +1,46 @@
+    .text       start:0x021f8480 end:0x021fda78 kind:code align:32
+    .rodata     start:0x021fda78 end:0x021fdc80 kind:rodata align:4
+    .ctor       start:0x021fdc80 end:0x021fdc80 kind:rodata align:4
+    .data       start:0x021fdca0 end:0x021fde80 kind:data align:32
+    .bss        start:0x021fde80 end:0x021fdea0 kind:bss align:32
+
+src/ov132/sta_act_script.c:
+    complete
+    .text       start:0x021faaf4 end:0x021fae1c
+    .rodata     start:0x021fdc2c end:0x021fdc38
+    .data       start:0x021fdcec end:0x021fdd00
+
+src/ov132/sta_act_effect.c:
+    complete
+    .text       start:0x021f9e50 end:0x021f9fec
+    .data       start:0x021fdcb0 end:0x021fdcc4
+
+src/ov132/mus_comm_func.c:
+    complete
+    .text       start:0x021fc644 end:0x021fda78
+    .rodata     start:0x021fdc38 end:0x021fdc80
+    .data       start:0x021fddec end:0x021fde80
+
+src/ov132/sta_act_button.c:
+    complete
+    .text       start:0x021fa5b0 end:0x021faaf4
+    .rodata     start:0x021fdc20 end:0x021fdc2c
+    .data       start:0x021fdcd8 end:0x021fdcec
+
+src/ov132/sta_act_audience.c:
+    complete
+    .text       start:0x021f9fec end:0x021fa5b0
+    .rodata     start:0x021fdc14 end:0x021fdc20
+    .data       start:0x021fdcc4 end:0x021fdcd8
+
+src/ov132/sta_acting.c:
+    complete
+    .text       start:0x021f8480 end:0x021f9e50
+    .rodata     start:0x021fda78 end:0x021fdc14
+    .data       start:0x021fdca0 end:0x021fdcb0
+    .bss        start:0x021fde80 end:0x021fdea0
+
+src/ov132/script_command.c:
+    complete
+    .text       start:0x021fae1c end:0x021fc644
+    .data       start:0x021fdd00 end:0x021fddec

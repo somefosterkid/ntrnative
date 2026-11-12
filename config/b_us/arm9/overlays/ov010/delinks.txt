@@ -1,0 +1,455 @@
+    .text       start:0x02155160 end:0x0216fed8 kind:code align:32
+    .rodata     start:0x0216fed8 end:0x021726f4 kind:rodata align:4
+    .ctor       start:0x021726f4 end:0x021726f4 kind:rodata align:4
+    .data       start:0x02172700 end:0x02172ba0 kind:data align:32
+    .bss        start:0x02172ba0 end:0x02172bc0 kind:bss align:32
+
+src/ov010/scrcmd_weather.c:
+    complete
+    .text       start:0x02166f1c end:0x02166f9c
+
+src/ov010/symbol_save_field.c:
+    complete
+    .text       start:0x021673a8 end:0x02167518
+
+src/ov010/shaymin_form.c:
+    complete
+    .text       start:0x0216a298 end:0x0216a3f8
+
+src/ov010/oneshot_dr.c:
+    complete
+    .text       start:0x0216bf74 end:0x0216bfd4
+    .rodata     start:0x02172508 end:0x02172528
+
+src/ov010/event_research_radar.c:
+    complete
+    .text       start:0x02166f9c end:0x02167080
+    .data       start:0x02172a00 end:0x02172a18
+
+src/ov010/fld_btl_inst_event.c:
+    complete
+    .text       start:0x02167ef4 end:0x021681c8
+
+src/ov010/report_event.c:
+    complete
+    .text       start:0x02169ab8 end:0x0216a298
+    .data       start:0x02172a50 end:0x02172a60
+
+src/ov010/scrcmd_actor_move.c:
+    complete
+    .text       start:0x0216a7a0 end:0x0216aae4
+
+src/ov010/namein_setup.c:
+    complete
+    .text       start:0x0216bfd4 end:0x0216c0e8
+    .data       start:0x02172a60 end:0x02172a70
+src/ov010/scrcmd_network.c:
+    complete
+    .text       start:0x0215f168 end:0x0215f2f0
+    .data       start:0x0217294c end:0x02172960
+
+src/ov010/event_battle_lose.c:
+    complete
+    .text       start:0x0215f64c end:0x0215f734
+
+src/ov010/event_field_menu.c:
+    complete
+    .text       start:0x0215fc40 end:0x0215fec8
+
+src/ov010/event_save.c:
+    complete
+    .text       start:0x021616a4 end:0x02161824
+
+src/ov010/event_action_call.c:
+    complete
+    .text       start:0x02161824 end:0x02161b90
+    .rodata     start:0x021713ec end:0x0217144c
+
+src/ov010/hidden_item.c:
+    complete
+    .text       start:0x021646e8 end:0x02164778
+    .rodata     start:0x02171534 end:0x02171c20
+
+src/ov010/scrcmd_ndemo.c:
+    complete
+    .text       start:0x02164910 end:0x02164a2c
+
+src/ov010/building_enter_effect.c:
+    complete
+    .text       start:0x02166a6c end:0x02166b58
+    .data       start:0x021729fc end:0x02172a00
+    .bss        start:0x02172ba4 end:0x02172bac
+
+src/ov010/scrcmd_phrase_select.c:
+    complete
+    .text       start:0x02166d30 end:0x02166f1c
+
+src/ov010/city_state.c:
+    complete
+    .text       start:0x02161d64 end:0x0216237c
+    .rodata     start:0x0217144c end:0x02171458
+    .data       start:0x02172990 end:0x0217299c
+src/ov010/musical_dressup_sys.c:
+    complete
+    .text       start:0x02156bd0 end:0x02156ce0
+    .data       start:0x02172724 end:0x02172748
+
+src/ov010/musical_program.c:
+    complete
+    .text       start:0x02157028 end:0x0215739c
+    .data       start:0x02172768 end:0x0217277c
+
+src/ov010/event_colosseum_battle.c:
+    complete
+    .text       start:0x0215739c end:0x0215765c
+    .data       start:0x0217277c end:0x02172780
+
+src/ov010/intrude_work.c:
+    complete
+    .text       start:0x02158318 end:0x02158768
+    .rodata     start:0x021700a4 end:0x021701a8
+
+src/ov010/trainer_script.c:
+    complete
+    .text       start:0x0215a438 end:0x0215a514
+
+src/ov010/field_encount_st.c:
+    complete
+    .text       start:0x0215e2b8 end:0x0215e358
+    .data       start:0x02172928 end:0x0217293c
+
+src/ov010/move_pokemon.c:
+    complete
+    .text       start:0x0215e358 end:0x0215e840
+    .rodata     start:0x021711a8 end:0x021711e8
+    .data       start:0x0217293c end:0x0217294c
+
+src/ov010/event_cgear_poweron.c:
+    complete
+    .text       start:0x02168b18 end:0x02168bf0
+
+src/ov010/respawn_zone.c:
+    complete
+    .text       start:0x02159f84 end:0x0215a07c
+    .rodata     start:0x02170fec end:0x02171140
+
+src/ov010/script_sub_event.c:
+    complete
+    .text       start:0x02159130 end:0x02159240
+    .bss        start:0x02172ba0 end:0x02172ba4
+
+src/ov010/calender.c:
+    complete
+    .text       start:0x021647a0 end:0x02164910
+    .rodata     start:0x02171c20 end:0x02171c30
+    .data       start:0x021729b0 end:0x021729bc
+
+src/ov010/waza_oshie.c:
+    complete
+    .text       start:0x0216f918 end:0x0216fab4
+    .data       start:0x02172b74 end:0x02172ba0
+
+src/ov010/event_royal_unova.c:
+    complete
+    .text       start:0x02166658 end:0x02166824
+
+src/ov010/event_3d_demo.c:
+    complete
+    .text       start:0x02161b90 end:0x02161d64
+
+src/ov010/map_replace.c:
+    complete
+    .text       start:0x02159d84 end:0x02159f84
+    .rodata     start:0x02170fb0 end:0x02170fec
+    .data       start:0x021728bc end:0x021728cc
+
+src/ov010/scrcmd_unity_tower.c:
+    complete
+    .text       start:0x02166824 end:0x02166a6c
+
+src/ov010/ev_time.c:
+    complete
+    .text       start:0x02168eec end:0x02169148
+
+src/ov010/survey.c:
+    complete
+    .text       start:0x0216b970 end:0x0216bbd4
+    .rodata     start:0x021723bc end:0x02172508
+
+src/ov010/event_battle.c:
+    complete
+    .text       start:0x0216e68c end:0x0216f088
+    .rodata     start:0x021725b8 end:0x021725fc
+    .data       start:0x02172b54 end:0x02172b64
+
+src/ov010/itemuse_event.c:
+    complete
+    .text       start:0x02164480 end:0x021646e8
+    .rodata     start:0x021714dc end:0x02171534
+
+src/ov010/season_form.c:
+    complete
+    .text       start:0x0216aae4 end:0x0216abd8
+
+src/ov010/game_beacon_accessor.c:
+    complete
+    .text       start:0x02165b5c end:0x0216628c
+    .rodata     start:0x02171ca8 end:0x02171d50
+
+src/ov010/ov010_02167080.c:
+    complete
+    .text       start:0x02167080 end:0x02167358
+
+src/ov010/script_work.c:
+    complete
+    .text       start:0x02158e54 end:0x02159130
+    .data       start:0x0217289c end:0x021728ac
+
+src/ov010/fld_btl_inst_tool.c:
+    complete
+    .text       start:0x021681c8 end:0x02168b18
+    .rodata     start:0x02172084 end:0x02172160
+    .data       start:0x02172a2c end:0x02172a40
+
+src/ov010/delivery_beacon.c:
+    complete
+    .text       start:0x0215765c end:0x02157948
+    .data       start:0x02172780 end:0x02172808
+    .rodata     start:0x02170040 end:0x02170048
+
+src/ov010/ov010_0216cc30.c:
+    complete
+    .text       start:0x0216cc30 end:0x0216cc58
+src/ov010/event_trial_house.c:
+    complete
+    .text       start:0x02168bf0 end:0x02168eec
+
+src/ov010/musical_stage_sys.c:
+    complete
+    .text       start:0x02156ce0 end:0x02157028
+    .data       start:0x02172748 end:0x02172768
+
+src/ov010/scrcmd_stadium.c:
+    complete
+    .text       start:0x0215f2f0 end:0x0215f64c
+
+src/ov010/g3d_text_draw.c:
+    complete
+    .text       start:0x0216fab4 end:0x0216fe2c
+    .rodata     start:0x021726a0 end:0x021726f4
+
+src/ov010/event_league_lift.c:
+    complete
+    .text       start:0x0216c0e8 end:0x0216c484
+    .rodata     start:0x02172528 end:0x02172548
+
+src/ov010/scrcmd_sp_poke_gimmick.c:
+    complete
+    .text       start:0x0216bbd4 end:0x0216bf74
+
+src/ov010/scrcmd_trial_house.c:
+    complete
+    .text       start:0x0216a3f8 end:0x0216a7a0
+
+src/ov010/symbol_map.c:
+    complete
+    .text       start:0x0216628c end:0x02166658
+    .rodata     start:0x02171d50 end:0x02171f2c
+    .data       start:0x021729ec end:0x021729fc
+
+src/ov010/bsubway_comm.c:
+    complete
+    .text       start:0x02167ab0 end:0x02167ef4
+    .rodata     start:0x02171fd4 end:0x02172084
+
+src/ov010/scrcmd_sodateya.c:
+    complete
+    .text       start:0x0215ce98 end:0x0215d34c
+    .data       start:0x02172900 end:0x02172914
+
+src/ov010/event_game_clear.c:
+    complete
+    .text       start:0x0215f734 end:0x0215fa54
+
+src/ov010/scrcmd_work.c:
+    complete
+    .text       start:0x0215a514 end:0x0215aa50
+    .rodata     start:0x02171140 end:0x02171160
+    .data       start:0x021728e0 end:0x021728f0
+
+src/ov010/delivery_irc.c:
+    complete
+    .text       start:0x02157948 end:0x02157e9c
+    .rodata     start:0x02170048 end:0x02170068
+    .data       start:0x02172808 end:0x02172888
+
+src/ov010/comm_player.c:
+    complete
+    .text       start:0x02167518 end:0x02167ab0
+    .data       start:0x02172a18 end:0x02172a2c
+
+src/ov010/hiden_event.c:
+    complete
+    .text       start:0x0215e840 end:0x0215f168
+    .rodata     start:0x021711e8 end:0x021712ac
+
+src/ov010/event_bsubway.c:
+    complete
+    .text       start:0x0216c484 end:0x0216cc30
+    .rodata     start:0x02172548 end:0x02172554
+
+src/ov010/field_actor_tool.c:
+    complete
+    .text       start:0x02163010 end:0x021643ac
+    .rodata     start:0x02171458 end:0x021714dc
+
+src/ov010/scrcmd_pokemon.c:
+    complete
+    .text       start:0x0215b4ac end:0x0215c5ec
+    .rodata     start:0x02171180 end:0x021711a8
+
+src/ov010/musical_event.c:
+    complete
+    .text       start:0x02155a98 end:0x02156bd0
+    .rodata     start:0x0216fef0 end:0x02170040
+    .data       start:0x02172714 end:0x02172724
+
+src/ov010/scrcmd_musical.c:
+    complete
+    .text       start:0x0215d34c end:0x0215e2b8
+    .data       start:0x02172914 end:0x02172928
+
+src/ov010/fldmmdl.c:
+    complete
+    .text       start:0x0216cc58 end:0x0216e68c
+    .rodata     start:0x02172554 end:0x021725b8
+    .data       start:0x02172a70 end:0x02172b54
+
+src/ov010/scrcmd_proc.c:
+    complete
+    .text       start:0x0215c5ec end:0x0215ce98
+    .data       start:0x021728f0 end:0x02172900
+
+src/ov010/game_beacon_set.c:
+    complete
+    .text       start:0x02164fd0 end:0x02165b5c
+    .rodata     start:0x02171ca0 end:0x02171ca8
+    .data       start:0x021729bc end:0x021729ec
+
+src/ov010/event_shortcut_menu.c:
+    complete
+    .text       start:0x0215fec8 end:0x0216075c
+    .rodata     start:0x021712ac end:0x021712cc
+    .data       start:0x02172960 end:0x02172978
+
+src/ov010/scrcmd_vm.c:
+    complete
+    .text       start:0x02159240 end:0x02159b48
+    .rodata     start:0x021705d8 end:0x02170fb0
+
+src/ov010/scrcmd_entree_forest.c:
+    complete
+    .text       start:0x0216abd8 end:0x0216b504
+
+src/ov010/field_g3d_map.c:
+    complete
+    .text       start:0x02169148 end:0x02169ab8
+    .rodata     start:0x02172160 end:0x0217219c
+    .data       start:0x02172a40 end:0x02172a50
+
+src/ov010/game_beacon_search.c:
+    complete
+    .text       start:0x02164a2c end:0x02164fd0
+    .rodata     start:0x02171c30 end:0x02171ca0
+
+src/ov010/event_poke_status.c:
+    complete
+    .text       start:0x0215a07c end:0x0215a438
+    .data       start:0x021728cc end:0x021728e0
+
+src/ov010/scrcmd_survey.c:
+    complete
+    .text       start:0x0216b504 end:0x0216b970
+    .rodata     start:0x0217219c end:0x021723bc
+
+src/ov010/eventdata_system.c:
+    complete
+    .text       start:0x0216237c end:0x02163010
+    .data       start:0x0217299c end:0x021729b0
+
+src/ov010/zone_change.c:
+    complete
+    .text       start:0x021643ac end:0x02164480
+
+src/ov010/ov010_0216736c.c:
+    complete
+    .text       start:0x0216736c end:0x021673a8
+    .rodata     start:0x02171f3c end:0x02171fd4
+
+src/ov010/map_matrix.c:
+    complete
+    .text       start:0x02159b48 end:0x02159d84
+    .data       start:0x021728ac end:0x021728bc
+
+src/ov010/script_sys.c:
+    complete
+    .text       start:0x02158768 end:0x02158e54
+    .rodata     start:0x021701a8 end:0x021705d8
+    .data       start:0x02172888 end:0x0217289c
+
+src/ov010/trcard_sys.c:
+    complete
+    .text       start:0x0216f088 end:0x0216f8b8
+    .rodata     start:0x021725fc end:0x021726a0
+    .data       start:0x02172b64 end:0x02172b74
+
+src/ov010/event_ircbattle.c:
+    complete
+    .text       start:0x02155160 end:0x02155a98
+    .rodata     start:0x0216fed8 end:0x0216fef0
+    .data       start:0x02172700 end:0x02172714
+
+src/ov010/scrcmd_game_state.c:
+    complete
+    .text       start:0x0215aa50 end:0x0215b4ac
+    .rodata     start:0x02171160 end:0x02171180
+
+src/ov010/event_field_proclink.c:
+    complete
+    .text       start:0x0216075c end:0x021616a4
+    .rodata     start:0x021712cc end:0x021713ec
+    .data       start:0x02172978 end:0x02172990
+
+src/ov010/survey_data.c:
+    complete
+    .text       start:0x02167358 end:0x0216736c
+
+src/ov010/pass_power_check.c:
+    complete
+    .text       start:0x0216fe2c end:0x0216fed8
+
+src/ov010/scrcmd_sp_poke.c:
+    complete
+    .text       start:0x0216f8b8 end:0x0216f918
+
+src/ov010/event_egg_demo.c:
+    complete
+    .text       start:0x02166b58 end:0x02166c7c
+
+src/ov010/townmap_util.c:
+    complete
+    .text       start:0x02166c7c end:0x02166d30
+    .rodata     start:0x02171f2c end:0x02171f3c
+
+src/ov010/event_comm_tvt.c:
+    complete
+    .text       start:0x0215fa54 end:0x0215fc40
+
+src/ov010/ov010_02164778.c:
+    complete
+    .text       start:0x02164778 end:0x021647a0
+
+src/ov010/mystery_gift_pokemon.c:
+    complete
+    .text       start:0x02157e9c end:0x02158318
+    .rodata     start:0x02170068 end:0x021700a4

@@ -1,0 +1,504 @@
+#include "types.h"
+#include "constants/items.h"
+#include "field/event_data.h"
+#include "field/fest_mission_people.h"
+#include "field/festival.h"
+#include "field/field_actor.h"
+#include "field/zone.h"
+#include "gfl/arc.h"
+#include "gfl/std.h"
+#include "nitro/fx.h"
+#include "nitro/math.h"
+#include "system/game_data.h"
+#include "system/game_system.h"
+
+// A kind of person a mission's target places: the object code of their model and which of the salesman messages they
+// use
+typedef struct {
+    u16 objCode;
+    // Added to the salesman message by FesGimmick_IsOnSale
+    u16 msgIndex;
+} FesMissionPerson;
+
+// The people of one target, by the mission's variant
+typedef struct {
+    u32 count;
+    const FesMissionPerson *people;
+} FesMissionPeopleSet;
+
+// A person's value and the weight it has among the others
+typedef struct {
+    u16 value;
+    u16 weight;
+} FesMissionWeightedValue;
+
+// An item for sale and its price
+typedef struct {
+    u16 item;
+    u16 price;
+} FesMissionShopItem;
+
+static const FesMissionPerson *FesMissionPeople_GetPerson(FestMissionConfig *mission);
+static BOOL FesMissionPeople_PickPlaces(GameSystem *gsys, FesMissionWork *work, FestMissionConfig *mission, u16 zoneId,
+                                        MATHRandContext32 *rand);
+static void FesMissionPeople_SetParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                       MATHRandContext32 *rand, u32 *picked);
+static void FesMissionPeople_SetRandomParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                            MATHRandContext32 *rand);
+static void FesMissionPeople_SetAnswerParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                             MATHRandContext32 *rand);
+static void FesMissionPeople_SetShopParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                           MATHRandContext32 *rand);
+static void FesMissionPeople_SetBattleParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                            MATHRandContext32 *rand, u32 *picked);
+static void FesMissionPeople_SetWeightedParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                              MATHRandContext32 *rand);
+static void FesMissionPeople_SetSpeciesParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                             MATHRandContext32 *rand, u32 *picked);
+static BOOL FesMissionPeople_NeedsNewZone(FesMissionWork *work);
+static void FesMissionPeople_AddZone(FesMissionWork *work, u16 zoneId);
+static void FesMissionPeople_PlaceActors(GameSystem *gsys, FesMissionWork *work, FestMissionConfig *mission,
+                                         u16 zoneId);
+
+// The people of each target, by the mission's variant
+static const FesMissionPerson sTarget8People[1] = { { 73, 0 } };
+static const FesMissionPerson sTarget1People[1] = { { 11, 0 } };
+static const FesMissionPerson sTarget4People[1] = { { 154, 0 } };
+static const FesMissionPerson sTarget0People[1] = { { 8, 0 } };
+static const FesMissionPerson sTarget5People[1] = { { 54, 0 } };
+static const FesMissionPerson sTarget2People[3] = { { 17, 1 }, { 48, 0 }, { 48, 0 } };
+static const FesMissionPerson sTarget6People[3] = { { 46, 0 }, { 31, 1 }, { 32, 2 } };
+static const FesMissionPerson sTarget7People[1] = { { 78, 0 } };
+static const FesMissionPerson sTarget3People[5] = { { 77, 0 }, { 83, 1 }, { 83, 1 }, { 83, 1 }, { 83, 1 } };
+
+// The weights of the shop's 16 items, out of 100
+static const u8 sShopWeights[16] = {
+#include "asset/fest_mission_people_sShopWeights.inc"
+};
+
+// What target 6's people give, by the mission's variant
+static const u16 sBattleParams[3][6] = {
+#include "asset/fest_mission_people_sBattleParams.inc"
+};
+
+static const FesMissionWeightedValue sWeightedParams[2][6] = {
+#include "asset/fest_mission_people_sWeightedParams.inc"
+};
+
+// How many people a zone gets, by the mission's pattern and a random number of 8
+static const u8 sActorCounts[7][8] = {
+#include "asset/fest_mission_people_sActorCounts.inc"
+};
+
+static const u16 sRandomParams[30] = {
+#include "asset/fest_mission_people_sRandomParams.inc"
+};
+
+static const FesMissionPeopleSet sPeopleSets[9] = {
+    { 1, sTarget0People }, { 1, sTarget1People }, { 3, sTarget2People }, { 5, sTarget3People }, { 1, sTarget4People },
+    { 1, sTarget5People }, { 3, sTarget6People }, { 1, sTarget7People }, { 1, sTarget8People },
+};
+
+const FesMissionAnswers FesMissionPeople_Answers[3] = {
+#include "asset/fest_mission_people_FesMissionPeople_Answers.inc"
+};
+
+// The items for sale by the mission's variant, 16 each; the first variant sells the same Premier Ball over and over
+static const FesMissionShopItem sShopItems[5][16] = {
+    { { ITEM_POTION, 150 },
+      { ITEM_SUPER_POTION, 350 },
+      { ITEM_GREET_MAIL, 25 },
+      { ITEM_ANTIDOTE, 50 },
+      { ITEM_PARLYZ_HEAL, 100 },
+      { ITEM_AWAKENING, 125 },
+      { ITEM_BURN_HEAL, 125 },
+      { ITEM_REPEL, 175 },
+      { ITEM_MAX_REPEL, 280 },
+      { ITEM_LUXURY_BALL, 400 },
+      { ITEM_REVIVE, 600 },
+      { ITEM_PREMIER_BALL, 500 },
+      { ITEM_PREMIER_BALL, 500 },
+      { ITEM_PREMIER_BALL, 500 },
+      { ITEM_PREMIER_BALL, 500 },
+      { ITEM_PREMIER_BALL, 500 } },
+    { { ITEM_ORAN_BERRY, 200 },
+      { ITEM_LEPPA_BERRY, 300 },
+      { ITEM_SITRUS_BERRY, 300 },
+      { ITEM_LUM_BERRY, 500 },
+      { ITEM_HEART_SCALE, 1000 },
+      { ITEM_NUGGET, 3000 },
+      { ITEM_RARE_CANDY, 10000 },
+      { ITEM_SWEET_HEART, 10000 },
+      { ITEM_PP_UP, 9800 },
+      { ITEM_DEEP_SEA_SCALE, 5000 },
+      { ITEM_HELIX_FOSSIL, 5000 },
+      { ITEM_OLD_AMBER, 5000 },
+      { ITEM_CLAW_FOSSIL, 5000 },
+      { ITEM_ARMOR_FOSSIL, 5000 },
+      { ITEM_PLUME_FOSSIL, 5000 },
+      { ITEM_MOON_STONE, 5000 } },
+    { { ITEM_ORAN_BERRY, 200 },
+      { ITEM_LEPPA_BERRY, 300 },
+      { ITEM_SITRUS_BERRY, 300 },
+      { ITEM_LUM_BERRY, 500 },
+      { ITEM_HEART_SCALE, 1000 },
+      { ITEM_NUGGET, 3000 },
+      { ITEM_RARE_CANDY, 10000 },
+      { ITEM_SWEET_HEART, 10000 },
+      { ITEM_PP_UP, 9800 },
+      { ITEM_DEEP_SEA_TOOTH, 5000 },
+      { ITEM_DOME_FOSSIL, 5000 },
+      { ITEM_OLD_AMBER, 5000 },
+      { ITEM_ROOT_FOSSIL, 5000 },
+      { ITEM_SKULL_FOSSIL, 5000 },
+      { ITEM_COVER_FOSSIL, 5000 },
+      { ITEM_SUN_STONE, 5000 } },
+    { { ITEM_FIRE_STONE, 3000 },
+      { ITEM_THUNDERSTONE, 3000 },
+      { ITEM_WATER_STONE, 3000 },
+      { ITEM_LEAF_STONE, 3000 },
+      { ITEM_STAR_PIECE, 2000 },
+      { ITEM_HEART_SCALE, 1000 },
+      { ITEM_HEART_SCALE, 500 },
+      { ITEM_GOOEY_MULCH, 100 },
+      { ITEM_SUN_STONE, 5000 },
+      { ITEM_MOON_STONE, 5000 },
+      { ITEM_RELIC_VASE, 25000 },
+      { ITEM_RARE_CANDY, 10000 },
+      { ITEM_RAZOR_CLAW, 3000 },
+      { ITEM_RAZOR_FANG, 3000 },
+      { ITEM_RELIC_VASE, 10000 },
+      { ITEM_RELIC_STATUE, 40000 } },
+    { { ITEM_ORAN_BERRY, 200 },
+      { ITEM_LEPPA_BERRY, 300 },
+      { ITEM_SITRUS_BERRY, 300 },
+      { ITEM_MAX_POTION, 1000 },
+      { ITEM_DUSK_BALL, 500 },
+      { ITEM_LUXURY_BALL, 500 },
+      { ITEM_QUICK_BALL, 500 },
+      { ITEM_HEART_SCALE, 1000 },
+      { ITEM_LUM_BERRY, 500 },
+      { ITEM_STAR_PIECE, 2000 },
+      { ITEM_BIG_MUSHROOM, 1000 },
+      { ITEM_FIRE_STONE, 3000 },
+      { ITEM_WATER_STONE, 3000 },
+      { ITEM_THUNDERSTONE, 3000 },
+      { ITEM_LEAF_STONE, 3000 },
+      { ITEM_GOOEY_MULCH, 1000 } },
+};
+
+void FesMissionPeople_OnZoneEnter(FesMissionWork *work, GameSystem *gsys, LinkFestival *festival,
+                                  FestMissionConfig *mission, u16 zoneId) {
+    MATHRandContext32 rand;
+
+    work->placeCount = 0;
+    work->actorCount = 0;
+    work->festival = festival;
+    work->zoneId = zoneId;
+    MI_CpuFill8(work->places, 0, sizeof(work->places));
+    MI_CpuFill8(work->placeIndex, 0, sizeof(work->placeIndex));
+    MI_CpuFill8(work->params, 0, sizeof(work->params));
+    MI_CpuFill8(work->actors, 0, sizeof(work->actors));
+    FestMission_InitRand(mission->seed, FestMission_GetMissionZone(zoneId), &rand);
+    FesMissionPeople_PickPlaces(gsys, work, mission, zoneId, &rand);
+    FesMissionPeople_AddZone(work, zoneId);
+    if (work->actorCount != 0) {
+        FesMissionPeople_PlaceActors(gsys, work, mission, zoneId);
+    }
+}
+
+void FesMissionPeople_LoadSpecies(FesGimmick *gimmick, FesMissionWork *work) {
+    FestMissionConfig *mission = gimmick->mission;
+    u32 fileId;
+    int size;
+    ArcTool *arc;
+
+    switch (mission->info.target) {
+    case 5:
+        fileId = 20;
+        break;
+    case 8:
+        fileId = mission->info.targetVariant + 2;
+        break;
+    default:
+        return;
+    }
+    arc = LinkFestival_GetArchive(gimmick->festival);
+    size = GFL_ArcToolGetDataLength(arc, fileId);
+    work->speciesCount = size;
+    if (size > 0x500) {
+        work->speciesCount = 0x500;
+    }
+    GFL_ArcToolReadRange(arc, fileId, 0, work->speciesCount, work->species);
+}
+
+static const FesMissionPerson *FesMissionPeople_GetPerson(FestMissionConfig *mission) {
+    const FesMissionPeopleSet *set = &sPeopleSets[mission->info.target];
+    u32 variant = mission->info.targetVariant;
+
+    if (set->count == 1) {
+        variant = 0;
+    } else if (variant >= set->count) {
+        variant = 0;
+    }
+    return &set->people[variant];
+}
+
+u8 FesMissionPeople_IsOnSale(FestMissionConfig *mission) {
+    return FesMissionPeople_GetPerson(mission)->msgIndex;
+}
+
+u16 FesMissionPeople_GetObjCode(FesMissionWork *work, FestMissionConfig *mission) {
+    return FesMissionPeople_GetPerson(mission)->objCode;
+}
+
+FesMissionZone *FesMissionPeople_GetZone(FesMissionWork *work, u16 zoneId) {
+    int i;
+
+    for (i = 0; i < work->zoneCount; i++) {
+        if (zoneId == work->zones[i].zoneId) {
+            return &work->zones[i];
+        }
+    }
+    return &work->zones[0];
+}
+
+static void FesMissionPeople_PlaceActors(GameSystem *gsys, FesMissionWork *work, FestMissionConfig *mission,
+                                         u16 zoneId) {
+    GameData *gameData = GSYS_GetGameData(gsys);
+    FesMissionZone *zone = FesMissionPeople_GetZone(work, zoneId);
+    ZoneNPC npc;
+    int i;
+
+    MI_CpuFill8(&npc, 0, sizeof(ZoneNPC));
+    npc.modelId = FesMissionPeople_GetObjCode(work, mission);
+    npc.direction = 1;
+    npc.scrId = mission->info.target + 0x2a22;
+    for (i = 0; i < work->actorCount; i++) {
+        MMSys *mmSys = GameData_GetMMSys(gameData);
+        const ZoneBGEntity *place = &work->places[work->placeIndex[i]];
+
+        if (zone->removed[i] == FALSE) {
+            if (place->isRail == FALSE) {
+                const s32 *coords = (const s32 *)place->pos.grid;
+
+                ZoneNPC_SetGridPos(&npc, coords[0], coords[1], FX32_CONST(coords[2]));
+                npc.moveCode = MOVE_CODE_TURN_RANDOM;
+            } else {
+                const u16 *values = &place->pos.rail.componentId;
+
+                ZoneNPC_SetRailPos(&npc, values[0], values[1], values[2]);
+                npc.moveCode = MOVE_CODE_RAIL_TURN_RANDOM;
+            }
+            npc.uid = 236 + i;
+            npc.param0 = work->params[i][0];
+            npc.param1 = work->params[i][1];
+            npc.param2 = work->params[i][2];
+            work->actors[i] = CreateNewActorByEntityNoWKOBJCODE(mmSys, &npc, zoneId);
+            SetActorMovementFlag(work->actors[i], 0x100000);
+        }
+    }
+}
+
+static BOOL FesMissionPeople_PickPlaces(GameSystem *gsys, FesMissionWork *work, FestMissionConfig *mission, u16 zoneId,
+                                        MATHRandContext32 *rand) {
+    int count;
+    u32 pickedPlaces[4];
+    u32 pickedParams[4];
+    int i;
+    ZoneBGEntity *entity;
+    int level;
+    u8 pattern;
+
+    entity = GetZoneProxiesAndCount(GameData_GetEventData(GSYS_GetGameData(gsys)), &count);
+    if (entity == NULL) {
+        return FALSE;
+    }
+    work->placeCount = 0;
+    for (i = 0; i < count; i++, entity++) {
+        if (entity->condition != BG_ENTITY_CONDITION_FEST_PEOPLE_PLACE &&
+            entity->condition != BG_ENTITY_CONDITION_FEST_PLACE) {
+            continue;
+        }
+        work->places[work->placeCount++] = *entity;
+        if (work->placeCount >= 20) {
+            break;
+        }
+    }
+    if (work->placeCount == 0) {
+        return FALSE;
+    }
+    level = GetZoneEncIDHighest3Bits(work->zoneId);
+    if (level >= 6) {
+        work->actorCount = 0;
+        return FALSE;
+    }
+    pattern = (mission->info.stagePatterns >> (level * 3)) & 7;
+    work->actorCount = sActorCounts[pattern][FestMission_RandExcluding(rand, 8, NULL, 0)];
+    if (work->actorCount > work->placeCount) {
+        work->actorCount = work->placeCount;
+    }
+    if (work->actorCount == 0) {
+        return FALSE;
+    }
+    for (i = 0; i < work->actorCount; i++) {
+        work->placeIndex[i] = FestMission_RandExcluding(rand, work->placeCount, pickedPlaces, i);
+        FesMissionPeople_SetParams(work, mission, i, rand, pickedParams);
+        pickedPlaces[i] = work->placeIndex[i];
+    }
+    return TRUE;
+}
+
+static void FesMissionPeople_SetParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                       MATHRandContext32 *rand, u32 *picked) {
+    switch (mission->info.target) {
+    case 1:
+        FesMissionPeople_SetRandomParam(work, mission, index, rand);
+        break;
+    case FES_MISSION_TARGET_ITEM_EXCHANGE:
+        FesMissionPeople_SetAnswerParams(work, mission, index, rand);
+        break;
+    case FES_MISSION_TARGET_ITEM_SALE:
+        FesMissionPeople_SetShopParams(work, mission, index, rand);
+        break;
+    case FES_MISSION_TARGET_BATTLE:
+        FesMissionPeople_SetBattleParam(work, mission, index, rand, picked);
+        break;
+    case 7:
+        FesMissionPeople_SetWeightedParam(work, mission, index, rand);
+        break;
+    case 8:
+        FesMissionPeople_SetSpeciesParam(work, mission, index, rand, picked);
+        break;
+    }
+}
+
+static void FesMissionPeople_SetRandomParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                            MATHRandContext32 *rand) {
+    work->params[index][0] = sRandomParams[FestMission_RandExcluding(rand, 30, NULL, 0)];
+}
+
+static void FesMissionPeople_SetAnswerParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                             MATHRandContext32 *rand) {
+    u8 variant = mission->info.targetVariant;
+    u32 first;
+    int second;
+    int i;
+
+    if (variant >= 3) {
+        variant = 0;
+    }
+    work->params[index][2] = variant;
+    first = FestMission_RandExcluding(rand, 3, NULL, 0) + 1;
+    second = FestMission_RandExcluding(rand, 2, NULL, 0);
+    for (i = 0; i < 2; i++) {
+        work->params[index][(i + second) % 2] = (first + i) % 3;
+    }
+    if (FestMission_RandExcluding(rand, 100, NULL, 0) < 5) {
+        work->params[index][FestMission_RandExcluding(rand, 2, NULL, 0)] = 3;
+    }
+}
+
+static void FesMissionPeople_SetShopParams(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                           MATHRandContext32 *rand) {
+    u8 variant = mission->info.targetVariant;
+    u8 pick = 0;
+    u32 total = 0;
+    int i;
+    u32 roll;
+
+    roll = FestMission_RandExcluding(rand, 100, NULL, 0);
+    for (i = 0; i < 16; i++) {
+        total += sShopWeights[i];
+        if (roll < total) {
+            pick = i;
+            break;
+        }
+    }
+    work->params[index][0] = sShopItems[variant][pick].item;
+    work->params[index][2] = sShopItems[variant][pick].price;
+}
+
+static void FesMissionPeople_SetBattleParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                            MATHRandContext32 *rand, u32 *picked) {
+    u8 variant = mission->info.targetVariant;
+    u32 pick;
+
+    if (variant >= 3) {
+        variant = 0;
+    }
+    pick = FestMission_RandExcluding(rand, 6, picked, index);
+    work->params[index][0] = sBattleParams[variant][pick];
+    picked[index] = pick;
+}
+
+static void FesMissionPeople_SetWeightedParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                              MATHRandContext32 *rand) {
+    int i;
+    int pick = 0;
+    u32 total = 0;
+    u32 roll;
+    const FesMissionWeightedValue *values = sWeightedParams[mission->info.targetVariant];
+
+    roll = FestMission_RandExcluding(rand, 100, NULL, 0);
+    for (i = 0; i < 16; i++) {
+        total += values[i].weight;
+        if (roll < total) {
+            pick = i;
+            break;
+        }
+    }
+    work->params[index][0] = values[pick].value;
+}
+
+static void FesMissionPeople_SetSpeciesParam(FesMissionWork *work, FestMissionConfig *mission, u8 index,
+                                             MATHRandContext32 *rand, u32 *picked) {
+    u32 pick = FestMission_RandExcluding(rand, work->speciesCount / 2, picked, index);
+
+    work->params[index][0] = work->species[pick];
+    picked[index] = pick;
+}
+
+static BOOL FesMissionPeople_NeedsNewZone(FesMissionWork *work) {
+    int i;
+
+    if (work->zoneCount == 0) {
+        return TRUE;
+    }
+    for (i = 0; i < 4; i++) {
+        if (work->zones[work->zoneCount - 1].removed[i] != 0) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+static void FesMissionPeople_AddZone(FesMissionWork *work, u16 zoneId) {
+    int index;
+    int i;
+
+    if (work->placeCount == 0) {
+        return;
+    }
+    for (i = 0; i < work->zoneCount; i++) {
+        if (zoneId == work->zones[i].zoneId) {
+            return;
+        }
+    }
+    if (FesMissionPeople_NeedsNewZone(work)) {
+        if (work->zoneCount < 6) {
+            index = work->zoneCount++;
+        } else {
+            index = 5;
+            MI_CpuCopy8(&work->zones[1], &work->zones[0], sizeof(work->zones) - sizeof(work->zones[0]));
+        }
+    } else {
+        index = 0;
+        if (work->zoneCount != 0) {
+            index = work->zoneCount - 1;
+        }
+    }
+    MI_CpuFill8(&work->zones[index], 0, sizeof(FesMissionZone));
+    work->zones[index].zoneId = zoneId;
+    work->zones[index].count = work->actorCount;
+}

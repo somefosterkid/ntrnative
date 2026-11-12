@@ -1,0 +1,14 @@
+Sandstorm_Init kind:function(thumb,size=0x64) addr:0x021e9100
+Sandstorm_FadeIn kind:function(thumb,size=0x70) addr:0x021e9164
+Sandstorm_InitNoFade kind:function(thumb,size=0x74) addr:0x021e91d4
+Sandstorm_Main kind:function(thumb,size=0x4c) addr:0x021e9248
+Sandstorm_InitFadeOut kind:function(thumb,size=0x34) addr:0x021e9294
+Sandstorm_FadeOut kind:function(thumb,size=0x68) addr:0x021e92c8
+Sandstorm_Exit kind:function(thumb,size=0x1e) addr:0x021e9330
+SandGrain_Move kind:function(thumb,size=0x72) addr:0x021e9350
+Sandstorm_AddGrains kind:function(thumb,size=0xf0) addr:0x021e93c4
+Sandstorm_ScrollBg kind:function(thumb,size=0x52) addr:0x021e94b4
+sWindSpeedX kind:data(any) addr:0x021e9508
+sWindSpeedY kind:data(any) addr:0x021e9528
+SANDSTORM_WEATHER kind:data(any) addr:0x021e9560 ambiguous
+SANDSTORM_WEATHER_2 kind:data(any) addr:0x021e95ac ambiguous

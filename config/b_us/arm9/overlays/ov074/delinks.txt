@@ -1,0 +1,9 @@
+    .text       start:0x021f54e0 end:0x021f54f0 kind:code align:32
+    .rodata     start:0x021f54f0 end:0x021f56f8 kind:rodata align:4
+    .ctor       start:0x021f56f8 end:0x021f56f8 kind:rodata align:4
+    .bss        start:0x021f5700 end:0x021f5700 kind:bss align:32
+
+src/ov074/battle_cutin_db.c:
+    complete
+    .text       start:0x021f54e0 end:0x021f54f0
+    .rodata     start:0x021f54f0 end:0x021f56f8

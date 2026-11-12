@@ -1,0 +1,175 @@
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+index 89a539a..84895e2 100644
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1087,6 +1087,7 @@ bool sLogOn;
+ double sLogMs;
+ std::string sLogHead;
+ char sLogMsg[200];
++std::string sLogFile = "perf_log.txt"; // libntr-ios-cfgscript.patch: PerfLogStartNamed
+ } // namespace
+ 
+ void PerfGpuNote(const char * note) { snprintf(sGpuNote, sizeof sGpuNote, "%s", note != nullptr ? note : ""); }
+@@ -1149,7 +1150,7 @@ static void PerfLogStart() {
+ static void PerfLogWrite() {
+     sLogOn = false;
+     size_t n = sLogRows.size();
+-    FILE * f = n > 0 ? fopen("perf_log.txt", "w") : nullptr;
++    FILE * f = n > 0 ? fopen(sLogFile.c_str(), "w") : nullptr;
+     if (f == nullptr) {
+         snprintf(sLogMsg, sizeof sLogMsg, "perf_log.txt could not be written");
+         printf("bwport: perf log: perf_log.txt could not be written\n");
+@@ -1267,6 +1268,15 @@ static void PerfSnapshot() {
+     sPerfWinPeriod = 0.0;
+ }
+ 
++// libntr-ios-cfgscript.patch: a log into FILE (BWPORT_CFGSCRIPT "perflog=NAME" -> perf_NAME.txt), as Save performance log does
++bool PerfLogBusy() { return sLogOn; }
++void PerfLogStartNamed(const char * file) {
++    if (!sLogOn) {
++        sLogFile = file;
++        PerfLogStart();
++    }
++}
++
+ bool PerfWanted() {
+     if (!sPerfEnvRead) {
+         sPerfEnvRead = true;
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index f788f79..15156cf 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -802,6 +802,83 @@ static void SwApply(int i) {
+   sSwMean = -1;
+ }
+ 
++namespace SIM::GUI { void PerfLogStartNamed(const char *file); bool PerfLogBusy(); }
++// bw-port (libntr-ios-cfgscript.patch): BWPORT_CFGSCRIPT="f11100:renderer=gpu,resolution=4;f11400:renderer=vcore,framerate=60;..." applies
++// settings at V-blank frames (the keys script's frame count), as the Config window does: the same fields of s_SIM_config, which the
++// frame loop reads (renderer, Resolution, Frame rate; the swap interval follows in SIM_Render). A step logs "cfgscript: fN ..." to
++// stderr when it applies. "pN:..." instead of "fN:..." applies N frames after the previous step and after any performance log has finished. Keys: renderer=auto|vcore|gpu, resolution=1..8, framerate=60|120|monitor|unlimited, antialias=1|2|4,
++// shot=NAME (the window's picture to NAME.png), quit=1 (ends the run), perflog=NAME (records 5 s of per-frame stage times to perf_NAME.txt, as Debug > Save performance log).
++static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch) writes NAME.png at the next present
++static void SIM_CfgScript(void) {
++  struct Step { u32 frame; bool rel; char text[96]; };
++  static std::vector<Step> sSteps;
++  static int sInit = 0;
++  static size_t sNext = 0;
++  if (!sInit) {
++    sInit = 1;
++    const char *e = getenv("BWPORT_CFGSCRIPT");
++    if (e == NULL || !*e) return;
++    char *dup = strdup(e);
++    char *save = NULL;
++    for (char *tok = strtok_r(dup, ";", &save); tok != NULL; tok = strtok_r(NULL, ";", &save)) {
++      char *colon = strchr(tok, ':');
++      if ((tok[0] != 'f' && tok[0] != 'p') || colon == NULL) continue;
++      Step st;
++      st.frame = (u32)atoi(tok + 1);
++      st.rel = tok[0] == 'p';
++      snprintf(st.text, sizeof st.text, "%s", colon + 1);
++      sSteps.push_back(st);
++    }
++    free(dup);
++  }
++  u32 now = *((u32 *)HW_VBLANK_COUNT_BUF);
++  static u32 sMark = 0;  // the frame a performance log was last running or a step last applied, for the pN steps
++  while (sNext < sSteps.size()) {
++    bool busy = SIM::GUI::PerfLogBusy();
++    if (busy) sMark = now;
++    const Step &cur = sSteps[sNext];
++    if (cur.rel ? (busy || now < sMark + cur.frame) : now < cur.frame) break;
++    sMark = now;
++    char *save = NULL;
++    char text[96];
++    snprintf(text, sizeof text, "%s", sSteps[sNext].text);
++    for (char *kv = strtok_r(text, ",", &save); kv != NULL; kv = strtok_r(NULL, ",", &save)) {
++      char *eq = strchr(kv, '=');
++      if (eq == NULL) continue;
++      *eq = 0;
++      const char *v = eq + 1;
++      if (strcmp(kv, "renderer") == 0) {
++        s_SIM_config.renderer = (u8)(strcmp(v, "gpu") == 0 ? SIM_CONFIG_RENDERER_GPU : strcmp(v, "vcore") == 0 ? SIM_CONFIG_RENDERER_VCORE : SIM_CONFIG_RENDERER_AUTO);
++      } else if (strcmp(kv, "resolution") == 0) {
++        int n = atoi(v);
++        s_SIM_config.resolution = (u8)(n < 1 ? 1 : n > 8 ? 8 : n);
++      } else if (strcmp(kv, "antialias") == 0) {
++        int n = atoi(v);
++        s_SIM_config.antialias = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1);
++      } else if (strcmp(kv, "perflog") == 0) {  // a 5 s performance log into perf_NAME.txt
++        char fn[128];
++        snprintf(fn, sizeof fn, "perf_%s.txt", v);
++        SIM::GUI::PerfLogStartNamed(fn);
++      } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (macOS, BWPORT_HIDDEN)
++        snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
++      } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
++        fprintf(stderr, "cfgscript: quit at f%u\n", now);
++        fflush(stderr);
++        _exit(0);
++      } else if (strcmp(kv, "framerate") == 0) {
++        u8 r = strcmp(v, "unlimited") == 0 ? SIM_CONFIG_DISPLAYCAP_UNLIMITED : strcmp(v, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
++             : atoi(v) >= 120 ? SIM_CONFIG_DISPLAYCAP_120 : SIM_CONFIG_DISPLAYCAP_60;
++        if (r != SIM_CONFIG_DISPLAYCAP_UNLIMITED) s_SIM_config.displayCapBack = r;
++        else if (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED) s_SIM_config.displayCapBack = s_SIM_config.displayCap;
++        s_SIM_config.displayCap = r;
++      }
++    }
++    fprintf(stderr, "cfgscript: %c%u (now f%u) %s\n", sSteps[sNext].rel ? 'p' : 'f', sSteps[sNext].frame, now, sSteps[sNext].text);
++    fflush(stderr);
++    sNext++;
++  }
++}
++
+ static void SIM_SwitchTest(void) {
+   if (sSwIdx == -2) {
+     const char *e = getenv("BWPORT_SWITCH_TEST");
+@@ -991,14 +1068,14 @@ static bool SIM_HiddenWanted() {
+ extern "C" int vcore_write_png(const char *path, const unsigned char *rgba, int w, int h) __attribute__((weak));
+ static void SIM_ShotMaybe(SDL_Window *win) {
+   static int state = 0, n = 0, next = 0;   // 0: not read yet, 1: on, 2: off
+-  static char dir[512];
++  static char dir[512] = ".";
+   static double at[64];
+   static Uint64 t0;
+-  if (state == 2 || vcore_write_png == NULL) return;
++  if ((state == 2 && !sCfgShot[0]) || vcore_write_png == NULL) return;
+   if (state == 0) {
+     const char *e = getenv("BWPORT_SHOTS");
+     state = 2;
+-    if (e == NULL || !*e) return;
++    if (e == NULL || !*e) return;   // (a cfgscript shot still works: dir ".")
+     char *copy = strdup(e), *save = NULL;
+     snprintf(dir, sizeof dir, "%s", strtok_r(copy, ",", &save));
+     for (char *p; (p = strtok_r(NULL, ",", &save)) != NULL && n < 64;) at[n++] = atof(p);
+@@ -1007,7 +1084,8 @@ static void SIM_ShotMaybe(SDL_Window *win) {
+     state = 1;
+     t0 = SDL_GetTicks64();
+   }
+-  if (next >= n || (SDL_GetTicks64() - t0) / 1000.0 < at[next]) return;
++  bool now = sCfgShot[0] != 0;
++  if (!now && (next >= n || (SDL_GetTicks64() - t0) / 1000.0 < at[next])) return;
+   int w = 0, h = 0;
+   SDL_GL_GetDrawableSize(win, &w, &h);
+   if (w <= 0 || h <= 0) return;
+@@ -1022,9 +1100,11 @@ static void SIM_ShotMaybe(SDL_Window *win) {
+   for (int y = 0; y < h; y++) memcpy(&flip[(size_t)y * w * 4], &px[(size_t)(h - 1 - y) * w * 4], (size_t)w * 4);
+   for (size_t i = 3; i < flip.size(); i += 4) flip[i] = 255;
+   char path[640];
+-  snprintf(path, sizeof path, "%s/s%03d.png", dir, (int)at[next]);
++  if (now) snprintf(path, sizeof path, "%s/%s.png", dir, sCfgShot);
++  else snprintf(path, sizeof path, "%s/s%03d.png", dir, (int)at[next]);
+   vcore_write_png(path, flip.data(), w, h);
+-  next++;
++  if (now) sCfgShot[0] = 0;
++  else next++;
+ }
+ #endif
+ 
+@@ -2435,6 +2515,7 @@ void *SIM_Render(void *arg) {
+     sRenderWorkTime = frameNs > sGameWorkTime ? frameNs - sGameWorkTime : 0;
+     sCostMs = sCostMs == 0 ? sRenderWorkTime / 1e6 : sCostMs + (sRenderWorkTime / 1e6 - sCostMs) * 0.1;
+     SIM_SwitchTest();
++    SIM_CfgScript();
+     SIM_LookTest();
+ 
+     // bw-port (libntr-sp76.patch): the cap. A tick of 1x at DisplayCap=120 shows its picture a second time at the second slot

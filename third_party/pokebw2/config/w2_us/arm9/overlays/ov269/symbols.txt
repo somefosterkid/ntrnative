@@ -1,0 +1,12 @@
+BrMusicalSend_ProcInit kind:function(thumb,size=0xa8) addr:0x021ef220
+BrMusicalSend_ProcExit kind:function(thumb,size=0x6c) addr:0x021ef2c8
+BrMusicalSend_ProcMain kind:function(thumb,size=0x60) addr:0x021ef334
+BrMusicalSend_SeqFadeIn kind:function(thumb,size=0x48) addr:0x021ef394
+BrMusicalSend_SeqReturn kind:function(thumb,size=0x4c) addr:0x021ef3dc
+BrMusicalSend_SeqTouch kind:function(thumb,size=0x7c) addr:0x021ef428
+BrMusicalSend_SeqSend kind:function(thumb,size=0x1b8) addr:0x021ef4a4
+BrMusicalSend_CreatePhoto kind:function(thumb,size=0x3a) addr:0x021ef65c
+BrMusicalSend_DeletePhoto kind:function(thumb,size=0x3c) addr:0x021ef698
+BrMusicalSend_CreateButtons kind:function(thumb,size=0xb2) addr:0x021ef6d4
+BrMusicalSend_DeleteButtons kind:function(thumb,size=0x34) addr:0x021ef788
+BR_MUSICAL_SEND_PROC_FUNCTIONS kind:data(any) addr:0x021ef7bc ambiguous

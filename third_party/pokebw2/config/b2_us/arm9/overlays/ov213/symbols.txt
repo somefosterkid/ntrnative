@@ -1,0 +1,9 @@
+BattleSelect_GetPartyBuffer kind:function(thumb,size=0xc) addr:0x021bb700
+BattleSelect_RecvParty kind:function(thumb,size=0x1a) addr:0x021bb70c
+BattleSelect_Init kind:function(thumb,size=0x88) addr:0x021bb728
+BattleSelect_Exit kind:function(thumb,size=0x28) addr:0x021bb7b0
+BattleSelect_Main kind:function(thumb,size=0x20c) addr:0x021bb7d8
+BattleSelect_SetupPokeList kind:function(thumb,size=0xf8) addr:0x021bb9e4
+BattleSelect_SetupStatus kind:function(thumb,size=0x54) addr:0x021bbadc
+sBattleSelectNetCommands kind:data(any) addr:0x021bbb30
+BATTLE_SELECT_PROC_FUNCTIONS kind:data(any) addr:0x021bbb38

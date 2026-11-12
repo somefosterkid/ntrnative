@@ -1,0 +1,102 @@
+#ifndef POKEBW2_FIELD_FIELD_INTERNAL_H
+#define POKEBW2_FIELD_FIELD_INTERNAL_H
+
+#include "field/field.h"
+#include "field/field_controller.h"
+#include "field/field_g3d_mapper.h"
+#include "field/field_palace.h"
+#include "field/field_scene_area.h"
+#include "field/zone.h"
+#include "gfl/billboard_actor.h"
+
+// The gimmick work of Field_AllocGimmickWorkBlock, password FIELD_GIMMICK_PASSWORD_NONE for none
+#define FIELD_GIMMICK_PASSWORD_NONE 0xffffffff
+typedef struct {
+    u32 password;
+    void *work;
+} FieldGimmickWorkBlock;
+
+// Layout from swan
+struct Field {
+    u16 heapId;
+    u16 unk2;
+    GameSystem *gameSystem;
+    GameData *gameData;
+    AreaData *areaData;
+    FieldCamera *cameraSystem;
+    FieldLight *lightSystem;
+    FieldFog *fog;
+    FieldFogCtrl *fogCtrl;
+    FieldWeather *weatherSystem;
+    FieldSubscreen *subscreen;
+    FieldMsgBG *msgBGSys;
+    MoneyWin *moneyWin;
+    PlaceName *placeName;
+    FieldFMissionInfo *fmissionInfo;
+    FesGimmick *fesGimmick;
+    FieldExpObjSystem *expObjSystem;
+    MMSys *actorSystem;
+    NoGridMapper *noGridMapper;
+    FieldSceneArea *sceneArea;
+    FieldSceneAreaLoader *sceneAreaLoader;
+    FieldG3DMapper *g3DMapper;
+    u32 unk54;
+    FieldG3DMapperConfig mapperConfig;
+    FieldPlayer *player;
+    EncountSystem *encountSystem;
+    FieldEffects *fieldEffects;
+    UnionEffect *unionEffect;
+    FieldPalaceSys *palaceSys;
+    FieldColorPostFX colorPostFX;
+    FieldSkillMapEff *skillMapEff;
+    G3DCamera *g3dCamera;
+    G3DLight *g3dLights;
+    TCB *asyncActorMatLoadTCB;
+    BillboardActorSys *actorBillboardActor;
+    BillboardActorSys *effectBillboardActor;
+    BillboardActorSys *wildEffectBillboardActor;
+    FieldAsyncProcManager *asyncProcManager;
+    // 1 when the map is loaded, 2 when closing
+    u32 routineState;
+    u32 routineID;
+    u8 subroutinePhase;
+    u8 routineAlternator;
+    u16 unkDA;
+    u32 framesSinceStart;
+    u16 zoneId;
+    u16 unkE2;
+    ZoneSpawnInfo playerZoneState;
+    VecFx32 *playerPosPtr;
+    VecFx32 playerPos;
+    fx32 actorYOffset;
+    fx32 objectProjectionMatrixOffset;
+    const FieldmapCtrlVTable *ctrlVTable;
+    // The vtable's kind's controller: a FieldmapCtrlGrid, FieldmapCtrlNoGrid or FieldmapCtrlHybrid
+    void *controller;
+    TCBManager *tcbManager;
+    void *tcbManagerHeap;
+    FieldGimmickWorkBlock gimmickWork;
+    FieldParticle *particleSystem;
+    Fld3DCi *g3dCi;
+    DayCare *dayCare;
+    u32 renderMode;
+    FieldG3DObjSystem *g3DObjSystem;
+    FieldTaskManager *taskManager;
+    BOOL fadeFlag;
+    EncEff *encEff;
+    BOOL effectRunningFlag;
+    BOOL seasonBannerOverdrawFlag;
+    // The face-up of the scenes with N (fld_faceup.c)
+    FaceUpWork *nDemoData;
+    FieldDispControl *dispControl;
+    CasteliaRush *casteliaRush;
+    FieldLensFlare *lensFlare;
+};
+
+UnionEffect *Field_GetUnionEff(Field *field);
+void Field_InitCommonWork(FieldGimmickWorkBlock *block);
+
+// The memory of the field's heap 0x89, in overlay 36's .bss (which file defines it isn't known yet)
+extern u8 g_FieldHeapMemory[WORK_AREA_SIZE(0x10000)];   // (the port: twice on a PC target, fieldmap_proc.c)
+
+#endif // POKEBW2_FIELD_FIELD_INTERNAL_H

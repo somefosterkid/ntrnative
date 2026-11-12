@@ -1,0 +1,896 @@
+pokebw2-pointers2.patch (tools/pokebw2_fetch.sh, the maintainers' notes): the u32s that hold a pointer, pointer-wide on a 64-bit
+host (uintptr_t / intptr_t; the same code on the DS, where they are 32 bits), as Black's files have them:
+- the VM's call stack and script data (Black's vm.h, vm.c): a script `call` pushed its return address cut to 32 bits;
+- the BGM stack's preload handle (GFL_SndBGMStack_Preload/Unload and the works that keep it; Black returns the pointer);
+- the particle work's allocator (Particle_Alloc's next address, Black's particle.c: the intro crashed in SPLManager_New);
+- the battle's event variables (Black's 036ae00b9: BTL_EVAR_STRING holds a BattleHandlerString *);
+- PokeParty_SetParam / PML_PkmSetParam's value (Black's 4fb67782d: the nickname, OT name and mail are pointers);
+- the cell animation callbacks' argument (ClActorCallback.param, MCSSAnimationCallback, MCSS_SetAnimationEndCallback and
+  the 15 callbacks: NNSG2dAnmCallBackPtr's argument is an unsigned long, Black's clact.h and mcss.h);
+- CheckEvolveSpecies' param (the trade partner), BmpMenuList_GetParam (Black's returns intptr_t), MemoryLinkSave_GetValue,
+  G3DTextDraw_CreateResource's palette, the Join Avenue's get/set functions (names and messages);
+- pos_handlers.c's `return (BOOL)item` as `item != NULL` (an address cut to a BOOL can be 0).
+
+diff --git a/include/app/unova_link.h b/include/app/unova_link.h
+index 7838c6a07..77c2d54af 100644
+--- a/include/app/unova_link.h
++++ b/include/app/unova_link.h
+@@ -285,7 +285,7 @@ struct KeySystemWork {
+     CygnusData *cygnusData;
+     CygnusIcons *cygnusIcons;
+     // The handle of the sounds that Unova Link loads ahead
+-    u32 preloadedSeqs;
++    uintptr_t preloadedSeqs;   // (the port: a pointer, GFL_SndBGMStack_Preload's handle)
+     // The last choice of a list or menu, or the result of an exchange
+     u32 choice;
+     u32 timer;
+diff --git a/include/battle/btl_event.h b/include/battle/btl_event.h
+index 3cf5a0b3e..ad3a00911 100644
+--- a/include/battle/btl_event.h
++++ b/include/battle/btl_event.h
+@@ -335,7 +335,7 @@ struct BattleEventItem {
+ typedef struct {
+     u32 sp;
+     u16 keys[0x60];
+-    s32 values[0x60];
++    intptr_t values[0x60];   // (the port: BTL_EVAR_STRING holds a BattleHandlerString *, as Black's btl_event.h)
+     s32 maxValues[0x60];
+     s32 minValues[0x60];
+     // 0, or 1 to be rewritten once (then 2), 3 to be multiplied and clamped, 4 constant
+@@ -361,7 +361,7 @@ void BattleEventVar_CheckReset(void);
+ void BattleEventVar_Push(u32 line);
+ void BattleEventVar_Pop(u32 line);
+ void BattleEventVar_SetValue(u32 key, s32 value);
+-void BattleEventVar_SetConstValue(u32 key, s32 value);
++void BattleEventVar_SetConstValue(u32 key, intptr_t value);
+ void BattleEventVar_SetRewriteOnceValue(u32 key, s32 value);
+ void BattleEventVar_SetMulValue(u32 key, s32 value, s32 minValue, s32 maxValue);
+ BOOL BattleEventVar_GetValueIfExist(u16 key, s32 *value);
+@@ -390,7 +390,7 @@ BattleEventItem *BattleEvent_SeekItem(u32 type, u32 monId);
+ void BattleEventItem_Remove(BattleEventItem *item);
+ void BattleEvent_ItemRotationSleep(u8 monId, u32 factorType);
+ BOOL BattleEvent_ItemRotationWake(u8 monId, u32 factorType);
+-u32 BattleEventVar_GetValue(u32 key);
++uintptr_t BattleEventVar_GetValue(u32 key);
+ BOOL BattleEventVar_RewriteValue(u16 key, s32 value);
+ void BattleEventVar_MulValue(u16 key, s32 value);
+ 
+diff --git a/include/demo/hall_of_fame_demo_main.h b/include/demo/hall_of_fame_demo_main.h
+index 1b53ff004..bea436196 100644
+--- a/include/demo/hall_of_fame_demo_main.h
++++ b/include/demo/hall_of_fame_demo_main.h
+@@ -123,7 +123,7 @@ typedef struct {
+     TCB *vblankTask;
+     // HALL_OF_FAME_DEMO_SCENE_*
+     u32 scene;
+-    u32 seHandle;
++    uintptr_t seHandle;   // (the port: GFL_SndBGMStack_Preload's handle, a pointer)
+     G3DManager *g3dMgr;
+     u32 unk14;
+     MCSSSystem *mcssSys;
+diff --git a/include/gfl/clact.h b/include/gfl/clact.h
+index c5036d664..93fb6e3f7 100644
+--- a/include/gfl/clact.h
++++ b/include/gfl/clact.h
+@@ -110,7 +110,7 @@ typedef struct {
+     u16 type;
+     // For CLACT_CALLBACK_FRAME
+     u16 frame;
+-    u32 param;
++    uintptr_t param;   // (the port: the callback's argument, often a pointer; NNSG2dAnmCallBackPtr's is pointer-wide)
+     NNSG2dAnmCallBackPtr func;
+ } ClActorCallback;
+ 
+diff --git a/include/gfl/graphics.h b/include/gfl/graphics.h
+index 83a7d73d1..e95a75722 100644
+--- a/include/gfl/graphics.h
++++ b/include/gfl/graphics.h
+@@ -20,7 +20,7 @@ struct G3DTextDrawResource {
+     u32 plttOffset;
+ };
+ 
+-BOOL G3DTextDraw_CreateResource(G3DResource *texture, const char *texName, u32 palette, const char *plName,
++BOOL G3DTextDraw_CreateResource(G3DResource *texture, const char *texName, uintptr_t palette, const char *plName,
+                                 const StrBuf *text, u16 x, u16 y, u16 color, HeapID heapId,
+                                 G3DTextDrawResource *resource);
+ u32 G3DTextDraw_GetTexDimCount(void);
+diff --git a/include/gfl/sound.h b/include/gfl/sound.h
+index 27c4fecd5..e980c964a 100644
+--- a/include/gfl/sound.h
++++ b/include/gfl/sound.h
+@@ -98,8 +98,8 @@ void GFL_SndBGMStack_FreeSeq(void);
+ BOOL GFL_SndBGMStack_Push(void);
+ BOOL GFL_SndBGMStack_Pop(void);
+ // Loads sound sequences ahead of time, and frees them
+-u32 GFL_SndBGMStack_Preload(const u32 *seqs, u32 count);
+-void GFL_SndBGMStack_Unload(u32 handle);
++uintptr_t GFL_SndBGMStack_Preload(const u32 *seqs, u32 count);
++void GFL_SndBGMStack_Unload(uintptr_t handle);
+ 
+ // A stream of music, which the title screen plays
+ void GFL_SndStreamInit(HeapID heapId);
+diff --git a/include/pml/evolution.h b/include/pml/evolution.h
+index 3fe96f57c..680e87430 100644
+--- a/include/pml/evolution.h
++++ b/include/pml/evolution.h
+@@ -37,6 +37,6 @@ enum {
+ // The species the Pokémon evolves into, or 0. param depends on the mode: the zone for EVO_CHECK_LEVEL_UP, the partner
+ // PartyPkm for EVO_CHECK_TRADE, the item for the two item modes. method, if not NULL, gets the evolution's method.
+ // An Everstone stops the check in every mode but EVO_CHECK_ITEM; no caller uses EVO_CHECK_ITEM_UNUSED
+-u16 CheckEvolveSpecies(PokeParty *party, PartyPkm *pkm, u32 mode, u32 param, u8 season, u32 *method, HeapID heapId);
++u16 CheckEvolveSpecies(PokeParty *party, PartyPkm *pkm, u32 mode, uintptr_t param, u8 season, u32 *method, HeapID heapId);
+ 
+ #endif // POKEBW2_PML_EVOLUTION_H
+diff --git a/include/pml/poke_party.h b/include/pml/poke_party.h
+index 2257ffbb4..60e2f11a5 100644
+--- a/include/pml/poke_party.h
++++ b/include/pml/poke_party.h
+@@ -161,7 +161,7 @@ typedef enum {
+ u32 PokeParty_GetParam(const PartyPkm *pkm, PkmField param, void *buffer);
+ u32 PokeParty_GetNature(PartyPkm *pkm);
+ // A field that is not a number takes a pointer to its value
+-void PokeParty_SetParam(PartyPkm *pkm, PkmField param, u32 value);
++void PokeParty_SetParam(PartyPkm *pkm, PkmField param, uintptr_t value);
+ u32 GetStatusCond(PartyPkm *pkm);
+ void PokeParty_SetStatusCond(PartyPkm *pkm, u32 status);
+ u8 PokeParty_GetSex(PartyPkm *pkm);
+@@ -212,7 +212,7 @@ enum {
+ };
+ s8 statAffectedByNature(u8 nature, unsigned int stat);
+ // Allocates a party Pokémon made from a boxed one
+-void PML_PkmSetParam(BoxPkm *pkm, u32 param, u32 value);
++void PML_PkmSetParam(BoxPkm *pkm, u32 param, uintptr_t value);
+ // The size of a Pokémon's data
+ u32 PokeParty_GetPkmRawSize(void);
+ // The size of a boxed Pokémon's data
+diff --git a/include/save/join_avenue.h b/include/save/join_avenue.h
+index 26388d263..bb148871c 100644
+--- a/include/save/join_avenue.h
++++ b/include/save/join_avenue.h
+@@ -378,7 +378,7 @@ u32 JoinAvenuePersonList_MergeEntry(JoinAvenuePersonList *list, const JoinAvenue
+ u32 JoinAvenuePersonList_AddVisitor(JoinAvenuePersonList *list, const JoinAvenueVisitor *visitor);
+ u32 JoinAvenuePersonList_AddPerson(JoinAvenuePersonList *list, const JoinAvenuePerson *src);
+ BOOL JoinAvenuePerson_IsEmpty(JoinAvenuePerson *person);
+-void JoinAvenuePerson_SetParam(JoinAvenuePerson *person, JoinAvenuePersonParam param, u32 value);
++void JoinAvenuePerson_SetParam(JoinAvenuePerson *person, JoinAvenuePersonParam param, uintptr_t value);
+ JoinAvenueInfo *JoinAvenue_GetInfo(JoinAvenueSave *joinAvenue);
+ void JoinAvenueInfo_Init(JoinAvenueInfo *info);
+ // The fields of the info that JoinAvenue_GetParam reads and JoinAvenueInfo_SetParam sets, in JoinAvenueInfo's names.
+@@ -415,18 +415,18 @@ enum {
+     JOIN_AVE_INFO_MAX_LEVEL_WEEK,
+ };
+ // A field of the info, which reads into the buffer for the name and title
+-u32 JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer);
++uintptr_t JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer);
+ JoinAvenuePersonList *JoinAvenue_GetPersonList(JoinAvenueSave *joinAvenue);
+ // Records an activity of the player's, the latest of the four recent ones
+ void JoinAvenue_RecordActivity(u32 id);
+ // Sets a field of the info: the name and title from a pointer. The seed can't be set
+-void JoinAvenueInfo_SetParam(JoinAvenueInfo *info, u32 param, u32 value);
++void JoinAvenueInfo_SetParam(JoinAvenueInfo *info, u32 param, uintptr_t value);
+ void JoinAvenueInfo_ResetDaily(JoinAvenueInfo *info, BOOL fullDay);
+ // Where the info and occupants of the save are, for the functions that don't take them
+ void setImportantJABlockAddresses(SaveControl *save);
+ 
+ // A person's fields. joinAveTextHandler reads one, into the buffer for a name
+-u32 joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam param, void *buffer);
++uintptr_t joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam param, void *buffer);
+ // Allocates a person, frees one and clears one
+ JoinAvenuePerson *JoinAvenuePerson_Create(HeapID heapId);
+ void JoinAvenuePerson_Free(JoinAvenuePerson *person);
+@@ -470,7 +470,7 @@ void JoinAvenueEntry_Clear(JoinAvenueEntry *entry);
+ BOOL JoinAvenueEntry_IsEmpty(JoinAvenueEntry *entry);
+ BOOL JoinAvenueEntry_IsValid(JoinAvenueEntry *entry);
+ u32 JoinAvenueEntry_GetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param, void *buffer);
+-void JoinAvenueEntry_SetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param, u32 value);
++void JoinAvenueEntry_SetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param, uintptr_t value);
+ u32 JoinAvenueEntry_Random(JoinAvenueEntry *entry, int count, u32 max);
+ // Whether the person has the extra data of the index
+ BOOL JoinAvenuePerson_HasExtraData(JoinAvenuePerson *person, u32 index);
+diff --git a/include/save/memory_link_savedata.h b/include/save/memory_link_savedata.h
+index 85dc0a3f7..fe7e1bd72 100644
+--- a/include/save/memory_link_savedata.h
++++ b/include/save/memory_link_savedata.h
+@@ -73,7 +73,7 @@ BOOL MemoryLinkSave_Merge(MemoryLinkSave *link, const MemoryLinkData *data, Save
+ // save would change
+ BOOL MemoryLinkSave_CanMerge(MemoryLinkSave *link, const MemoryLinkData *data, SaveControl *save);
+ // A value of a kind, MEMORY_LINK_KIND_*, copied to dest for some kinds
+-u32 MemoryLinkSave_GetValue(MemoryLinkSave *link, u32 kind, void *dest);
++uintptr_t MemoryLinkSave_GetValue(MemoryLinkSave *link, u32 kind, void *dest);
+ // A flag and a variable of the memories
+ BOOL MemoryLinkSave_IsMemoryFlagSet(MemoryLinkSave *link, int index);
+ u16 MemoryLinkSave_GetVar(MemoryLinkSave *link, u32 index);
+diff --git a/include/system/bmp_menulist.h b/include/system/bmp_menulist.h
+index 942936416..140b42e1d 100644
+--- a/include/system/bmp_menulist.h
++++ b/include/system/bmp_menulist.h
+@@ -111,7 +111,7 @@ u16 BmpMenuList_GetCursorY(BmpMenuList *list);
+ u16 BmpMenuList_GetRowY(BmpMenuList *list, u16 row);
+ s32 BmpMenuList_GetOptionValue(BmpMenuList *list, u16 index);
+ // A field of the list's header, or -1
+-s32 BmpMenuList_GetParam(BmpMenuList *list, u8 param);
++intptr_t BmpMenuList_GetParam(BmpMenuList *list, u8 param);
+ // Makes the cursor the ROM's triangle bitmap
+ void BmpMenuList_LoadCursor(BmpMenuList *list, u32 heapId);
+ void *BmpMenuList_GetWork(BmpMenuList *list);
+diff --git a/include/system/mcss.h b/include/system/mcss.h
+index d7d84fba2..bad1e93ba 100644
+--- a/include/system/mcss.h
++++ b/include/system/mcss.h
+@@ -27,7 +27,7 @@ typedef struct {
+ } MCSSLoadInfo;
+ 
+ // Called with the callback's parameter and the animation's frame
+-typedef void (*MCSSAnimationCallback)(u32 param, fx32 frame);
++typedef void (*MCSSAnimationCallback)(uintptr_t param, fx32 frame);
+ 
+ // A sprite's characters and palette on their way to VRAM, which a task loads in the V-blank. A palette that the
+ // system blends has no files: its palette data and colors are allocated
+@@ -85,7 +85,7 @@ void MCSS_ResumeAnimation(MCSS *mcss);
+ void MCSS_Hide(MCSS *mcss);
+ void MCSS_Show(MCSS *mcss);
+ // Sets the callback that runs when the sprite's animation reaches its last frame
+-void MCSS_SetAnimationEndCallback(MCSS *mcss, u32 param, MCSSAnimationCallback callback, u32 unused);
++void MCSS_SetAnimationEndCallback(MCSS *mcss, uintptr_t param, MCSSAnimationCallback callback, u32 unused);
+ // Alpha from 0 to 31
+ void MCSS_SetAlpha(MCSS *mcss, u8 alpha);
+ void MCSS_SetAnimation(MCSS *mcss, u32 animation);
+diff --git a/include/system/vm.h b/include/system/vm.h
+index fd8304f42..7ffc87bf6 100644
+--- a/include/system/vm.h
++++ b/include/system/vm.h
+@@ -40,13 +40,13 @@ struct VM {
+     u8 cmpResult;
+     VMCommand native;
+     const u8 *pc;
+-    u32 *stack;
++    uintptr_t *stack;   // (the port: return addresses, as Black's include/system/vm.h)
+     u32 *work;
+     void *env;
+     VMVerifier verifier;
+     void *verifierArg;
+     // The script file the field loaded the VM's script from, which it frees with the VM
+-    u32 scriptData;
++    uintptr_t scriptData;   // (the port: a pointer)
+     // The work and then the stack follow
+ };
+ 
+@@ -68,8 +68,8 @@ static inline u8 VM_Read8(VM *vm) {
+ 
+ u16 VM_Read16(VM *vm);
+ u32 VM_Read32(VM *vm);
+-void VM_StackPush(VM *vm, u32 value);
+-u32 VM_StackPop(VM *vm);
++void VM_StackPush(VM *vm, uintptr_t value);
++uintptr_t VM_StackPop(VM *vm);
+ void VM_Jump(VM *vm, const u8 *pc);
+ void VM_Call(VM *vm, const u8 *pc);
+ void VM_Return(VM *vm);
+diff --git a/src/gfl/particle.c b/src/gfl/particle.c
+index e7876a7ce..6ffabd6c1 100644
+--- a/src/gfl/particle.c
++++ b/src/gfl/particle.c
+@@ -191,7 +191,7 @@ void Particle_Free(void) {
+ // Takes size bytes of the system's work, rounded up to a word
+ static inline void *Particle_Alloc(ParticleSystem *system, u32 size) {
+     void *ret = system->work;
+-    u32 next = (uintptr_t)system->work + size;
++    uintptr_t next = (uintptr_t)system->work + size;   // (the port: an address, as Black's particle.c)
+ 
+     if (next % 4 != 0) {
+         next += 4 - next % 4;
+diff --git a/src/ov012/g3d_text_draw.c b/src/ov012/g3d_text_draw.c
+index 69a740ea1..b1dd9ceff 100644
+--- a/src/ov012/g3d_text_draw.c
++++ b/src/ov012/g3d_text_draw.c
+@@ -37,7 +37,7 @@ static void G3DTextDraw_StringToTexture(G3DTextDrawWork *work, const StrBuf *tex
+                                         HeapID heapId);
+ static void G3DTextDraw_ConvertPalette(G3DTextDrawWork *work, const void *palette);
+ 
+-BOOL G3DTextDraw_CreateResource(G3DResource *texture, const char *texName, u32 palette, const char *plName,
++BOOL G3DTextDraw_CreateResource(G3DResource *texture, const char *texName, uintptr_t palette, const char *plName,
+                                 const StrBuf *text, u16 x, u16 y, u16 color, HeapID heapId,
+                                 G3DTextDrawResource *resource) {
+     G3DTextDrawResource res;
+diff --git a/src/ov036/ircbattlemenu.c b/src/ov036/ircbattlemenu.c
+index a82df230b..3d54911f1 100644
+--- a/src/ov036/ircbattlemenu.c
++++ b/src/ov036/ircbattlemenu.c
+@@ -630,7 +630,7 @@ static void IrcMenu_StartExit(IrcMenuWork *wk) {
+ }
+ 
+ // Called by the touched button's actor once its animation ends
+-static void IrcMenu_OnMainButtonAnimEnd(u32 param, fx32 frame) {
++static void IrcMenu_OnMainButtonAnimEnd(uintptr_t param, fx32 frame) {
+     IrcMenuWork *wk = (IrcMenuWork *)param;
+ 
+     if (wk->mode == IRCBATTLEMATCH_RESULT_QUIT) {
+@@ -742,7 +742,7 @@ static void IrcMenu_ShowPlayerCountMenu(IrcMenuWork *wk) {
+     IrcMenu_SetStateAtLine(wk, IrcMenu_SubmenuUpdate, 1083);
+ }
+ 
+-static void IrcMenu_OnPlayerCountButtonAnimEnd(u32 param, fx32 frame) {
++static void IrcMenu_OnPlayerCountButtonAnimEnd(uintptr_t param, fx32 frame) {
+     IrcMenuWork *wk = (IrcMenuWork *)param;
+ 
+     if (wk->mode == IRCBATTLEMATCH_MODE_MULTI) {
+@@ -775,7 +775,7 @@ static void IrcMenu_PressPlayerCountButton(IrcMenuWork *wk) {
+     IrcMenu_SetStateAtLine(wk, IrcMenu_WaitPlayerCountButtonAnim, 1146);
+ }
+ 
+-static void IrcMenu_OnPlayerCountBackAnimEnd(u32 param, fx32 frame) {
++static void IrcMenu_OnPlayerCountBackAnimEnd(uintptr_t param, fx32 frame) {
+     IrcMenuWork *wk = (IrcMenuWork *)param;
+ 
+     IrcMenu_SetStateAtLine(wk, IrcMenu_ShowMainMenu, 1155);
+@@ -831,7 +831,7 @@ static void IrcMenu_ShowBattleTypeMenu(IrcMenuWork *wk) {
+     IrcMenu_SetStateAtLine(wk, IrcMenu_SubmenuUpdate, 1237);
+ }
+ 
+-static void IrcMenu_OnBattleBoxButtonAnimEnd(u32 param, fx32 frame) {
++static void IrcMenu_OnBattleBoxButtonAnimEnd(uintptr_t param, fx32 frame) {
+     IrcMenuWork *wk = (IrcMenuWork *)param;
+ 
+     if (wk->choice == 2) {
+@@ -904,7 +904,7 @@ static void IrcMenu_ShowBattleBoxMenu(IrcMenuWork *wk) {
+     IrcMenu_SetStateAtLine(wk, IrcMenu_BattleBoxUpdate, 1366);
+ }
+ 
+-static void IrcMenu_OnBattleTypeButtonAnimEnd(u32 param, fx32 frame) {
++static void IrcMenu_OnBattleTypeButtonAnimEnd(uintptr_t param, fx32 frame) {
+     IrcMenuWork *wk = (IrcMenuWork *)param;
+ 
+     if (wk->mode == IRCBATTLEMATCH_RESULT_QUIT) {
+diff --git a/src/ov162/game_start.c b/src/ov162/game_start.c
+index 99b71f44d..71dab442b 100644
+--- a/src/ov162/game_start.c
++++ b/src/ov162/game_start.c
+@@ -87,7 +87,7 @@ typedef struct {
+     NameEntryParam *nameEntryParam;
+     SaveControlIntr *saveTask;
+     GameProcManager *procManager;
+-    u32 preloadedSeqs;
++    uintptr_t preloadedSeqs;   // (the port: a pointer, GFL_SndBGMStack_Preload's handle)
+     u8 unk3C[0x18];
+     u32 pokeVoice;
+     // The new game's player and config, which are copied into the save at the end
+diff --git a/src/ov167/battle_event.c b/src/ov167/battle_event.c
+index e62a4dd4c..50e6625fd 100644
+--- a/src/ov167/battle_event.c
++++ b/src/ov167/battle_event.c
+@@ -465,7 +465,7 @@ void BattleEventVar_SetValue(u32 key, s32 value) {
+     g_BattleEventVars.kinds[index] = 0;
+ }
+ 
+-void BattleEventVar_SetConstValue(u32 key, s32 value) {
++void BattleEventVar_SetConstValue(u32 key, intptr_t value) {
+     u32 index = BattleEventVar_FindSetIndex(&g_BattleEventVars, key);
+ 
+     g_BattleEventVars.keys[index] = key;
+@@ -519,7 +519,7 @@ void BattleEventVar_MulValue(u16 key, s32 value) {
+     }
+ }
+ 
+-u32 BattleEventVar_GetValue(u32 key) {
++uintptr_t BattleEventVar_GetValue(u32 key) {
+     BattleEventVarStack *vars = &g_BattleEventVars;
+     u32 i;
+ 
+diff --git a/src/ov168/btlv_finger_cursor.c b/src/ov168/btlv_finger_cursor.c
+index 5f1201e62..6ef2b5588 100644
+--- a/src/ov168/btlv_finger_cursor.c
++++ b/src/ov168/btlv_finger_cursor.c
+@@ -37,7 +37,7 @@ enum {
+     FINGER_SEQ_DONE,
+ };
+ 
+-static void BtlvFingerCursor_AnimCallback(u32 param, fx32 frame);
++static void BtlvFingerCursor_AnimCallback(uintptr_t param, fx32 frame);
+ static void BtlvFingerCursor_Task(TCB *tcb, void *data);
+ 
+ static const ClActorSetupEx FINGER_ACTOR_SETUP = { { 0, 0, 0, 0, 0 }, { 0, 0 }, FX32_ONE, FX32_ONE, 0, 2 };
+@@ -119,7 +119,7 @@ BOOL BtlvFingerCursor_IsTouched(BtlvFingerCursor *cursor) {
+ }
+ 
+ // The actor's animation callback, at the end of each animation and on the tap's frame
+-static void BtlvFingerCursor_AnimCallback(u32 param, fx32 frame) {
++static void BtlvFingerCursor_AnimCallback(uintptr_t param, fx32 frame) {
+     BtlvFingerCursor *cursor = (BtlvFingerCursor *)param;
+ 
+     switch (cursor->seq) {
+diff --git a/src/ov168/btlv_mcss.c b/src/ov168/btlv_mcss.c
+index bf56b645f..ec6de31bb 100644
+--- a/src/ov168/btlv_mcss.c
++++ b/src/ov168/btlv_mcss.c
+@@ -163,10 +163,10 @@ static void BtlvMcss_MoveTaskEnd_Level(TCB *tcb);
+ static void BtlvMcss_IdleTask(TCB *tcb, void *data);
+ static void BtlvMcss_RotationTask(TCB *tcb, void *data);
+ static void BtlvMcss_RotationTaskEnd(TCB *tcb);
+-static void BtlvMcss_OnAnimationEnd(u32 index, fx32 frame);
++static void BtlvMcss_OnAnimationEnd(uintptr_t index, fx32 frame);
+ static BOOL BtlvMcss_IdleNodeCallback(u32 param, const NNSG2dMultiCellHierarchyData *node,
+                                       NNSG2dCellAnimation *cellAnim, u16 nodeIdx);
+-static void BtlvMcss_OnSetAnimationEnd(u32 index, fx32 frame);
++static void BtlvMcss_OnSetAnimationEnd(uintptr_t index, fx32 frame);
+ static void BtlvMcss_GetDefaultPosImpl(BtlvMcss *work, VecFx32 *out, int pos);
+ static fx32 BtlvMcss_GetDefaultScaleImpl(BtlvMcss *work, int pos, BOOL flat);
+ static int BtlvMcss_GetIndex(BtlvMcss *work, int pos);
+@@ -2052,7 +2052,7 @@ static void BtlvMcss_RotationTaskEnd(TCB *tcb) {
+     task->work->rotating = FALSE;
+ }
+ 
+-static void BtlvMcss_OnAnimationEnd(u32 index, fx32 frame) {
++static void BtlvMcss_OnAnimationEnd(uintptr_t index, fx32 frame) {
+     BtlvMcss *work = BtlvEffect_GetMcss();
+     BtlvMcssIdle *idle;
+     u32 count;
+@@ -2123,7 +2123,7 @@ static BOOL BtlvMcss_IdleNodeCallback(u32 param, const NNSG2dMultiCellHierarchyD
+     return TRUE;
+ }
+ 
+-static void BtlvMcss_OnSetAnimationEnd(u32 index, fx32 frame) {
++static void BtlvMcss_OnSetAnimationEnd(uintptr_t index, fx32 frame) {
+     BtlvMcss *work = BtlvEffect_GetMcss();
+ 
+     work->entries[index].animSet = FALSE;
+diff --git a/src/ov169/pos_handlers.c b/src/ov169/pos_handlers.c
+index 0eaa5f345..67f2351a1 100644
+--- a/src/ov169/pos_handlers.c
++++ b/src/ov169/pos_handlers.c
+@@ -51,7 +51,7 @@ BOOL PosEventAdd(u32 effect, u8 pos, u8 monId, const u32 *args, u8 argCount) {
+                 }
+                 BattleEventItem_SetWorkValue(item, 6, monId);
+             }
+-            return (BOOL)item;
++            return item != NULL;   // (the port: an address cut to a BOOL can be 0)
+         }
+     }
+     return FALSE;
+diff --git a/src/ov174/ircbattlematch.c b/src/ov174/ircbattlematch.c
+index c4cd3b0b3..988fb1afc 100644
+--- a/src/ov174/ircbattlematch.c
++++ b/src/ov174/ircbattlematch.c
+@@ -270,8 +270,8 @@ static void IrcBattleMatch_StateWaitFriendFull(IrcBattleMatch *work);
+ static void IrcBattleMatch_StateShowWaitMessage(IrcBattleMatch *work);
+ static void IrcBattleMatch_StateQuitAnswerWaiting(IrcBattleMatch *work);
+ static void IrcBattleMatch_StateShowQuitPromptWaiting(IrcBattleMatch *work);
+-static void IrcBattleMatch_OnLeaderAnimEnd(u32 param, fx32 frame);
+-static void IrcBattleMatch_OnPartnerAnimEnd(u32 param, fx32 frame);
++static void IrcBattleMatch_OnLeaderAnimEnd(uintptr_t param, fx32 frame);
++static void IrcBattleMatch_OnPartnerAnimEnd(uintptr_t param, fx32 frame);
+ static void IrcBattleMatch_StateShowMismatch(IrcBattleMatch *work);
+ static void IrcBattleMatch_UpdateLinkChange(IrcBattleMatch *work);
+ static void IrcBattleMatch_StateConnectLoop(IrcBattleMatch *work);
+@@ -1523,7 +1523,7 @@ static void IrcBattleMatch_StateShowQuitPromptWaiting(IrcBattleMatch *work) {
+     IrcBattleMatch_SetState(work, IrcBattleMatch_StateQuitAnswerWaiting);
+ }
+ 
+-static void IrcBattleMatch_OnLeaderAnimEnd(u32 param, fx32 frame) {
++static void IrcBattleMatch_OnLeaderAnimEnd(uintptr_t param, fx32 frame) {
+     IrcBattleMatch *work = (IrcBattleMatch *)param;
+     u16 sequence = ClActor_GetSequence(work->actors[0]);
+ 
+@@ -1541,7 +1541,7 @@ static void IrcBattleMatch_OnLeaderAnimEnd(u32 param, fx32 frame) {
+     }
+ }
+ 
+-static void IrcBattleMatch_OnPartnerAnimEnd(u32 param, fx32 frame) {
++static void IrcBattleMatch_OnPartnerAnimEnd(uintptr_t param, fx32 frame) {
+     IrcBattleMatch *work = (IrcBattleMatch *)param;
+     u16 sequence = ClActor_GetSequence(work->actors[2]);
+ 
+diff --git a/src/ov194/pokemontrade_2d.c b/src/ov194/pokemontrade_2d.c
+index ca3318c9e..8c1a3796b 100644
+--- a/src/ov194/pokemontrade_2d.c
++++ b/src/ov194/pokemontrade_2d.c
+@@ -89,7 +89,7 @@ static void Poketrade2D_InitBezierCurve(TradeCurve *curve, VecFx32 *start, VecFx
+ static BOOL Poketrade2D_StepBezierCurve(TradeCurve *curve);
+ static void Poketrade2D_Setup3DRenderState(void);
+ static void Poketrade2D_SetCursorSlidePositions(PokemonTradeWork *wk);
+-static void Poketrade2D_OnCursorAnimDone(u32 param, fx32 frame);
++static void Poketrade2D_OnCursorAnimDone(uintptr_t param, fx32 frame);
+ static void Poketrade2D_FadePaletteBank(const PokemonTradeWork *wk, u32 vram, u32 paletteMask);
+ static void Poketrade2D_FadePaletteCopy(PokemonTradeWork *wk, BOOL dim, u16 vram, u32 paletteMask);
+ 
+@@ -2193,7 +2193,7 @@ void Poketrade2D_LoadMonPalette(PokemonTradeWork *wk, int side, PartyPkm *pkm) {
+     GFL_BGSysQueueScrLoad(1);
+ }
+ 
+-static void Poketrade2D_OnCursorAnimDone(u32 param, fx32 frame) {
++static void Poketrade2D_OnCursorAnimDone(uintptr_t param, fx32 frame) {
+     PokemonTradeWork *wk = (PokemonTradeWork *)param;
+ 
+     wk->boxCursorDone = TRUE;
+diff --git a/src/ov195/gtsnego_disp.c b/src/ov195/gtsnego_disp.c
+index f286479cf..43b067250 100644
+--- a/src/ov195/gtsnego_disp.c
++++ b/src/ov195/gtsnego_disp.c
+@@ -123,7 +123,7 @@ static void GtsNegoDisp_CreateListFooter(GtsNegoDisp *disp);
+ static void GtsNegoDisp_CreateListActors(GtsNegoDisp *disp, BOOL scrollable);
+ static int GtsNegoDisp_GetKnobY(GtsNegoDisp *disp, int pos, int count);
+ static int GtsNegoDisp_GetKnobPos(GtsNegoDisp *disp, int y, int count);
+-static void GtsNegoDisp_OnSearchAnimEnd(u32 param, fx32 frame);
++static void GtsNegoDisp_OnSearchAnimEnd(uintptr_t param, fx32 frame);
+ static void GtsNegoDisp_CreateSearchActors(GtsNegoDisp *disp);
+ static void GtsNegoDisp_FreeSearchActors(GtsNegoDisp *disp);
+ static void GtsNegoDisp_UpdateTopScroll(GtsNegoDisp *disp);
+@@ -1161,7 +1161,7 @@ int GtsNegoDisp_DragKnob(GtsNegoDisp *disp, int y, int count) {
+ }
+ 
+ // The search's trainer cycles through the looks, a sequence each
+-static void GtsNegoDisp_OnSearchAnimEnd(u32 param, fx32 frame) {
++static void GtsNegoDisp_OnSearchAnimEnd(uintptr_t param, fx32 frame) {
+     GtsNegoDisp *disp = (GtsNegoDisp *)param;
+     u16 sequence = ClActor_GetSequence(disp->searchActors[1]) + 1;
+ 
+diff --git a/src/ov199/gsync_menu.c b/src/ov199/gsync_menu.c
+index 5c7103962..f02b71817 100644
+--- a/src/ov199/gsync_menu.c
++++ b/src/ov199/gsync_menu.c
+@@ -141,7 +141,7 @@ static void GSyncMenu_BrightenPalettes(u16 (*palettes)[16], const u16 *add, int
+ static void GSyncMenu_StateFadeOut(GSyncMenuWork *wk);
+ static void GSyncMenu_StateWifiSettingsAnswer(GSyncMenuWork *wk);
+ static void GSyncMenu_StateWifiSettingsYesNo(GSyncMenuWork *wk);
+-static void GSyncMenu_OnButtonAnimEnd(u32 param, fx32 frame);
++static void GSyncMenu_OnButtonAnimEnd(uintptr_t param, fx32 frame);
+ static void GSyncMenu_StateWaitButtonAnim(GSyncMenuWork *wk);
+ static void GSyncMenu_CreateButtons(int count, const u32 *msgIds, GSyncMenuWork *wk, GSyncMenuWinRect *rects,
+                                     const s32 *centerX, const s32 *centerY);
+@@ -377,7 +377,7 @@ static void GSyncMenu_StateWifiSettingsYesNo(GSyncMenuWork *wk) {
+ }
+ 
+ // Called by the touched button's actor once its animation ends
+-static void GSyncMenu_OnButtonAnimEnd(u32 param, fx32 frame) {
++static void GSyncMenu_OnButtonAnimEnd(uintptr_t param, fx32 frame) {
+     GSyncMenuWork *wk = (GSyncMenuWork *)param;
+ 
+     ClActor_ClearAnimCallback(wk->actors[wk->selected]);
+diff --git a/src/ov199/gsync_state.c b/src/ov199/gsync_state.c
+index a30f189e8..970927445 100644
+--- a/src/ov199/gsync_state.c
++++ b/src/ov199/gsync_state.c
+@@ -193,7 +193,7 @@ static void GSync_StateWaitDownloadsShown(GSyncWork *wk);
+ static void GSync_StateShowDownloads(GSyncWork *wk);
+ static void GSync_StateWaitLevelUp(GSyncWork *wk);
+ static void GSync_StateWaitReceived(GSyncWork *wk);
+-static void GSync_OnPokemonAnimEnd(u32 param, fx32 frame);
++static void GSync_OnPokemonAnimEnd(uintptr_t param, fx32 frame);
+ static void GSync_ReceivePokemon(GSyncWork *wk);
+ static void GSync_StateWaitReceiveSave(GSyncWork *wk);
+ static void GSync_StateWaitFinishDownload(GSyncWork *wk);
+@@ -486,7 +486,7 @@ static void GSync_StateWaitReceived(GSyncWork *wk) {
+     }
+ }
+ 
+-static void GSync_OnPokemonAnimEnd(u32 param, fx32 frame) {
++static void GSync_OnPokemonAnimEnd(uintptr_t param, fx32 frame) {
+     GSyncWork *wk = (GSyncWork *)param;
+ 
+     GSyncDisp_SetActorSequence(wk->disp, 0, 0);
+diff --git a/src/ov265/hall_of_fame_demo_main.c b/src/ov265/hall_of_fame_demo_main.c
+index e6609c161..28b779f5b 100644
+--- a/src/ov265/hall_of_fame_demo_main.c
++++ b/src/ov265/hall_of_fame_demo_main.c
+@@ -37,7 +37,7 @@ static void HallOfFameDemoMain_VBlank1st(TCB *tcb, void *data);
+ static void HallOfFameDemoMain_VBlank2nd(TCB *tcb, void *data);
+ static void HallOfFameDemoMain_Setup3D(void);
+ static void HallOfFameDemoMain_SetParticleCamera(HallOfFameDemoWork *wk, ParticleSystem *ptc, BOOL sub);
+-static void HallOfFameDemoMain_McssCallBack(u32 param, fx32 frame);
++static void HallOfFameDemoMain_McssCallBack(uintptr_t param, fx32 frame);
+ 
+ // The first scene's banks, with 3D on both screens, and the second's
+ static const BGSysVRAMConfig sHallOfFameDemoVramConfig1st = {
+@@ -457,7 +457,7 @@ void HallOfFameDemoMain_MoveMcss(HallOfFameDemoWork *wk, s32 move) {
+     MCSS_SetPosition(wk->mcss, &pos);
+ }
+ 
+-static void HallOfFameDemoMain_McssCallBack(u32 param, fx32 frame) {
++static void HallOfFameDemoMain_McssCallBack(uintptr_t param, fx32 frame) {
+     HallOfFameDemoWork *wk = (HallOfFameDemoWork *)param;
+ 
+     MCSS_PauseAnimation(wk->mcss);
+diff --git a/src/ov294/intro_mcss.c b/src/ov294/intro_mcss.c
+index daf9bb6ce..dae1b2df6 100644
+--- a/src/ov294/intro_mcss.c
++++ b/src/ov294/intro_mcss.c
+@@ -26,7 +26,7 @@ struct IntroMcss {
+     u32 idleTimer;
+ };
+ 
+-static void IntroMcss_OnAnimationEnd(u32 param, fx32 frame);
++static void IntroMcss_OnAnimationEnd(uintptr_t param, fx32 frame);
+ 
+ static const VecFx32 sScale = { FX32_CONST(16), FX32_CONST(16), FX32_ONE };
+ // Pokémon face the other way
+@@ -128,7 +128,7 @@ void IntroMcss_SetFlipV(IntroMcss *mcss, u8 index, BOOL enable) {
+     }
+ }
+ 
+-static void IntroMcss_OnAnimationEnd(u32 param, fx32 frame) {
++static void IntroMcss_OnAnimationEnd(uintptr_t param, fx32 frame) {
+     IntroSprite *sprite = (IntroSprite *)param;
+ 
+     sprite->animationEnded = TRUE;
+diff --git a/src/ov298/pokedex_detail_form.c b/src/ov298/pokedex_detail_form.c
+index 7558ac264..c0904eb27 100644
+--- a/src/ov298/pokedex_detail_form.c
++++ b/src/ov298/pokedex_detail_form.c
+@@ -383,7 +383,7 @@ static void PokedexDetailForm_InitSpriteAnim(SpriteAnim *anim, int sprite, Poked
+ static void PokedexDetailForm_PlaySpriteAnim(Sprite *sprite);
+ static void PokedexDetailForm_StopSpriteAnim(Sprite *sprite);
+ static void PokedexDetailForm_UpdateSprite(Sprite *sprite);
+-static void PokedexDetailForm_SpriteAnimEnd(u32 param, fx32 frame);
++static void PokedexDetailForm_SpriteAnimEnd(uintptr_t param, fx32 frame);
+ static void PokedexDetailForm_Turn(PokedexDetailFormParam *param, PokedexDetailFormWork *wk,
+                                    PokedexDetailCommon *common);
+ static void PokedexDetailForm_LoadIconResources(PokedexDetailFormParam *param, PokedexDetailFormWork *wk,
+@@ -1615,7 +1615,7 @@ static void PokedexDetailForm_UpdateSprite(Sprite *sprite) {
+     }
+ }
+ 
+-static void PokedexDetailForm_SpriteAnimEnd(u32 param, fx32 frame) {
++static void PokedexDetailForm_SpriteAnimEnd(uintptr_t param, fx32 frame) {
+     SpriteAnim *anim = (SpriteAnim *)param;
+     PokedexDetailFormWork *wk = anim->wk;
+ 
+diff --git a/src/ov307/egg_demo_view.c b/src/ov307/egg_demo_view.c
+index aedbcba45..a11800f8b 100644
+--- a/src/ov307/egg_demo_view.c
++++ b/src/ov307/egg_demo_view.c
+@@ -106,7 +106,7 @@ static void EggDemoView_AddMcss(EggDemoView *view);
+ static void EggDemoView_RemoveMcss(EggDemoView *view);
+ static void EggDemoView_HideMcss(EggDemoView *view);
+ static void EggDemoView_SetAnimation(EggDemoView *view, u32 animation, BOOL stopAtEnd);
+-static void EggDemoView_OnAnimationEnd(u32 param, fx32 frame);
++static void EggDemoView_OnAnimationEnd(uintptr_t param, fx32 frame);
+ static void EggDemoView_UpdateAlpha(EggDemoView *view);
+ static void EggDemoView_FadeToWhite(EggDemoView *view);
+ static BOOL EggDemoView_IsFadeDone(EggDemoView *view);
+@@ -477,7 +477,7 @@ static void EggDemoView_SetAnimation(EggDemoView *view, u32 animation, BOOL stop
+     }
+ }
+ 
+-static void EggDemoView_OnAnimationEnd(u32 param, fx32 frame) {
++static void EggDemoView_OnAnimationEnd(uintptr_t param, fx32 frame) {
+     EggDemoView *view = (EggDemoView *)param;
+ 
+     MCSS_PauseAnimation(view->mcss);
+diff --git a/src/system/bmp_menulist.c b/src/system/bmp_menulist.c
+index dbf45c41e..88ce00eb3 100644
+--- a/src/system/bmp_menulist.c
++++ b/src/system/bmp_menulist.c
+@@ -227,7 +227,7 @@ s32 BmpMenuList_GetOptionValue(BmpMenuList *list, u16 index) {
+     return list->header.options[index].value;
+ }
+ 
+-s32 BmpMenuList_GetParam(BmpMenuList *list, u8 param) {
++intptr_t BmpMenuList_GetParam(BmpMenuList *list, u8 param) {
+     switch (param) {
+     case BMPMENULIST_PARAM_CURSOR_CALLBACK:
+         return (intptr_t)list->header.cursorCallback;
+diff --git a/src/system/evolution_check.c b/src/system/evolution_check.c
+index 7316b2b12..c567caa40 100644
+--- a/src/system/evolution_check.c
++++ b/src/system/evolution_check.c
+@@ -27,7 +27,7 @@ static u16 EVOLVE_MOSSROCK_ZONES[] = { ZONE_PINWHEEL_FOREST_2 };
+ static u16 EVOLVE_ELEC_ZONES[] = { ZONE_CHARGESTONE_CAVE_2, ZONE_CHARGESTONE_CAVE_3, ZONE_CHARGESTONE_CAVE_4 };
+ static u16 EVOLVE_ELEC2_ZONES[] = { ZONE_CHARGESTONE_CAVE_2, ZONE_CHARGESTONE_CAVE_3, ZONE_CHARGESTONE_CAVE_4 };
+ 
+-u16 CheckEvolveSpecies(PokeParty *party, PartyPkm *pkm, u32 mode, u32 param, u8 season, u32 *method, HeapID heapId) {
++u16 CheckEvolveSpecies(PokeParty *party, PartyPkm *pkm, u32 mode, uintptr_t param, u8 season, u32 *method, HeapID heapId) {
+     Evolution *evo;
+     u16 species;
+     u16 item;
+diff --git a/src/system/mcss.c b/src/system/mcss.c
+index e770bd091..5d7dcb474 100644
+--- a/src/system/mcss.c
++++ b/src/system/mcss.c
+@@ -819,7 +819,7 @@ u8 MCSSSys_GetStopCellFlags(MCSS *mcss) {
+     return mcss->binTail->unk1;
+ }
+ 
+-void MCSS_SetAnimationEndCallback(MCSS *mcss, u32 param, MCSSAnimationCallback callback, u32 unused) {
++void MCSS_SetAnimationEndCallback(MCSS *mcss, uintptr_t param, MCSSAnimationCallback callback, u32 unused) {
+     NNS_G2dSetAnimCtrlCallBackFunctor(&mcss->mcAnim.animCtrl, NNS_G2D_ANMCALLBACKTYPE_LAST_FRM, param, callback);
+ }
+ 
+diff --git a/src/system/mcss_tool.c b/src/system/mcss_tool.c
+index 14e0a5c7b..ec794e660 100644
+--- a/src/system/mcss_tool.c
++++ b/src/system/mcss_tool.c
+@@ -28,7 +28,7 @@ typedef struct {
+ 
+ static void SetupPokemonLoaderByBoxData(BoxPkm *pkm, MCSSLoadInfo *info, u32 dir);
+ static BOOL MCSS_SpindaLoadCallback(const MCSSLoadInfo *info, MCSSLoad *load, u32 personality);
+-static void MCSS_RestartOnAnimationEnd(u32 param, fx32 frame);
++static void MCSS_RestartOnAnimationEnd(uintptr_t param, fx32 frame);
+ 
+ static const SpindaSpotPixel sMcssSpindaSpot0[] = {
+     { 11, 7 },  { 12, 7 },  { 13, 7 },  { 14, 7 },  { 10, 8 },  { 11, 8 },  { 12, 8 },  { 13, 8 },      { 14, 8 },
+@@ -171,6 +171,6 @@ void MCSS_SetLoopAnimation(MCSS *mcss) {
+     MCSS_SetAnimationEndCallback(mcss, (uintptr_t)mcss, MCSS_RestartOnAnimationEnd, 1);
+ }
+ 
+-static void MCSS_RestartOnAnimationEnd(u32 param, fx32 frame) {
++static void MCSS_RestartOnAnimationEnd(uintptr_t param, fx32 frame) {
+     MCSS_RequestRestart((MCSS *)param);
+ }
+diff --git a/src/system/memory_link_savedata.c b/src/system/memory_link_savedata.c
+index fdab08ef0..71c97f97b 100644
+--- a/src/system/memory_link_savedata.c
++++ b/src/system/memory_link_savedata.c
+@@ -169,7 +169,7 @@ static u32 mergeData(MemoryLinkSave *link, const MemoryLinkData *data, SaveContr
+            (changed[MEMORY_LINK_PART_UNK2C] << 2);
+ }
+ 
+-u32 MemoryLinkSave_GetValue(MemoryLinkSave *link, u32 kind, void *dest) {
++uintptr_t MemoryLinkSave_GetValue(MemoryLinkSave *link, u32 kind, void *dest) {
+     switch (kind) {
+     case MEMORY_LINK_KIND_MUSICAL_TOTAL_POINTS:
+         return link->memories.musicalTotalPoints;
+diff --git a/src/system/poke_tool.c b/src/system/poke_tool.c
+index 770d6ed82..62e174b07 100644
+--- a/src/system/poke_tool.c
++++ b/src/system/poke_tool.c
+@@ -226,8 +226,8 @@ static void PokeParty_PkmEncrypt(PartyPkm *pkm);
+ static void PML_PkmEncryptForce(BoxPkm *pkm);
+ static u32 PokeParty_GetParamCore(PartyPkm *pkm, PkmField field, void *buffer);
+ static u32 PML_PkmGetParamCore(BoxPkm *pkm, PkmField field, void *buffer);
+-static void PokeParty_SetParamCore(PartyPkm *pkm, PkmField field, u32 value);
+-static void PML_PkmSetParamCore(BoxPkm *pkm, PkmField field, u32 value);
++static void PokeParty_SetParamCore(PartyPkm *pkm, PkmField field, uintptr_t value);
++static void PML_PkmSetParamCore(BoxPkm *pkm, PkmField field, uintptr_t value);
+ static void writePkmBattleData(PartyPkm *pkm, int param, int value);
+ static void PML_PkmAddParam(BoxPkm *pkm, int param, int value);
+ static void addClampedU8(u8 *field, int value, int max);
+@@ -625,14 +625,14 @@ u32 PokeParty_GetParam(const PartyPkm *pkm, PkmField param, void *buffer) {
+     return value;
+ }
+ 
+-void PokeParty_SetParam(PartyPkm *pkm, PkmField param, u32 value) {
++void PokeParty_SetParam(PartyPkm *pkm, PkmField param, uintptr_t value) {
+     if (PokeParty_PkmDecryptCheck(pkm) == TRUE) {
+         PokeParty_SetParamCore(pkm, param, value);
+     }
+     PokeParty_PkmEncrypt(pkm);
+ }
+ 
+-void PML_PkmSetParam(BoxPkm *pkm, u32 param, u32 value) {
++void PML_PkmSetParam(BoxPkm *pkm, u32 param, uintptr_t value) {
+     if (PML_PkmDecryptCheck(pkm) == TRUE) {
+         PML_PkmSetParamCore(pkm, param, value);
+     }
+@@ -1867,7 +1867,7 @@ static u32 PML_PkmGetParamCore(BoxPkm *pkm, PkmField field, void *buffer) {
+     return result;
+ }
+ 
+-static void PokeParty_SetParamCore(PartyPkm *pkm, PkmField field, u32 value) {
++static void PokeParty_SetParamCore(PartyPkm *pkm, PkmField field, uintptr_t value) {
+     switch (field) {
+     case PKM_PARAM_STATUS:
+         pkm->statusCond = value;
+@@ -1911,7 +1911,7 @@ static void PokeParty_SetParamCore(PartyPkm *pkm, PkmField field, u32 value) {
+ }
+ 
+ // Writes a field of a decrypted Pokémon. An effort value is cut down to what the total and the stat allow
+-static void PML_PkmSetParamCore(BoxPkm *pkm, PkmField field, u32 value) {
++static void PML_PkmSetParamCore(BoxPkm *pkm, PkmField field, uintptr_t value) {
+     u64 bit;
+     PkmBlockA *blockA = PML_PkmGetParamBlockCore(pkm, pkm->pid, 0);
+     PkmBlockB *blockB = PML_PkmGetParamBlockCore(pkm, pkm->pid, 1);
+diff --git a/src/system/resonance_resort_data.c b/src/system/resonance_resort_data.c
+index bef4a01f8..1b5046367 100644
+--- a/src/system/resonance_resort_data.c
++++ b/src/system/resonance_resort_data.c
+@@ -834,7 +834,7 @@ BOOL JoinAvenuePerson_IsValid(JoinAvenuePerson *person) {
+     return TRUE;
+ }
+ 
+-u32 joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam param, void *buffer) {
++uintptr_t joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam param, void *buffer) {
+     switch (param) {
+     case JOIN_AVE_PARAM_SLOT:
+         return person->slot;
+@@ -1016,7 +1016,7 @@ u32 joinAveTextHandler(const JoinAvenuePerson *person, JoinAvenuePersonParam par
+     return 0;
+ }
+ 
+-void JoinAvenuePerson_SetParam(JoinAvenuePerson *person, JoinAvenuePersonParam param, u32 value) {
++void JoinAvenuePerson_SetParam(JoinAvenuePerson *person, JoinAvenuePersonParam param, uintptr_t value) {
+     switch (param) {
+     case JOIN_AVE_PARAM_SLOT:
+         person->slot = value;
+@@ -1465,7 +1465,7 @@ u32 JoinAvenueEntry_GetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param
+     return 0;
+ }
+ 
+-void JoinAvenueEntry_SetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param, u32 value) {
++void JoinAvenueEntry_SetParam(JoinAvenueEntry *entry, JoinAvenuePersonParam param, uintptr_t value) {
+     switch (param) {
+     case JOIN_AVE_PARAM_SLOT:
+         entry->slot = value;
+@@ -2402,7 +2402,7 @@ void JoinAvenueInfo_Init(JoinAvenueInfo *info) {
+     GFL_MsgDataFree(msgData);
+ }
+ 
+-u32 JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer) {
++uintptr_t JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer) {
+     switch (param) {
+     case JOIN_AVE_INFO_NAME:
+         if (buffer != NULL) {
+@@ -2470,7 +2470,7 @@ u32 JoinAvenue_GetParam(JoinAvenueInfo *info, u32 param, void *buffer) {
+     return 0;
+ }
+ 
+-void JoinAvenueInfo_SetParam(JoinAvenueInfo *info, u32 param, u32 value) {
++void JoinAvenueInfo_SetParam(JoinAvenueInfo *info, u32 param, uintptr_t value) {
+     switch (param) {
+     case JOIN_AVE_INFO_NAME:
+         wcharsncpy((const u16 *)value, info->name, NELEMS(info->name));
+diff --git a/src/system/snd_bgm_stack.c b/src/system/snd_bgm_stack.c
+index 9cd83a986..53cb545e2 100644
+--- a/src/system/snd_bgm_stack.c
++++ b/src/system/snd_bgm_stack.c
+@@ -184,7 +184,7 @@ BOOL GFL_SndBGMStack_Pop(void) {
+     return TRUE;
+ }
+ 
+-u32 GFL_SndBGMStack_Preload(const u32 *seqs, u32 count) {
++uintptr_t GFL_SndBGMStack_Preload(const u32 *seqs, u32 count) {
+     BGMStackEntry *entry = &sBGMStackEntries[sBGMStack.depth];
+     BGMStackPreload *preload;
+     s32 level = entry->baseLevel;
+@@ -201,7 +201,7 @@ u32 GFL_SndBGMStack_Preload(const u32 *seqs, u32 count) {
+     return (uintptr_t)preload;
+ }
+ 
+-void GFL_SndBGMStack_Unload(u32 handle) {
++void GFL_SndBGMStack_Unload(uintptr_t handle) {
+     s32 level = ((BGMStackPreload *)handle)->level;
+ 
+     BGMStack_FreeEntry();
+diff --git a/src/system/vm.c b/src/system/vm.c
+index e800b5f0d..0d77d43ed 100644
+--- a/src/system/vm.c
++++ b/src/system/vm.c
+@@ -9,20 +9,20 @@ void VM_Reset(VM *vm) {
+     vm->state = VM_STATE_STOPPED;
+     vm->native = NULL;
+     vm->stackPos = 0;
+-    MI_CpuFill8(vm->stack, 0, vm->param.stackSize * sizeof(u32));
++    MI_CpuFill8(vm->stack, 0, vm->param.stackSize * sizeof(uintptr_t));
+     MI_CpuFill8(vm->work, 0, vm->param.workSize * sizeof(u32));
+     vm->verifier = NULL;
+     vm->verifierArg = NULL;
+ }
+ 
+ VM *VM_Create(HeapID heapId, const VMInitParam *param) {
+-    u32 size = sizeof(VM) + param->workSize * sizeof(u32) + param->stackSize * sizeof(u32);
++    u32 size = sizeof(VM) + param->workSize * sizeof(u32) + param->stackSize * sizeof(uintptr_t);
+     VM *vm = GFL_HeapAllocate(heapId, size, FALSE, "vm.c", 96);
+ 
+     MI_CpuFill8(vm, 0, size);
+     vm->param = *param;
+     vm->work = (u32 *)(vm + 1);
+-    vm->stack = vm->work + param->workSize;
++    vm->stack = (uintptr_t *)(vm->work + param->workSize);   // (the port: return addresses, as Black's vm.c)
+     return vm;
+ }
+ 
+@@ -130,14 +130,14 @@ u32 VM_Read32(VM *vm) {
+     return value;
+ }
+ 
+-void VM_StackPush(VM *vm, u32 value) {
++void VM_StackPush(VM *vm, uintptr_t value) {
+     if (vm->stackPos + 1 < vm->param.stackSize) {
+         vm->stack[vm->stackPos] = value;
+         vm->stackPos++;
+     }
+ }
+ 
+-u32 VM_StackPop(VM *vm) {
++uintptr_t VM_StackPop(VM *vm) {
+     if (vm->stackPos == 0) {
+         return 0;
+     }

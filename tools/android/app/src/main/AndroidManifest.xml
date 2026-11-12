@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- bw-port's app (docs/port-worker.md, "Android"), after SDL 2.32's android-project manifest. GLES 3.0 (libntr-android-gles.patch);
+     full screen, portrait and both landscapes as on iOS (port/src/android_main.c sets SDL's orientation hint; SDL's activity turns
+     with the phone and gives the game the new window size). LauncherActivity is the home screen (docs/launcher.md, "Android launcher"):
+     the games, Add Game, the saves; Play starts the game (BwportActivity, SDL's activity) in its own process (:game), which ends
+     and comes back here for Games and Restart to title. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:installLocation="auto">
+
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />    <!-- the launcher's cover art (GameTDB, libretro-thumbnails) -->
+
+    <application
+        android:label="bwport"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/extraction_rules"
+        android:appCategory="game"
+        android:isGame="true"
+        android:hardwareAccelerated="true"
+        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+
+        <!-- "Share latest log" (SettingsScreen, LogShare.java): the log files, read only, to the app the share goes to -->
+        <provider
+            android:name=".LogShare$Provider"
+            android:authorities="com.bwport.app.logs"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.Material.NoActionBar"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".BwportActivity"
+            android:exported="true"
+            android:process=":game"
+            android:alwaysRetainTaskState="true"
+            android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation"
+            android:preferMinimalPostProcessing="true"
+            android:screenOrientation="fullUser">
+            <!-- Firebase Test Lab's game loop (tools/android_testlab.sh): BwportActivity.testLoop -->
+            <intent-filter>
+                <action android:name="com.google.intent.action.TEST_LOOP" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/javascript" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -1,0 +1,2 @@
+# bianca: walk, A
+right*f16@f10 right*f16@f30 right*f16@f50 up*f16@f70 up*f16@f90 up*f16@f110 a*f4@f140 a*f4@f180

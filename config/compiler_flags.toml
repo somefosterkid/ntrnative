@@ -1,0 +1,16 @@
+# The game's files built with other flags than configure.py's CC_FLAGS (each replaces the flag of the same option),
+# as pokebw2's config/compiler_flags.toml has them. Owner 2026-10-24: "-ipa function" per file where the data needs it
+# (tools/data_order.py: "with -ipa function it is Black's, the code unchanged").
+[file_flags]
+"src/ov040/gym_nacrene.c" = ["-ipa function"]
+"src/ov018/ov018_02182998.c" = ["-ipa function"]
+"src/ov021/ov021_021d213c.c" = ["-ipa function"]
+"src/ov018/intrude_field.c" = ["-ipa function"]
+"src/ov020/field_wfbc_data_local.c" = ["-ipa function"]
+"src/ov021/field_actor_animation.c" = ["-ipa function"]
+"src/ov018/ov018_02180980.c" = ["-ipa function"]
+"src/ov174/ov174_021b6100.c" = ["-ipa function"]
+"src/ov010/delivery_beacon.c" = ["-ipa function", '-pragma "explicit_zero_data on"']
+"src/ov195/shinka_demo_view.c" = ["-ipa function"]
+"src/ov172/ctvt_draw.c" = ["-ipa function"]
+"src/ov011/intrude_comm.c" = ["-ipa function"]

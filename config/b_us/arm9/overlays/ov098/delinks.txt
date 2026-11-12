@@ -1,0 +1,23 @@
+    .text       start:0x021b6100 end:0x021b6d74 kind:code align:32
+    .rodata     start:0x021b6d74 end:0x021b6e44 kind:rodata align:4
+    .ctor       start:0x021b6e44 end:0x021b6e44 kind:rodata align:4
+    .data       start:0x021b6e60 end:0x021b6e80 kind:data align:32
+    .bss        start:0x021b6e80 end:0x021b6e80 kind:bss align:32
+
+src/ov098/pdc_main.c:
+    complete
+    .text       start:0x021b61e8 end:0x021b67d4
+    .rodata     start:0x021b6d80 end:0x021b6e24
+    .data       start:0x021b6e68 end:0x021b6e74
+
+src/ov098/pdc_msg.c:
+    complete
+    .text       start:0x021b67d4 end:0x021b6d74
+    .rodata     start:0x021b6e24 end:0x021b6e44
+    .data       start:0x021b6e74 end:0x021b6e80
+
+src/ov098/pdc.c:
+    complete
+    .text       start:0x021b6100 end:0x021b61e8
+    .rodata     start:0x021b6d74 end:0x021b6d80
+    .data       start:0x021b6e60 end:0x021b6e68

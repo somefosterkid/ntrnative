@@ -1,0 +1,154 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), src/ov036/fld_vreq.c, ported by tools/port_file.py.
+#include "types.h"
+#include "field/field_disp_control.h"
+#include "gfl/bg_sys.h"
+#include "gfl/graphics.h"
+#include "gfl/heap.h"
+#include "gfl/std.h"
+#include "nitro/ioreg.h"
+
+// The procs of the requests, by request
+static void (*FIELD_DISP_CONTROL_PROCS[])(const u32 *params, u32 screen) = {
+    NULL,
+    FieldDispControlProc_ResetBrightness,
+    FieldDispControlProc_SetAlpha,
+    FieldDispControlProc_SetBrightness,
+    FieldDispControlProc_SetAll,
+    FieldDispControlProc_AdjustAlpha,
+    FieldDispControlProc_AdjustBrightness,
+};
+
+FieldDispControl *FieldDispControl_Create(HeapID heapId) {
+    FieldDispControl *control;
+
+    control = GFL_HeapAllocate(heapId, sizeof(FieldDispControl), TRUE, "fld_vreq.c", 128);
+    MI_CpuFill8(control->bgEnabled, 0xff, sizeof(control->bgEnabled));
+    return control;
+}
+
+void FieldDispControl_Free(FieldDispControl *control) {
+    GFL_HeapFree(control);
+}
+
+void FieldDispControl_Update(FieldDispControl *control) {
+    void (*proc)(const u32 *, u32);
+    s32 i;
+
+    proc = FIELD_DISP_CONTROL_PROCS[control->requestA];
+    if (proc != NULL) {
+        proc(&control->alphaA, 1);
+        control->requestA = 0;
+    }
+
+    proc = FIELD_DISP_CONTROL_PROCS[control->requestB];
+    if (proc != NULL) {
+        proc(&control->alphaB, 0);
+        control->requestB = 0;
+    }
+
+    for (i = 0; i < 8; i++) {
+        if (control->bgEnabled[i] != 0xff) {
+            GFL_BGSysSetBGEnabled(i, control->bgEnabled[i]);
+            control->bgEnabled[i] = 0xff;
+        }
+    }
+
+    if (control->brightnessRequest[0] != 0) {
+        GX_SetMasterBrightness(control->brightnessValue[0]);
+        control->brightnessRequest[0] = 0;
+    }
+    if (control->brightnessRequest[1] != 0) {
+        GXS_SetMasterBrightness(control->brightnessValue[1]);
+        control->brightnessRequest[1] = 0;
+    }
+}
+
+void FieldDispControl_ReqSetBGEnabled(FieldDispControl *control, u32 bgId, BOOL enabled) {
+    control->bgEnabled[bgId] = enabled;
+}
+
+void func_ov021_021d324c(FieldDispControl *control, s8 brightness) {
+    control->brightnessRequest[1] = 1;
+    control->brightnessValue[1] = brightness;
+}
+
+
+void FieldDispControl_ReqSetAlphaA(FieldDispControl *control, u32 alpha, u32 beta, u32 planeMask, u32 complement) {
+    control->requestA = 2;
+    control->alphaA = alpha;
+    control->betaA = beta;
+    control->planeMaskA = planeMask;
+    control->complementA = complement;
+}
+
+void FieldDispControl_ReqSetAllA(FieldDispControl *control, u32 alpha, u32 beta, u32 planeMask, u32 complement,
+                                 u32 all) {
+    control->requestA = 4;
+    control->alphaA = alpha;
+    control->betaA = beta;
+    control->planeMaskA = planeMask;
+    control->complementA = complement;
+    control->allA = all;
+}
+
+void FieldDispControl_ReqAdjustAlphaA(FieldDispControl *control, u32 alpha, u32 complement) {
+    control->requestA = 5;
+    control->alphaA = alpha;
+    control->betaA = complement;
+}
+
+void FieldDispControl_ReqSetAlphaB(FieldDispControl *control, u32 alpha, u32 beta, u32 planeMask, u32 complement) {
+    control->requestB = 2;
+    control->alphaB = alpha;
+    control->betaB = beta;
+    control->planeMaskB = planeMask;
+    control->complementB = complement;
+}
+
+void FieldDispControlProc_ResetBrightness(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        *(vu16 *)REG_BLDCNT_ADDR = 0;
+    } else {
+        *(vu16 *)REG_DB_BLDCNT_ADDR = 0;
+    }
+}
+
+void FieldDispControlProc_SetAlpha(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        G2_SetBlendAlpha(params[0], params[1], params[2], params[3]);
+    } else {
+        G2S_SetBlendAlpha(params[0], params[1], params[2], params[3]);
+    }
+}
+
+void FieldDispControlProc_SetBrightness(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        G2_SetBlendBrightness(params[0], params[1]);
+    } else {
+        G2S_SetBlendBrightness(params[0], params[1]);
+    }
+}
+
+void FieldDispControlProc_SetAll(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        G2_SetBlendBrightnessExt(params[0], params[1], params[2], params[3], params[4]);
+    } else {
+        G2S_SetBlendBrightnessExt(params[0], params[1], params[2], params[3], params[4]);
+    }
+}
+
+void FieldDispControlProc_AdjustAlpha(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        *(vu16 *)REG_BLDALPHA_ADDR = params[0] | (params[1] << 8);
+    } else {
+        *(vu16 *)REG_DB_BLDALPHA_ADDR = params[0] | (params[1] << 8);
+    }
+}
+
+void FieldDispControlProc_AdjustBrightness(const u32 *params, u32 screen) {
+    if (screen != 0) {
+        G2_ChangeBlendBrightness(params[0]);
+    } else {
+        G2S_ChangeBlendBrightness(params[0]);
+    }
+}

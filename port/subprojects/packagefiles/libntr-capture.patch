@@ -1,0 +1,300 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -145,6 +145,16 @@
+ static GLint s_objTexUnits[] = {4, 5, 6, 7, 8};
+ static GLint s_objWindowTexUnit = 9;
+ 
++// bw-port: the display capture and the VRAM display mode (libntr-capture.patch). The capture's framebuffer has the
++// main engine's picture drawn again at the DS's size (both screens' rows, as the 2D layers' textures) for the read
++// back; the VRAM display mode's texture holds the LCDC bank DISPCNT selects
++static GLuint s_captureFrameBuffer;
++static GLuint s_captureTextureId;
++static GLuint s_vramDisplayTextureId;
++static GLint s_vramDisplayTexUnit = 10;
++static u8 s_captureRgba[4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT];
++static u8 s_vramDisplayTex[4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2];
++
+ // Shader Programs
+ GLuint g3shaderProgramID;
+ static GLuint g2shaderProgramID;
+@@ -541,6 +551,14 @@
+   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+   glClear(GL_COLOR_BUFFER_BIT);
+ 
++  // bw-port: the display capture's framebuffer (the DS's size, both screens) and the VRAM display mode's texture
++  GenerateTexture(s_captureTextureId, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2);
++  glGenFramebuffers(1, &s_captureFrameBuffer);
++  glBindFramebuffer(GL_FRAMEBUFFER, s_captureFrameBuffer);
++  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
++                         s_captureTextureId, 0);
++  GenerateTexture(s_vramDisplayTextureId, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2);
++
+   // Unbind all that stuff
+   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+   glBindRenderbuffer(GL_RENDERBUFFER, 0);
+@@ -570,6 +588,8 @@
+                s_bgTexUnits);
+   glUniform1iv(glGetUniformLocation(g2shaderProgramID, "objTexture"), 5,
+                s_objTexUnits);
++  glUniform1i(glGetUniformLocation(g2shaderProgramID, "vramTexture"),
++              s_vramDisplayTexUnit);
+ 
+   glGenVertexArrays(1, &g2vertexArray);
+   glBindVertexArray(g2vertexArray);
+@@ -588,6 +608,193 @@
+   return nullptr;
+ }
+ 
++// bw-port (libntr-capture.patch): the display capture and the VRAM display mode, which libntr's 2D didn't have.
++//
++// DISPCAPCNT (GBATEK, "DS Video Display Capture"): while its bit 31 is set the DS captures the next frame of the main
++// engine into a VRAM bank in LCDC mode (bits 16-17: A-D; 18-19: the offset in 32 KB steps; 20-21: the size,
++// 128x128, 256x64, 256x128 or 256x192) and clears the bit when the frame ends. Bits 29-30 choose the source: 0 A, 1 B,
++// 2-3 both blended, (A * EVA + B * EVB) / 16 for each 5-bit component (EVA bits 0-4, EVB bits 8-12, up to 16). A is
++// the main engine's picture, BG+OBJ+3D before the master brightness (bit 24 = 0), or the 3D picture alone (1); B the
++// LCDC bank DISPCNT 18-19 selects, from the offset in bits 26-27 unless DISPCNT is in the VRAM display mode (bit 25 =
++// 0), or the main memory display FIFO (1: not simulated, black). A pixel is a 15-bit colour, bit 15 its alpha: set for
++// the main engine's picture, the 3D pixel's alpha other than 0 for the 3D. The game shows the captured bank as a bitmap
++// BG (the map changes' fades), a texture (the battle intros), the sub engine's bitmap BG or OBJ (3D on both screens)
++// or in the VRAM display mode (the title).
++//
++// libntr draws a frame at once, at the V-blank: the capture takes the frame drawn there (the game sets the bit and
++// waits for a V-blank or two), the main engine's picture drawn again into a framebuffer of the DS's size without the
++// master brightness, or the shown 3D frame scaled to it, read back and written into the bank's LCDC memory (where
++// gx_vramcnt.c keeps a bank's data while it is in LCDC mode: libntr-vram.patch).
++static u8 SIM_VramCntAD(u32 bank) {
++  switch (bank) {
++  case 0:
++    return reg_GX_VRAMCNT_A;
++  case 1:
++    return reg_GX_VRAMCNT_B;
++  case 2:
++    return reg_GX_VRAMCNT_C;
++  default:
++    return reg_GX_VRAMCNT_D;
++  }
++}
++
++// The memory of the bank A-D while it is in LCDC mode, else NULL (the capture and the VRAM display see it only then)
++static u16 *SIM_LcdcBankAD(u32 bank) {
++  if ((SIM_VramCntAD(bank) & 0x87) != 0x80) {
++    return NULL;
++  }
++  return (u16 *)(s_HW_LCDC_VRAM + bank * 0x20000);
++}
++
++// An 8-bit component back to 5 bits (SIM_u16ToRGB's inverse)
++static u32 SIM_RgbTo5(u8 v) { return ((u32)v * 31 + 127) / 255; }
++
++// The VRAM display mode (the main engine's DISPCNT 16-17 = 2): its screen shows the LCDC bank DISPCNT 18-19 selects as
++// a 256x192 bitmap (black when the bank isn't in LCDC mode), the master brightness applied; the texture's rows are the
++// 2D layers' (G2SIM_PlotPixel's)
++static void SIM_UploadVramDisplay(u32 dispcnt, int topScreen) {
++  u16 *bank = SIM_LcdcBankAD((dispcnt >> 18) & 3);
++  u8 r = 0, g = 0, b = 0;
++
++  memset(s_vramDisplayTex, 0, sizeof(s_vramDisplayTex));
++  for (int y = 0; y < SIM_NDS_SCREEN_HEIGHT; y++) {
++    int texRow = (topScreen ? SIM_NDS_SCREEN_HEIGHT * 2 : SIM_NDS_SCREEN_HEIGHT) - 1 - y;
++    u8 *row = s_vramDisplayTex + 4 * SIM_NDS_SCREEN_WIDTH * texRow;
++    for (int x = 0; x < SIM_NDS_SCREEN_WIDTH; x++) {
++      if (bank != NULL) {
++        SIM_u16ToRGB(bank[y * SIM_NDS_SCREEN_WIDTH + x], &r, &g, &b);
++      }
++      row[4 * x + 0] = r;
++      row[4 * x + 1] = g;
++      row[4 * x + 2] = b;
++      row[4 * x + 3] = 255;
++    }
++  }
++  glActiveTexture(GL_TEXTURE0 + s_vramDisplayTexUnit);
++  glBindTexture(GL_TEXTURE_2D, s_vramDisplayTextureId);
++  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, SIM_NDS_SCREEN_WIDTH,
++                  SIM_NDS_SCREEN_HEIGHT * 2, GL_RGBA, GL_UNSIGNED_BYTE,
++                  (void *)s_vramDisplayTex);
++}
++
++// The capture of the frame DrawEngine(main) has just drawn, its textures and uniforms still set
++static void SIM_DisplayCapture(int topScreen) {
++  static const int capWidth[4] = {128, 256, 256, 256};
++  static const int capHeight[4] = {128, 64, 128, 192};
++  u32 cnt = s_reg_GX_DISPCAPCNT;
++  u32 dispcnt = s_reg_GX_DISPCNT;
++  u32 source = (cnt >> 29) & 3;
++  BOOL src3D = (cnt >> 24) & 1;
++  int width = capWidth[(cnt >> 20) & 3];
++  int height = capHeight[(cnt >> 20) & 3];
++  int row0 = topScreen ? SIM_NDS_SCREEN_HEIGHT : 0; // the main engine's screen's rows in the framebuffers
++  u16 *dst = SIM_LcdcBankAD((cnt >> 16) & 3);
++
++  if (dst != NULL && source != 1) {
++    GLint viewport[4];
++    GLfloat clearColor[4];
++    glGetIntegerv(GL_VIEWPORT, viewport);
++    glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor);
++    if (src3D) {
++      // the shown 3D frame (libntr-3dswap.patch), scaled from the internal resolution
++      int scale = s_SIM_config.internalResolutionScale;
++      glBindFramebuffer(GL_READ_FRAMEBUFFER, g3DisplayFrameBuffer);
++      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s_captureFrameBuffer);
++      glBlitFramebuffer(0, row0 * scale, SIM_NDS_SCREEN_WIDTH * scale,
++                        (row0 + SIM_NDS_SCREEN_HEIGHT) * scale, 0, row0,
++                        SIM_NDS_SCREEN_WIDTH, row0 + SIM_NDS_SCREEN_HEIGHT,
++                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
++    } else {
++      // the main engine's picture again, on the whole framebuffer, without the master brightness
++      glBindFramebuffer(GL_FRAMEBUFFER, s_captureFrameBuffer);
++      glViewport(0, 0, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT * 2);
++      glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
++      glClear(GL_COLOR_BUFFER_BIT);
++      glProgramUniform1i(g2shaderProgramID,
++                         glGetUniformLocation(g2shaderProgramID, "inMasterBrightMode"), 0);
++      glProgramUniform1i(g2shaderProgramID,
++                         glGetUniformLocation(g2shaderProgramID, "vramDisplay"), 0);
++      glBindVertexArray(g2vertexArray);
++      glBindBuffer(GL_ARRAY_BUFFER, g2vertexBuffer);
++      glBufferData(GL_ARRAY_BUFFER, sizeof(G3SIM_Vertex_t) * 6,
++                   sim_GetScreenQuadArray(SIM_CONFIG_SCREEN_LAYOUT_VERTICAL, FALSE),
++                   GL_STATIC_DRAW);
++      glEnableVertexAttribArray(0);
++      glEnableVertexAttribArray(1);
++      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(G3SIM_Vertex_t),
++                            (void *)offsetof(G3SIM_Vertex_t, x));
++      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(G3SIM_Vertex_t),
++                            (void *)offsetof(G3SIM_Vertex_t, s));
++      glDrawArrays(GL_TRIANGLES, 0, 6);
++    }
++    glBindFramebuffer(GL_FRAMEBUFFER, s_captureFrameBuffer);
++    glPixelStorei(GL_PACK_ALIGNMENT, 4);
++    glReadPixels(0, row0, SIM_NDS_SCREEN_WIDTH, SIM_NDS_SCREEN_HEIGHT, GL_RGBA,
++                 GL_UNSIGNED_BYTE, s_captureRgba);
++    glBindFramebuffer(GL_FRAMEBUFFER, 0);
++    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
++    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
++  }
++
++  if (dst != NULL) {
++    u16 *srcB = NULL;
++    u32 dstAddr = ((cnt >> 18) & 3) << 14; // in pixels: 32 KB steps; the address wraps in the 128 KB bank
++    u32 srcBAddr = 0;
++    u32 eva = cnt & 0x1F;
++    u32 evb = (cnt >> 8) & 0x1F;
++    u32 clear = s_reg_G3X_CLEAR_COLOR;
++
++    eva = eva > 16 ? 16 : eva;
++    evb = evb > 16 ? 16 : evb;
++    if (!(cnt & (1 << 25))) {
++      srcB = SIM_LcdcBankAD((dispcnt >> 18) & 3);
++      if (((dispcnt >> 16) & 3) != 2) {
++        srcBAddr = ((cnt >> 26) & 3) << 14;
++      }
++    }
++    for (int y = 0; y < height; y++) {
++      // glReadPixels's rows go up from the screen's last line
++      const u8 *a = s_captureRgba + 4 * SIM_NDS_SCREEN_WIDTH * (SIM_NDS_SCREEN_HEIGHT - 1 - y);
++      u32 d = dstAddr + y * width;
++      u32 sb = srcBAddr + y * SIM_NDS_SCREEN_WIDTH;
++      for (int x = 0; x < width; x++, a += 4, d++, sb++) {
++        u32 rA, gA, bA, aA;
++        u32 pB = srcB != NULL ? srcB[sb & 0xFFFF] : 0;
++        u32 out;
++
++        if (src3D && a[3] == 0) {
++          // where no polygon was drawn the DS's 3D picture is the clear colour (G3X_SetClearColor), libntr's
++          // render target transparent black
++          rA = clear & 0x1F;
++          gA = (clear >> 5) & 0x1F;
++          bA = (clear >> 10) & 0x1F;
++          aA = ((clear >> 16) & 0x1F) != 0;
++        } else {
++          rA = SIM_RgbTo5(a[0]);
++          gA = SIM_RgbTo5(a[1]);
++          bA = SIM_RgbTo5(a[2]);
++          aA = 1;
++        }
++        if (source == 0) {
++          out = rA | (gA << 5) | (bA << 10) | (aA << 15);
++        } else if (source == 1) {
++          out = pB;
++        } else {
++          u32 aB = pB >> 15;
++          u32 r = (rA * aA * eva + (pB & 0x1F) * aB * evb + 8) >> 4;
++          u32 g = (gA * aA * eva + ((pB >> 5) & 0x1F) * aB * evb + 8) >> 4;
++          u32 b = (bA * aA * eva + ((pB >> 10) & 0x1F) * aB * evb + 8) >> 4;
++          u32 alpha = (eva != 0 && aA) || (evb != 0 && aB);
++          out = (r > 31 ? 31 : r) | ((g > 31 ? 31 : g) << 5) | ((b > 31 ? 31 : b) << 10) | (alpha << 15);
++        }
++        dst[d & 0xFFFF] = (u16)out;
++      }
++    }
++  }
++  // the capture is done when the frame ends
++  s_reg_GX_DISPCAPCNT = cnt & ~0x80000000u;
++}
++
+ static void DrawEngine(BOOL isSub) {
+   const char *zoneName;
+   zoneName = isSub ? "DrawEngine (SUB)" : "DrawEngine (MAIN)";
+@@ -738,7 +945,14 @@
+       for (int j = 0; j < 256; j++) {
+         if (OBJLine[isSub][j]) {
+           u8 colorIdx = OBJLine[isSub][j] & 0xFF;
+-          if (colorIdx) {
++          if ((OBJLine[isSub][j] & 0xC0000000) == 0xC0000000) {
++            // bw-port: a bitmap OBJ's pixel is its colour, bit 15 set where it is opaque (sim_g2.cpp), not a palette
++            // index (libntr-capture.patch: the sub engine shows a capture as bitmap OBJ, double3Ddisp.c)
++            if (OBJLine[isSub][j] & 0x8000) {
++              SIM_u16ToRGB(OBJLine[isSub][j] & 0x7FFF, &r, &g, &b);
++              G2SIM_PlotPixel(pixelBuf, r, g, b, j, i, isSub);
++            }
++          } else if (colorIdx) {
+             u16 *objPltt =
+                 isSub ? (u16 *)s_HW_DB_OBJ_PLTT : (u16 *)s_HW_OBJ_PLTT;
+             u16 color = objPltt[colorIdx];
+@@ -867,10 +1081,25 @@
+       glGetUniformLocation(g2shaderProgramID, "inMasterBrightMode"),
+       masterBrightMode);
+ 
++  // bw-port: the main engine's VRAM display mode (libntr-capture.patch)
++  int vramDisplay = 0;
++  if (!isSub && ((dispcnt >> 16) & 3) == 2) {
++    SIM_UploadVramDisplay(dispcnt, topScreen);
++    vramDisplay = 1;
++  }
++  glProgramUniform1i(g2shaderProgramID,
++                     glGetUniformLocation(g2shaderProgramID, "vramDisplay"),
++                     vramDisplay);
++
+   glBindVertexArray(g2vertexArray);
+   glBindBuffer(GL_ARRAY_BUFFER, g2vertexBuffer);
+   DrawScreenQuad();
+ 
++  // bw-port: the display capture of the frame just drawn (libntr-capture.patch)
++  if (!isSub && (s_reg_GX_DISPCAPCNT & 0x80000000)) {
++    SIM_DisplayCapture(topScreen);
++  }
++
+   // Clear out the textures
+   for (int i = 0; i < 4; i++) {
+     glActiveTexture(GL_TEXTURE0 + s_bgTexUnits[0]);
+--- a/libraries/sim/src/shaders/g2_fragment.glsl
++++ b/libraries/sim/src/shaders/g2_fragment.glsl
+@@ -15,6 +15,8 @@
+ uniform int dispcnt;
+ uniform int winout;
+ uniform int bg0as3d;
++uniform int vramDisplay; // bw-port: the VRAM display mode, the LCDC bank's bitmap in vramTexture (libntr-capture.patch)
++uniform sampler2D vramTexture;
+ 
+ smooth in vec2 fragTexCoord;
+ //uniform float inAlpha;
+@@ -129,6 +131,9 @@
+     if(currentBgDrawn == 5) {
+         color = backdropColor;
+     }
++    if(vramDisplay == 1) {
++        color = vec4(texture(vramTexture, fragTexCoord).rgb, 1.0);
++    }
+     
+     if(inMasterBrightMode == 1) {
+         // brightness up

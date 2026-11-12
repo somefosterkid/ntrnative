@@ -1,0 +1,3 @@
+BattleCutinDB_GetParam kind:function(thumb,size=0x10) addr:0x021f5ca0
+BATTLE_CUTIN_DB kind:data(any) addr:0x021f5cb0
+data_ov147_021f5da1 kind:data(any) addr:0x021f5de1 ambiguous

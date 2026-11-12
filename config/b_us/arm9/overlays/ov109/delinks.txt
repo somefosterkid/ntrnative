@@ -1,0 +1,9 @@
+    .text       start:0x021bb8e0 end:0x021bba4c kind:code align:32
+    .rodata     start:0x021bba4c end:0x021bbb0c kind:rodata align:4
+    .ctor       start:0x021bbb0c end:0x021bbb0c kind:rodata align:4
+    .bss        start:0x021bbb20 end:0x021bbb20 kind:bss align:32
+
+src/ov109/error_window_screen.c:
+    complete
+    .text       start:0x021bb8e0 end:0x021bba4c
+    .rodata     start:0x021bba4c end:0x021bbb0c

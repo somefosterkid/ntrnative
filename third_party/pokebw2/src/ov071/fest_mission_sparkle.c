@@ -1,0 +1,197 @@
+// Overlay 71: the Funfest missions of type 4, where the player looks for sparkles hidden around the zones. Overlay
+// 36's festival gimmick calls into it while such a mission runs. The file name is a guess
+#include "types.h"
+#include "field/fest_mission_gimmick.h"
+#include "field/fest_mission_sparkle.h"
+#include "field/festival.h"
+#include "field/field.h"
+#include "field/field_actor.h"
+#include "field/field_effect.h"
+#include "field/field_rail.h"
+#include "field/field_script.h"
+#include "field/field_script_event.h"
+#include "field/zone.h"
+#include "gfl/heap.h"
+#include "nitro/fx.h"
+#include "nitro/mi.h"
+
+#define POS_TO_GRID(pos) (((pos) >> 4) / FX32_ONE)
+// How far above or below a sparkle the player still finds it
+#define SPARKLE_HEIGHT_RANGE FX32_CONST(20)
+// The script that gives what a sparkle hides
+#define SCRID_FEST_SPARKLE 0x2a21
+#define SCRID_NONE 0xffff
+
+static GameEvent *FestSparkle_PickUp(FesGimmick *gimmick, FestSparkleWork *work, u8 idx);
+static BOOL FestSparkle_ShowAll(FesGimmick *gimmick, FestSparkleWork *work);
+static BOOL FestSparkle_IsBlockedGrid(FesGimmick *gimmick, FestSparkleWork *work, const VecFx32 *position);
+static BOOL FestSparkle_IsBlockedRail(FesGimmick *gimmick, FestSparkleWork *work, const RailPosition *position);
+static FestSparkleZone *FestSparkle_GetZone(FestSparkleWork *work, u16 zoneId);
+
+void FestSparkle_Show(FesGimmick *gimmick, FestSparkleWork *work) {
+    FldeffFesSparkle_HideAll(gimmick->sparkles);
+    if (work->count != 0) {
+        FestSparkle_ShowAll(gimmick, work);
+    }
+}
+
+BOOL FestSparkle_End(FesGimmick *gimmick, FestSparkleWork *work) {
+    BOOL result;
+
+    if (work->placeCount != 0) {
+        result = TRUE;
+    } else {
+        result = FALSE;
+    }
+    FldeffFesSparkle_HideAll(gimmick->sparkles);
+    MI_CpuClear32(work, sizeof(FestSparkleWork));
+    return result;
+}
+
+GameEvent *FestSparkle_CheckPickUpGrid(FesGimmick *gimmick, const VecFx32 *position) {
+    FestSparkleWork *work = &gimmick->work->sparkle;
+    int i;
+    ZoneBGEntity *place;
+
+    for (i = 0; i < work->count; i++) {
+        place = &work->places[work->placeIndex[i]];
+        if (FldeffFesSparkle_IsShown(gimmick->sparkles, i) && place->isRail == FALSE &&
+            CheckBGPositionMatchGrid(place, position)) {
+            return FestSparkle_PickUp(gimmick, work, i);
+        }
+    }
+    return NULL;
+}
+
+GameEvent *FestSparkle_CheckPickUpRail(FesGimmick *gimmick, const RailPosition *position) {
+    FestSparkleWork *work = &gimmick->work->sparkle;
+    int i;
+    ZoneBGEntity *place;
+
+    Field_GetResolvedControllerTypeID(gimmick->field);
+    for (i = 0; i < work->count; i++) {
+        place = &work->places[work->placeIndex[i]];
+        if (FldeffFesSparkle_IsShown(gimmick->sparkles, i) && place->isRail == TRUE &&
+            CheckBGPositionMatchRail(place, position)) {
+            return FestSparkle_PickUp(gimmick, work, i);
+        }
+    }
+    return NULL;
+}
+
+BOOL FestSparkle_IsOnTile(FesGimmick *gimmick, u16 x, u16 z, fx32 height) {
+    int i;
+    FestSparkleWork *work = &gimmick->work->sparkle;
+    FestSparkleZone *zone;
+    ZoneBGEntity *place;
+    RailPosition railPos;
+    VecFx32 pos;
+
+    Field_GetResolvedControllerTypeID(gimmick->field);
+    if (work->count == 0) {
+        return FALSE;
+    }
+    zone = FestSparkle_GetZone(work, work->zoneId);
+    for (i = 0; i < work->count; i++) {
+        place = &work->places[work->placeIndex[i]];
+        if (zone->found[i] == FALSE) {
+            if (place->isRail == FALSE) {
+                GetBGEntityCenterPosGrid(place, &pos);
+            } else {
+                GetBGEntityPosRail(place, &railPos);
+                FieldRailSystem_GetLocationPos(gimmick->railSystem, &railPos, &pos);
+            }
+            if (POS_TO_GRID(pos.x) == x && POS_TO_GRID(pos.z) == z && pos.y - SPARKLE_HEIGHT_RANGE <= height &&
+                pos.y + SPARKLE_HEIGHT_RANGE >= height) {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
+static GameEvent *FestSparkle_PickUp(FesGimmick *gimmick, FestSparkleWork *work, u8 idx) {
+    FestSparkleZone *zone = FestSparkle_GetZone(work, work->zoneId);
+    u16 value = FldeffFesSparkle_GetValue(gimmick->sparkles, idx);
+    GameEvent *event;
+
+    FldeffFesSparkle_Hide(gimmick->sparkles, idx);
+    zone->found[idx] = TRUE;
+    if (value == 0) {
+        return NULL;
+    }
+    event = EventScriptCall_Create(gimmick->gsys, SCRID_FEST_SPARKLE, NULL, HEAPID_FIELDMAP);
+    ScriptWork_SetParams(EventScriptCall_GetWork(event), value, 0, 0, 0);
+    return event;
+}
+
+static BOOL FestSparkle_ShowAll(FesGimmick *gimmick, FestSparkleWork *work) {
+    FestSparkleZone *zone;
+    ZoneBGEntity *place;
+    RailPosition railPos;
+    VecFx32 pos;
+    int i;
+
+    Field_GetResolvedControllerTypeID(gimmick->field);
+    zone = FestSparkle_GetZone(work, work->zoneId);
+    for (i = 0; i < work->count; i++) {
+        place = &work->places[work->placeIndex[i]];
+        if (zone->found[i] != FALSE) {
+            continue;
+        }
+        if (place->isRail == FALSE) {
+            GetBGEntityCenterPosGrid(place, &pos);
+            if (FestSparkle_IsBlockedGrid(gimmick, work, &pos)) {
+                zone->found[i] = TRUE;
+                continue;
+            }
+        } else {
+            GetBGEntityPosRail(place, &railPos);
+            if (FestSparkle_IsBlockedRail(gimmick, work, &railPos)) {
+                zone->found[i] = TRUE;
+                continue;
+            }
+            FieldRailSystem_GetLocationPos(gimmick->railSystem, &railPos, &pos);
+        }
+        FldeffFesSparkle_Show(gimmick->sparkles, i, work->values[i], &pos);
+    }
+    return TRUE;
+}
+
+// Whether something else is on the tile: an actor other than the player, or a trigger
+static BOOL FestSparkle_IsBlockedGrid(FesGimmick *gimmick, FestSparkleWork *work, const VecFx32 *position) {
+    FieldActor *actor = FindActorByGPos(gimmick->actors, POS_TO_GRID(position->x), POS_TO_GRID(position->z),
+                                        position->y, SPARKLE_HEIGHT_RANGE, FALSE);
+
+    if (actor != NULL && actor != gimmick->playerActor) {
+        return TRUE;
+    }
+    if (GetTriggerSCRIDAtPosGrid(gimmick->eventData, gimmick->eventWork, position, 8) != SCRID_NONE) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static BOOL FestSparkle_IsBlockedRail(FesGimmick *gimmick, FestSparkleWork *work, const RailPosition *position) {
+    FieldActor *actor = FindActorByRailPos(gimmick->actors, position, FALSE);
+
+    if (actor != NULL && actor != gimmick->playerActor) {
+        return TRUE;
+    }
+    if (GetTriggerSCRIDAtPosRail(gimmick->eventData, gimmick->eventWork, position) != SCRID_NONE) {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// The zone's record, or the first one when the zone has none
+static FestSparkleZone *FestSparkle_GetZone(FestSparkleWork *work, u16 zoneId) {
+    int i;
+
+    for (i = 0; i < work->zoneCount; i++) {
+        if (work->zones[i].zoneId == zoneId) {
+            return &work->zones[i];
+        }
+    }
+    return &work->zones[0];
+}

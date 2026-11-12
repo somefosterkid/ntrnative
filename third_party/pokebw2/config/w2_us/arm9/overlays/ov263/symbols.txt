@@ -1,0 +1,16 @@
+WifiBattleMatchList_Init kind:function(thumb,size=0x90) addr:0x021c25a0
+WifiBattleMatchList_Exit kind:function(thumb,size=0x58) addr:0x021c2630
+WifiBattleMatchList_Main kind:function(thumb,size=0x1d0) addr:0x021c2688
+WifiBattleMatchList_SetupPokeList kind:function(thumb,size=0xe8) addr:0x021c2858
+WifiBattleMatchList_SetupStatus kind:function(thumb,size=0x56) addr:0x021c2940
+WifiBattleMatchExchange_Init kind:function(thumb,size=0x50) addr:0x021c2998
+WifiBattleMatchExchange_Exit kind:function(thumb,size=0x32) addr:0x021c29e8
+WifiBattleMatchExchange_Main kind:function(thumb,size=0x32) addr:0x021c2a1c
+WifiBattleMatchExchange_InitWifi kind:function(thumb,size=0x2) addr:0x021c2a50
+WifiBattleMatchExchange_MainWifi kind:function(thumb,size=0x150) addr:0x021c2a54
+WifiBattleMatchExchange_ExitWifi kind:function(thumb,size=0x2c) addr:0x021c2ba4
+WifiBattleMatchExchange_InitIrc kind:function(thumb,size=0x20) addr:0x021c2bd0
+WifiBattleMatchExchange_MainIrc kind:function(thumb,size=0x8c) addr:0x021c2bf0
+WifiBattleMatchExchange_ExitIrc kind:function(thumb,size=0x14) addr:0x021c2c7c
+WIFIBATTLEMATCH_LIST_PROC_FUNCTIONS kind:data(any) addr:0x021c2c90 ambiguous
+WIFIBATTLEMATCH_EXCHANGE_PROC_FUNCTIONS kind:data(any) addr:0x021c2c9c ambiguous

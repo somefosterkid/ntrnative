@@ -1,0 +1,7 @@
+EventPokeSelect_Create kind:function(thumb,size=0x54) addr:0x0216e660
+EventMoveTutorPokeSelect_Create kind:function(thumb,size=0x60) addr:0x0216e6b4
+EventMusicalPokeSelect_Create kind:function(thumb,size=0x98) addr:0x0216e714
+EventPokeSelect_Callback kind:function(thumb,size=0xce) addr:0x0216e7ac
+EventPokeMoveReplace_Create kind:function(thumb,size=0x90) addr:0x0216e87c
+EventPokeMoveReplace_Callback kind:function(thumb,size=0xc8) addr:0x0216e90c
+data_ov020_0216e9e0 kind:data(any) addr:0x0216e9e0

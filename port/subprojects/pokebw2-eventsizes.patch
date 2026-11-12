@@ -1,0 +1,217 @@
+pokebw2-eventsizes.patch (tools/pokebw2_fetch.sh, the maintainers' notes): 21 GameEvent_Create calls give their work's size as
+the DS number (0x44, 0x14, 0x7c ...) where the work holds pointers and is bigger on a 64-bit host, so the event's
+callback wrote past its block in HEAPID_GAMEEVENT and broke the heap (Black 2: the field cut-in before Hugh's first
+battle, Fld3DCiEvent 0x44 on the DS and 0x68 here; the next GameEvent_Create failed and OS_Terminate stopped the game).
+As Black's files have them (src/ov021/fld3d_ci.c: sizeof(Fld3dCiEvent)), they are the work's sizeof. The rows came
+from a scan of every GameEvent_Create with a number for its size against the host's sizeof of the type its callback
+reads (FallEventWork's 0x68 calls, bigger than the type, and EventFunfestMission's 4 stay as they are).
+
+diff --git a/src/ov012/event_battle_lose.c b/src/ov012/event_battle_lose.c
+index 9fe73bf..e0f2a14 100644
+--- a/src/ov012/event_battle_lose.c
++++ b/src/ov012/event_battle_lose.c
+@@ -44,7 +44,7 @@ GameEventReturnCode EventBattleLose_Callback(GameEvent *event, u32 *state, void
+ 
+ GameEvent *EventBattleLose_Create(GameSystem *gsys) {
+     GameData *gameData = GSYS_GetGameData(gsys);
+-    GameEvent *event = GameEvent_Create(gsys, NULL, EventBattleLose_Callback, 12);
++    GameEvent *event = GameEvent_Create(gsys, NULL, EventBattleLose_Callback, sizeof(BattleLoseData));
+     BattleLoseData *data = GameEvent_GetData(event);
+     data->gsys = gsys;
+     data->returnNonLeague = IsReturnLocationNonLeaguePokeCen(gameData);
+diff --git a/src/ov012/hm_event.c b/src/ov012/hm_event.c
+index e7e3a72..3baafd8 100644
+--- a/src/ov012/hm_event.c
++++ b/src/ov012/hm_event.c
+@@ -179,7 +179,7 @@ GameEvent *EventCutCall_Create(HiddenEventArgs *param, PlayerActionPossibilities
+     GameEvent *event;
+     HiddenEventData *data;
+ 
+-    event = GameEvent_Create(context->gsys, NULL, EventCutCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventCutCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -218,7 +218,7 @@ GameEvent *EventSurfCall_Create(HiddenEventArgs *param, PlayerActionPossibilitie
+     GameEvent *event;
+     HiddenEventData *data;
+ 
+-    event = GameEvent_Create(context->gsys, NULL, EventSurfCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventSurfCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -250,7 +250,7 @@ GameEvent *EventWaterfallCall_Create(HiddenEventArgs *param, PlayerActionPossibi
+     GameEvent *event;
+     HiddenEventData *data;
+ 
+-    event = GameEvent_Create(context->gsys, NULL, EventWaterfallCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventWaterfallCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -281,7 +281,7 @@ GameEvent *EventStrengthCall_Create(HiddenEventArgs *param, PlayerActionPossibil
+     GameEvent *event;
+     HiddenEventData *data;
+ 
+-    event = GameEvent_Create(context->gsys, NULL, EventStrengthCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventStrengthCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -340,7 +340,7 @@ GameEvent *EventFlash_Create(HiddenEventArgs *param, PlayerActionPossibilities *
+     GameEvent *event;
+     HiddenEventData *data;
+ 
+-    event = GameEvent_Create(context->gsys, NULL, EventFlash_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventFlash_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -405,7 +405,7 @@ GameEvent *EventDigCall_Create(HiddenEventArgs *param, PlayerActionPossibilities
+     GameEvent *event;
+     HiddenEventData *data;
+     GameBeacon_BroadcastFieldMove(MOVE_DIG);
+-    event = GameEvent_Create(context->gsys, NULL, EventDigCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventDigCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -443,7 +443,7 @@ GameEvent *EventTeleportCall_Create(HiddenEventArgs *param, PlayerActionPossibil
+     GameEvent *event;
+     HiddenEventData *data;
+     GameBeacon_BroadcastFieldMove(MOVE_TELEPORT);
+-    event = GameEvent_Create(context->gsys, NULL, EventTeleportCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventTeleportCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -480,7 +480,7 @@ u32 EventDivingCall_Check(PlayerActionPossibilities *context) {
+ GameEvent *EventDivingCall_Create(HiddenEventArgs *param, PlayerActionPossibilities *context) {
+     GameEvent *event;
+     HiddenEventData *data;
+-    event = GameEvent_Create(context->gsys, NULL, EventDivingCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventDivingCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -537,7 +537,7 @@ GameEventReturnCode EventRuinsStrengthCall_Callback(GameEvent *event, u32 *state
+ GameEvent *EventRuinsStrengthCall_Create(HiddenEventArgs *param, PlayerActionPossibilities *context) {
+     GameEvent *event;
+     HiddenEventData *data;
+-    event = GameEvent_Create(context->gsys, NULL, EventRuinsStrengthCall_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventRuinsStrengthCall_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+@@ -568,7 +568,7 @@ GameEventReturnCode EventRuinsFlash_Callback(GameEvent *event, u32 *state, void
+ GameEvent *EventRuinsFlash_Create(HiddenEventArgs *param, PlayerActionPossibilities *context) {
+     GameEvent *event;
+     HiddenEventData *data;
+-    event = GameEvent_Create(context->gsys, NULL, EventRuinsFlash_Callback, 0x14);
++    event = GameEvent_Create(context->gsys, NULL, EventRuinsFlash_Callback, sizeof(HiddenEventData));
+     data = GameEvent_GetData(event);
+     HiddenEventData_Init(data, param, context);
+     return event;
+diff --git a/src/ov027/scrcmd_survey.c b/src/ov027/scrcmd_survey.c
+index 5be4b14..847e243 100644
+--- a/src/ov027/scrcmd_survey.c
++++ b/src/ov027/scrcmd_survey.c
+@@ -389,7 +389,7 @@ static GameEventReturnCode SurveyTextEvent_Run(GameEvent *event, u32 *state, voi
+ GameEvent *SurveyTextEvent_Create(GameSystem *gsys) {
+     GameEvent *event;
+     SurveyTextWork *work;
+-    event = GameEvent_Create(gsys, NULL, SurveyTextEvent_Run, 0x20);
++    event = GameEvent_Create(gsys, NULL, SurveyTextEvent_Run, sizeof(SurveyTextWork));
+     work = GameEvent_GetData(event);
+     SurveyTextWork_Init(work, gsys);
+     return event;
+diff --git a/src/ov036/field_fade.c b/src/ov036/field_fade.c
+index cc54b14..b2ad48a 100644
+--- a/src/ov036/field_fade.c
++++ b/src/ov036/field_fade.c
+@@ -146,7 +146,7 @@ GameEvent *EventQuicksandArrive_Create(GameEvent *parent, GameSystem *gsys, Fiel
+ 
+ GameEvent *EventQuicksandArrive_CreateSpinZoom(GameEvent *parent, GameSystem *gsys, Field *field, BOOL seasonChanged,
+                                                u32 prevSeason, u32 nextSeason) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoom, 0x68);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoom, sizeof(SpinEventWork));
+     SpinEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->field = field;
+@@ -159,7 +159,7 @@ GameEvent *EventQuicksandArrive_CreateSpinZoom(GameEvent *parent, GameSystem *gs
+ 
+ GameEvent *EventQuicksandArrive_CreateSpinZoomAlt(GameEvent *parent, GameSystem *gsys, Field *field, BOOL seasonChanged,
+                                                   u32 prevSeason, u32 nextSeason) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoomAlt, 0x68);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoomAlt, sizeof(SpinEventWork));
+     SpinEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->field = field;
+@@ -171,7 +171,7 @@ GameEvent *EventQuicksandArrive_CreateSpinZoomAlt(GameEvent *parent, GameSystem
+ }
+ 
+ GameEvent *EventQuicksandArrive_CreateSpinZoomSmoke(GameEvent *parent, GameSystem *gsys, Field *field) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoomSmoke, 0x68);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandArrive_RunSpinZoomSmoke, sizeof(SpinEventWork));
+     SpinEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->field = field;
+@@ -616,7 +616,7 @@ static GameEventReturnCode EventTeleportEffect_Callback(GameEvent *event, u32 *s
+ static GameEventReturnCode EventDig_RunRisingSpin(GameEvent *event, u32 *state, void *data);
+ 
+ GameEvent *EventQuicksandDrawIn_Create(GameEvent *parent, GameSystem *gsys, Field *field, const VecFx32 *pos) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandDrawIn_Callback, 0x7c);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventQuicksandDrawIn_Callback, sizeof(EffectEventWork));
+     EffectEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->gsys = gsys;
+@@ -628,7 +628,7 @@ GameEvent *EventQuicksandDrawIn_Create(GameEvent *parent, GameSystem *gsys, Fiel
+ }
+ 
+ GameEvent *EventEscapeRope_Create(GameEvent *parent, GameSystem *gsys, Field *field, BOOL seasonChanged) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventEscapeRope_Callback, 0x7c);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventEscapeRope_Callback, sizeof(EffectEventWork));
+     EffectEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->gsys = gsys;
+@@ -640,7 +640,7 @@ GameEvent *EventEscapeRope_Create(GameEvent *parent, GameSystem *gsys, Field *fi
+ }
+ 
+ GameEvent *EventDig_Create(GameEvent *parent, GameSystem *gsys, Field *field, BOOL seasonChanged) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventDig_Callback, 0x7c);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventDig_Callback, sizeof(EffectEventWork));
+     EffectEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->gsys = gsys;
+@@ -652,7 +652,7 @@ GameEvent *EventDig_Create(GameEvent *parent, GameSystem *gsys, Field *field, BO
+ }
+ 
+ GameEvent *EventTeleportEffect_Create(GameEvent *parent, GameSystem *gsys, Field *field, BOOL teleport) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventTeleportEffect_Callback, 0x7c);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventTeleportEffect_Callback, sizeof(EffectEventWork));
+     EffectEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->gsys = gsys;
+@@ -663,7 +663,7 @@ GameEvent *EventTeleportEffect_Create(GameEvent *parent, GameSystem *gsys, Field
+ }
+ 
+ GameEvent *EventDig_CreateRisingSpin(GameEvent *parent, GameSystem *gsys, Field *field) {
+-    GameEvent *event = GameEvent_Create(gsys, parent, EventDig_RunRisingSpin, 0x7c);
++    GameEvent *event = GameEvent_Create(gsys, parent, EventDig_RunRisingSpin, sizeof(EffectEventWork));
+     EffectEventWork *wk = GameEvent_GetData(event);
+ 
+     wk->gsys = gsys;
+diff --git a/src/ov036/fld3d_ci.c b/src/ov036/fld3d_ci.c
+index 5d7c73e..38e466b 100644
+--- a/src/ov036/fld3d_ci.c
++++ b/src/ov036/fld3d_ci.c
+@@ -398,7 +398,7 @@ GameEvent *EventFieldEffect_Create(GameSystem *gsys, Fld3DCi *ci, u8 effectId) {
+     ci->callback = 0;
+     ci->control = 0;
+     ci->cameraSel = 0;
+-    event = GameEvent_Create(gsys, NULL, EventFieldEffect_Callback, 0x44);
++    event = GameEvent_Create(gsys, NULL, EventFieldEffect_Callback, sizeof(Fld3DCiEvent));
+     Fld3DCi_InitEventData(ci, GameEvent_GetData(event));
+     return event;
+ }

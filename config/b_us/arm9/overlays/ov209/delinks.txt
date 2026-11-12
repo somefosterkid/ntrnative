@@ -1,0 +1,34 @@
+    .text       start:0x021bc240 end:0x021be794 kind:code align:32
+    .rodata     start:0x021be794 end:0x021beb18 kind:rodata align:4
+    .ctor       start:0x021beb18 end:0x021beb18 kind:rodata align:4
+    .bss        start:0x021beb20 end:0x021beb20 kind:bss align:32
+
+src/ov209/zukanlist.c:
+    complete
+    .text       start:0x021bc240 end:0x021bc298
+    .rodata     start:0x021be794 end:0x021be7a0
+
+src/ov209/zknlist_main.c:
+    complete
+    .text       start:0x021bc298 end:0x021bcc58
+    .rodata     start:0x021be7a0 end:0x021be96c
+
+src/ov209/zknlist_seq.c:
+    complete
+    .text       start:0x021bcc58 end:0x021bd398
+    .rodata     start:0x021be96c end:0x021be990
+
+src/ov209/zknlist_bmp.c:
+    complete
+    .text       start:0x021bd398 end:0x021bd7f8
+    .rodata     start:0x021be990 end:0x021be9a4
+
+src/ov209/zknlist_obj.c:
+    complete
+    .text       start:0x021bd7f8 end:0x021be658
+    .rodata     start:0x021be9a4 end:0x021beae0
+
+src/ov209/zknlist_ui.c:
+    complete
+    .text       start:0x021be658 end:0x021be794
+    .rodata     start:0x021beae0 end:0x021beb18

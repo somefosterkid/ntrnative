@@ -1,0 +1,11 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1262,6 +1262,8 @@
+         if (r != SIM_CONFIG_DISPLAYCAP_UNLIMITED) s_SIM_config.displayCapBack = r;
+         else if (s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED) s_SIM_config.displayCapBack = s_SIM_config.displayCap;
+         s_SIM_config.displayCap = r;
++      } else {  // (libntr-ios-cfgunknown.patch) an unknown key did nothing without a word: overlay=0 rows measured nothing
++        fprintf(stderr, "cfgscript: unknown key '%s' (ignored)\n", kv);
+       }
+     }
+     fprintf(stderr, "cfgscript: %c%u (now f%u) %s\n", sSteps[sNext].rel ? 'p' : 'f', sSteps[sNext].frame, now, sSteps[sNext].text);

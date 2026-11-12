@@ -1,0 +1,85 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -914,6 +914,30 @@
+ // the iOS performance test (Settings > About > Run performance test; port/src/ios_settings.m): from where the player stands, each step
+ // settles 1 s and measures 4 s (bench rows, no frame skip), then the settings as they were; the table goes to the log
+ static bool sPerfTestOn;
++// libntr-ios-passes.patch: a bench row's parts (cfgscript passes=1|0). The phone's GLES has no timer queries, so its GPU time a frame
++// was only a bound (the fence latency); with passes on, the GPU path runs its GL half with glFinish after each pass (gpu_set_timing)
++// and adds each frame's parts here: the worker's CPU half (geometry, span records, 2D) and the GPU's uploads, pass R, passes E + P and
++// the compose, wall clock. The bench row is followed by a "passes:" line of their means. The CPU waits for each pass, so a row with
++// passes on runs at 60 with Smooth motion off (docs/gpu-cost.md P0).
++static bool sPassOn;
++static double sPassCpu[3], sPassGpu[4];
++static u64 sPassNc, sPassNg;
++extern "C" int SIM_PassTiming(void) { return sPassOn; }
++extern "C" void SIM_PassCpu(double geo, double spans, double twod) {
++  if (!sPassOn) return;
++  sPassCpu[0] += geo, sPassCpu[1] += spans, sPassCpu[2] += twod;
++  sPassNc++;
++}
++extern "C" void SIM_PassGpu(double up, double r, double ep, double c) {
++  if (!sPassOn) return;
++  sPassGpu[0] += up, sPassGpu[1] += r, sPassGpu[2] += ep, sPassGpu[3] += c;
++  sPassNg++;
++}
++static void PassReset(void) {
++  sPassCpu[0] = sPassCpu[1] = sPassCpu[2] = 0.0;
++  sPassGpu[0] = sPassGpu[1] = sPassGpu[2] = sPassGpu[3] = 0.0;
++  sPassNc = sPassNg = 0;
++}
+ extern "C" void SIM_PerfTestStart(void) {
+   // libntr-ios-input.patch: a second start while one runs is ignored (its load took the first test's settings as the ones to restore,
+   // and they stayed: e.g. Frame skip off, Unlimited)
+@@ -947,6 +971,11 @@
+       "p1:speed=4;p60:bench=gpu2-60-speed4;"
+       "p1:speed=1,ff=1;p60:bench=gpu2-ff;"
+       "p1:ff=0,framerate=unlimited;p60:bench=gpu2-unlimited;"
++      "p1:resolution=3;p60:bench=gpu3-unlimited;"  // (libntr-ios-passes.patch: drawn/s bounds the GPU's frame at 3x; then each pass's time)
++      "p1:antialias=2;p60:bench=gpu3-aa4s-unlimited;"
++      "p1:framerate=60,passes=1;p60:bench=gpu3-aa4s-passes;"
++      "p1:antialias=1;p60:bench=gpu3-passes;"
++      "p1:passes=0;"
+       "p1:renderer=vcore,resolution=1,framerate=60;p60:bench=vcore1-60;"
+       "p1:resolution=2;p60:bench=vcore2-60;"
+       "p1:framerate=120,smooth=1;p60:bench=vcore2-120-smooth;"
+@@ -968,6 +997,7 @@
+   s_SIM_config.displayCap = sCfgSaved.displayCap;
+   s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
+   sFastForward = false;
++  sPassOn = false;  // libntr-ios-passes.patch
+   if (sPerfTestOn) {
+     sPerfTestOn = false;
+     s_SIM_configNoSave = 0;
+@@ -1047,6 +1077,9 @@
+         sFastForward = atoi(v) != 0;
+       } else if (strcmp(kv, "perftest") == 0) {  // the iOS performance test's steps (they follow this script's remaining ones)
+         SIM_PerfTestStart();
++      } else if (strcmp(kv, "passes") == 0) {  // libntr-ios-passes.patch: the GPU path's parts, glFinish after each pass (see sPassOn)
++        sPassOn = atoi(v) != 0;
++        PassReset();
+       } else if (strcmp(kv, "bench") == 0) {
+         BenchStart(v);
+       } else if (strcmp(kv, "restore") == 0) {
+@@ -2185,6 +2218,7 @@
+   sBench.lc0 = sLc;
+   sBench.sc0 = sSc;
+   snprintf(sBench.name, sizeof sBench.name, "%s", name);
++  PassReset();  // libntr-ios-passes.patch
+ }
+ static bool BenchBusy(void) { return sBench.on; }
+ static void BenchCancel(void) { sBench.on = false; }
+@@ -2324,6 +2358,12 @@
+              (sPc.ipLate - a.ipLate) / dt, (sPc.ipNone - a.ipNone) / dt);
+     sBench.table += row;
+     fputs(row, stderr);
++    if (sPassOn && sPassNg > 0) {  // libntr-ios-passes.patch: the row's parts, means a frame in ms
++      const double nc = sPassNc ? (double)sPassNc : 1.0, ng = (double)sPassNg;
++      fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f; GPU (glFinish after each) uploads %.2f, R %.2f, E+P %.2f, compose %.2f ms\n",
++              sBench.name, (unsigned long long)sPassNg, sPassCpu[0] / nc, sPassCpu[1] / nc, sPassCpu[2] / nc, sPassGpu[0] / ng,
++              sPassGpu[1] / ng, sPassGpu[2] / ng, sPassGpu[3] / ng);
++    }
+     fflush(stderr);
+   }
+ }

@@ -1,0 +1,18 @@
+    .text       start:0x021b95a0 end:0x021bae6c kind:code align:32
+    .rodata     start:0x021bae6c end:0x021bb300 kind:rodata align:4
+    .ctor       start:0x021bb300 end:0x021bb300 kind:rodata align:4
+    .data       start:0x021bb320 end:0x021bb360 kind:data align:32
+    .bss        start:0x021bb360 end:0x021bb380 kind:bss align:32
+
+src/ov213/comm_btl_demo_graphic.c:
+    complete
+    .text       start:0x021baabc end:0x021bae6c
+    .rodata     start:0x021bb158 end:0x021bb300
+    .data       start:0x021bb33c end:0x021bb360
+
+src/ov213/comm_btl_demo.c:
+    complete
+    .text       start:0x021b95a0 end:0x021baabc
+    .rodata     start:0x021bae6c end:0x021bb158
+    .data       start:0x021bb320 end:0x021bb33c
+    .bss        start:0x021bb360 end:0x021bb36c

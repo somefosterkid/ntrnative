@@ -1,0 +1,7 @@
+ProfWord_LoadLists kind:function(thumb,size=0x50) addr:0x021f59e0
+ProfWord_FreeLists kind:function(thumb,size=0x1c) addr:0x021f5a30
+ProfWord_Check kind:function(thumb,size=0xfc) addr:0x021f5a4c
+ProfWord_CheckList kind:function(thumb,size=0x28) addr:0x021f5b48
+ProfWord_Compare kind:function(thumb,size=0x38) addr:0x021f5b70
+ProfWord_HasManyDigits kind:function(thumb,size=0x58) addr:0x021f5ba8
+data_ov281_021f5c20 kind:data(any) addr:0x021f5c20

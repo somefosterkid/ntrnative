@@ -1,0 +1,51 @@
+GimmickCaitlin_Setup kind:function(thumb,size=0x48) addr:0x021eecc0
+GimmickCaitlin_End kind:function(thumb,size=0x38) addr:0x021eed08
+GimmickCaitlin_Update kind:function(thumb,size=0xe) addr:0x021eed40
+GimmickCaitlin_PlayModels34Or5 kind:function(thumb,size=0x3a) addr:0x021eed50
+GimmickCaitlin_CreateModel1Event kind:function(thumb,size=0x20) addr:0x021eed8c
+GimmickCaitlin_CallPlayModel0 kind:function(thumb,size=0x12) addr:0x021eedac
+GimmickCaitlin_DropActor kind:function(thumb,size=0x36) addr:0x021eedc0
+GimmickCaitlin_ShowSavedState kind:function(thumb,size=0x56) addr:0x021eedf8
+GimmickCaitlin_Init kind:function(thumb,size=0x50) addr:0x021eee50
+GimmickCaitlin_Free kind:function(thumb,size=0xc) addr:0x021eeea0
+GimmickCaitlin_StepAnimations kind:function(thumb,size=0xc) addr:0x021eeeac
+GimmickCaitlin_InitModel kind:function(thumb,size=0x78) addr:0x021eeeb8
+GimmickCaitlin_PlayAnimation kind:function(thumb,size=0x4c) addr:0x021eef30
+GimmickCaitlin_StopAnimation kind:function(thumb,size=0x38) addr:0x021eef7c
+GimmickCaitlin_PlayModel0 kind:function(thumb,size=0x36) addr:0x021eefb4
+GimmickCaitlin_ShowModel0 kind:function(thumb,size=0x34) addr:0x021eefec
+GimmickCaitlin_PlayModel1 kind:function(thumb,size=0x36) addr:0x021ef020
+GimmickCaitlin_ShowModel1 kind:function(thumb,size=0x34) addr:0x021ef058
+GimmickCaitlin_IsModel1Done kind:function(thumb,size=0x14) addr:0x021ef08c
+GimmickCaitlin_PlayModel2 kind:function(thumb,size=0x2c) addr:0x021ef0a0
+GimmickCaitlin_ShowModel3 kind:function(thumb,size=0x32) addr:0x021ef0cc
+GimmickCaitlin_PlayModel3Rest kind:function(thumb,size=0x1e) addr:0x021ef100
+GimmickCaitlin_PlayModel4 kind:function(thumb,size=0x2c) addr:0x021ef120
+GimmickCaitlin_ShowModel5 kind:function(thumb,size=0x28) addr:0x021ef14c
+GimmickCaitlin_PlayModel5 kind:function(thumb,size=0x1e) addr:0x021ef174
+GimmickCaitlin_Model1Event kind:function(thumb,size=0x3c) addr:0x021ef194
+GimmickCaitlin_StartActorDrop kind:function(thumb,size=0x54) addr:0x021ef1d0
+GimmickCaitlin_ActorDropTask kind:function(thumb,size=0x40) addr:0x021ef224
+GimmickCaitlin_SetModel34Played kind:function(thumb,size=0x4) addr:0x021ef264
+GimmickCaitlin_GetModel34Played kind:function(thumb,size=0x4) addr:0x021ef268
+GimmickCaitlin_SetModel5Played kind:function(thumb,size=0x4) addr:0x021ef26c
+GimmickCaitlin_GetModel5Played kind:function(thumb,size=0x4) addr:0x021ef270
+sModel2Animations kind:data(any) addr:0x021ef274
+sModel4Animations kind:data(any) addr:0x021ef278
+sModel5Animations kind:data(any) addr:0x021ef280
+sModel3Animations kind:data(any) addr:0x021ef288
+sModel0Animations kind:data(any) addr:0x021ef294
+sSceneSetup kind:data(any) addr:0x021ef2a0
+sModel1Animations kind:data(any) addr:0x021ef2b0
+sActors kind:data(any) addr:0x021ef2c4
+data_ov125_021ef289 kind:data(any) addr:0x021ef2c9 ambiguous
+data_ov125_021ef29d kind:data(any) addr:0x021ef2dd ambiguous
+data_ov125_021ef2e1 kind:data(any) addr:0x021ef321 ambiguous
+sResources kind:data(any) addr:0x021ef324
+data_ov125_021ef335 kind:data(any) addr:0x021ef375 ambiguous
+data_ov125_021ef361 kind:data(any) addr:0x021ef3a1 ambiguous
+data_ov125_021ef36d kind:data(any) addr:0x021ef3ad ambiguous
+data_ov125_021ef379 kind:data(any) addr:0x021ef3b9 ambiguous
+data_ov125_021ef395 kind:data(any) addr:0x021ef3d5 ambiguous
+data_ov125_021ef39d kind:data(any) addr:0x021ef3dd ambiguous
+data_ov125_021ef3b5 kind:data(any) addr:0x021ef3f5 ambiguous

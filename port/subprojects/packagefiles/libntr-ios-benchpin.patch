@@ -1,0 +1,88 @@
+--- a/libraries/os/src/os_entropy.c
++++ b/libraries/os/src/os_entropy.c
+@@ -1,5 +1,8 @@
+ #include <nitro/os.h>
+ #include <nitro/gx.h>
++#ifdef SDK_PORT
++#include <stdlib.h>
++#endif
+ 
+ extern vu64 OSi_TickCounter;
+ 
+@@ -12,6 +15,15 @@
+     const u8 * macAddress = (u8 *)((u32)(work->nvramUserInfo) + ((sizeof(NVRAMConfig) + 3) & ~0x00000003));
+     #endif
+ 
++#ifdef SDK_PORT
++    if (getenv("BWPORT_BENCH_CLOCK") != NULL) {   /* bw-port (libntr-ios-benchpin.patch): a bench run's seed repeats */
++        int i;
++        for (i = 0; i < OS_LOW_ENTROPY_DATA_SIZE / (int)sizeof(u32); i++) {
++            buffer[i] = 0x9E3779B9u * (u32)(i + 1);
++        }
++        return;
++    }
++#endif
+     buffer[0] = (u32)((GX_GetVCount() << 16) | OS_GetTickLo());
+     buffer[1] = (u32)(*(u16 *)(macAddress + 4) << 16) ^ (u32)(OSi_TickCounter);
+     buffer[2] = (u32)(OSi_TickCounter >> 32) ^ *(u32 *)macAddress ^ work->vblankCount;
+--- a/libraries/rtc/src/external.c
++++ b/libraries/rtc/src/external.c
+@@ -10,6 +10,8 @@
+ 
+ #ifdef SDK_PORT
+ #include <time.h>
++#include <stdio.h>
++#include <stdlib.h>
+ #endif
+ 
+ #if (SDK_VERSION_MAJOR == 4 || (!defined(SDK_TWL)))
+@@ -181,11 +183,35 @@
+ }
+ 
+ #ifdef SDK_PORT
++/* bw-port (libntr-ios-benchpin.patch): BWPORT_BENCH_CLOCK=YYYY-MM-DDTHH:MM:SS freezes the RTC there (local time) for bench
++ * runs that must repeat the same game: off by default, the host's clock as before */
++static const struct tm * getPCNow( void )
++{
++    static int init, pinned;
++    static struct tm fixed;
++    time_t currentTime;
++
++    if (!init) {
++        const char * e = getenv("BWPORT_BENCH_CLOCK");
++        init = 1;
++        if (e != NULL && sscanf(e, "%d-%d-%dT%d:%d:%d", &fixed.tm_year, &fixed.tm_mon, &fixed.tm_mday, &fixed.tm_hour,
++                                &fixed.tm_min, &fixed.tm_sec) == 6) {
++            fixed.tm_year -= 1900;
++            fixed.tm_mon -= 1;
++            fixed.tm_isdst = -1;
++            pinned = mktime(&fixed) != (time_t)-1;   /* sets tm_wday */
++        }
++    }
++    if (pinned) {
++        return &fixed;
++    }
++    currentTime = time( NULL );
++    return localtime( &currentTime );
++}
++
+ static void getPCTime( RTCTime* theTime )
+ {
+-    struct tm * timeinfo;
+-    time_t currentTime = time( NULL );
+-    timeinfo = localtime( &currentTime );
++    const struct tm * timeinfo = getPCNow();
+     theTime->hour = timeinfo->tm_hour;
+     theTime->minute = timeinfo->tm_min;
+     theTime->second = timeinfo->tm_sec;
+@@ -193,9 +219,7 @@
+ 
+ static void getPCDate( RTCDate* theDate )
+ {
+-    struct tm * timeinfo;
+-    time_t currentTime = time( NULL );
+-    timeinfo = localtime( &currentTime );
++    const struct tm * timeinfo = getPCNow();
+ 
+     theDate->year = timeinfo->tm_year - 100;
+     theDate->month = timeinfo->tm_mon + 1;

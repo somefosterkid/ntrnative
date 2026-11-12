@@ -1,0 +1,50 @@
+    .text       start:0x021d4240 end:0x021dbfa0 kind:code align:32
+    .rodata     start:0x021dbfa0 end:0x021dc7f8 kind:rodata align:4
+    .ctor       start:0x021dc7f8 end:0x021dc7f8 kind:rodata align:4
+    .data       start:0x021dc800 end:0x021dc860 kind:data align:32
+    .bss        start:0x021dc860 end:0x021dc860 kind:bss align:32
+
+src/ov131/p_status.c:
+    complete
+    .text       start:0x021d6324 end:0x021d65d8
+    .rodata     start:0x021dc138 end:0x021dc150
+    .data       start:0x021dc800 end:0x021dc818
+
+src/ov131/ribbon.c:
+    complete
+    .text       start:0x021dbf2c end:0x021dbfa0
+    .rodata     start:0x021dc2f8 end:0x021dc7f8
+
+src/ov131/p_sta_oam.c:
+    complete
+    .text       start:0x021dba90 end:0x021dbf2c
+    .data       start:0x021dc854 end:0x021dc860
+
+src/ov131/p_sta_sub.c:
+    complete
+    .text       start:0x021d65d8 end:0x021d7b00
+    .rodata     start:0x021dc150 end:0x021dc24c
+    .data       start:0x021dc818 end:0x021dc824
+
+src/ov131/p_sta_sys.c:
+    complete
+    .text       start:0x021d4240 end:0x021d6324
+    .rodata     start:0x021dbfa0 end:0x021dc138
+
+src/ov131/p_sta_ribbon.c:
+    complete
+    .text       start:0x021d87e0 end:0x021d96b0
+    .rodata     start:0x021dc2b0 end:0x021dc2b8
+    .data       start:0x021dc834 end:0x021dc844
+
+src/ov131/p_sta_skill.c:
+    complete
+    .text       start:0x021d96b0 end:0x021dba90
+    .rodata     start:0x021dc2b8 end:0x021dc2f8
+    .data       start:0x021dc844 end:0x021dc854
+
+src/ov131/p_sta_info.c:
+    complete
+    .text       start:0x021d7b00 end:0x021d87e0
+    .rodata     start:0x021dc24c end:0x021dc2b0
+    .data       start:0x021dc824 end:0x021dc834

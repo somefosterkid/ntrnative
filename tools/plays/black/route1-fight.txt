@@ -1,0 +1,5 @@
+# game: black
+# from: route1
+# reaches: a wild battle in Route 1's grass, fought out with A (Fight, the first move, the messages); with BWPORT_TESTCHEAT=win the player one-shots
+walk 300 40 up6 down6 up6
+keys a@f1000 a@f1040 a@f1080 a@f1120 a@f1160 a@f1200 a@f1240 a@f1280 a@f1320 a@f1360 a@f1400 a@f1440 a@f1480 a@f1520 a@f1560 a@f1600 a@f1640 a@f1680 a@f1720 a@f1760 a@f1800 a@f1840 a@f1880 a@f1920 a@f1960 a@f2000 a@f2040 a@f2080 a@f2120 a@f2160 a@f2200 a@f2240 a@f2280 a@f2320 a@f2360 a@f2400 a@f2440 a@f2480 a@f2520 a@f2560 a@f2600 a@f2640 a@f2680 a@f2720 a@f2760 a@f2800 a@f2840 a@f2880 a@f2920 a@f2960 a@f3000

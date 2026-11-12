@@ -1,0 +1,22 @@
+#include "types.h"
+#include "gfl/std.h"
+#include "nitro/os.h"
+#include "save/records.h"
+#include "save/save_control.h"
+
+// The save block of the records, which the trainer card shows (the ROM has no string for the file, so the name is a
+// guess). Block 0x26.
+
+u32 GameRecords_GetSize(void) {
+    return sizeof(GameRecords);
+}
+
+void initTrainerCardInfoBlk(GameRecords *records) {
+    MIi_CpuClear32(0, records, sizeof(GameRecords));
+    records->seedHigh = OS_GetVBlankCount() | (OS_GetVBlankCount() << 8);
+    EncryptRecordStorage(records, 1);
+}
+
+GameRecords *getTrainerCardInfoBlkAddress(SaveControl *save) {
+    return SaveControl_GetBlockPtr(save, SAVE_BLOCK_RECORDS);
+}

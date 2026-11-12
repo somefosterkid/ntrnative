@@ -1,0 +1,293 @@
+#include "types.h"
+#include "constants/arc.h"
+#include "constants/items.h"
+#include "constants/script_text_banks.h"
+#include "constants/sound.h"
+#include "field/field.h"
+#include "field/field_actor.h"
+#include "field/field_msgbg.h"
+#include "field/field_pass_power.h"
+#include "field/field_script.h"
+#include "field/field_script_event.h"
+#include "field/game_beacon_set.h"
+#include "gfl/fade.h"
+#include "gfl/heap.h"
+#include "gfl/key.h"
+#include "gfl/msg.h"
+#include "gfl/sound.h"
+#include "gfl/str.h"
+#include "pml/poke_party.h"
+#include "save/bag.h"
+#include "save/high_link.h"
+#include "save/records.h"
+#include "save/save_control.h"
+#include "system/game_data.h"
+#include "system/game_event.h"
+#include "system/game_system.h"
+#include "system/str_tool.h"
+#include "system/wordset.h"
+#include "text/script/global_10435.h"
+
+// The pass power whose script gets 16 in place of its effect
+#define PASS_POWER_027 0x27
+
+// The steps of the flash event; any later step ends it
+enum {
+    FLASH_STEP_FADE_TO_WHITE,
+    FLASH_STEP_WAIT_WHITE,
+    FLASH_STEP_WAIT_CLEAR,
+};
+
+// The steps of the list event; any later step closes it
+enum {
+    LIST_STEP_OPEN_MESSAGE,
+    LIST_STEP_WAIT_MESSAGE,
+    LIST_STEP_SHOW_LIST,
+    LIST_STEP_WAIT_KEY,
+};
+
+typedef struct {
+    u32 unk00;
+    GameSystem *gsys;
+    GameData *gameData;
+} PassPowerFlashWork;
+
+typedef struct {
+    u16 unk00;
+    HeapID heapId;
+    HeapID tailHeapId;
+    GameSystem *gsys;
+    GameData *gameData;
+    Field *field;
+    FieldMsgBG *msgBGSys;
+    MoneyWin *listWindow;
+    MMSys *actorSystem;
+    FieldMsgWin *msgWindow;
+    u32 unk24;
+    MsgData *msgData;
+    WordSet *wordSet;
+    PassPowerData *passPowerData;
+    StrBuf *strbuf;
+    StrBuf *formatted;
+} PassPowerListWork;
+
+static void PassPowerList_Init(PassPowerListWork *work, GameSystem *gsys, Field *field);
+static void PassPowerList_Exit(PassPowerListWork *work);
+static GameEventReturnCode EventPassPowerFlash_Callback(GameEvent *event, u32 *state, void *data);
+static void PassPower_ApplyInstant(GameSystem *gsys, WordSet *wordSet, u32 effect);
+static GameEventReturnCode EventPassPowerList_Callback(GameEvent *event, u32 *state, void *data);
+static void PassPowerList_PrintRow(PassPowerListWork *work, StrBuf *format, u8 passPower, u16 seconds, u8 row);
+static void PassPowerList_Print(PassPowerListWork *work);
+
+GameEvent *EventPassPowerActivate_Create(GameSystem *gsys, void *args) {
+    u32 *params = args;
+    GameRecords *records;
+    GameEvent *event;
+    ScriptWork *work;
+    GameData *gameData;
+    PassPowerData *data;
+    u32 passPower;
+    u32 effect;
+
+    gameData = GSYS_GetGameData(gsys);
+    data = PassPowerData_Create(HEAPID_TAIL(HEAPID_FIELDMAP));
+    passPower = params[0];
+    effect = 0;
+    event = EventScriptCall_Create(gsys, 0x28c3, NULL, HEAPID_FIELDMAP);
+    work = EventScriptCall_GetWork(event);
+    if (!PassPower_IsIDValid(passPower)) {
+        passPower = 0;
+    }
+    records = getTrainerCardInfoBlkAddress(GameData_GetSaveControl(gameData));
+    effect = PassPowerData_GetEffect(data, passPower);
+    PassPower_Activate(passPower, data, params[1]);
+    RecordAdd(records, 45, 1);
+    if (passPower == PASS_POWER_027) {
+        ScriptWork_SetParams(work, passPower, 16, params[1], 0);
+    } else {
+        // The script's parameters are u16s; the prototype's u32 needs the cast to narrow it as the original does
+        ScriptWork_SetParams(work, passPower, (u16)effect, params[1], 0);
+    }
+    PassPower_ApplyInstant(gsys, ScriptWork_GetWordSet(work), effect);
+    if (params[1]) {
+        u16 price = PassPowerData_GetPrice(data, passPower);
+        BagSave_SubItem(GameData_GetBag(gameData), ITEM_PASS_ORB, price, HEAPID_TAIL(HEAPID_FIELDMAP));
+        GameBeacon_BroadcastPassPower(passPower);
+    } else {
+        GameBeacon_BroadcastReceivedPassPower(passPower);
+    }
+    PassPowerData_Free(data);
+    return event;
+}
+
+GameEvent *EventPassPowerDepleted_Create(GameSystem *gsys, void *args) {
+    return EventScriptCall_Create(gsys, 0x28c4, NULL, HEAPID_FIELDMAP);
+}
+
+GameEvent *EventPassPowerFlash_Create(GameSystem *gsys) {
+    GameEvent *event = GameEvent_Create(gsys, NULL, EventPassPowerFlash_Callback, sizeof(PassPowerFlashWork));
+    PassPowerFlashWork *work = GameEvent_GetData(event);
+
+    work->gameData = GSYS_GetGameData(gsys);
+    work->gsys = gsys;
+    return event;
+}
+
+GameEvent *EventPassPowerList_Create(GameSystem *gsys, Field *field) {
+    GameEvent *event = GameEvent_Create(gsys, NULL, EventPassPowerList_Callback, sizeof(PassPowerListWork));
+
+    PassPowerList_Init(GameEvent_GetData(event), gsys, field);
+    return event;
+}
+
+static void PassPowerList_Init(PassPowerListWork *work, GameSystem *gsys, Field *field) {
+    work->heapId = HEAPID_FIELDMAP;
+    work->tailHeapId = HEAPID_TAIL(work->heapId);
+    work->field = field;
+    work->gsys = gsys;
+    work->gameData = GSYS_GetGameData(gsys);
+    work->msgBGSys = Field_GetMsgBGSys(work->field);
+    work->actorSystem = Field_GetActorSystem(work->field);
+    work->passPowerData = PassPowerData_Create(work->heapId);
+    work->msgData = GFL_MsgSysLoadData(FALSE, ARCID_SCRIPT_MESSAGE, SCRIPT_TEXT_GLOBAL_10435, work->heapId);
+    work->wordSet = GFL_WordSetSystemCreateDefault(work->heapId);
+    work->strbuf = GFL_StrBufCreate(129, work->heapId);
+    work->formatted = GFL_StrBufCreate(129, work->heapId);
+    DisableAllActorsMovement(work->actorSystem);
+}
+
+static void PassPowerList_Exit(PassPowerListWork *work) {
+    GFL_StrBufFree(work->formatted);
+    GFL_StrBufFree(work->strbuf);
+    GFL_WordSetSystemFree(work->wordSet);
+    GFL_MsgDataFree(work->msgData);
+    PassPowerData_Free(work->passPowerData);
+    EnableAllActorsMovement(work->actorSystem);
+}
+
+static GameEventReturnCode EventPassPowerFlash_Callback(GameEvent *event, u32 *state, void *data) {
+    switch (*state) {
+    case FLASH_STEP_FADE_TO_WHITE:
+        GFL_FadeSet(FADE_ENGINE_A_WHITE, 10, 16, 4);
+        GFL_SndSEPlay(SEQ_SE_W295_01);
+        (*state)++;
+        break;
+    case FLASH_STEP_WAIT_WHITE:
+        if (GFL_FadeIsRunning()) {
+            break;
+        }
+        GFL_FadeSet(FADE_ENGINE_A_WHITE, 16, 0, 8);
+        (*state)++;
+        // fallthrough
+    case FLASH_STEP_WAIT_CLEAR:
+        if (GFL_FadeIsRunning()) {
+            break;
+        }
+        // fallthrough
+    default:
+        return GAMEEVENT_DONE;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+// Puts the first Pokémon able to battle in the word set, and applies the pass powers that act at once
+static void PassPower_ApplyInstant(GameSystem *gsys, WordSet *wordSet, u32 effect) {
+    PokeParty *party = GameData_GetParty(GSYS_GetGameData(gsys));
+    u8 slot = PokeParty_GetFirstBattleReady(party);
+
+    loadPokemonNicknameToStrbuf(wordSet, 1, PokeParty_GetPkm(party, slot));
+    switch (effect) {
+    case PASS_POWER_EFFECT_HP_RESTORE:
+        PassPower_ApplyHPRestore(party);
+        break;
+    case PASS_POWER_EFFECT_PP_RESTORE:
+        PassPower_ApplyPPRestore(party);
+        break;
+    }
+}
+
+static GameEventReturnCode EventPassPowerList_Callback(GameEvent *event, u32 *state, void *data) {
+    PassPowerListWork *work = data;
+
+    switch (*state) {
+    case LIST_STEP_OPEN_MESSAGE:
+        work->msgWindow = MsgBGPrinter_CreateInfoSysWin(work->msgBGSys, work->msgData, 19);
+        MsgBGPrinter_InfoSysWinPrintMsg(work->msgWindow, 0, 0, 3);
+        (*state)++;
+        break;
+    case LIST_STEP_WAIT_MESSAGE:
+        if (MsgBGPrinter_InfoSysWinMain(work->msgWindow)) {
+            MsgBGPrinter_DeleteInfoSysWin(work->msgWindow);
+            (*state)++;
+        }
+        break;
+    case LIST_STEP_SHOW_LIST:
+        work->listWindow = MsgBGPrinter_CreateInfoMsgWin(work->msgBGSys, work->msgData, 4, 1, 24, 22);
+        MsgBGPrinter_ClearInfoMsgWin(work->listWindow);
+        PassPowerList_Print(work);
+        (*state)++;
+        break;
+    case LIST_STEP_WAIT_KEY:
+        if (GCTX_HIDGetPressedKeys() & (PAD_BUTTON_A | PAD_BUTTON_B)) {
+            (*state)++;
+        }
+        break;
+    default:
+        MsgBGPrinter_ClearInfoMsgWin(work->listWindow);
+        MsgBGPrinter_DeleteInfoMsgWin(work->listWindow);
+        PassPowerList_Exit(work);
+        return GAMEEVENT_DONE;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+// Prints a pass power's name and the minutes and seconds it has left on a row of the list
+static void PassPowerList_PrintRow(PassPowerListWork *work, StrBuf *format, u8 passPower, u16 seconds, u8 row) {
+    loadPassPowerToStrbuf(work->wordSet, 0, passPower);
+    WordSetNumber(work->wordSet, 1, seconds / 60, 2, NUM_PAD_SPACE, TRUE);
+    WordSetNumber(work->wordSet, 2, seconds % 60, 2, NUM_PAD_ZERO, TRUE);
+    GFL_WordSetFormatStrbuf(work->wordSet, work->formatted, format);
+    MsgBGPrinter_InfoMsgWinPrintStr(work->listWindow, 0, row * 16, work->formatted);
+}
+
+// Prints the pass powers in use, the one with the least time left first
+static void PassPowerList_Print(PassPowerListWork *work) {
+    u8 passPowers[PASS_POWER_EFFECT_COUNT];
+    u8 order[PASS_POWER_EFFECT_COUNT];
+    u16 seconds[PASS_POWER_EFFECT_COUNT];
+    u8 count;
+    u8 passPower;
+    u8 effect;
+    u8 i, j;
+    u8 tmp;
+
+    // The High Link save is fetched and not used
+    getHighLinkBlockAddress(GameData_GetSaveControl(work->gameData));
+    GFL_MsgDataLoadStrbuf(work->msgData, Global10435_Text_005, work->strbuf);
+    MsgBGPrinter_InfoMsgWinPrintStr(work->listWindow, 0, 0, work->strbuf);
+    GFL_MsgDataLoadStrbuf(work->msgData, Global10435_Text_007, work->strbuf);
+
+    for (effect = 0, count = 0; effect < PASS_POWER_EFFECT_COUNT; effect++) {
+        order[effect] = effect;
+        passPower = PassPower_GetUsedIDByEffect(effect);
+        if (passPower != HIGH_LINK_POWER_NONE) {
+            seconds[count] = PassPower_GetRemainingSeconds(effect);
+            passPowers[count] = passPower;
+            count++;
+        }
+    }
+
+    for (i = 0; i < count - 1; i++) {
+        for (j = count - 1; j > i; j--) {
+            if (seconds[order[j - 1]] > seconds[order[j]]) {
+                tmp = order[j];
+                order[j] = order[j - 1];
+                order[j - 1] = tmp;
+            }
+        }
+    }
+
+    for (i = 0; i < count; i++) {
+        PassPowerList_PrintRow(work, work->strbuf, passPowers[order[i]], seconds[order[i]], i + 1);
+    }
+}

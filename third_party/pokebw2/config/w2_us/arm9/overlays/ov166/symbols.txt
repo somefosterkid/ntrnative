@@ -1,0 +1,16 @@
+EventBattleReturn_Init kind:function(thumb,size=0x46) addr:0x0219cec0
+EventBattleReturn_Exit kind:function(thumb,size=0x2c) addr:0x0219cf08
+EventBattleReturn_Main kind:function(thumb,size=0x42c) addr:0x0219cf34
+EventBattleReturn_CheckLevelUps kind:function(thumb,size=0x8a) addr:0x0219d360
+EventBattleReturn_PickupItems kind:function(thumb,size=0x138) addr:0x0219d3ec
+EventBattleReturn_NaturalCure kind:function(thumb,size=0x5c) addr:0x0219d524
+EventBattleReturn_BurmyForms kind:function(thumb,size=0x4a) addr:0x0219d580
+EventBattleReturn_GetBurmyTerrain kind:function(thumb,size=0x24) addr:0x0219d5cc
+EventBattleReturn_ShayminForms kind:function(thumb,size=0x5e) addr:0x0219d5f0
+EventBattleReturn_HealBall kind:function(thumb,size=0x40) addr:0x0219d650
+sPickupChances kind:data(any) addr:0x0219d690
+sHoneyGatherChances kind:data(any) addr:0x0219d699
+sPickupRareItems kind:data(any) addr:0x0219d6a4
+sPickupItems kind:data(any) addr:0x0219d6ba
+EVENT_BATTLE_RETURN_PROC_FUNCTIONS kind:data(any) addr:0x0219d6e0
+data_ov166_0219d6c0 kind:data(any) addr:0x0219d700

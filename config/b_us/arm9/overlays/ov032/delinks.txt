@@ -1,0 +1,16 @@
+    .text       start:0x021efec0 end:0x021f352c kind:code align:32
+    .rodata     start:0x021f352c end:0x021f3688 kind:rodata align:4
+    .ctor       start:0x021f3688 end:0x021f3688 kind:rodata align:4
+    .data       start:0x021f36a0 end:0x021f36c0 kind:data align:32
+    .bss        start:0x021f36c0 end:0x021f36c0 kind:bss align:32
+
+src/ov032/beacon_view_sub.c:
+    complete
+    .text       start:0x021efec0 end:0x021f2234
+    .rodata     start:0x021f352c end:0x021f35bc
+
+src/ov032/beacon_view.c:
+    complete
+    .text       start:0x021f2234 end:0x021f352c
+    .rodata     start:0x021f35bc end:0x021f3688
+    .data       start:0x021f36a0 end:0x021f36c0

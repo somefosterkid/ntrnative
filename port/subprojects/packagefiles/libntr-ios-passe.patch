@@ -1,0 +1,30 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1026,7 +1026,13 @@
+   sPassGpu[0] += up, sPassGpu[1] += r, sPassGpu[2] += ep, sPassGpu[3] += c, sPassGpu[4] += smaa;
+   sPassNg++;
+ }
++// libntr-ios-passe.patch: pass E of the frame's E+P (the Metal core times it apart; GL's would be 0: not printed)
++static double sPassE;
++extern "C" void SIM_PassGpuE(double e) {
++  if (sPassOn) sPassE += e;
++}
+ static void PassReset(void) {
++  sPassE = 0.0;
+   sPassCpu[0] = sPassCpu[1] = sPassCpu[2] = 0.0;
+   sPassGpu[0] = sPassGpu[1] = sPassGpu[2] = sPassGpu[3] = sPassGpu[4] = 0.0;
+   sPassNc = sPassNg = 0;
+@@ -2637,9 +2643,11 @@
+     if (sPerfTestOn) sPerfRowsDone++;  // libntr-ios-testbadge.patch
+     if (sPassOn && sPassNg > 0) {  // libntr-ios-passes.patch: the row's parts, means a frame in ms
+       const double nc = sPassNc ? (double)sPassNc : 1.0, ng = (double)sPassNg;
+-      fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f; GPU (%s) uploads %.2f, R %.2f, E+P %.2f, SMAA %.2f, compose %.2f ms\n",
++      char ep[64] = "";  // libntr-ios-passe.patch: Metal's E+P in its parts
++      if (sMetal) snprintf(ep, sizeof ep, " (E+P: E %.2f, P %.2f)", sPassE / ng, (sPassGpu[2] - sPassE) / ng);
++      fprintf(stderr, "passes: %-20s %llu frames: CPU half geometry %.2f, span records %.2f, 2D %.2f; GPU (%s) uploads %.2f, R %.2f, E+P %.2f, SMAA %.2f, compose %.2f ms%s\n",
+               sBench.name, (unsigned long long)sPassNg, sPassCpu[0] / nc, sPassCpu[1] / nc, sPassCpu[2] / nc, sMetal ? "Metal: each pass a command buffer, its GPU time" : "glFinish after each", sPassGpu[0] / ng,
+-              sPassGpu[1] / ng, sPassGpu[2] / ng, sPassGpu[4] / ng, sPassGpu[3] / ng);
++              sPassGpu[1] / ng, sPassGpu[2] / ng, sPassGpu[4] / ng, sPassGpu[3] / ng, ep);
+     }
+     if (sDrN >= 2)  // libntr-ios-smoothfix.patch: the test aid's waits for a drawable (BWPORT_DRAWABLES)
+       fprintf(stderr, "drawables: %-20s %d, waits %.1f/s, %.1f ms/s\n", sBench.name, sDrN, (sDrWaits - sDrBenchN) / dt,

@@ -1,0 +1,11 @@
+EventPassPowerActivate_Create kind:function(thumb,size=0xe4) addr:0x021f5a20
+EventPassPowerDepleted_Create kind:function(thumb,size=0x14) addr:0x021f5b04
+EventPassPowerFlash_Create kind:function(thumb,size=0x28) addr:0x021f5b18
+EventPassPowerList_Create kind:function(thumb,size=0x28) addr:0x021f5b40
+PassPowerList_Init kind:function(thumb,size=0x74) addr:0x021f5b68
+PassPowerList_Exit kind:function(thumb,size=0x2a) addr:0x021f5bdc
+EventPassPowerFlash_Callback kind:function(thumb,size=0x5a) addr:0x021f5c08
+PassPower_ApplyInstant kind:function(thumb,size=0x42) addr:0x021f5c64
+EventPassPowerList_Callback kind:function(thumb,size=0x9e) addr:0x021f5ca8
+PassPowerList_PrintRow kind:function(thumb,size=0x66) addr:0x021f5d48
+PassPowerList_Print kind:function(thumb,size=0x10a) addr:0x021f5db0

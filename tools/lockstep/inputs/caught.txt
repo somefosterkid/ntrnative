@@ -1,0 +1,2 @@
+# caught: grass, battle, A presses
+up*f16@f10 up*f16@f30 left*f16@f50 left*f16@f70 right*f16@f90 right*f16@f110 up*f16@f130 up*f16@f150 left*f16@f170 left*f16@f190 right*f16@f210 right*f16@f230 up*f16@f250 up*f16@f270 down*f16@f290 down*f16@f310 left*f16@f330 left*f16@f350 right*f16@f370 right*f16@f390 up*f16@f410 up*f16@f430 down*f16@f450 down*f16@f470 a*f4@f500 a*f4@f540 a*f4@f580 a*f4@f620 a*f4@f660 a*f4@f700 a*f4@f740 a*f4@f780 a*f4@f820 a*f4@f860 a*f4@f900 a*f4@f940

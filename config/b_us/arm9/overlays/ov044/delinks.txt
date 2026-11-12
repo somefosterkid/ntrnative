@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f39d0 kind:code align:32
+    .rodata     start:0x021f39d0 end:0x021f3a28 kind:rodata align:4
+    .ctor       start:0x021f3a28 end:0x021f3a28 kind:rodata align:4
+    .bss        start:0x021f3a40 end:0x021f3a40 kind:bss align:32
+
+src/ov044/gym_driftveil_lift.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f39d0
+    .rodata     start:0x021f39d0 end:0x021f3a28

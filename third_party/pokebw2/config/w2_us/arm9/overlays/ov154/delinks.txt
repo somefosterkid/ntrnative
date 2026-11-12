@@ -1,0 +1,9 @@
+    .text       start:0x021f6240 end:0x021f64c0 kind:code align:32
+    .rodata     start:0x021f64c0 end:0x021f64cc kind:rodata align:4
+    .ctor       start:0x021f64cc end:0x021f64cc kind:rodata align:4
+    .bss        start:0x021f64e0 end:0x021f64e0 kind:bss align:32
+
+src/ov154/encounter_effect_spread.c:
+    complete
+    .text       start:0x021f6240 end:0x021f64c0
+    .rodata     start:0x021f64c0 end:0x021f64cc

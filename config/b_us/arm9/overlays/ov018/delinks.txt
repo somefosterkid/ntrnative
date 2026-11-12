@@ -1,0 +1,61 @@
+    .text       start:0x0217ae20 end:0x02182b54 kind:code align:32
+    .rodata     start:0x02182b54 end:0x02183ac8 kind:rodata align:4
+    .ctor       start:0x02183ac8 end:0x02183ac8 kind:rodata align:4
+    .data       start:0x02183ae0 end:0x02183b60 kind:data align:32
+    .bss        start:0x02183b60 end:0x02183b60 kind:bss align:32
+
+src/ov018/entree_forest.c:
+    complete
+    .text       start:0x0217c1d0 end:0x0217c458
+    .rodata     start:0x021835f8 end:0x021836a0
+
+src/ov018/intrude_field.c:
+    complete
+    .text       start:0x0217ae20 end:0x0217c1d0
+    .rodata     start:0x02182b54 end:0x021835f8
+    .data       start:0x02183ae0 end:0x02183af0
+
+src/ov018/ov018_02182998.c:
+    complete
+    .text       start:0x02182988 end:0x02182b54
+    .rodata     start:0x02183a14 end:0x02183ac8
+    .data       start:0x02183b50 end:0x02183b60
+
+src/ov018/intrude_subdisp.c:
+    complete
+    .text       start:0x0217ce08 end:0x0217f2b4
+    .rodata     start:0x021836a4 end:0x0218374c
+    .data       start:0x02183b14 end:0x02183b2c
+
+src/ov018/ov018_0217f2b4.c:
+    complete
+    .text       start:0x0217f2b4 end:0x0217fb5c
+    .data       start:0x02183b2c end:0x02183b30
+
+src/ov018/event_comm_common.c:
+    complete
+    .text       start:0x0217fb5c end:0x021804f8
+    .rodata     start:0x0218374c end:0x0218383c
+    .data       start:0x02183b30 end:0x02183b48
+
+src/ov018/ov018_02180980.c:
+    complete
+    .text       start:0x02180980 end:0x02182988
+    .rodata     start:0x02183848 end:0x02183a14
+    .data       start:0x02183b4c end:0x02183b50
+
+src/ov018/ov018_0217c458.c:
+    complete
+    .text       start:0x0217c458 end:0x0217cdbc
+    .rodata     start:0x021836a0 end:0x021836a4
+    .data       start:0x02183af0 end:0x02183b14
+
+src/ov018/height_ex_ov018.c:
+    complete
+    .text       start:0x0217cdbc end:0x0217ce08
+
+src/ov018/ov018_021804f8.c:
+    complete
+    .text       start:0x021804f8 end:0x02180980
+    .rodata     start:0x0218383c end:0x02183848
+    .data       start:0x02183b48 end:0x02183b4c

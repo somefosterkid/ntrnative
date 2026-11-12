@@ -1,0 +1,30 @@
+--- a/libraries/os/src/os_system.c
++++ b/libraries/os/src/os_system.c
+@@ -1,5 +1,8 @@
+ #include <nitro/os.h>
+ #include <nitro/code32.h>
++#ifdef SDK_PORT
++#include <simulator/sim.h>
++#endif
+ 
+ #ifdef SDK_PORT
+ OSIntrMode OS_EnableInterrupts( void )
+@@ -176,6 +179,18 @@
+         (void)OS_ClearIrqCheckFlag(irqFlags);
+     }
+ 
++#ifdef SDK_PORT
++    // bw-port (libntr-waitintr.patch): on PC the V-blank comes from the frame the simulator draws, which OS_WaitIrq
++    // does for the V-blank (the main loop's OS_WaitVBlankIntr); nothing else draws one, so a wait for the V-blank here
++    // spun forever (the field's FldActSys_ForceFullSync, waiting for the actors' textures to load: the save hung).
++    // Draw the frame here too: the V-blank interrupt runs and sets the check flag, as on the DS.
++    if ((irqFlags & OS_IE_V_BLANK) && !(OS_GetIrqCheckFlag() & irqFlags)) {
++        SIM_PreRenderVBlank();
++        SIM_Render(NULL);
++        SIM_PostRenderVBlank();
++    }
++#endif
++
+     while (!(OS_GetIrqCheckFlag() & irqFlags)) {
+         #ifdef SDK_BUILD_ARM
+         OS_Halt();

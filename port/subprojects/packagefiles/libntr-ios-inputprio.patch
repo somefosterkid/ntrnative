@@ -1,0 +1,312 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -73,6 +73,7 @@
+ void SimTouch_MenuClose(void);
+ void SimTouch_MenuRequest(void);
+ int SimTouch_PressTaken(unsigned long long * t0, unsigned long long * gate);
++unsigned SimTouch_PadNow(void);
+ }
+ 
+ #ifdef SDK_BUILD_WIN64
+@@ -961,6 +962,10 @@
+       } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (macOS, BWPORT_HIDDEN)
+         snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
+         SIM_FrameForceDraw();   // frame skip (libntr-ios-shotdraw.patch): the shot frame and the next two are drawn
++      } else if (strcmp(kv, "stall") == 0) {  // libntr-ios-inputprio.patch: a frame that takes MS ms (the main thread busy, no events)
++        struct timespec ts = {atoi(v) / 1000, (long)(atoi(v) % 1000) * 1000000L};
++        fprintf(stderr, "cfgscript: stall %d ms\n", atoi(v));
++        nanosleep(&ts, NULL);
+       } else if (strcmp(kv, "quit") == 0) {  // end the run here (after this step's other keys; a shot needs a frame: put quit a few frames later)
+         BenchDone();
+         fprintf(stderr, "cfgscript: quit at f%u\n", now);
+@@ -1881,7 +1886,13 @@
+   return (c / f) * 1000000000ull + (c % f) * 1000000000ull / f;
+ }
+ 
++#if SIM_IOS
++extern "C" void bwport_ios_runloop_for(unsigned long long ns);  // port/src/ios_input.m
++#endif
+ // sleep until the time (SpNowNs): a coarse sleep, then a spin for the last bit
++// libntr-ios-inputprio.patch: on iOS the coarse part runs the main run loop, so UIKit delivers touches (and the touch layer takes
++// them) while the game waits, not at the next frame's event pump; not once the app is going to the background (SDL's callbacks
++// there say so, and the presents that may follow a wait are skipped: SimTouch_Background)
+ static void SpSleepUntil(u64 target) {
+ #ifdef SDK_BUILD_WIN64
+   static HANDLE sTimer;
+@@ -1920,6 +1931,12 @@
+       }
+       SDL_Delay((Uint32)((rem - spin) / 1000000));
+ #else
++#if SIM_IOS
++      if (rem > 2000000 && !SimTouch_Background()) {
++        bwport_ios_runloop_for(rem - 1000000);
++        continue;
++      }
++#endif
+       struct timespec ts;
+       ts.tv_sec = 0;
+       ts.tv_nsec = (long)(rem - spin);
+@@ -2328,7 +2345,29 @@
+   } else if (aKey == s_SIM_config.padSettings.selectJoyKey) {
+     // Select button
+     s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT | 0b0000000000000100;
++  }
++}
++
++// bw-port (libntr-ios-touch.patch): the touch buttons into the pad registers where the keyboard writes them (a bit changes only when
++// the touch state does, so a key held at the same time keeps working)
++static unsigned sTouchPadPrev;
++static void TouchPadWrite(unsigned now) {
++  unsigned long long t0, gate;
++  if (SimTouch_PressTaken(&t0, &gate)) InputTaken(t0, gate);  // libntr-ios-input.patch
++  unsigned ch = now ^ sTouchPadPrev;
++  static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
++  for (int b = 0; b < 12; b++) {
++    if (!((ch >> b) & 1)) continue;
++    bool down = (now >> b) & 1;
++    if (padBit[b] != 0xff) {
++      s_reg_PAD_KEYINPUT = (u16)(down ? s_reg_PAD_KEYINPUT & ~(1u << padBit[b]) : s_reg_PAD_KEYINPUT | (1u << padBit[b]));
++    } else {
++      vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
++      u16 bit = (u16)(1u << (b == 2 ? 10 : 11));
++      *xy = (u16)(down ? *xy & ~bit : *xy | bit);
++    }
+   }
++  sTouchPadPrev = now;
+ }
+ 
+ // bw-port (libntr-ios-touch.patch): the app is in the background (iOS kills an app that issues OpenGL ES commands there): no
+@@ -2810,26 +2849,7 @@
+       // bw-port (libntr-ios-touch.patch): the touch buttons are ORed into the pad registers where the keyboard writes them
+       // (a bit changes only when the touch state does, so a key held at the same time keeps working); the bottom screen's
+       // finger is the stylus; the fast-forward button is the Space key's flag
+-      static unsigned sTouchPadPrev;
+-      unsigned now = SimTouch_Pressed();
+-      {
+-        unsigned long long t0, gate;
+-        if (SimTouch_PressTaken(&t0, &gate)) InputTaken(t0, gate);  // libntr-ios-input.patch
+-      }
+-      unsigned ch = now ^ sTouchPadPrev;
+-      static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
+-      for (int b = 0; b < 12; b++) {
+-        if (!((ch >> b) & 1)) continue;
+-        bool down = (now >> b) & 1;
+-        if (padBit[b] != 0xff) {
+-          s_reg_PAD_KEYINPUT = (u16)(down ? s_reg_PAD_KEYINPUT & ~(1u << padBit[b]) : s_reg_PAD_KEYINPUT | (1u << padBit[b]));
+-        } else {
+-          vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
+-          u16 bit = (u16)(1u << (b == 2 ? 10 : 11));
+-          *xy = (u16)(down ? *xy & ~bit : *xy | bit);
+-        }
+-      }
+-      sTouchPadPrev = now;
++      TouchPadWrite(SimTouch_Pressed());
+       int ff = SimTouch_FFEdge();
+       if (ff >= 0) {
+         // libntr-ios-speedui.patch: the button switches between 1x and FastForwardSpeed through the Game speed timeline; Max is the
+@@ -2995,7 +3015,7 @@
+     u64 tSlept = SDL_GetPerformanceCounter();
+     if (SIM_NoPresent()) {
+       glFlush();
+-    } else if (sTickPresent) {
++    } else if (sTickPresent && !(touchMode && SimTouch_Background())) {  // (libntr-ios-inputprio.patch: no GL in the background)
+       swapCall = SpNowNs();
+ #ifdef __APPLE__
+       SIM_ShotMaybe(window);
+@@ -3046,6 +3066,7 @@
+             midTex = (GLuint)sInterpTex(r, &tw, &th, left);
+           }
+           SpSleepUntil(SpSlotAbs(sPace.first + r));
++          if (touchMode && SimTouch_Background()) break;  // (libntr-ios-inputprio.patch: no GL in the background)
+           glClear(GL_COLOR_BUFFER_BIT);
+           sPresentMid = 0;
+           if (midTex != 0 && tw > 0 && th > 0) {
+@@ -3155,6 +3176,9 @@
+               (unsigned long long)(sFLExtra[6] / 1000), (unsigned long long)(sFLExtra[7] / 1000));
+       #undef FLUS
+     }
++    // libntr-ios-inputprio.patch: the touch buttons again after the frame's waits (the touch layer took the fingers that came then):
++    // the tick that starts now sees them, not the one after
++    if (touchMode) TouchPadWrite(SimTouch_PadNow());
+     InputTickEnd();  // libntr-ios-input.patch
+   } while (SIM::GUI::IsGameLogicPaused());
+   return nullptr;
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -24,9 +24,15 @@
+ extern "C" void bwport_ios_set_orientation(int landscape);
+ // libntr-ios-input.patch: the newest touch UIKit delivered, when it touched the glass and how long UIKit held it (port/src/ios_input.m)
+ extern "C" int bwport_ios_touch_time(unsigned long long * hwNs, unsigned long long * gateNs, unsigned * seq);
++// libntr-ios-inputprio.patch: a touch's hardware time and arrival in the app, for its start (up 0) or end (up 1); the window's
++// gesture recognizers no longer hold touches back
++extern "C" int bwport_ios_touch_rec(unsigned long long finger, int up, unsigned long long * hwNs, unsigned long long * appNs);
++extern "C" void bwport_ios_touch_setup(SDL_Window * window);
+ #else
+ #define SIM_TOUCH_IOS 0
+ #endif
++// libntr-ios-inputprio.patch: when the key script (port/src/keys_script.c) let go of its finger (its pushed fingers' "hardware time")
++extern "C" unsigned long long bwport_keys_touch_ns(long long finger);
+ 
+ extern "C" int SIM_UISettingGet(const char * k);   // sim_gui.cpp: "ffspeed" 2..5 (5 = Max)
+ 
+@@ -81,10 +87,32 @@
+ // the glass (sPendT0); SimTouch_Pressed hands it over when the game's pad bits (or the stylus) change, the main loop times the rest
+ unsigned long long sPendT0, sPendGate, sPendAt, sTakenT0, sTakenGate;
+ bool sTaken;
++// libntr-ios-inputprio.patch: the fingers are handled the moment SDL gets them (an event filter on the main thread: on iOS inside
++// UIKit's delivery, which the game's waits now serve), not at the next frame's event loop. A release is followed to the pad bits
++// the game sees: one later than 50 ms after the finger left the glass logs "input: release N ms late" and where it was held.
++struct Rel { unsigned mask; unsigned long long hw, app, sdl; bool tap; };
++Rel sRel[10];
++int sRelN;
++SDL_threadID sMainThread;
++int sTouchLog = -1;
++bool TouchLog() {
++    if (sTouchLog < 0) sTouchLog = getenv("BWPORT_TOUCH_LOG") != NULL;
++    return sTouchLog != 0;
++}
+ 
+ unsigned long long NowNs() {   // sim_main.cpp's SpNowNs (on iOS the clock of UITouch.timestamp)
+     Uint64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
+     return (c / f) * 1000000000ull + (c % f) * 1000000000ull / f;
++}
++
++// a finger's start (up 0) or end (up 1): when it touched or left the glass and when the app got it (ns); 0 when unknown
++void FingerTimes(const SDL_Event * e, int up, unsigned long long now, unsigned long long * hw, unsigned long long * app) {
++#if SIM_TOUCH_IOS
++    if (bwport_ios_touch_rec((unsigned long long)e->tfinger.fingerId, up, hw, app) && *hw <= now) return;
++#endif
++    *hw = *app = 0;
++    unsigned long long k = up ? bwport_keys_touch_ns((long long)e->tfinger.fingerId) : 0;
++    if (k != 0 && k <= now) *hw = *app = k;
+ }
+ 
+ void PressTime(const SDL_Event * e) {
+@@ -284,6 +312,12 @@
+         f->kind = k;
+         f->idx = idx;
+         if (k == K_BTN || k == K_DPAD || k == K_STYLUS) PressTime(e);
++        if (TouchLog()) {
++            unsigned long long now = NowNs(), hw, app;
++            FingerTimes(e, 0, now, &hw, &app);
++            fprintf(stderr, "bwport: touch finger %llx down at %.0f,%.0f kind %d: glass to app %.1f ms, app to touch layer %.1f ms\n",
++                    (unsigned long long)id, x, y, k, hw ? (app - hw) / 1e6 : -1.0, hw ? (now - app) / 1e6 : -1.0);
++        }
+         if (k == K_TOGGLE) {
+             if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; if (sFF) { sFF = false; sFFEdge = 0; } }
+             else { sFF = !sFF; sFFEdge = sFF; }
+@@ -304,6 +338,22 @@
+     } else if (e->type == SDL_FINGERUP) {
+         Finger * f = FindFinger(id);
+         if (f == NULL) return;
++        unsigned held = f->kind == K_BTN ? 1u << f->idx : f->kind == K_DPAD ? DpadMask(f->x, f->y) : 0;
++        if (held != 0 || TouchLog()) {
++            Rel r = {held, 0, 0, NowNs(), false};
++            FingerTimes(e, 1, r.sdl, &r.hw, &r.app);
++            for (int i = 0; i < B_COUNT; i++) {
++                if ((held >> i & 1) && sFrame <= sLatchUntil[i]) r.tap = true;   // (a tap: held its 3 frames whatever the finger does)
++            }
++            if (TouchLog()) {
++                fprintf(stderr, "bwport: touch finger %llx up at %.0f,%.0f held %03x: glass to app %.1f ms, app to touch layer %.1f ms\n",
++                        (unsigned long long)id, x, y, held, r.hw ? (r.app - r.hw) / 1e6 : -1.0, r.hw ? (r.sdl - r.app) / 1e6 : -1.0);
++            }
++            if (held != 0) {
++                if (sRelN == 10) memmove(&sRel[0], &sRel[1], 9 * sizeof(Rel));
++                sRel[sRelN < 10 ? sRelN++ : 9] = r;
++            }
++        }
+         f->x = x; f->y = y;
+         if (f->kind == K_STYLUS) {
+             sStylusX = x; sStylusY = y;
+@@ -322,6 +372,34 @@
+     return 0;
+ }
+ 
++// libntr-ios-inputprio.patch: a finger event pushed on the game's thread (UIKit's delivery, SDL's pump) is handled now and not
++// queued; one from another thread waits for the event loop, as before
++int Filter(void *, SDL_Event * e) {
++    if (e->type != SDL_FINGERDOWN && e->type != SDL_FINGERMOTION && e->type != SDL_FINGERUP) return 1;
++    if (sL.winW == 0 || SDL_ThreadID() != sMainThread) return 1;
++    Event(e);
++    return 0;
++}
++
++// the releases the pad bits now show: each one logged when it came late
++void ReleasesShown(unsigned m) {
++    unsigned long long now = NowNs();
++    int k = 0;
++    for (int i = 0; i < sRelN; i++) {
++        Rel & r = sRel[i];
++        bool shown = (m & r.mask) == 0, old = now - r.sdl > 2000000000ull;   // (another finger still holds it: no release)
++        if (shown && r.hw != 0 && !r.tap) {
++            double late = (now - r.hw) / 1e6;
++            if (late > 50.0 || TouchLog()) {
++                fprintf(stderr, "input: release %.0f ms late (glass to app %.0f, app to touch layer %.0f, touch layer to pad %.0f)\n",
++                        late, (r.app - r.hw) / 1e6, (r.sdl - r.app) / 1e6, (now - r.sdl) / 1e6);
++            }
++        }
++        if (!shown && !old) sRel[k++] = r;
++    }
++    sRelN = k;
++}
++
+ }  // namespace
+ 
+ extern "C" {
+@@ -356,6 +434,10 @@
+ void SimTouch_Window(SDL_Window * w) {
+     sWindow = w;
+     SDL_AddEventWatch(Watch, NULL);
++    if (SimTouch_Active()) {
++        sMainThread = SDL_ThreadID();
++        SDL_SetEventFilter(Filter, NULL);
++    }
+ #if SIM_TOUCH_IOS
+     const char * o = getenv("BWPORT_TOUCH_ORIENT");
+     if (o != NULL) bwport_ios_set_orientation(strcmp(o, "landscape") == 0);
+@@ -379,6 +461,9 @@
+             if (winW > winH) { s[0] = s[2] = 62; s[3] = 21; } else { s[1] = 62; s[3] = 34; }
+         }
+         Compute(winW, winH, s);
++#if SIM_TOUCH_IOS
++        bwport_ios_touch_setup(sWindow);   // libntr-ios-inputprio.patch: (again: a rotation may bring new recognizers)
++#endif
+         fprintf(stderr, "bwport: touch layout %dx%d %s, safe area %.0f %.0f %.0f %.0f, screens %.0f %.0f %.0f %.0f\n", winW, winH,
+                 sL.landscape ? "landscape" : "portrait", sL.safe[0], sL.safe[1], sL.safe[2], sL.safe[3], sL.scr[0], sL.scr[1],
+                 sL.scr[2], sL.scr[3]);
+@@ -401,8 +486,15 @@
+ }
+ 
+ // once a frame, after the events: the pad bits the game should see (bit B_*: A B X Y L R Start Select Up Down Left Right)
++// libntr-ios-inputprio.patch: SimTouch_PadNow is the same without counting a frame: sim_main.cpp asks again after the frame's waits,
++// so a touch that came while it waited reaches the tick that starts now
++static unsigned Pad(void);
+ unsigned SimTouch_Pressed(void) {
+     sFrame++;
++    return Pad();
++}
++unsigned SimTouch_PadNow(void) { return Pad(); }
++static unsigned Pad(void) {
+     unsigned m = sLiveMask;
+     for (int i = 0; i < B_COUNT; i++) {
+         if (sFrame <= sLatchUntil[i]) m |= 1u << i;
+@@ -421,6 +513,7 @@
+         if (sLog) fprintf(stderr, "bwport: touch pad %03x stylus %d frame %u\n", m, sStylusDown, sFrame);
+         sLogStylus = sStylusDown;
+     }
++    if (sRelN > 0) ReleasesShown(m);
+     sPressed = m;
+     return m;
+ }
+@@ -445,6 +538,9 @@
+ // press anything (the maintainer's "the game stops taking button presses after changing settings"). A finger still down now is ignored
+ // until it lifts (FindFinger finds nothing).
+ void SimTouch_MenuClose(void) {
++#if SIM_TOUCH_IOS
++    bwport_ios_touch_setup(sWindow);   // libntr-ios-inputprio.patch: (again: the sheet's presentation may bring new recognizers)
++#endif
+     sMenuOpen = false;
+     for (Finger & f : sF) f.used = false;
+     sLiveMask = 0;

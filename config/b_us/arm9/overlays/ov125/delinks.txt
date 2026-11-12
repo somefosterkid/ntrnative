@@ -1,0 +1,36 @@
+    .text       start:0x021d6660 end:0x021d8c80 kind:code align:32
+    .rodata     start:0x021d8c80 end:0x021d8cf0 kind:rodata align:4
+    .ctor       start:0x021d8cf0 end:0x021d8cf0 kind:rodata align:4
+    .data       start:0x021d8d00 end:0x021d8e40 kind:data align:32
+    .bss        start:0x021d8e40 end:0x021db2e0 kind:bss align:32
+
+src/ov125/battle_rec_ov.c:
+    complete
+    .text       start:0x021d7540 end:0x021d770c
+
+lib/poke_net/src/poke_net_ssl.c:
+    complete
+    .text       start:0x021d8b3c end:0x021d8c80
+    .data       start:0x021d8d34 end:0x021d8e40
+    .bss        start:0x021daa88 end:0x021db2e0
+
+lib/poke_net/src/poke_net.c:
+    .text       start:0x021d770c end:0x021d8598
+    .data       start:0x021d8d30 end:0x021d8d34
+    .bss        start:0x021d8e40 end:0x021daa88
+
+lib/poke_net/src/poke_net_gds.c:
+    complete
+    .text       start:0x021d8598 end:0x021d8b3c
+    .rodata     start:0x021d8cd0 end:0x021d8cf0
+
+src/ov125/gds_rap.c:
+    complete
+    .text       start:0x021d6660 end:0x021d732c
+    .rodata     start:0x021d8c80 end:0x021d8cd0
+    .data       start:0x021d8d00 end:0x021d8d2c
+
+src/ov125/gds_rap_response.c:
+    complete
+    .text       start:0x021d732c end:0x021d7540
+    .data       start:0x021d8d2c end:0x021d8d30

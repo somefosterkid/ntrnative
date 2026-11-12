@@ -1,0 +1,163 @@
+--- a/include/nitro/fx/fx.h
++++ b/include/nitro/fx/fx.h
+@@ -135,20 +135,18 @@
+         fx32 _00, _01, _02;
+         fx32 _10, _11, _12;
+         fx32 _20, _21, _22;
+-        fx32 _30, _31, _32;
+-    } MtxFx43;
++    } MtxFx33;
+ #else
+     typedef union {
+         // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
+-        fx32 m[4][3];
+-        fx32 a[12];
++        fx32 m[3][3];
++        fx32 a[9];
+         struct {
+             fx32 _00, _01, _02;
+             fx32 _10, _11, _12;
+             fx32 _20, _21, _22;
+-            fx32 _30, _31, _32;
+         };
+-    } MtxFx43;
++    } MtxFx33;
+ #endif
+ 
+ #ifdef SDK_ADS
+@@ -156,18 +154,25 @@
+         fx32 _00, _01, _02;
+         fx32 _10, _11, _12;
+         fx32 _20, _21, _22;
+-    } MtxFx33;
++        fx32 _30, _31, _32;
++    } MtxFx43;
+ #else
+     typedef union {
+         // bw-port: m first, so the decomp's nested initializers ({ { {a,b,c}, ... } }) fill the matrix as on the DS
+-        fx32 m[3][3];
+-        fx32 a[9];
++        fx32 m[4][3];
++        fx32 a[12];
+         struct {
+             fx32 _00, _01, _02;
+             fx32 _10, _11, _12;
+             fx32 _20, _21, _22;
++            fx32 _30, _31, _32;
+         };
+-    } MtxFx33;
++        // bw-port: the rotation and the translation (NitroSystem's g3d/glbstate.c sets invBaseRot.rt.rot)
++        struct {
++            MtxFx33 rot;
++            VecFx32 trans;
++        } rt;
++    } MtxFx43;
+ #endif
+ 
+ #ifdef SDK_ADS
+--- a/include/simulator/drawmsg.h
++++ b/include/simulator/drawmsg.h
+@@ -133,6 +133,12 @@
+ 
+ void SIM_HandleG3Command(draw_msg_t * msg);
+ 
++// bw-port: geometry commands a library holds back to send as one list (NitroSystem's FIFO and command-port writes:
++// the port's nnsys_g3stage.c) go out first, before any other command and before a G3X read of the engine's state.
++// NULL when nothing waits
++extern void (*SIM_G3PendingHook)(void);
++#define SIM_G3_PENDING() do { if (SIM_G3PendingHook != NULL) SIM_G3PendingHook(); } while (0)
++
+ #ifdef __cplusplus
+ }
+ #endif
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -726,6 +726,9 @@
+ }
+ 
+ // C APIs
++void (*SIM_G3PendingHook)(void) = NULL;
++
+ void SIM_HandleG3Command(draw_msg_t * msg) {
++    SIM_G3_PENDING();
+     SIM::G3::HandleCommandMessage(msg);
+ }
+\ No newline at end of file
+--- a/libraries/gx/src/g3x.c
++++ b/libraries/gx/src/g3x.c
+@@ -229,9 +229,15 @@
+ 	}
+ }
+ 
++#ifdef SDK_PORT
++#include <simulator/drawmsg.h>
++#endif
+ int G3X_GetClipMtx (MtxFx44 *m)
+ {
+ 	SDK_NULL_ASSERT(m);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (G3X_IsGeometryBusy()) {
+ 		return -1;
+@@ -249,6 +255,9 @@
+ {
+ 	SDK_NULL_ASSERT(m);
+ #ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
++#ifdef SDK_PORT
+ 	// bw-port: the simulator's current vector matrix (nothing wrote the VECMTX_RESULT registers on PC)
+ 	G3SIM_GetVectorMtx33(m);
+ 	return 0;
+@@ -327,6 +336,9 @@
+ int G3X_GetMtxStackLevelPV (s32 *level)
+ {
+ 	SDK_NULL_ASSERT(level);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (reg_G3X_GXSTAT & REG_G3X_GXSTAT_SB_MASK) {
+ 		return -1;
+@@ -339,6 +351,9 @@
+ int G3X_GetMtxStackLevelPJ (s32 *level)
+ {
+ 	SDK_NULL_ASSERT(level);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (reg_G3X_GXSTAT & REG_G3X_GXSTAT_SB_MASK) {
+ 		return -1;
+@@ -357,6 +372,9 @@
+ int G3X_GetBoxTestResult (s32 *in)
+ {
+ 	SDK_NULL_ASSERT(in);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (reg_G3X_GXSTAT & REG_G3X_GXSTAT_TB_MASK)
+ 		return -1;
+@@ -370,6 +388,9 @@
+ {
+ 	SDK_NULL_ASSERT(vec);
+ 	SDK_NULL_ASSERT(w);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (reg_G3X_GXSTAT & REG_G3X_GXSTAT_TB_MASK) {
+ 		return -1;
+@@ -385,6 +406,9 @@
+ int G3X_GetVectorTestResult (fx16 *vec)
+ {
+ 	SDK_NULL_ASSERT(vec);
++#ifdef SDK_PORT
++	SIM_G3_PENDING();
++#endif
+ 
+ 	if (reg_G3X_GXSTAT & REG_G3X_GXSTAT_TB_MASK) {
+ 		return -1;

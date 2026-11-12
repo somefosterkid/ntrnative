@@ -1,0 +1,203 @@
+--- a/libraries/sim/src/g3_draw.cpp
++++ b/libraries/sim/src/g3_draw.cpp
+@@ -23,6 +23,8 @@
+ #include "tracy/TracyC.h"
+ #endif
+ 
++#include <vector>
++#include <simulator/sim.h>
+ #define G3_DRAW_MAX_ITEMS 1000
+ 
+ #define getbit(x,n) ( ( (x) >> (n) ) & 1 )
+@@ -61,37 +63,81 @@
+ 
+ static void* getTextureVramBank()
+ {
+-	void * vramBank = NULL;
+-	switch( s_SIM_GXVRamTex ){
+-		case GX_VRAM_TEX_0_A:
+-		case GX_VRAM_TEX_01_AB:
+-		case GX_VRAM_TEX_012_ABC:
+-		case GX_VRAM_TEX_0123_ABCD:
+-		case GX_VRAM_TEX_01_AC:
+-		case GX_VRAM_TEX_01_AD:
+-		case GX_VRAM_TEX_012_ABD:
+-		case GX_VRAM_TEX_012_ACD:
+-			vramBank = (void *)HW_LCDC_VRAM_A;
+-			break;
+-		case GX_VRAM_TEX_0_B:
+-		case GX_VRAM_TEX_01_BC:
+-		case GX_VRAM_TEX_012_BCD:
+-		case GX_VRAM_TEX_01_BD:
+-			vramBank = (void *)HW_LCDC_VRAM_B;
+-			break;
+-		case GX_VRAM_TEX_0_C:
+-		case GX_VRAM_TEX_01_CD:
+-			vramBank = (void *)HW_LCDC_VRAM_C;
+-			break;
+-		case GX_VRAM_TEX_0_D:
+-			vramBank = (void *)HW_LCDC_VRAM_A;
+-			break;
+-		default:
+-			//?
+-			break;
++	return NULL;
++}
++
++// Texture slot n (128 KB at n*0x20000 of texture memory) is the n-th mapped bank in A..D order
++// (GX_VRAM_TEX_01_AC: A is slot 0, C slot 1). NULL when the slot has no bank.
++static u8* getTextureSlot(u32 slot)
++{
++	u32 mask = (u32)s_SIM_GXVRamTex;
++	for(u32 bank = 0; bank < 4; bank++) {
++		if(mask & (1u << bank)) {
++			if(slot == 0) {
++				return (u8*)((uPtr)HW_LCDC_VRAM_A + bank * 0x20000);
++			}
++			slot--;
++		}
++	}
++	return NULL;
++}
++
++// Copy len bytes of texture memory from off into dst; missing slots read as 0.
++static void readTextureVram(u8* dst, u32 off, u32 len)
++{
++	while(len) {
++		u32 inSlot = 0x20000 - (off & 0x1FFFF);
++		u32 n = len < inSlot ? len : inSlot;
++		u8* slot = (off < 0x80000) ? getTextureSlot(off >> 17) : NULL;
++		if(slot) {
++			memcpy(dst, slot + (off & 0x1FFFF), n);
++		} else {
++			memset(dst, 0, n);
++		}
++		dst += n; off += n; len -= n;
++	}
++}
++
++// GX_TEXFMT_COMP4x4: 2 bit texels in 4x4 blocks (4 bytes each) at off, one u16 per block (palette
++// offset in words in bits 0-13, mode in 14-15) at the slot 1/3 area, half the offset.
++static void decodeTexComp4x4(const u8* texels, const u16* idx, const u16* pal, u8* out, u32 w, u32 h)
++{
++	for(u32 by = 0; by < h / 4; by++) {
++		for(u32 bx = 0; bx < w / 4; bx++) {
++			u32 blk = by * (w / 4) + bx;
++			u16 ix = idx[blk];
++			const u16* pp = pal + (ix & 0x3FFF) * 2;
++			u32 mode = ix >> 14;
++			u8 c[4][4]; // r g b a
++			u16 raw[4] = { pp[0], pp[1], pp[2], pp[3] };
++			u8 rgb[4][3];
++			for(int k = 0; k < 4; k++) {
++				SIM_u16ToRGB(raw[k], &rgb[k][0], &rgb[k][1], &rgb[k][2]);
++			}
++			for(int k = 0; k < 4; k++) {
++				c[k][0] = rgb[k][0]; c[k][1] = rgb[k][1]; c[k][2] = rgb[k][2]; c[k][3] = 255;
++			}
++			if(mode == 0 || mode == 1) {
++				c[3][0] = c[3][1] = c[3][2] = c[3][3] = 0;
++			}
++			if(mode == 1) {
++				for(int k = 0; k < 3; k++) c[2][k] = (u8)((rgb[0][k] + rgb[1][k]) / 2);
++			} else if(mode == 3) {
++				for(int k = 0; k < 3; k++) {
++					c[2][k] = (u8)((rgb[0][k] * 5 + rgb[1][k] * 3) / 8);
++					c[3][k] = (u8)((rgb[0][k] * 3 + rgb[1][k] * 5) / 8);
++				}
++			}
++			for(u32 y = 0; y < 4; y++) {
++				u8 row = texels[blk * 4 + y];
++				for(u32 x = 0; x < 4; x++) {
++					u32 v = (row >> (x * 2)) & 3;
++					u8* o = out + (((by * 4 + y) * w) + bx * 4 + x) * 4;
++					o[0] = c[v][0]; o[1] = c[v][1]; o[2] = c[v][2]; o[3] = c[v][3];
++				}
++			}
++		}
+ 	}
+-	
+-	return vramBank;
+ }
+ 
+ static void* getTexPlttVramBank()
+@@ -184,23 +230,43 @@
+ 	if( s_texImageParam.textureFormat != GX_TEXFMT_NONE )
+ 	{
+ 		GLuint g3TextureId;
+-		u8 * vramTex = (u8*)((uPtr)getTextureVramBank() + s_texImageParam.textureOffset);
+-		u8 * vramPltt = (u8*)((uPtr)getTexPlttVramBank() + s_texPlttBase);
++		u32 plttBase = s_texPlttBase << (s_texImageParam.textureFormat == GX_TEXFMT_PLTT4 ? 3 : 4);
++		u8 * vramPltt = (u8*)((uPtr)getTexPlttVramBank() + plttBase);
+ 		u16 * colorAddr = (u16*)vramPltt;
+ 
+-		//Calculate the texture + palette CRC
+-		u32 paletteCRC = SIM_crc32buf(vramPltt, 512);
+ 		u32 vramTexBufSize = 0;
+-
++		u32 blocks = (s_texImageParam.textureSSize * s_texImageParam.textureTSize) >> 4;
+ 		if(s_texImageParam.textureFormat == GX_TEXFMT_PLTT4) {
+ 			vramTexBufSize = (s_texImageParam.textureSSize * s_texImageParam.textureTSize) >> 2;
+ 		} else if(s_texImageParam.textureFormat == GX_TEXFMT_PLTT16) {
+ 			vramTexBufSize = (s_texImageParam.textureSSize * s_texImageParam.textureTSize) >> 1;
++		} else if(s_texImageParam.textureFormat == GX_TEXFMT_COMP4x4) {
++			vramTexBufSize = blocks * 4;
+ 		} else {
+ 			vramTexBufSize = (s_texImageParam.textureSSize * s_texImageParam.textureTSize);
+ 		}
+ 
+-		u32 textureCRC = SIM_crc32buf(vramTex, vramTexBufSize);
++		// the texture's bytes (and a 4x4 texture's block palette indices) from the slots' banks
++		std::vector<u8> texBytes(vramTexBufSize + (s_texImageParam.textureFormat == GX_TEXFMT_COMP4x4 ? blocks * 2 : 0));
++		u8 * vramTex = texBytes.data();
++		readTextureVram(vramTex, s_texImageParam.textureOffset, vramTexBufSize);
++		u32 paletteBytes = 512;
++		if(s_texImageParam.textureFormat == GX_TEXFMT_COMP4x4) {
++			u32 o = s_texImageParam.textureOffset;
++			u32 idxOff = ((o >> 18) << 18) + 0x20000 + ((o & 0x3FFFF) >> 1);
++			readTextureVram(vramTex + vramTexBufSize, idxOff, blocks * 2);
++			const u16 * idx = (const u16*)(vramTex + vramTexBufSize);
++			u32 maxIdx = 0;
++			for(u32 i = 0; i < blocks; i++) {
++				if((idx[i] & 0x3FFF) > maxIdx) maxIdx = idx[i] & 0x3FFF;
++			}
++			paletteBytes = (maxIdx + 1) * 4;
++			if(plttBase + paletteBytes > 0x10000) paletteBytes = 0x10000 - plttBase;
++		}
++
++		//Calculate the texture + palette CRC
++		u32 paletteCRC = SIM_crc32buf(vramPltt, paletteBytes);
++		u32 textureCRC = SIM_crc32buf(vramTex, texBytes.size());
+ 		texture = sTextureCache.GetTexture(textureCRC, paletteCRC);
+ 		if(texture == nullptr) {
+ 			// decode texture and create it in the cache
+@@ -223,8 +289,8 @@
+ 					G3SIM_DecodeTex256(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
+ 					break;
+ 				case GX_TEXFMT_COMP4x4:
+-					SIM_assert_always();
+-					//TODO
++					decodeTexComp4x4(vramTex, (const u16*)(vramTex + vramTexBufSize), colorAddr, outTexBuf,
++					                 s_texImageParam.textureSSize, s_texImageParam.textureTSize);
+ 					break;
+ 				case GX_TEXFMT_A5I3:
+ 					G3SIM_DecodeTexA5I3(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -1577,14 +1577,8 @@
+ //TexPlttBase
+ void G3SIM_TexPlttBase(u32 data)
+ {
+-    if( s_texImageParam.textureFormat == 2 )
+-    {
+-        s_texPlttBase = data << 3;
+-    }
+-    else
+-    {
+-        s_texPlttBase = data << 4;
+-    }
++    // the raw parameter: its unit (8 or 16 bytes) is the format of the polygon drawn with it
++    s_texPlttBase = data & 0x1FFF;
+     return;
+ }
+ 

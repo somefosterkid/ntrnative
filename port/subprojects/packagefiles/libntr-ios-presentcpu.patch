@@ -1,0 +1,23 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -2556,6 +2556,9 @@
+ #endif
+ }
+ static bool BenchBusy(void) { return sBench.on; }
++// libntr-ios-presentcpu.patch: a bench row is being measured (the Metal present keeps its glass bookkeeping, a presented handler a
++// present, for the rows only)
++extern "C" int SIM_BenchOpen(void) { return sBench.on; }
+ static void BenchCancel(void) { sBench.on = false; }
+ // the rows so far as a table (the end of a script, the iOS test's end)
+ static void BenchDone(void) {
+@@ -2787,7 +2790,9 @@
+       return;
+     }
+     u64 rem = target - now;
+-    if (sLagN > 0 && rem > spin + 1000000) rem = spin + 1000000;
++    // libntr-ios-presentcpu.patch: not under Metal: its done time is the command buffer's GPU end (exact whenever it is polled),
++    // and on iOS each 1 ms chunk was a run loop entry (the phone's profile: ~25 ms/s of the game thread in them)
++    if (sLagN > 0 && !sMetal && rem > spin + 1000000) rem = spin + 1000000;
+     if (rem > spin) {
+ #ifdef SDK_BUILD_WIN64
+       if (sTimer != NULL) {

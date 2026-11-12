@@ -1,0 +1,15 @@
+GimmickPlasmaFrigateDeck_Setup kind:function(thumb,size=0x32) addr:0x021eec80
+GimmickPlasmaFrigateDeck_End kind:function(thumb,size=0x18) addr:0x021eecb4
+GimmickPlasmaFrigateDeck_Update kind:function(thumb,size=0xe) addr:0x021eeccc
+PlasmaFrigateDeck_LoadObjects kind:function(thumb,size=0xa4) addr:0x021eecdc
+PlasmaFrigateDeck_FreeObjects kind:function(thumb,size=0xc) addr:0x021eed80
+PlasmaFrigateDeck_StepAnimations kind:function(thumb,size=0xc) addr:0x021eed8c
+sSceneSetup kind:data(any) addr:0x021eed98
+data_ov118_021eed9d kind:data(any) addr:0x021eed9d ambiguous
+data_ov118_021eeda5 kind:data(any) addr:0x021eeda5 ambiguous
+sResources kind:data(any) addr:0x021eeda8
+data_ov118_021eedb5 kind:data(any) addr:0x021eedb5 ambiguous
+data_ov118_021eedb9 kind:data(any) addr:0x021eedb9 ambiguous
+sActors kind:data(any) addr:0x021eedc0
+data_ov118_021eedd9 kind:data(any) addr:0x021eedd9 ambiguous
+data_ov118_021eeddd kind:data(any) addr:0x021eeddd ambiguous

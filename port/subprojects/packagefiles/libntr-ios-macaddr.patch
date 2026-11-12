@@ -1,0 +1,40 @@
+diff --git a/libraries/sim/src/config/sim_config.c b/libraries/sim/src/config/sim_config.c
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -32,6 +32,10 @@
+  * afterwards unless the new key was in the file (FinishOldKeys); only the new keys are written. */
+ static int sOldCapOff, sOldSpeed, sOldDisplayCap = -1, sOldInterp = -1;
+ static int sSeenGameSpeed, sSeenFrameRate, sSeenRestore, sSeenSmooth, sSeenFFSpeed;
++/* bw-port (libntr-ios-macaddr.patch): the file has MacAddr=. When it has not (port/src/main_start.c's defaults file, or one from
++ * before), LoadConfigFile adds the random one LoadDefaults made, so it is the same on every launch: a DS's MAC address never changes,
++ * and the game keeps it in the save; a save continued with another MAC takes the "other DS" path (event_mapchange.c). */
++static int sSeenMacAddr;
+ /* bw-port (libntr-ios-textspeed.patch): a setting's value by name (any case) or by its index; -1 when neither */
+ static int SpOptIndex(const char *v, const char * const *names, int n) {
+     int i;
+@@ -298,6 +302,7 @@
+     if(MATCH("General", "MacAddr")) {
+         char * pos = value;
+         if(strlen(value) >= 12) {
++            sSeenMacAddr = 1;
+             for (size_t count = 0; count < 6; count++) {
+                 sscanf(pos, "%2hhx", &config->macAddr[count]);
+                 pos += 2;
+@@ -744,8 +749,16 @@
+ {
+     sResolutionKey = 0;
+     sOldCapOff = 0; sOldSpeed = 0; sOldDisplayCap = -1; sOldInterp = -1;
+-    sSeenGameSpeed = 0; sSeenFrameRate = 0; sSeenRestore = 0; sSeenSmooth = 0; sSeenFFSpeed = 0;
++    sSeenGameSpeed = 0; sSeenFrameRate = 0; sSeenRestore = 0; sSeenSmooth = 0; sSeenFFSpeed = 0; sSeenMacAddr = 0;
+     BOOL ok = (ini_parse(SIM_CONFIG_FILE_PATH, IniHandler, aConfig) >= 0);
++    if(ok && !sSeenMacAddr) {
++        FILE * f = fopen(SIM_CONFIG_FILE_PATH, "a");
++        if(f != NULL) {
++            fprintf(f, "\n[General]\nMacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0], aConfig->macAddr[1],
++                    aConfig->macAddr[2], aConfig->macAddr[3], aConfig->macAddr[4], aConfig->macAddr[5]);
++            fclose(f);
++        }
++    }
+     FinishOldKeys(aConfig);
+     SpeedModel(aConfig);
+     RendererFromEnv(aConfig);

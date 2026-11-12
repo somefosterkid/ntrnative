@@ -1,0 +1,144 @@
+    .text       start:0x021b6100 end:0x021efcf0 kind:code align:32
+    .rodata     start:0x021efcf0 end:0x021f3a48 kind:rodata align:4
+    .ctor       start:0x021f3a48 end:0x021f3a48 kind:rodata align:4
+    .data       start:0x021f3a60 end:0x021f3b20 kind:data align:32
+    .bss        start:0x021f3b20 end:0x021f6560 kind:bss align:32
+
+src/ov093/battle_condition.c:
+    complete
+    .text       start:0x021e8918 end:0x021e8ce0
+
+src/ov093/battle_action.c:
+    complete
+    .text       start:0x021d82d0 end:0x021d8484
+
+src/ov093/poke_type_pair.c:
+    complete
+    .text       start:0x021e8ce0 end:0x021e8dc4
+
+src/ov093/btl_handler_work.c:
+    complete
+    .text       start:0x021cc8c8 end:0x021ccaa8
+    .rodata     start:0x021efe9c end:0x021eff14
+
+src/ov093/btl_adapter.c:
+    complete
+    .text       start:0x021eea30 end:0x021eec78
+    .data       start:0x021f3ae8 end:0x021f3af8
+    .bss        start:0x021f6384 end:0x021f6398
+
+src/ov093/handler_common.c:
+    complete
+    .text       start:0x021e85f8 end:0x021e88cc
+
+src/ov093/btl_rec.c:
+    complete
+    .text       start:0x021ee5e4 end:0x021eea30
+    .data       start:0x021f3adc end:0x021f3ae8
+
+src/ov093/btl_field.c:
+    complete
+    .text       start:0x021ef83c end:0x021efcf0
+    .data       start:0x021f3af8 end:0x021f3b20
+    .bss        start:0x021f63f4 end:0x021f6560
+
+src/ov093/btl_pokeparam.c:
+    complete
+    .text       start:0x021d4d84 end:0x021d6eac
+    .rodata     start:0x021f040c end:0x021f041c
+    .data       start:0x021f3aa4 end:0x021f3ab4
+    .bss        start:0x021f3b8c end:0x021f3cb0
+
+src/ov093/btl_main.c:
+    complete
+    .text       start:0x021b6100 end:0x021ba9c8
+    .rodata     start:0x021efcf0 end:0x021efdb8
+
+src/ov093/ability_handlers.c:
+    complete
+    .text       start:0x021d8484 end:0x021dcec4
+    .rodata     start:0x021f05a0 end:0x021f1364
+
+src/ov093/move_handlers.c:
+    complete
+    .text       start:0x021e02dc end:0x021e85f8
+    .rodata     start:0x021f2404 end:0x021f3840
+
+src/ov093/btl_client.c:
+    complete
+    .text       start:0x021cd6f0 end:0x021d4150
+    .rodata     start:0x021eff74 end:0x021f03c4
+    .data       start:0x021f3a88 end:0x021f3a98
+    .bss        start:0x021f3b64 end:0x021f3b88
+
+src/ov093/btl_server_flow.c:
+    complete
+    .text       start:0x021bb968 end:0x021ca7f4
+    .rodata     start:0x021efdb8 end:0x021efdc0
+    .data       start:0x021f3a70 end:0x021f3a84
+    .bss        start:0x021f3b20 end:0x021f3b44
+
+src/ov093/btlv_core.c:
+    complete
+    .text       start:0x021e8dc4 end:0x021eaf7c
+    .rodata     start:0x021f3840 end:0x021f38ac
+    .data       start:0x021f3ac4 end:0x021f3ad0
+
+src/ov093/btlv_scu.c:
+    complete
+    .text       start:0x021eaf7c end:0x021ee5e4
+    .rodata     start:0x021f38ac end:0x021f3990
+    .data       start:0x021f3ad0 end:0x021f3adc
+
+src/ov093/btl_server_flow_sub.c:
+    complete
+    .text       start:0x021ca7f4 end:0x021cc8c8
+    .rodata     start:0x021efdc0 end:0x021efe9c
+
+src/ov093/battle_event.c:
+    complete
+    .text       start:0x021d6eac end:0x021d7840
+    .data       start:0x021f3ab4 end:0x021f3ab8
+    .bss        start:0x021f3cb0 end:0x021f6360
+
+src/ov093/btl_calc.c:
+    complete
+    .text       start:0x021d7840 end:0x021d82d0
+    .rodata     start:0x021f041c end:0x021f05a0
+    .data       start:0x021f3ab8 end:0x021f3ac4
+    .bss        start:0x021f6360 end:0x021f6380
+
+src/ov093/item_handlers.c:
+    complete
+    .text       start:0x021dcec4 end:0x021e02dc
+    .rodata     start:0x021f1364 end:0x021f2404
+
+src/ov093/btl_string.c:
+    complete
+    .text       start:0x021eec78 end:0x021ef83c
+    .rodata     start:0x021f3990 end:0x021f3a48
+    .bss        start:0x021f6398 end:0x021f63f4
+
+src/ov093/btl_net.c:
+    complete
+    .text       start:0x021d4150 end:0x021d4d84
+    .rodata     start:0x021f03c4 end:0x021f040c
+    .data       start:0x021f3a98 end:0x021f3aa4
+    .bss        start:0x021f3b88 end:0x021f3b8c
+
+src/ov093/btl_server_cmd.c:
+    complete
+    .text       start:0x021ccaa8 end:0x021cd6f0
+    .rodata     start:0x021eff14 end:0x021eff74
+    .data       start:0x021f3a84 end:0x021f3a88
+    .bss        start:0x021f3b44 end:0x021f3b64
+
+src/ov093/btl_server.c:
+    complete
+    .text       start:0x021ba9c8 end:0x021bb968
+    .data       start:0x021f3a60 end:0x021f3a70
+
+src/ov093/battle_overlay.c:
+    complete
+    .text       start:0x021e88cc end:0x021e8918
+    .bss        start:0x021f6380 end:0x021f6384

@@ -1,0 +1,10 @@
+BAppCursor_Create kind:function(thumb,size=0x24) addr:0x021f42a0
+BAppCursor_Delete kind:function(thumb,size=0x8) addr:0x021f42c4
+BAppCursor_CreateActors kind:function(thumb,size=0x58) addr:0x021f42cc
+BAppCursor_DeleteActors kind:function(thumb,size=0x16) addr:0x021f4324
+BAppCursor_SetVisible kind:function(thumb,size=0x22) addr:0x021f433c
+BAppCursor_SetPos kind:function(thumb,size=0x7c) addr:0x021f4360
+BAppTool_QueueWindowScreen kind:function(thumb,size=0x16) addr:0x021f43dc
+BAppTool_QueueWindowScreens kind:function(thumb,size=0x1c) addr:0x021f43f4
+BAppTool_FlushPrintWindows kind:function(thumb,size=0x42) addr:0x021f4410
+data_ov285_021f4420 kind:data(any) addr:0x021f4460

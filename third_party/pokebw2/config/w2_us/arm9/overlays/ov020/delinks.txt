@@ -1,0 +1,9 @@
+    .text       start:0x0216e6a0 end:0x0216ea14 kind:code align:32
+    .ctor       start:0x0216ea14 end:0x0216ea14 kind:rodata align:4
+    .data       start:0x0216ea20 end:0x0216ea40 kind:data align:32
+    .bss        start:0x0216ea40 end:0x0216ea40 kind:bss align:32
+
+src/ov020/event_poke_status.c:
+    complete
+    .text       start:0x0216e6a0 end:0x0216ea14
+    .data       start:0x0216ea20 end:0x0216ea40

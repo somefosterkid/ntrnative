@@ -1,0 +1,9 @@
+    .text       start:0x021e5840 end:0x021e5b84 kind:code align:32
+    .rodata     start:0x021e5b84 end:0x021e5bf0 kind:rodata align:4
+    .ctor       start:0x021e5bf0 end:0x021e5bf0 kind:rodata align:4
+    .bss        start:0x021e5c00 end:0x021e5c00 kind:bss align:32
+
+src/ov052/scrcmd_pokemon_league.c:
+    complete
+    .text       start:0x021e5840 end:0x021e5b84
+    .rodata     start:0x021e5b84 end:0x021e5bf0

@@ -1,0 +1,384 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -72,6 +72,7 @@
+ int SimTouch_MenuOpen(void);
+ void SimTouch_MenuClose(void);
+ void SimTouch_MenuRequest(void);
++int SimTouch_PressTaken(unsigned long long * t0, unsigned long long * gate);
+ }
+ 
+ #ifdef SDK_BUILD_WIN64
+@@ -861,7 +862,15 @@
+ extern "C" void SIM_PerfTestStart(void);
+ // the iOS performance test (Settings > About > Run performance test; port/src/ios_settings.m): from where the player stands, each step
+ // settles 1 s and measures 4 s (bench rows, no frame skip), then the settings as they were; the table goes to the log
++static bool sPerfTestOn;
+ extern "C" void SIM_PerfTestStart(void) {
++  // libntr-ios-input.patch: a second start while one runs is ignored (its load took the first test's settings as the ones to restore,
++  // and they stayed: e.g. Frame skip off, Unlimited)
++  if (sPerfTestOn) {
++    fprintf(stderr, "perftest: already running\n");
++    return;
++  }
++  sPerfTestOn = true;
+   fprintf(stderr, "perftest: start (renderer %d resolution %d antialias %d speed %d framerate %d frameskip %d smooth %d)\n",
+           (int)s_SIM_config.renderer, (int)s_SIM_config.resolution, (int)s_SIM_config.antialias, (int)s_SIM_config.speed,
+           (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
+@@ -882,6 +891,9 @@
+       "p1:framerate=120,smooth=1;p60:bench=vcore2-120-smooth;"
+       "p1:framerate=60,smooth=0,resolution=1,ff=1;p60:bench=vcore1-ff;"
+       "p1:restore=1");
++#if SIM_IOS
++  sCfgSaved.speed = 1;  // (play is 1x on iOS: a fast-forward the sheet just switched off must not come back with the settings)
++#endif
+ }
+ static void SIM_CfgScript(void) {
+   std::vector<CfgStep> &sSteps = sCfgSteps;
+@@ -952,6 +964,7 @@
+         s_SIM_config.displayCapBack = sCfgSaved.displayCapBack;
+         sFastForward = false;
+         BenchDone();
++        sPerfTestOn = false;
+         fprintf(stderr, "perftest: settings restored\n");
+       } else if (strcmp(kv, "framerate") == 0) {
+         u8 r = strcmp(v, "unlimited") == 0 ? SIM_CONFIG_DISPLAYCAP_UNLIMITED : strcmp(v, "monitor") == 0 ? SIM_CONFIG_DISPLAYCAP_MONITOR
+@@ -1693,9 +1706,46 @@
+   if (getrusage(RUSAGE_SELF, &ru) != 0) return 0.0;
+   return ru.ru_utime.tv_sec + ru.ru_stime.tv_sec + (ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) / 1e6;
+ #endif
++}
++// libntr-ios-input.patch: a touch press's latency: from the finger on the glass to the end of the tick that set the game's pad bits
++// ("read": the game reads them once SIM_Render returns), and to the first present that can show the game's answer ("shown": two ticks
++// on, as the renderers return the last tick's picture; the panel shows it a refresh or so later). "UIKit": how long UIKit held the
++// touch before SDL got it (on iOS the wait for the next event pump, plus anything the system held it for). Each press over 100 ms is
++// logged ("input:"), every one with BWPORT_PACELOG; the overlay's Detailed mode shows the last one; the pace line the second's.
++static struct { u64 t0, gate, tick; int stage; float read, shown, uikit; double sum, max; int n; } sIn;
++extern "C" float SIM_InputLatency(float *read, float *uikit) {
++  *read = sIn.read;
++  *uikit = sIn.uikit;
++  return sIn.shown;
+ }
++static void InputTaken(u64 t0, u64 gate) {
++  sIn.t0 = t0;
++  sIn.gate = gate;
++  sIn.tick = sPc.ticks;
++  sIn.stage = 1;
++}
++static void InputTickEnd(void) {
++  if (sIn.stage != 1) return;
++  sIn.read = (float)((SpNowNs() - sIn.t0) / 1e6);
++  sIn.stage = 2;
++}
++static void InputPresented(u64 now) {
++  if (sIn.stage != 2 || sPc.ticks < sIn.tick + 3) return;
++  sIn.stage = 0;
++  sIn.shown = (float)((now - sIn.t0) / 1e6);
++  sIn.uikit = (float)(sIn.gate / 1e6);
++  sIn.sum += sIn.shown;
++  sIn.max = sIn.shown > sIn.max ? sIn.shown : sIn.max;
++  sIn.n++;
++  static int sLog = -1;
++  if (sLog < 0) sLog = getenv("BWPORT_PACELOG") != NULL;
++  if (sLog || sIn.shown > 100.0f) {
++    fprintf(stderr, "input: %.0f ms to the present (game read at %.0f, UIKit held it %.0f)\n", sIn.shown, sIn.read, sIn.uikit);
++  }
++}
+ static void PacePresented(u64 swapNs) {
+   u64 now = SpNowNs();
++  InputPresented(now);
+   sPc.presents++;
+   sPc.swapNs += swapNs;
+   if (sPc.lastPresentNs != 0 && now - sPc.lastPresentNs > sPc.maxGapNs) sPc.maxGapNs = now - sPc.lastPresentNs;
+@@ -1739,6 +1789,9 @@
+ // presents and game ticks a second over the last second (the iOS overlay: its fps counted game ticks, so 120 presents at 1x read 60 and
+ // Game speed 2 at 60 read 120)
+ static float sPresentRate, sTickRate;
++#if SIM_IOS
++extern "C" const char *bwport_ios_runloop_line(void);  // port/src/ios_input.m
++#endif
+ extern "C" float SIM_PresentRate(void) { return sPresentRate; }
+ extern "C" float SIM_GameSpeedNow(void) { return sTickRate / 59.8261f; }
+ static void PaceTick(void) {
+@@ -1765,6 +1818,14 @@
+             (unsigned long long)t, (unsigned long long)(sPc.presents - sPrev.presents), (unsigned long long)(sPc.drawn - sPrev.drawn),
+             (unsigned long long)(sPc.mids - sPrev.mids), (sPc.upBytes - sPrev.upBytes) / 1e6 / dt, (sPc.swapNs - sPrev.swapNs) / 1e6 / dt,
+             (sPc.sleepNs - sPrev.sleepNs) / 1e6 / dt, sPc.maxGapLogNs / 1e6, (cpu - sCpuPrev) / dt, t ? (cpu - sCpuPrev) * 1e3 / t : 0.0);
++    // libntr-ios-input.patch: the second's presses (count, mean and longest ms to the present) and on iOS the main run loop's turns
++    // (port/src/ios_input.m: entries, the longest time between two, the display frames a CADisplayLink got, missed, and how late)
++    if (sIn.n > 0) fprintf(stderr, "pace input %d presses, %.0f ms mean, %.0f max\n", sIn.n, sIn.sum / sIn.n, sIn.max);
++    sIn.n = 0;
++    sIn.sum = sIn.max = 0.0;
++#if SIM_IOS
++    fprintf(stderr, "pace runloop %s\n", bwport_ios_runloop_line());
++#endif
+     sPc.maxGapLogNs = 0;
+     sPrev = sPc;
+     sCpuPrev = cpu;
+@@ -1864,17 +1925,44 @@
+ // tick runs late and the game slows down while the pictures come too late to be shown (vcore 4x at 120 on the M2: 0.62x speed, 0.2
+ // in-between pictures a second). A tick that starts a quarter tick late turns them off for 2 s, then 4, 8 ... (at most a minute)
+ // while it keeps happening; 4 s on time with them on resets that.
+-static int sIpOff, sIpOffLen = 120, sIpGood;
+-static void SpInterpGuard(bool late) {
+-  if (!s_SIM_config.interpolation) return;
+-  if (late && sIpOff == 0) {
++// libntr-ios-input.patch: "late" is the speed over a second, no longer one tick. On the phone (120 Hz, a present waits for the panel,
++// our slots are not locked to its refresh) a present now and then waits a few ms into the next tick: one tick starts late while the
++// game holds 1.00x (the maintainer's log: every Smooth bench row 0 in-between pictures, "off for 60 s" about every minute, as each late
++// tick came within the 4 s that would have reset the backoff). Now: off when a second's ticks reach less than 95% of the speed, a
++// tick over 100 ms (loading, the sheet) restarts the second, and switching Smooth motion off and on starts afresh.
++static int sIpOff, sIpOffLen = 120, sIpGood;
++static u64 sIpWinT0, sIpWinTicks, sIpPrev;
++static void SpInterpGuard(u64 now, int S) {
++  const bool stall = now - sIpPrev > 100000000ull;
++  sIpPrev = now;
++  if (!s_SIM_config.interpolation) {
++    sIpOff = 0;
++    sIpOffLen = 120;
++    sIpGood = 0;
++    sIpWinT0 = 0;
++    return;
++  }
++  if (sIpOff > 0) {
++    sIpOff--;
++    sIpWinT0 = 0;
++    return;
++  }
++  if (stall || sIpWinT0 == 0) {
++    sIpWinT0 = now;
++    sIpWinTicks = 0;
++    return;
++  }
++  sIpWinTicks++;
++  if (now - sIpWinT0 < 1000000000ull) return;
++  double speed = sIpWinTicks * (double)kSpFrame / (double)(now - sIpWinT0) / S;
++  sIpWinT0 = now;
++  sIpWinTicks = 0;
++  if (speed < 0.95) {
+     sIpOff = sIpOffLen;
+-    fprintf(stderr, "bwport: smooth motion off for %d s: the game fell behind\n", sIpOffLen / 60);
++    fprintf(stderr, "bwport: smooth motion off for %d s: the game fell behind (%.2f of its speed)\n", sIpOffLen / 60, speed);
+     sIpOffLen = sIpOffLen * 2 > 3600 ? 3600 : sIpOffLen * 2;
+     sIpGood = 0;
+-  } else if (sIpOff > 0) {
+-    sIpOff--;
+-  } else if (++sIpGood >= 240) {
++  } else if (++sIpGood >= 4) {
+     sIpOffLen = 120;
+   }
+ }
+@@ -1938,7 +2026,7 @@
+   u64 Q = mode == SIM_CONFIG_DISPLAYCAP_MONITOR ? SpMonitorNs() : mode == SIM_CONFIG_DISPLAYCAP_120 ? kSpFrame / 2 : kSpFrame;
+   u64 now = SpNowNs();
+   if (sPace.on && (S != sPace.S || mode != sPace.mode || Q != sPace.Q)) sPace.on = false;
+-  SpInterpGuard(sPace.on && now > SpTickDue(sPace.n) + kSpFrame / (u64)S / 4);
++  SpInterpGuard(now, S);
+   // behind by more than three ticks (a slow machine, a pause, a window drag): start the timeline again
+   if (sPace.on && now > SpTickDue(sPace.n) + 3 * kSpFrame / (u64)S) sPace.on = false;
+   if (!sPace.on) {
+@@ -2233,24 +2321,26 @@
+ 
+ // bw-port (libntr-ios-settings.patch): the menu button (or BWPORT_SETTINGS_TEST) opens the native settings sheet
+ // (port/src/ios_settings.m); the game and its sound stand still, and the run loop is pumped for UIKit, until it is dismissed
+-extern "C" void bwport_ios_settings_present(void) __attribute__((weak));
+-extern "C" int bwport_ios_settings_is_open(void) __attribute__((weak));
+-extern "C" int bwport_ios_settings_test_wants(void) __attribute__((weak));
++// libntr-ios-input.patch: iOS only. On a desktop touch test (BWPORT_TOUCH) the weak bwport_ios_settings_* were ld64's abort stubs
++// (tools/port_undefined.py), not NULL: the first frame aborted; there the menu button does nothing now.
++#if SIM_IOS
++extern "C" void bwport_ios_settings_present(void);
++extern "C" int bwport_ios_settings_is_open(void);
++extern "C" int bwport_ios_settings_test_wants(void);
++extern "C" void bwport_ios_settings_run(double seconds);
++#endif
+ static void SimTouchSettingsWait(void) {
+   if (!SimTouch_Active()) return;
+-  if (bwport_ios_settings_test_wants != NULL && bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
++#if SIM_IOS
++  if (bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
+   if (!SimTouch_MenuOpen()) return;
+-  if (bwport_ios_settings_present == NULL) {
+-    SimTouch_MenuClose();
+-    return;
+-  }
+   fprintf(stderr, "bwport: settings open: paused\n");
+   SDL_PauseAudio(1);
+   bwport_ios_settings_present();
+   while (bwport_ios_settings_is_open() && !SimTouch_Background()) {
+-    SDL_PumpEvents();
+-    SDL_Delay(10);
++    bwport_ios_settings_run(0.1);  // the run loop, asleep between its events (was a pump every 10 ms: the sheet judders)
+   }
++  SDL_PumpEvents();  // (SDL's GL context made current again)
+   while (bwport_ios_settings_is_open()) {  // (backgrounded with the sheet up: wait for the foreground, then for its end)
+     SDL_PumpEvents();
+     SDL_Delay(50);
+@@ -2259,6 +2349,9 @@
+   SimTouch_MenuClose();
+   SDL_PauseAudio(0);
+   fprintf(stderr, "bwport: settings closed: resumed\n");
++#else
++  if (SimTouch_MenuOpen()) SimTouch_MenuClose();
++#endif
+ }
+ 
+ void *SIM_Render(void *arg) {
+@@ -2690,6 +2783,10 @@
+       // finger is the stylus; the fast-forward button is the Space key's flag
+       static unsigned sTouchPadPrev;
+       unsigned now = SimTouch_Pressed();
++      {
++        unsigned long long t0, gate;
++        if (SimTouch_PressTaken(&t0, &gate)) InputTaken(t0, gate);  // libntr-ios-input.patch
++      }
+       unsigned ch = now ^ sTouchPadPrev;
+       static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
+       for (int b = 0; b < 12; b++) {
+@@ -3029,6 +3126,7 @@
+               (unsigned long long)(sFLExtra[6] / 1000), (unsigned long long)(sFLExtra[7] / 1000));
+       #undef FLUS
+     }
++    InputTickEnd();  // libntr-ios-input.patch
+   } while (SIM::GUI::IsGameLogicPaused());
+   return nullptr;
+ }
+diff --git a/libraries/sim/src/sim_gui.cpp b/libraries/sim/src/sim_gui.cpp
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -2375,6 +2375,7 @@
+ // OverlayDetail=detailed the frame time, the game / draw split and what draws
+ extern "C" float SIM_PresentRate(void);   // libntr-ios-pace.patch (sim_main.cpp)
+ extern "C" float SIM_GameSpeedNow(void);
++extern "C" float SIM_InputLatency(float * read, float * uikit);   // libntr-ios-input.patch (sim_main.cpp)
+ static void TouchOverlay() {
+     SIM_config_type * c = C();
+     if (!c->overlay || SimTouch_MenuOpen()) {
+@@ -2386,7 +2387,7 @@
+         return;
+     }
+     const Snap & m = sSnap;
+-    char l1[64], l2[64] = "", l3[64] = "";
++    char l1[64], l2[64] = "", l3[64] = "", l4[64] = "";
+     // libntr-ios-pace.patch: the presents a second and the game's speed as it runs (m.fps counts game ticks)
+     snprintf(l1, sizeof l1, "%.0f fps  %.1fx", SIM_PresentRate(), SIM_GameSpeedNow());
+     if (c->overlayDetail) {
+@@ -2394,12 +2395,16 @@
+         SIM_RendererPicture(&pw, &ph);
+         snprintf(l2, sizeof l2, "%.1f ms (%.1f+%.1f)", m.avgMs, m.gameMs, m.drawMs);
+         snprintf(l3, sizeof l3, "%s %dx %dx%d", ActiveRenderer(), SIM_RenderScale(), pw, ph);
++        // libntr-ios-input.patch: the last touch press, finger to present (and how long UIKit held it before the game saw it)
++        float rd = 0.0f, uk = 0.0f, in = SIM_InputLatency(&rd, &uk);
++        if (in > 0.0f) snprintf(l4, sizeof l4, "input %.0f ms (UIKit %.0f)", in, uk);
++        else snprintf(l4, sizeof l4, "input -");
+     }
+     ImFont * font = ImGui::GetFont();
+     float fs = 9.5f;
+     float pad = 5.0f, gap = 2.0f;
+-    int lines = l3[0] ? 3 : 1;
+-    const char * ls[3] = {l1, l2, l3};
++    int lines = l3[0] ? 4 : 1;
++    const char * ls[4] = {l1, l2, l3, l4};
+     float w = 0.0f;
+     for (int i = 0; i < lines; i++) {
+         w = std::max(w, font->CalcTextSizeA(fs, FLT_MAX, 0.0f, ls[i]).x);
+diff --git a/libraries/sim/src/sim_touch.cpp b/libraries/sim/src/sim_touch.cpp
+--- a/libraries/sim/src/sim_touch.cpp
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -22,6 +22,8 @@
+ #define SIM_TOUCH_IOS 1
+ extern "C" int bwport_ios_safe_area(SDL_Window * window, float * l, float * t, float * r, float * b);
+ extern "C" void bwport_ios_set_orientation(int landscape);
++// libntr-ios-input.patch: the newest touch UIKit delivered, when it touched the glass and how long UIKit held it (port/src/ios_input.m)
++extern "C" int bwport_ios_touch_time(unsigned long long * hwNs, unsigned long long * gateNs, unsigned * seq);
+ #else
+ #define SIM_TOUCH_IOS 0
+ #endif
+@@ -75,6 +77,36 @@
+ volatile bool sBackground;
+ SDL_Window * sWindow;
+ int sForceW, sForceH;
++// libntr-ios-input.patch: the input latency. A finger that presses a button, the D-pad or the touch screen stamps the time it touched
++// the glass (sPendT0); SimTouch_Pressed hands it over when the game's pad bits (or the stylus) change, the main loop times the rest
++unsigned long long sPendT0, sPendGate, sPendAt, sTakenT0, sTakenGate;
++bool sTaken;
++
++unsigned long long NowNs() {   // sim_main.cpp's SpNowNs (on iOS the clock of UITouch.timestamp)
++    Uint64 c = SDL_GetPerformanceCounter(), f = SDL_GetPerformanceFrequency();
++    return (c / f) * 1000000000ull + (c % f) * 1000000000ull / f;
++}
++
++void PressTime(const SDL_Event * e) {
++    if (sPendT0 != 0) return;
++    unsigned long long now = NowNs(), hw = 0, gate = 0;
++    unsigned seq = 0;
++    static unsigned sSeqSeen;
++    sPendAt = now;
++    // a real touch: UIKit's record of it (SDL turned it into this event inside the same sendEvent:)
++#if SIM_TOUCH_IOS
++    if (bwport_ios_touch_time(&hw, &gate, &seq) && seq != sSeqSeen && hw <= now) {
++        sSeqSeen = seq;
++        sPendT0 = hw;
++        sPendGate = gate;
++        return;
++    }
++#endif
++    // a pushed one (BWPORT_KEYS tap:, a desktop): the event's own time, in ms
++    Uint32 age = SDL_GetTicks() - e->tfinger.timestamp;
++    sPendT0 = now - (unsigned long long)(age < 1000 ? age : 0) * 1000000ull;
++    sPendGate = 0;
++}
+ 
+ void ReadInsets(float * s) {
+     s[0] = s[1] = s[2] = s[3] = 0;
+@@ -251,6 +283,7 @@
+         int k = HitTest(x, y, &idx);
+         f->kind = k;
+         f->idx = idx;
++        if (k == K_BTN || k == K_DPAD || k == K_STYLUS) PressTime(e);
+         if (k == K_TOGGLE) {
+             if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; if (sFF) { sFF = false; sFFEdge = 0; } }
+             else { sFF = !sFF; sFFEdge = sFF; }
+@@ -374,6 +407,14 @@
+     for (int i = 0; i < B_COUNT; i++) {
+         if (sFrame <= sLatchUntil[i]) m |= 1u << i;
+     }
++    if (sPendT0 != 0 && ((m & ~sPressed) != 0 || sStylusPending)) {
++        sTakenT0 = sPendT0;
++        sTakenGate = sPendGate;
++        sTaken = true;
++        sPendT0 = 0;
++    } else if (sPendT0 != 0 && NowNs() - sPendAt > 250000000ull) {
++        sPendT0 = 0;   // (a finger that pressed nothing: the D-pad's centre)
++    }
+     if (m != sPressed || sStylusDown != sLogStylus) {
+         static int sLog = -1;
+         if (sLog < 0) sLog = getenv("BWPORT_TOUCH_LOG") != NULL;
+@@ -399,7 +440,26 @@
+ }
+ 
+ int SimTouch_MenuOpen(void) { return sMenuOpen; }
+-void SimTouch_MenuClose(void) { sMenuOpen = false; }
++// libntr-ios-input.patch: every finger is forgotten when the sheet closes. The finger that tapped the menu button lifts while the sheet
++// is up, and SimTouchSettingsWait flushes that SDL_FINGERUP with the rest: its slot stayed taken, so after ten openings no finger could
++// press anything (the maintainer's "the game stops taking button presses after changing settings"). A finger still down now is ignored
++// until it lifts (FindFinger finds nothing).
++void SimTouch_MenuClose(void) {
++    sMenuOpen = false;
++    for (Finger & f : sF) f.used = false;
++    sLiveMask = 0;
++    sStylusDown = 0;
++    sStylusPending = false;
++    sPendT0 = 0;
++}
++// a press the game's pad bits now show: when it touched the glass and how long UIKit held it (ns; once per press)
++int SimTouch_PressTaken(unsigned long long * t0, unsigned long long * gate) {
++    if (!sTaken) return 0;
++    sTaken = false;
++    *t0 = sTakenT0;
++    *gate = sTakenGate;
++    return 1;
++}
+ int SimTouch_Background(void) { return sBackground; }
+ 
+ // the safe area (l, t, r, b), for the settings window

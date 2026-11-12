@@ -1,0 +1,6 @@
+# game: white
+# from: boot
+# reaches: White new game: the same intro keys as black/boot-room reach the wrecked room (Cheren and Bianca, after the first battle) at about f23500; timing varies by hundreds of frames between runs: check final.png
+# end: f23500
+keys start@f600 start@f900 start@f1300 a@f1700 down@f12700
+walk 2200 90 a*235/90

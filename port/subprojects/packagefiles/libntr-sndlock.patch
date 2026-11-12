@@ -1,0 +1,228 @@
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -29,9 +29,13 @@
+ 
+ // sim7's snd_seq.c (no header declares them)
+ void SND_UpdateChannelStatus7(void); // snd_channel.c: SNDi_SharedWork->channelStatus from the channels' busy bits
++void SND_LockChannel7(u32 chBitMask, u32 flags); // snd_exchannel.c
++void SND_UnlockChannel7(u32 chBitMask, u32 flags);
++void SND_StopUnlockedChannel7(u32 chBitMask, u32 flags);
+ void SNDi_SetPlayerParam7(int playerNo, u32 offset, u32 data, int size);
+ void SNDi_SetTrackParam7(int playerNo, u32 trackBitMask, u32 offset, u32 data, int size);
+ 
++void SIM_PxiQueueSoundList( SNDCommand * list );
+ static SDL_sem * pxiSemaphore;
+ // bw-port (libntr-soundclock.patch): posts to the PXI thread not yet handled
+ static volatile int s_pxiPending = 0;
+@@ -65,44 +69,9 @@
+ 	pxi7to9Semaphore = SDL_CreateSemaphore(0);
+ }
+ 
+-void SIM_procPXI(void)
++// bw-port (libntr-soundclock.patch): one command list as the DS ARM7's CommandProc runs it
++static void ProcSoundList( SNDCommand * sndCommandList )
+ {
+-
+-	void * data;
+-	data = SIM_queue_read( pxiQueuePtr );
+-	while( data != NULL )
+-	{
+-		WIN_PXIFifoMessage * msg;
+-		msg = (WIN_PXIFifoMessage *)data;
+-
+-		switch( msg->e.tag )
+-		{
+-			case PXI_FIFO_TAG_TOUCHPANEL:
+-
+-				break;
+-			case PXI_FIFO_TAG_SOUND:
+-				{
+-					SNDCommand * sndCommandList;
+-					sndCommandList = (SNDCommand * )msg->e.data;
+-
+-					// bw-port: the sound capture (port/src/acapture.c) sees each list before it runs, and each wakeup word
+-					if( SIM_sndCaptureHook != NULL )
+-					{
+-						SIM_sndCaptureHook( sndCommandList );
+-					}
+-
+-					if( sndCommandList == NULL )
+-					{
+-						break;
+-					}
+-					// bw-port: the program's sound backend (sim_audio.h) has taken the list through the hook above
+-					if( SIM_soundBackendOn )
+-					{
+-						break;
+-					}
+-					// The DS's ARM7 runs its sound commands and its sequencer in one thread; here the commands run in
+-					// this one and the sequencer and channels in SDL's audio callback (sim_audio.cpp): a player stopped
+-					// or started under a running sequencer read freed banks. SDL_LockAudio keeps the callback out
+ 					SDL_LockAudio();
+ 					while( sndCommandList != NULL ){
+ 						switch( sndCommandList->id )
+@@ -328,12 +297,16 @@
+             				    break;
+ 
+             				case SND_COMMAND_LOCK_CHANNEL:
++            				    // bw-port: the sequencer must not take a locked channel (a cry's wave-out channel)
++            				    SND_LockChannel7((u32)sndCommandList->arg[0], (u32)sndCommandList->arg[1]);
+             				    break;
+ 
+             				case SND_COMMAND_UNLOCK_CHANNEL:
++            				    SND_UnlockChannel7((u32)sndCommandList->arg[0], (u32)sndCommandList->arg[1]);
+             				    break;
+ 
+             				case SND_COMMAND_STOP_UNLOCKED_CHANNEL:
++            				    SND_StopUnlockedChannel7((u32)sndCommandList->arg[0], (u32)sndCommandList->arg[1]);
+             				    break;
+ 
+             				case SND_COMMAND_INVALIDATE_SEQ:
+@@ -364,6 +337,117 @@
+ 						{
+ 							win_SNDi_SharedWork->finishCommandTag++;
+ 						}
++}
++
++// bw-port (libntr-soundclock.patch): with the sound clock on the frame's ticks, a list does not run when the PXI
++// thread gets it but at the DS driver's next alarm tick (every 174592 ARM7 cycles) after the game sent it, or at once
++// when a wakeup word follows (SND_COMMAND_IMMEDIATE). The game's wait lengths (a cry: PokeVoice_IsPlaying) depend on
++// when the channel starts.
++#define PEND_MAX 512
++static struct { SNDCommand * list; u64 ready; } s_pend[PEND_MAX];
++static unsigned s_pendRd = 0, s_pendWr = 0;
++static SDL_mutex * s_pendMx = NULL;
++u64 SIM_Audio_NowCycle(void);
++int SIM_Audio_FrameClock(void);
++
++static u64 PendDelay( void )
++{
++	static long long d = -1;
++	if( d < 0 )
++	{
++		const char * e = getenv( "BWPORT_SNDDELAY" );
++		d = e ? atoll( e ) : 0;
++	}
++	return (u64)d;
++}
++
++void SIM_PxiQueueSoundList( SNDCommand * list )
++{
++	if( !SIM_Audio_FrameClock() )
++	{
++		ProcSoundList( list );
++		return;
++	}
++	if( s_pendMx == NULL )
++	{
++		s_pendMx = SDL_CreateMutex();
++	}
++	SDL_LockMutex( s_pendMx );
++	if( s_pendWr - s_pendRd >= PEND_MAX )
++	{
++		SDL_UnlockMutex( s_pendMx );
++		ProcSoundList( list );
++		return;
++	}
++	s_pend[s_pendWr % PEND_MAX].list = list;
++	s_pend[s_pendWr % PEND_MAX].ready = SIM_Audio_NowCycle() + PendDelay();
++	s_pendWr++;
++	SDL_UnlockMutex( s_pendMx );
++}
++
++// run the lists due at aTickCycle (all of them for a wakeup word)
++void SIM_PxiRunPending( u64 aTickCycle, int aAll )
++{
++	if( s_pendMx == NULL )
++	{
++		return;
++	}
++	for( ;; )
++	{
++		SNDCommand * list;
++		SDL_LockMutex( s_pendMx );
++		if( s_pendRd == s_pendWr || ( !aAll && s_pend[s_pendRd % PEND_MAX].ready > aTickCycle ) )
++		{
++			SDL_UnlockMutex( s_pendMx );
++			break;
++		}
++		list = s_pend[s_pendRd % PEND_MAX].list;
++		s_pendRd++;
++		SDL_UnlockMutex( s_pendMx );
++		ProcSoundList( list );
++	}
++}
++
++void SIM_procPXI(void)
++{
++
++	void * data;
++	data = SIM_queue_read( pxiQueuePtr );
++	while( data != NULL )
++	{
++		WIN_PXIFifoMessage * msg;
++		msg = (WIN_PXIFifoMessage *)data;
++
++		switch( msg->e.tag )
++		{
++			case PXI_FIFO_TAG_TOUCHPANEL:
++
++				break;
++			case PXI_FIFO_TAG_SOUND:
++				{
++					SNDCommand * sndCommandList;
++					sndCommandList = (SNDCommand * )msg->e.data;
++
++					// bw-port: the sound capture (port/src/acapture.c) sees each list before it runs, and each wakeup word
++					if( SIM_sndCaptureHook != NULL )
++					{
++						SIM_sndCaptureHook( sndCommandList );
++					}
++
++					if( sndCommandList == NULL )
++					{
++						SIM_PxiRunPending( 0, 1 ); // bw-port: a wakeup word
++						break;
++					}
++					// bw-port: the program's sound backend (sim_audio.h) has taken the list through the hook above
++					if( SIM_soundBackendOn )
++					{
++						break;
++					}
++					// The DS's ARM7 runs its sound commands and its sequencer in one thread; here the commands run in
++					// this one and the sequencer and channels in SDL's audio callback (sim_audio.cpp): a player stopped
++					// or started under a running sequencer read freed banks. SDL_LockAudio keeps the callback out
++					SIM_PxiQueueSoundList( sndCommandList );
+ 					
+ 				}
+ 				break;
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -170,6 +170,9 @@
+ 
+ static s32 ClampS16(s32 v) { return v > 32767 ? 32767 : v < -32768 ? -32768 : v; }
+ 
++extern "C" void SIM_PxiRunPending(u64 aTickCycle, int aAll);
++extern "C" u64 SIM_Audio_NowCycle(void) { return s_sndCyc; }
++
+ static void PanOutput(s32 in, s32 * left, s32 * right, int chNo);
+ 
+ // one mixer sample of sim7's channels (the callback's old loop body without the master volume and the blip)
+@@ -204,6 +207,7 @@
+         for(;;) {
+             if(s_nextTick <= aTarget && s_nextTick <= s_nextSample) {
+                 SND_UpdateExChannel();
++                SIM_PxiRunPending(s_nextTick, 0); // the command lists the game sent, due at this alarm
+                 SND_SeqMain(TRUE);
+                 SND_ExChannelMain(TRUE);
+                 s_nextTick += SND_CYC_TICK;
+@@ -337,6 +341,9 @@
+         if(SIM_soundBackendOn && SIM_soundBackend->run == NULL) {
+             s_frameClock = 0;
+         }
++        if(getenv("BWPORT_SNDPHASE")) {
++            s_nextTick += (u64)atoll(getenv("BWPORT_SNDPHASE"));
++        }
+         const char * w = getenv("BWPORT_AUDIO_WAV");
+         if(s_frameClock && w != NULL && *w != 0 && (s_wav = fopen(w, "wb")) != NULL) {
+             WavHeader(s_wav, 0);

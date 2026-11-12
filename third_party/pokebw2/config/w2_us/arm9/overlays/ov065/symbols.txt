@@ -1,0 +1,85 @@
+Scrcmd_PokemonCenter_Medal kind:function(thumb,size=0x70) addr:0x021e5840
+PokemonCenter_DiscoverInitialMedals kind:function(thumb,size=0x50) addr:0x021e58b0
+PokemonCenter_FindEarnedMedal kind:function(thumb,size=0x30) addr:0x021e5900
+Scrcmd_PokemonCenter_FindEarnedMedal kind:function(thumb,size=0x30) addr:0x021e5930
+PokemonCenter_AcknowledgeMedal kind:function(thumb,size=0x54) addr:0x021e5960
+PokemonCenter_CheckMedals kind:function(thumb,size=0x228) addr:0x021e59b4
+PokemonCenter_CheckSpecialMedal kind:function(thumb,size=0x34) addr:0x021e5bdc
+PokemonCenter_CheckTypes kind:function(thumb,size=0x6e) addr:0x021e5c10
+PokemonCenter_ClearCaughtTypes kind:function(thumb,size=0x54) addr:0x021e5c80
+PokemonCenter_CheckBoxes kind:function(thumb,size=0x88) addr:0x021e5cd4
+PokemonCenter_CheckBoxPkm kind:function(thumb,size=0x6c) addr:0x021e5d5c
+PokemonCenter_CheckParty kind:function(thumb,size=0x54) addr:0x021e5dc8
+PokemonCenter_CheckDayCare kind:function(thumb,size=0x42) addr:0x021e5e1c
+PokemonCenter_CheckPartyPkm kind:function(thumb,size=0x5e) addr:0x021e5e60
+PokemonCenter_IsTypeCaught kind:function(thumb,size=0x20) addr:0x021e5ec0
+PokemonCenter_MeetsThreshold kind:function(thumb,size=0xc) addr:0x021e5ee0
+PokemonCenter_GetMedalCategory kind:function(thumb,size=0x28) addr:0x021e5eec
+PokemonCenter_CountObtainedMedals kind:function(thumb,size=0x7e) addr:0x021e5f14
+PokemonCenter_IsType0Caught kind:function(thumb,size=0x10) addr:0x021e5f94
+PokemonCenter_IsType9Caught kind:function(thumb,size=0x10) addr:0x021e5fa4
+PokemonCenter_IsType10Caught kind:function(thumb,size=0x10) addr:0x021e5fb4
+PokemonCenter_IsType12Caught kind:function(thumb,size=0x10) addr:0x021e5fc4
+PokemonCenter_IsType11Caught kind:function(thumb,size=0x10) addr:0x021e5fd4
+PokemonCenter_IsType14Caught kind:function(thumb,size=0x10) addr:0x021e5fe4
+PokemonCenter_IsType1Caught kind:function(thumb,size=0x10) addr:0x021e5ff4
+PokemonCenter_IsType3Caught kind:function(thumb,size=0x10) addr:0x021e6004
+PokemonCenter_IsType4Caught kind:function(thumb,size=0x10) addr:0x021e6014
+PokemonCenter_IsType2Caught kind:function(thumb,size=0x10) addr:0x021e6024
+PokemonCenter_IsType13Caught kind:function(thumb,size=0x10) addr:0x021e6034
+PokemonCenter_IsType6Caught kind:function(thumb,size=0x10) addr:0x021e6044
+PokemonCenter_IsType5Caught kind:function(thumb,size=0x10) addr:0x021e6054
+PokemonCenter_IsType7Caught kind:function(thumb,size=0x10) addr:0x021e6064
+PokemonCenter_IsType15Caught kind:function(thumb,size=0x10) addr:0x021e6074
+PokemonCenter_IsType16Caught kind:function(thumb,size=0x10) addr:0x021e6084
+PokemonCenter_IsType8Caught kind:function(thumb,size=0x10) addr:0x021e6094
+PokemonCenter_HasAllMusicalProps kind:function(thumb,size=0xe) addr:0x021e60a4
+PokemonCenter_CheckBoxCount kind:function(thumb,size=0x26) addr:0x021e60b4
+PokemonCenter_CheckSingleStreak kind:function(thumb,size=0x18) addr:0x021e60dc
+PokemonCenter_CheckDoubleStreak kind:function(thumb,size=0x18) addr:0x021e60f4
+PokemonCenter_CheckMultiStreak kind:function(thumb,size=0x32) addr:0x021e610c
+PokemonCenter_CheckFriendCount kind:function(thumb,size=0x3e) addr:0x021e6140
+PokemonCenter_CheckCategory0 kind:function(thumb,size=0x1e) addr:0x021e6180
+PokemonCenter_CheckCategory1 kind:function(thumb,size=0x1e) addr:0x021e61a0
+PokemonCenter_CheckCategory2 kind:function(thumb,size=0x1e) addr:0x021e61c0
+PokemonCenter_CheckCategory3 kind:function(thumb,size=0x1e) addr:0x021e61e0
+PokemonCenter_HasNPokemon kind:function(thumb,size=0x36) addr:0x021e6200
+PokemonCenter_HasRare kind:function(thumb,size=0x36) addr:0x021e6238
+PokemonCenter_HasPokerus kind:function(thumb,size=0x36) addr:0x021e6270
+PokemonCenter_CheckStrengthRocks kind:function(thumb,size=0x16) addr:0x021e62a8
+PokemonCenter_CheckPassersby kind:function(thumb,size=0x1a) addr:0x021e62c0
+PokemonCenter_CheckLinkBattles kind:function(thumb,size=0x36) addr:0x021e62dc
+PokemonCenter_CheckLinkTrades kind:function(thumb,size=0x36) addr:0x021e6314
+PokemonCenter_HasFoundAllHiddenGrottoes kind:function(thumb,size=0x34) addr:0x021e634c
+PokemonCenter_CheckTrainerTipsSigns kind:function(thumb,size=0x34) addr:0x021e6380
+PokemonCenter_HasHeardAllAnvilleTrains kind:function(thumb,size=0x34) addr:0x021e63b4
+PokemonCenter_HasVisitedAllBridges kind:function(thumb,size=0x34) addr:0x021e63e8
+PokemonCenter_HasVisitedAllTowns kind:function(thumb,size=0x34) addr:0x021e641c
+PokemonCenter_CheckMemoryLinkEvents kind:function(thumb,size=0x58) addr:0x021e6450
+PokemonCenter_CheckDailyExp kind:function(thumb,size=0x36) addr:0x021e64a8
+PokemonCenter_CheckDailyCatches kind:function(thumb,size=0x36) addr:0x021e64e0
+PokemonCenter_CountSetFlags kind:function(thumb,size=0x2e) addr:0x021e6518
+Scrcmd_PokemonCenter_GetMatchState kind:function(thumb,size=0x84) addr:0x021e6548
+Scrcmd_PokemonCenter_SetMatchInProgress kind:function(thumb,size=0x2c) addr:0x021e65cc
+Scrcmd_PokemonCenter_ClearMatchInProgress kind:function(thumb,size=0x24) addr:0x021e65f8
+Scrcmd_PokemonCenter_SetMatchState kind:function(thumb,size=0x58) addr:0x021e661c
+Scrcmd_PokemonCenter_AddBattlePoints kind:function(thumb,size=0x50) addr:0x021e6674
+POKEMON_CENTER_SCRIPT_COMMANDS kind:data(any) addr:0x021e66c4
+data_ov065_021e66bc kind:data(any) addr:0x021e66fc
+data_ov065_021e66c8 kind:data(any) addr:0x021e6708
+data_ov065_021e66d9 kind:data(any) addr:0x021e6719 ambiguous
+data_ov065_021e66e8 kind:data(any) addr:0x021e6728
+sMedalsByFlag kind:data(any) addr:0x021e6750
+data_ov065_021e6754 kind:data(any) addr:0x021e6794
+data_ov065_021e6779 kind:data(any) addr:0x021e67b9 ambiguous
+data_ov065_021e679c kind:data(any) addr:0x021e67dc
+data_ov065_021e67ec kind:data(any) addr:0x021e682c
+data_ov065_021e67f9 kind:data(any) addr:0x021e6839 ambiguous
+data_ov065_021e684c kind:data(any) addr:0x021e688c
+data_ov065_021e6869 kind:data(any) addr:0x021e68a9 ambiguous
+data_ov065_021e689d kind:data(any) addr:0x021e68dd ambiguous
+sMedalChecks kind:data(any) addr:0x021e6900
+data_ov065_021e6935 kind:data(any) addr:0x021e6975 ambiguous
+data_ov065_021e6944 kind:data(any) addr:0x021e6984 ambiguous
+data_ov065_021e6aa0 kind:data(any) addr:0x021e6ae0
+data_ov065_021e6aa4 kind:data(any) addr:0x021e6ae4

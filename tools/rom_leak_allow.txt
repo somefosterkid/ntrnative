@@ -1,0 +1,162 @@
+# Files the checker accepts, with the most ROM-matching bytes each may hold (tools/rom_leak_check.py).
+# A file over its limit, or not listed, fails the check. Only ever shrink this list: move the data out
+# (tools/asset.py --move) and delete the line. --write-allow regenerates it from a full scan.
+# Kinds: lib/{nitro,msl,twl,dwc,dwcutil,nitrowifi,...} = Nintendo SDK / third-party tables and strings
+# (sine table, MD5, JPEG, ADPCM): the same in every game, not the game's assets. port/ = our own copies
+# of the same algorithm tables. src/ and lib/gfl = small numeric parameter tables of the game's code
+# that asset.py --move can't take yet (struct arrays, names mixed in).
+config/b_us/arm9/overlays/ov009/symbols.txt 531  # symbol names with address digits that look like bytes; no game data
+config/b_us/arm9/overlays/ov114/symbols.txt 50  # symbol names with address digits that look like bytes; no game data
+config/b_us/arm9/overlays/ov175/symbols.txt 131  # symbol names with address digits that look like bytes; no game data
+config/b_us/arm9/symbols.txt 84  # symbol names with address digits that look like bytes; no game data
+docs/trial-2026-10/c/opus/func_ov171_021dc92c.c 48  # trial output, not built
+lib/dpw/src/dpw_battle_tower.c 244  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dpw/src/dpw_internal.h 61  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dpw/src/dpw_tr.c 55  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/include/dwc/gp.h 69  # GameSpy SDK strings (pokebw2's gp.h, was lib/dwc/src/gs/gp/*.c's): the same in every DWC game
+lib/dwc/src/ac/dwc_ac_search.c 53  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ac/dwc_ac_wcm.c 48  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/AuthService.c 398  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_baltimore_cybertrust.c 256  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_cybertrust_gteroot.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_globalsign.c 256  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_globalsign_rootcar2.c 256  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_gte_cybertrust_global.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_nas_self.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_nintendo_class2.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_thawte_premiumserver.c 135  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_thawte_server.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_verisign_class3.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_verisign_class3_g2.c 146  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_verisign_class3_g3.c 256  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/auth/dwc_ca_verisign_secureserver.c 125  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/crypt/crypt.c 65  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/gamespy/md5c.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables (was lib/dwc/src/gs/md5c.c)
+lib/dwc/src/ghttp/ghttpBuffer.c 60  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ghttp/ghttpCommon.c 74  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ghttp/ghttpEncryption.c 1210  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ghttp/ghttpMain.c 53  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+lib/dwc/src/ghttp/ghttpProcess.c 119  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/gs/xml.c 293  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/gt2/gt2.c 552  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/nd/nd.c 142  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/nhttp/nhttp_request.c 59  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/sake/sakeMain.c 82  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/sake/sakeRequest.c 71  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/sc/sciInterface.c 484  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/vct/vct_adpcm.c 356  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/vct/vct_session.c 265  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/atermset.c 103  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/dwc_aoss_ap.c 49  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/dwc_mov_mbp.c 204  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/keyboard.c 518  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/keyboard10.c 57  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/sceneSetList.c 49  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/sceneSetSelectAp.c 114  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwcutil/src/sceneSetSelectWay.c 130  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/msl/src/locale.c 191  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/msl/src/math/e_rem_pio2.c 392  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/msl/src/runtime/fp.c 512  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/msl/src/strtold.c 67  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/sdk/nitro/wm/common/wm.h 61  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/fs/fs_file.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/fx/fx_atanidx.c 262  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/fx/fx_sincos.c 16385  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/math/math_md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/os/os_protectionRegion.c 102  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/os/os_reset_itcm.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/rtc/convert.c 48  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/snd/snd_util.c 724  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/wm/wm_standard.c 51  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitrowifi/src/ssl/md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nnsys/include/nnsys/g3d.h 115  # NitroSystem bit masks (powers of two) and array sizes as u32: coincidences with Black's arm9 and Black 2's ov257; no ROM data
+lib/nnsys/src/snd/sndarc_loader.c 51  # literal 0s in code that happen to line up with a run of zero words; no data
+lib/nnsys/src/snd/sndarc_stream.c 356  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/poke_net/src/poke_net_ssl.c 128  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/twl/src/card/card_hash.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/twl/src/ssp_jpegdec.c 1539  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/twl/src/ssp_jpegenc.c 484  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+port/acore/src/p02_adpcm.c 356  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/acore/src/p06_tables.c 726  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/acore/tests/t05_capture.c 50  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/acore/tests/t15_commands.c 51  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/gpu/src/g08_smaa_area.inc 179200  # SMAA's area texture (MIT, port/gpu/LICENSE-SMAA): third-party data, not the game's
+port/gpu/src/g08_smaa_search.inc 1024  # SMAA's search texture (MIT, port/gpu/LICENSE-SMAA): third-party data, not the game's
+port/src/route_test.c 54  # the test-cheat comment and code (no tables in the change): a text/code coincidence with ov172
+port/src/stb_image.h 67  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/src/stb_image_write.h 488  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/src/stub_online.c 48  # a run of small u32 constants that also occurs in Black 2's ROM; flagged once the file changed (SOCInAddr)
+port/subprojects/packagefiles/libntr-ios-stuckinput.patch 63  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/subprojects/packagefiles/libntr-vs70.patch 62  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+src/ov208/zukan_detail_form.c 177  # float sprite offsets (-13.9f) that the checker reads as the digit pairs 13, 9: chance match with B2's bytes, no game data
+src/system/pm_voice.c 50  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+tools/brief.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+tools/complete_check.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+tools/playbook.py 55  # this tool's own test constants / a table of ROM-independent numbers
+tools/port_assets.py 50  # python regex/brace-depth code whose digits read as small numbers; chance match
+tools/prep.py 106  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+tools/respell_check.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
+third_party/pokebw2/src/system/box_savedata.c 122  # GFL_ASSERT expression text (assert message), not data
+src/ov129/codein.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/system/mcss.c 57  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/system/pm_voice.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/system/poke_regulation.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/system/printsys.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/field_3dbg.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/field_actor_billboard.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/field_light.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/field_player_grid.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/field_rail_func.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov036/fld3d_ci.c 63  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov204/wifi_note.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov309/fmission_app.c 53  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov310/research_list.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov028/union_main.c 53  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/ov322/pkwd_book.c 53  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov102/gimmick_roller_coaster.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/gfl/net.c 51  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/gfl/net_state.c 144  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/gfl/net_system.c 59  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/gfl/savedata.c 50  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/gfl/touchpanel.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov115/gimmick_league_center.c 57  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov139/frame_list.c 68  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov167/btl_client.c 64  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov167/btl_server_flow_sub.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov255/box2_bmp.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov255/box2_obj.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov255/box2_seq.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov321/pkwd_count.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov324/pkwd_briefing.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov326/win_record.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/config/b2_us/arm9/overlays/ov011/symbols.txt 301  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/b2_us/arm9/overlays/ov168/symbols.txt 51  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/b2_us/arm9/overlays/ov260/symbols.txt 108  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/b2_us/arm9/symbols.txt 84  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/w2_us/arm9/overlays/ov011/symbols.txt 301  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/w2_us/arm9/overlays/ov168/symbols.txt 51  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/w2_us/arm9/overlays/ov260/symbols.txt 60  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/config/w2_us/arm9/symbols.txt 84  # symbol names with address digits that look like bytes; no game data
+third_party/pokebw2/include/gfl/key.h 48  # the DS key register's bit values (PAD_BUTTON_A 0x1 ..., hardware constants), not data
+third_party/pokebw2/lib/dwc/include/dwc/gp.h 69  # GameSpy SDK debug text quoted in a comment (the same in every DWC game)
+third_party/pokebw2/src/ov011/dwc_rap.c 72  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/ov012/delivery_beacon.c 82  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/ov028/union_subproc.c 156  # GFL_ASSERT expression text (assert message), not data (and the same condition in an if)
+third_party/pokebw2/src/ov034/union_oneself.c 66  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/ov036/union_mine_pms.c 88  # GFL_ASSERT expression text (assert message), not data
+third_party/pokebw2/src/ov205/codein.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+lib/gfl/src/clact.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
+lib/gfl/src/net.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+lib/gfl/src/net_state.c 256  # decompiled code's own constants (a literal-pool coincidence), not a table
+lib/gfl/src/savedata.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov021/field_3dbg.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov021/ov021_021a0448.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov021/ov021_021c6ea8.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov039/gimmick_roller_coaster.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov046/ov046_021f36c0.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov067/frame_list.c 68  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov093/btl_client.c 64  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov128/wifi_note.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov170/box2_obj.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/ov217/research_list.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+src/system/poke_regulation.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table

@@ -1,0 +1,15 @@
+--- a/libraries/sim/src/sim_audio.cpp
++++ b/libraries/sim/src/sim_audio.cpp
+@@ -1021,7 +1021,11 @@
+     // conversions in a row. Ask for the default device's rate and take the rate SDL gives (iOS: the session's); a device
+     // that would change the format or the channels is opened as before (SDL converts).
+     int opened = -1;
+-    if(s_frameClock) {
++    // libntr-audiodummy.patch: SDL 2.32's dummy driver (no output device: servers, CI, the Linux test runs) never returns
++    // from SDL_OpenAudio when it is given an obtained spec, so with it the device-rate open is skipped (it has no device
++    // rate to follow anyway) and the fixed-rate open below is used, as before libntr-ios-sound.patch.
++    const char * drv = SDL_GetCurrentAudioDriver();
++    if(s_frameClock && !(drv && SDL_strcmp(drv, "dummy") == 0)) {
+ #if SDL_VERSION_ATLEAST(2, 24, 0)
+         SDL_AudioSpec d;
+         if(SDL_GetDefaultAudioInfo(NULL, &d, 0) == 0 && d.freq >= 22050 && d.freq <= 192000) {

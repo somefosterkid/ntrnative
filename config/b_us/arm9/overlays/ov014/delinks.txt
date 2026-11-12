@@ -1,0 +1,24 @@
+    .text       start:0x02177020 end:0x02179678 kind:code align:32
+    .rodata     start:0x02179678 end:0x02179684 kind:rodata align:4
+    .ctor       start:0x02179684 end:0x02179684 kind:rodata align:4
+    .data       start:0x021796a0 end:0x021797a0 kind:data align:32
+    .bss        start:0x021797a0 end:0x021797c0 kind:bss align:32
+
+src/ov014/wih.c:
+    complete
+    .text       start:0x02178138 end:0x02179678
+    .data       start:0x02179794 end:0x021797a0
+    .bss        start:0x021797a8 end:0x021797c0
+
+src/ov014/net_whpipe.c:
+    complete
+    .text       start:0x0217727c end:0x02178138
+    .rodata     start:0x02179678 end:0x02179684
+    .data       start:0x02179780 end:0x02179794
+    .bss        start:0x021797a4 end:0x021797a8
+
+src/ov014/net_devwireless.c:
+    complete
+    .text       start:0x02177020 end:0x0217727c
+    .data       start:0x021796a0 end:0x02179780
+    .bss        start:0x021797a0 end:0x021797a4

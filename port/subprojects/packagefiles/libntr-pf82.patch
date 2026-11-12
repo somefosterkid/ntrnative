@@ -1,0 +1,606 @@
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -36,6 +36,16 @@
+ bool WantMouseAt(int x, int y);
+ // bw-port (libntr-ui70.patch): one frame's period (start to start, in ns) and its game / draw work, for the metrics and the frame time graph
+ void FrameRecord(unsigned long long frameNs, unsigned long long gameNs, unsigned long long drawNs);
++// bw-port (libntr-pf82.patch): the per-stage timing readout (the Metrics window's Breakdown, Debug > Save performance log).
++// PerfAdd: a stage's ms this frame (kind 0 the frame thread's parts, 1 inside the renderer's call, 2 the renderer's worker
++// threads, 3 GPU time from timer queries), on the frame thread; PerfFrameEnd closes the frame; PerfWanted (once a frame,
++// at its start): time the stages this frame (the Breakdown was drawn open, the log records); PerfGpuNote: why there are no
++// GPU times ("" = timer queries work); PerfGlVersion: GL_VERSION for the log
++void PerfAdd(const char * name, int kind, double ms);
++void PerfFrameEnd(double periodMs);
++bool PerfWanted();
++void PerfGpuNote(const char * note);
++void PerfGlVersion(const char * version);
+ bool WantMouse();         // ImGui has the mouse (over a window or the bar): the click is not a touch
+ bool WantKeyboard();      // ImGui has the keyboard (a text field)
+ void DrawStatus(const char * text); // libntr-onerender.patch: the renderer status over the picture
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -117,23 +117,89 @@
+ static u64 sFLT[12];
+ static u64 sFLUpload, sFLExtra[8];
+ static u64 sFLT0, sFLN;
++// bw-port (libntr-pf82.patch): this frame times its parts for the readout (the Metrics window's Breakdown shows, Debug > Save
++// performance log records: SIM::GUI::PerfWanted, read once a frame at its start). The frame log's stamps and the bridges'
++// SIM_FrameLogNow run then too; else nothing is timed (one int test a part).
++static int sPerfOn;
+ static inline u64 FLNow(void) {
+   struct timespec t;
+   clock_gettime(CLOCK_MONOTONIC, &t);
+   return (u64)t.tv_sec * 1000000000ull + (u64)t.tv_nsec;
+ }
+ static inline void FLStamp(int i) {
+-  if (sFLOn > 0) sFLT[i] = FLNow();
++  if (sFLOn > 0 || sPerfOn) sFLT[i] = FLNow();
+ }
+ static void FLClose(void) {
+   if (sFLFile != NULL) fclose(sFLFile);
+   sFLFile = NULL;
+ }
+-extern "C" u64 SIM_FrameLogNow(void) { return sFLOn > 0 ? FLNow() : 0; } // the bridges time their parts with this
++extern "C" u64 SIM_FrameLogNow(void) { return sFLOn > 0 || sPerfOn ? FLNow() : 0; } // the bridges time their parts with this
+ extern "C" int SIM_FrameLogOn(void) { return sFLOn > 0; }
+ extern "C" void SIM_FrameLogExtra(int i, u64 ns) {
+   if (sFLOn > 0 && i >= 0 && i < 8) sFLExtra[i] = ns;
+ }
++// bw-port (libntr-pf82.patch): the readout's stages. SIM_PerfOn: time them this frame. SIM_PerfStage (the frame thread only):
++// a bridge's stage in ms, kind 1 inside its call, 2 its worker threads (reported when joined), 3 GPU time from its own timer
++// queries; libntr adds its own parts (kind 0) and the GPU time of the present and the UI. SIM_PerfGpuTimers: GL timer
++// queries work in this context (GL 3.3 / ARB_timer_query, not GLES): the GPU path may bracket its passes with them.
++extern "C" int SIM_PerfOn(void) { return sPerfOn; }
++extern "C" void SIM_PerfStage(const char *name, int kind, double ms) {
++  if (sPerfOn) SIM::GUI::PerfAdd(name, kind, ms);
++}
++static int sGqOk = -1;
++extern "C" int SIM_PerfGpuTimers(void) { return sGqOk > 0; }
++// GPU time of libntr's own GL work: the picture's present (vcore's upload and the screens' quad, the GPU path's quad) and the
++// UI's draw, by GL_TIME_ELAPSED queries read kGqLag frames late (one not done by then is dropped, never waited for)
++static const int kGqLag = 5;
++static GLuint sGq[kGqLag][2];
++static u8 sGqUsed[kGqLag][2];
++static unsigned sGqFrame;
++static int sGqActive = -1;
++static double sGqMs[2];   // the results read this frame, added to the readout at its end (after the bridge's passes)
++static u8 sGqGot[2];
++static double sPerfSoundPrev; // the last frame's sound step: it ran after that frame's end mark, inside this frame's "game" time
++static void GqBegin(int k) {
++  if (!sPerfOn || sGqOk <= 0 || sGqActive >= 0 || sGqUsed[sGqFrame % kGqLag][k]) return;
++  GLuint *q = &sGq[sGqFrame % kGqLag][k];
++  if (*q == 0) glGenQueries(1, q);
++  glBeginQuery(GL_TIME_ELAPSED, *q);
++  sGqUsed[sGqFrame % kGqLag][k] = 1;
++  sGqActive = k;
++}
++static void GqEnd(void) {
++  if (sGqActive < 0) return;
++  glEndQuery(GL_TIME_ELAPSED);
++  sGqActive = -1;
++}
++// at the frame's start (the GL context current): the slot used kGqLag frames ago is read and reused
++static void GqFrame(void) {
++  if (sGqOk < 0) {
++    const char *v = (const char *)glGetString(GL_VERSION);
++    sGqOk = glad_glGetQueryObjectui64v != NULL && glad_glBeginQuery != NULL && glad_glGenQueries != NULL &&
++            glad_glGetQueryObjectuiv != NULL && (GLVersion.major > 3 || (GLVersion.major == 3 && GLVersion.minor >= 3)) &&
++            !(v != NULL && strncmp(v, "OpenGL ES", 9) == 0);
++    SIM::GUI::PerfGlVersion(v != NULL ? v : "?");
++    SIM::GUI::PerfGpuNote(sGqOk ? "" : "n/a: this GL has no timer queries (GL 3.3 / ARB_timer_query); CPU times only");
++  }
++  if (sGqOk <= 0) return;
++  sGqFrame++;
++  int sl = (int)(sGqFrame % kGqLag);
++  for (int k = 0; k < 2; k++) {
++    if (!sGqUsed[sl][k]) continue;
++    sGqUsed[sl][k] = 0;
++    GLuint avail = 0;
++    glGetQueryObjectuiv(sGq[sl][k], GL_QUERY_RESULT_AVAILABLE, &avail);
++    if (!avail) { // not done kGqLag frames later: dropped (a new query object, the old one may still be pending)
++      glDeleteQueries(1, &sGq[sl][k]);
++      sGq[sl][k] = 0;
++      continue;
++    }
++    GLuint64 ns = 0;
++    glGetQueryObjectui64v(sGq[sl][k], GL_QUERY_RESULT, &ns);
++    sGqMs[k] = (double)ns / 1e6;
++    sGqGot[k] = 1;
++  }
++}
+ // BWPORT_NOPRESENT=1: nothing is uploaded, drawn or swapped (no frame reaches the window): the frame loop's CPU side alone,
+ // for timing the game and the renderers on a host whose GL (llvmpipe, GDI) is slower than the machine they are for
+ static int sNoPresent = -1;
+@@ -1543,7 +1609,11 @@
+       if (sSwMeanWanted) SwMeanTex(tex, tw, th);
+       if (sLookWant) LookTex(tex, tw, th);
+       SIM_FrameInit();
++      u64 tQuad0 = sFLOn > 0 || sPerfOn ? FLNow() : 0;
++      GqBegin(0);
+       if (sTickPresent) SIM_DrawFrameTexture(tex);
++      GqEnd();
++      if (sFLOn > 0 || sPerfOn) sFLUpload = FLNow() - tQuad0;
+       sPresentMid = 0;
+       if (SpHashWanted()) sPresentHash = SpHashTex(tex, tw, th);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+@@ -1571,7 +1641,8 @@
+   glActiveTexture(GL_TEXTURE0);
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+   glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+-  u64 tUp0 = sFLOn > 0 ? FLNow() : 0;
++  u64 tUp0 = sFLOn > 0 || sPerfOn ? FLNow() : 0;
++  GqBegin(0);
+   if (SIM_NoPresent() || !sTickPresent) {
+     // the picture is neither uploaded nor drawn
+   } else if (pw != sFrameTexW || ph != sFrameTexH) {
+@@ -1587,7 +1658,8 @@
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+   if (!SIM_NoPresent() && sTickPresent) SIM_DrawFrameTexture(s_frameTexture);
+-  if (sFLOn > 0) sFLUpload = FLNow() - tUp0;
++  GqEnd();
++  if (sFLOn > 0 || sPerfOn) sFLUpload = FLNow() - tUp0;
+   // the DS clears DISPCAPCNT's enable bit when the captured frame ends; the renderer has stored the capture in its bank
+   s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+   sFrameRendererDrew = 1;
+@@ -1706,7 +1778,9 @@
+       sGameWorkTime = ((tStart.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+                       (tStart.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
+       if (sFLOn < 0) FLInit();
+-      if (sFLOn > 0) {
++      sPerfOn = SIM::GUI::PerfWanted();
++      GqFrame();
++      if (sFLOn > 0 || sPerfOn) {
+         sFLT[0] = (u64)tStart.tv_sec * 1000000000ull + (u64)tStart.tv_nsec;
+         sFLUpload = 0;
+         for (int k = 0; k < 8; k++) sFLExtra[k] = 0;
+@@ -2173,7 +2247,9 @@
+     *((u32 *)HW_VBLANK_COUNT_BUF) = *((u32 *)HW_VBLANK_COUNT_BUF) + 1;
+     FLStamp(4);
+ 
++    GqBegin(1);
+     SIM::GUI::Render(sTickPresent != 0);
++    GqEnd();
+     FLStamp(5);
+ 
+     // Calculate frametime
+@@ -2317,6 +2393,30 @@
+     if (!SIM::GUI::IsGameLogicPaused()) {
+       SIM_Audio_FrameTick();
+     }
++    // bw-port (libntr-pf82.patch): the frame thread's parts for the readout; they add up to the frame's period (the game's
++    // time is from the last frame's end mark, less that frame's sound step, which ran after the mark)
++    if (sPerfOn) {
++      u64 t8 = FLNow();
++      double up = (double)sFLUpload / 1e6, snd = (double)(t8 - sFLT[7]) / 1e6;
++      double game = (double)sGameWorkTime / 1e6 - sPerfSoundPrev;
++      SIM::GUI::PerfAdd("game logic", 0, game > 0.0 ? game : 0.0);
++      SIM::GUI::PerfAdd("events + UI build", 0, (double)(sFLT[2] - sFLT[0]) / 1e6);
++      SIM::GUI::PerfAdd("renderer", 0, (double)(sFLT[3] - sFLT[2]) / 1e6 - up);
++      SIM::GUI::PerfAdd("picture upload + quad", 0, up);
++      SIM::GUI::PerfAdd("game V-blank", 0, (double)(sFLT[4] - sFLT[3]) / 1e6);
++      SIM::GUI::PerfAdd("UI draw", 0, (double)(sFLT[5] - sFLT[4]) / 1e6);
++      SIM::GUI::PerfAdd("swap", 0, (double)(sFLT[6] - sFLT[5]) / 1e6);
++      SIM::GUI::PerfAdd("frame-rate wait", 0, (double)(sFLT[7] - sFLT[6]) / 1e6);
++      SIM::GUI::PerfAdd("sound step", 0, snd);
++      sPerfSoundPrev = snd;
++      for (int k = 0; k < 2; k++) {
++        if (sGqGot[k]) SIM::GUI::PerfAdd(k == 0 ? "present (picture quad)" : "UI draw", 3, sGqMs[k]);
++      }
++      SIM::GUI::PerfFrameEnd((double)sRealFrameTime / 1e6);
++    } else {
++      sPerfSoundPrev = 0.0;
++    }
++    sGqGot[0] = sGqGot[1] = 0;
+     if (sFLOn > 0) {
+       u64 t8 = FLNow();
+       if (sFLT0 == 0) sFLT0 = sFLT[0];
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -19,6 +19,7 @@
+ #include <stdlib.h>
+ #include <string>
+ #include <string.h>
++#include <time.h>
+ #include <vector>
+ #ifdef __linux__
+ #include <unistd.h>
+@@ -1031,6 +1032,339 @@
+ 
+ // ---- the menu bar -------------------------------------------------------------------------------------------------
+ 
++// ---- the per-stage timing readout (libntr-pf82.patch) -------------------------------------------------------------------
++// Where a frame's time goes, for a PC with a real GPU (the test host has none): the frame thread's parts (sim_main.cpp: the
++// game's logic, the events and the UI's build, the renderer's call, the picture's upload and quad, the game's V-blank work,
++// the UI's draw, the swap, the frame-rate wait, the sound step: they add up to the frame's period), the renderer bridge's own
++// stages (SIM_PerfStage: inside its call; on its worker threads beside the game) and GPU time (GL_TIME_ELAPSED queries read a
++// few frames late, so they never stall: the GPU path's passes, the present, the UI). The Metrics window's Breakdown shows
++// the mean per frame of the refresh window (Metrics refresh; a stage absent from a frame counts 0 there: what it costs a
++// frame on average) and the window's max; a stage reported in no frame of the window is hidden (the other renderer's).
++// Debug > Save performance log records kPerfLogS seconds of frames and writes perf_log.txt next to save.bin (the working
++// directory) with the GL renderer and the video settings. Nothing is timed while neither shows (PerfWanted, read by
++// sim_main once a frame). BWPORT_BREAKDOWN=1 opens the Breakdown at start, BWPORT_PERFLOG=N starts the log at frame N.
++namespace {
++const int kPerfMax = 48;
++const double kPerfLogS = 5.0;
++const char * const kPerfKind[4] = {"frame", "call", "worker", "gpu"};
++struct PerfStage {
++    const char * key;       // the caller's string (compared first)
++    char name[40];
++    int kind;               // 0 the frame thread's parts, 1 inside the renderer's call, 2 the renderer's workers, 3 GPU
++    bool rep, inLog, live;  // reported this frame; while the log records; in the last refresh window
++    double frame;           // this frame's ms
++    double win, winMax;     // the refresh window's sum and max
++    unsigned winN;          // the window's frames that reported it
++    float avg, mx;          // shown: the last window's mean per frame and max
++    double logSum, logMax;
++};
++PerfStage sPerf[kPerfMax];
++int sPerfN;
++unsigned long long sPerfWinFrames, sPerfCalls;
++double sPerfWinPeriod;
++float sPerfPeriodAvg;
++bool sPerfShown;            // the Breakdown was drawn open since PerfWanted last looked
++bool sPerfOpenLast;         // the Breakdown was open when last drawn: the metrics take the whole side (DrawSide)
++bool sPerfEnvRead, sPerfOpenAtStart;
++long long sPerfLogAt = -1;
++char sGpuNote[160];
++std::string sGlVersion;
++struct PerfRow { float period; float v[kPerfMax]; };
++std::vector<PerfRow> sLogRows;
++bool sLogOn;
++double sLogMs;
++std::string sLogHead;
++char sLogMsg[200];
++} // namespace
++
++void PerfGpuNote(const char * note) { snprintf(sGpuNote, sizeof sGpuNote, "%s", note != nullptr ? note : ""); }
++void PerfGlVersion(const char * version) { sGlVersion = version != nullptr ? version : ""; }
++
++void PerfAdd(const char * name, int kind, double ms) {
++    for (int i = 0; i < sPerfN; i++) {
++        PerfStage & p = sPerf[i];
++        if (p.kind == kind && (p.key == name || strcmp(p.name, name) == 0)) {
++            p.frame += ms;
++            p.rep = true;
++            return;
++        }
++    }
++    if (sPerfN >= kPerfMax) {
++        return;
++    }
++    PerfStage & p = sPerf[sPerfN++];
++    p = PerfStage{};
++    p.key = name;
++    snprintf(p.name, sizeof p.name, "%s", name);
++    p.kind = kind;
++    p.frame = ms;
++    p.rep = true;
++}
++
++// the settings a log was taken with
++static std::string PerfSettings() {
++    SIM_config_type * c = C();
++    int pw = 0, ph = 0, ww = 0, wh = 0;
++    SIM_RendererPicture(&pw, &ph);
++    if (sWindow != nullptr) {
++        SDL_GL_GetDrawableSize(sWindow, &ww, &wh);
++    }
++    std::string skip = c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? "auto" : c->frameSkip == 0 ? "off" : std::to_string((int)c->frameSkip);
++    char b[900];
++    snprintf(b, sizeof b,
++             "# GL renderer: %s\n# GL version: %s\n"
++             "# Renderer: %s, Resolution %d (picture %d x %d), Antialiasing %s, Smooth motion %s, Frame rate %s, Game speed %s,"
++             " Frame skip %s, Sound %s, window %d x %d\n",
++             SIM_GLRendererName(), sGlVersion.c_str(), ActiveRenderer(), SIM_RenderScale(), pw, ph,
++             AntialiasNames[AntialiasIndex(c->antialias)], c->interpolation ? "on" : "off", DisplayCapShort[DisplayCapIndex()],
++             SpeedShort[SpeedIndex()], skip.c_str(), c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr", ww, wh);
++    return b;
++}
++
++static void PerfLogStart() {
++    sLogRows.clear();
++    sLogRows.reserve(2048);
++    for (int i = 0; i < sPerfN; i++) {
++        sPerf[i].inLog = false;
++        sPerf[i].logSum = sPerf[i].logMax = 0.0;
++    }
++    sLogMs = 0.0;
++    sLogHead = PerfSettings();
++    sLogOn = true;
++    snprintf(sLogMsg, sizeof sLogMsg, "recording %g s of frames...", kPerfLogS);
++}
++
++static void PerfLogWrite() {
++    sLogOn = false;
++    size_t n = sLogRows.size();
++    FILE * f = n > 0 ? fopen("perf_log.txt", "w") : nullptr;
++    if (f == nullptr) {
++        snprintf(sLogMsg, sizeof sLogMsg, "perf_log.txt could not be written");
++        printf("bwport: perf log: perf_log.txt could not be written\n");
++        fflush(stdout);
++        return;
++    }
++    double sum = 0.0, worst = 0.0;
++    for (const PerfRow & r : sLogRows) {
++        sum += r.period;
++        worst = std::max(worst, (double)r.period);
++    }
++    time_t now = time(nullptr);
++    char ts[64] = "";
++    const struct tm * lt = localtime(&now);
++    if (lt != nullptr) {
++        strftime(ts, sizeof ts, "%Y-%m-%d %H:%M:%S", lt);
++    }
++    fprintf(f, "# bw-port performance log (Debug > Save performance log), %s. docs/perf.md says how to read it.\n", ts);
++    fputs(sLogHead.c_str(), f);
++    fprintf(f, "# GPU times: %s\n", sGpuNote[0] != 0 ? sGpuNote : "GL timer queries (GL_TIME_ELAPSED), read 5 frames late: a row's gpu columns are of a frame about 5 rows earlier");
++    fprintf(f, "# %zu frames in %.2f s: %.1f fps; frame period avg %.3f ms, worst %.3f ms\n", n, sum / 1000.0,
++            sum > 0.0 ? (double)n * 1000.0 / sum : 0.0, sum / (double)n, worst);
++    fprintf(f, "#\n# ms per frame, avg (a frame without the stage counts 0) and max. kind: frame = the main thread's parts of a frame (they add\n"
++               "# up to the period); call = inside the renderer's call (part of 'renderer'); worker = the renderer's own threads, beside the\n"
++               "# game (they overlap the frame thread: 'wait for the worker' in call is when they did not); gpu = GPU time\n");
++    fprintf(f, "# %-6s %-36s %9s %9s\n", "kind", "stage", "avg", "max");
++    int cols[kPerfMax], nc = 0;
++    for (int k = 0; k < 4; k++) {
++        double ksum = 0.0;
++        bool any = false;
++        for (int i = 0; i < sPerfN; i++) {
++            const PerfStage & p = sPerf[i];
++            if (p.kind != k || !p.inLog) {
++                continue;
++            }
++            any = true;
++            cols[nc++] = i;
++            ksum += p.logSum / (double)n;
++            fprintf(f, "  %-6s %-36s %9.3f %9.3f\n", kPerfKind[k], p.name, p.logSum / (double)n, p.logMax);
++        }
++        if (any && (k == 0 || k == 3)) {
++            fprintf(f, "  %-6s %-36s %9.3f\n", kPerfKind[k], k == 0 ? "(sum)" : "(sum: the GPU's busy time a frame)", ksum);
++        }
++    }
++    fprintf(f, "#\n# per frame, ms: the frame's period, then the stages above (kind:name)\nframe period");
++    for (int j = 0; j < nc; j++) {
++        std::string nm = sPerf[cols[j]].name;
++        for (char & ch : nm) {
++            if (ch == ' ') { ch = '_'; }
++        }
++        fprintf(f, " %s:%s", kPerfKind[sPerf[cols[j]].kind], nm.c_str());
++    }
++    fprintf(f, "\n");
++    for (size_t r = 0; r < n; r++) {
++        fprintf(f, "%zu %.3f", r, sLogRows[r].period);
++        for (int j = 0; j < nc; j++) {
++            fprintf(f, " %.3f", sLogRows[r].v[cols[j]]);
++        }
++        fprintf(f, "\n");
++    }
++    fclose(f);
++    snprintf(sLogMsg, sizeof sLogMsg, "perf_log.txt written: %zu frames, %.1f fps", n, sum > 0.0 ? (double)n * 1000.0 / sum : 0.0);
++    printf("bwport: perf log: perf_log.txt, %zu frames in %.2f s\n", n, sum / 1000.0);
++    fflush(stdout);
++    sLogRows.clear();
++    sLogRows.shrink_to_fit();
++}
++
++void PerfFrameEnd(double periodMs) {
++    sPerfWinFrames++;
++    sPerfWinPeriod += periodMs;
++    PerfRow * row = nullptr;
++    if (sLogOn) {
++        sLogRows.emplace_back();
++        row = &sLogRows.back();
++        row->period = (float)periodMs;
++        for (int i = 0; i < kPerfMax; i++) { row->v[i] = 0.0f; }
++    }
++    for (int i = 0; i < sPerfN; i++) {
++        PerfStage & p = sPerf[i];
++        if (p.rep) {
++            p.win += p.frame;
++            p.winMax = std::max(p.winMax, p.frame);
++            p.winN++;
++            if (row != nullptr) {
++                row->v[i] = (float)p.frame;
++                p.inLog = true;
++                p.logSum += p.frame;
++                p.logMax = std::max(p.logMax, p.frame);
++            }
++        }
++        p.frame = 0.0;
++        p.rep = false;
++    }
++    if (sLogOn) {
++        sLogMs += periodMs;
++        if (sLogMs >= kPerfLogS * 1000.0) {
++            PerfLogWrite();
++        }
++    }
++}
++
++// at each refresh of the metrics (FrameSnapshot): the window's means become the shown ones
++static void PerfSnapshot() {
++    for (int i = 0; i < sPerfN; i++) {
++        PerfStage & p = sPerf[i];
++        p.live = sPerfWinFrames > 0 && p.winN > 0;
++        p.avg = sPerfWinFrames > 0 ? (float)(p.win / (double)sPerfWinFrames) : 0.0f;
++        p.mx = (float)p.winMax;
++        p.win = p.winMax = 0.0;
++        p.winN = 0;
++    }
++    sPerfPeriodAvg = sPerfWinFrames > 0 ? (float)(sPerfWinPeriod / (double)sPerfWinFrames) : 0.0f;
++    sPerfWinFrames = 0;
++    sPerfWinPeriod = 0.0;
++}
++
++bool PerfWanted() {
++    if (!sPerfEnvRead) {
++        sPerfEnvRead = true;
++        const char * e = getenv("BWPORT_BREAKDOWN");
++        sPerfOpenAtStart = e != nullptr && e[0] != 0 && e[0] != '0';
++        e = getenv("BWPORT_PERFLOG");
++        if (e != nullptr && e[0] != 0) { sPerfLogAt = atoll(e); }
++    }
++    sPerfCalls++;
++    if (sPerfLogAt >= 0 && (long long)sPerfCalls >= sPerfLogAt) {
++        sPerfLogAt = -1;
++        PerfLogStart();
++    }
++    bool w = sPerfShown || sLogOn;
++    sPerfShown = false;
++    return w;
++}
++
++// the Metrics window's Breakdown (a collapsing section: closed, nothing is timed)
++static void PerfBreakdown() {
++    if (sPerfOpenAtStart) {
++        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
++    }
++    bool open = ImGui::CollapsingHeader("Breakdown##perf");
++    sPerfOpenLast = open;
++    if (ImGui::IsItemHovered()) {
++        ImGui::SetTooltip("where a frame's time goes, ms per frame: the mean of the last refresh and its max (grey).\n"
++                          "Frame thread: the main thread's parts; they add up to the frame's period.\n"
++                          "Renderer call: inside 'renderer'. Workers: the renderer's threads beside the game (they overlap).\n"
++                          "GPU: GL timer queries, read 5 frames late.\n"
++                          "Debug > Save performance log writes %g s of it, frame by frame, to perf_log.txt.", kPerfLogS);
++    }
++    if (!open) {
++        return;
++    }
++    sPerfShown = true;
++    bool any = false;
++    for (int i = 0; i < sPerfN; i++) { any = any || sPerf[i].live; }
++    if (!any) {
++        ImGui::TextDisabled("measuring...");
++        return;
++    }
++    static const char * const head[4] = {"Frame thread", "Renderer call", "Renderer workers (beside the game)", "GPU"};
++    const ImVec4 hc(0.55f, 0.75f, 1.0f, 1.0f);
++    float numW = ImGui::CalcTextSize("000.00").x;
++    bool labels = false;
++    if (ImGui::BeginTable("##perft", 3, ImGuiTableFlags_None)) {
++        ImGui::TableSetupColumn("stage", ImGuiTableColumnFlags_WidthStretch);
++        ImGui::TableSetupColumn("ms", ImGuiTableColumnFlags_WidthFixed, numW);
++        ImGui::TableSetupColumn("max", ImGuiTableColumnFlags_WidthFixed, numW);
++        for (int k = 0; k < 4; k++) {
++            bool hdr = false;
++            double sum = 0.0;
++            for (int i = 0; i < sPerfN; i++) {
++                const PerfStage & p = sPerf[i];
++                if (p.kind != k || !p.live) {
++                    continue;
++                }
++                sum += p.avg;
++                if (p.mx < 0.005f) {
++                    continue; // nothing to see (the game's V-blank, the wait without a cap): the log keeps it
++                }
++                if (!hdr) {
++                    hdr = true;
++                    ImGui::TableNextRow();
++                    ImGui::TableNextColumn();
++                    ImGui::TextColored(hc, "%s", head[k]);
++                    if (!labels) {
++                        labels = true;
++                        ImGui::TableNextColumn();
++                        ImGui::TextDisabled("  ms");
++                        ImGui::TableNextColumn();
++                        ImGui::TextDisabled("  max");
++                    }
++                }
++                ImGui::TableNextRow();
++                ImGui::TableNextColumn();
++                ImGui::Text("  %s", p.name);
++                ImGui::TableNextColumn();
++                ImGui::Text("%6.2f", p.avg);
++                ImGui::TableNextColumn();
++                ImGui::TextDisabled("%6.2f", p.mx);
++            }
++            if (hdr && (k == 0 || k == 3)) {
++                ImGui::TableNextRow();
++                ImGui::TableNextColumn();
++                if (k == 0) {
++                    ImGui::TextDisabled("  sum (frame period %.2f)", sPerfPeriodAvg);
++                } else {
++                    ImGui::TextDisabled("  sum (GPU busy)");
++                }
++                ImGui::TableNextColumn();
++                ImGui::TextDisabled("%6.2f", sum);
++            }
++            if (k == 3 && !hdr) {
++                ImGui::TableNextRow();
++                ImGui::TableNextColumn();
++                ImGui::TextColored(hc, "GPU");
++                ImGui::TableNextRow();
++                ImGui::TableNextColumn();
++                ImGui::TextDisabled("  %s", sGpuNote[0] != 0 ? sGpuNote : "waiting for the first results");
++            }
++        }
++        ImGui::EndTable();
++    }
++    if (sLogMsg[0] != 0) {
++        ImGui::TextDisabled("%s", sLogMsg);
++    }
++}
++
+ static bool MenuRadio(const char * label, bool selected) {
+     return ImGui::MenuItem(label, nullptr, selected);
+ }
+@@ -1252,12 +1586,22 @@
+         if (ImGui::MenuItem("Debug tools...")) {
+             OpenWin(W_DEBUG);
+         }
++        // libntr-pf82.patch: kPerfLogS seconds of per-frame stage times into perf_log.txt
++        if (ImGui::MenuItem(sLogOn ? "Save performance log (recording...)" : "Save performance log", nullptr, false, !sLogOn)) {
++            PerfLogStart();
++        }
++        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
++            ImGui::SetTooltip("records %g s of per-frame stage times (CPU, and GPU where GL has timer queries) and writes perf_log.txt next to save.bin, with the GL renderer and the video settings", kPerfLogS);
++        }
++        if (sLogMsg[0] != 0) {
++            ImGui::TextDisabled("%s", sLogMsg);
++        }
+         ImGui::EndMenu();
+     }
+     // right side: what draws
+     {
+         char t[96];
+-        snprintf(t, sizeof t, "%s %dx", ActiveRenderer(), SIM_RenderScale());
++        snprintf(t, sizeof t, "%s%s %dx", sLogOn ? "recording perf log   " : "", ActiveRenderer(), SIM_RenderScale());
+         float w = ImGui::CalcTextSize(t).x + ImGui::GetStyle().ItemSpacing.x;
+         ImGui::SameLine(ImGui::GetWindowWidth() - w - 12.0f * sUiScale);
+         ImGui::TextDisabled("%s", t);
+@@ -1589,6 +1933,7 @@
+     sWinN = sWinNs = sWinMaxNs = sWinGameNs = sWinDrawNs = 0;
+     sSnapAt = sTotalNs;
+     PeriodSnapshot(false);
++    PerfSnapshot();
+ }
+ 
+ void RecordOne(unsigned long long ns, unsigned long long gameNs, unsigned long long drawNs) {
+@@ -1791,6 +2136,7 @@
+     ImGui::Text("Sound: %s", c->sound == SIM_CONFIG_SOUND_ACORE ? "acore" : "libntr");
+     ImGui::SameLine();
+     ImGui::TextDisabled("   skip: %s", c->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? "auto" : c->frameSkip == 0 ? "off" : std::to_string((int)c->frameSkip).c_str());
++    PerfBreakdown();
+     ImGui::Spacing();
+     if (BeginForm("##q")) {
+         FormRow("Renderer");
+@@ -2000,15 +2346,15 @@
+     bg->AddRectFilled(ImVec2(x, y), ImVec2(x + w, y + h), cBack);
+     float mh = 0.0f;
+     sSideH = h;
+-    if (metrics && controller) {
++    if (metrics && controller && !sPerfOpenLast) {
+         mh = floorf(std::min(h * 0.75f, std::max(h * 0.40f, sMetricsContentH)));
+     } else if (metrics) {
+-        mh = h;
++        mh = h; // libntr-pf82.patch: with the Breakdown open the metrics take the whole side (the controller comes back when it closes)
+     }
+     if (metrics) {
+         SideMetrics(x, y, w, mh);
+     }
+-    if (controller) {
++    if (controller && mh < h) {
+         SideController(x, y + mh, w, h - mh, pressed);
+     }
+ }

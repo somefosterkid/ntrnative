@@ -1,0 +1,21 @@
+    .text       start:0x021b95a0 end:0x021bbb78 kind:code align:32
+    .rodata     start:0x021bbb78 end:0x021bbd40 kind:rodata align:4
+    .ctor       start:0x021bbd40 end:0x021bbd40 kind:rodata align:4
+    .data       start:0x021bbd60 end:0x021bbd80 kind:data align:32
+    .bss        start:0x021bbd80 end:0x021bbd80 kind:bss align:32
+
+src/ov072/townmap_data.c:
+    complete
+    .text       start:0x021bbb24 end:0x021bbb78
+
+src/ov072/townmap.c:
+    complete
+    .text       start:0x021b95a0 end:0x021bb6e8
+    .rodata     start:0x021bbb78 end:0x021bbbcc
+    .data       start:0x021bbd60 end:0x021bbd6c
+
+src/ov072/townmap_grh.c:
+    complete
+    .text       start:0x021bb6e8 end:0x021bbb24
+    .rodata     start:0x021bbbcc end:0x021bbd40
+    .data       start:0x021bbd6c end:0x021bbd80

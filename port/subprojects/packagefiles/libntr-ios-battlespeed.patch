@@ -1,0 +1,214 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -111,6 +111,7 @@
+     u8 overlayDetail; /* 0 = compact (fps and game speed, OverlayDetail=compact, default), 1 = detailed (+ frame time, game / draw ms, renderer and resolution) */
+     u8 hideTouch; /* bw-port (libntr-ios-input2.patch): hide the touch buttons while a controller is connected (HideTouchWithController=on|off, default on) */
+     u8 ffSpeed; /* bw-port (libntr-ios-speedui.patch): the speed fast forward switches to (iOS button, Space on the desktop), 2..4 or 5 = Max (FastForwardSpeed=2|3|4|max, default 4) */
++    u8 battleSpeed; /* bw-port (libntr-ios-battlespeed.patch): the Game speed while a battle runs, 1..4 (BattleSpeed=1..4, default 1 = off; BWPORT_BATTLESPEED); the higher of it and the Game speed applies */
+     u32 audioRate; /* bw-port (libntr-ios-ablate.patch): the rate asked of SDL's audio device (AudioRate=48000); 0 = 44100 as before. A phone whose device runs at 48 kHz then skips SDL's second resample (a test of that cost; off by default) */
+     u8 present; /* bw-port (libntr-ios-metal.patch): Apple builds, the window's present: 0 = OpenGL (Present=gl, default), 1 = Metal (Present=metal; BWPORT_PRESENT=metal|gl); read at window creation */
+     u8 macAddr[6]; /* MAC address */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -197,6 +197,10 @@
+         int n = atoi(value);
+         sSeenFFSpeed = 1;
+         config->ffSpeed = (u8)(strcmp(value, "max") == 0 || strcmp(value, "Max") == 0 ? 5 : n < 2 ? 2 : n > 4 ? 4 : n);
++    }
++    if(MATCH("General", "BattleSpeed")) { /* bw-port (libntr-ios-battlespeed.patch) */
++        int n = atoi(value);
++        config->battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
+     if(MATCH("General", "GameSpeed")) {
+         int n = atoi(value);
+@@ -588,6 +592,11 @@
+     if(e != NULL && *e) {
+         int n = atoi(e);
+         aConfig->speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++    }
++    e = getenv("BWPORT_BATTLESPEED");   /* bw-port (libntr-ios-battlespeed.patch): 1..4 */
++    if(e != NULL && *e) {
++        int n = atoi(e);
++        aConfig->battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+     }
+     e = getenv("BWPORT_SOUNDQUALITY");
+     if(e != NULL && *e) {
+@@ -714,6 +723,7 @@
+     aConfig->frameSkip = 0;
+     aConfig->speed = 1;
+     aConfig->ffSpeed = 4;
++    aConfig->battleSpeed = 1;
+     aConfig->soundQuality = 1;
+     aConfig->musicNormalSpeed = 1;
+     aConfig->overlay = 1;
+@@ -862,7 +872,13 @@
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+     fprintf(configFile, "Filter=%s\n", aConfig->gpuFilter ? "bilinear" : "nearest");
+     fprintf(configFile, "Renderer3D=%s\n", aConfig->gpuFast ? "fast" : "exact");   /* bw-port (libntr-ios-fast3d.patch) */
+-    fprintf(configFile, "GameSpeed=%d\n", aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed);
++    {   /* bw-port (libntr-ios-battlespeed.patch): the Game speed the player set, not the battle's (SIM_SpeedForFile) */
++        extern int SIM_SpeedForFile(int speed);
++        int sp = aConfig->speed < 1 ? 1 : aConfig->speed > 4 ? 4 : aConfig->speed;
++        if(aConfig == SIM_GetConfigPtr()) sp = SIM_SpeedForFile(sp);
++        fprintf(configFile, "GameSpeed=%d\n", sp);
++    }
++    fprintf(configFile, "BattleSpeed=%d\n", aConfig->battleSpeed < 1 ? 1 : aConfig->battleSpeed > 4 ? 4 : aConfig->battleSpeed);
+     fprintf(configFile, "FastForwardSpeed=%s\n", aConfig->ffSpeed >= 5 ? "max" : aConfig->ffSpeed == 3 ? "3" : aConfig->ffSpeed == 4 ? "4" : "2");
+     fprintf(configFile, "SoundQuality=%s\n", aConfig->soundQuality ? "enhanced" : "ds");
+     fprintf(configFile, "MusicNormalSpeed=%s\n", aConfig->musicNormalSpeed ? "on" : "off");
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -519,10 +519,42 @@
+ // uncapped path is on (Max). Space (a tap: toggle; held longer than a tap: only while held), the Fast-forward speed rows and the
+ // iOS button all go through here. The label is "FF 4x" / "FF Max" in the title and the status line.
+ static u32 sFFMsgUntil, sFFKeyDownAt;
+-extern "C" int SIM_FFOn(void) { return s_SIM_config.speed > 1 || sFastForward; }
++// bw-port (libntr-ios-battlespeed.patch): Battle speed. The port's overlay loader (port/src/ovl.c) says when the battle's
++// overlay is in (SIM_SetBattle); while it is, the tick timeline runs at the higher of the Game speed and BattleSpeed. The
++// speed applied goes into s_SIM_config.speed (what the timeline, frame skip and the sound read, as with BWPORT_SPEEDSCRIPT's
++// live changes); the player's own Game speed is kept in sBtlUser and comes back when the battle ends. The settings file,
++// the fast-forward state and its label see the player's speed (SIM_UserSpeed), never the battle's.
++static int sBtlOn, sBtlApplied, sBtlUser;
++extern "C" void SIM_SetBattle(int on) { sBtlOn = on != 0; }
++static int SIM_UserSpeed(void) { return sBtlApplied && s_SIM_config.speed == sBtlApplied ? sBtlUser : s_SIM_config.speed; }
++extern "C" int SIM_SpeedForFile(int speed) { return sBtlApplied && speed == sBtlApplied ? sBtlUser : speed; }
++// a Game speed set by the player (fast forward, the settings, a script) while a battle's speed is applied
++extern "C" void SIM_SpeedSetUser(int v) {
++  if (sBtlApplied) {
++    sBtlUser = v;
++    s_SIM_config.speed = (u8)(v > sBtlApplied ? v : sBtlApplied);
++  } else {
++    s_SIM_config.speed = (u8)v;
++  }
++}
++// at the top of each tick
++static void SpBattleApply(void) {
++  int user = SIM_UserSpeed();
++  int bs = s_SIM_config.battleSpeed < 1 ? 1 : s_SIM_config.battleSpeed > 4 ? 4 : s_SIM_config.battleSpeed;
++  int want = sBtlOn && bs > user ? bs : 0;
++  if (want != sBtlApplied) fprintf(stderr, "bwport: battle speed %s (game speed %d)\n", want ? "on" : "off", want ? want : user);
++  if (want) {
++    sBtlUser = user;
++    s_SIM_config.speed = (u8)want;
++  } else if (sBtlApplied) {
++    s_SIM_config.speed = (u8)user;
++  }
++  sBtlApplied = want;
++}
++extern "C" int SIM_FFOn(void) { return SIM_UserSpeed() > 1 || sFastForward; }
+ extern "C" void SIM_FFSet(int on) {
+   const bool max = s_SIM_config.ffSpeed >= 5;
+-  s_SIM_config.speed = (u8)(on && !max ? (s_SIM_config.ffSpeed < 2 ? 2 : s_SIM_config.ffSpeed) : 1);
++  SIM_SpeedSetUser(on && !max ? (s_SIM_config.ffSpeed < 2 ? 2 : s_SIM_config.ffSpeed) : 1);  // (libntr-ios-battlespeed.patch)
+   sFastForward = on && max;
+   sFFMsgUntil = *((u32 *)HW_VBLANK_COUNT_BUF) + 90;
+   fprintf(stderr, "bwport: fast forward %s: game speed %d%s\n", on ? "on" : "off", (int)s_SIM_config.speed, sFastForward ? " + uncapped (Max)" : "");
+@@ -530,7 +562,7 @@
+ static const char * FFLabel(char * b, size_t n) {
+   if (!SIM_FFOn()) { b[0] = 0; return b; }
+   if (sFastForward) snprintf(b, n, "FF Max");
+-  else snprintf(b, n, "FF %dx", (int)s_SIM_config.speed);
++  else snprintf(b, n, "FF %dx", SIM_UserSpeed());
+   return b;
+ }
+ static double sCostMs;            // render work per frame, smoothed
+@@ -1226,7 +1258,10 @@
+         _exit(0);
+       } else if (strcmp(kv, "speed") == 0) {
+         int n = atoi(v);
+-        s_SIM_config.speed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
++        SIM_SpeedSetUser(n < 1 ? 1 : n > 4 ? 4 : n);  // (libntr-ios-battlespeed.patch)
++      } else if (strcmp(kv, "battlespeed") == 0) {  // libntr-ios-battlespeed.patch: BattleSpeed 1..4
++        int n = atoi(v);
++        s_SIM_config.battleSpeed = (u8)(n < 1 ? 1 : n > 4 ? 4 : n);
+       } else if (strcmp(kv, "frameskip") == 0) {
+         s_SIM_config.frameSkip = strcmp(v, "auto") == 0 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)(atoi(v) < 0 ? 0 : atoi(v) > 3 ? 3 : atoi(v));
+       } else if (strcmp(kv, "smooth") == 0) {
+@@ -3032,9 +3067,10 @@
+         e = end + 1;
+       }
+     }
+-    if (next < n && tick >= at[next]) s_SIM_config.speed = (u8)sp[next++];
++    if (next < n && tick >= at[next]) SIM_SpeedSetUser(sp[next++]);  // (libntr-ios-battlespeed.patch)
+     tick++;
+   }
++  SpBattleApply();  // libntr-ios-battlespeed.patch
+   bool capped = s_SIM_config.displayCap != SIM_CONFIG_DISPLAYCAP_UNLIMITED && !sFastForward;
+   static int sLogInit;
+   if (!sLogInit) {
+@@ -4202,7 +4238,7 @@
+         // libntr-ios-speedui.patch: the button switches between 1x and FastForwardSpeed through the Game speed timeline; Max is the
+         // uncapped path (at most the screen's rate presented)
+         const bool max = s_SIM_config.ffSpeed >= 5;
+-        s_SIM_config.speed = (u8)(ff != 0 && !max ? (s_SIM_config.ffSpeed < 2 ? 2 : s_SIM_config.ffSpeed) : 1);
++        SIM_SpeedSetUser(ff != 0 && !max ? (s_SIM_config.ffSpeed < 2 ? 2 : s_SIM_config.ffSpeed) : 1);  // (libntr-ios-battlespeed.patch)
+         sFastForward = ff != 0 && max;
+         fprintf(stderr, "bwport: fast-forward button %s: game speed %d%s\n", ff ? "on" : "off", (int)s_SIM_config.speed, sFastForward ? " + uncapped (Max)" : "");
+       }
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -561,9 +561,25 @@
+     return c->speed < 1 ? 0 : c->speed > 4 ? 3 : c->speed - 1;
+ }
+ 
++extern "C" void SIM_SpeedSetUser(int v);   // libntr-ios-battlespeed.patch
+ static void SetSpeed(int i) {
+     if (i != SpeedIndex()) {
+-        C()->speed = (u8)(i + 1);
++        SIM_SpeedSetUser(i + 1);   // (libntr-ios-battlespeed.patch: the player's speed, kept apart from a battle's)
++        Dirty();
++    }
++}
++
++// libntr-ios-battlespeed.patch: Battle speed (1x = off, 2x-4x): the game speed while a battle runs (the higher of it and the
++// Game speed / fast forward applies)
++static const char * const BattleSpeedTip = "how fast battles run, from the battle's start to its end (the field before and after keeps its speed). Off = the normal speed. The music keeps its tempo (Music at normal speed); sound effects and cries follow the speed. Fast forward, when faster, still wins";
++static const char * const BattleSpeedNames[] = {"Off", "2x", "3x", "4x"};
++static int BattleSpeedIndex() {
++    SIM_config_type * c = C();
++    return c->battleSpeed < 1 ? 0 : c->battleSpeed > 4 ? 3 : c->battleSpeed - 1;
++}
++static void SetBattleSpeed(int i) {
++    if (i != BattleSpeedIndex()) {
++        C()->battleSpeed = (u8)(i + 1);
+         Dirty();
+     }
+ }
+@@ -861,6 +877,9 @@
+         if (ComboIndex("##aspd", &sp, FFNames, 4)) { SetFF(sp); }
+         ImGui::EndDisabled();
+         if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
++        FormRow("Battle speed", BattleSpeedTip);   // libntr-ios-battlespeed.patch
++        int bsp = BattleSpeedIndex();
++        if (ComboIndex("##abspd", &bsp, BattleSpeedNames, 4)) { SetBattleSpeed(bsp); }
+         FormRow("Music at normal speed", MusicNormalTip);
+         bool mn = c->musicNormalSpeed != 0;
+         if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+@@ -2366,6 +2385,11 @@
+             ImGui::EndDisabled();
+             if (FrameRateUnlimited() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) { ImGui::SetTooltip("%s", NoEffectTip); }
+         }
++        FormRow("Battle speed", BattleSpeedTip);   // libntr-ios-battlespeed.patch
++        {
++            int bsp = BattleSpeedIndex();
++            if (ComboIndex("##qbspeed", &bsp, BattleSpeedNames, 4)) { SetBattleSpeed(bsp); }
++        }
+         FormRow("Music, normal speed", MusicNormalTip);
+         {
+             bool mn = c->musicNormalSpeed != 0;
+@@ -2750,6 +2774,7 @@
+     if (!strcmp(k, "soundquality")) return c->soundQuality != 0;
+     if (!strcmp(k, "frameskip")) return FrameSkipIndex();
+     if (!strcmp(k, "ffspeed")) return c->ffSpeed < 2 ? 2 : c->ffSpeed > 5 ? 5 : c->ffSpeed;   // libntr-ios-speedui.patch
++    if (!strcmp(k, "battlespeed")) return BattleSpeedIndex() + 1;   // libntr-ios-battlespeed.patch: 1 (off) .. 4
+     if (!strcmp(k, "skipslow")) return c->frameSkip != 0;
+     if (!strcmp(k, "volume")) return (int)((c->masterVolume * 100 + 63) / 127);
+     if (!strcmp(k, "overlay")) return c->overlay != 0;
+@@ -2785,6 +2810,7 @@
+     else if (!strcmp(k, "soundquality")) c->soundQuality = (u8)(v != 0);
+     else if (!strcmp(k, "frameskip")) SetFrameSkip(v < 0 ? 0 : v > 4 ? 4 : v);
+     else if (!strcmp(k, "ffspeed")) c->ffSpeed = (u8)(v < 2 ? 2 : v > 5 ? 5 : v);   // libntr-ios-speedui.patch: 2..4 or 5 = Max
++    else if (!strcmp(k, "battlespeed")) c->battleSpeed = (u8)(v < 1 ? 1 : v > 4 ? 4 : v);   // libntr-ios-battlespeed.patch
+     else if (!strcmp(k, "skipslow")) SetFrameSkip(v != 0 ? 4 : 0);
+     else if (!strcmp(k, "volume") || !strcmp(k, "volumelive")) {
+         // libntr-ios-appfix.patch: "volumelive" (a slider being dragged) applies without writing the ini or the log; "volume" (the

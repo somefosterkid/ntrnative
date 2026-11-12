@@ -1,0 +1,11 @@
+    .text       start:0x021f5a20 end:0x021f6090 kind:code align:32
+    .rodata     start:0x021f6090 end:0x021f60d4 kind:rodata align:4
+    .ctor       start:0x021f60d4 end:0x021f60d4 kind:rodata align:4
+    .data       start:0x021f60e0 end:0x021f6100 kind:data align:32
+    .bss        start:0x021f6100 end:0x021f6100 kind:bss align:32
+
+src/ov155/fld_faceup.c:
+    complete
+    .text       start:0x021f5a20 end:0x021f6090
+    .rodata     start:0x021f6090 end:0x021f60d4
+    .data       start:0x021f60e0 end:0x021f6100

@@ -1,0 +1,60 @@
+// The app (the maintainers' notes, "Android"). Both ABIs in one APK: arm64-v8a for phones, x86_64 for the emulator. The native
+// libraries come from src/main/jniLibs (tools/android_package.sh puts them there, stripped: the unstripped ones are kept under
+// build/android/symbols), so Gradle builds no native code and strips nothing.
+// Properties from tools/android_package.sh: bwVersionCode (the commit count, so each build installs over the last),
+// bwVersionName, bwSigning (a properties file outside git: storeFile, storePassword, keyAlias, keyPassword; without it the
+// release APK is signed with the debug key).
+plugins {
+    id 'com.android.application'
+}
+
+def signing = new Properties()
+if (project.hasProperty('bwSigning')) {
+    file(project.property('bwSigning')).withInputStream { signing.load(it) }
+}
+
+android {
+    namespace 'com.bwport.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.bwport.app'
+        minSdk 24            // tools/android_deps.sh MINSDK, port/machine/android-*.ini (the clang target's API level)
+        targetSdk 34         // SDL 2.32's (35 forces edge-to-edge drawing on Android 15)
+        versionCode((project.findProperty('bwVersionCode') ?: '1') as int)
+        versionName(project.findProperty('bwVersionName') ?: 'dev')
+    }
+
+    signingConfigs {
+        release {
+            if (signing.storeFile != null) {
+                storeFile file(signing.storeFile)
+                storePassword signing.storePassword
+                keyAlias signing.keyAlias
+                keyPassword signing.keyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signing.storeFile != null ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols += ['**/*.so']    // stripped already
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+    }
+}

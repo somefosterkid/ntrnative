@@ -1,0 +1,53 @@
+    .text       start:0x021c3cc0 end:0x021c7750 kind:code align:32
+    .rodata     start:0x021c7750 end:0x021c7ec4 kind:rodata align:4
+    .ctor       start:0x021c7ec4 end:0x021c7ec4 kind:rodata align:4
+    .data       start:0x021c7ee0 end:0x021c7f20 kind:data align:32
+    .bss        start:0x021c7f20 end:0x021c7f20 kind:bss align:32
+
+src/ov136/mailview.c:
+    complete
+    .text       start:0x021c4bfc end:0x021c5480
+    .rodata     start:0x021c77c4 end:0x021c78a4
+    .data       start:0x021c7ef8 end:0x021c7f04
+
+src/ov136/mailtool.c:
+    complete
+    .text       start:0x021c3cc0 end:0x021c3e3c
+    .data       start:0x021c7ee0 end:0x021c7eec
+
+src/ov136/mailbox.c:
+    complete
+    .text       start:0x021c5480 end:0x021c54fc
+    .rodata     start:0x021c78a4 end:0x021c78b0
+
+src/ov136/mb_obj.c:
+    complete
+    .text       start:0x021c64a8 end:0x021c68a0
+    .rodata     start:0x021c7ba0 end:0x021c7d5c
+
+src/ov136/mb_bmp.c:
+    complete
+    .text       start:0x021c5e58 end:0x021c64a8
+    .rodata     start:0x021c7a20 end:0x021c7ba0
+
+src/ov136/mailsys.c:
+    complete
+    .text       start:0x021c3e3c end:0x021c4bfc
+    .rodata     start:0x021c7750 end:0x021c77c4
+    .data       start:0x021c7eec end:0x021c7ef8
+
+src/ov136/mb_seq.c:
+    complete
+    .text       start:0x021c68a0 end:0x021c7648
+    .rodata     start:0x021c7d5c end:0x021c7e14
+    .data       start:0x021c7f04 end:0x021c7f20
+
+src/ov136/mb_main.c:
+    complete
+    .text       start:0x021c54fc end:0x021c5e58
+    .rodata     start:0x021c78b0 end:0x021c7a20
+
+src/ov136/mb_ui.c:
+    complete
+    .text       start:0x021c7648 end:0x021c7750
+    .rodata     start:0x021c7e14 end:0x021c7ec4

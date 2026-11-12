@@ -1,0 +1,32 @@
+    .text       start:0x0220b120 end:0x02211a74 kind:code align:32
+    .rodata     start:0x02211a74 end:0x02212520 kind:rodata align:4
+    .ctor       start:0x02212520 end:0x02212520 kind:rodata align:4
+    .data       start:0x02212540 end:0x02212560 kind:data align:32
+    .bss        start:0x02212560 end:0x02212560 kind:bss align:32
+
+src/ov198/b_plist_anm.c:
+    complete
+    .text       start:0x0220b120 end:0x0220bc24
+    .rodata     start:0x02211a74 end:0x02211af4
+    .data       start:0x02212540 end:0x02212550
+
+src/ov198/b_plist_cursor.c:
+    complete
+    .text       start:0x02211998 end:0x02211a74
+    .rodata     start:0x022122a0 end:0x02212520
+
+src/ov198/b_plist_bmp.c:
+    complete
+    .text       start:0x0220bc24 end:0x0220e2b4
+    .rodata     start:0x02211af4 end:0x02211d34
+
+src/ov198/b_plist_main.c:
+    complete
+    .text       start:0x0220f3e8 end:0x02211998
+    .rodata     start:0x02212130 end:0x022122a0
+    .data       start:0x02212550 end:0x02212560
+
+src/ov198/b_plist_obj.c:
+    complete
+    .text       start:0x0220e2b4 end:0x0220f3e8
+    .rodata     start:0x02211d34 end:0x02212130

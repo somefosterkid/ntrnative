@@ -1,0 +1,60 @@
+    .text       start:0x021b95a0 end:0x021bbde4 kind:code align:32
+    .rodata     start:0x021bbde4 end:0x021bbfc4 kind:rodata align:4
+    .ctor       start:0x021bbfc4 end:0x021bbfc4 kind:rodata align:4
+    .data       start:0x021bbfe0 end:0x021bc080 kind:data align:32
+    .bss        start:0x021bc080 end:0x021bc080 kind:bss align:32
+
+src/ov225/manual_list.c:
+    complete
+    .text       start:0x021ba65c end:0x021bb2b4
+    .rodata     start:0x021bbf8c end:0x021bbf9c
+    .data       start:0x021bc028 end:0x021bc038
+
+src/ov225/manual_explain.c:
+    complete
+    .text       start:0x021bba74 end:0x021bbde4
+    .rodata     start:0x021bbfa8 end:0x021bbfc4
+    .data       start:0x021bc06c end:0x021bc080
+
+src/ov225/manual_touchbar.c:
+    complete
+    .text       start:0x021b9f24 end:0x021ba65c
+    .rodata     start:0x021bbefc end:0x021bbf8c
+    .data       start:0x021bc014 end:0x021bc028
+
+src/ov225/manual_data.c:
+    complete
+    .text       start:0x021b9b3c end:0x021b9d18
+    .data       start:0x021bbff4 end:0x021bc004
+
+src/ov225/manual_common.c:
+    complete
+    .text       start:0x021b9d18 end:0x021b9f24
+    .data       start:0x021bc004 end:0x021bc014
+
+src/ov225/manual_category.c:
+    complete
+    .text       start:0x021bb6e0 end:0x021bb854
+    .data       start:0x021bc048 end:0x021bc05c
+
+src/ov225/manual_title.c:
+    complete
+    .text       start:0x021bb854 end:0x021bba74
+    .data       start:0x021bc05c end:0x021bc06c
+
+src/ov225/manual_graphic.c:
+    complete
+    .text       start:0x021b9900 end:0x021b9b3c
+    .rodata     start:0x021bbdf0 end:0x021bbefc
+    .data       start:0x021bbfe0 end:0x021bbff4
+
+src/ov225/manual_top.c:
+    complete
+    .text       start:0x021bb2b4 end:0x021bb6e0
+    .rodata     start:0x021bbf9c end:0x021bbfa8
+    .data       start:0x021bc038 end:0x021bc048
+
+src/ov225/manual.c:
+    complete
+    .text       start:0x021b95a0 end:0x021b9900
+    .rodata     start:0x021bbde4 end:0x021bbdf0

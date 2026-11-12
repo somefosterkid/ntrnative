@@ -1,0 +1,981 @@
+    .text       start:0x02187f00 end:0x021d359c kind:code align:32
+    .rodata     start:0x021d359c end:0x021dd9a8 kind:rodata align:4
+    .ctor       start:0x021dd9a8 end:0x021dd9a8 kind:rodata align:4
+    .data       start:0x021dd9c0 end:0x021de700 kind:data align:32
+    .bss        start:0x021de700 end:0x021ee740 kind:bss align:32
+
+src/ov021/field_map_chunk_wb.c:
+    complete
+    .text       start:0x021932c0 end:0x021933c0
+
+src/ov021/field_map_chunk_gc.c:
+    complete
+    .text       start:0x021933c0 end:0x02193544
+
+src/ov021/field_map_chunk_ng.c:
+    complete
+    .text       start:0x02193544 end:0x02193628
+
+src/ov021/field_map_chunk_height.c:
+    complete
+    .text       start:0x021d14c4 end:0x021d1670
+    .rodata     start:0x021db9a0 end:0x021dd5e0
+
+src/ov021/event_sweet_scent.c:
+    complete
+    .text       start:0x021c6068 end:0x021c63ac
+    .rodata     start:0x021daab4 end:0x021daab8
+
+src/ov021/sound_obj.c:
+    complete
+    .text       start:0x021c4d14 end:0x021c4f7c
+    .data       start:0x021de48c end:0x021de498
+
+src/ov021/unity_visitor.c:
+    complete
+    .text       start:0x021cfc4c end:0x021cfea0
+
+src/ov021/event_cgear_shutdown.c:
+    complete
+    .text       start:0x021d297c end:0x021d29f0
+
+src/ov021/scrcmd_place_name.c:
+    complete
+    .text       start:0x021b2fb0 end:0x021b2fd8
+
+src/ov021/field_map_chunk_rd.c:
+    complete
+    .text       start:0x02193628 end:0x021938ac
+
+src/ov021/fldeff_shadow.c:
+    complete
+    .text       start:0x021ac218 end:0x021ac494
+    .rodata     start:0x021d908c end:0x021d90ac
+    .data       start:0x021de028 end:0x021de038
+
+src/ov021/scrcmd_word.c:
+    complete
+    .text       start:0x021af75c end:0x021afcd8
+
+src/ov021/scrcmd_net.c:
+    complete
+    .text       start:0x021b4bec end:0x021b4d14
+src/ov021/scrcmd_pokemon_league.c:
+    complete
+    .text       start:0x021b5610 end:0x021b5700
+
+src/ov021/fieldmap_func.c:
+    complete
+    .text       start:0x021bb890 end:0x021bba70
+    .data       start:0x021de2f8 end:0x021de308
+
+src/ov021/event_dendou_machine.c:
+    complete
+    .text       start:0x021c0aa0 end:0x021c0ca4
+    .rodata     start:0x021da0e0 end:0x021da128
+
+src/ov021/event_fly.c:
+    complete
+    .text       start:0x021c8268 end:0x021c8608
+
+src/ov021/event_fishing.c:
+    complete
+    .text       start:0x021c5c64 end:0x021c6068
+
+src/ov021/scrcmd_pleasure_boat.c:
+    complete
+    .text       start:0x021c881c end:0x021c8984
+
+src/ov021/event_phrase_input.c:
+    complete
+    .text       start:0x021d1670 end:0x021d182c
+
+src/ov021/event_dive.c:
+    complete
+    .text       start:0x021d2278 end:0x021d2468
+
+src/ov021/scrcmd_plugin14.c:
+    complete
+    .text       start:0x021d2edc end:0x021d30b8
+
+src/ov021/event_game_manual.c:
+    complete
+    .text       start:0x021d30b8 end:0x021d317c
+    .data       start:0x021de698 end:0x021de6ac
+
+src/ov021/rail_attr.c:
+    complete
+    .text       start:0x021bb088 end:0x021bb1f4
+    .data       start:0x021de2c4 end:0x021de2d0
+
+src/ov021/scrcmd_field_move.c:
+    complete
+    .text       start:0x021c457c end:0x021c46f8
+
+src/ov021/fldeff_fishing.c:
+    complete
+    .text       start:0x021adedc end:0x021ae0cc
+    .rodata     start:0x021d92e0 end:0x021d9338
+    .data       start:0x021de120 end:0x021de138
+
+src/ov021/fld_scenearea.c:
+    complete
+    .text       start:0x021ab5f4 end:0x021ab7e4
+    .data       start:0x021ddfc8 end:0x021ddfd8
+
+src/ov021/field_palace_sys.c:
+    complete
+    .text       start:0x021d33a8 end:0x021d359c
+    .rodata     start:0x021dd944 end:0x021dd9a8
+    .data       start:0x021de6d4 end:0x021de700
+
+src/ov021/fldeff_kemuri.c:
+    complete
+    .text       start:0x021ac494 end:0x021ac68c
+    .rodata     start:0x021d90ac end:0x021d90c0
+    .data       start:0x021de038 end:0x021de048
+
+src/ov021/scrcmd_item.c:
+    complete
+    .text       start:0x021af544 end:0x021af75c
+
+src/ov021/fldeff_iwakudaki.c:
+    complete
+    .text       start:0x021adcb8 end:0x021adedc
+    .rodata     start:0x021d9290 end:0x021d92e0
+    .data       start:0x021de0fc end:0x021de120
+
+src/ov021/fld_vreq.c:
+    complete
+    .text       start:0x021d317c end:0x021d33a8
+    .data       start:0x021de6ac end:0x021de6d4
+
+src/ov021/field_nogrid_mapper.c:
+    complete
+    .text       start:0x021bb1f4 end:0x021bb484
+    .data       start:0x021de2d0 end:0x021de2e8
+
+src/ov021/event_pc.c:
+    complete
+    .text       start:0x021c96cc end:0x021c9924
+
+src/ov021/scrcmd_encount.c:
+    complete
+    .text       start:0x021b5008 end:0x021b52a4
+    .rodata     start:0x021d98d0 end:0x021d98dc
+    .data       start:0x021de234 end:0x021de248
+
+src/ov021/gimmick_league_champion.c:
+    complete
+    .text       start:0x021c06cc end:0x021c0820
+    .rodata     start:0x021da08c end:0x021da098
+
+src/ov021/local_tvt_callselect.c:
+    complete
+    .text       start:0x021a0380 end:0x021a0390
+
+src/ov021/event_pokemon_center.c:
+    complete
+    .text       start:0x021c0820 end:0x021c0aa0
+    .rodata     start:0x021da098 end:0x021da0e0
+
+src/ov021/scrcmd_fade.c:
+    complete
+    .text       start:0x021b2830 end:0x021b2ab0
+
+src/ov021/scrcmd_gym.c:
+    complete
+    .text       start:0x021b2380 end:0x021b2614
+
+src/ov021/scrcmd_ochiba.c:
+    complete
+    .text       start:0x021cfea0 end:0x021d0140
+
+src/ov021/fldeff_footmark.c:
+    complete
+    .text       start:0x021bbcbc end:0x021bbf78
+    .rodata     start:0x021d9ae8 end:0x021d9b40
+    .data       start:0x021de30c end:0x021de320
+
+src/ov021/scrcmd_menu.c:
+    complete
+    .text       start:0x021b0084 end:0x021b03e4
+
+src/ov021/scrcmd_fld_battle.c:
+    complete
+    .text       start:0x021b5700 end:0x021b5a18
+    .data       start:0x021de248 end:0x021de25c
+
+src/ov021/field_actor_animation.c:
+    complete
+    .text       start:0x021d182c end:0x021d1b8c
+    .rodata     start:0x021dd5e0 end:0x021dd60c
+
+src/ov021/scrcmd_camera.c:
+    complete
+    .text       start:0x021b52a4 end:0x021b5610
+
+src/ov021/scrcmd_mapchange.c:
+    complete
+    .text       start:0x021afcd8 end:0x021b0084
+
+src/ov021/fldeff_grass.c:
+    complete
+    .text       start:0x021ac68c end:0x021aca38
+    .rodata     start:0x021d90c0 end:0x021d915c
+    .data       start:0x021de048 end:0x021de080
+
+src/ov021/fldeff_gyoe.c:
+    complete
+    .text       start:0x021bb484 end:0x021bb890
+    .rodata     start:0x021d9a6c end:0x021d9ae0
+    .data       start:0x021de2e8 end:0x021de2f8
+
+src/ov021/scrcmd_buildmodel.c:
+    complete
+    .text       start:0x021b2ab0 end:0x021b2ebc
+    .bss        start:0x021ee720 end:0x021ee724
+
+src/ov021/scrcmd_trainer.c:
+    complete
+    .text       start:0x021ae948 end:0x021aede0
+
+src/ov021/event_chatot.c:
+    complete
+    .text       start:0x021d1c24 end:0x021d213c
+    .rodata     start:0x021dd60c end:0x021dd614
+
+src/ov021/map_attr.c:
+    complete
+    .text       start:0x021ab0d4 end:0x021ab5f4
+    .rodata     start:0x021d8ea0 end:0x021d8eec
+
+src/ov021/fldeff_encount.c:
+    complete
+    .text       start:0x021ad758 end:0x021adcb8
+    .rodata     start:0x021d9234 end:0x021d9290
+    .data       start:0x021de094 end:0x021de0fc
+
+src/ov021/fld_scenearea_loader.c:
+    complete
+    .text       start:0x021ab7e4 end:0x021abd50
+    .rodata     start:0x021d8eec end:0x021d8f00
+    .data       start:0x021ddfd8 end:0x021de018
+
+src/ov021/fld_trade.c:
+    complete
+    .text       start:0x021cbfb0 end:0x021cc544
+    .data       start:0x021de59c end:0x021de5a8
+
+src/ov021/fieldmap_ctrl_hybrid.c:
+    complete
+    .text       start:0x021a6dc4 end:0x021a7360
+    .data       start:0x021ddf38 end:0x021ddf7c
+
+src/ov021/trial_house.c:
+    complete
+    .text       start:0x021d096c end:0x021d1164
+    .data       start:0x021de674 end:0x021de684
+
+src/ov021/scrcmd_sound.c:
+    complete
+    .text       start:0x021aede0 end:0x021af544
+
+src/ov021/field_ground_anime.c:
+    complete
+    .text       start:0x021a7360 end:0x021a7b08
+    .rodata     start:0x021d8b00 end:0x021d8b18
+    .data       start:0x021ddf7c end:0x021ddf94
+
+src/ov021/field_menu.c:
+    complete
+    .text       start:0x021a836c end:0x021a9350
+    .rodata     start:0x021d8b18 end:0x021d8dcc
+    .data       start:0x021ddf94 end:0x021ddfa4
+
+src/ov021/field_buildmodel.c:
+    complete
+    .text       start:0x0218b754 end:0x0218c9e8
+    .rodata     start:0x021d3d50 end:0x021d3dd4
+    .data       start:0x021dd9cc end:0x021dd9e0
+
+src/ov021/scrcmd_msg.c:
+    complete
+    .text       start:0x021b03e4 end:0x021b1668
+    .rodata     start:0x021d9390 end:0x021d93fc
+
+src/ov021/field_g3d_mapper.c:
+    .text       start:0x0218c9e8 end:0x0218e018
+    .rodata     start:0x021d3dd4 end:0x021d3e2c
+    .data       start:0x021dd9e0 end:0x021dda00
+
+src/ov021/event_entrance_effect.c:
+    complete
+    .text       start:0x021a7b08 end:0x021a836c
+
+src/ov021/event_trainer_eye.c:
+    complete
+    .text       start:0x021ae0cc end:0x021ae948
+    .rodata     start:0x021d9338 end:0x021d9390
+    .data       start:0x021de138 end:0x021de14c
+
+src/ov021/field_encount.c:
+    complete
+    .text       start:0x021a9ed8 end:0x021aa77c
+    .data       start:0x021ddfa4 end:0x021ddfb4
+
+src/ov021/effect_encount.c:
+    complete
+    .text       start:0x021aa77c end:0x021ab0d4
+    .rodata     start:0x021d8e70 end:0x021d8ea0
+    .data       start:0x021ddfb4 end:0x021ddfc8
+
+src/ov021/shortcut_menu.c:
+    complete
+    .text       start:0x021c4f7c end:0x021c5aac
+    .rodata     start:0x021daa54 end:0x021daab4
+    .data       start:0x021de498 end:0x021de4a8
+
+src/ov021/pleasure_boat.c:
+    complete
+    .text       start:0x021c8608 end:0x021c881c
+    .data       start:0x021de534 end:0x021de544
+
+src/ov021/fldeff_splash.c:
+    complete
+    .text       start:0x021c4978 end:0x021c4d14
+    .rodata     start:0x021daa18 end:0x021daa54
+    .data       start:0x021de478 end:0x021de48c
+
+src/ov021/field_saveanime.c:
+    complete
+    .text       start:0x021d1164 end:0x021d14c4
+    .rodata     start:0x021db97c end:0x021db9a0
+    .data       start:0x021de684 end:0x021de698
+
+src/ov021/field_player_core.c:
+    complete
+    .text       start:0x021a36bc end:0x021a41b0
+    .rodata     start:0x021d895c end:0x021d89ec
+    .data       start:0x021ddeb8 end:0x021ddee0
+
+src/ov021/ov021_021d2468.c:
+    complete
+    .text       start:0x021d2468 end:0x021d2524
+    .rodata     start:0x021dd6d0 end:0x021dd710
+
+src/ov021/ov021_021d2524.c:
+    complete
+    .text       start:0x021d2524 end:0x021d297c
+    .rodata     start:0x021dd710 end:0x021dd718
+
+src/ov021/field_wfbc.c:
+    complete
+    .text       start:0x021938ac end:0x02193f34
+    .rodata     start:0x021d3f58 end:0x021d3f68
+    .data       start:0x021dda60 end:0x021dda70
+
+src/ov021/ov021_02193f34.c:
+    .text       start:0x02193f34 end:0x02194284
+
+src/ov021/field_comm_actor.c:
+    complete
+    .text       start:0x02194284 end:0x021945a4
+    .rodata     start:0x021d3f68 end:0x021d3f8c
+    .data       start:0x021dda70 end:0x021dda84
+
+src/ov021/field_menu_event.c:
+    complete
+    .text       start:0x021945a4 end:0x02194670
+
+src/ov021/talkmsgwin.c:
+    complete
+    .text       start:0x02194670 end:0x02196030
+    .data       start:0x021dda84 end:0x021ddad4
+
+src/ov021/ircbattlemenu.c:
+    complete
+    .text       start:0x02196030 end:0x02197c4c
+    .rodata     start:0x021d3f8c end:0x021d4160
+    .data       start:0x021ddad4 end:0x021ddbd4
+
+src/ov021/fldeff_reflect.c:
+    complete
+    .text       start:0x021bbf78 end:0x021bbfb8
+    .data       start:0x021de320 end:0x021de334
+
+src/ov021/ov021_021bbfb8.c:
+    complete
+    .text       start:0x021bbfb8 end:0x021bc550
+    .rodata     start:0x021d9b40 end:0x021d9b78
+    .data       start:0x021de334 end:0x021de354
+
+src/ov021/field_place_name.c:
+    complete
+    .text       start:0x021bc550 end:0x021bd068
+    .rodata     start:0x021d9b78 end:0x021d9bb0
+    .data       start:0x021de354 end:0x021de368
+
+src/ov021/ov021_021bd068.c:
+    complete
+    .text       start:0x021bd068 end:0x021bd214
+
+src/ov021/place_name_letter.c:
+    complete
+    .text       start:0x021bd214 end:0x021bd2b8
+    .data       start:0x021de368 end:0x021de37c
+
+src/ov021/ov021_021bd2b8.c:
+    complete
+    .text       start:0x021bd2b8 end:0x021bdc94
+    .rodata     start:0x021d9bb0 end:0x021d9be0
+
+src/ov021/entrance_camera.c:
+    complete
+    .text       start:0x021bdc94 end:0x021bddc0
+    .data       start:0x021de37c end:0x021de390
+
+src/ov021/ov021_021bddc0.c:
+    complete
+    .text       start:0x021bddc0 end:0x021be2a8
+    .rodata     start:0x021d9be0 end:0x021d9f50
+
+src/ov021/fld_exp_obj.c:
+    complete
+    .text       start:0x021be2a8 end:0x021be89c
+    .data       start:0x021de390 end:0x021de3a0
+
+src/ov021/field_transition.c:
+    complete
+    .text       start:0x021be89c end:0x021bf58c
+    .rodata     start:0x021d9f50 end:0x021da080
+
+src/ov021/height_ex.c:
+    complete
+    .text       start:0x021c0598 end:0x021c06a8
+    .data       start:0x021de3a0 end:0x021de3ac
+
+src/ov021/ov021_021c06a8.c:
+    complete
+    .text       start:0x021c06a8 end:0x021c06cc
+
+src/ov021/fldeff_d06denki.c:
+    complete
+    .text       start:0x021c8e68 end:0x021c8f7c
+    .rodata     start:0x021dab6c end:0x021dab90
+    .data       start:0x021de544 end:0x021de558
+
+src/ov021/ov021_021c8f7c.c:
+    complete
+    .text       start:0x021c8f7c end:0x021c939c
+    .rodata     start:0x021dab90 end:0x021dac80
+
+src/ov021/land_data_patch.c:
+    complete
+    .text       start:0x021c939c end:0x021c93d0
+    .data       start:0x021de558 end:0x021de56c
+
+src/ov021/ov021_021c93d0.c:
+    complete
+    .text       start:0x021c93d0 end:0x021c94bc
+
+src/ov021/fldeff_iaigiri.c:
+    complete
+    .text       start:0x021c94bc end:0x021c9550
+    .data       start:0x021de56c end:0x021de58c
+
+src/ov021/ov021_021c9550.c:
+    complete
+    .text       start:0x021c9550 end:0x021c96cc
+    .rodata     start:0x021dac80 end:0x021dacd0
+
+src/ov021/field_player.c:
+    complete
+    .text       start:0x021a2e50 end:0x021a36bc
+    .rodata     start:0x021d890c end:0x021d895c
+    .data       start:0x021ddea8 end:0x021ddeb8
+
+src/ov021/enc_pokeset.c:
+    complete
+    .text       start:0x021a9350 end:0x021a9ed8
+    .rodata     start:0x021d8dcc end:0x021d8e70
+
+src/ov021/bsubway_scr.c:
+    complete
+    .text       start:0x021c9924 end:0x021ca544
+    .rodata     start:0x021dacd0 end:0x021dad24
+    .data       start:0x021de58c end:0x021de59c
+
+src/ov021/scrcmd_fldmmdl.c:
+    complete
+    .text       start:0x021b1668 end:0x021b2380
+    .rodata     start:0x021d93fc end:0x021d9430
+    .bss        start:0x021ee71c end:0x021ee720
+
+src/ov021/fldeff_namipoke.c:
+    complete
+    .text       start:0x021aca38 end:0x021ad758
+    .rodata     start:0x021d915c end:0x021d9234
+    .data       start:0x021de080 end:0x021de094
+
+src/ov021/field_player_grid.c:
+    complete
+    .text       start:0x021a41b0 end:0x021a5880
+    .rodata     start:0x021d89ec end:0x021d8ab0
+
+src/ov021/scrcmd_shop.c:
+    complete
+    .text       start:0x021b2fd8 end:0x021b4bec
+    .rodata     start:0x021d9430 end:0x021d98d0
+    .data       start:0x021de164 end:0x021de220
+
+src/ov021/fieldmap.c:
+    complete
+    .text       start:0x02188030 end:0x02189bd0
+    .rodata     start:0x021d35a8 end:0x021d3ce8
+    .data       start:0x021dd9c0 end:0x021dd9cc
+    .bss        start:0x021ee700 end:0x021ee710
+
+src/ov021/fieldmap_event.c:
+    complete
+    .text       start:0x02189bd0 end:0x0218b754
+    .rodata     start:0x021d3ce8 end:0x021d3d50
+
+src/ov021/field_player_nogrid.c:
+    complete
+    .text       start:0x021a5880 end:0x021a6cb8
+    .rodata     start:0x021d8ab0 end:0x021d8ad8
+    .data       start:0x021ddee0 end:0x021ddf1c
+
+src/ov021/fieldmap_ctrl_nogrid_work.c:
+    complete
+    .text       start:0x021a6cb8 end:0x021a6dc4
+    .data       start:0x021ddf1c end:0x021ddf38
+    .rodata     start:0x021d8ad8 end:0x021d8b00
+
+src/ov021/sodateya.c:
+    complete
+    .text       start:0x021c31d4 end:0x021c457c
+    .rodata     start:0x021da8c8 end:0x021da9f0
+    .data       start:0x021de458 end:0x021de464
+
+src/ov021/fldeff_ripple.c:
+    complete
+    .text       start:0x021c46f8 end:0x021c4978
+    .rodata     start:0x021da9f0 end:0x021daa18
+    .data       start:0x021de464 end:0x021de478
+
+src/ov021/ov021_021d29f0.c:
+    complete
+    .text       start:0x021d29f0 end:0x021d2edc
+    .rodata     start:0x021dd718 end:0x021dd944
+
+src/ov021/field_camera.c:
+    complete
+    .text       start:0x0218e018 end:0x0218fe78
+    .rodata     start:0x021d3e2c end:0x021d3e50
+    .data       start:0x021dda00 end:0x021dda38
+
+src/ov021/field_camera_anime.c:
+    complete
+    .text       start:0x0218fe78 end:0x02190110
+    .data       start:0x021dda38 end:0x021dda50
+
+src/ov021/ov021_02190110.c:
+    complete
+    .text       start:0x02190110 end:0x021901ec
+
+src/ov021/field_msgbg.c:
+    complete
+    .text       start:0x021901ec end:0x021932c0
+    .rodata     start:0x021d3e50 end:0x021d3f58
+    .data       start:0x021dda50 end:0x021dda60
+
+src/ov021/fldmmdl_drawdata.c:
+    complete
+    .rodata     start:0x021d6540 end:0x021d8058
+    .data       start:0x021ddbf0 end:0x021ddd70
+
+src/ov021/fldmmdl_blact.c:
+    complete
+    .text       start:0x0219c4ac end:0x0219d448
+    .rodata     start:0x021d8058 end:0x021d80e4
+    .data       start:0x021ddd70 end:0x021ddd80
+
+src/ov021/fldmmdl_g3dobj.c:
+    complete
+    .text       start:0x0219d448 end:0x0219e0a8
+    .rodata     start:0x021d80e4 end:0x021d80f4
+    .data       start:0x021ddd80 end:0x021ddd94
+
+src/ov021/fld_act_rail.c:
+    complete
+    .text       start:0x0219e0a8 end:0x0219e2c0
+    .data       start:0x021ddd94 end:0x021ddda0
+    .rodata     start:0x021d80f4 end:0x021d841c
+
+src/ov021/fldmmdl_rail.c:
+    complete
+    .text       start:0x0219e2c0 end:0x0219ef14
+    .rodata     start:0x021d841c end:0x021d8548
+
+src/ov021/rail_data_handle.c:
+    complete
+    .text       start:0x0219ef14 end:0x0219ef44
+    .data       start:0x021ddda0 end:0x021dde08
+
+src/ov021/field_rail_loader.c:
+    complete
+    .text       start:0x0219ef44 end:0x021a006c
+    .rodata     start:0x021d8548 end:0x021d86f0
+    .data       start:0x021dde08 end:0x021dde1c
+
+src/ov021/ov021_021a006c.c:
+    complete
+    .text       start:0x021a006c end:0x021a0104
+    .rodata     start:0x021d86f0 end:0x021d8708
+
+src/ov021/field_fog.c:
+    complete
+    .text       start:0x021a0104 end:0x021a0138
+    .data       start:0x021dde1c end:0x021dde28
+
+src/ov021/ov021_021a0138.c:
+    complete
+    .text       start:0x021a0138 end:0x021a02c4
+
+src/ov021/field_zonefog.c:
+    complete
+    .text       start:0x021a02c4 end:0x021a02f4
+    .data       start:0x021dde28 end:0x021dde38
+
+src/ov021/ov021_021a02f4.c:
+    complete
+    .text       start:0x021a02f4 end:0x021a0380
+
+src/ov021/ov021_021a0390.c:
+    complete
+    .text       start:0x021a0390 end:0x021a03d0
+
+src/ov021/ov021_021a0448.c:
+    complete
+    .text       start:0x021a03d0 end:0x021a0cf4
+    .data       start:0x021dde38 end:0x021dde48
+
+src/ov021/field_subscreen.c:
+    complete
+    .text       start:0x021a0cf4 end:0x021a15a4
+    .rodata     start:0x021d8708 end:0x021d8840
+    .data       start:0x021dde48 end:0x021dde5c
+
+src/ov021/field_3dbg.c:
+    complete
+    .text       start:0x021a15a4 end:0x021a19e8
+    .data       start:0x021dde5c end:0x021dde6c
+
+src/ov021/weather.c:
+    complete
+    .text       start:0x021a19e8 end:0x021a1bf4
+    .rodata     start:0x021d8840 end:0x021d88e0
+    .data       start:0x021dde6c end:0x021dde80
+
+src/ov021/weather_task.c:
+    complete
+    .text       start:0x021a1bf4 end:0x021a2d88
+    .rodata     start:0x021d88e0 end:0x021d88f8
+    .data       start:0x021dde80 end:0x021dde90
+    .bss        start:0x021ee710 end:0x021ee71c
+
+src/ov021/ov021_021b5b4c.c:
+    complete
+    .text       start:0x021b5b4c end:0x021b66b8
+    .rodata     start:0x021d98dc end:0x021d9970
+
+src/ov021/scrcmd_pokemon_fld.c:
+    complete
+    .text       start:0x021b66b8 end:0x021b69b0
+    .data       start:0x021de270 end:0x021de288
+
+src/ov021/field_player_grid_event.c:
+    complete
+    .text       start:0x021c0ca4 end:0x021c12c4
+    .data       start:0x021de3ac end:0x021de3c8
+
+src/ov021/ov021_021c12c4.c:
+    complete
+    .text       start:0x021c12c4 end:0x021c1a08
+    .rodata     start:0x021da128 end:0x021da140
+
+src/ov021/fld_particle.c:
+    complete
+    .text       start:0x021c1a08 end:0x021c1af4
+    .data       start:0x021de3c8 end:0x021de3d8
+
+src/ov021/fld3d_ci.c:
+    complete
+    .text       start:0x021c1af4 end:0x021c31d4
+    .rodata     start:0x021da140 end:0x021da8c8
+    .data       start:0x021de3d8 end:0x021de458
+
+src/ov021/field_g3dobj.c:
+    complete
+    .text       start:0x021c63ac end:0x021c6400
+    .data       start:0x021de4a8 end:0x021de4b8
+
+src/ov021/ov021_021c6400.c:
+    complete
+    .text       start:0x021c6400 end:0x021c6b18
+
+src/ov021/fieldmap_tcb_camera_zoom.c:
+    complete
+    .text       start:0x021c6b18 end:0x021c6c70
+    .data       start:0x021de4b8 end:0x021de4d4
+
+src/ov021/field_task.c:
+    complete
+    .text       start:0x021c6c70 end:0x021c6cbc
+    .data       start:0x021de4d4 end:0x021de4e4
+
+src/ov021/field_task_manager.c:
+    complete
+    .text       start:0x021c6cbc end:0x021c6ea8
+    .data       start:0x021de4e4 end:0x021de4fc
+
+src/ov021/ov021_021c6ea8.c:
+    complete
+    .text       start:0x021c6ea8 end:0x021c7dac
+    .rodata     start:0x021daab8 end:0x021daad0
+
+src/ov021/field_flash.c:
+    complete
+    .text       start:0x021c7dac end:0x021c7de0
+    .data       start:0x021de4fc end:0x021de50c
+
+src/ov021/ov021_021c7de0.c:
+    complete
+    .text       start:0x021c7de0 end:0x021c7f70
+    .rodata     start:0x021daad0 end:0x021daae0
+
+src/ov021/fieldskill_mapeff.c:
+    complete
+    .text       start:0x021c7f70 end:0x021c8018
+    .data       start:0x021de50c end:0x021de520
+
+src/ov021/fld_wipe_3dobj.c:
+    complete
+    .text       start:0x021c8018 end:0x021c812c
+    .data       start:0x021de520 end:0x021de534
+
+src/ov021/ov021_021c812c.c:
+    complete
+    .text       start:0x021c812c end:0x021c8268
+    .rodata     start:0x021daae0 end:0x021dab24
+
+src/ov021/ov021_021cc544.c:
+    complete
+    .text       start:0x021cc544 end:0x021cc570
+
+src/ov021/ov021_021cc614.c:
+    complete
+    .text       start:0x021cc614 end:0x021cc720
+
+src/ov021/ov021_021cc7b4.c:
+    complete
+    .text       start:0x021cc720 end:0x021cd1c8
+    .rodata     start:0x021db404 end:0x021db44c
+    .data       start:0x021de5bc end:0x021de5d4
+
+src/ov021/field_bbd_color.c:
+    complete
+    .text       start:0x021cd1c8 end:0x021cd1f0
+    .data       start:0x021de5d4 end:0x021de5e8
+
+src/ov021/ov021_021cd1f0.c:
+    complete
+    .text       start:0x021cd1f0 end:0x021cd48c
+    .rodata     start:0x021db44c end:0x021db470
+
+src/ov021/ov021_021cd5a4.c:
+    complete
+    .text       start:0x021cd48c end:0x021cf45c
+    .rodata     start:0x021db470 end:0x021db4fc
+    .data       start:0x021de5e8 end:0x021de5fc
+
+src/ov021/enceff.c:
+    complete
+    .text       start:0x021cf45c end:0x021cfa58
+    .rodata     start:0x021db7e0 end:0x021db810
+    .data       start:0x021de5fc end:0x021de608
+
+src/ov021/ov021_021cfa58.c:
+    complete
+    .text       start:0x021cfa58 end:0x021cfc4c
+    .rodata     start:0x021db810 end:0x021db8c4
+
+src/ov021/fldeff_btrain.c:
+    complete
+    .text       start:0x021d0140 end:0x021d0160
+    .data       start:0x021de608 end:0x021de618
+
+src/ov021/ov021_021d0160.c:
+    complete
+    .text       start:0x021d0160 end:0x021d038c
+    .rodata     start:0x021db8c4 end:0x021db92c
+
+src/ov021/fldeff_hide.c:
+    complete
+    .text       start:0x021d038c end:0x021d046c
+    .rodata     start:0x021db92c end:0x021db934
+    .data       start:0x021de618 end:0x021de628
+
+src/ov021/ov021_021d046c.c:
+    complete
+    .text       start:0x021d046c end:0x021d05d8
+    .rodata     start:0x021db934 end:0x021db950
+    .data       start:0x021de628 end:0x021de664
+
+src/ov021/fldeff_bubble.c:
+    complete
+    .text       start:0x021d05d8 end:0x021d0750
+    .rodata     start:0x021db950 end:0x021db97c
+    .data       start:0x021de664 end:0x021de674
+
+src/ov021/ov021_021d0750.c:
+    complete
+    .text       start:0x021d0750 end:0x021d096c
+
+src/ov021/fieldmap_ctrl_grid.c:
+    complete
+    .text       start:0x021a2d88 end:0x021a2e50
+    .data       start:0x021dde90 end:0x021ddea8
+    .rodata     start:0x021d88f8 end:0x021d890c
+
+src/ov021/field_effect.c:
+    complete
+    .text       start:0x021abd50 end:0x021ac218
+    .rodata     start:0x021d8f00 end:0x021d908c
+    .data       start:0x021de018 end:0x021de028
+
+src/ov021/field_rail.c:
+    complete
+    .text       start:0x021b7884 end:0x021bb088
+    .rodata     start:0x021d9a00 end:0x021d9a6c
+    .data       start:0x021de298 end:0x021de2c4
+
+src/ov021/ov021_021ca544.c:
+    complete
+    .text       start:0x021ca544 end:0x021cbd08
+    .rodata     start:0x021dad24 end:0x021db3cc
+
+src/ov021/scrcmd_proc_fld.c:
+    complete
+    .text       start:0x021b4d14 end:0x021b5008
+    .data       start:0x021de220 end:0x021de234
+
+src/ov021/ov021_021b2614.c:
+    complete
+    .text       start:0x021b2614 end:0x021b2830
+
+src/ov021/ov021_021d213c.c:
+    complete
+    .text       start:0x021d213c end:0x021d2278
+    .rodata     start:0x021dd614 end:0x021dd6d0
+
+src/ov021/ov021_021c5aac.c:
+    complete
+    .text       start:0x021c5aac end:0x021c5c64
+src/ov021/pdw_postman.c:
+    complete
+    .text       start:0x021b7400 end:0x021b7884
+    .data       start:0x021de288 end:0x021de298
+
+src/ov021/scrcmd_misc.c:
+    complete
+    .text       start:0x021b70d8 end:0x021b7400
+    .rodata     start:0x021d99d0 end:0x021d9a00
+
+src/ov021/ov021_021b69b0.c:
+    complete
+    .text       start:0x021b69b0 end:0x021b70d8
+    .rodata     start:0x021d9970 end:0x021d99d0
+
+src/ov021/union_mine_pms.c:
+    complete
+    .text       start:0x021bba70 end:0x021bbcbc
+    .rodata     start:0x021d9ae0 end:0x021d9ae8
+    .data       start:0x021de308 end:0x021de30c
+
+src/ov021/field_fade.c:
+    complete
+    .text       start:0x021b2ebc end:0x021b2fb0
+    .data       start:0x021de14c end:0x021de164
+
+src/ov021/scrcmd_c03center.c:
+    complete
+    .text       start:0x021b5a18 end:0x021b5b4c
+    .data       start:0x021de25c end:0x021de270
+    .bss        start:0x021ee724 end:0x021ee740
+
+src/ov021/scrcmd_field.c:
+    complete
+    .text       start:0x021d1b8c end:0x021d1c24
+
+src/ov021/fieldmap_proc.c:
+    complete
+    .text       start:0x02187f00 end:0x02188030
+    .bss        start:0x021de700 end:0x021ee700
+    .rodata     start:0x021d359c end:0x021d35a8
+
+src/ov021/field_slope_slip.c:
+    complete
+    .text       start:0x021c8984 end:0x021c8b9c
+    .rodata     start:0x021dab24 end:0x021dab44
+
+src/ov021/field_water_current.c:
+    complete
+    .text       start:0x021c8b9c end:0x021c8e68
+    .rodata     start:0x021dab44 end:0x021dab6c
+
+src/ov021/bsubway_trainers.c:
+    complete
+    .text       start:0x021cbd08 end:0x021cbfb0
+    .rodata     start:0x021db3cc end:0x021db404
+
+src/ov021/ov021_021bf58c.c:
+    complete
+    .text       start:0x021bf58c end:0x021c0598
+    .rodata     start:0x021da080 end:0x021da08c
+
+src/ov021/fldmmdl_movedata.c:
+    complete
+    .rodata     start:0x021d548c end:0x021d6540
+
+src/ov021/fldmmdl_movecode.c:
+    complete
+    .text       start:0x0219a098 end:0x0219b414
+    .rodata     start:0x021d4d04 end:0x021d5238
+
+src/ov021/fldmmdl_evtype.c:
+    complete
+    .text       start:0x0219b414 end:0x0219b8bc
+    .rodata     start:0x021d5238 end:0x021d5374
+
+src/ov021/fldmmdl_movecode_pair.c:
+    complete
+    .text       start:0x0219b8bc end:0x0219c4ac
+    .rodata     start:0x021d5374 end:0x021d548c
+
+src/ov021/fldmmdl_acmd.c:
+    complete
+    .text       start:0x02197c4c end:0x0219a098
+    .rodata     start:0x021d4160 end:0x021d4d04
+    .data       start:0x021ddbd4 end:0x021ddbf0
+
+src/ov021/enceff_data.c:
+    complete
+    .rodata     start:0x021db4fc end:0x021db7e0
+
+src/ov021/scrcmd_palpark.c:
+    complete
+    .text       start:0x021cc570 end:0x021cc614
+    .data       start:0x021de5a8 end:0x021de5bc

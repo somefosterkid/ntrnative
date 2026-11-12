@@ -1,0 +1,191 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -107,6 +107,58 @@
+ static u64 sFullFrameTime;
+ static u64 sRealFrameTime;
+ 
++// bw-port (libntr-vs70.patch): BWPORT_FRAMELOG=FILE writes one line per frame (microseconds): the frame number, the
++// frame's period (start to start, the cap's wait included), the parts of it (the game's logic up to SIM_Render, the
++// events, the ImGui frame, the frame renderer incl. upload, the V-blank IRQ, ImGui's render, the swap, the cap's wait,
++// the sound step), the upload alone, the frame skip state, and 6 numbers the bridge sets (SIM_FrameLogExtra). Costs a
++// clock read per part and one fprintf a frame; off (one int test) unless the variable is set.
++static int sFLOn = -1;
++static FILE *sFLFile;
++static u64 sFLT[12];
++static u64 sFLUpload, sFLExtra[8];
++static u64 sFLT0, sFLN;
++static inline u64 FLNow(void) {
++  struct timespec t;
++  clock_gettime(CLOCK_MONOTONIC, &t);
++  return (u64)t.tv_sec * 1000000000ull + (u64)t.tv_nsec;
++}
++static inline void FLStamp(int i) {
++  if (sFLOn > 0) sFLT[i] = FLNow();
++}
++static void FLClose(void) {
++  if (sFLFile != NULL) fclose(sFLFile);
++  sFLFile = NULL;
++}
++extern "C" u64 SIM_FrameLogNow(void) { return sFLOn > 0 ? FLNow() : 0; } // the bridges time their parts with this
++extern "C" int SIM_FrameLogOn(void) { return sFLOn > 0; }
++extern "C" void SIM_FrameLogExtra(int i, u64 ns) {
++  if (sFLOn > 0 && i >= 0 && i < 8) sFLExtra[i] = ns;
++}
++// BWPORT_NOPRESENT=1: nothing is uploaded, drawn or swapped (no frame reaches the window): the frame loop's CPU side alone,
++// for timing the game and the renderers on a host whose GL (llvmpipe, GDI) is slower than the machine they are for
++static int sNoPresent = -1;
++extern "C" int SIM_NoPresent(void) {
++  if (sNoPresent < 0) {
++    const char *e = getenv("BWPORT_NOPRESENT");
++    sNoPresent = e != NULL && e[0] != 0 && e[0] != '0';
++  }
++  return sNoPresent;
++}
++static void FLInit(void) {
++  const char *f = getenv("BWPORT_FRAMELOG");
++  sFLOn = 0;
++  if (f != NULL && f[0] != 0) {
++    sFLFile = fopen(f, "w");
++    if (sFLFile != NULL) {
++      static char buf[1 << 16];
++      setvbuf(sFLFile, buf, _IOFBF, sizeof buf);
++      fprintf(sFLFile, "# n t_ms period game events imgui_new render vblank imgui_render swap cap sound upload skip x0 x1 x2 x3 x4 x5 x6 x7 (us)\n");
++      atexit(FLClose);
++      sFLOn = 1;
++    }
++  }
++}
++
+ static constexpr auto SteamDeckWidth = 1280;
+ static constexpr auto SteamDeckHeight = 800;
+ 
+@@ -1032,7 +1084,10 @@
+   glActiveTexture(GL_TEXTURE0);
+   glGetIntegerv(GL_TEXTURE_BINDING_2D, &prevTex);
+   glBindTexture(GL_TEXTURE_2D, s_frameTexture);
+-  if (pw != sFrameTexW || ph != sFrameTexH) {
++  u64 tUp0 = sFLOn > 0 ? FLNow() : 0;
++  if (SIM_NoPresent()) {
++    // the picture is neither uploaded nor drawn
++  } else if (pw != sFrameTexW || ph != sFrameTexH) {
+     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, pw, ph, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+     sFrameTexW = pw;
+     sFrameTexH = ph;
+@@ -1041,7 +1096,8 @@
+   }
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+-  SIM_DrawFrameTexture(s_frameTexture);
++  if (!SIM_NoPresent()) SIM_DrawFrameTexture(s_frameTexture);
++  if (sFLOn > 0) sFLUpload = FLNow() - tUp0;
+   // the DS clears DISPCAPCNT's enable bit when the captured frame ends; the renderer has stored the capture in its bank
+   s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+   sFrameRendererDrew = 1;
+@@ -1159,6 +1215,12 @@
+       clock_gettime(CLOCK_MONOTONIC, &tStart);
+       sGameWorkTime = ((tStart.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+                       (tStart.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++      if (sFLOn < 0) FLInit();
++      if (sFLOn > 0) {
++        sFLT[0] = (u64)tStart.tv_sec * 1000000000ull + (u64)tStart.tv_nsec;
++        sFLUpload = 0;
++        for (int k = 0; k < 8; k++) sFLExtra[k] = 0;
++      }
+     }
+     // SIM_Net_Process();
+     if ((*((u32 *)HW_VBLANK_COUNT_BUF) % 10) == 0) {
+@@ -1517,6 +1579,7 @@
+       s_tpData.touch = 0;
+     }
+ 
++    FLStamp(1);
+     SIM::GUI::NewFrame();
+     if (panelPxW > 0) {
+       // lit where the pad registers say pressed (keyboard, gamepad or script alike): 0 is pressed
+@@ -1549,6 +1612,7 @@
+       }
+     }
+ 
++    FLStamp(2);
+     SIM_RendererPoll();
+ 
+     SIM_FrameSkipDecide();
+@@ -1557,6 +1621,7 @@
+ 
+     // bw-port: the in-process frame renderer (port/vcore) draws both screens when it is chosen
+     SIM_DrawFrameRenderer();
++    FLStamp(3);
+ 
+     // the main engine's 3D rows in the 3D framebuffer: the top half when it shows on the top screen (POWCNT bit 15)
+     SIM_VCapFrameEnd(viewX, viewY, viewWidth, viewHeight, 0, 1,
+@@ -1571,8 +1636,10 @@
+     OS_IRQTable[OS_IE_V_BLANK - 1]();
+     s_HW_INTR_CHECK_BUF |= 1;
+     *((u32 *)HW_VBLANK_COUNT_BUF) = *((u32 *)HW_VBLANK_COUNT_BUF) + 1;
++    FLStamp(4);
+ 
+     SIM::GUI::Render();
++    FLStamp(5);
+ 
+     // Calculate frametime
+     struct timespec curTime;
+@@ -1592,7 +1659,12 @@
+       SDL_GL_SetSwapInterval(0);
+     }
+     u64 tSlept = SDL_GetPerformanceCounter();
+-    SDL_GL_SwapWindow(window);
++    if (SIM_NoPresent()) {
++      glFlush();
++    } else {
++      SDL_GL_SwapWindow(window);
++    }
++    FLStamp(6);
+     {
+       static u64 sAccWork, sAccSwap, sLastPrint, sFrames;
+       static int sLog = -1;
+@@ -1642,6 +1714,7 @@
+       }
+     }
+ 
++    FLStamp(7);
+ 
+     {
+       // bw-port: the real frame period, from one frame's end (after the cap's wait) to the next's; sFullFrameTime is
+@@ -1665,6 +1738,20 @@
+     if (!SIM::GUI::IsGameLogicPaused()) {
+       SIM_Audio_FrameTick();
+     }
++    if (sFLOn > 0) {
++      u64 t8 = FLNow();
++      if (sFLT0 == 0) sFLT0 = sFLT[0];
++      #define FLUS(a, b) ((long long)((sFLT[b] - sFLT[a]) / 1000))
++      fprintf(sFLFile, "%llu %lld %llu %llu %lld %lld %lld %lld %lld %lld %lld %lld %lld %d %llu %llu %llu %llu %llu %llu %llu %llu\n",
++              (unsigned long long)sFLN++, (long long)((sFLT[0] - sFLT0) / 1000000), (unsigned long long)(sRealFrameTime / 1000),
++              (unsigned long long)(sGameWorkTime / 1000), FLUS(0, 1), FLUS(1, 2), FLUS(2, 3), FLUS(3, 4), FLUS(4, 5),
++              FLUS(5, 6), FLUS(6, 7), (long long)((t8 - sFLT[7]) / 1000), (long long)(sFLUpload / 1000), sDrawNow,
++              (unsigned long long)(sFLExtra[0] / 1000), (unsigned long long)(sFLExtra[1] / 1000),
++              (unsigned long long)(sFLExtra[2] / 1000), (unsigned long long)(sFLExtra[3] / 1000),
++              (unsigned long long)(sFLExtra[4] / 1000), (unsigned long long)(sFLExtra[5] / 1000),
++              (unsigned long long)(sFLExtra[6] / 1000), (unsigned long long)(sFLExtra[7] / 1000));
++      #undef FLUS
++    }
+   } while (SIM::GUI::IsGameLogicPaused());
+   return nullptr;
+ }
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1377,11 +1377,13 @@
+     ImGui::NewFrame();
+ }
+ 
++extern "C" int SIM_NoPresent(void); // libntr-vs70.patch: BWPORT_NOPRESENT
++
+ void Render() {
+     ImGui::Render();
+     // bw-port (libntr-norender.patch): a render pass with no vertices to draw cost ~5 ms a frame on llvmpipe
+     ImDrawData *dd = ImGui::GetDrawData();
+-    if (dd != NULL && dd->TotalVtxCount > 0) {
++    if (dd != NULL && dd->TotalVtxCount > 0 && !SIM_NoPresent()) {
+         ImGui_ImplOpenGL3_RenderDrawData(dd);
+     }
+ }

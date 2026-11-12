@@ -1,0 +1,5 @@
+EventGtsNego_Callback kind:function(thumb,size=0x2a0) addr:0x0214f540
+EventGtsNego_Init kind:function(thumb,size=0x10c) addr:0x0214f7e0
+EventGtsNego_Create kind:function(thumb,size=0x28) addr:0x0214f8ec
+EventGtsNego_CreateFromArgs kind:function(thumb,size=0x8) addr:0x0214f914
+data_ov001_0214f8e0 kind:data(any) addr:0x0214f920

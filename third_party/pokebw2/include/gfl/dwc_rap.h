@@ -1,0 +1,102 @@
+#ifndef POKEBW2_GFL_DWC_RAP_H
+#define POKEBW2_GFL_DWC_RAP_H
+
+#include "types.h"
+#include "dwc/dwc.h"
+#include "gfl/heap.h"
+#include "gfl/net.h"
+
+// dwc_rap.c, in overlay 11: the GFL net's Wi-Fi connection, over Nintendo's DWC library
+
+// Called with a Wi-Fi library error the connection has queued: its code, its type and its kind, and the work
+typedef void (*DWCRapErrorFunc)(void *work, int code, int type, int error);
+// Asked about a connection event, with its work and the code, the event and the error of the error that the connection
+// has queued
+typedef u32 (*DWCRapEventFunc)(void *work, int code, int event, int error);
+
+// Asked whether to take a machine in: its friend index, or -1 for one that is nobody's friend, and the game's work
+typedef BOOL (*DWCRapRequestFunc)(int index, void *work);
+// Called when a connection is made, with the machine's ID and its work
+typedef void (*DWCRapConnectFunc)(u16 netId, void *work);
+// Called when a machine has gone, with its ID and its work
+typedef void (*DWCRapDisconnectFunc)(u8 netId, void *work);
+
+// Whether the Wi-Fi connection has been started
+BOOL DWCRap_IsInitialized(void);
+// What DWCRap_Init returns: the connection started, or the user data has no profile or is not this console's
+enum {
+    DWCRAP_INIT_OK,
+    DWCRAP_INIT_NO_PROFILE,
+    DWCRAP_INIT_INVALID_CONSOLE,
+};
+
+// Starts the connection with the player's user data and friend list, returning DWCRAP_INIT_*
+int DWCRap_Init(DWCUserData *userData, DWCFriendData *friendList);
+// Sets the functions that machines' data goes to: the one called on the parent, and the one on the children
+void DWCRap_SetRecvFuncs(GFLNetRecvFunc parentFunc, GFLNetRecvFunc childFunc);
+// Sets the function asked whether to take a machine in
+void DWCRap_SetRequestFunc(DWCRapRequestFunc func);
+// Starts matching with whoever has the same key, as numEntry machines
+BOOL DWCRap_StartMatch(const char *key, int numEntry, BOOL a2, int a3);
+// Starts a match of numEntry machines on a query, with a function that rates the candidates
+BOOL DWCRap_StartMatchQuery(const char *query, int numEntry, DWCEvalPlayerCallback evalFunc, void *evalWork);
+// Runs the connection for a frame; cancelMatch nonzero cancels a match that is being made
+int DWCRap_Process(int cancelMatch);
+// The types of the packets in the first byte of their header: the game's data, which the other side answers with
+// an ack before more is sent, and the ping sent when nothing was sent for a while
+enum {
+    DWCRAP_PACKET_DATA = 1,
+    DWCRAP_PACKET_PING,
+    DWCRAP_PACKET_ACK,
+};
+
+// Sends data to the other machines, as a packet of a DWCRAP_PACKET_* type
+BOOL DWCRap_SendPacket(const void *data, int size, int type);
+BOOL DWCRap_Send(const void *data, int size);
+// The machine's ID, or -1 when it is not in a match
+int DWCRap_GetNetId(void);
+void DWCRap_SetVoiceChatReady(void);
+// Starts and ends the voice chat
+void DWCRap_StartVoiceChat(void);
+void DWCRap_StopVoiceChat(void);
+// Whether the voice chat is on
+int DWCRap_IsVoiceChatActive(void);
+void DWCRap_ResetVoiceChat(void);
+void DWCRap_SetMic(BOOL on);
+// The message in TEXT_BANK_WIFI_ERROR for a Wi-Fi library error, from its code and type
+int DWCRap_GetErrorKind(int code, int type);
+// Closes the connection, or with checkOnly only checks on it; TRUE when it is already ready or ended
+BOOL DWCRap_RequestClose(BOOL checkOnly);
+BOOL DWCRap_ResetToReady(void);
+void DWCRap_Shutdown(void);
+// Sets the data that tells friends where this player is, from 0 to 0x20 bytes
+void DWCRap_SetOwnStatusData(const char *data, int size);
+// A friend's location data, and their state
+char *DWCRap_GetFriendStatusData(int index);
+// The state of a friend that DWCRap_Connect can join: the one that waits as the match server
+#define DWCRAP_FRIEND_STATUS_JOINABLE 6
+u8 DWCRap_GetFriendStatus(int index);
+// Connects to a friend, or to anybody if the index is negative; returns 0, or a negative number when it can't yet
+int DWCRap_Connect(int friendIndex, int numEntry, BOOL twoEntries);
+// The friend index of the connection
+int DWCRap_GetFriendIndex(void);
+BOOL DWCRap_GetVoiceChatSpeaking(void);
+s16 DWCRap_IsVoiceChatEnabled(void);
+int DWCRap_GetLastNetId(void);
+s16 DWCRap_GetLastIndex(void);
+void DWCRap_SetVoiceChatEnabled(s16 enabled);
+BOOL DWCRap_IsUserDataDirty(void);
+void DWCRap_ClearUserDataDirty(void);
+BOOL DWCRap_IsReady(void);
+BOOL DWCRap_IsConnected(void);
+int DWCRap_GetStatus(void);
+void DWCRap_SetAcceptConnect(int accept);
+BOOL DWCRap_IsEnding(void);
+// Whether a machine leaving is recorded as an error
+void DWCRap_SetReportError(int report);
+// Sets the function called when the connection is lost
+void DWCRap_SetErrorFunc(DWCRapErrorFunc func, void *work);
+// Sets a function asked about connection events, with its work
+void DWCRap_SetEventFunc(DWCRapEventFunc func, void *work);
+
+#endif // POKEBW2_GFL_DWC_RAP_H

@@ -1,0 +1,22 @@
+    .text       start:0x021b6100 end:0x021b7404 kind:code align:32
+    .rodata     start:0x021b7404 end:0x021b7508 kind:rodata align:4
+    .ctor       start:0x021b7508 end:0x021b7508 kind:rodata align:4
+    .data       start:0x021b7520 end:0x021b7560 kind:data align:32
+    .bss        start:0x021b7560 end:0x021b7560 kind:bss align:32
+
+src/ov101/irc_appbar.c:
+    complete
+    .text       start:0x021b70dc end:0x021b7404
+    .data       start:0x021b7550 end:0x021b7560
+
+src/ov101/compatible_irc_sys.c:
+    complete
+    .text       start:0x021b6100 end:0x021b6938
+    .rodata     start:0x021b7404 end:0x021b74ac
+    .data       start:0x021b7520 end:0x021b753c
+
+src/ov101/irc_compatible.c:
+    complete
+    .text       start:0x021b6938 end:0x021b70dc
+    .rodata     start:0x021b74ac end:0x021b7508
+    .data       start:0x021b753c end:0x021b7550

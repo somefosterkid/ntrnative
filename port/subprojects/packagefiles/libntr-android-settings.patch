@@ -1,0 +1,40 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -2933,6 +2933,13 @@
+ extern "C" int bwport_ios_settings_test_wants(void);
+ extern "C" void bwport_ios_settings_run(double seconds);
+ #endif
++// libntr-android-settings.patch: Android's settings screen is a native dialog over the game's activity (port/src/android_settings.c
++// and tools/android/.../SettingsScreen.java); the game and its sound stand still while it is up, as under iOS's sheet
++#if SIM_ANDROID
++extern "C" void bwport_android_settings_present(void);
++extern "C" int bwport_android_settings_is_open(void);
++extern "C" int bwport_android_settings_test_wants(void);
++#endif
+ static bool SimTouchSettingsWait(void) {
+   if (!SimTouch_Active()) return false;
+ #if SIM_IOS
+@@ -2957,6 +2964,23 @@
+   SDL_FlushEvents(SDL_FINGERDOWN, SDL_FINGERMOTION);
+   SimTouch_MenuClose();
+   SIM_Audio_Pause(0);
++  fprintf(stderr, "bwport: settings closed: resumed\n");
++  return true;
++#elif SIM_ANDROID
++  if (bwport_android_settings_test_wants()) SimTouch_MenuRequest();
++  if (!SimTouch_MenuOpen()) return false;
++  fprintf(stderr, "bwport: settings open: paused\n");
++  SIM_PerfTestAbort("the settings opened");
++  SIM_Audio_Pause(1);
++  bwport_android_settings_present();
++  while (bwport_android_settings_is_open()) {   // (the dialog lives on Java's UI thread; SDL's events keep flowing, the game does not)
++    SDL_PumpEvents();
++    SDL_Delay(20);
++  }
++  SDL_PumpEvents();
++  SDL_FlushEvents(SDL_FINGERDOWN, SDL_FINGERMOTION);
++  SimTouch_MenuClose();
++  SIM_Audio_Pause(0);
+   fprintf(stderr, "bwport: settings closed: resumed\n");
+   return true;
+ #else

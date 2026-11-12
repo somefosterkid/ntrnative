@@ -1,0 +1,87 @@
+# The lockstep tester's game variables (docs/lockstep.md): what both sides dump each frame, by name.
+#
+# NAME  TYPE  DS-PATH  PORT-EXPR  [if NAME==VALUE]
+#
+# Columns are separated by two or more spaces (NAME, TYPE and DS-PATH have none; PORT-EXPR may have single ones);
+# the optional last column starts with "if ".
+#
+# TYPE   u8 u16 u32 s8 s16 s32 u64 (a JSON number; u64 as a "0x..." string)
+#        ptr       the pointer's null-ness: 0 or 1 (the values differ between the DS and a PC)
+#        fn        a code or data pointer, by symbol name (DS: config/b_us/arm9/**/symbols.txt; an overlay address
+#                  that several overlays' symbols share gives "a|b|c"; unknown: "?0xADDR". Port: the ELF's symbol)
+#        hash:N    crc32 of N bytes at the address, as 8 hex digits (pointer-free data only)
+#        rel:PATH  this u32 minus the u32 at PATH (both DS pointers; port: the same difference of its pointers)
+# DS-PATH  BASE then steps, no spaces: BASE is a symbol of symbols.txt (main, itcm, dtcm) or 0xADDR; `.OFF` adds OFF
+#        (hex), `->OFF` reads the u32 at the current address (a pointer: 0 makes the var null) and adds OFF. The var is
+#        read from the final address. Offsets are the DS layout's: tools/lockstep/ds_offsets.py computes them with
+#        mwccarm ('OFF(Field, player)'; --tu src/system/game_data.c for GameData).
+# PORT-EXPR  a C expression in the PC build (gdb evaluates the same): its value, or the address hashed. A static
+#        (data_020aa1a0, data_020aa1a4, data_021469f8) is a local symbol of the PC exe: nm shows it; port code reads
+#        it through the ELF symbol table or gdb, not by name in C.
+# if     read only when the other var (read first, above) has that value; else null. Null also when a pointer on the
+#        path is null.
+#
+# Not here (the dumper's own fields, docs/lockstep.md): the record's frame, the V-blank count, the keys, the screens.
+
+# The frame counter: main-loop iterations since GFLAppInit (GFL_VBlankUpdate counts it, gfl_use.c)
+game.frame        u32       data_020aa1a0                          data_020aa1a0
+
+# The random number generators (gfl_use.c's LC: MATHRandContext32; gf_standard.c's Mersenne Twister)
+rng.lc            u64       data_020aa1a4->0x0                     data_020aa1a4->rand.x
+rng.mt.index      s32       data_021469f8->0x9c0                   data_021469f8->mti
+rng.mt            hash:0x9c0  data_021469f8->0x0                    data_021469f8->mt
+
+# The running event (system/game_event.c's GameEvent: parent 0, callback 4, state 8, data 0xc) and the process
+event             ptr       g_GameSystem->0x18                     g_GameSystem->event
+event.cb          fn        g_GameSystem->0x18->0x4                g_GameSystem->event->callback
+event.state       u32       g_GameSystem->0x18->0x8                g_GameSystem->event->state
+event.parent.cb   fn        g_GameSystem->0x18->0x0->0x4           g_GameSystem->event->parent->callback
+proc.fn           fn        g_GameSystem->0x8->0x8->0x0            g_GameSystem->procManager->proc->functions
+proc.state        u32       g_GameSystem->0x8->0x8->0x8            g_GameSystem->procManager->proc->state
+
+# The field map (field/field_internal.h's Field): null while it is down (battles, menus)
+field             ptr       g_GameSystem->0x20                     g_GameSystem->field
+field.routine     u32       g_GameSystem->0x20->0xc4               g_GameSystem->field->routineID
+field.phase       u8        g_GameSystem->0x20->0xc9               g_GameSystem->field->routineAlternator
+field.loaded      u32       g_GameSystem->0x20->0xc0               g_GameSystem->field->routineState
+field.zone        u16       g_GameSystem->0x20->0xd0               g_GameSystem->field->zoneId
+
+# The player's actor (field->player->core->actor: FieldActor, uid 0xff): grid position, world position (fx32), facing
+player.x          s16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x3c  g_GameSystem->field->player->core->actor->gPos.x
+player.y          s16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x3e  g_GameSystem->field->player->core->actor->gPos.y
+player.z          s16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x40  g_GameSystem->field->player->core->actor->gPos.z
+player.wx         s32       g_GameSystem->0x20->0x8c->0x4->0x1c->0x44  g_GameSystem->field->player->core->actor->wPos.x
+player.wy         s32       g_GameSystem->0x20->0x8c->0x4->0x1c->0x48  g_GameSystem->field->player->core->actor->wPos.y
+player.wz         s32       g_GameSystem->0x20->0x8c->0x4->0x1c->0x4c  g_GameSystem->field->player->core->actor->wPos.z
+player.face       u16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x18  g_GameSystem->field->player->core->actor->faceDir
+player.motion     u16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x1a  g_GameSystem->field->player->core->actor->motionDir
+player.zone       u16       g_GameSystem->0x20->0x8c->0x4->0x1c->0xa   g_GameSystem->field->player->core->actor->zoneId
+player.acmd       u16       g_GameSystem->0x20->0x8c->0x4->0x1c->0x28  g_GameSystem->field->player->core->actor->acmdState
+player.move       u32       g_GameSystem->0x20->0x8c->0x4->0x14        g_GameSystem->field->player->core->moveStatus
+
+# The saved player state (GameData's own playerStates[4], GAME_DATA_PLAYER_MINE; [0] is a communication player, zero offline: zone, world position): kept while the field is down
+state.zone        u16       g_GameSystem->0x1c->0x114              g_GameSystem->gameData->playerStates[GAME_DATA_PLAYER_MINE].zoneId
+state.x           s32       g_GameSystem->0x1c->0x118              g_GameSystem->gameData->playerStates[GAME_DATA_PLAYER_MINE].position.x
+state.z           s32       g_GameSystem->0x1c->0x120              g_GameSystem->gameData->playerStates[GAME_DATA_PLAYER_MINE].position.z
+
+# The field script (ov010 script_sys.c): when the running event is a script call, its EventScriptCallData {work,
+# supervisor}: the script's ID, the VM count, VM 0's state and its PC as an offset into its script data
+script.id         u16       g_GameSystem->0x18->0xc->0x0->0x4      ((EventScriptCallData *)g_GameSystem->event->data)->work->scriptId  if event.cb==EventScriptCall_Callback
+script.vms        u8        g_GameSystem->0x18->0xc->0x4->0x2      ((EventScriptCallData *)g_GameSystem->event->data)->supervisor->vmCount  if event.cb==EventScriptCall_Callback
+script.vm0.state  u8        g_GameSystem->0x18->0xc->0x4->0x4->0xd  ((EventScriptCallData *)g_GameSystem->event->data)->supervisor->vms[0]->state  if event.cb==EventScriptCall_Callback
+script.vm0.pc     rel:g_GameSystem->0x18->0xc->0x4->0x4->0x2c  g_GameSystem->0x18->0xc->0x4->0x4->0x14  ((EventScriptCallData *)g_GameSystem->event->data)->supervisor->vms[0]->pc - (const u8 *)((EventScriptCallData *)g_GameSystem->event->data)->supervisor->vms[0]->unk_2c  if event.cb==EventScriptCall_Callback
+
+# The event flags and work values (save/event_work.h's EventWork, 0x3ea bytes, no pointers)
+eventwork         hash:0x3ea  g_GameSystem->0x1c->0x1ac->0x0        *g_GameSystem->gameData->eventWork
+
+# The party (pml/poke_party.h's PokeParty, 0x534 bytes: capacity, count, 6 encrypted 220-byte mons, 4 more bytes;
+# check that those hold no pointer before trusting the hash)
+party.count       u32       g_GameSystem->0x1c->0x194->0x4         g_GameSystem->gameData->party->count
+party             hash:0x534  g_GameSystem->0x1c->0x194->0x0        *g_GameSystem->gameData->party
+
+# The battle (ov093 btl_main.c's BtlMainModule, the battle process's work): its own generator (seeded by buildSeed),
+# its main function and result. UNVERIFIED: that the battle runs as g_GameSystem's process (check proc.fn in a battle)
+battle.rng        u64       g_GameSystem->0x8->0x8->0x14->0x3f0    ((BtlMainModule *)g_GameSystem->procManager->proc->work)->rand.x  if proc.fn==data_ov093_021efdac
+battle.calc.rng   u64       0x021f6360.0x8                         data_ov093_021f6360.rand.x  if proc.fn==data_ov093_021efdac
+battle.main       fn        g_GameSystem->0x8->0x8->0x14->0x464    ((BtlMainModule *)g_GameSystem->procManager->proc->work)->mainFunc  if proc.fn==data_ov093_021efdac
+battle.result     u32       g_GameSystem->0x8->0x8->0x14->0x444    ((BtlMainModule *)g_GameSystem->procManager->proc->work)->result  if proc.fn==data_ov093_021efdac

@@ -1,0 +1,671 @@
+--- a/include/nitro/gx/g3imm.h
++++ b/include/nitro/gx/g3imm.h
+@@ -18,6 +18,17 @@
+ #include <simulator/drawmsg.h>
+ #include <simulator/queue.h>
+ extern SIM_queue_t * drawQueuePtr;
++
++// bw-port: a one-word command for the simulator. The inlines below wrote only the variables that stand for the
++// registers, which no part of the simulator reads: light vectors and colours, the viewport, END, the box, position and
++// vector tests and G3_Direct2/3 never reached it
++static inline void G3i_SimCmd1_(draw_command_type_t type, u32 param)
++{
++    draw_msg_t msg;
++    msg.type = type;
++    msg.data.numU32 = param;
++    SIM_HandleG3Command(&msg);
++}
+ #endif
+ 
+ static void G3_Direct0(int op);
+@@ -104,15 +115,34 @@
+ 
+ static inline void G3_Direct2 (int op, u32 param0, u32 param1)
+ {
++    #ifdef SDK_PORT
++    draw_msg_t msg;
++    msg.type = DRAW_CMD_G3_DIRECT2;
++    msg.data.numsU64[0] = op;
++    msg.data.numsU64[1] = param0;
++    msg.data.numsU64[2] = param1;
++    SIM_HandleG3Command(&msg);
++    #else
+ 	*(REGType32v *)(REG_MTX_MODE_ADDR + ((op - G3OP_MTX_MODE) * 4)) = param0;
+ 	*(REGType32v *)(REG_MTX_MODE_ADDR + ((op - G3OP_MTX_MODE) * 4)) = param1;
++    #endif
+ }
+ 
+ static inline void G3_Direct3 (int op, u32 param0, u32 param1, u32 param2)
+ {
++    #ifdef SDK_PORT
++    draw_msg_t msg;
++    msg.type = DRAW_CMD_G3_DIRECT3;
++    msg.data.numsU64[0] = op;
++    msg.data.numsU64[1] = param0;
++    msg.data.numsU64[2] = param1;
++    msg.data.numsU64[3] = param2;
++    SIM_HandleG3Command(&msg);
++    #else
+ 	*(REGType32v *)(REG_MTX_MODE_ADDR + ((op - G3OP_MTX_MODE) * 4)) = param0;
+ 	*(REGType32v *)(REG_MTX_MODE_ADDR + ((op - G3OP_MTX_MODE) * 4)) = param1;
+ 	*(REGType32v *)(REG_MTX_MODE_ADDR + ((op - G3OP_MTX_MODE) * 4)) = param2;
++    #endif
+ }
+ 
+ static inline void G3_MtxMode (GXMtxMode mode)
+@@ -510,7 +540,11 @@
+ 	SDK_MINMAX_ASSERT(y, -FX16_ONE, FX16_ONE - 1);
+ 	SDK_MINMAX_ASSERT(z, -FX16_ONE, FX16_ONE - 1);
+ 
++    #ifdef SDK_PORT
++    G3i_SimCmd1_(DRAW_CMD_G3_LIGHTVECTOR, GX_PACK_LIGHTVECTOR_PARAM(lightID, x, y, z));
++    #else
+ 	reg_G3_LIGHT_VECTOR = GX_PACK_LIGHTVECTOR_PARAM(lightID, x, y, z);
++    #endif
+ }
+ 
+ static inline void G3_LightColor (GXLightId lightID, GXRgb rgb)
+@@ -518,7 +552,11 @@
+ 	GX_LIGHTID_ASSERT(lightID);
+ 	GXRGB_ASSERT(rgb);
+ 
++    #ifdef SDK_PORT
++    G3i_SimCmd1_(DRAW_CMD_G3_LIGHTCOLOR, GX_PACK_LIGHTCOLOR_PARAM(lightID, rgb));
++    #else
+ 	reg_G3_LIGHT_COLOR = GX_PACK_LIGHTCOLOR_PARAM(lightID, rgb);
++    #endif
+ }
+ 
+ static inline void G3_Begin (GXBegin primitive)
+@@ -540,7 +578,11 @@
+ 
+ static inline void G3_End (void)
+ {
++    #ifdef SDK_PORT
++    G3i_SimCmd1_(DRAW_CMD_G3_END, 0);
++    #else
+ 	reg_G3_END_VTXS = 0;
++    #endif
+ }
+ 
+ static inline void G3_SwapBuffers (GXSortMode am, GXBufferMode zw)
+@@ -565,20 +607,45 @@
+ static inline void G3_ViewPort (int x1, int y1, int x2, int y2)
+ {
+ 	GX_VIEWPORT_ASSERT(x1, y1, x2, y2);
++    #ifdef SDK_PORT
++    G3i_SimCmd1_(DRAW_CMD_G3_VIEWPORT, GX_PACK_VIEWPORT_PARAM(x1, y1, x2, y2));
++    #else
+ 	reg_G3_VIEWPORT = GX_PACK_VIEWPORT_PARAM(x1, y1, x2, y2);
++    #endif
+ }
+ 
+ static inline void G3_BoxTest (const GXBoxTestParam * box)
+ {
++    #ifdef SDK_PORT
++    draw_msg_t msg;
++    msg.type = DRAW_CMD_G3_BOXTEST;
++    msg.data.boxtest.x = (s16)box->val[0];
++    msg.data.boxtest.y = (s16)(box->val[0] >> 16);
++    msg.data.boxtest.z = (s16)box->val[1];
++    msg.data.boxtest.width = (s16)(box->val[1] >> 16);
++    msg.data.boxtest.height = (s16)box->val[2];
++    msg.data.boxtest.depth = (s16)(box->val[2] >> 16);
++    SIM_HandleG3Command(&msg);
++    #else
+ 	reg_G3_BOX_TEST = box->val[0];
+ 	reg_G3_BOX_TEST = box->val[1];
+ 	reg_G3_BOX_TEST = box->val[2];
++    #endif
+ }
+ 
+ static inline void G3_PositionTest (fx16 x, fx16 y, fx16 z)
+ {
++    #ifdef SDK_PORT
++    draw_msg_t msg;
++    msg.type = DRAW_CMD_G3_POSITIONTEST;
++    msg.data.xyz.x = x;
++    msg.data.xyz.y = y;
++    msg.data.xyz.z = z;
++    SIM_HandleG3Command(&msg);
++    #else
+ 	reg_G3_POS_TEST = GX_FX16PAIR(x, y);
+ 	reg_G3_POS_TEST = (u32)(u16)z;
++    #endif
+ }
+ 
+ static inline void G3_VectorTest (fx16 x, fx16 y, fx16 z)
+@@ -587,7 +654,11 @@
+ 	SDK_MINMAX_ASSERT(y, -FX16_ONE, FX16_ONE - 1);
+ 	SDK_MINMAX_ASSERT(z, -FX16_ONE, FX16_ONE - 1);
+ 
++    #ifdef SDK_PORT
++    G3i_SimCmd1_(DRAW_CMD_G3_VECTORTEST, GX_PACK_VECTORTEST_PARAM(x, y, z));
++    #else
+ 	reg_G3_VEC_TEST = GX_PACK_VECTORTEST_PARAM(x, y, z);
++    #endif
+ }
+ 
+ #ifdef __cplusplus
+--- a/libraries/gx/src/g3imm.c
++++ b/libraries/gx/src/g3imm.c
+@@ -104,7 +104,13 @@
+ {
+ 	SDK_NULL_ASSERT(table);
+     #ifdef SDK_PORT
+-    (void)table;    // the simulator has no shininess table
++    // bw-port: the table reaches the simulator's lighting (it was dropped)
++    draw_msg_t msg;
++    msg.type = DRAW_CMD_G3_SHININESS;
++    for (int i = 0; i < 32; i++) {
++        msg.data.numsU32[i] = table[i];
++    }
++    SIM_HandleG3Command(&msg);
+     #else
+ 
+ 	reg_G3X_GXFIFO = G3OP_SHININESS;
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -121,8 +121,16 @@
+   draw_msg_t tmpMsg;
+   memcpy(&tmpMsg, msg, sizeof(draw_msg_t));
+   switch (msg->type) {
+-  // TODO Commands
+-  case DRAW_CMD_G3_VIEWPORT:
++  // bw-port: SHININESS's 32 words (they took no parameters: a list lost its place after one)
++  case DRAW_CMD_G3_SHININESS:
++    for (int i = 0; i < 32; i++) {
++      msg->data.numsU32[i] = (u32)tmpMsg.data.numsU64[i + 1];
++    }
++    break;
++  case DRAW_CMD_G3_POSITIONTEST:
++    msg->data.xyz.x = (s16)tmpMsg.data.numsS64[1];
++    msg->data.xyz.y = (s16)tmpMsg.data.numsS64[2];
++    msg->data.xyz.z = (s16)tmpMsg.data.numsS64[3];
+     break;
+ 
+   case DRAW_CMD_G3_BOXTEST:
+@@ -158,6 +166,9 @@
+   case DRAW_CMD_G3_NORMAL:
+   case DRAW_CMD_G3_LIGHTCOLOR:
+   case DRAW_CMD_G3_SPEC_EMI:
++  case DRAW_CMD_G3_VIEWPORT:
++  case DRAW_CMD_G3_SWAPBUFFERS:
++  case DRAW_CMD_G3_VECTORTEST:
+     msg->data.numU32 = msg->data.numsU64[1];
+     break;
+   case DRAW_CMD_G3_VTX:
+@@ -261,7 +272,10 @@
+   case DRAW_CMD_G3_COLOR:
+   case DRAW_CMD_G3_TEXCOORD:
+   case DRAW_CMD_G3_SWAPBUFFERS:
++  case DRAW_CMD_G3_VECTORTEST:
+     return 1;
++  case DRAW_CMD_G3_SHININESS:
++    return 32;
+   case DRAW_CMD_G3_VTXXY:
+   case DRAW_CMD_G3_VTXXZ:
+   case DRAW_CMD_G3_VTXYZ:
+@@ -272,6 +286,7 @@
+   case DRAW_CMD_G3_VTX:
+   case DRAW_CMD_G3_VTX16:
+   case DRAW_CMD_G3_POPMTX:
++  case DRAW_CMD_G3_POSITIONTEST:
+     return 4;
+   case DRAW_CMD_G3_BOXTEST:
+     return 6;
+@@ -303,6 +318,7 @@
+   case DRAW_CMD_G3_VTXXZ:
+   case DRAW_CMD_G3_VTXYZ:
+   case DRAW_CMD_G3_BOXTEST:
++  case DRAW_CMD_G3_POSITIONTEST:
+     return 2;
+   case DRAW_CMD_G3_LOADMTX43:
+   case DRAW_CMD_G3_LOADMTX44:
+@@ -329,6 +345,8 @@
+   case DRAW_CMD_G3_COLOR:
+   case DRAW_CMD_G3_TEXCOORD:
+   case DRAW_CMD_G3_SWAPBUFFERS:
++  case DRAW_CMD_G3_SHININESS:
++  case DRAW_CMD_G3_VECTORTEST:
+     return 4;
+   default:
+     return 0;
+@@ -374,12 +392,67 @@
+   case DRAW_CMD_G3_VTXYZ:
+   case DRAW_CMD_G3_MTXMULT33:
+   case DRAW_CMD_G3_BOXTEST:
++  case DRAW_CMD_G3_POSITIONTEST:
+     return 1;
+   default:
+     return 0;
+   }
+ }
+ 
++// A command list as the DS's geometry FIFO takes it: a word of four command bytes, then each command's parameters
++static void RunCommandList(const void *data, u64 size) {
++  const G3SIM_CommandBlock_t *cmdBlockPtr = static_cast<const G3SIM_CommandBlock_t *>(data);
++  draw_msg_t tempMsg;
++  u64 curOffset = 0;
++  u8 numParams;
++  const void *paramPtr;
++  u8 paramSize;
++  u8 paramSigned;
++  while (curOffset < size) {
++    paramPtr = (const void *)((uPtr)cmdBlockPtr + 4);
++    curOffset += 4;
++    for (int i = 0; i < 4; i++) {
++      tempMsg.type = DecodeG3Op(cmdBlockPtr->ops[i]);
++      numParams = GetNumParamsFromCommandType(tempMsg.type);
++      paramSize = GetParamSizeFromCommandType(tempMsg.type);
++      paramSigned = isParamSigned(tempMsg.type);
++      for (int j = 1; j < numParams + 1; j++) {
++        switch (paramSize) {
++        case 1:
++          if (paramSigned) {
++            tempMsg.data.numsS64[j] = (s64) * (const s8 *)paramPtr;
++          } else {
++            tempMsg.data.numsU64[j] = *(const u8 *)paramPtr;
++          }
++          break;
++        case 2:
++          if (paramSigned) {
++            tempMsg.data.numsS64[j] = (s64) * (const s16 *)paramPtr;
++          } else {
++            tempMsg.data.numsU64[j] = *(const u16 *)paramPtr;
++          }
++          break;
++        case 4:
++          if (paramSigned) {
++            tempMsg.data.numsS64[j] = (s64) * (const s32 *)paramPtr;
++          } else {
++            tempMsg.data.numsU64[j] = *(const u32 *)paramPtr;
++          }
++          break;
++        default:
++          break;
++        }
++        paramPtr = (const void *)((uPtr)paramPtr + paramSize);
++        curOffset += paramSize;
++      }
++
++      ConvertMsgParams(&tempMsg);
++      SIM_HandleG3Command(&tempMsg);
++    }
++    cmdBlockPtr = static_cast<const G3SIM_CommandBlock_t *>(paramPtr);
++  }
++}
++
+ namespace SIM::G3 {
+ 
+ void HandleCommandMessage(draw_msg_t *msg) {
+@@ -576,6 +649,32 @@
+     msg->type = DecodeG3Op(msg->data.numU32);
+     SIM_HandleG3Command(msg);
+     break;
++  case DRAW_CMD_G3_DIRECT2:
++  case DRAW_CMD_G3_DIRECT3: {
++    // bw-port: G3_Direct2/3, as a one-command list
++    u32 words[4];
++    int n = msg->type == DRAW_CMD_G3_DIRECT2 ? 2 : 3;
++    words[0] = (u32)msg->data.numsU64[0] & 0xFF;
++    for (int i = 0; i < n; i++) {
++      words[1 + i] = (u32)msg->data.numsU64[1 + i];
++    }
++    RunCommandList(words, 4 * (1 + n));
++  } break;
++  case DRAW_CMD_G3_END:
++    break;
++  case DRAW_CMD_G3_SHININESS:
++    G3SIM_Shininess(msg->data.numsU32);
++    break;
++  case DRAW_CMD_G3_POSITIONTEST:
++    // the test's coordinates become the last vertex's (VTX_XY/XZ/YZ/DIFF after it are relative to them)
++    prevXYZ.x = msg->data.xyz.x;
++    prevXYZ.y = msg->data.xyz.y;
++    prevXYZ.z = msg->data.xyz.z;
++    G3SIM_PositionTest(msg->data.xyz.x, msg->data.xyz.y, msg->data.xyz.z);
++    break;
++  case DRAW_CMD_G3_VECTORTEST:
++    G3SIM_VectorTest(msg->data.numU32);
++    break;
+   case DRAW_CMD_G3_DIRECT1:
+     msg->type = DecodeG3Op(msg->data.numsU64[0]);
+     // Get the parameter in the right place
+@@ -604,69 +703,7 @@
+     break;
+   case DRAW_CMD_G3_CMD_LIST:
+     // Process a command List
+-    {
+-      G3SIM_CommandBlock_t *cmdBlockPtr;
+-      draw_msg_t tempMsg;
+-      cmdBlockPtr = static_cast<G3SIM_CommandBlock_t *>(msg->data.ptr);
+-      u64 curOffset;
+-      curOffset = 0;
+-      u8 numParams;
+-      void *paramPtr;
+-      u8 paramSize;
+-      u8 paramSigned;
+-      while (curOffset < msg->size) {
+-        paramPtr = (void *)((uPtr)cmdBlockPtr + 4);
+-        curOffset += 4;
+-        for (int i = 0; i < 4; i++) {
+-          tempMsg.type = DecodeG3Op(cmdBlockPtr->ops[i]);
+-          numParams = GetNumParamsFromCommandType(tempMsg.type);
+-          paramSize = GetParamSizeFromCommandType(tempMsg.type);
+-          paramSigned = isParamSigned(tempMsg.type);
+-          for (int j = 1; j < numParams + 1; j++) {
+-            switch (paramSize) {
+-            case 0:
+-              break;
+-            case 1:
+-              if (paramSigned) {
+-                tempMsg.data.numsS64[j] = (s64) * (s8 *)paramPtr;
+-              } else {
+-                tempMsg.data.numsU64[j] = *(u8 *)paramPtr;
+-              }
+-              break;
+-            case 2:
+-              if (paramSigned) {
+-                tempMsg.data.numsS64[j] = (s64) * (s16 *)paramPtr;
+-              } else {
+-                tempMsg.data.numsU64[j] = *(u16 *)paramPtr;
+-              }
+-              break;
+-            case 4:
+-              if (paramSigned) {
+-                tempMsg.data.numsS64[j] = (s64) * (s32 *)paramPtr;
+-              } else {
+-                tempMsg.data.numsU64[j] = *(u32 *)paramPtr;
+-              }
+-              break;
+-            case 8:
+-              if (paramSigned) {
+-                tempMsg.data.numsS64[j] = *(s64 *)paramPtr;
+-              } else {
+-                tempMsg.data.numsU64[j] = *(u64 *)paramPtr;
+-              }
+-              break;
+-            default:
+-              break;
+-            }
+-            paramPtr = (void*)((uPtr)paramPtr + paramSize);
+-            curOffset += paramSize;
+-          }
+-
+-          ConvertMsgParams(&tempMsg);
+-          SIM_HandleG3Command(&tempMsg);
+-        }
+-        cmdBlockPtr = static_cast<G3SIM_CommandBlock_t *>(paramPtr);
+-      }
+-    }
++    RunCommandList(msg->data.ptr, msg->size);
+     free(msg->data.ptr);
+     // TODO
+     break;
+--- a/libraries/sim/src/g3_handler.cpp
++++ b/libraries/sim/src/g3_handler.cpp
+@@ -50,6 +50,21 @@
+ 
+ static u8 s_G3LightColor [4][3];
+ static float s_G3LightVector[4][3];
++// bw-port: the half vectors ((light vector + line of sight (0,0,-1)) / 2), the shininess table, its enable (SPE_EMI
++// bit 15: it was taken for "set the vertex colour")
++static float s_G3HalfVector[4][3];
++static u8 s_g3ShininessTable[128];
++static u8 s_g3UseShininessTable;
++
++// a 1.9 fixed-point vector component (two's complement: the low bits were cut to 8 and the sign was read as a
++// sign-magnitude bit that the cut had dropped, so every normal and light vector pointed into the positive octant)
++static float G3SIM_Vec10(u32 data, int shift)
++{
++    return (float)((s32)((data >> shift) << 22) >> 22) / 512.0f;
++}
++
++// v * the 3x3 of the vector matrix (a row vector, as the DS multiplies)
++static void G3SIM_MulVecMtx(const float *in, float *out);
+ 
+ u8 s_G3numInPoly = 0;
+ u8 s_G3drawPoly = 0;
+@@ -875,29 +890,61 @@
+ 
+ void G3SIM_LightVector(u32 data)
+ {
+-    u8 lightVecX = (data & 0b1111111111);
+-    u8 lightVecXSign = (lightVecX & 0b1000000000) >> 9;
+-    lightVecX = lightVecX & 0b111111111;
+-    u8 lightVecY = (data & 0b11111111110000000000) >> 10;
+-    u8 lightVecYSign = (lightVecY & 0b1000000000) >> 9;
+-    lightVecY = lightVecY & 0b111111111;
+-    u8 lightVecZ = (data & 0b111111111100000000000000000000) >> 20;
+-    u8 lightVecZSign = (lightVecZ & 0b1000000000) >> 9;
+-    lightVecZ = lightVecZ & 0b111111111;
+-    u8 lightNum = (data & 0b11000000000000000000000000000000) >> 30;
++    u8 lightNum = (data >> 30) & 3;
++    float v[3] = {G3SIM_Vec10(data, 0), G3SIM_Vec10(data, 10), G3SIM_Vec10(data, 20)};
++
++    // bw-port: multiplied by the vector matrix when the command runs (GBATEK), not by the one of each later NORMAL
++    G3SIM_MulVecMtx(v, s_G3LightVector[lightNum]);
++    s_G3HalfVector[lightNum][0] = s_G3LightVector[lightNum][0] / 2.0f;
++    s_G3HalfVector[lightNum][1] = s_G3LightVector[lightNum][1] / 2.0f;
++    s_G3HalfVector[lightNum][2] = (s_G3LightVector[lightNum][2] - 1.0f) / 2.0f;
++}
++
++void G3SIM_Shininess(const u32 *table)
++{
++    for (int i = 0; i < 128; i++) {
++        s_g3ShininessTable[i] = (u8)(table[i >> 2] >> (8 * (i & 3)));
++    }
++}
++
++// POS_TEST: (x, y, z, 1) times the clip matrix, into POS_RESULT
++void G3SIM_PositionTest(s16 x, s16 y, s16 z)
++{
++    fx32 v[4] = {x, y, z, 0};
++    calculateVtxFx(&v[0], &v[1], &v[2], &v[3]);
++    s_reg_G3X_POS_RESULT_X = v[0];
++    s_reg_G3X_POS_RESULT_Y = v[1];
++    s_reg_G3X_POS_RESULT_Z = v[2];
++    s_reg_G3X_POS_RESULT_W = v[3];
++}
++
++// VEC_TEST: (x, y, z, 0) times the vector matrix, into VEC_RESULT (4 sign bits, 12 fraction bits: 1.0 overflows)
++void G3SIM_VectorTest(u32 data)
++{
++    s32 in[3];
++    s32 out[3];
++    for (int c = 0; c < 3; c++) {
++        in[c] = ((s32)((data >> (10 * c)) << 22) >> 22) << 3; // 1.9 to 20.12
++    }
++    for (int j = 0; j < 3; j++) {
++        s64 sum = 0;
++        for (int i = 0; i < 3; i++) {
++            sum += (s64)in[i] * currentVectorMatrix.nums[i][j];
++        }
++        out[j] = (s32)(sum >> 12);
++        out[j] = (s32)((u32)out[j] << 19) >> 19;
++    }
++    s_reg_G3X_VEC_RESULT_X = (u16)out[0];
++    s_reg_G3X_VEC_RESULT_Y = (u16)out[1];
++    s_reg_G3X_VEC_RESULT_Z = (u16)out[2];
++}
+ 
+-    // Should get us a number from -1 to 1
+-    s_G3LightVector[lightNum][0] = (float)lightVecX / 511.0f;
+-    if(lightVecXSign) {
+-        s_G3LightVector[lightNum][0] = s_G3LightVector[lightNum][0] * -1.0f;
+-    }
+-    s_G3LightVector[lightNum][1] = (float)lightVecY / 511.0f;
+-    if(lightVecYSign) {
+-        s_G3LightVector[lightNum][1] = s_G3LightVector[lightNum][1] * -1.0f;
+-    }
+-    s_G3LightVector[lightNum][2] = (float)lightVecZ / 511.0f;
+-    if(lightVecZSign) {
+-        s_G3LightVector[lightNum][2] = s_G3LightVector[lightNum][2] * -1.0f;
++static void G3SIM_MulVecMtx(const float *in, float *out)
++{
++    for (int j = 0; j < 3; j++) {
++        out[j] = (in[0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][j]))
++               + (in[1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][j]))
++               + (in[2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][j]));
+     }
+ }
+ 
+@@ -1323,46 +1370,13 @@
+ 
+ void G3SIM_Normal(u32 data)
+ {
+-    u8 vecX = (data & 0b1111111111);
+-    u8 vecXSign = (vecX & 0b1000000000) >> 9;
+-    vecX = vecX & 0b111111111;
+-    u8 vecY = (data & 0b11111111110000000000) >> 10;
+-    u8 vecYSign = (vecY & 0b1000000000) >> 9;
+-    vecY = vecY & 0b111111111;
+-    u8 vecZ = (data & 0b111111111100000000000000000000) >> 20;
+-    u8 vecZSign = (vecZ & 0b1000000000) >> 9;
+-    vecZ = vecZ & 0b111111111;
+-
+-    float normalVectorIn[3];
+-    // Should get us a number from -1 to 1
+-    normalVectorIn[0] = (float)vecX / 511.0f;
+-    if(vecXSign) {
+-        normalVectorIn[0] = normalVectorIn[0] * -1.0f;
+-    }
+-    normalVectorIn[1] = (float)vecY / 511.0f;
+-    if(vecYSign) {
+-        normalVectorIn[1] = normalVectorIn[1] * -1.0f;
+-    }
+-    normalVectorIn[2] = (float)vecZ / 511.0f;
+-    if(vecZSign) {
+-        normalVectorIn[2] = normalVectorIn[2] * -1.0f;
+-    }
++    float normalVectorIn[3] = {G3SIM_Vec10(data, 0), G3SIM_Vec10(data, 10), G3SIM_Vec10(data, 20)};
+ 
+     //Multiply by the vector matrix
+     float normalVector[3];
+-    normalVector[0] = (normalVectorIn[0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][0]))
+-                    + (normalVectorIn[1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][0]))
+-                    + (normalVectorIn[2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][0]));
+-    
+-    normalVector[1] = (normalVectorIn[0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][1]))
+-                    + (normalVectorIn[1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][1]))
+-                    + (normalVectorIn[2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][1]));
+-
+-    normalVector[2] = (normalVectorIn[0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][2]))
+-                    + (normalVectorIn[1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][2]))
+-                    + (normalVectorIn[2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][2]));
++    G3SIM_MulVecMtx(normalVectorIn, normalVector);
+ 
+-    // Calculate the color
++    // Calculate the color (GBATEK "Internal Operation on Normal Command")
+ 
+     float color[3] = {};
+ 
+@@ -1373,46 +1387,43 @@
+     for(int lightNum=0; lightNum<4; lightNum++) {
+         if((s_curPolygonAttr.lightFlag >> lightNum) & 1)
+         {
+-            // Light is enabled
+-
+-            //Multiply light vector by vector matrix
+-            float lightVector[3];
+-            lightVector[0] = (s_G3LightVector[lightNum][0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][0]))
+-                           + (s_G3LightVector[lightNum][1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][0]))
+-                           + (s_G3LightVector[lightNum][2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][0]));
+-
+-            lightVector[1] = (s_G3LightVector[lightNum][0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][1]))
+-                           + (s_G3LightVector[lightNum][1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][1]))
+-                           + (s_G3LightVector[lightNum][2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][1]));
+-
+-            lightVector[2] = (s_G3LightVector[lightNum][0] * FX_FX32_TO_F32(currentVectorMatrix.nums[0][2]))
+-                           + (s_G3LightVector[lightNum][1] * FX_FX32_TO_F32(currentVectorMatrix.nums[1][2]))
+-                           + (s_G3LightVector[lightNum][2] * FX_FX32_TO_F32(currentVectorMatrix.nums[2][2]));
++            // Light is enabled: its vector was multiplied by the vector matrix of its LIGHT_VECTOR
++            const float *lightVector = s_G3LightVector[lightNum];
++            const float *halfVector = s_G3HalfVector[lightNum];
+ 
+             //Calculate Diffuse level
+-            float diffuseLevel = (lightVector[0] * normalVector[0])
++            float diffuseLevel = -((lightVector[0] * normalVector[0])
+                                + (lightVector[1] * normalVector[1])
+-                               + (lightVector[2] * normalVector[2]);
+-
+-            diffuseLevel = diffuseLevel * -1.0f;
++                               + (lightVector[2] * normalVector[2]));
+             if(diffuseLevel < 0.0f) {
+                 diffuseLevel = 0.0f;
+             }
++            if(diffuseLevel > 1.0f) {
++                diffuseLevel = 1.0f;
++            }
+ 
+-            //Specular color
+-            color[0] = color[0] + (((float)s_g3SpecularColor[0] / 255.0f) * ((float)s_G3LightColor[lightNum][0] / 255.0f)); // * ShininessLevel TODO
+-            color[1] = color[1] + (((float)s_g3SpecularColor[1] / 255.0f) * ((float)s_G3LightColor[lightNum][1] / 255.0f)); // * ShininessLevel TODO
+-            color[2] = color[2] + (((float)s_g3SpecularColor[2] / 255.0f) * ((float)s_G3LightColor[lightNum][2] / 255.0f)); // * ShininessLevel TODO
+-
+-            //Diffuse color
+-            color[0] = color[0] + (((float)s_g3DiffuseColor[0] / 255.0f) * ((float)s_G3LightColor[lightNum][0] / 255.0f) * diffuseLevel); // * DiffuseLevel TODO
+-            color[1] = color[1] + (((float)s_g3DiffuseColor[1] / 255.0f) * ((float)s_G3LightColor[lightNum][1] / 255.0f) * diffuseLevel); // * DiffuseLevel TODO
+-            color[2] = color[2] + (((float)s_g3DiffuseColor[2] / 255.0f) * ((float)s_G3LightColor[lightNum][2] / 255.0f) * diffuseLevel); // * DiffuseLevel TODO
+-
+-            //Ambient color
+-            color[0] = color[0] + (((float)s_g3AmbientColor[0] / 255.0f) * ((float)s_G3LightColor[lightNum][0] / 255.0f));
+-            color[1] = color[1] + (((float)s_g3AmbientColor[1] / 255.0f) * ((float)s_G3LightColor[lightNum][1] / 255.0f));
+-            color[2] = color[2] + (((float)s_g3AmbientColor[2] / 255.0f) * ((float)s_G3LightColor[lightNum][2] / 255.0f));
++            // the shininess level: max(0, -half * normal) squared, through the table when SPE_EMI enables it
++            float shininessLevel = -((halfVector[0] * normalVector[0])
++                                 + (halfVector[1] * normalVector[1])
++                                 + (halfVector[2] * normalVector[2]));
++            if(shininessLevel < 0.0f) {
++                shininessLevel = 0.0f;
++            }
++            if(shininessLevel > 1.0f) {
++                shininessLevel = 1.0f;
++            }
++            shininessLevel = shininessLevel * shininessLevel;
++            if(s_g3UseShininessTable) {
++                int idx = (int)(shininessLevel * 127.0f + 0.5f);
++                shininessLevel = (float)s_g3ShininessTable[idx] / 256.0f;
++            }
++
++            for(int c = 0; c < 3; c++) {
++                float lightColor = (float)s_G3LightColor[lightNum][c] / 255.0f;
++                color[c] = color[c] + (((float)s_g3SpecularColor[c] / 255.0f) * lightColor * shininessLevel);
++                color[c] = color[c] + (((float)s_g3DiffuseColor[c] / 255.0f) * lightColor * diffuseLevel);
++                color[c] = color[c] + (((float)s_g3AmbientColor[c] / 255.0f) * lightColor);
++            }
+         }
+     }
+ 
+@@ -1497,16 +1508,12 @@
+     u8 specularRed = (data & 0b11111);
+     u8 specularGreen = (data & 0b1111100000) >> 5;
+     u8 specularBlue = (data & 0b111110000000000) >> 10;
+-    u8 setVtxColor = (data & 0b1000000000000000) >> 15;
+     u8 emissionRed = (data & 0b111110000000000000000) >> 16;
+     u8 emissionGreen = (data & 0b11111000000000000000000000) >> 21;
+     u8 emissionBlue = (data & 0b1111100000000000000000000000000) >> 26;
+ 
+-    if(setVtxColor) {
+-        s_g3CurColor[0] = specularRed << 3;
+-        s_g3CurColor[1] = specularGreen << 3;
+-        s_g3CurColor[2] = specularBlue << 3;
+-    }
++    // bw-port: bit 15 enables the shininess table (GBATEK); only DIF_AMB's bit 15 sets the vertex colour
++    s_g3UseShininessTable = (data >> 15) & 1;
+     s_g3SpecularColor[0] = specularRed << 3;
+     s_g3SpecularColor[1] = specularGreen << 3;
+     s_g3SpecularColor[2] = specularBlue << 3;
+--- a/include/simulator/g3_handler.h
++++ b/include/simulator/g3_handler.h
+@@ -132,6 +132,9 @@
+ void G3SIM_Normal(u32 data);
+ void G3SIM_PolygonAttr(u32 data);
+ void G3SIM_SpecEmi(u32 data);
++void G3SIM_Shininess(const u32 *table);
++void G3SIM_PositionTest(s16 x, s16 y, s16 z);
++void G3SIM_VectorTest(u32 data);
+ void G3SIM_SwapBuffers(u8 depthBufferMode);
+ void G3SIM_TexCoord(u32 data);
+ void G3SIM_TexImageParam(u32 data);

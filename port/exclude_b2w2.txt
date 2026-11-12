@@ -1,0 +1,9 @@
+# Black 2's and White 2's C files the port leaves out (tools/port_sources.py --b2w2; port/exclude.txt's format and
+# categories; the maintainers' notes). The paths are pokebw2's (tools/pokebw2_fetch.sh's checkout).
+
+# DSi only: the C-Gear Xtransceiver (camera, SSP JPEG, DSP, TWL mic), as Black's ov172
+src/ov257/*.c               dsi  the Xtransceiver's DSi camera, JPEG codec, DSP and TWL mic, and the files that call them
+
+# hardware libntr lacks: the card's infrared chip, through the card SPI registers (port/src/stub_b2w2.c answers as a genuine
+# card; lib/irc, the C-Gear's infrared link, is not compiled: its IrcLink_* calls are the undefined stubs)
+src/ov338/ir_check.c        hw   IR presence check over the card SPI registers (Black's ov231)

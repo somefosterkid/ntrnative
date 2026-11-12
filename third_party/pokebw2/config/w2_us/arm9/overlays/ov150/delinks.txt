@@ -1,0 +1,9 @@
+    .text       start:0x021f5de0 end:0x021f6218 kind:code align:32
+    .rodata     start:0x021f6218 end:0x021f6224 kind:rodata align:4
+    .ctor       start:0x021f6224 end:0x021f6224 kind:rodata align:4
+    .bss        start:0x021f6240 end:0x021f6240 kind:bss align:32
+
+src/ov150/encounter_effect_grid.c:
+    complete
+    .text       start:0x021f5de0 end:0x021f6218
+    .rodata     start:0x021f6218 end:0x021f6224

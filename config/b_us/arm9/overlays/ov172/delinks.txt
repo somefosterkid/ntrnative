@@ -1,0 +1,88 @@
+    .text       start:0x021b6100 end:0x021c4d10 kind:code align:32
+    .rodata     start:0x021c4d10 end:0x021c71a8 kind:rodata align:4
+    .ctor       start:0x021c71a8 end:0x021c71a8 kind:rodata align:4
+    .data       start:0x021c71c0 end:0x021c88e0 kind:data align:32
+    .bss        start:0x021c88e0 end:0x021cc540 kind:bss align:32
+
+src/ov172/ima_adpcm.c:
+    complete
+    .text       start:0x021b69e0 end:0x021b6be0
+    .rodata     start:0x021c4d10 end:0x021c4e84
+    .bss        start:0x021c88e4 end:0x021c88ec
+
+src/ov172/ctvt_mic.c:
+    complete
+    .text       start:0x021b9f9c end:0x021ba280
+    .data       start:0x021c720c end:0x021c7228
+    .bss        start:0x021c88ec end:0x021c88f0
+
+src/ov172/draw_system.c:
+    complete
+    .text       start:0x021b6be0 end:0x021b6ee0
+    .rodata     start:0x021c4e84 end:0x021c6e94
+    .data       start:0x021c71d0 end:0x021c71e0
+
+src/ov172/ctvt_call.c:
+    complete
+    .text       start:0x021bba6c end:0x021bd1ac
+    .rodata     start:0x021c7040 end:0x021c7048
+    .data       start:0x021c7234 end:0x021c7240
+
+src/ov172/ctvt_draw.c:
+    complete
+    .text       start:0x021ba280 end:0x021bba6c
+    .rodata     start:0x021c6fa8 end:0x021c7040
+    .data       start:0x021c7228 end:0x021c7234
+
+src/ov172/comm_tvt_sys.c:
+    complete
+    .text       start:0x021bd1ac end:0x021be468
+    .rodata     start:0x021c7048 end:0x021c7150
+    .data       start:0x021c7240 end:0x021c725c
+
+src/ov172/ctvt_talk.c:
+    complete
+    .text       start:0x021b8c3c end:0x021b9f9c
+    .rodata     start:0x021c6f64 end:0x021c6fa8
+    .data       start:0x021c7200 end:0x021c720c
+
+src/ov172/camera_system.c:
+    complete
+    .text       start:0x021b6100 end:0x021b69e0
+    .data       start:0x021c71c0 end:0x021c71d0
+    .bss        start:0x021c88e0 end:0x021c88e4
+
+src/ov172/ctvt_camera.c:
+    complete
+    .text       start:0x021b6ee0 end:0x021b7ba8
+    .rodata     start:0x021c6e94 end:0x021c6ec0
+    .data       start:0x021c71e0 end:0x021c71f4
+
+src/ov172/ctvt_comm.c:
+    complete
+    .text       start:0x021b7ba8 end:0x021b8c3c
+    .rodata     start:0x021c6ec0 end:0x021c6f64
+    .data       start:0x021c71f4 end:0x021c7200
+
+lib/twl/src/ssp_jpegdec.c:
+    .text       start:0x021be468 end:0x021c0370
+    .data       start:0x021c725c end:0x021c84c0
+    .bss        start:0x021c88f0 end:0x021cad9c
+
+lib/twl/src/ssp_exifdec.c:
+    complete
+    .text       start:0x021c0370 end:0x021c0c20
+    .bss        start:0x021cad9c end:0x021cade4
+
+lib/twl/src/ssp_jpegenc.c:
+    .text       start:0x021c0c20 end:0x021c2cdc
+    .rodata     start:0x021c7150 end:0x021c7194
+    .data       start:0x021c84c0 end:0x021c8874
+    .bss        start:0x021cade4 end:0x021cadf0
+
+lib/twl/src/ssp_exifenc.c:
+    complete
+    .text       start:0x021c2cdc end:0x021c4d10
+    .rodata     start:0x021c7194 end:0x021c71a8
+    .data       start:0x021c8874 end:0x021c88e0
+    .bss        start:0x021cadf0 end:0x021cc540

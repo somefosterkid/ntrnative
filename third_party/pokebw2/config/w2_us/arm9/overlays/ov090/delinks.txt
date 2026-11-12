@@ -1,0 +1,7 @@
+    .text       start:0x021eecc0 end:0x021eed28 kind:code align:32
+    .ctor       start:0x021eed28 end:0x021eed28 kind:rodata align:4
+    .bss        start:0x021eed40 end:0x021eed40 kind:bss align:32
+
+src/ov090/gimmick_state.c:
+    complete
+    .text       start:0x021eecc0 end:0x021eed28

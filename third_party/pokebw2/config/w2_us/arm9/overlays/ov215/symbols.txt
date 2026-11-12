@@ -1,0 +1,242 @@
+MailTool_CreateWriteParam kind:function(thumb,size=0x84) addr:0x021a75e0
+MailTool_CreatePokemonViewParam kind:function(thumb,size=0x60) addr:0x021a7664
+MailTool_CreateItemViewParam kind:function(thumb,size=0x5c) addr:0x021a76c4
+MailTool_IsWritten kind:function(thumb,size=0x4) addr:0x021a7720
+MailTool_GiveMail kind:function(thumb,size=0x20) addr:0x021a7724
+MailTool_FreeParam kind:function(thumb,size=0x16) addr:0x021a7744
+MailSys_ProcInit kind:function(thumb,size=0x5e) addr:0x021a775c
+MailSys_ProcMain kind:function(thumb,size=0xfc) addr:0x021a77bc
+MailSys_ProcExit kind:function(thumb,size=0x2e) addr:0x021a78b8
+MailSys_StartPMSInput kind:function(thumb,size=0xd2) addr:0x021a78e8
+MailSys_CreateEdit kind:function(thumb,size=0x98) addr:0x021a79bc
+MailSys_FreeEdit kind:function(thumb,size=0x16) addr:0x021a7a54
+MailSys_ApplyEdit kind:function(thumb,size=0x36) addr:0x021a7a6c
+MailSys_InitPresets kind:function(thumb,size=0x5c) addr:0x021a7aa4
+MailSys_EditInit kind:function(thumb,size=0x9c) addr:0x021a7b00
+MailSys_EditMain kind:function(thumb,size=0x14) addr:0x021a7b9c
+MailSys_EditExit kind:function(thumb,size=0x36) addr:0x021a7bb0
+MailSys_Update kind:function(thumb,size=0x1a4) addr:0x021a7be8
+MailSys_IsIncomplete kind:function(thumb,size=0x90) addr:0x021a7d8c
+MailSys_ResetBlink kind:function(thumb,size=0x2c) addr:0x021a7e1c
+MailSys_OnTouchMode kind:function(thumb,size=0xa) addr:0x021a7e48
+MailSys_OnKeyMode kind:function(thumb,size=0x4) addr:0x021a7e54
+MailSys_CheckInputModeSwitch kind:function(thumb,size=0x56) addr:0x021a7e58
+MailSys_PhaseView kind:function(thumb,size=0x30) addr:0x021a7eb0
+MailSys_PhaseKeys kind:function(thumb,size=0x148) addr:0x021a7ee0
+MailSys_PhaseTouch kind:function(thumb,size=0x9c) addr:0x021a8028
+MailSys_PhaseWrite kind:function(thumb,size=0x26) addr:0x021a80c4
+MailSys_ShowMessage kind:function(thumb,size=0x78) addr:0x021a80ec
+MailSys_PhaseNotice kind:function(thumb,size=0xbe) addr:0x021a8164
+MailSys_OpenConfirmMenu kind:function(thumb,size=0x9c) addr:0x021a8224
+MailSys_GetMenuResult kind:function(thumb,size=0x38) addr:0x021a82c0
+MailSys_PhaseCancel kind:function(thumb,size=0x128) addr:0x021a82f8
+MailSys_DisableAllBGs kind:function(thumb,size=0x64) addr:0x021a8420
+MailSys_VBlank kind:function(thumb,size=0x2c) addr:0x021a8484
+MailSys_UpdateBlink kind:function(thumb,size=0x74) addr:0x021a84b0
+MailView_Load kind:function(thumb,size=0x9e) addr:0x021a8524
+MailView_InitFade kind:function(thumb,size=0x78) addr:0x021a85c4
+MailView_Unload kind:function(thumb,size=0x40) addr:0x021a863c
+MailView_CreatePMSDraw kind:function(thumb,size=0x54) addr:0x021a867c
+MailView_DeletePMSDraw kind:function(thumb,size=0x2a) addr:0x021a86d0
+MailView_SetVRAMBanks kind:function(thumb,size=0x10) addr:0x021a86fc
+MailView_InitBGs kind:function(thumb,size=0xe0) addr:0x021a870c
+MailView_ReleaseBGs kind:function(thumb,size=0x28) addr:0x021a87ec
+MailView_LoadGraphics kind:function(thumb,size=0x228) addr:0x021a8814
+MailView_ExitFade kind:function(thumb,size=0x48) addr:0x021a8a3c
+MailView_CreateWindows kind:function(thumb,size=0x10a) addr:0x021a8a84
+MailView_CreateButtons kind:function(thumb,size=0x90) addr:0x021a8b90
+MailView_DeleteWindows kind:function(thumb,size=0x68) addr:0x021a8c20
+MailView_PrintMail kind:function(thumb,size=0xc0) addr:0x021a8c88
+MailView_CreateClAct kind:function(thumb,size=0x50) addr:0x021a8d48
+MailView_DeleteClAct kind:function(thumb,size=0x10) addr:0x021a8d98
+MailBox_Init kind:function(thumb,size=0x46) addr:0x021a8da8
+MailBox_Main kind:function(thumb,size=0x14) addr:0x021a8df0
+MailBox_Exit kind:function(thumb,size=0x20) addr:0x021a8e04
+MailBox_VBlank kind:function(thumb,size=0xc) addr:0x021a8e24
+MailBox_SetVRAMBanks kind:function(thumb,size=0x10) addr:0x021a8e30
+MailBox_InitBGs kind:function(thumb,size=0x1fc) addr:0x021a8e40
+MailBox_FreeBGs kind:function(thumb,size=0x38) addr:0x021a903c
+MailBox_LoadBGGraphics kind:function(thumb,size=0xda) addr:0x021a9074
+MailBox_LoadSystemPalettes kind:function(thumb,size=0x54) addr:0x021a9150
+MailBox_CreateFrames kind:function(thumb,size=0x9c) addr:0x021a91a4
+MailBox_FreeFrames kind:function(thumb,size=0xc) addr:0x021a9240
+MailBox_LoadMessages kind:function(thumb,size=0x30) addr:0x021a924c
+MailBox_FreeMessages kind:function(thumb,size=0x20) addr:0x021a927c
+MailBox_CreateYesNoMenu kind:function(thumb,size=0x44) addr:0x021a929c
+MailBox_CreateMenuResources kind:function(thumb,size=0xf0) addr:0x021a92e0
+MailBox_FreeMenuResources kind:function(thumb,size=0x44) addr:0x021a93d0
+MailBox_CreateMainMenu kind:function(thumb,size=0x42) addr:0x021a9414
+MailBox_FreeMenu kind:function(thumb,size=0x10) addr:0x021a9458
+MailBox_LoadMails kind:function(thumb,size=0x9e) addr:0x021a9468
+MailBox_FreeMails kind:function(thumb,size=0x1e) addr:0x021a9508
+MailBox_UpdateMailList kind:function(thumb,size=0x64) addr:0x021a9528
+MailBox_ShowSelectedFrame kind:function(thumb,size=0x1e) addr:0x021a958c
+MailBox_UpdatePaletteFx kind:function(thumb,size=0xe4) addr:0x021a95ac
+MailBox_LoadMailGraphics kind:function(thumb,size=0x70) addr:0x021a9690
+MailBox_CreatePMSDraw kind:function(thumb,size=0x56) addr:0x021a9700
+MailBox_FreePMSDraw kind:function(thumb,size=0x28) addr:0x021a9758
+MailBox_CreateWindows kind:function(thumb,size=0xec) addr:0x021a9780
+MailBox_FreeWindows kind:function(thumb,size=0x3a) addr:0x021a986c
+MailBox_PrintString kind:function(thumb,size=0x5c) addr:0x021a98a8
+MailBox_PrintMessageId kind:function(thumb,size=0x4c) addr:0x021a9904
+MailBox_DrawMailFrame kind:function(thumb,size=0x148) addr:0x021a9950
+MailBox_PrintTitle kind:function(thumb,size=0x5c) addr:0x021a9a98
+MailBox_Nop1 kind:function(thumb,size=0x2) addr:0x021a9af4
+MailBox_Nop2 kind:function(thumb,size=0x2) addr:0x021a9af8
+MailBox_RegisterAuthorName kind:function(thumb,size=0x5a) addr:0x021a9afc
+MailBox_PrintMessage kind:function(thumb,size=0x52) addr:0x021a9b58
+MailBox_PrintWhatWouldYouLike kind:function(thumb,size=0x38) addr:0x021a9bac
+MailBox_ShowMessageWindow kind:function(thumb,size=0x38) addr:0x021a9be4
+MailBox_HideMessageWindow kind:function(thumb,size=0x16) addr:0x021a9c1c
+MailBox_SetMessage kind:function(thumb,size=0x68) addr:0x021a9c34
+MailBox_PrintMail kind:function(thumb,size=0x134) addr:0x021a9c9c
+MailBox_CreateOBJs kind:function(thumb,size=0xd4) addr:0x021a9dd0
+MailBox_FreeOBJs kind:function(thumb,size=0x18) addr:0x021a9ea4
+MailBox_UpdateClActUnit kind:function(thumb,size=0x12) addr:0x021a9ebc
+MailBox_InitClAct kind:function(thumb,size=0x3c) addr:0x021a9ed0
+MailBox_FreeClAct kind:function(thumb,size=0x26) addr:0x021a9f0c
+MailBox_CreateActor kind:function(thumb,size=0x60) addr:0x021a9f34
+MailBox_FreeActor kind:function(thumb,size=0x1a) addr:0x021a9f94
+MailBox_FreeActors kind:function(thumb,size=0x16) addr:0x021a9fb0
+MailBox_SetActorAnim kind:function(thumb,size=0x18) addr:0x021a9fc8
+MailBox_SetActorVisible kind:function(thumb,size=0x14) addr:0x021a9fe0
+MailBox_SetActorPos kind:function(thumb,size=0x40) addr:0x021a9ff4
+MailBox_SetActorBlend kind:function(thumb,size=0x2a) addr:0x021aa034
+MailBox_OpenIconArc kind:function(thumb,size=0x14) addr:0x021aa060
+MailBox_CloseIconArc kind:function(thumb,size=0x10) addr:0x021aa074
+MailBox_LoadActorResources kind:function(thumb,size=0x78) addr:0x021aa084
+MailBox_LoadButtonResources kind:function(thumb,size=0xae) addr:0x021aa0fc
+MailBox_ShowReadCursor kind:function(thumb,size=0x1a) addr:0x021aa1ac
+MailBox_Update kind:function(thumb,size=0xe4) addr:0x021aa1c8
+MailBox_StateInit kind:function(thumb,size=0xd8) addr:0x021aa2ac
+MailBox_StateExit kind:function(thumb,size=0x78) addr:0x021aa384
+MailBox_StateWaitWipe kind:function(thumb,size=0x1a) addr:0x021aa3fc
+MailBox_StateWaitMessage kind:function(thumb,size=0x5c) addr:0x021aa418
+MailBox_StateWaitYesNo kind:function(thumb,size=0x78) addr:0x021aa474
+MailBox_StateWaitPaletteFx kind:function(thumb,size=0x14) addr:0x021aa4ec
+MailBox_StateStartChild kind:function(thumb,size=0x18) addr:0x021aa500
+MailBox_StateWaitChild kind:function(thumb,size=0x38) addr:0x021aa518
+MailBox_StateWipeIn kind:function(thumb,size=0xc) addr:0x021aa550
+MailBox_StateSelectMail kind:function(thumb,size=0x1e4) addr:0x021aa55c
+MailBox_StateWipeOut kind:function(thumb,size=0x10) addr:0x021aa740
+MailBox_StateChangePage kind:function(thumb,size=0x3c) addr:0x021aa750
+MailBox_StateOpenMenu kind:function(thumb,size=0x34) addr:0x021aa78c
+MailBox_StateCreateMenu kind:function(thumb,size=0xa) addr:0x021aa7c0
+MailBox_StateWaitMenu kind:function(thumb,size=0x104) addr:0x021aa7cc
+MailBox_StateReadMail kind:function(thumb,size=0x2c) addr:0x021aa8d0
+MailBox_StateCloseMail kind:function(thumb,size=0x42) addr:0x021aa8fc
+MailBox_StateAskErase kind:function(thumb,size=0xc) addr:0x021aa940
+MailBox_StateEraseNotice kind:function(thumb,size=0x16) addr:0x021aa94c
+MailBox_StateAskGive kind:function(thumb,size=0xc) addr:0x021aa964
+MailBox_StatePartyReturn kind:function(thumb,size=0x1a) addr:0x021aa970
+MailBox_StateGiveFadeIn kind:function(thumb,size=0x20) addr:0x021aa98c
+MailBox_StateGiveResult kind:function(thumb,size=0x10) addr:0x021aa9ac
+MailBox_StateMailWritten kind:function(thumb,size=0x2c) addr:0x021aa9bc
+MailBox_StatePressReturn kind:function(thumb,size=0x2a) addr:0x021aa9e8
+MailBox_StatePressClose kind:function(thumb,size=0x22) addr:0x021aaa14
+MailBox_StateBackToList kind:function(thumb,size=0x3c) addr:0x021aaa38
+MailBox_StartWipeIn kind:function(thumb,size=0x2c) addr:0x021aaa74
+MailBox_StartWipeOut kind:function(thumb,size=0x2e) addr:0x021aaaa0
+MailBox_StartMessage kind:function(thumb,size=0x14) addr:0x021aaad0
+MailBox_StartYesNo kind:function(thumb,size=0x12) addr:0x021aaae4
+MailBox_StartFrameFx kind:function(thumb,size=0x80) addr:0x021aaaf8
+MailBox_StartPageFx kind:function(thumb,size=0x46) addr:0x021aab78
+MailBox_SetDimmed kind:function(thumb,size=0x74) addr:0x021aabc0
+MailBox_SetDimmedForReading kind:function(thumb,size=0x44) addr:0x021aac34
+MailBox_ShowMail kind:function(thumb,size=0x10) addr:0x021aac78
+MailBox_ClearMail kind:function(thumb,size=0x68) addr:0x021aac88
+MailBox_TakeMailItem kind:function(thumb,size=0x56) addr:0x021aacf0
+MailBox_EraseMail kind:function(thumb,size=0x10) addr:0x021aad48
+MailBox_CreatePartyParam kind:function(thumb,size=0x30) addr:0x021aad58
+MailBox_StartPartyList kind:function(thumb,size=0x28) addr:0x021aad88
+MailBox_EndPartyListCancel kind:function(thumb,size=0xc) addr:0x021aadb0
+MailBox_EndPartyListPick kind:function(thumb,size=0x30) addr:0x021aadbc
+MailBox_EndPartyListCancelAsk kind:function(thumb,size=0xc) addr:0x021aadec
+MailBox_StartMailSys kind:function(thumb,size=0x3c) addr:0x021aadf8
+MailBox_EndMailSys kind:function(thumb,size=0x4a) addr:0x021aae34
+MailBox_EraseYes kind:function(thumb,size=0x74) addr:0x021aae80
+MailBox_GiveYes kind:function(thumb,size=0x1e) addr:0x021aaef4
+MailBox_GiveNo kind:function(thumb,size=0x26) addr:0x021aaf14
+MailBox_GetTouch kind:function(thumb,size=0x10) addr:0x021aaf3c
+MailBox_CreateCursor kind:function(thumb,size=0x50) addr:0x021aaf4c
+MailBox_FreeCursor kind:function(thumb,size=0x10) addr:0x021aaf9c
+MailBox_CursorOn kind:function(thumb,size=0x2) addr:0x021aafac
+MailBox_CursorOff kind:function(thumb,size=0x2) addr:0x021aafb0
+MailBox_CursorMoved kind:function(thumb,size=0x8) addr:0x021aafb4
+MailBox_CursorTouched kind:function(thumb,size=0x8) addr:0x021aafbc
+MailBox_UpdateCursor kind:function(thumb,size=0x3c) addr:0x021aafc4
+MailBox_IsReturnPressed kind:function(thumb,size=0x2c) addr:0x021ab000
+MailBox_IsCloseKeyPressed kind:function(thumb,size=0x16) addr:0x021ab02c
+sMailSysEditProc kind:data(any) addr:0x021ab044
+data_ov215_021ab005 kind:data(any) addr:0x021ab045 ambiguous
+sMailSysPMSInputProc kind:data(any) addr:0x021ab050
+MAILSYS_PROC_FUNCTIONS kind:data(any) addr:0x021ab05c ambiguous
+sMailSysPhaseFuncs kind:data(any) addr:0x021ab068
+sMailSysTouchRects kind:data(any) addr:0x021ab078
+data_ov215_021ab03d kind:data(any) addr:0x021ab07d ambiguous
+sMailSysPresetSentences kind:data(any) addr:0x021ab094
+data_ov215_021ab075 kind:data(any) addr:0x021ab0b5 ambiguous
+MailSys_VRAMConfig kind:data(any) addr:0x021ab0b8
+data_ov215_021ab095 kind:data(any) addr:0x021ab0d5 ambiguous
+data_ov215_021ab0a8 kind:data(any) addr:0x021ab0e8
+data_ov215_021ab0b8 kind:data(any) addr:0x021ab0f8
+data_ov215_021ab0cd kind:data(any) addr:0x021ab10d ambiguous
+data_ov215_021ab105 kind:data(any) addr:0x021ab145 ambiguous
+data_ov215_021ab115 kind:data(any) addr:0x021ab155 ambiguous
+data_ov215_021ab125 kind:data(any) addr:0x021ab165 ambiguous
+data_ov215_021ab135 kind:data(any) addr:0x021ab175 ambiguous
+MAILBOX_PROC_FUNCTIONS kind:data(any) addr:0x021ab198 ambiguous
+data_ov215_021ab159 kind:data(any) addr:0x021ab199 ambiguous
+data_ov215_021ab164 kind:data(any) addr:0x021ab1a4
+data_ov215_021ab174 kind:data(any) addr:0x021ab1b4
+data_ov215_021ab179 kind:data(any) addr:0x021ab1b9 ambiguous
+data_ov215_021ab191 kind:data(any) addr:0x021ab1d1 ambiguous
+MailBox_VRAMConfig kind:data(any) addr:0x021ab1d4
+data_ov215_021ab1a9 kind:data(any) addr:0x021ab1e9 ambiguous
+data_ov215_021ab1c4 kind:data(any) addr:0x021ab204
+data_ov215_021ab1d4 kind:data(any) addr:0x021ab214
+data_ov215_021ab1e1 kind:data(any) addr:0x021ab221 ambiguous
+data_ov215_021ab1f4 kind:data(any) addr:0x021ab234
+data_ov215_021ab209 kind:data(any) addr:0x021ab249 ambiguous
+data_ov215_021ab214 kind:data(any) addr:0x021ab254
+data_ov215_021ab219 kind:data(any) addr:0x021ab259 ambiguous
+data_ov215_021ab234 kind:data(any) addr:0x021ab274
+data_ov215_021ab254 kind:data(any) addr:0x021ab294
+data_ov215_021ab274 kind:data(any) addr:0x021ab2b4
+data_ov215_021ab279 kind:data(any) addr:0x021ab2b9 ambiguous
+data_ov215_021ab294 kind:data(any) addr:0x021ab2d4
+data_ov215_021ab2b4 kind:data(any) addr:0x021ab2f4
+data_ov215_021ab2c9 kind:data(any) addr:0x021ab309 ambiguous
+sWindowTemplates kind:data(any) addr:0x021ab314
+data_ov215_021ab2f9 kind:data(any) addr:0x021ab339 ambiguous
+data_ov215_021ab329 kind:data(any) addr:0x021ab369 ambiguous
+data_ov215_021ab359 kind:data(any) addr:0x021ab399 ambiguous
+data_ov215_021ab389 kind:data(any) addr:0x021ab3c9 ambiguous
+data_ov215_021ab3b9 kind:data(any) addr:0x021ab3f9 ambiguous
+data_ov215_021ab3e9 kind:data(any) addr:0x021ab429 ambiguous
+data_ov215_021ab419 kind:data(any) addr:0x021ab459 ambiguous
+data_ov215_021ab449 kind:data(any) addr:0x021ab489 ambiguous
+sClActSetup kind:data(any) addr:0x021ab494
+sActorTemplates kind:data(any) addr:0x021ab4b0
+data_ov215_021ab479 kind:data(any) addr:0x021ab4b9 ambiguous
+data_ov215_021ab489 kind:data(any) addr:0x021ab4c9 ambiguous
+data_ov215_021ab499 kind:data(any) addr:0x021ab4d9 ambiguous
+data_ov215_021ab50d kind:data(any) addr:0x021ab54d ambiguous
+sMailSysProc kind:data(any) addr:0x021ab650
+sYesNoFuncs kind:data(any) addr:0x021ab65c
+data_ov215_021ab620 kind:data(any) addr:0x021ab660
+sChildProcs kind:data(any) addr:0x021ab66c
+data_ov215_021ab630 kind:data(any) addr:0x021ab670
+data_ov215_021ab634 kind:data(any) addr:0x021ab674
+sStateFuncs kind:data(any) addr:0x021ab69c
+sReturnRects kind:data(any) addr:0x021ab708
+sCursorCallbacks kind:data(any) addr:0x021ab710
+sButtonRects kind:data(any) addr:0x021ab720
+sCursorData kind:data(any) addr:0x021ab734
+data_ov215_021ab73d kind:data(any) addr:0x021ab77d ambiguous
+data_ov215_021ab769 kind:data(any) addr:0x021ab7a9 ambiguous
+data_ov215_021ab780 kind:data(any) addr:0x021ab7c0
+data_ov215_021ab78c kind:data(any) addr:0x021ab7cc
+data_ov215_021ab798 kind:data(any) addr:0x021ab7d8
+data_ov215_021ab7a4 kind:data(any) addr:0x021ab7e4
+data_ov215_021ab7b1 kind:data(any) addr:0x021ab7f1 ambiguous

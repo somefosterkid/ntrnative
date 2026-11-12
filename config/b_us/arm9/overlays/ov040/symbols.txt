@@ -1,0 +1,12 @@
+GymNacrene_Init kind:function(thumb,size=0xbc) addr:0x021f36c0
+GymNacrene_End kind:function(thumb,size=0x1c) addr:0x021f377c
+GymNacrene_Update kind:function(thumb,size=0xc) addr:0x021f3798
+func_ov040_021f37a4 kind:function(thumb,size=0x24) addr:0x021f37a4
+func_ov040_021f37c8 kind:function(thumb,size=0x22) addr:0x021f37c8
+func_ov040_021f37ec kind:function(thumb,size=0x30) addr:0x021f37ec
+func_ov040_021f381c kind:function(thumb,size=0xb2) addr:0x021f381c
+data_ov040_021f38d0 kind:data(any) addr:0x021f38d0
+data_ov040_021f38d4 kind:data(any) addr:0x021f38d4
+data_ov040_021f38dc kind:data(any) addr:0x021f38dc
+data_ov040_021f38ec kind:data(any) addr:0x021f38ec
+data_ov040_021f38fc kind:data(any) addr:0x021f38fc

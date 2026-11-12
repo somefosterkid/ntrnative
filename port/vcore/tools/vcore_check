@@ -1,0 +1,3 @@
+#!/bin/sh
+# vcore_check pNN [--fuzz N] [--seed S] [--keep DIR]: docs/vcore.md, "Checking a piece"
+exec python3 "$(dirname "$0")/vcore_check.py" "$@"

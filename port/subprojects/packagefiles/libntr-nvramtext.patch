@@ -1,0 +1,120 @@
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -42,6 +42,51 @@
+ static BOOL StringToBool(const char * str);
+ static const char * ScreenLayoutTypeToString(SIM_config_screen_layout_type layout);
+ static SIM_config_screen_layout_type StringToScreenLayoutType(const char * str);
++
++/* bw-port (libntr-nvramtext.patch): the maintainer's nickname and comment are the DS's UTF-16 (u16 str[] and a length), not wchar_t,
++ * which is 4 bytes on Apple and Linux. There the save's %ls read two u16s as one bad character and the whole save failed
++ * ("write failed (Illegal byte sequence); the old file stays": no setting changed in the app outlived a restart, once the file had
++ * been read), and the default's wcscpy and the comment's swprintf wrote past their arrays. Here they are u16; the ini holds UTF-8. */
++static u8 NvramTextFromIni(u16 * dst, int max, const char * s)
++{
++    const unsigned char * p = (const unsigned char *)s;
++    int n = 0;
++    memset(dst, 0, (size_t)max * sizeof(u16));
++    while (*p != 0 && n < max) {
++        unsigned c = *p++;
++        if (c >= 0xF0) {   /* beyond the DS's 16 bits */
++            while ((*p & 0xC0) == 0x80) p++;
++            c = '?';
++        } else if (c >= 0xE0 && (p[0] & 0xC0) == 0x80 && (p[1] & 0xC0) == 0x80) {
++            c = (c & 0x0F) << 12 | (p[0] & 0x3Fu) << 6 | (p[1] & 0x3Fu);
++            p += 2;
++        } else if (c >= 0xC0 && (p[0] & 0xC0) == 0x80) {
++            c = (c & 0x1F) << 6 | (p[0] & 0x3Fu);
++            p += 1;
++        }
++        dst[n++] = (u16)c;
++    }
++    return (u8)n;
++}
++
++static void NvramTextToIni(FILE * f, const u16 * s, int max)
++{
++    for (int i = 0; i < max && s[i] != 0; i++) {
++        unsigned c = s[i];
++        if (c < 0x20) {
++            fputc('?', f);   /* (a line break would end the ini line) */
++        } else if (c < 0x80) {
++            fputc((int)c, f);
++        } else if (c < 0x800) {
++            fputc((int)(0xC0 | c >> 6), f);
++            fputc((int)(0x80 | (c & 0x3F)), f);
++        } else {
++            fputc((int)(0xE0 | c >> 12), f);
++            fputc((int)(0x80 | (c >> 6 & 0x3F)), f);
++            fputc((int)(0x80 | (c & 0x3F)), f);
++        }
++    }
++}
+ 
+ 
+ static int IniHandler(void* user, const char* section, const char* name,
+@@ -311,19 +356,12 @@
+         config->osNvramConfig.ncd.owner.birthday.day = atoi(value);
+     }
+     if(MATCH("OSNVRAM", "Owner_Nickname")) {
+-        memset(config->osNvramConfig.ncd.owner.nickname.str, 0, NVRAM_CONFIG_NICKNAME_LENGTH*2);
+-
+-        int valueLen = strlen(value);
+-        for(int i=0; i < valueLen; i++) {
+-            u16 outChar = value[i];
+-            config->osNvramConfig.ncd.owner.nickname.str[i] = outChar;
+-        }
+-        config->osNvramConfig.ncd.owner.nickname.length = (u8)wcslen((wchar_t*)config->osNvramConfig.ncd.owner.nickname.str);
++        config->osNvramConfig.ncd.owner.nickname.length =   /* bw-port (libntr-nvramtext.patch) */
++            NvramTextFromIni(config->osNvramConfig.ncd.owner.nickname.str, NVRAM_CONFIG_NICKNAME_LENGTH, value);
+     }
+     if(MATCH("OSNVRAM", "Owner_Comment")) {
+-        memset(config->osNvramConfig.ncd.owner.comment.str, 0, NVRAM_CONFIG_COMMENT_LENGTH*2);
+-        swprintf((wchar_t*)config->osNvramConfig.ncd.owner.comment.str, (NVRAM_CONFIG_COMMENT_LENGTH)-1, L"%s", value);
+-        config->osNvramConfig.ncd.owner.comment.length = wcslen((wchar_t*)config->osNvramConfig.ncd.owner.comment.str);
++        config->osNvramConfig.ncd.owner.comment.length =   /* bw-port (libntr-nvramtext.patch) */
++            NvramTextFromIni(config->osNvramConfig.ncd.owner.comment.str, NVRAM_CONFIG_COMMENT_LENGTH, value);
+     }
+     //Alarm
+     if(MATCH("OSNVRAM", "Alarm_Hour")) {
+@@ -404,7 +442,7 @@
+         config->osNvramConfig.ncd.option.rtcClockAdjust = atoi(value);
+     }
+     if(MATCH("OSNVRAM", "Option_RTCOffset")) {
+-        config->osNvramConfig.ncd.option.rtcOffset = atoi(value);
++        config->osNvramConfig.ncd.option.rtcOffset = atoll(value);   /* bw-port (libntr-nvramtext.patch): an s64 */
+     }
+ 
+     // Net Settings
+@@ -733,7 +771,8 @@
+     aConfig->macAddr[5] = rand();
+ 
+     memset(&aConfig->osNvramConfig, 0, sizeof(NVRAMConfig));
+-    wcscpy((wchar_t*)aConfig->osNvramConfig.ncd.owner.nickname.str, L"Player");
++    aConfig->osNvramConfig.ncd.owner.nickname.length =   /* bw-port (libntr-nvramtext.patch) */
++        NvramTextFromIni(aConfig->osNvramConfig.ncd.owner.nickname.str, NVRAM_CONFIG_NICKNAME_LENGTH, "Player");
+     aConfig->osNvramConfig.ncd.option.input_nickname = TRUE;
+     aConfig->osNvramConfig.ncd.option.input_favoriteColor = TRUE;
+     aConfig->osNvramConfig.ncd.option.input_language = TRUE;
+@@ -872,8 +911,11 @@
+     fprintf(configFile, "Owner_FavoriteColor=%d\n", aConfig->osNvramConfig.ncd.owner.favoriteColor);
+     fprintf(configFile, "Owner_BirthdayMonth=%d\n", aConfig->osNvramConfig.ncd.owner.birthday.month);
+     fprintf(configFile, "Owner_BirthdayDay=%d\n", aConfig->osNvramConfig.ncd.owner.birthday.day);
+-    fprintf(configFile, "Owner_Nickname=%ls\n", aConfig->osNvramConfig.ncd.owner.nickname.str);
+-    fprintf(configFile, "Owner_Comment=%ls\n", aConfig->osNvramConfig.ncd.owner.comment.str);
++    fprintf(configFile, "Owner_Nickname=");   /* bw-port (libntr-nvramtext.patch) */
++    NvramTextToIni(configFile, aConfig->osNvramConfig.ncd.owner.nickname.str, NVRAM_CONFIG_NICKNAME_LENGTH);
++    fprintf(configFile, "\nOwner_Comment=");
++    NvramTextToIni(configFile, aConfig->osNvramConfig.ncd.owner.comment.str, NVRAM_CONFIG_COMMENT_LENGTH);
++    fprintf(configFile, "\n");
+     fprintf(configFile, "Alarm_Hour=%d\n", aConfig->osNvramConfig.ncd.alarm.hour);
+     fprintf(configFile, "Alarm_Minute=%d\n", aConfig->osNvramConfig.ncd.alarm.minute);
+     fprintf(configFile, "Alarm_Second=%d\n", aConfig->osNvramConfig.ncd.alarm.second);
+@@ -899,7 +941,7 @@
+     fprintf(configFile, "Option_NicknameSet=%s\n", BoolToString(aConfig->osNvramConfig.ncd.option.input_nickname));
+     fprintf(configFile, "Option_Timezone=%d\n", aConfig->osNvramConfig.ncd.option.timezone);
+     fprintf(configFile, "Option_RTCClockAdjust=%d\n", aConfig->osNvramConfig.ncd.option.rtcClockAdjust);
+-    fprintf(configFile, "Option_RTCOffset=%d\n", aConfig->osNvramConfig.ncd.option.rtcOffset);
++    fprintf(configFile, "Option_RTCOffset=%lld\n", (long long)aConfig->osNvramConfig.ncd.option.rtcOffset);   /* bw-port (libntr-nvramtext.patch): was %d */
+     fprintf(configFile, "\n");
+     fprintf(configFile, "[LAN]\n");
+     fprintf(configFile, "ServerIp=%s\n", aConfig->netSettings.serverIp);

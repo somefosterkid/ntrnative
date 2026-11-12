@@ -1,0 +1,46 @@
+# Black 2, from NEW GAME to Aspertia's Center (tools/route.py b2). name | start | pilot tokens | end | save | flags
+# Not scripted yet: b2-town .. b2-balls (Hugh's house and PC scenes, the gate where Hugh stops you, the lookout, the starter,
+# Hugh's first battle, the Center): the way to the lookout from the gate is not found (west of 52,712 is blocked at 51,712).
+new-b2 | NEWGAME | Pa M12000 | zone 428 14,3
+new-b2-save | NEWGAME | Pa M12000 S | zone 428 14,3 | b2-newsave
+continue-b2 | b2-newsave | W60 | zone 428 14,3
+room-town | b2-room | Pa 14,8 8,8 8,9 3,9 W120 5,9 5,12! W200 | zone 427 47,762 | - | quick
+balls-r19 | b2-balls | Pa 7,12 Ka:2 W100 7,20! W300 52,740 52,709! W50 5,0! W500 53,696 56,696 W50 | zone 437 56,696
+r19-floccesy | b2-route19 | 124,696 W100 | zone 439 124,696
+# the Center (zone 443), the nurse (uid 4, across the counter: Pa, Yes to the rest), out, Alder's scene (trigger T1)
+floccesy-alder | b2-floccesy | G:warp:443 Pa G:npc:4 Pb G:warp:439 G:trig:1 Wf G:113,669 W200 | zone 439 113,669
+alder-r20 | b2-alder | 113,663! 158,663 W30 | zone 446 158,663 | -
+r20-ranch | b2-route20 | 155,663 155,646 141,646 141,639! W30 | zone 444 141,639
+ranch-hugh | b2-ranch | 141,628! 42,50 42,46 41,46 W60 | zone 445 42,45 | - | quick defaultopts
+ranch2 | b2-ranch-hugh | 22,45 22,33 W60 | zone 445 22,33
+ranch3 | b2-ranch2 | 23,33 23,13 W60 | zone 445 23,13
+ranch4 | b2-ranch3 | 23,12 31,12 31,11 42,11 42,14 W60 | zone 445 42,14
+ranch5 | b2-ranch4 | 42,21 47,21 47,26 50,26 50,24 W200 | zone 445 51,23 | - | defaultopts
+alder2 | b2-floccesy2 | 113,663 113,667 W100 | zone 439 113,667
+ranch-out | b2-ranch5 | 50,24 50,26 47,26 47,21 42,21 42,14 42,11 31,11 31,12 23,12 23,13 23,33 22,33 22,45 42,45 42,50 45,54! W100 | zone 444 141,630
+to-gate | b2-alder2 | 113,696 53,696 53,704! W20 | zone 438 5,1
+gate-aspc | b2-gate | 5,20! W20 52,740 48,740 48,738! W30 7,12 Pa Ka:2 W100 Pb | zone 435 7,12 | - | quick
+# Aspertia to Cheren (docs/b2w2.md "Black 2 story")
+aspc-alder | b2-aspc13 | 7,20! Wf 52,740 52,709! Wf 5,0! Wf 53,696 Wf 124,696 Wf 113,696 113,669 107,669 107,661! Wf:60 S | zone 440 6,10 | b2-alderhouse
+alder-medal | b2-alderhouse | 6,12! Wf 107,669 113,669 113,696 105,696 105,693! Wf 7,12 Wf:60 Pa Ka:2 Wf:60 Pb S | zone 443 7,12 | b2-medal
+medal-school | b2-medal | 7,20! Wf 113,696 Wf 124,696 53,696 53,704! Wf 5,20! Wf 52,740 39,740 39,738! Wf:60 S | zone 436 9,25 | b2-school
+school-gym | b2-school | 14,22 14,15 14,14 8,14 8,8 14,8 14,3 9,1! Wf:60 S | zone 489 15,23 | b2-gym | -
+# The Gym (zone 489): the Lass (13,9), the Youngster (17,18), Cheren (15,2: the platform's stairs from 20,3 up to 20,2,
+# then west), the Basic Badge scene. Battles under --cheat (the pilot answers "forget a move?" No: Tackle stays first).
+# The trainers by their uids (the Lass 2, the Youngster 1: G:npc talks, fights and waits the after-text out)
+gym-lass | b2-gym | Pa G:npc:2 S | zone 489 16,9 | b2-gym-lass
+gym-youngster | b2-gym-lass | Pa G:npc:1 S | zone 489 14,18 | b2-gym-young
+gym-cheren | b2-gym-young | Wf:30 16,17 16,9 20,9 20,2 16,2 Wf:10 Pa Ka:2 Wb S | zone 489 16,2 | b2-badge1
+# b2-town -> the lookout (sb2a): gap1 Hugh T0, gap2 the Center door (T1: its scene turns the player back; G:trig is done when the scene ends), gap3 G:36,715
+gap1 | b2-town | G:trig:0 Wf S W30 | zone 427 43,761 | b2-gap1
+gap2 | b2-gap1 | Wf:60 G:trig:1 Wf S W30 | zone 427 48,741 | b2-gap2
+gap3 | b2-gap2 | G:36,715 Wf S W30 | zone 427 36,715 | b2-gap3
+# Out of the school: Bianca hands over the C-Gear. Its list ignores B: M3000 B-pulses to the C-Gear power-on list, No
+# (Down, A), then the restrictions confirmation = Yes (Pa). Yes to the first question starts the wireless
+# beacon search (it crashed until WM's buffer in wih.c got its PC size and 32-byte alignment: net_whpipe.c UpdateBeacon,
+# game_beacon_search.c:299 work NULL; cgear-yes2 is that path).
+gym-out | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 M3000 KD:2 K0:6 Ka:2 K0:60 Pa Wf:60 S | zone 427 39,741 | b2-v1
+# Yes to the C-Gear power-on question (Pa answers Yes), the wireless starts and finds nobody, on to Route 19 (zone 438). libntr's ARM7
+# WM runs in its own thread, so after the Yes the V-blank counts and the NPCs differ run to run (--repeat says DIFFERENT, the
+# end does not: the last token is a tile walk to the same tile)
+cgear-yes2 | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 Pa M3000 Wf:300 Pb G:warp:438 Wf:600 G:4,14 | zone 438 4,14 | -

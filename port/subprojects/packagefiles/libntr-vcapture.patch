@@ -1,0 +1,759 @@
+--- a/libraries/sim/src/meson.build
++++ b/libraries/sim/src/meson.build
+@@ -31,6 +31,7 @@
+     'sim_RomExtractor.cpp',
+     'sim_screenquads.c',
+     'sim_shaders.cpp',
++    'sim_vcapture.cpp',
+     'sim_vars.c'
+ )
+ 
+--- a/libraries/sim/src/sim_g3_CommandProcessor.cpp
++++ b/libraries/sim/src/sim_g3_CommandProcessor.cpp
+@@ -453,10 +453,17 @@
+   }
+ }
+ 
++// bw-port: the frame-state capture (sim_vcapture.cpp, BWPORT_VCAPTURE): each command as it comes, a raw list as
++// its words (its decoded commands, which come back through here, not again)
++extern "C" void SIM_VCapMsg(const draw_msg_t *msg);
++extern "C" void SIM_VCapList(const void *data, u32 bytes);
++extern "C" void SIM_VCapSuppress(int delta);
++
+ namespace SIM::G3 {
+ 
+ void HandleCommandMessage(draw_msg_t *msg) {
+   u32 temp;
++  SIM_VCapMsg(msg);
+   switch (msg->type) {
+   case DRAW_CMD_G3_NOP:
+   case DRAW_CMD_G3_DUMMY:
+@@ -658,7 +665,10 @@
+     for (int i = 0; i < n; i++) {
+       words[1 + i] = (u32)msg->data.numsU64[1 + i];
+     }
++    SIM_VCapList(words, 4 * (1 + n));
++    SIM_VCapSuppress(1);
+     RunCommandList(words, 4 * (1 + n));
++    SIM_VCapSuppress(-1);
+   } break;
+   case DRAW_CMD_G3_END:
+     break;
+@@ -703,7 +713,10 @@
+     break;
+   case DRAW_CMD_G3_CMD_LIST:
+     // Process a command List
++    SIM_VCapList(msg->data.ptr, msg->size);
++    SIM_VCapSuppress(1);
+     RunCommandList(msg->data.ptr, msg->size);
++    SIM_VCapSuppress(-1);
+     free(msg->data.ptr);
+     // TODO
+     break;
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -236,6 +236,11 @@
+ static void DrawScreenQuad();
+ static void DrawEngine(BOOL isSub);
+ 
++// bw-port: the frame-state capture (sim_vcapture.cpp, BWPORT_VCAPTURE): the state before the screens are drawn,
++// the picture after
++extern "C" void SIM_VCapFrameBegin(void);
++extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical);
++
+ static u8 s_numG3CommandsThisFrame = 0;
+ 
+ // Vcount stuff
+@@ -1625,12 +1630,19 @@
+       glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFb);
+     }
+ 
++    SIM_VCapFrameBegin();
++
+     // Draw MAIN engine
+     DrawEngine(FALSE);
+ 
+     // SUB engine
+     DrawEngine(TRUE);
+ 
++    // the main engine's 3D rows in the 3D framebuffer: the top half when it shows on the top screen (POWCNT bit 15)
++    SIM_VCapFrameEnd(viewX, viewY, viewWidth, viewHeight, g3DisplayFrameBuffer, s_SIM_config.internalResolutionScale,
++                     (s_reg_GX_POWCNT >> 15) & 1,
++                     s_SIM_config.screenLayout == SIM_CONFIG_SCREEN_LAYOUT_VERTICAL && !s_SIM_config.swapScreens);
++
+     // Run HBlank Interrupt
+     OS_IRQTable[OS_IE_H_BLANK - 1]();
+ 
+--- a/libraries/gx/src/gx_vramcnt.c
++++ b/libraries/gx/src/gx_vramcnt.c
+@@ -294,6 +294,12 @@
+ 		sSimVramCnt[i] = cnt[i];
+ 	}
+ }
++
++/* Where bank (0 = A ... 8 = I) keeps its data now: the frame-state capture reads each bank from there */
++const u8 *GXi_SimVramBankHome (int bank)
++{
++	return GXi_SimVramHome(bank, sSimVramCnt[bank]);
++}
+ #endif
+ 
+ #ifdef SDK_CW_WARNOFF_SAFESTRB
+--- /dev/null
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -0,0 +1,655 @@
++// bw-port: the frame-state capture (BWPORT_VCAPTURE=DIR,FRAMES): the full video state of chosen frames in the
++// VCoreState file format of bw-port's port/vcore (docs/vcore.md): the video registers as the DS's I/O map, the VRAM
++// banks A-I as their own memories (libntr-vram.patch keeps a mapped bank in the BG/OBJ arrays: each bank is read from
++// its home), the palette RAM, OAM, the 3D geometry commands of the frame the 3D layer shows (as the DS's FIFO takes
++// them: the immediate G3_* calls, MI_SendGXCommand's lists as their raw words, the register writes libntr catches up)
++// after a prologue that rebuilds the geometry engine's state at the stream's start (matrices and stacks, lights,
++// materials), and libntr's own picture of the frame. FRAMES: N, A-B or A-B/STEP, comma-separated (OS_GetVBlankCount's
++// frames, as BWPORT_KEYS); files DIR/fNNNNNN.vcs. Off (one flag test per command) unless the variable is set.
++// The format: <ref>/VCS_FORMAT.md (bw-port's docs/vcore.md).
++// The hooks: SIM_VCapMsg at the top of the command processor's HandleCommandMessage, SIM_VCapList for a raw list
++// (DRAW_CMD_G3_CMD_LIST, G3_Direct2/3) with SIM_VCapSuppress around its decoding, SIM_VCapFrameBegin/End around
++// SIM_Render's drawing of the two screens, GXi_SimVramBankHome (gx_vramcnt.c) for the banks.
++#include <simulator/sim_opengl.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <string>
++#include <vector>
++
++#include <nitro/gx/g3.h>
++#include <nitro/hw/X86/mmap_shared.h>
++#include <simulator/drawmsg.h>
++#include <simulator/simvariables.h>
++#include <simulator/config/sim_config.h>
++#include <simulator/sim.h>
++
++extern "C" const u8 *GXi_SimVramBankHome(int bank);
++
++namespace {
++
++// ---- the geometry engine's persistent state, followed command by command (GBATEK "DS 3D Matrix ...") ----
++struct Mtx {
++  s32 m[16]; // row-major, 20.12 fixed point, as the commands send them
++};
++
++static Mtx Identity() {
++  Mtx r;
++  memset(&r, 0, sizeof r);
++  r.m[0] = r.m[5] = r.m[10] = r.m[15] = 0x1000;
++  return r;
++}
++
++// C = M * C (the parameter matrix on the left), 64-bit sums >> 12
++static void MulInto(Mtx &c, const Mtx &mm) {
++  Mtx r;
++  for (int i = 0; i < 4; i++) {
++    for (int j = 0; j < 4; j++) {
++      s64 s = 0;
++      for (int k = 0; k < 4; k++) s += (s64)mm.m[i * 4 + k] * c.m[k * 4 + j];
++      r.m[i * 4 + j] = (s32)(s >> 12);
++    }
++  }
++  c = r;
++}
++
++struct G3State {
++  u32 mode;
++  Mtx proj, pos, vec, tex;
++  Mtx projStk, texStk, posStk[32], vecStk[32];
++  u32 posStkUsed; // the entries ever written
++  int projSP, posSP, texSP;
++  u32 lightVec[4], lightColor[4];
++  Mtx lightVecMtx[4];
++  u32 lightVecSet, lightColorSet;
++  u32 difAmb, speEmi, polyAttr, texParam, plttBase, viewport, color, normal, texcoord;
++  u32 set; // bits: SET_*
++  Mtx normalVec, normalTex, texcoordTex;
++  int lastColorSrc; // 0 none, 1 COLOR, 2 DIF_AMB bit 15, 3 NORMAL
++  u32 shin[32];
++  s16 vtx[3]; // the last vertex (VTX_XY/XZ/YZ/DIFF are relative to it; POS_TEST sets it too)
++  bool vtxSet;
++};
++enum { SET_DIFAMB = 1, SET_SPEEMI = 2, SET_POLY = 4, SET_TEX = 8, SET_PLTT = 16, SET_VIEWPORT = 32, SET_TEXCOORD = 64,
++       SET_SHIN = 128 };
++
++static G3State sG3;
++
++static void G3Reset(G3State &g) {
++  memset(&g, 0, sizeof g);
++  g.proj = g.pos = g.vec = g.tex = g.projStk = g.texStk = Identity();
++  for (int i = 0; i < 32; i++) g.posStk[i] = g.vecStk[i] = Identity();
++}
++
++static Mtx ParamMtx(const u32 *p, int rows, int cols) {
++  // 4x4, 4x3 (rows 0-3, column 3 = 0,0,0,1) or 3x3 (row 3 = 0,0,0,1)
++  Mtx r = Identity();
++  for (int i = 0; i < rows; i++) {
++    for (int j = 0; j < cols; j++) r.m[i * 4 + j] = (s32)p[i * cols + j];
++    if (cols == 3) r.m[i * 4 + 3] = (i == 3) ? 0x1000 : 0;
++  }
++  return r;
++}
++
++static void G3Apply(G3State &g, u32 op, const u32 *p) {
++  switch (op) {
++  case G3OP_MTX_MODE: g.mode = p[0] & 3; break;
++  case G3OP_MTX_PUSH:
++    if (g.mode == 0) { g.projStk = g.proj; g.projSP = (g.projSP + 1) & 1; }
++    else if (g.mode == 3) { g.texStk = g.tex; g.texSP = (g.texSP + 1) & 1; }
++    else { int i = g.posSP & 31; g.posStk[i] = g.pos; g.vecStk[i] = g.vec; g.posStkUsed |= 1u << i; g.posSP = (g.posSP + 1) & 63; }
++    break;
++  case G3OP_MTX_POP:
++    if (g.mode == 0) { g.projSP = (g.projSP - 1) & 1; g.proj = g.projStk; }
++    else if (g.mode == 3) { g.texSP = (g.texSP - 1) & 1; g.tex = g.texStk; }
++    else {
++      int n = (s8)(u8)((p[0] & 0x3F) << 2) >> 2;
++      g.posSP = (g.posSP - n) & 63;
++      g.pos = g.posStk[g.posSP & 31];
++      g.vec = g.vecStk[g.posSP & 31];
++    }
++    break;
++  case G3OP_MTX_STORE:
++    if (g.mode == 0) g.projStk = g.proj;
++    else if (g.mode == 3) g.texStk = g.tex;
++    else { int i = p[0] & 31; g.posStk[i] = g.pos; g.vecStk[i] = g.vec; g.posStkUsed |= 1u << i; }
++    break;
++  case G3OP_MTX_RESTORE:
++    if (g.mode == 0) g.proj = g.projStk;
++    else if (g.mode == 3) g.tex = g.texStk;
++    else { int i = p[0] & 31; g.pos = g.posStk[i]; g.vec = g.vecStk[i]; }
++    break;
++  case G3OP_MTX_IDENTITY:
++  case G3OP_MTX_LOAD_4x4:
++  case G3OP_MTX_LOAD_4x3: {
++    Mtx m = op == G3OP_MTX_IDENTITY ? Identity() : ParamMtx(p, op == G3OP_MTX_LOAD_4x4 ? 4 : 4, op == G3OP_MTX_LOAD_4x4 ? 4 : 3);
++    if (g.mode == 0) g.proj = m;
++    else if (g.mode == 1) g.pos = m;
++    else if (g.mode == 2) g.pos = g.vec = m;
++    else g.tex = m;
++  } break;
++  case G3OP_MTX_MULT_4x4:
++  case G3OP_MTX_MULT_4x3:
++  case G3OP_MTX_MULT_3x3: {
++    Mtx m = ParamMtx(p, op == G3OP_MTX_MULT_3x3 ? 3 : 4, op == G3OP_MTX_MULT_4x4 ? 4 : 3);
++    if (g.mode == 0) MulInto(g.proj, m);
++    else if (g.mode == 1) MulInto(g.pos, m);
++    else if (g.mode == 2) { MulInto(g.pos, m); MulInto(g.vec, m); }
++    else MulInto(g.tex, m);
++  } break;
++  case G3OP_MTX_SCALE:
++  case G3OP_MTX_TRANS: {
++    Mtx m = Identity();
++    if (op == G3OP_MTX_SCALE) { m.m[0] = (s32)p[0]; m.m[5] = (s32)p[1]; m.m[10] = (s32)p[2]; }
++    else { m.m[12] = (s32)p[0]; m.m[13] = (s32)p[1]; m.m[14] = (s32)p[2]; }
++    if (g.mode == 0) MulInto(g.proj, m);
++    else if (g.mode == 1) MulInto(g.pos, m);
++    else if (g.mode == 2) { MulInto(g.pos, m); if (op == G3OP_MTX_TRANS) MulInto(g.vec, m); }
++    else MulInto(g.tex, m);
++  } break;
++  case G3OP_COLOR: g.color = p[0]; g.lastColorSrc = 1; break;
++  case G3OP_NORMAL: g.normal = p[0]; g.normalVec = g.vec; g.normalTex = g.tex; g.lastColorSrc = 3; break;
++  case G3OP_TEXCOORD: g.texcoord = p[0]; g.texcoordTex = g.tex; g.set |= SET_TEXCOORD; break;
++  case G3OP_POLYGON_ATTR: g.polyAttr = p[0]; g.set |= SET_POLY; break;
++  case G3OP_TEXIMAGE_PARAM: g.texParam = p[0]; g.set |= SET_TEX; break;
++  case G3OP_TEXPLTT_BASE: g.plttBase = p[0]; g.set |= SET_PLTT; break;
++  case G3OP_DIF_AMB: g.difAmb = p[0]; g.set |= SET_DIFAMB; if (p[0] & 0x8000) g.lastColorSrc = 2; break;
++  case G3OP_SPE_EMI: g.speEmi = p[0]; g.set |= SET_SPEEMI; break;
++  case G3OP_LIGHT_VECTOR: { int l = p[0] >> 30; g.lightVec[l] = p[0]; g.lightVecMtx[l] = g.vec; g.lightVecSet |= 1u << l; } break;
++  case G3OP_LIGHT_COLOR: { int l = p[0] >> 30; g.lightColor[l] = p[0]; g.lightColorSet |= 1u << l; } break;
++  case G3OP_SHININESS: memcpy(g.shin, p, sizeof g.shin); g.set |= SET_SHIN; break;
++  case G3OP_VIEWPORT: g.viewport = p[0]; g.set |= SET_VIEWPORT; break;
++  case G3OP_VTX_16:
++  case G3OP_POS_TEST:
++    g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[1] = (s16)(p[0] >> 16); g.vtx[2] = (s16)(p[1] & 0xFFFF); g.vtxSet = true;
++    break;
++  case G3OP_VTX_10:
++    g.vtx[0] = (s16)((p[0] & 0x3FF) << 6); g.vtx[1] = (s16)(((p[0] >> 10) & 0x3FF) << 6);
++    g.vtx[2] = (s16)(((p[0] >> 20) & 0x3FF) << 6); g.vtxSet = true;
++    break;
++  case G3OP_VTX_XY: g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[1] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++  case G3OP_VTX_XZ: g.vtx[0] = (s16)(p[0] & 0xFFFF); g.vtx[2] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++  case G3OP_VTX_YZ: g.vtx[1] = (s16)(p[0] & 0xFFFF); g.vtx[2] = (s16)(p[0] >> 16); g.vtxSet = true; break;
++  case G3OP_VTX_DIFF:
++    // 10-bit signed offsets added to the last vertex's 4.12 coordinates (as libntr's VTXDIFF does)
++    g.vtx[0] = (s16)(g.vtx[0] + ((s16)((p[0] & 0x3FF) << 6) >> 6));
++    g.vtx[1] = (s16)(g.vtx[1] + ((s16)(((p[0] >> 10) & 0x3FF) << 6) >> 6));
++    g.vtx[2] = (s16)(g.vtx[2] + ((s16)(((p[0] >> 20) & 0x3FF) << 6) >> 6));
++    g.vtxSet = true;
++    break;
++  default: break;
++  }
++}
++
++// ---- the command streams ----
++// An entry: a header word op | nparams << 8 | flags << 16, then the parameters
++enum { FLAG_PROLOGUE = 1, FLAG_LIST = 2, FLAG_REG = 4 };
++
++static int NumParams(u32 op) {
++  switch (op) {
++  case G3OP_MTX_MODE: case G3OP_MTX_POP: case G3OP_MTX_STORE: case G3OP_MTX_RESTORE: return 1;
++  case G3OP_MTX_LOAD_4x4: case G3OP_MTX_MULT_4x4: return 16;
++  case G3OP_MTX_LOAD_4x3: case G3OP_MTX_MULT_4x3: return 12;
++  case G3OP_MTX_MULT_3x3: return 9;
++  case G3OP_MTX_SCALE: case G3OP_MTX_TRANS: return 3;
++  case G3OP_COLOR: case G3OP_NORMAL: case G3OP_TEXCOORD: return 1;
++  case G3OP_VTX_16: return 2;
++  case G3OP_VTX_10: case G3OP_VTX_XY: case G3OP_VTX_XZ: case G3OP_VTX_YZ: case G3OP_VTX_DIFF: return 1;
++  case G3OP_POLYGON_ATTR: case G3OP_TEXIMAGE_PARAM: case G3OP_TEXPLTT_BASE: return 1;
++  case G3OP_DIF_AMB: case G3OP_SPE_EMI: case G3OP_LIGHT_VECTOR: case G3OP_LIGHT_COLOR: return 1;
++  case G3OP_SHININESS: return 32;
++  case G3OP_BEGIN: return 1;
++  case G3OP_SWAP_BUFFERS: case G3OP_VIEWPORT: return 1;
++  case G3OP_BOX_TEST: return 3;
++  case G3OP_POS_TEST: return 2;
++  case G3OP_VEC_TEST: return 1;
++  default: return 0; // NOP, PUSH, IDENTITY, END, unknown
++  }
++}
++
++struct Stream {
++  G3State start; // the engine's state when the stream began
++  std::vector<u32> words;
++  u32 commands = 0;
++  u32 swapFrame = 0; // the V-blank count when its SWAP_BUFFERS came
++};
++
++static int sEnabled = -1; // -1: not looked at yet
++static std::string sDir;
++struct Range { u32 a, b, step; };
++static std::vector<Range> sFrames;
++static Stream sCur, sDone;
++static bool sDoneValid;
++static int sSuppress;
++static bool sSkipVtx16; // the VTX16 libntr makes of a VTX_10/XY/XZ/YZ/DIFF it was given
++static u32 sLastNormal, sLastTexcoord; // the last NORMAL / TEXCOORD recorded
++
++static void ParseEnv() {
++  const char *e = getenv("BWPORT_VCAPTURE");
++  sEnabled = 0;
++  if (e == NULL || !*e) return;
++  std::string s(e);
++  size_t c = s.find(',');
++  sDir = s.substr(0, c);
++  std::string rest = c == std::string::npos ? "" : s.substr(c + 1);
++  size_t at = 0;
++  while (at < rest.size()) {
++    size_t n = rest.find(',', at);
++    std::string tok = rest.substr(at, n == std::string::npos ? std::string::npos : n - at);
++    at = n == std::string::npos ? rest.size() : n + 1;
++    if (tok.empty()) continue;
++    Range r;
++    unsigned a = 0, b = 0, st = 1;
++    if (sscanf(tok.c_str(), "%u-%u/%u", &a, &b, &st) == 3 || sscanf(tok.c_str(), "%u-%u", &a, &b) == 2) {
++      r.a = a; r.b = b; r.step = st ? st : 1;
++    } else {
++      r.a = r.b = (u32)strtoul(tok.c_str(), NULL, 10); r.step = 1;
++    }
++    sFrames.push_back(r);
++  }
++  G3Reset(sG3);
++  sCur.start = sG3;
++  sEnabled = 1;
++  fprintf(stderr, "bwport: BWPORT_VCAPTURE: %zu frame ranges into %s\n", sFrames.size(), sDir.c_str());
++}
++
++static inline bool On() {
++  if (sEnabled < 0) ParseEnv();
++  return sEnabled > 0;
++}
++
++static void Record(u32 op, const u32 *p, u32 n, u32 flags) {
++  if (sCur.words.size() > (1u << 24)) {
++    // 64 MB of commands with no SWAP_BUFFERS (tests only, never drawn): start again from the state here
++    sCur = Stream();
++    sCur.start = sG3;
++  }
++  sCur.words.push_back(op | (n << 8) | (flags << 16));
++  for (u32 i = 0; i < n; i++) sCur.words.push_back(p[i]);
++  sCur.commands++;
++  if (n < (u32)NumParams(op)) return; // a list cut short: the command is kept as it came, the state not followed
++  if (op == G3OP_NORMAL) sLastNormal = p[0];
++  if (op == G3OP_TEXCOORD) sLastTexcoord = p[0];
++  G3Apply(sG3, op, p);
++  if (op == G3OP_SWAP_BUFFERS) {
++    sCur.swapFrame = *(u32 *)HW_VBLANK_COUNT_BUF;
++    sDone = std::move(sCur);
++    sDoneValid = true;
++    sCur = Stream();
++    sCur.start = sG3;
++  }
++}
++
++static u32 Pack16(s32 a, s32 b) { return (u32)(u16)a | ((u32)(u16)b << 16); }
++
++} // namespace
++
++// ---- the hooks ----
++// the TEXCOORD / NORMAL registers the game wrote itself (reg_G3_TEXCOORD = st: mcss.c's sprite quads), which on the DS
++// were commands when written; libntr catches them up before a vertex (libntr-g3regs.patch), and so do we, before it
++static void CatchUpRegs() {
++  u32 t = s_reg_G3_TEXCOORD, nn = s_reg_G3_NORMAL;
++  if (t != sLastTexcoord) Record(G3OP_TEXCOORD, &t, 1, FLAG_REG);
++  if (nn != sLastNormal) Record(G3OP_NORMAL, &nn, 1, FLAG_REG);
++}
++
++extern "C" void SIM_VCapSuppress(int delta) {
++  if (sEnabled > 0) sSuppress += delta;
++}
++
++// a raw command list (packed command words, then each command's parameters), as MI_SendGXCommand sends it; its
++// commands are recorded with the parameter counts libntr's list parser (RunCommandList) gives them
++extern "C" void SIM_VCapList(const void *data, u32 bytes) {
++  if (!On() || sSuppress) return;
++  // libntr catches the registers up at the list's first vertex; a TEXCOORD the list sends before it overrides ours
++  CatchUpRegs();
++  const u32 *w = (const u32 *)data;
++  u32 nw = bytes / 4, i = 0;
++  while (i < nw) {
++    u32 cmds = w[i++];
++    for (int k = 0; k < 4; k++) {
++      u32 op = (cmds >> (8 * k)) & 0xFF;
++      u32 n = NumParams(op);
++      if (op == 0) continue;
++      if (i + n > nw) n = nw - i;
++      Record(op, w + i, n, FLAG_LIST);
++      i += n;
++    }
++  }
++}
++
++// a libntr draw message, before libntr runs it
++extern "C" void SIM_VCapMsg(const draw_msg_t *msg) {
++  if (!On() || sSuppress) return;
++  u32 p[16];
++  const draw_msg_data_t &d = msg->data;
++  switch (msg->type) {
++  case DRAW_CMD_G3_MTXMODE: p[0] = d.numU8; Record(G3OP_MTX_MODE, p, 1, 0); break;
++  case DRAW_CMD_G3_PUSHMTX: Record(G3OP_MTX_PUSH, p, 0, 0); break;
++  case DRAW_CMD_G3_POPMTX: p[0] = d.numU8 & 0x3F; Record(G3OP_MTX_POP, p, 1, 0); break;
++  case DRAW_CMD_G3_STOREMTX: p[0] = d.numU8 & 0x1F; Record(G3OP_MTX_STORE, p, 1, 0); break;
++  case DRAW_CMD_G3_RESTOREMTX: p[0] = d.numU8 & 0x1F; Record(G3OP_MTX_RESTORE, p, 1, 0); break;
++  case DRAW_CMD_G3_IDENTITY: Record(G3OP_MTX_IDENTITY, p, 0, 0); break;
++  case DRAW_CMD_G3_LOADMTX44: Record(G3OP_MTX_LOAD_4x4, (const u32 *)&d.mtx44, 16, 0); break;
++  case DRAW_CMD_G3_LOADMTX43: Record(G3OP_MTX_LOAD_4x3, (const u32 *)&d.mtx43, 12, 0); break;
++  case DRAW_CMD_G3_MTXMULT44: Record(G3OP_MTX_MULT_4x4, (const u32 *)&d.mtx44, 16, 0); break;
++  case DRAW_CMD_G3_MTXMULT43: Record(G3OP_MTX_MULT_4x3, (const u32 *)&d.mtx43, 12, 0); break;
++  case DRAW_CMD_G3_MTXMULT33: Record(G3OP_MTX_MULT_3x3, (const u32 *)&d.mtx33, 9, 0); break;
++  case DRAW_CMD_G3_SCALE: Record(G3OP_MTX_SCALE, (const u32 *)d.scale, 3, 0); break;
++  case DRAW_CMD_G3_TRANSLATE: Record(G3OP_MTX_TRANS, (const u32 *)d.scale, 3, 0); break;
++  case DRAW_CMD_G3_COLOR: p[0] = d.numU16; Record(G3OP_COLOR, p, 1, 0); break;
++  case DRAW_CMD_G3_NORMAL: p[0] = d.numU32; Record(G3OP_NORMAL, p, 1, 0); break;
++  case DRAW_CMD_G3_TEXCOORD: p[0] = d.numU32; Record(G3OP_TEXCOORD, p, 1, 0); break;
++  case DRAW_CMD_G3_VTX16: // (DRAW_CMD_G3_VTX: no handler in libntr, nothing makes one)
++    if (sSkipVtx16) { sSkipVtx16 = false; break; }
++    CatchUpRegs();
++    p[0] = Pack16(d.xyz.x, d.xyz.y); p[1] = (u32)(u16)d.xyz.z; Record(G3OP_VTX_16, p, 2, 0);
++    break;
++  case DRAW_CMD_G3_VTX10: CatchUpRegs(); p[0] = d.numU32; Record(G3OP_VTX_10, p, 1, 0); sSkipVtx16 = true; break;
++  case DRAW_CMD_G3_VTXXY: CatchUpRegs(); p[0] = d.numU32; Record(G3OP_VTX_XY, p, 1, 0); sSkipVtx16 = true; break;
++  case DRAW_CMD_G3_VTXXZ: CatchUpRegs(); p[0] = d.numU32; Record(G3OP_VTX_XZ, p, 1, 0); sSkipVtx16 = true; break;
++  case DRAW_CMD_G3_VTXYZ: CatchUpRegs(); p[0] = d.numU32; Record(G3OP_VTX_YZ, p, 1, 0); sSkipVtx16 = true; break;
++  case DRAW_CMD_G3_VTXDIFF: CatchUpRegs(); p[0] = d.numU32; Record(G3OP_VTX_DIFF, p, 1, 0); sSkipVtx16 = true; break;
++  case DRAW_CMD_G3_POLYGONATTR: p[0] = d.numU32; Record(G3OP_POLYGON_ATTR, p, 1, 0); break;
++  case DRAW_CMD_G3_TEXIMAGEPARAM: p[0] = d.numU32; Record(G3OP_TEXIMAGE_PARAM, p, 1, 0); break;
++  case DRAW_CMD_G3_TEXPLTTBASE: p[0] = d.numU32; Record(G3OP_TEXPLTT_BASE, p, 1, 0); break;
++  case DRAW_CMD_G3_DIFF_AMB: p[0] = d.numU32; Record(G3OP_DIF_AMB, p, 1, 0); break;
++  case DRAW_CMD_G3_SPEC_EMI: p[0] = d.numU32; Record(G3OP_SPE_EMI, p, 1, 0); break;
++  case DRAW_CMD_G3_LIGHTVECTOR: p[0] = d.numU32; Record(G3OP_LIGHT_VECTOR, p, 1, 0); break;
++  case DRAW_CMD_G3_LIGHTCOLOR: p[0] = d.numU32; Record(G3OP_LIGHT_COLOR, p, 1, 0); break;
++  case DRAW_CMD_G3_BEGIN: p[0] = d.numU8 & 3; Record(G3OP_BEGIN, p, 1, 0); break;
++  case DRAW_CMD_G3_END: Record(G3OP_END, p, 0, 0); break;
++  case DRAW_CMD_G3_SWAPBUFFERS: p[0] = d.numU32; Record(G3OP_SWAP_BUFFERS, p, 1, 0); break;
++  case DRAW_CMD_G3_VIEWPORT: p[0] = d.numU32; Record(G3OP_VIEWPORT, p, 1, 0); break;
++  case DRAW_CMD_G3_BOXTEST:
++    p[0] = Pack16(d.boxtest.x, d.boxtest.y);
++    p[1] = Pack16(d.boxtest.z, d.boxtest.width);
++    p[2] = Pack16(d.boxtest.height, d.boxtest.depth);
++    Record(G3OP_BOX_TEST, p, 3, 0);
++    break;
++  case DRAW_CMD_G3_POSITIONTEST:
++    p[0] = Pack16(d.xyz.x, d.xyz.y); p[1] = (u32)(u16)d.xyz.z; Record(G3OP_POS_TEST, p, 2, 0);
++    break;
++  case DRAW_CMD_G3_VECTORTEST: p[0] = d.numU32; Record(G3OP_VEC_TEST, p, 1, 0); break;
++  case DRAW_CMD_G3_SHININESS: Record(G3OP_SHININESS, d.numsU32, 32, 0); break;
++  // DIRECT0/1 (their decoded command comes back here), CMD_LIST and DIRECT2/3 (SIM_VCapList), NOP, DUMMY
++  default: break;
++  }
++}
++
++// ---- the frame ----
++namespace {
++
++struct Snapshot {
++  bool taken = false;
++  u32 frame = 0;
++  std::vector<u8> io9, io9b, vram, pltt, oam;
++  std::vector<u32> g3;
++  u32 g3Commands = 0, g3Prologue = 0, g3SwapFrame = 0;
++  std::string notes;
++};
++static Snapshot sSnap;
++
++static bool Wanted(u32 frame) {
++  for (const Range &r : sFrames) {
++    if (frame >= r.a && frame <= r.b && (frame - r.a) % r.step == 0) return true;
++  }
++  return false;
++}
++
++template <typename T> static void Put(std::vector<u8> &io, u32 ofs, T v) { memcpy(&io[ofs], &v, sizeof(T)); }
++
++static void Emit(std::vector<u32> &out, u32 &count, u32 op, const u32 *p, u32 n) {
++  out.push_back(op | (n << 8) | (FLAG_PROLOGUE << 16));
++  for (u32 i = 0; i < n; i++) out.push_back(p[i]);
++  count++;
++}
++static void EmitMtx(std::vector<u32> &out, u32 &count, u32 mode, const Mtx &m) {
++  u32 md = mode;
++  Emit(out, count, G3OP_MTX_MODE, &md, 1);
++  Emit(out, count, G3OP_MTX_LOAD_4x4, (const u32 *)m.m, 16);
++}
++
++// commands that take a geometry engine from its reset state to s
++static void Prologue(const G3State &s, std::vector<u32> &out, u32 &count) {
++  u32 p[2];
++  for (int l = 0; l < 4; l++) {
++    if (s.lightVecSet & (1u << l)) {
++      EmitMtx(out, count, 2, s.lightVecMtx[l]);
++      Emit(out, count, G3OP_LIGHT_VECTOR, &s.lightVec[l], 1);
++    }
++    if (s.lightColorSet & (1u << l)) Emit(out, count, G3OP_LIGHT_COLOR, &s.lightColor[l], 1);
++  }
++  if (s.set & SET_SHIN) Emit(out, count, G3OP_SHININESS, s.shin, 32);
++  if (s.set & SET_DIFAMB) { p[0] = s.difAmb & ~0x8000u; Emit(out, count, G3OP_DIF_AMB, p, 1); }
++  if (s.set & SET_SPEEMI) Emit(out, count, G3OP_SPE_EMI, &s.speEmi, 1);
++  if (s.set & SET_TEX) Emit(out, count, G3OP_TEXIMAGE_PARAM, &s.texParam, 1);
++  if (s.set & SET_PLTT) Emit(out, count, G3OP_TEXPLTT_BASE, &s.plttBase, 1);
++  if (s.set & SET_POLY) Emit(out, count, G3OP_POLYGON_ATTR, &s.polyAttr, 1);
++  if (s.set & SET_VIEWPORT) Emit(out, count, G3OP_VIEWPORT, &s.viewport, 1);
++  if (s.set & SET_TEXCOORD) {
++    EmitMtx(out, count, 3, s.texcoordTex);
++    Emit(out, count, G3OP_TEXCOORD, &s.texcoord, 1);
++  }
++  if (s.lastColorSrc == 1) Emit(out, count, G3OP_COLOR, &s.color, 1);
++  else if (s.lastColorSrc == 2) Emit(out, count, G3OP_DIF_AMB, &s.difAmb, 1);
++  else if (s.lastColorSrc == 3) {
++    EmitMtx(out, count, 2, s.normalVec);
++    EmitMtx(out, count, 3, s.normalTex);
++    Emit(out, count, G3OP_NORMAL, &s.normal, 1);
++  }
++  if (s.vtxSet) {
++    // the last vertex, for a relative vertex command before the stream's first full one (POS_TEST sets it, as on the
++    // DS; its result registers are not part of the state)
++    p[0] = (u32)(u16)s.vtx[0] | ((u32)(u16)s.vtx[1] << 16);
++    p[1] = (u32)(u16)s.vtx[2];
++    Emit(out, count, G3OP_POS_TEST, p, 2);
++  }
++  // the stacks: their pointers by pushes, then each entry by a store
++  EmitMtx(out, count, 0, s.projStk);
++  if (s.projSP & 1) Emit(out, count, G3OP_MTX_PUSH, p, 0);
++  else { p[0] = 0; Emit(out, count, G3OP_MTX_STORE, p, 1); }
++  EmitMtx(out, count, 3, s.texStk);
++  if (s.texSP & 1) Emit(out, count, G3OP_MTX_PUSH, p, 0);
++  else { p[0] = 0; Emit(out, count, G3OP_MTX_STORE, p, 1); }
++  p[0] = 1;
++  Emit(out, count, G3OP_MTX_MODE, p, 1);
++  for (int i = 0; i < (s.posSP & 31); i++) Emit(out, count, G3OP_MTX_PUSH, p, 0);
++  for (int i = 0; i < 31; i++) {
++    if (!(s.posStkUsed & (1u << i))) continue;
++    EmitMtx(out, count, 2, s.vecStk[i]);
++    EmitMtx(out, count, 1, s.posStk[i]);
++    p[0] = (u32)i;
++    Emit(out, count, G3OP_MTX_STORE, p, 1);
++  }
++  EmitMtx(out, count, 0, s.proj);
++  EmitMtx(out, count, 3, s.tex);
++  EmitMtx(out, count, 2, s.vec);
++  EmitMtx(out, count, 1, s.pos);
++  p[0] = s.mode;
++  Emit(out, count, G3OP_MTX_MODE, p, 1);
++}
++
++static void TakeSnapshot(u32 frame) {
++  Snapshot &s = sSnap;
++  s = Snapshot();
++  s.taken = true;
++  s.frame = frame;
++  // engine A's registers and the system ones, as 0x04000000-0x040006FF
++  s.io9.assign(0x700, 0);
++  std::vector<u8> &io = s.io9;
++  Put<u32>(io, 0x000, s_reg_GX_DISPCNT);
++  Put<u16>(io, 0x004, s_reg_GX_DISPSTAT);
++  Put<u16>(io, 0x008, s_reg_G2_BG0CNT); Put<u16>(io, 0x00A, s_reg_G2_BG1CNT);
++  Put<u16>(io, 0x00C, s_reg_G2_BG2CNT); Put<u16>(io, 0x00E, s_reg_G2_BG3CNT);
++  // the scroll: libntr's 2D draws from the 32-bit BGxOFS variables (the 16-bit HOFS/VOFS ones are apart)
++  Put<u32>(io, 0x010, s_reg_G2_BG0OFS); Put<u32>(io, 0x014, s_reg_G2_BG1OFS);
++  Put<u32>(io, 0x018, s_reg_G2_BG2OFS); Put<u32>(io, 0x01C, s_reg_G2_BG3OFS);
++  Put<u16>(io, 0x020, s_reg_G2_BG2PA); Put<u16>(io, 0x022, s_reg_G2_BG2PB);
++  Put<u16>(io, 0x024, s_reg_G2_BG2PC); Put<u16>(io, 0x026, s_reg_G2_BG2PD);
++  Put<u32>(io, 0x028, s_reg_G2_BG2X); Put<u32>(io, 0x02C, s_reg_G2_BG2Y);
++  Put<u16>(io, 0x030, s_reg_G2_BG3PA); Put<u16>(io, 0x032, s_reg_G2_BG3PB);
++  Put<u16>(io, 0x034, s_reg_G2_BG3PC); Put<u16>(io, 0x036, s_reg_G2_BG3PD);
++  Put<u32>(io, 0x038, s_reg_G2_BG3X); Put<u32>(io, 0x03C, s_reg_G2_BG3Y);
++  Put<u16>(io, 0x040, s_reg_G2_WIN0H); Put<u16>(io, 0x042, s_reg_G2_WIN1H);
++  Put<u16>(io, 0x044, s_reg_G2_WIN0V); Put<u16>(io, 0x046, s_reg_G2_WIN1V);
++  Put<u16>(io, 0x048, s_reg_G2_WININ); Put<u16>(io, 0x04A, s_reg_G2_WINOUT);
++  Put<u16>(io, 0x04C, s_reg_G2_MOSAIC); Put<u16>(io, 0x050, s_reg_G2_BLDCNT);
++  Put<u16>(io, 0x052, s_reg_G2_BLDALPHA); Put<u16>(io, 0x054, s_reg_G2_BLDY);
++  Put<u16>(io, 0x060, s_reg_G3X_DISP3DCNT);
++  Put<u32>(io, 0x064, s_reg_GX_DISPCAPCNT);
++  Put<u16>(io, 0x06C, s_reg_GX_MASTER_BRIGHT);
++  Put<u8>(io, 0x240, s_reg_GX_VRAMCNT_A); Put<u8>(io, 0x241, s_reg_GX_VRAMCNT_B);
++  Put<u8>(io, 0x242, s_reg_GX_VRAMCNT_C); Put<u8>(io, 0x243, s_reg_GX_VRAMCNT_D);
++  Put<u8>(io, 0x244, s_reg_GX_VRAMCNT_E); Put<u8>(io, 0x245, s_reg_GX_VRAMCNT_F);
++  Put<u8>(io, 0x246, s_reg_GX_VRAMCNT_G); Put<u8>(io, 0x247, s_reg_GX_VRAMCNT_WRAM);
++  Put<u8>(io, 0x248, s_reg_GX_VRAMCNT_H); Put<u8>(io, 0x249, s_reg_GX_VRAMCNT_I);
++  Put<u16>(io, 0x304, s_reg_GX_POWCNT);
++  Put<u16>(io, 0x320, s_reg_G3X_RDLINES_COUNT);
++  // the tables: the SDK copies them over the register variables from the first one (G3X_SetEdgeColorTable,
++  // G3X_SetFogTable, G3X_SetToonTable), so they are read back from there
++  memcpy(&io[0x330], (const void *)&s_reg_G3X_EDGE_COLOR_0_L, 16);
++  Put<u16>(io, 0x340, s_reg_G3X_ALPHA_TEST_REF);
++  Put<u32>(io, 0x350, s_reg_G3X_CLEAR_COLOR);
++  Put<u16>(io, 0x354, s_reg_G3X_CLEAR_DEPTH);
++  Put<u16>(io, 0x356, s_reg_G3X_CLRIMAGE_OFFSET);
++  Put<u32>(io, 0x358, s_reg_G3X_FOG_COLOR);
++  Put<u16>(io, 0x35C, s_reg_G3X_FOG_OFFSET);
++  memcpy(&io[0x360], (const void *)&s_reg_G3X_FOG_TABLE_0, 32);
++  memcpy(&io[0x380], (const void *)&s_reg_G3X_TOON_TABLE_0_L, 64);
++  Put<u16>(io, 0x610, s_reg_G3X_DISP_1DOT_DEPTH);
++  // engine B, 0x04001000-0x0400106F
++  s.io9b.assign(0x70, 0);
++  std::vector<u8> &ib = s.io9b;
++  Put<u32>(ib, 0x000, s_reg_GXS_DB_DISPCNT);
++  Put<u16>(ib, 0x008, s_reg_G2S_DB_BG0CNT); Put<u16>(ib, 0x00A, s_reg_G2S_DB_BG1CNT);
++  Put<u16>(ib, 0x00C, s_reg_G2S_DB_BG2CNT); Put<u16>(ib, 0x00E, s_reg_G2S_DB_BG3CNT);
++  Put<u32>(ib, 0x010, s_reg_G2S_DB_BG0OFS); Put<u32>(ib, 0x014, s_reg_G2S_DB_BG1OFS);
++  Put<u32>(ib, 0x018, s_reg_G2S_DB_BG2OFS); Put<u32>(ib, 0x01C, s_reg_G2S_DB_BG3OFS);
++  Put<u16>(ib, 0x020, s_reg_G2S_DB_BG2PA); Put<u16>(ib, 0x022, s_reg_G2S_DB_BG2PB);
++  Put<u16>(ib, 0x024, s_reg_G2S_DB_BG2PC); Put<u16>(ib, 0x026, s_reg_G2S_DB_BG2PD);
++  Put<u32>(ib, 0x028, s_reg_G2S_DB_BG2X); Put<u32>(ib, 0x02C, s_reg_G2S_DB_BG2Y);
++  Put<u16>(ib, 0x030, s_reg_G2S_DB_BG3PA); Put<u16>(ib, 0x032, s_reg_G2S_DB_BG3PB);
++  Put<u16>(ib, 0x034, s_reg_G2S_DB_BG3PC); Put<u16>(ib, 0x036, s_reg_G2S_DB_BG3PD);
++  Put<u32>(ib, 0x038, s_reg_G2S_DB_BG3X); Put<u32>(ib, 0x03C, s_reg_G2S_DB_BG3Y);
++  Put<u16>(ib, 0x040, s_reg_G2S_DB_WIN0H); Put<u16>(ib, 0x042, s_reg_G2S_DB_WIN1H);
++  Put<u16>(ib, 0x044, s_reg_G2S_DB_WIN0V); Put<u16>(ib, 0x046, s_reg_G2S_DB_WIN1V);
++  Put<u16>(ib, 0x048, s_reg_G2S_DB_WININ); Put<u16>(ib, 0x04A, s_reg_G2S_DB_WINOUT);
++  Put<u16>(ib, 0x04C, s_reg_G2S_DB_MOSAIC); Put<u16>(ib, 0x050, s_reg_G2S_DB_BLDCNT);
++  Put<u16>(ib, 0x052, s_reg_G2S_DB_BLDALPHA); Put<u16>(ib, 0x054, s_reg_G2S_DB_BLDY);
++  Put<u16>(ib, 0x06C, s_reg_GXS_DB_MASTER_BRIGHT);
++  // the banks, each from where its data is now (libntr-vram.patch)
++  static const u32 kBankSize[9] = {0x20000, 0x20000, 0x20000, 0x20000, 0x10000, 0x4000, 0x4000, 0x8000, 0x4000};
++  for (int b = 0; b < 9; b++) {
++    const u8 *home = GXi_SimVramBankHome(b);
++    s.vram.insert(s.vram.end(), home, home + kBankSize[b]);
++  }
++  s.pltt.insert(s.pltt.end(), s_HW_BG_PLTT, s_HW_BG_PLTT + 0x200);
++  s.pltt.insert(s.pltt.end(), s_HW_OBJ_PLTT, s_HW_OBJ_PLTT + 0x200);
++  s.pltt.insert(s.pltt.end(), s_HW_DB_BG_PLTT, s_HW_DB_BG_PLTT + 0x200);
++  s.pltt.insert(s.pltt.end(), s_HW_DB_OBJ_PLTT, s_HW_DB_OBJ_PLTT + 0x200);
++  s.oam.insert(s.oam.end(), s_HW_OAM, s_HW_OAM + 0x400);
++  s.oam.insert(s.oam.end(), s_HW_DB_OAM, s_HW_DB_OAM + 0x400);
++  // the 3D: the last complete stream (the frame the 3D layer shows), its prologue first
++  G3State st;
++  const Stream *src = sDoneValid ? &sDone : NULL;
++  if (src != NULL) st = src->start;
++  else G3Reset(st);
++  Prologue(st, s.g3, s.g3Prologue);
++  s.g3Commands = s.g3Prologue;
++  if (src != NULL) {
++    s.g3.insert(s.g3.end(), src->words.begin(), src->words.end());
++    s.g3Commands += src->commands;
++    s.g3SwapFrame = src->swapFrame;
++  } else {
++    s.notes += "no_swap_yet ";
++  }
++  // notes for the readers
++  if ((s_reg_G2_BG0HOFS | s_reg_G2_BG0VOFS | s_reg_G2_BG1HOFS | s_reg_G2_BG1VOFS | s_reg_G2_BG2HOFS |
++       s_reg_G2_BG2VOFS | s_reg_G2_BG3HOFS | s_reg_G2_BG3VOFS) != 0)
++    s.notes += "main_16bit_scroll_written ";
++  if (((s_reg_GX_DISPCNT >> 16) & 3) == 3) s.notes += "main_memory_display_not_captured ";
++}
++
++static void Chunk(FILE *f, const char *tag, const void *data, u32 size) {
++  fwrite(tag, 1, 4, f);
++  fwrite(&size, 4, 1, f);
++  if (size) fwrite(data, 1, size, f);
++  static const u8 pad[4] = {0, 0, 0, 0};
++  if (size & 3) fwrite(pad, 1, 4 - (size & 3), f);
++}
++
++// a GL framebuffer region scaled to w x h by its pixels' centres, rows top first, RGBA8
++static void ReadRegion(int x, int y, int rw, int rh, int w, int h, std::vector<u8> &out) {
++  std::vector<u8> px((size_t)rw * rh * 4);
++  glPixelStorei(GL_PACK_ALIGNMENT, 1);
++  glReadPixels(x, y, rw, rh, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
++  out.resize((size_t)w * h * 4);
++  for (int j = 0; j < h; j++) {
++    int sy = rh - 1 - (int)(((2 * j + 1) * (long)rh) / (2 * h)); // GL rows go up
++    for (int i = 0; i < w; i++) {
++      int sx = (int)(((2 * i + 1) * (long)rw) / (2 * w));
++      memcpy(&out[((size_t)j * w + i) * 4], &px[((size_t)sy * rw + sx) * 4], 4);
++    }
++  }
++}
++
++} // namespace
++
++// before the frame's 2D is drawn: the state, if the frame is chosen (the capture of DISPCAPCNT runs in the draw)
++extern "C" void SIM_VCapFrameBegin(void) {
++  sSnap.taken = false;
++  if (!On()) return;
++  u32 frame = *(u32 *)HW_VBLANK_COUNT_BUF;
++  if (!Wanted(frame)) return;
++  TakeSnapshot(frame);
++}
++
++// after both screens are drawn into the window's framebuffer (vx, vy, vw, vh: the screens' viewport there; fb3d, row3d:
++// the shown 3D frame's framebuffer and its rows for the main engine's screen at the internal resolution)
++// vertical: the window shows the screens top over bottom (the default layout, not swapped); else no LSHT pixels
++extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical) {
++  if (!sSnap.taken) return;
++  Snapshot &s = sSnap;
++  s.taken = false;
++  GLint readFb;
++  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFb);
++  std::vector<u8> shot, l3d;
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
++  if (vertical) {
++    ReadRegion(vx, vy, vw, vh, 256, 384, shot);
++  } else {
++    shot.assign(256 * 384 * 4, 0);
++    s.notes += "shot_layout_not_vertical ";
++  }
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, fb3d);
++  ReadRegion(0, top3d ? 192 * scale3d : 0, 256 * scale3d, 192 * scale3d, 256, 192, l3d);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, readFb);
++
++  char path[1024];
++  snprintf(path, sizeof path, "%s/f%06u.vcs", sDir.c_str(), s.frame);
++  FILE *f = fopen(path, "wb");
++  if (f == NULL) {
++    fprintf(stderr, "bwport: BWPORT_VCAPTURE: can't write %s\n", path);
++    return;
++  }
++  u32 hdr[2] = {0x54534356u /* "VCST" */, 1};
++  fwrite(hdr, 4, 2, f);
++  char info[1024];
++  int n = snprintf(info, sizeof info,
++                   "source=bwport libntr\nformat=VCS_FORMAT.md v1\nframe=%u\nlibntr=%s\ng3_commands=%u\ng3_prologue=%u\n"
++                   "g3_swap_frame=%u\nshot=libntr window %dx%d (internal scale %d)\nl3d_screen=%s\nnotes=%s\n",
++                   s.frame, SIM_GetLibntrGitHash(), s.g3Commands, s.g3Prologue, s.g3SwapFrame, vw, vh, scale3d,
++                   top3d ? "top" : "bottom", s.notes.c_str());
++  Chunk(f, "INFO", info, (u32)n);
++  Chunk(f, "IO9 ", s.io9.data(), (u32)s.io9.size());
++  Chunk(f, "IO9B", s.io9b.data(), (u32)s.io9b.size());
++  Chunk(f, "VRAM", s.vram.data(), (u32)s.vram.size());
++  Chunk(f, "PLTT", s.pltt.data(), (u32)s.pltt.size());
++  Chunk(f, "OAM ", s.oam.data(), (u32)s.oam.size());
++  Chunk(f, "GX3D", s.g3.data(), (u32)(s.g3.size() * 4));
++  Chunk(f, "LSHT", shot.data(), (u32)shot.size());
++  Chunk(f, "L3D ", l3d.data(), (u32)l3d.size());
++  fclose(f);
++}

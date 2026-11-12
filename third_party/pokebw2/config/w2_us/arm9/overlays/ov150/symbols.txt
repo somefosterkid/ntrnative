@@ -1,0 +1,6 @@
+EncEffGrid_CreateEvent kind:function(thumb,size=0x124) addr:0x021f5de0
+EncEffGrid_EventCallback kind:function(thumb,size=0x54) addr:0x021f5f04
+EncEffGrid_Update kind:function(thumb,size=0x60) addr:0x021f5f58
+EncEffGrid_ClearAndDraw kind:function(thumb,size=0x34) addr:0x021f5fb8
+EncEffGrid_Draw kind:function(thumb,size=0x22c) addr:0x021f5fec
+sCellScale kind:data(any) addr:0x021f6218

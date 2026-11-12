@@ -1,0 +1,31 @@
+GimmickPokewoodPoster_Setup kind:function(thumb,size=0x38) addr:0x021eecc0
+GimmickPokewoodPoster_End kind:function(thumb,size=0x18) addr:0x021eecf8
+GimmickPokewoodPoster_Update kind:function(thumb,size=0xe) addr:0x021eed10
+PokewoodPoster_Init kind:function(thumb,size=0x58) addr:0x021eed20
+PokewoodPoster_Free kind:function(thumb,size=0xc) addr:0x021eed78
+PokewoodPoster_StepAnimations kind:function(thumb,size=0xc) addr:0x021eed84
+PokewoodPoster_LoadPoster kind:function(thumb,size=0x70) addr:0x021eed90
+PokewoodPoster_WriteImage kind:function(thumb,size=0xd4) addr:0x021eee00
+PokewoodPoster_GetTexAddr kind:function(thumb,size=0x10) addr:0x021eeed4
+PokewoodPoster_GetPlttAddr kind:function(thumb,size=0xe) addr:0x021eeee4
+PokewoodPoster_MakeResName kind:function(thumb,size=0x32) addr:0x021eeef4
+PokewoodPoster_FindTexAddr kind:function(thumb,size=0x36) addr:0x021eef28
+PokewoodPoster_FindPlttAddr kind:function(thumb,size=0x3a) addr:0x021eef60
+sResources kind:data(any) addr:0x021eefa0
+sSceneSetup kind:data(any) addr:0x021eefac
+sActors kind:data(any) addr:0x021eefbc
+data_ov136_021eef85 kind:data(any) addr:0x021eefc5 ambiguous
+data_ov136_021eef8c kind:data(any) addr:0x021eefcc
+data_ov136_021eefa0 kind:data(any) addr:0x021eefe0
+data_ov136_021eefac kind:data(any) addr:0x021eefec
+data_ov136_021eefb8 kind:data(any) addr:0x021eeff8
+data_ov136_021eefc4 kind:data(any) addr:0x021ef004
+data_ov136_021eefd0 kind:data(any) addr:0x021ef010
+data_ov136_021eefe0 kind:data(any) addr:0x021ef020
+data_ov136_021eefe1 kind:data(any) addr:0x021ef021 ambiguous
+data_ov136_021eeff0 kind:data(any) addr:0x021ef030
+data_ov136_021ef000 kind:data(any) addr:0x021ef040
+sPosterTexNames kind:data(any) addr:0x021ef050
+data_ov136_021ef011 kind:data(any) addr:0x021ef051 ambiguous
+sPosterPlttNames kind:data(any) addr:0x021ef060
+sTileWidth kind:data(any) addr:0x021eef9c

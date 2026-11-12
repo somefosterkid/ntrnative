@@ -1,0 +1,212 @@
+diff --git a/libraries/sim/src/sim_main.cpp b/libraries/sim/src/sim_main.cpp
+index d80a18d..06f1875 100644
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -858,6 +858,7 @@ namespace SIM::GUI { void PerfLogStartNamed(const char *file); bool PerfLogBusy(
+ // stderr when it applies. "pN:..." instead of "fN:..." applies N frames after the previous step and after any performance log has finished. Keys: renderer=auto|vcore|gpu, resolution=1..8, framerate=60|120|monitor|unlimited, antialias=1|2|4,
+ // shot=NAME (the window's picture to NAME.png), quit=1 (ends the run), perflog=NAME (records 5 s of per-frame stage times to perf_NAME.txt, as Debug > Save performance log).
+ extern "C" void SIM_FrameForceDraw(void);
++static int sCfgPauseMs;    // pause=MS (libntr-ios-pacefix.patch): the next frame stands still MS ms at its top, as under the settings sheet
+ static char sCfgShot[64];  // shot=NAME: SIM_ShotMaybe (libntr-ios-hidden.patch) writes NAME.png at the next present
+ // bw-port (libntr-ios-pace.patch): more keys: speed=1..4, frameskip=0..3|auto, smooth=0|1, ff=0|1 (fast forward as Space / the
+ // touch button), bench=NAME (a 4 s window of the pacing's work counters: one row, see sPc; pN steps wait for it), restore=1 (the
+@@ -995,6 +996,8 @@ static void SIM_CfgScript(void) {
+       } else if (strcmp(kv, "shot") == 0) {  // the window's picture to NAME.png (macOS, BWPORT_HIDDEN)
+         snprintf(sCfgShot, sizeof sCfgShot, "%s", v);
+         SIM_FrameForceDraw();   // frame skip (libntr-ios-shotdraw.patch): the shot frame and the next two are drawn
++      } else if (strcmp(kv, "pause") == 0) {  // libntr-ios-pacefix.patch: a pause like the settings sheet's, at the next frame's top
++        sCfgPauseMs = atoi(v);
+       } else if (strcmp(kv, "stall") == 0) {  // libntr-ios-inputprio.patch: a frame that takes MS ms (the main thread busy, no events)
+         struct timespec ts = {atoi(v) / 1000, (long)(atoi(v) % 1000) * 1000000L};
+         fprintf(stderr, "cfgscript: stall %d ms\n", atoi(v));
+@@ -1614,6 +1617,7 @@ static unsigned sFSRun;                 // frames skipped in a row
+ static s64 sFSCredit;                   // ns of frame time in hand (auto)
+ static s64 sFSBusyDrawn, sFSBusySkipped; // moving averages of the busy time of drawn / skipped frames (auto), ns
+ static int sFSWasDrawn = 1;
++static u64 sFSPresentNs;                // the capped timeline's present slot period, ns (SpPaceBegin; libntr-ios-pacefix.patch)
+ static unsigned sFSNDrawn, sFSNSkipped, sFSLongest; // BWPORT_FPSLOG: per second
+ extern "C" int SIM_FrameSkipping(void) { return !sDrawNow; }
+ extern "C" void SIM_FrameForceDraw(void) { sFrameForce = 3; }
+@@ -1664,7 +1668,12 @@ static bool SIM_FrameSkipDecide(void) {
+ // after the frame's swap (busy: ns from the last frame's end to here, the cap's wait not included)
+ static void SIM_FrameSkipEnd(u64 busy) {
+   const s64 kFrame = 16715000 / (s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed); // (libntr-ios-pace.patch)
+-  s64 b = (s64)busy;
++  // libntr-ios-pacefix.patch: the credit may hold a present interval (at Game speed 2x-4x a slot comes every few ticks: the cheap
++  // ticks between bank for the drawn one; capped at one tick, a drawn tick at 4x was judged against 8.4 ms, not the ~12 it had).
++  // A frame counts at most 4 of those (a long load, a window drag, a hitch): any cost above that already means "skip the most",
++  // and a cost of seconds kept the average up for ~15 drawn frames after it
++  s64 cap = sFSPresentNs > (u64)kFrame ? (s64)sFSPresentNs : kFrame;
++  s64 b = (s64)busy > 4 * cap ? 4 * cap : (s64)busy;
+   s64 &avg = sFSWasDrawn ? sFSBusyDrawn : sFSBusySkipped;
+   {
+     static int sLog = -1;
+@@ -1684,7 +1693,7 @@ static void SIM_FrameSkipEnd(u64 busy) {
+   avg = avg == 0 ? b : avg + (b - avg) / 4;
+   if (s_SIM_config.frameSkip == SIM_CONFIG_FRAMESKIP_AUTO) {
+     sFSCredit += kFrame - b;
+-    if (sFSCredit > kFrame) sFSCredit = kFrame;
++    if (sFSCredit > cap) sFSCredit = cap;
+     if (sFSCredit < -3 * kFrame) sFSCredit = -3 * kFrame;
+   }
+ }
+@@ -2291,7 +2300,26 @@ static u64 SpMonitorNs(void) {
+   int panelHz = sEnvHz > 0 ? sEnvHz : 0;
+ #if SIM_IOS
+   u64 vs = 0, per = 0;
+-  if (panelHz == 0 && bwport_ios_vsync(&vs, &per) && per >= 4000000 && per <= 50000000) panelHz = (int)((1000000000ull + per / 2) / per);
++  if (panelHz == 0 && bwport_ios_vsync(&vs, &per) && per >= 4000000 && per <= 50000000) {
++    // libntr-ios-pacefix.patch: a new rate is followed once it has held half a second. Every change restarts the pace timeline
++    // (the slots, Smooth motion's pairing of pictures); a ProMotion panel moving inside the link's 80-120 range, or one odd link
++    // period, restarted it on each flip
++    static int sHz, sCandHz;
++    static u64 sCandT;
++    int hz = (int)((1000000000ull + per / 2) / per);
++    u64 t = SpNowNs();
++    if (sHz == 0 || hz == sHz) {
++      sHz = hz;
++      sCandHz = 0;
++    } else if (hz != sCandHz) {
++      sCandHz = hz;
++      sCandT = t;
++    } else if (t - sCandT >= 500000000ull) {
++      sHz = hz;
++      sCandHz = 0;
++    }
++    panelHz = sHz;
++  }
+ #endif
+   if (panelHz > 0) {
+     if (panelHz != sLoggedHz) {
+@@ -2306,6 +2334,12 @@ static u64 SpMonitorNs(void) {
+     int di = window != NULL ? SDL_GetWindowDisplayIndex(window) : 0;
+     if (di >= 0 && SDL_GetCurrentDisplayMode(di, &dm) == 0 && dm.refresh_rate > 0) hz = dm.refresh_rate;
+     ns = 1000000000ull / (u64)hz;
++    // libntr-ios-pacefix.patch: SDL's whole Hz is cut down on Windows (the mode's dmDisplayFrequency: 59 for a 59.94 Hz display),
++    // rounded on macOS and X11. A slot 0.27 ms a refresh longer than the V-blank's period is more than the phase loop can follow
++    // (its present comes 1.5 ms early, e/8 a present): it settled where every swap blocked nearly a whole refresh and the game ran
++    // below 1x. 59, 119, 143, 239 ... are taken as the 1000/1001 rates (59.94, 119.88 ...): 0.02 ms off if it was really 60 (a
++    // rounding platform), within what the loop follows; a true 59.00 Hz mode would still be wrong (rare)
++    if ((hz + 1) % 12 == 0) ns = 1001000000ull / (u64)(hz + 1);
+   }
+   return ns;
+ }
+@@ -2410,6 +2444,7 @@ static void SpPaceBegin(void) {
+     sPace.count = 1;
+     sPace.waited = 0;
+     sTickPresent = 1;
++    sFSPresentNs = 0;
+     // libntr-ios-pace.patch: fast forward presents at most 60 times a second (the ticks between are neither drawn nor presented):
+     // every tick drew and presented, which cost more than the game's own work, and on iOS a present waits for the display (fast
+     // forward could not pass 2x at 120 Hz, frame skip or not). Unlimited still draws and presents every tick (a measure of the
+@@ -2428,7 +2463,14 @@ static void SpPaceBegin(void) {
+   sAllTicksPresent = false;
+   int S = s_SIM_config.speed < 1 ? 1 : s_SIM_config.speed > 4 ? 4 : s_SIM_config.speed;
+   u8 mode = s_SIM_config.displayCap;
++  {
++    // libntr-ios-pacefix.patch: 120 on a panel that runs slower (a display link below ~100 Hz: Low Power Mode, a 60 Hz phone) is
++    // Monitor: 120 presents a second into 60 refreshes had every other one dropped, often the in-between pictures already drawn
++    u64 vs = 0, per = 0;
++    if (mode == SIM_CONFIG_DISPLAYCAP_120 && SpLink(&vs, &per) && per > 10000000 && per <= 50000000) mode = SIM_CONFIG_DISPLAYCAP_MONITOR;
++  }
+   u64 Q = mode == SIM_CONFIG_DISPLAYCAP_MONITOR ? SpMonitorNs() : mode == SIM_CONFIG_DISPLAYCAP_120 ? kSpFrame / 2 : kSpFrame;
++  sFSPresentNs = Q;
+   u64 now = SpNowNs();
+   if (sPace.on && (S != sPace.S || mode != sPace.mode || Q != sPace.Q)) sPace.on = false;
+   SpInterpGuard(now, S, Q);
+@@ -2857,8 +2899,8 @@ extern "C" void SIM_Audio_Pause(int aPause); // sim_audio.cpp (libntr-ios-sound.
+ 
+ // bw-port (libntr-ios-touch.patch): the app is in the background (iOS kills an app that issues OpenGL ES commands there): no
+ // drawing, the game and the sound stand still until it is back
+-static void SimTouchBackgroundWait(void) {
+-  if (!SimTouch_Active() || !SimTouch_Background()) return;
++static bool SimTouchBackgroundWait(void) {
++  if (!SimTouch_Active() || !SimTouch_Background()) return false;
+   fprintf(stderr, "bwport: in the background: paused\n");
+   SIM_PerfTestAbort("the app left");   // libntr-ios-appfix.patch
+   SIM_Audio_Pause(1);
+@@ -2868,6 +2910,7 @@ static void SimTouchBackgroundWait(void) {
+   }
+   SIM_Audio_Pause(0);
+   fprintf(stderr, "bwport: back in the foreground\n");
++  return true;
+ }
+ 
+ // bw-port (libntr-ios-settings.patch): the menu button (or BWPORT_SETTINGS_TEST) opens the native settings sheet
+@@ -2880,11 +2923,11 @@ extern "C" int bwport_ios_settings_is_open(void);
+ extern "C" int bwport_ios_settings_test_wants(void);
+ extern "C" void bwport_ios_settings_run(double seconds);
+ #endif
+-static void SimTouchSettingsWait(void) {
+-  if (!SimTouch_Active()) return;
++static bool SimTouchSettingsWait(void) {
++  if (!SimTouch_Active()) return false;
+ #if SIM_IOS
+   if (bwport_ios_settings_test_wants()) SimTouch_MenuRequest();
+-  if (!SimTouch_MenuOpen()) return;
++  if (!SimTouch_MenuOpen()) return false;
+   fprintf(stderr, "bwport: settings open: paused\n");
+   SIM_PerfTestAbort("the settings opened");   // libntr-ios-appfix.patch
+   SIM_Audio_Pause(1);
+@@ -2905,8 +2948,10 @@ static void SimTouchSettingsWait(void) {
+   SimTouch_MenuClose();
+   SIM_Audio_Pause(0);
+   fprintf(stderr, "bwport: settings closed: resumed\n");
++  return true;
+ #else
+   if (SimTouch_MenuOpen()) SimTouch_MenuClose();
++  return false;
+ #endif
+ }
+ 
+@@ -2923,8 +2968,19 @@ void *SIM_Render(void *arg) {
+   u32 i;
+ 
+   do {
+-    SimTouchBackgroundWait();
+-    SimTouchSettingsWait();
++    // libntr-ios-pacefix.patch: a pause (the background, the settings sheet) is not this frame's work: the frame's time starts
++    // after it. It was measured from the last frame's end, so the whole pause went into Auto frame skip's average of a drawn
++    // frame's cost as one frame: after each sheet close or return to the app ~12 pictures a second for 1-2 s (M2, a 5 s pause:
++    // 12 drawn / 48 skipped the next second)
++    bool paused = SimTouchBackgroundWait();
++    paused = SimTouchSettingsWait() || paused;
++    if (sCfgPauseMs > 0) {  // (cfgscript pause=MS: the same wait as the sheet's, a test aid)
++      fprintf(stderr, "cfgscript: pause %d ms\n", sCfgPauseMs);
++      SDL_Delay((Uint32)sCfgPauseMs);
++      sCfgPauseMs = 0;
++      paused = true;
++    }
++    if (paused) clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
+ #ifdef SDK_TRACY_ENABLE
+     TracyCZone(SimRenderZone, 1);
+ #endif
+@@ -3374,7 +3430,7 @@ void *SIM_Render(void *arg) {
+         sTouchLastX = fx;
+         sTouchLastY = fy;
+       }
+-      SimTouchBackgroundWait();   // (the events above may have been the background: no GL from here)
++      if (SimTouchBackgroundWait()) clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);   // (the events above may have been the background: no GL from here)
+     } else {
+       mouseButtons = SDL_GetMouseState(&x, &y);
+     }
+@@ -3566,11 +3622,17 @@ void *SIM_Render(void *arg) {
+           GLuint midTex = 0;
+           int tw = 0, th = 0;
+           if (touchMode && SimTouch_Background()) break;  // (libntr-ios-render.patch: before the in-between's GL passes too; the run loop turned in the waits)
++          // libntr-ios-pacefix.patch: a swap that waits for the V-blank (desktop Monitor) is called 1.5 ms before the slot, as the
++          // tick's own present (SpWaitSlot): the phase loop puts the V-blank at the slot, so a call at the slot itself missed it
++          // about half the time, blocked a whole refresh, and the loop could not see it (it read as on time)
++          u64 at = SpSlotAbs(sPace.first + r);
++          u64 lvs = 0, lper = 0;
++          if (sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && !SpLink(&lvs, &lper) && at > 1500000) at -= 1500000;
+           if (sInterpTex != NULL && s_SIM_config.interpolation) { // the GPU path's in-between: drawn now, shown at the slot
+-            long long left = (long long)SpSlotAbs(sPace.first + r) - (long long)SpNowNs();
++            long long left = (long long)at - (long long)SpNowNs();
+             midTex = (GLuint)sInterpTex(r, &tw, &th, left);
+           }
+-          SpSleepUntil(SpSlotAbs(sPace.first + r));
++          SpSleepUntil(at);
+           if (touchMode && SimTouch_Background()) break;  // (libntr-ios-inputprio.patch: no GL in the background)
+           glClear(GL_COLOR_BUFFER_BIT);
+           sPresentMid = 0;

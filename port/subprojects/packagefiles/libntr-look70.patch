@@ -1,0 +1,151 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -381,6 +381,124 @@
+   free(buf);
+ }
+ 
++// ---- libntr-look70.patch: the look options' live test --------------------------------------------------------------
++// BWPORT_LOOK_TEST=dot,line,edge,filter (any of them, in order) [BWPORT_LOOK_START=N: frames before the first]. Per option, with
++// the others at 0: keep the pictures drawn at calls 5 and 8 (A, A2: the scene's own change), flip the option to 1 at call 8
++// (the field that the Video window writes: s_SIM_config.gpuDot..), keep the one at call 11 (B), flip it back at 11, keep
++// the one at 14 (C). Prints "look-test: OPT noise=<A vs A2> flip=<A2 vs B> back=<B vs C> of <pixels> px (renderer, WxH)" to
++// stderr and look_test.txt; exits when all are done. The renderer and Resolution are the usual settings.
++static int sLookOpt[4], sLookN, sLookCall = -1, sLookStart = 300, sLookRound;
++static bool sLookWant;
++static int sLookSlot;
++static std::vector<unsigned char> sLookPic[4];
++static int sLookW[4], sLookH[4];
++static void LookRgba(const unsigned char *p, int w, int h) {
++  if (!sLookWant) return;
++  sLookWant = false;
++  sLookPic[sLookSlot].assign(p, p + (size_t)w * h * 4);
++  sLookW[sLookSlot] = w;
++  sLookH[sLookSlot] = h;
++}
++static void SwReadTex(unsigned tex, int w, int h, void (*use)(const unsigned char *, int, int)) {
++  if (w <= 0 || h <= 0) return;
++  unsigned char *buf = (unsigned char *)malloc((size_t)w * h * 4);
++  if (buf == NULL) return;
++  GLint prevRead = 0;
++  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &prevRead);
++  GLuint fbo = 0;
++  glGenFramebuffers(1, &fbo);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
++  glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
++  GLint prevPack = 4;
++  glGetIntegerv(GL_PACK_ALIGNMENT, &prevPack);
++  glPixelStorei(GL_PACK_ALIGNMENT, 1);
++  if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
++    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, buf);
++    use(buf, w, h);
++  }
++  glPixelStorei(GL_PACK_ALIGNMENT, prevPack);
++  glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)prevRead);
++  glDeleteFramebuffers(1, &fbo);
++  free(buf);
++}
++static void LookTex(unsigned tex, int w, int h) { SwReadTex(tex, w, h, LookRgba); }
++static long LookDiff(int a, int b) {
++  if (sLookW[a] != sLookW[b] || sLookH[a] != sLookH[b] || sLookPic[a].empty() || sLookPic[b].empty()) return -1;
++  long n = 0;
++  size_t px = (size_t)sLookW[a] * sLookH[a];
++  const unsigned char *x = sLookPic[a].data(), *y = sLookPic[b].data();
++  for (size_t i = 0; i < px; i++)
++    if (x[i * 4] != y[i * 4] || x[i * 4 + 1] != y[i * 4 + 1] || x[i * 4 + 2] != y[i * 4 + 2]) n++;
++  return n;
++}
++static void SIM_LookTest(void) {
++  if (sLookCall == -1) {
++    sLookCall = -2;
++    const char *e = getenv("BWPORT_LOOK_TEST");
++    if (e == NULL || !*e) return;
++    char *dup = strdup(e);
++    for (char *tok = strtok(dup, ","); tok != NULL && sLookN < 4; tok = strtok(NULL, ","))
++      sLookOpt[sLookN++] = strcmp(tok, "dot") == 0 ? 0 : strcmp(tok, "line") == 0 ? 1 : strcmp(tok, "edge") == 0 ? 2 : 3;
++    free(dup);
++    if (getenv("BWPORT_LOOK_START") != NULL) sLookStart = atoi(getenv("BWPORT_LOOK_START"));
++    if (sLookN == 0) return;
++    sLookCall = 0;
++    remove("look_test.txt");
++  }
++  if (sLookCall < 0) return;
++  sLookCall++;
++  int t = sLookCall - sLookStart - sLookRound * 16;
++  if (t < 0) return;
++  u8 *field[4] = {&s_SIM_config.gpuDot, &s_SIM_config.gpuLine, &s_SIM_config.gpuEdge, &s_SIM_config.gpuFilter};
++  u8 *f = field[sLookOpt[sLookRound]];
++  if (t == 0) for (int i = 0; i < 4; i++) *field[i] = 0;
++  if (t == 4 || t == 7 || t == 10 || t == 13) {
++    sLookSlot = t == 4 ? 0 : t == 7 ? 1 : t == 10 ? 2 : 3;
++    sLookWant = true;
++  }
++  static const bool noflip = getenv("BWPORT_LOOK_NOFLIP") != NULL;
++  if (t == 8 && !noflip) *f = 1;
++  if (t == 11) *f = 0;
++  if (t == 16) {
++    static const char *const names[4] = {"dot", "line", "edge", "filter"};
++    char line[400], ref[200];
++    // the game is deterministic: a run without the flip (BWPORT_LOOK_NOFLIP=1) keeps the picture B, a run with it is
++    // compared against that one: effect = the pixels the option changed, with the scene's own change taken out
++    snprintf(ref, sizeof ref, "look_ref_%s_%s_%dx%d.raw", names[sLookOpt[sLookRound]], sActive == 2 ? "gpu" : "vcore", sLookW[2], sLookH[2]);
++    long effect = -2, back0 = LookDiff(2, 3);
++    if (noflip) {
++      FILE *r = fopen(ref, "wb");
++      if (r != NULL) { fwrite(sLookPic[2].data(), 1, sLookPic[2].size(), r); fclose(r); }
++    } else if (FILE *r = fopen(ref, "rb")) {
++      std::vector<unsigned char> rv(sLookPic[2].size());
++      if (fread(rv.data(), 1, rv.size(), r) == rv.size()) {
++        sLookPic[3].swap(rv);
++        effect = LookDiff(2, 3);
++      }
++      fclose(r);
++    }
++    snprintf(line, sizeof line, "look-test: %s effect=%ld (noise=%ld flip=%ld back=%ld) of %d px (%s, %dx%d, edge marking %s)\n",
++             names[sLookOpt[sLookRound]], effect, LookDiff(0, 1), LookDiff(1, 2), back0, sLookW[0] * sLookH[0],
++             sActive == 2 ? "gpu" : "vcore", sLookW[0], sLookH[0], (s_reg_G3X_DISP3DCNT & 0x20) ? "on" : "off");
++    fputs(line, stderr);
++    fflush(stderr);
++    FILE *o = fopen("look_test.txt", "a");
++    if (o != NULL) { fputs(line, o); fclose(o); }
++    if (++sLookRound >= sLookN) {
++      fflush(NULL);
++      _exit(0);
++    }
++  }
++}
++extern "C" void SIM_SetGLRendererOption(int which, int v) { // what the Video window does
++  switch(which) {
++    case 0: s_SIM_config.gpuDot = (u8)v; break;
++    case 1: s_SIM_config.gpuLine = (u8)v; break;
++    case 2: s_SIM_config.gpuEdge = (u8)v; break;
++    default: s_SIM_config.gpuFilter = (u8)v; break;
++  }
++}
++
+ static void SwMemory(double *rssMB, double *privMB) {
+   *rssMB = *privMB = 0;
+ #ifdef SDK_BUILD_WIN64
+@@ -1006,6 +1124,7 @@
+     GLuint tex = (GLuint)sFrameRendererGL(&tw, &th);
+     if (tex != 0) {
+       if (sSwMeanWanted) SwMeanTex(tex, tw, th);
++      if (sLookWant) LookTex(tex, tw, th);
+       SIM_FrameInit();
+       SIM_DrawFrameTexture(tex);
+       s_reg_GX_DISPCAPCNT &= ~0x80000000u;
+@@ -1026,6 +1145,7 @@
+     return false;
+   }
+   if (sSwMeanWanted) SwMeanRgba(rgba, pw, ph);
++  if (sLookWant) LookRgba(rgba, pw, ph);
+   SIM_FrameInit();
+   GLint prevTex = 0, prevUnit = 0;
+   glGetIntegerv(GL_ACTIVE_TEXTURE, &prevUnit);
+@@ -1617,6 +1737,7 @@
+     sRenderWorkTime = frameNs > sGameWorkTime ? frameNs - sGameWorkTime : 0;
+     sCostMs = sCostMs == 0 ? sRenderWorkTime / 1e6 : sCostMs + (sRenderWorkTime / 1e6 - sCostMs) * 0.1;
+     SIM_SwitchTest();
++    SIM_LookTest();
+ 
+     // Limit framerate to 60 fps: after the swap (a software GL does its drawing there, so the wait is only
+     // what is left of the frame), coarse sleep then a spin for the last 2 ms (Windows' sleeps overshoot)

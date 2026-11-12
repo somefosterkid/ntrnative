@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f3834 kind:code align:32
+    .rodata     start:0x021f3834 end:0x021f3850 kind:rodata align:4
+    .ctor       start:0x021f3850 end:0x021f3850 kind:rodata align:4
+    .bss        start:0x021f3860 end:0x021f3860 kind:bss align:32
+
+src/ov037/ov037_021f36c0.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f3834
+    .rodata     start:0x021f3834 end:0x021f3850

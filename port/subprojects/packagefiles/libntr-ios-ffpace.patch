@@ -1,0 +1,190 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1857,6 +1857,28 @@
+ #if SIM_IOS
+ extern "C" int bwport_ios_vsync(unsigned long long *lastNs, unsigned long long *periodNs);  // port/src/ios_input.m
+ #endif
++// libntr-ios-ffpace.patch: the display link: iOS's CADisplayLink; elsewhere, with BWPORT_PANELHZ=N, a pretended one (refreshes every
++// 1/N s on the clock, the swaps no longer wait for the V-blank), so the iOS present path (slots locked to the link, the panel model
++// and its drops) runs on a desktop for tests. 0: no link (the swap waits for the V-blank as before).
++static int SpPanelEnvHz(void) {
++  static int hz = -1;
++  if (hz < 0) hz = getenv("BWPORT_PANELHZ") != NULL ? atoi(getenv("BWPORT_PANELHZ")) : 0;
++  return hz < 0 ? 0 : hz;
++}
++static int SpLink(u64 *vs, u64 *per) {
++#if SIM_IOS
++  unsigned long long a = 0, b = 0;
++  int ok = bwport_ios_vsync(&a, &b);
++  *vs = a;
++  *per = b;
++  return ok;
++#else
++  if (SpPanelEnvHz() <= 0) return 0;
++  *per = 1000000000ull / (u64)SpPanelEnvHz();
++  *vs = SpNowNs() / *per * *per;
++  return 1;
++#endif
++}
+ static u64 sShownQ[16];   // the estimates of the last presents (a ring)
+ static int sShownI;
+ static u64 sShownPrev, sVsPeriod;
+@@ -1869,9 +1891,8 @@
+   return sShownMean;
+ }
+ static void LagShown(u64 submit, u64 done) {
+-#if SIM_IOS
+   u64 vs = 0, per = 0;
+-  if (!bwport_ios_vsync(&vs, &per) || per < 2000000 || per > 50000000) return;
++  if (!SpLink(&vs, &per) || per < 2000000 || per > 50000000) return;
+   sVsPeriod = per;
+   u64 at = done <= vs ? vs : vs + ((done - vs + per - 1) / per) * per;
+   if (sShownPrev != 0 && at < sShownPrev + per - per / 4) at = sShownPrev + per;
+@@ -1880,9 +1901,6 @@
+   sSc.n++;
+   sSc.sumNs += at - submit;
+   if (at - submit > sSc.maxNs) sSc.maxNs = at - submit;
+-#else
+-  (void)submit, (void)done;
+-#endif
+ }
+ // presents the model says are not on the glass yet (GPU done, waiting for the panel)
+ static int LagWaiting(u64 now) {
+@@ -1890,10 +1908,17 @@
+   for (u64 t : sShownQ) n += t > now;
+   return n;
+ }
+-static void LagDone(u64 now) {
++// libntr-ios-ffpace.patch: the panel model takes the earliest time the GPU can have finished (the last poll that found it busy, or
++// its swap call), not the poll that found it done. A poll can come late: Smooth motion's in-between picture (gpu_bridge.c's
++// InterpTexture) waits for its worker and draws without polling, until just past the next refresh, so a present the GPU had
++// finished in time was put one refresh later, the next ones chained behind it, and the model dropped real presents while the panel
++// kept up (M2 with a pretended 120 Hz link, gpu 3x Smooth: 3-5 drops a second with in-between pictures on, none with them off; the
++// maintainer's phone: 1-5 a second, 20-38 at heavier settings). Presents that really outrun the panel still pile up in the chain.
++static u64 sLagBusyNs;  // the last poll that found sLagQ[0] not done
++static void LagDone(u64 now, u64 earliest) {
+   LagRec &r = sLagQ[0];
+   sLagDelete(r.f);
+-  LagShown(r.submit, now);
++  LagShown(r.submit, earliest > r.submit ? earliest : r.submit);
+   u64 lag = now - r.submit;
+   sLc.n++;
+   sLc.sumNs += lag;
+@@ -1908,8 +1933,11 @@
+ static void LagPoll(void) {
+   while (sLagN > 0) {
+     GLenum st = sLagWait(sLagQ[0].f, 0, 0);
+-    if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED) return;
+-    LagDone(SpNowNs());
++    if (st != GL_ALREADY_SIGNALED && st != GL_CONDITION_SATISFIED && st != GL_WAIT_FAILED) {
++      sLagBusyNs = SpNowNs();
++      return;
++    }
++    LagDone(SpNowNs(), sLagBusyNs);
+   }
+ }
+ // a forced slow GPU (BWPORT_GPUSLOW=N): N blended draws of the picture into an offscreen target of the window's size
+@@ -1961,11 +1989,11 @@
+     while (sLagN >= sLagBound) {
+       GLenum st = sLagWait(sLagQ[0].f, GL_SYNC_FLUSH_COMMANDS_BIT, 100000000ull);
+       if (st == GL_TIMEOUT_EXPIRED) break;  // (a GPU that hangs: don't hang the game with it)
+-      LagDone(SpNowNs());
++      LagDone(SpNowNs(), SpNowNs());  // (the wait returns as the GPU finishes)
+     }
+     sLc.waitNs += SpNowNs() - t0;
+   }
+-  if (sLagN == 16) LagDone(SpNowNs());  // (no bound and the GPU 16 frames behind: forget the oldest)
++  if (sLagN == 16) LagDone(SpNowNs(), SpNowNs());  // (no bound and the GPU 16 frames behind: forget the oldest)
+   {
+     static int sDrop = -1;
+     if (sDrop < 0) sDrop = getenv("BWPORT_PRESENTDROP") == NULL || atoi(getenv("BWPORT_PRESENTDROP")) != 0;
+@@ -2253,9 +2281,20 @@
+ // tick over 100 ms (loading, the sheet) restarts the second, and switching Smooth motion off and on starts afresh.
+ static int sIpOff, sIpOffLen = 120, sIpGood;
+ static u64 sIpWinT0, sIpWinTicks, sIpPrev;
+-static void SpInterpGuard(u64 now, int S) {
+-  const bool stall = now - sIpPrev > 100000000ull;
++// libntr-ios-ffpace.patch: only while a tick has room for an in-between picture (at least 1.5 slots a tick on average). The
++// fast-forward button runs Game speed 4x on this timeline: 120 Hz slots are longer than a 4x tick, so no in-between picture is made,
++// yet the game falling behind 4x was judged and doubled the backoff each time (2, 4, 8 ... 60 s): after a few toggles Smooth motion
++// stayed off at 1x (M2, gpu 3x, 20 toggles: 0 in-between pictures a second after, 59.9 before). Such ticks are not judged now, and
++// a change of speed starts the second afresh (its ticks ran at the old speed but were divided by the new one).
++static int sIpS;
++static void SpInterpGuard(u64 now, int S, u64 Q) {
++  const bool stall = now - sIpPrev > 100000000ull || S != sIpS;
+   sIpPrev = now;
++  sIpS = S;
++  if (2 * (kSpFrame / (u64)S) < 3 * Q) {
++    sIpWinT0 = 0;
++    return;
++  }
+   if (!s_SIM_config.interpolation) {
+     sIpOff = 0;
+     sIpOffLen = 120;
+@@ -2347,7 +2386,7 @@
+   u64 Q = mode == SIM_CONFIG_DISPLAYCAP_MONITOR ? SpMonitorNs() : mode == SIM_CONFIG_DISPLAYCAP_120 ? kSpFrame / 2 : kSpFrame;
+   u64 now = SpNowNs();
+   if (sPace.on && (S != sPace.S || mode != sPace.mode || Q != sPace.Q)) sPace.on = false;
+-  SpInterpGuard(now, S);
++  SpInterpGuard(now, S, Q);
+   // behind by more than three ticks (a slow machine, a pause, a window drag): start the timeline again
+   if (sPace.on && now > SpTickDue(sPace.n) + 3 * kSpFrame / (u64)S) sPace.on = false;
+   if (!sPace.on) {
+@@ -2358,6 +2397,13 @@
+     sPace.mode = mode;
+     sPace.Q = Q;
+     sPace.phase = 0;
++    // libntr-ios-ffpace.patch: with a display link, a restart (each Game speed change, so each fast-forward toggle, a sheet closing,
++    // a hitch) keeps the slots on its refreshes (SpAfterSwap's aim) instead of starting them at "now" and re-locking over ~20 presents
++    u64 vs = 0, per = 0;
++    if (mode == SIM_CONFIG_DISPLAYCAP_MONITOR && SpLink(&vs, &per) && per > 0) {
++      s64 ph = ((s64)vs + 2500000 - (s64)now) % (s64)Q;
++      sPace.phase = ph < 0 ? ph + (s64)Q : ph;
++    }
+   }
+   s64 a = (s64)(sPace.n * kSpFrame / (u64)S), b = (s64)((sPace.n + 1) * kSpFrame / (u64)S);
+   s64 q = (s64)Q;
+@@ -2395,22 +2441,20 @@
+ static void SpAfterSwap(int r, u64 callNs) {
+   u64 now = SpNowNs();
+   if (sPresentLog != NULL) fprintf(sPresentLog, "P %llu %llu %d %d %016llx\n", (unsigned long long)(now / 1000), (unsigned long long)sPace.n, r, sPresentMid, (unsigned long long)sPresentHash);
+-#if SIM_IOS
+   // libntr-ios-panel.patch: the swap does not wait for the panel here, so the slots follow the CADisplayLink's refreshes instead:
+   // each present (the slot less SpWaitSlot's 1.5 ms) aimed 1 ms after a refresh, the GPU then has most of the refresh for it and
+-  // the present is never a second one in the same refresh
+-  if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR) {
+-    u64 vs = 0, per = 0;
+-    if (bwport_ios_vsync(&vs, &per) && per > 0) {
++  // the present is never a second one in the same refresh (libntr-ios-ffpace.patch: and a desktop's pretended link, SpLink)
++  u64 vs = 0, per = 0;
++  if (SpLink(&vs, &per)) {
++    if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && per > 0) {
+       s64 q = (s64)sPace.Q;
+       s64 e = ((s64)SpSlotAbs(sPace.first + r) - (s64)vs - 2500000) % q;  // how far the slot is past its aim
+       if (e > q / 2) e -= q;
+       if (e < -q / 2) e += q;
+       sPace.phase -= e / 8;
+     }
++    return;
+   }
+-  (void)callNs;
+-#else
+   if (sPace.on && !sPace.forced && sPace.mode == SIM_CONFIG_DISPLAYCAP_MONITOR && now - callNs > 300000) {
+     s64 q = (s64)sPace.Q;
+     s64 e = ((s64)(now - sPace.t0) - sPace.phase - (sPace.first + r) * q) % q; // how late the V-blank came after the slot
+@@ -2418,7 +2462,6 @@
+     if (e < -q / 2) e += q;
+     sPace.phase += e / 8;
+   }
+-#endif
+ }
+ 
+ 
+@@ -3301,6 +3344,7 @@
+ #if SIM_IOS
+       wantInterval = 0; // libntr-ios-pace.patch: SDL's UIKit view has no swap interval (the set failed every frame); a present always waits for the display
+ #endif
++      if (SpPanelEnvHz() > 0) wantInterval = 0;  // libntr-ios-ffpace.patch: a pretended display link (SpLink): as on iOS
+       if (SDL_GL_GetSwapInterval() != wantInterval) {
+         SDL_GL_SetSwapInterval(wantInterval);
+       }

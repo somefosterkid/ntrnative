@@ -1,0 +1,39 @@
+name: ci
+
+# Checks that need no ROM. The ROM build (configure.py + ninja, both SHA-1s) and the native port need your own dumps:
+# CONTRIBUTING.md says how to run them. The shader job builds the port's GPU core and compiles every shader with
+# glslang and Mesa; it is marked continue-on-error until it has run on GitHub's image.
+on:
+  push:
+  pull_request:
+
+jobs:
+  no-rom:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No ROM bytes in tracked files
+        run: python3 tools/rom_leak_check.py --static
+      - name: Tool tests that need no ROM
+        run: |
+          fail=0
+          for t in $(cat tools/ci_tests.txt); do
+            if python3 "$t" > /tmp/t.log 2>&1; then echo "ok   $t"; else echo "FAIL $t"; tail -5 /tmp/t.log; fail=1; fi
+          done
+          exit $fail
+
+  shaders:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: sudo apt-get update && sudo apt-get install -y meson ninja-build glslang-tools libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libegl-dev libsdl2-dev
+      - name: Shader gate
+        run: |
+          meson setup build/gpu port/gpu
+          ninja -C build/gpu gpu_glsl
+          python3 port/gpu/tools/gpu_glsl_check.py --no-mali

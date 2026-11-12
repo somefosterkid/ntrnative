@@ -1,0 +1,32 @@
+    .text       start:0x021f1440 end:0x021f5524 kind:code align:32
+    .rodata     start:0x021f5524 end:0x021f5760 kind:rodata align:4
+    .ctor       start:0x021f5760 end:0x021f5760 kind:rodata align:4
+    .data       start:0x021f5780 end:0x021f57e0 kind:data align:32
+    .bss        start:0x021f57e0 end:0x021f57e0 kind:bss align:32
+
+src/ov194/namein_data.c:
+    complete
+    .text       start:0x021f4d20 end:0x021f513c
+    .data       start:0x021f5798 end:0x021f57a8
+
+src/ov194/nsbtx_to_clwk.c:
+    complete
+    .text       start:0x021f513c end:0x021f5304
+    .data       start:0x021f57a8 end:0x021f57b8
+
+src/ov194/namein_graphic.c:
+    complete
+    .text       start:0x021f4ae4 end:0x021f4d20
+    .rodata     start:0x021f55a4 end:0x021f5760
+    .data       start:0x021f5784 end:0x021f5798
+
+src/ov194/prof_word.c:
+    complete
+    .text       start:0x021f5304 end:0x021f5524
+    .data       start:0x021f57b8 end:0x021f57e0
+
+src/ov194/namein.c:
+    complete
+    .text       start:0x021f1440 end:0x021f4ae4
+    .rodata     start:0x021f5524 end:0x021f55a4
+    .data       start:0x021f5780 end:0x021f5784

@@ -1,0 +1,44 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -494,7 +494,7 @@
+         snprintf(why, n, "In force: the picture is %dx.", res);
+         return true;
+     }
+-    snprintf(why, n, "Only at 2x and above: Resolution is 1x now. Raise Resolution.");
++    snprintf(why, n, "Only at 2x and above (Resolution is 1x now)");
+     return false;
+ }
+ static const char * const FrameSkipNames[] = {
+@@ -790,7 +790,7 @@
+     {
+         char why[200];
+         bool lookOn = LookNote(why, sizeof why);
+-        NoteText("%s", why);
++        if (!lookOn) { NoteText("%s", why); }
+         ImGui::BeginDisabled(!lookOn);
+         if (BeginForm("##vl")) {
+             int dot = c->gpuDot, line = c->gpuLine, edge = c->gpuEdge, filter = c->gpuFilter;
+@@ -805,7 +805,6 @@
+             ImGui::EndTable();
+         }
+         ImGui::EndDisabled();
+-        NoteText("Dots: %s.", DotTip);
+     }
+ 
+     ImGui::SeparatorText("Window and timing");
+@@ -869,7 +868,6 @@
+         if (ComboIndex("##asq", &sq, SoundQualityNames, 2)) { c->soundQuality = (u8)sq; Dirty(); }
+         ImGui::EndTable();
+     }
+-    ImGui::TextDisabled("The sound engine is chosen when the program starts: a change takes effect at the next start.");
+     ImGui::End();
+ }
+ 
+@@ -936,7 +934,6 @@
+                 KeyRow("Fast forward (tap or hold)", &p.frameCapKey, false);
+                 ImGui::EndTable();
+             }
+-            ImGui::TextDisabled("F11 and Alt+Enter: fullscreen. F1: the controller panel. Alt alone: the menu bar.");
+             ImGui::EndTabItem();
+         }
+         if (ImGui::BeginTabItem("Gamepad")) {

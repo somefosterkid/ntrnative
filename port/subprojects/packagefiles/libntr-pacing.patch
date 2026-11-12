@@ -1,0 +1,73 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1358,21 +1358,29 @@
+ #ifdef SDK_TRACY_ENABLE
+     TracyCZoneEnd(SimRenderZone);
+ #endif
+-    // Limit framerate to 60 fps
+-    if (s_SIM_config.capFrameRate && !sFastForward) {
+ 
+-      // 60 Fps
+-      if (frameNs < 16600000) {
+-        u64 frameTimeRemaining = 16600000 - frameNs;
+-        u64 frameTimeRemainingMs = frameTimeRemaining / 1000000;
+-        if (frameTimeRemainingMs > 1) {
+-          SDL_Delay(frameTimeRemainingMs - 1);
++    // pacing is ours (below): a swap interval of 1 made the swap wait for the display's refresh on top of it (llvmpipe
++    // on Windows: 16 ms a frame, half speed)
++    if (s_SIM_config.capFrameRate && !sFastForward && SDL_GL_GetSwapInterval() != 0) {
++      SDL_GL_SetSwapInterval(0);
++    }
++    u64 tSlept = SDL_GetPerformanceCounter();
++    SDL_GL_SwapWindow(window);
++    {
++      static u64 sAccWork, sAccSwap, sLastPrint, sFrames;
++      static int sLog = -1;
++      u64 now = SDL_GetPerformanceCounter(), fq = SDL_GetPerformanceFrequency();
++      if (sLog < 0) { sLog = getenv("BWPORT_FPSLOG") != NULL; sLastPrint = now; }
++      if (sLog) {
++        sAccWork += frameNs; sAccSwap += (now - tSlept) * 1000000000ull / fq; sFrames++;
++        if (now - sLastPrint >= fq) {
++          fprintf(stderr, "fps %.1f work %.2f swap %.2f ms/frame\n",
++                  sFrames * (double)fq / (now - sLastPrint), sAccWork / 1e6 / sFrames, sAccSwap / 1e6 / sFrames);
++          sAccWork = sAccSwap = sFrames = 0; sLastPrint = now;
+         }
+       }
+     }
+ 
+-    SDL_GL_SwapWindow(window);
+-
+     if(sChangeInternalResAfterRender) {
+       SIM_SetInternalResolution(sPendingInternalRes);
+     }
+@@ -1383,6 +1391,30 @@
+               (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
+     sFullFrameTime = frameNs;
+ 
++    // Limit framerate to 60 fps: after the swap (a software GL does its drawing there, so the wait is only
++    // what is left of the frame), coarse sleep then a spin for the last 2 ms (Windows' sleeps overshoot)
++    if (s_SIM_config.capFrameRate && !sFastForward) {
++      const u64 kFrameNs = 16715000; // 59.8261 Hz, as the DS
++#ifdef SDK_BUILD_WIN64
++      static int sTimerRes;
++      if (!sTimerRes) { // SDL_Delay rounds up to the 15.6 ms tick otherwise
++        sTimerRes = 1;
++        HMODULE winmm = LoadLibraryA("winmm.dll");
++        FARPROC tbp = winmm ? GetProcAddress(winmm, "timeBeginPeriod") : NULL;
++        if (tbp) ((UINT (WINAPI *)(UINT))tbp)(1);
++      }
++#endif
++      while (frameNs < kFrameNs) {
++        u64 remain = kFrameNs - frameNs;
++        if (remain > 3000000) {
++          SDL_Delay((remain - 2000000) / 1000000);
++        }
++        clock_gettime(CLOCK_MONOTONIC, &curTime);
++        frameNs = ((curTime.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
++                  (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++      }
++    }
++
+ 
+     clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
+ #ifdef SDK_TRACY_ENABLE

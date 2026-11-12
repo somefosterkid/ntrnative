@@ -1,0 +1,3 @@
+EventPassPower_SetupParam kind:function(thumb,size=0xdc) addr:0x0216e6a0
+EventPassPower_Callback kind:function(thumb,size=0x170) addr:0x0216e77c
+EventPassPower_Create kind:function(thumb,size=0x2c) addr:0x0216e8ec

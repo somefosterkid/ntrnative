@@ -1,0 +1,20 @@
+// From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), lib/nnsys/src/g3d/mem.c.
+#include "nnsys/fnd.h"
+#include "nnsys/g3d.h"
+
+NNSG3dRenderObj *NNS_G3dAllocRenderObj(NNSFndAllocator *allocator) {
+    return NNS_FndAllocFromAllocator(allocator, sizeof(NNSG3dRenderObj));
+}
+
+void NNS_G3dFreeRenderObj(NNSFndAllocator *allocator, NNSG3dRenderObj *obj) {
+    NNS_FndFreeToAllocator(allocator, obj);
+}
+
+NNSG3dAnmObj *NNS_G3dAllocAnmObj(NNSFndAllocator *allocator, const void *anm, const NNSG3dResMdl *mdl) {
+    u32 size = NNS_G3dAnmObjCalcSizeRequired(anm, mdl);
+    return NNS_FndAllocFromAllocator(allocator, size);
+}
+
+void NNS_G3dFreeAnmObj(NNSFndAllocator *allocator, NNSG3dAnmObj *anmObj) {
+    NNS_FndFreeToAllocator(allocator, anmObj);
+}

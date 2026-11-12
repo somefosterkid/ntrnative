@@ -1,0 +1,32 @@
+# From pokebw2's lib/dsprot/library.toml (GPL-3.0, https://github.com/fuddlesworth/pokebw2), for Black's copy of the library.
+# Nintendo's DS Protect anti-piracy library, linked into overlays 165 and 337. It was built apart from the game, as ARM
+# code.
+compiler = "dsi/1.1p1"
+flags = [
+    "-O4,p",               # Optimize for speed
+    "-proc arm946e",       # ARM9 processor
+    "-nothumb",            # ARM code
+    "-interworking",       # ARM/Thumb interworking
+    "-enum int",           # Enums are int-sized
+    "-char signed",        # char is signed
+    "-fp soft",            # Software floating point
+    "-lang=c99",
+    "-Cpp_exceptions off", # No exception tables
+    "-gccext,on",          # GCC extensions
+    "-gccinc",             # #include "..." and <...> search the same paths
+    "-sym on",             # Debug info for objdiff
+    "-requireprotos",      # Calling an undeclared function is an error
+    "-nolink",
+    "-msgstyle gcc",
+]
+
+[file_compiler]
+"dsprot_cipher.c" = "2.0/sp2p2" # the reference dsprot-1.27's compiler; dsi/1.1p1 tail-merges func_ov230_02188a48's two case endings
+"rc4_ov230.c" = "2.0/sp2p2" # the reference dsprot-1.27 rc4.c is built with it
+"mac_owner.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"dummy.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"rom_util.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"rom_test.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"integrity.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"extra.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c
+"dsprot_main.c" = "2.0/sp2p2" # DS Protect 1.27, as dsprot_cipher.c

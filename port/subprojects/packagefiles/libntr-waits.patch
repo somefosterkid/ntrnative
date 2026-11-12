@@ -1,0 +1,112 @@
+--- a/libraries/os/src/os_irqHandler.c
++++ b/libraries/os/src/os_irqHandler.c
+@@ -351,7 +351,7 @@
+     }
+ 
+     #ifdef SDK_PORT
+-    if( irqFlags == 1 )
++    if( irqFlags & OS_IE_V_BLANK )
+     {
+         SIM_PreRenderVBlank();
+         SIM_Render(NULL);
+@@ -390,6 +390,11 @@
+ {
+ #ifdef SDK_NO_THREAD
+     OS_Halt();
++#elif defined(SDK_PORT)
++    // bw-port (libntr-waits.patch): the only interrupt on PC is the V-blank, from the frame drawn here
++    SIM_PreRenderVBlank();
++    SIM_Render(NULL);
++    SIM_PostRenderVBlank();
+ #else
+     OS_SleepThread(&OSi_IrqThreadQueue);
+ #endif
+--- a/libraries/os/src/os_irqHandler_inTCM.c
++++ b/libraries/os/src/os_irqHandler_inTCM.c
+@@ -293,7 +293,7 @@
+   }
+ 
+   #ifdef SDK_PORT
+-  if( irqFlags == 1 )
++  if( irqFlags & OS_IE_V_BLANK )
+   {
+       SIM_PreRenderVBlank();
+       SIM_Render(NULL);
+@@ -313,6 +313,11 @@
+ void OS_WaitAnyIrq(void) {
+ #ifdef SDK_NO_THREAD
+   OS_Halt();
++#elif defined(SDK_PORT)
++  // bw-port (libntr-waits.patch): the only interrupt on PC is the V-blank, from the frame drawn here
++  SIM_PreRenderVBlank();
++  SIM_Render(NULL);
++  SIM_PostRenderVBlank();
+ #else
+   OS_SleepThread(&OSi_IrqThreadQueue);
+ #endif
+--- a/libraries/spi/src/pm.c
++++ b/libraries/spi/src/pm.c
+@@ -47,6 +47,20 @@
+ #endif
+ 
+ #ifdef SDK_PORT
++// bw-port (libntr-waits.patch): on PC the V-blank count only advances in a frame the simulator draws, which OS_WaitIrq
++// does for a V-blank: a plain spin on the count (PM_GoSleepMode, PMi_WaitVBlank, the reset and power-off paths) hung
++static void PMi_PortWaitCount(u32 count)
++{
++    while (count == OS_GetVBlankCount()) {
++        OS_WaitIrq(TRUE, OS_IE_V_BLANK);
++    }
++}
++#define PMi_WAIT_COUNT_CHANGE(count) PMi_PortWaitCount(count)
++#else
++#define PMi_WAIT_COUNT_CHANGE(count) while ((count) == OS_GetVBlankCount()) {}
++#endif
++
++#ifdef SDK_PORT
+ static
+ #endif
+ inline u32 PMi_MakeData1 (u32 bit, u32 seq, u32 command, u32 data)
+@@ -229,8 +243,7 @@
+ #if SDK_VERSION_MAJOR == 5
+ static void PMi_WaitVBlank(void) {
+   vu32 vcount = OS_GetVBlankCount();
+-  while (vcount == OS_GetVBlankCount()) {
+-  }
++  PMi_WAIT_COUNT_CHANGE(vcount);
+ }
+ #endif
+ 
+@@ -1194,18 +1207,15 @@
+ 
+     {
+         vu32 vcount = OS_GetVBlankCount();
+-        while (vcount == OS_GetVBlankCount()) {
+-        }
++        PMi_WAIT_COUNT_CHANGE(vcount);
+         vcount = OS_GetVBlankCount();
+ 
+         reg_GX_DISPCNT = reg_GX_DISPCNT & ~REG_GX_DISPCNT_MODE_MASK;
+         GXS_DispOff();
+ 
+-        while (vcount == OS_GetVBlankCount()) {
+-        }
++        PMi_WAIT_COUNT_CHANGE(vcount);
+         vcount = OS_GetVBlankCount();
+-        while (vcount == OS_GetVBlankCount()) {
+-        }
++        PMi_WAIT_COUNT_CHANGE(vcount);
+     }
+ 
+     {
+@@ -1718,9 +1728,7 @@
+     int n;
+     for (n = 0; n < 3; n++) {
+       u32 count = OS_GetVBlankCount();
+-      while (count == OS_GetVBlankCount()) {
+-        OS_SpinWait(100);
+-      }
++      PMi_WAIT_COUNT_CHANGE(count);
+     }
+   }
+ 

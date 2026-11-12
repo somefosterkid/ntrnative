@@ -1,0 +1,462 @@
+pokebw2-sdk.patch (tools/pokebw2_fetch.sh, the maintainers' notes): pokebw2's C against libntr's and libntrsystem's headers in
+place of pokebw2's lib/nitro and lib/nnsys ones. The restatements of SDK inlines pokebw2's headers lack (PAD_Read,
+MATH_IMin, the display-control readers, NNS_G3dGetTexDataByIdx) are left to libntr's under SDK_PORT (libntr's
+define); libntr's member names (NNSG2dMultiCellHierarchyData's posX/posY, MtxFx43's _30.._32, FSOverlayInfo's header,
+OSTWLParentalControl's flags, the file header's sigVal, the joint animation's tags after the struct); OVERLAY_ID as the
+overlay's number (an address is no u32 constant initializer on a 64-bit host, Black's include/gfl/overlay.h);
+gf_overlay.c's ranges as uintptr_t; arc_tool.c's one assembly function (pokebw2's last non-matching function, which
+clang cannot build) as the C of Black's port (lib/gfl/src/arc_tool.c).
+
+diff --git a/include/gfl/overlay.h b/include/gfl/overlay.h
+index 873165368..bb0239676 100644
+--- a/include/gfl/overlay.h
++++ b/include/gfl/overlay.h
+@@ -5,7 +5,11 @@
+ #include "gfl/heap.h"
+ 
+ // The linker script defines OVERLAY_<n>_ID for every overlay, so that overlay IDs in the code are relocations
++#ifdef SDK_PORT   // (the port: the overlay's number; an address is no u32 constant initializer on a 64-bit host)
++#define OVERLAY_ID(n) ((u32)(n))
++#else
+ #define OVERLAY_ID(n) ((u32)OVERLAY_##n##_ID)
++#endif
+ // For procs in the main program, which need no overlay
+ #define OVERLAY_NONE (-1)
+ 
+diff --git a/src/gfl/arc_tool.c b/src/gfl/arc_tool.c
+index b0f7bfeb5..cee95cf57 100644
+--- a/src/gfl/arc_tool.c
++++ b/src/gfl/arc_tool.c
+@@ -95,94 +95,35 @@ static void GFL_ArcSysInitArcHandle(FSFile *file, u32 arcId) {
+ // Hand-written in assembly: the original build's compiler kept the dead store of fimgOffset + 8 back to its stack
+ // slot, which no installed compiler produces from the C, so the maintainer took the assembly exception for this, the
+ // last non-matching function. The pool words below are the assert's two strings, sAssertNameAndFormat and its +4.
+-// clang-format off
+-// style-ok: asm the maintainer's exception for the last non-matching function, which no compiler reproduces from C
+-static asm u32 ArchiveMoveImageTop(FSFile *file, u32 fileId, u32 offset, u32 size) {
+-    push {r4, r5, r6, r7, lr}
+-    sub sp, #0x24
+-    mov r6, r1
+-    mov r1, #0x0
+-    str r2, [sp, #0x4]
+-    str r1, [sp, #0x10]
+-    mov r5, r0
+-    mov r1, #0xc
+-    mov r2, #0x0
+-    mov r7, r3
+-    bl FS_SeekFile
+-    mov r0, r5
+-    add r1, sp, #0x10
+-    mov r2, #0x2
+-    bl FS_ReadFile
+-    ldr r4, [sp, #0x10]
+-    mov r0, r5
+-    add r1, r4, #0x4
+-    mov r2, #0x0
+-    bl FS_SeekFile
+-    mov r0, r5
+-    add r1, sp, #0x14
+-    mov r2, #0x6
+-    bl FS_ReadFile
+-    add r0, sp, #0x10
+-    ldrh r3, [r0, #0x8]
+-    cmp r3, r6
+-    bhi AssertDone
+-    ldr r0, [pc, #0x6c]
+-    ldr r2, [pc, #0x70]
+-    mov r1, #0x0
+-    str r6, [sp, #0x0]
+-    bl GFL_DebugAssertFailEx
+-AssertDone:
+-    ldr r0, [sp, #0x14]
+-    mov r2, #0x0
+-    add r0, r4, r0
+-    str r0, [sp, #0xc]
+-    ldr r1, [sp, #0xc]
+-    mov r0, r5
+-    add r1, r1, #0x4
+-    bl FS_SeekFile
+-    mov r0, r5
+-    add r1, sp, #0x10
+-    mov r2, #0x4
+-    bl FS_ReadFile
+-    ldr r1, [sp, #0x10]
+-    ldr r0, [sp, #0xc]
+-    add r4, #0xc
+-    add r0, r0, r1
+-    lsl r1, r6, #0x3
+-    str r0, [sp, #0x8]
+-    mov r0, r5
+-    add r1, r4, r1
+-    mov r2, #0x0
+-    bl FS_SeekFile
+-    mov r0, r5
+-    add r1, sp, #0x1c
+-    mov r2, #0x8
+-    bl FS_ReadFile
+-    ldr r1, [sp, #0x8]
+-    ldr r2, [sp, #0x1c]
+-    add r1, #0x8
+-    str r1, [sp, #0x8]
+-    add r2, r1, r2
+-    ldr r1, [sp, #0x4]
+-    mov r0, r5
+-    add r1, r1, r2
+-    mov r2, #0x0
+-    bl FS_SeekFile
+-    cmp r7, #0x0
+-    bne SizeDone
+-    ldr r1, [sp, #0x20]
+-    ldr r0, [sp, #0x1c]
+-    sub r7, r1, r0
+-SizeDone:
+-    mov r0, r7
+-    add sp, #0x24
+-    pop {r4, r5, r6, r7, pc}
+-    mov r8, r8
+-    dcd sAssertNameAndFormat
+-    dcd sAssertNameAndFormat+4
+-}
++// The port: the C of Black's port (lib/gfl/src/arc_tool.c) for the assembly, which clang cannot build
++static u32 ArchiveMoveImageTop(FSFile *file, u32 fileId, u32 offset, u32 size) {
++    NarcFATBEntry entry;
++    NarcFATBHeader fatb;
++    u32 value = 0;
++    u32 fatbOffset;
++    u32 fntbOffset;
++    u32 fimgOffset;
+ 
+-// clang-format on
++    FS_SeekFile(file, NARC_HEADER_SIZE_OFFSET, FS_SEEK_SET);
++    FS_ReadFile(file, &value, 2);
++    fatbOffset = value;
++    FS_SeekFile(file, fatbOffset + NARC_BLOCK_SIZE_OFFSET, FS_SEEK_SET);
++    FS_ReadFile(file, &fatb, 6);
++    if (fatb.fileCount <= fileId) {
++        GFL_DebugAssertFailEx("arc_tool.c", 0xfb, "ArchiveMoveImageTop fileCnt=%d, datID=%d", fatb.fileCount, fileId);
++    }
++    fntbOffset = fatbOffset + fatb.size;
++    FS_SeekFile(file, fntbOffset + NARC_BLOCK_SIZE_OFFSET, FS_SEEK_SET);
++    FS_ReadFile(file, &value, 4);
++    fimgOffset = fntbOffset + value;
++    FS_SeekFile(file, fatbOffset + NARC_FATB_ENTRIES_OFFSET + fileId * sizeof(NarcFATBEntry), FS_SEEK_SET);
++    FS_ReadFile(file, &entry, sizeof(NarcFATBEntry));
++    FS_SeekFile(file, offset + (fimgOffset + NARC_FIMG_DATA_OFFSET + entry.start), FS_SEEK_SET);
++    if (size == 0) {
++        size = entry.end - entry.start;
++    }
++    return size;
++}
+ 
+ void GFL_ArcSysRead(void *dest, u32 arcId, u32 fileId) {
+     GFL_ArcSysReadImpl(dest, arcId, fileId, 0, 0);
+diff --git a/src/gfl/g3d_system.c b/src/gfl/g3d_system.c
+index 733500691..f6d57184f 100644
+--- a/src/gfl/g3d_system.c
++++ b/src/gfl/g3d_system.c
+@@ -336,7 +336,7 @@ void GFL_G3DResSetup(G3DResource *res, void *data) {
+     NNSG3dResFileHeader *header = data;
+     u16 type;
+ 
+-    switch (header->signature) {
++    switch (header->sigVal) {   // (the port: libntrsystem's name of the signature as a word)
+     case NNS_G3D_SIGNATURE_BMD0:
+         if (NNS_G3dGetTex(header) == NULL) {
+             type = G3D_RES_TYPE_MDL;
+diff --git a/src/gfl/gf_overlay.c b/src/gfl/gf_overlay.c
+index ea89e1c36..06a7bf7a3 100644
+--- a/src/gfl/gf_overlay.c
++++ b/src/gfl/gf_overlay.c
+@@ -36,7 +36,7 @@ static BOOL GFL_OvlCheckMemoryCollision(u32 id);
+ static OvlEntry *GFL_OvlGetList(u32 region);
+ static int GFL_OvlGetListCount(u32 region);
+ static u32 GFL_OvlGetMemoryRegion(u32 id);
+-static BOOL GFL_OvlGetMemoryRange(u32 id, u32 *start, u32 *end);
++static BOOL GFL_OvlGetMemoryRange(u32 id, uintptr_t *start, uintptr_t *end);
+ 
+ static OvlManager *sOvlManager;
+ 
+@@ -126,8 +126,8 @@ BOOL GFL_OvlLoad(u32 overlayId) {
+ 
+ // Returns FALSE if the overlay would overwrite one that is loaded
+ static BOOL GFL_OvlCheckMemoryCollision(u32 id) {
+-    u32 start;
+-    u32 end;
++    uintptr_t start;
++    uintptr_t end;
+     u32 region;
+     OvlEntry *list;
+     int count;
+@@ -140,8 +140,8 @@ static BOOL GFL_OvlCheckMemoryCollision(u32 id) {
+     list = GFL_OvlGetList(region);
+     count = GFL_OvlGetListCount(region);
+     for (i = 0; i < count; i++) {
+-        u32 loadedStart;
+-        u32 loadedEnd;
++        uintptr_t loadedStart;
++        uintptr_t loadedEnd;
+ 
+         if (list[i].loaded == TRUE && GFL_OvlGetMemoryRange(list[i].id, &loadedStart, &loadedEnd) == TRUE) {
+             if ((start >= loadedStart && start < loadedEnd) || (end > loadedStart && end <= loadedEnd) ||
+@@ -180,10 +180,10 @@ static int GFL_OvlGetListCount(u32 region) {
+ 
+ static u32 GFL_OvlGetMemoryRegion(u32 id) {
+     FSOverlayInfo info;
+-    u32 address;
++    uintptr_t address;
+ 
+     FS_LoadOverlayInfo(&info, MI_PROCESSOR_ARM9, id);
+-    address = (u32)info.ramAddress;
++    address = (uintptr_t)info.header.ram_address;
+     if (address <= HW_ITCM_END && address >= HW_ITCM) {
+         return OVL_REGION_ITCM;
+     }
+@@ -193,13 +193,13 @@ static u32 GFL_OvlGetMemoryRegion(u32 id) {
+     return OVL_REGION_MAIN;
+ }
+ 
+-static BOOL GFL_OvlGetMemoryRange(u32 id, u32 *start, u32 *end) {
++static BOOL GFL_OvlGetMemoryRange(u32 id, uintptr_t *start, uintptr_t *end) {
+     FSOverlayInfo info;
+ 
+     if (!FS_LoadOverlayInfo(&info, MI_PROCESSOR_ARM9, id)) {
+         return FALSE;
+     }
+-    *start = (u32)info.ramAddress;
+-    *end = *start + (info.ramSize + info.bssSize);
++    *start = (uintptr_t)info.header.ram_address;
++    *end = *start + (info.header.ram_size + info.header.bss_size);
+     return TRUE;
+ }
+diff --git a/src/gfl/key.c b/src/gfl/key.c
+index 51db8a335..9417040a3 100644
+--- a/src/gfl/key.c
++++ b/src/gfl/key.c
+@@ -58,9 +58,11 @@ static u32 GFL_HIDGetHeldKeys(SystemUI *ui);
+ static u32 GFL_HIDGetTypedKeys(SystemUI *ui);
+ static void GFL_HIDGetRepeat(SystemUI *ui, u32 *repeatWait, u32 *repeatStart);
+ 
++#ifndef SDK_PORT   // (the port: libntr's PAD_Read)
+ static inline u16 PAD_Read(void) {
+     return (u16)(((reg_PAD_KEYINPUT | *(vu16 *)HW_BUTTON_XY_BUF) ^ PAD_ALL_MASK) & PAD_ALL_MASK);
+ }
++#endif
+ 
+ KeypadManager *GFL_HIDCreateKeypadManager(HeapID heapId) {
+     KeypadManager *keypad = GFL_HeapAllocate(heapId, sizeof(KeypadManager), FALSE, "key.c", 68);
+diff --git a/src/ov012/field_g3d_map.c b/src/ov012/field_g3d_map.c
+index a2e111c08..739ee80aa 100644
+--- a/src/ov012/field_g3d_map.c
++++ b/src/ov012/field_g3d_map.c
+@@ -340,8 +340,8 @@ void FieldChunk_RenderProps(FieldChunk *chunk, G3DCamera *camera) {
+         sin = FX_SinIdx(chunk->propInstances[i].pos.rotationY);
+         cos = FX_CosIdx(chunk->propInstances[i].pos.rotationY);
+         NNS_G3dGeLoadMtx43(&NNS_G3dGlb.cameraMtx);
+-        VEC_Add(&chunk->worldPos, &chunk->propInstances[i].pos.position, &mtx.rt.trans);
+-        MTX_RotY33_(&mtx.rt.rot, sin, cos);
++        VEC_Add(&chunk->worldPos, &chunk->propInstances[i].pos.position, (VecFx32 *)&mtx._30);
++        MTX_RotY33_((MtxFx33 *)&mtx, sin, cos);
+         NNS_G3dGeMultMtx43(&mtx);
+         if (FieldChunk_CheckModelBBox(mdl) == TRUE) {
+             GFL_G3DSysDispatchDraw(obj);
+diff --git a/src/ov012/game_beacon_search.c b/src/ov012/game_beacon_search.c
+index 77f1668e7..17ef29d3a 100644
+--- a/src/ov012/game_beacon_search.c
++++ b/src/ov012/game_beacon_search.c
+@@ -322,7 +322,7 @@ static void GameBeaconSearch_SetupBeacon(BeaconSearchBeacon *beacon, GameData *g
+     }
+     beacon->lidOpen = lidOpen;
+     if (beacon->isDSi == TRUE) {
+-        if (OS_GetParentalControlInfoPtr()->unk0_0 && OS_GetParentalControlInfoPtr()->unk0_5) {
++        if (OS_GetParentalControlInfoPtr()->flags.isSetParentalControl && OS_GetParentalControlInfoPtr()->flags.photoExchange) {
+             flag = TRUE;
+         } else {
+             flag = FALSE;
+diff --git a/src/ov032/wfc_user_info_warning.c b/src/ov032/wfc_user_info_warning.c
+index fcba85460..1ae92e9e9 100644
+--- a/src/ov032/wfc_user_info_warning.c
++++ b/src/ov032/wfc_user_info_warning.c
+@@ -54,9 +54,11 @@ static void WFCUserInfoWarning_PrintMessage(u32 message);
+ static void WFCUserInfoWarning_Exit(void);
+ 
+ // NitroSDK's PAD_Read, as in key.c
++#ifndef SDK_PORT   // (the port: libntr's PAD_Read)
+ static inline u16 PAD_Read(void) {
+     return (u16)(((reg_PAD_KEYINPUT | *(vu16 *)HW_BUTTON_XY_BUF) ^ PAD_ALL_MASK) & PAD_ALL_MASK);
+ }
++#endif
+ 
+ // The keys held, up cancelling down and left cancelling right, as key.c reads them
+ static inline u16 ReadKeys(void) {
+diff --git a/src/ov102/gimmick_roller_coaster.c b/src/ov102/gimmick_roller_coaster.c
+index 6a2180e2e..94074d05a 100644
+--- a/src/ov102/gimmick_roller_coaster.c
++++ b/src/ov102/gimmick_roller_coaster.c
+@@ -980,7 +980,7 @@ static BOOL RollerCoaster_IsBeforeSwitch(FieldExpObjSystem *expObj, u8 car, u8 p
+ 
+ // The translation of a joint of an animation at a frame, as NitroSystem's joint animation computes it
+ static void RollerCoaster_GetJointTrans(const NNSG3dResJntAnm *anm, u32 node, fx32 frame, VecFx32 *trans) {
+-    const u32 *tag = (const u32 *)((const u8 *)anm + anm->ofsTag[node]);
++    const u32 *tag = (const u32 *)((const u8 *)anm + ((const u16 *)(anm + 1))[node]);
+     u32 flags = *tag;
+     const u32 *data = tag + 1;
+     fx32 x;
+diff --git a/src/ov168/btlv_effvm.c b/src/ov168/btlv_effvm.c
+index abd69203d..6598bb966 100644
+--- a/src/ov168/btlv_effvm.c
++++ b/src/ov168/btlv_effvm.c
+@@ -3571,9 +3571,9 @@ static void BtlvEffvm_InitEmitter(SPLEmitter *emitter) {
+         VEC_CrossProduct(&base, &dir, &axis);
+         VEC_Normalize(&axis, &axis);
+         MTX_RotAxis43(&work->mtx, &axis, FX_SinIdx(angle), FX_CosIdx(angle));
+-        work->mtx.rt.trans.x = from.x;
+-        work->mtx.rt.trans.y = from.y;
+-        work->mtx.rt.trans.z = from.z;
++        work->mtx._30 = from.x;
++        work->mtx._31 = from.y;
++        work->mtx._32 = from.z;
+     }
+     if (param->from != 8 && param->to != 8 && param->from != param->to) {
+         spinAxis = 2;
+diff --git a/src/ov209/musical_mcss.c b/src/ov209/musical_mcss.c
+index e7ece3d78..5859da6d9 100644
+--- a/src/ov209/musical_mcss.c
++++ b/src/ov209/musical_mcss.c
+@@ -370,9 +370,9 @@ void MusicalMcss_DrawSystem(MusicalMcssSys *sys, MusicalMcssCellCallback callbac
+                 scaleY = FX_Mul(mcSrt.sy, cellSrt.sy);
+                 offsetX = FX_Mul(markX * cos - markY * sin, scaleX);
+                 offsetY = FX_Mul(markX * sin + markY * cos, scaleY);
+-                nodeX = mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt.index].pHierDataArray[j].pos.x;
++                nodeX = mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt.index].pHierDataArray[j].posX;
+                 nodeX += mcSrt.px;
+-                nodeY = mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt.index].pHierDataArray[j].pos.y;
++                nodeY = mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt.index].pHierDataArray[j].posY;
+                 nodeY += mcSrt.py;
+                 offsetX += FX_Mul(nodeX * FX_CosIdx(mcSrt.rotZ) - nodeY * FX_SinIdx(mcSrt.rotZ), mcSrt.sx);
+                 offsetY += FX_Mul(nodeX * FX_SinIdx(mcSrt.rotZ) + nodeY * FX_CosIdx(mcSrt.rotZ), mcSrt.sy);
+@@ -415,10 +415,10 @@ static void MusicalMcss_DrawQuad(MusicalMcss *mcss, fx32 x, fx32 y, fx32 width,
+     G3_TexPlttBase(mcss->plttProxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_3DMAIN], mcss->plttProxy.fmt);
+     G3_PolygonAttr(GX_LIGHTMASK_NONE, GX_POLYGONMODE_MODULATE, GX_CULL_NONE, 0, 31, 0);
+     nodeX =
+-        (cellSrt->px + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].pos.x)
++        (cellSrt->px + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].posX)
+         << 8;
+     nodeY =
+-        -(cellSrt->py + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].pos.y)
++        -(cellSrt->py + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].posY)
+         << 8;
+     if (flip == 0) {
+         rot = mcss->rotation;
+diff --git a/src/ov268/br_btlsubway_proc.c b/src/ov268/br_btlsubway_proc.c
+index 92fb94bd5..377891d1a 100644
+--- a/src/ov268/br_btlsubway_proc.c
++++ b/src/ov268/br_btlsubway_proc.c
+@@ -365,9 +365,11 @@ static void BrBtlSubway_CreateTop(BrBtlSubwayWork *wk, BrBtlSubwayProcParam *p)
+ }
+ 
+ // NitroSDK's MATH_IMin, which nitro/math.h doesn't have yet
++#ifndef SDK_PORT   // (the port: libntr's MATH_IMin)
+ static inline int MATH_IMin(int a, int b) {
+     return (a <= b) ? a : b;
+ }
++#endif
+ 
+ // The streaks of the Single Line, or of the Super Single Line once it is open
+ static void BrBtlSubway_CreateSingle(BrBtlSubwayWork *wk, BrBtlSubwayProcParam *p) {
+diff --git a/src/ov271/br_util.c b/src/ov271/br_util.c
+index 68b4f5aa9..292247cef 100644
+--- a/src/ov271/br_util.c
++++ b/src/ov271/br_util.c
+@@ -299,9 +299,11 @@ static void BrMsgWin_GetPrintPos(u32 type, const BrPoint *cp_pos, GFLBitmap *bmp
+ }
+ 
+ // NitroSDK's MATH_IMin, which nitro/math.h doesn't have yet
++#ifndef SDK_PORT   // (the port: libntr's MATH_IMin)
+ static inline int MATH_IMin(int a, int b) {
+     return (a <= b) ? a : b;
+ }
++#endif
+ 
+ BrList *BrList_Init(const BrListParam *cp_param, HeapID heapId) {
+     BrList *p_wk;
+diff --git a/src/system/dsi.c b/src/system/dsi.c
+index 83c396451..b9d6ae4e3 100644
+--- a/src/system/dsi.c
++++ b/src/system/dsi.c
+@@ -11,7 +11,7 @@ BOOL isRunningOnDSi(void) {
+ 
+ BOOL canPlayerExchangePhotos(void) {
+     if (isRunningOnDSi()) {
+-        if (OS_GetParentalControlInfoPtr()->unk0_0 && OS_GetParentalControlInfoPtr()->unk0_5) {
++        if (OS_GetParentalControlInfoPtr()->flags.isSetParentalControl && OS_GetParentalControlInfoPtr()->flags.photoExchange) {
+             return TRUE;
+         }
+         return FALSE;
+diff --git a/src/system/mcss.c b/src/system/mcss.c
+index b31e6e92c..e770bd091 100644
+--- a/src/system/mcss.c
++++ b/src/system/mcss.c
+@@ -497,10 +497,10 @@ static void MCSS_DrawQuad(MCSSSystem *system, MCSS *mcss, fx32 x, fx32 y, fx32 w
+     G3_TexPlttBase(mcss->plttProxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_3DMAIN], mcss->plttProxy.fmt);
+     G3_PolygonAttr(GX_LIGHTMASK_NONE, GX_POLYGONMODE_MODULATE, GX_CULL_NONE, polygonId, mcss->alpha, 0);
+     nodeX =
+-        (cellSrt->px + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].pos.x)
++        (cellSrt->px + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].posX)
+         << 8;
+     nodeY =
+-        -(cellSrt->py + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].pos.y)
++        -(cellSrt->py + mcss->mcAnim.pMultiCellDataBank->pMultiCellDataArray[mcSrt->index].pHierDataArray[node].posY)
+         << 8;
+     G3_Translate(nodeX, nodeY, *z);
+     G3_RotZ(-FX_SinIdx(cellSrt->rotZ), FX_CosIdx(cellSrt->rotZ));
+diff --git a/src/system/net_err.c b/src/system/net_err.c
+index 79a9e06e5..2c9057c4f 100644
+--- a/src/system/net_err.c
++++ b/src/system/net_err.c
+@@ -87,6 +87,7 @@ enum {
+ 
+ // NitroSDK's GXDispCnt, the display control register's fields, with GX_GetDispCnt, GXS_GetDispCnt and
+ // GXS_GetVisibleWnd, and the readers of the OBJ window's planes, which nitro/gx.h lacks
++#ifndef SDK_PORT   // (the port: libntr has them all)
+ typedef union {
+     u32 raw;
+     struct {
+@@ -133,6 +134,7 @@ static inline GXWndPlane G2S_GetWndOBJInsidePlane(void) {
+ static inline u16 PAD_Read(void) {
+     return (u16)(((reg_PAD_KEYINPUT | *(vu16 *)HW_BUTTON_XY_BUF) ^ PAD_ALL_MASK) & PAD_ALL_MASK);
+ }
++#endif
+ 
+ // The keys held, up cancelling down and left cancelling right, as key.c reads them
+ static inline u16 ReadKeys(void) {
+@@ -335,7 +337,11 @@ static void GFL_NetErrWaitVBlank(void) {
+ // Shows the error screen while the network goes on, on the screen that has the wireless icon, with a window that
+ // leaves the icon's OBJ visible
+ void GFL_NetErrShowScreen(void) {
++#ifdef SDK_PORT
++    GXSDispCnt subDispCnt = GXS_GetDispCnt();
++#else
+     GXDispCnt subDispCnt = GXS_GetDispCnt();
++#endif
+     GXWndPlane outside = G2_GetWndOutsidePlane();
+     GXWndPlane subOutside = G2S_GetWndOutsidePlane();
+     GXWndPlane objInside = G2_GetWndOBJInsidePlane();
+diff --git a/src/system/nsbtx_to_clwk.c b/src/system/nsbtx_to_clwk.c
+index 7f45fb644..2ec3ca969 100644
+--- a/src/system/nsbtx_to_clwk.c
++++ b/src/system/nsbtx_to_clwk.c
+@@ -17,12 +17,14 @@ static void NsbtxToClwk_ConvertTiles(const u8 *src, int width, int x, int y, int
+ static void NsbtxToClwk_CopyTile(const u8 *src, u8 *dest, int *srcOffset, int *destOffset, int size, int stride);
+ 
+ // NitroSystem's, which g3d.h does not have yet
++#ifndef SDK_PORT   // (the port: libntrsystem's)
+ static inline const NNSG3dResDictTexData *NNS_G3dGetTexDataByIdx(const NNSG3dResTex *tex, u32 idx) {
+     if (tex != NULL) {
+         return NNS_G3dGetResDataByIdx(&tex->dict, idx);
+     }
+     return NULL;
+ }
++#endif
+ 
+ // Cuts tilesX by tilesY tiles out of a 16-color bitmap that is width tiles wide, starting at the tile (x, y)
+ static void NsbtxToClwk_ConvertTiles(const u8 *src, int width, int x, int y, int tilesX, int tilesY, void *dest) {

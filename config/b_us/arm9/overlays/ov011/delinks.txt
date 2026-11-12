@@ -1,0 +1,11 @@
+    .text       start:0x02172bc0 end:0x021768c8 kind:code align:32
+    .rodata     start:0x021768c8 end:0x02176fe4 kind:rodata align:4
+    .ctor       start:0x02176fe4 end:0x02176fe4 kind:rodata align:4
+    .data       start:0x02177000 end:0x02177020 kind:data align:32
+    .bss        start:0x02177020 end:0x02177020 kind:bss align:32
+
+src/ov011/intrude_comm.c:
+    complete
+    .text       start:0x02172bc0 end:0x021768c8
+    .rodata     start:0x021768c8 end:0x02176fe4
+    .data       start:0x02177000 end:0x02177020

@@ -1,0 +1,78 @@
+    .text       start:0x0219ce80 end:0x021a4040 kind:code align:32
+    .rodata     start:0x021a4040 end:0x021a4290 kind:rodata align:4
+    .ctor       start:0x021a4290 end:0x021a4290 kind:rodata align:4
+    .data       start:0x021a42a0 end:0x021a4780 kind:data align:32
+    .bss        start:0x021a4780 end:0x021a4920 kind:bss align:32
+
+src/ov181/mb_parent_sys.c:
+    complete
+    .text       start:0x0219ce80 end:0x0219eec8
+    .rodata     start:0x021a4040 end:0x021a41c4
+    .data       start:0x021a42a0 end:0x021a43ac
+    .bss        start:0x021a4780 end:0x021a478c
+
+src/ov181/mbp.c:
+    complete
+    .text       start:0x0219eec8 end:0x0219f580
+    .data       start:0x021a43ac end:0x021a46a8
+    .bss        start:0x021a478c end:0x021a47c8
+
+src/ov181/mb_comm_sys.c:
+    complete
+    .text       start:0x0219f580 end:0x0219fc0c
+    .rodata     start:0x021a41c4 end:0x021a4254
+    .data       start:0x021a46a8 end:0x021a46b8
+    .bss        start:0x021a47c8 end:0x021a47cc
+
+src/ov181/mb_util_msg.c:
+    complete
+    .text       start:0x0219fc0c end:0x021a039c
+    .data       start:0x021a46b8 end:0x021a46c8
+
+src/ov181/mb_parent_dataconv_sys.c:
+    complete
+    .text       start:0x021a039c end:0x021a092c
+    .data       start:0x021a46c8 end:0x021a4728
+    .bss        start:0x021a47cc end:0x021a47d0
+
+lib/nitro/src/mb/mb_comm.c:
+    complete
+    .text       start:0x021a092c end:0x021a1698
+    .data       start:0x021a4728 end:0x021a4730
+    .bss        start:0x021a47d0 end:0x021a47d4
+
+lib/nitro/src/mb/mb_segment.c:
+    complete
+    .text       start:0x021a1698 end:0x021a2018
+    .rodata     start:0x021a4254 end:0x021a4290
+    .data       start:0x021a4730 end:0x021a4738
+    .bss        start:0x021a47d4 end:0x021a47d8
+
+lib/nitro/src/mb/mb_gameinfo.c:
+    complete
+    .text       start:0x021a2070 end:0x021a2654
+    .bss        start:0x021a47d8 end:0x021a4890
+
+lib/nitro/src/mb/mb_wm.c:
+    complete
+    .text       start:0x021a2654 end:0x021a3b28
+    .data       start:0x021a4738 end:0x021a4780
+    .bss        start:0x021a4890 end:0x021a4904
+
+lib/nitro/src/mb/mb_cache.c:
+    complete
+    .text       start:0x021a3b28 end:0x021a3bd4
+
+lib/nitro/src/mb/mb_task.c:
+    complete
+    .text       start:0x021a3bd4 end:0x021a3e44
+    .bss        start:0x021a4904 end:0x021a4908
+
+lib/nitro/src/mb/mb_frame.c:
+    complete
+    .text       start:0x021a3e44 end:0x021a4040
+    .bss        start:0x021a4908 end:0x021a4920
+
+lib/nitro/src/mb/mb_common.c:
+    complete
+    .text       start:0x021a2018 end:0x021a2070

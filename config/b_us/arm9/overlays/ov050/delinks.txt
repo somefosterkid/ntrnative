@@ -1,0 +1,9 @@
+    .text       start:0x021f36c0 end:0x021f3898 kind:code align:32
+    .rodata     start:0x021f3898 end:0x021f3928 kind:rodata align:4
+    .ctor       start:0x021f3928 end:0x021f3928 kind:rodata align:4
+    .bss        start:0x021f3940 end:0x021f3940 kind:bss align:32
+
+src/ov050/gimmick_league_lift.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f3898
+    .rodata     start:0x021f3898 end:0x021f3928

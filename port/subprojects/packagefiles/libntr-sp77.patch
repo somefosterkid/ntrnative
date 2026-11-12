@@ -1,0 +1,228 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -160,7 +160,7 @@
+ }
+ 
+ static float sSideRect[4];
+-static float sItemRect[10][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items, qaa, qcap)
++static float sItemRect[13][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items, qaa, qcap, qspeed, qdcap, qmusic)
+ static int sJoyClicks;
+ static void ItemRect(int i) {
+     ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+@@ -488,6 +488,38 @@
+     Dirty();
+ }
+ 
++// bw-port (libntr-sp77.patch): the game's Speed (1..4), the display cap (60 / 120 / the monitor's refresh), the music's tempo at Speed > 1
++static const char * const SpeedNames[] = {"1x (normal)", "2x", "3x", "4x"};
++static const char * const SpeedShort[] = {"1x", "2x", "3x", "4x"};
++static const char * const DisplayCapNames[] = {"60 per second", "120 per second", "The monitor's refresh rate"};
++static const char * const DisplayCapShort[] = {"60", "120", "monitor"};
++static const char * const SpeedTip = "how fast the game runs: sound effects and cries follow, the music keeps its tempo (Audio: Music at normal speed). Needs the frame cap on";
++static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120 or the monitor's refresh rate (the game runs on its own clock, Speed). Needs the frame cap on";
++static const char * const MusicNormalTip = "at Speed 2x-4x the music (the background music and jingles) keeps its normal tempo while sound effects and cries follow the speed";
++
++static int SpeedIndex() {
++    SIM_config_type * c = C();
++    return c->speed < 1 ? 0 : c->speed > 4 ? 3 : c->speed - 1;
++}
++
++static void SetSpeed(int i) {
++    if (i != SpeedIndex()) {
++        C()->speed = (u8)(i + 1);
++        Dirty();
++    }
++}
++
++static int DisplayCapIndex() {
++    return C()->displayCap > 2 ? 0 : C()->displayCap;
++}
++
++static void SetDisplayCap(int i) {
++    if (i != DisplayCapIndex()) {
++        C()->displayCap = (u8)i;
++        Dirty();
++    }
++}
++
+ static void SetUiScale(int percent) {
+     C()->uiScale = (u8)percent;
+     ApplyScale(WantedScale());
+@@ -677,6 +709,9 @@
+         FormRow("Cap at 60 fps (Tab)");
+         bool cap = c->capFrameRate;
+         if (ImGui::Checkbox("##cap", &cap)) { ApplyCap(cap); }
++        FormRow("Display cap", DisplayCapTip);
++        int dc = DisplayCapIndex();
++        if (ComboIndex("##dcap", &dc, DisplayCapNames, 3)) { SetDisplayCap(dc); }
+         ImGui::EndTable();
+     }
+     ImGui::End();
+@@ -703,6 +738,15 @@
+         }
+         ImGui::EndTable();
+     }
++    if (BeginForm("##aus")) {
++        FormRow("Speed (Game menu)");
++        int sp = SpeedIndex();
++        if (ComboIndex("##aspd", &sp, SpeedNames, 4)) { SetSpeed(sp); }
++        FormRow("Music at normal speed", MusicNormalTip);
++        bool mn = c->musicNormalSpeed != 0;
++        if (ImGui::Checkbox("##amn", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
++        ImGui::EndTable();
++    }
+     ImGui::TextDisabled("The sound engine is chosen when the program starts: a change takes effect at the next start.");
+     ImGui::End();
+ }
+@@ -1002,6 +1046,14 @@
+     ItemRect(3);
+     if (mgame) {
+         ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
++        if (ImGui::BeginMenu("Speed")) {
++            for (int i = 0; i < 4; i++) {
++                if (MenuRadio(SpeedNames[i], SpeedIndex() == i)) { SetSpeed(i); }
++            }
++            ImGui::Separator();
++            ImGui::TextDisabled(c->capFrameRate ? "Sound effects follow the speed" : "Needs the frame cap (Tab)");
++            ImGui::EndMenu();
++        }
+         if (RestartSupported() && ImGui::MenuItem("Reset...")) {
+             sResetAsk = true;
+         }
+@@ -1096,6 +1148,14 @@
+             }
+             ImGui::EndMenu();
+         }
++        if (ImGui::BeginMenu("Display cap")) {
++            for (int i = 0; i < 3; i++) {
++                if (MenuRadio(DisplayCapNames[i], DisplayCapIndex() == i)) { SetDisplayCap(i); }
++            }
++            ImGui::Separator();
++            ImGui::TextDisabled(c->capFrameRate ? "Pictures a second the window shows" : "Needs the frame cap (Tab)");
++            ImGui::EndMenu();
++        }
+         ImGui::EndMenu();
+     }
+     if (ImGui::BeginMenu("Audio")) {
+@@ -1115,6 +1175,8 @@
+             ImGui::TextDisabled("takes effect at the next start");
+             ImGui::EndMenu();
+         }
++        bool mn = c->musicNormalSpeed != 0;
++        if (ImGui::MenuItem("Music at normal speed", nullptr, &mn)) { c->musicNormalSpeed = mn; Dirty(); }
+         int vol = (int)((c->masterVolume * 100 + 63) / 127);
+         ImGui::SetNextItemWidth(160.0f * sUiScale);
+         if (ImGui::SliderInt("Volume", &vol, 0, 100, "%d%%")) {
+@@ -1746,6 +1808,24 @@
+             if (ImGui::Checkbox("##qcap", &cap)) { ApplyCap(cap); }
+             ItemRect(9);
+         }
++        FormRow("Speed", SpeedTip);
++        {
++            int sp = SpeedIndex();
++            if (ComboIndex("##qspeed", &sp, SpeedShort, 4)) { SetSpeed(sp); }
++            ItemRect(10);
++        }
++        FormRow("Display cap", DisplayCapTip);
++        {
++            int dc = DisplayCapIndex();
++            if (ComboIndex("##qdcap", &dc, DisplayCapShort, 3)) { SetDisplayCap(dc); }
++            ItemRect(11);
++        }
++        FormRow("Music, normal speed", MusicNormalTip);
++        {
++            bool mn = c->musicNormalSpeed != 0;
++            if (ImGui::Checkbox("##qmusic", &mn)) { c->musicNormalSpeed = mn; Dirty(); }
++            ItemRect(12);
++        }
+         ImGui::EndTable();
+     }
+     sMetricsContentH = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+@@ -1885,9 +1965,9 @@
+ void RectsString(char * buf, int n) {
+     int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
+                      sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
+-    static const char * const itemNames[10] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb", "qaa", "qcap"};
++    static const char * const itemNames[13] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb", "qaa", "qcap", "qspeed", "qdcap", "qmusic"};
+     k += snprintf(buf + k, n - k, " joyn %d", sJoyClicks);
+-    for (int i = 0; i < 10 && k < n - 80; i++) {
++    for (int i = 0; i < 13 && k < n - 80; i++) {
+         if (sItemRect[i][2] > 0.0f) {
+             k += snprintf(buf + k, n - k, " %s %.0f %.0f %.0f %.0f", itemNames[i],
+                           sItemRect[i][0], sItemRect[i][1], sItemRect[i][2], sItemRect[i][3]);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1324,6 +1324,26 @@
+ 
+ // at the top of a tick: which slots are this tick's
+ static void SpPaceBegin(void) {
++  { // BWPORT_SPEEDSCRIPT="TICK:SPEED,TICK:SPEED": a test aid, the Speed changes live (as the UI sets it) at that tick
++    static bool init;
++    static unsigned long long at[8], tick;
++    static int sp[8], n, next;
++    if (!init) {
++      init = true;
++      const char *e = getenv("BWPORT_SPEEDSCRIPT");
++      while (e != NULL && *e && n < 8) {
++        char *end;
++        at[n] = strtoull(e, &end, 10);
++        if (*end != ':') break;
++        sp[n] = (int)strtol(end + 1, &end, 10);
++        n++;
++        if (*end != ',') break;
++        e = end + 1;
++      }
++    }
++    if (next < n && tick >= at[next]) s_SIM_config.speed = (u8)sp[next++];
++    tick++;
++  }
+   bool capped = s_SIM_config.capFrameRate && !sFastForward;
+   static int sLogInit;
+   if (!sLogInit) {
+--- a/libraries/snd/src/snd_interface.c
++++ b/libraries/snd/src/snd_interface.c
+@@ -34,16 +34,33 @@
+     static int mask = -2;
+     if (mask == -2) {
+         const char *e = getenv("BWPORT_MUSICPLAYERS"); /* a hex mask of the music players (BWPORT_SNDLOG=1 lists the starts) */
+-        mask = e != NULL && *e ? (int)strtol(e, NULL, 16) : 0x41;
++        mask = e != NULL && *e ? (int)strtol(e, NULL, 16) : 0x41; /* NitroSystem players 0 (BGM) and 6 (BGM2) */
+     }
+     return mask;
+ }
+ static int sMusicSlow = 1;
+ static int sGameRatio[32];
++/* the sound driver's players (slots) are handed out by the NitroSystem layer (libntrsystem's NNSi_SndPlayerStartSeq tells
++ * which NitroSystem player, the game's 0..5 and 6, starts on a slot just before SND_PrepareSeq): the slot a sequence runs
++ * on changes from one start to the next, so what is music is decided by the NitroSystem player of the slot's last start */
++static int sSlotPlayer[32] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
++                              -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
++
++void SIM_Snd_SeqPlayerAssign(int slot, int nnsPlayer)
++{
++    if (slot >= 0 && slot < 32) {
++        sSlotPlayer[slot] = nnsPlayer;
++    }
++}
+ 
+ static int MusicPlayer(int playerNo)
+ {
+-    return playerNo >= 0 && playerNo < 32 && ((SIM_Snd_MusicPlayerMask() >> playerNo) & 1);
++    int p;
++    if (playerNo < 0 || playerNo >= 32) {
++        return 0;
++    }
++    p = sSlotPlayer[playerNo];
++    return p >= 0 && p < 32 && ((SIM_Snd_MusicPlayerMask() >> p) & 1);
+ }
+ 
+ static int ScaledRatio(int playerNo, int ratio)
+@@ -81,7 +98,7 @@
+ static void MusicStarted(int playerNo)
+ {
+     if (getenv("BWPORT_SNDLOG") != NULL) {
+-        fprintf(stderr, "snd: start player %d\n", playerNo);
++        fprintf(stderr, "snd: start slot %d nns-player %d\n", playerNo, playerNo >= 0 && playerNo < 32 ? sSlotPlayer[playerNo] : -1);
+     }
+     if (playerNo >= 0 && playerNo < 32) {
+         sGameRatio[playerNo] = 0;

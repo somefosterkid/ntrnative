@@ -1,0 +1,1738 @@
+class	bw2_source	bw2_complete	bw2_functions	module	start	end	black_functions	twins	contiguous	same_order	overlaps
+full	lib/dpw/src/dpw_battle_tower.c	yes	12	ov114	0x021c8f2c	0x021c9858	12	12	yes	yes	lib/dpw/src/dpw_battle_tower.c
+full	lib/dwc/src/ac/dwc_ac.c	yes	27	main	0x0205b98c	0x0205c6ac	27	27	yes	yes	lib/dwc/src/ac/dwc_ac.c
+full	lib/dwc/src/ac/dwc_ac_aplist.c	yes	8	main	0x0205d318	0x0205d91c	8	8	yes	yes	lib/dwc/src/ac/dwc_ac_aplist.c
+full	lib/dwc/src/ac/dwc_ac_cleanup.c	yes	3	main	0x0205b1e4	0x0205b33c	3	3	yes	yes	lib/dwc/src/ac/dwc_ac_cleanup.c
+full	lib/dwc/src/ac/dwc_ac_connect.c	yes	7	main	0x0205b33c	0x0205b98c	7	7	yes	yes	lib/dwc/src/ac/dwc_ac_connect.c
+full	lib/dwc/src/ac/dwc_ac_result.c	yes	6	main	0x0205d0e4	0x0205d318	6	6	yes	yes	lib/dwc/src/ac/dwc_ac_result.c
+full	lib/dwc/src/ac/dwc_ac_search.c	yes	15	main	0x0205dd2c	0x0205ea08	15	15	yes	yes	lib/dwc/src/ac/dwc_ac_search.c
+full	lib/dwc/src/ac/dwc_ac_soc.c	yes	12	main	0x0205eff0	0x0205f648	12	12	yes	yes	lib/dwc/src/ac/dwc_ac_soc.c
+full	lib/dwc/src/ac/dwc_ac_wcm.c	yes	10	main	0x0205a938	0x0205b1e4	10	10	yes	yes	lib/dwc/src/ac/dwc_ac_wcm.c
+full	lib/dwc/src/ac/dwc_ac_wepkey.c	yes	10	main	0x0205ea08	0x0205eff0	10	10	yes	yes	lib/dwc/src/ac/dwc_ac_wepkey.c
+full	lib/dwc/src/auth/dwc_svcloc.c	yes	5	ov009	0x0217c070	0x0217c690	5	5	yes	yes	lib/dwc/src/auth/dwc_svl.c
+full	lib/dwc/src/base/dwc_common.c	yes	2	main	0x02059b40	0x02059e18	2	2	yes	yes	src/main/main_02059b40.c
+full	lib/dwc/src/base/dwc_error.c	yes	5	main	0x02059e18	0x02059f6c	5	5	yes	yes	lib/dwc/src/base/dwc_error.c
+full	lib/dwc/src/base/dwc_memfunc.c	yes	13	main	0x0205a12c	0x0205a2c8	13	13	yes	yes	lib/dwc/src/base/dwc_memfunc.c
+full	lib/dwc/src/base/dwc_wdsscan.c	yes	9	main	0x0205d91c	0x0205dd2c	9	9	yes	yes	lib/dwc/src/base/dwc_wdsscan.c
+full	lib/dwc/src/bm/dwc_backup.c	yes	17	main	0x020584e0	0x020589d0	17	17	yes	yes	lib/dwc/src/bm/dwc_backup.c
+full	lib/dwc/src/bm/dwc_bm_init.c	yes	1	main	0x020589d0	0x02058a3c	1	1	yes	yes	lib/dwc/src/bm/dwc_bm_init.c
+full	lib/dwc/src/bm/util_wifiidtool.c	yes	7	main	0x02058a3c	0x02059058	7	7	yes	yes	lib/dwc/src/bm/util_wifiidtool.c
+full	lib/dwc/src/crypt/crypt.c	yes	67	ov114	0x021ca494	0x021cdbdc	67	67	yes	yes	lib/dwc/src/crypt/crypt.c
+full	lib/dwc/src/gdb/gdb.c	yes	26	ov175	0x021e10cc	0x021e2290	26	26	yes	yes	src/ov175/ov175_021dd1ec.c
+full	lib/dwc/src/ghttp/ghttpBuffer.c	yes	11	ov114	0x021bfb90	0x021c0244	11	11	yes	yes	lib/dwc/src/ghttp/ghttpBuffer.c
+full	lib/dwc/src/ghttp/ghttpCallbacks.c	no	3	ov114	0x021c0244	0x021c0368	3	3	yes	yes	lib/dwc/src/ghttp/ghttpCallbacks.c
+full	lib/dwc/src/gp/gp.c	yes	21	ov009	0x021858fc	0x02186664	21	21	yes	yes	lib/dwc/src/gs/gp/gp.c
+full	lib/dwc/src/gp/gpi.c	yes	6	ov009	0x02186664	0x02187010	6	6	yes	yes	lib/dwc/src/gs/gp/gpi.c
+full	lib/dwc/src/gp/gpiOperation.c	yes	7	ov009	0x0218dd88	0x0218e3b0	7	7	yes	yes	lib/dwc/src/gs/gp/gpiOperation.c
+full	lib/dwc/src/gp/gpiSearch.c	yes	7	ov009	0x021903b0	0x02192f24	7	7	yes	yes	lib/dwc/src/gs/gp/gpiSearch.c
+full	lib/dwc/src/gp/gpiTransfer.c	yes	2	ov009	0x02192f24	0x0219305c	2	2	yes	yes	lib/dwc/src/gs/gp/gpiTransfer.c
+full	lib/dwc/src/gscommon/gsAvailable.c	yes	5	ov009	0x0217c690	0x0217ca20	5	5	yes	yes	lib/dwc/src/gs/available.c
+full	lib/dwc/src/gscommon/gsSoap.c	yes	9	ov009	0x0217fd7c	0x021800cc	9	9	yes	yes	lib/dwc/src/gs/soap.c
+full	lib/dwc/src/gscommon/gsStringUtil.c	yes	7	ov009	0x021800cc	0x02180404	7	7	yes	yes	lib/dwc/src/gs/stringutil.c
+full	lib/dwc/src/gscommon/screen.c	yes	4	ov009	0x02183f68	0x021840cc	4	4	yes	yes	lib/dwc/src/gs/ov009_02183f68.c
+full	lib/dwc/src/gstats/gbucket.c	yes	14	ov009	0x021937d0	0x02193d00	14	14	yes	yes	lib/dwc/src/gs/gstats/gbucket.c
+full	lib/dwc/src/gt2/gt2Auth.c	yes	4	ov009	0x02194ad8	0x02194da8	4	4	yes	yes	lib/dwc/src/gs/gt2/gt2Auth.c
+full	lib/dwc/src/gt2/gt2Buffer.c	yes	6	ov009	0x02194da8	0x02194ec4	6	6	yes	yes	lib/dwc/src/gs/gt2/gt2Buffer.c
+full	lib/dwc/src/gt2/gt2Callback.c	yes	10	ov009	0x02194ec4	0x02195590	10	10	yes	yes	lib/dwc/src/gs/gt2/gt2Callback.c
+full	lib/dwc/src/gt2/gt2Utility.c	yes	3	ov009	0x02198620	0x02198850	3	3	yes	yes	lib/dwc/src/gs/gt2/gt2Utility.c
+full	lib/dwc/src/qr2/qr2regkeys.c	no	2	ov009	0x0219d114	0x0219d1f4	2	2	yes	yes	
+full	lib/dwc/src/sc/sciSerialize.c	yes	4	ov175	0x021e04fc	0x021e06dc	4	4	yes	yes	src/ov175/ov175_021dd1ec.c
+full	lib/dwc/src/serverbrowsing/sb_crypt.c	yes	5	ov009	0x0219d1f4	0x0219d4b4	5	5	yes	yes	lib/dwc/src/gs/serverbrowsing/sb_crypt.c
+full	lib/dwc/src/vct/vct_adpcm.c	yes	8	ov013	0x021af340	0x021b0508	8	8	yes	yes	lib/dwc/src/vct/vct_adpcm.c
+full	lib/dwc/src/vct/vct_audio.c	yes	14	ov013	0x021b0508	0x021b12fc	14	14	yes	yes	lib/dwc/src/vct/vct_audio.c
+full	lib/dwc/src/vct/vct_dsp.c	yes	5	ov013	0x021b3278	0x021b3624	5	5	yes	yes	lib/dwc/src/vct/vct_dsp.c
+full	lib/dwc/src/vct/vct_mixer.c	yes	1	ov013	0x021b3624	0x021b370c	1	1	yes	yes	lib/dwc/src/vct/vct_dsp.c
+full	lib/dwc/src/vct/vct_packet_pool.c	yes	4	ov013	0x021b2ed8	0x021b3018	4	4	yes	yes	lib/dwc/src/vct/vct_dsp.c
+full	lib/dwc/src/vct/vct_vad.c	yes	4	ov013	0x021b3018	0x021b3278	4	4	yes	yes	lib/dwc/src/vct/vct_dsp.c
+full	lib/dwc/src/wds/wds.c	yes	12	main	0x0205a2c8	0x0205a938	12	12	yes	yes	lib/dwc/src/wds/wds.c
+full	lib/dwcutil/src/dwc_mov_mbp.c	yes	19	ov016	0x021d1d04	0x021d298c	19	19	yes	yes	lib/dwcutil/src/dwc_mov_mbp.c
+full	lib/dwcutil/src/dwc_wcm.c	yes	9	ov016	0x021b89dc	0x021b9038	9	9	yes	yes	lib/dwcutil/src/dwc_wcm.c
+full	lib/msl/src/abort_exit_arm.c	yes	1	main	0x020912a8	0x02091374	1	1	yes	yes	lib/msl/src/abort_exit_arm_eabi.c
+full	lib/msl/src/alloc.c	yes	4	main	0x020913d0	0x0209149c	4	4	yes	yes	lib/msl/src/alloc.c
+full	lib/msl/src/ansi_files.c	yes	2	main	0x0209149c	0x02091588	2	2	yes	yes	lib/msl/src/ansi_files.c
+full	lib/msl/src/ansi_fp.c	yes	13	main	0x020965b4	0x02097990	13	13	yes	yes	lib/msl/src/ansi_fp.c
+full	lib/msl/src/arith.c	yes	1	main	0x02091588	0x02091594	1	1	yes	yes	lib/msl/src/arith.c
+full	lib/msl/src/direct_io.c	yes	2	main	0x020916d4	0x02091ae8	2	2	yes	yes	lib/msl/src/direct_io.c
+full	lib/msl/src/exit.c	yes	1	main	0x0209128c	0x020912a8	1	1	yes	yes	lib/msl/src/exit.c
+full	lib/msl/src/file_io.c	yes	3	main	0x02091ae8	0x02091cbc	3	3	yes	yes	lib/msl/src/file_io.c
+full	lib/msl/src/file_pos.c	yes	5	main	0x02091cbc	0x02092144	5	5	yes	yes	lib/msl/src/file_pos.c
+full	lib/msl/src/math/e_pow.c	yes	1	main	0x020979bc	0x02098b44	1	1	yes	yes	lib/msl/src/math/e_pow.c
+full	lib/msl/src/math/e_rem_pio2.c	yes	1	main	0x02098b44	0x02099224	1	1	yes	yes	lib/msl/src/math/e_rem_pio2.c
+full	lib/msl/src/math/k_cos.c	yes	1	main	0x02099224	0x0209953c	1	1	yes	yes	lib/msl/src/math/k_cos.c
+full	lib/msl/src/math/k_rem_pio2.c	yes	1	main	0x0209953c	0x0209a0ec	1	1	yes	yes	lib/msl/src/math/k_rem_pio2.c
+full	lib/msl/src/math/k_sin.c	yes	1	main	0x0209a0ec	0x0209a368	1	1	yes	yes	lib/msl/src/math/k_sin.c
+full	lib/msl/src/math/s_copysign.c	yes	1	main	0x0209a368	0x0209a390	1	1	yes	yes	lib/msl/src/math/s_copysign.c
+full	lib/msl/src/math/s_cos.c	yes	1	main	0x0209a390	0x0209a504	1	1	yes	yes	lib/msl/src/math/s_cos.c
+full	lib/msl/src/math/s_fabs.c	yes	1	main	0x0209a504	0x0209a524	1	1	yes	yes	lib/msl/src/math/s_fabs.c
+full	lib/msl/src/math/s_floor.c	yes	1	main	0x0209a524	0x0209a6e8	1	1	yes	yes	lib/msl/src/math/s_floor.c
+full	lib/msl/src/math/s_frexp.c	yes	1	main	0x0209a6e8	0x0209a7a8	1	1	yes	yes	lib/msl/src/math/s_frexp.c
+full	lib/msl/src/math/s_ldexp.c	yes	1	main	0x0209a7a8	0x0209aa08	1	1	yes	yes	lib/msl/src/math/s_ldexp.c
+full	lib/msl/src/math/s_sin.c	yes	1	main	0x0209aa08	0x0209ab80	1	1	yes	yes	lib/msl/src/math/s_sin.c
+full	lib/msl/src/math_api.c	yes	3	main	0x02092144	0x02092264	3	3	yes	yes	lib/msl/src/math_api.c
+full	lib/msl/src/math_arm.c	yes	1	main	0x02035630	0x02035648	1	1	yes	yes	lib/gfl/src/ui.c
+full	lib/msl/src/math_sun.c	yes	1	main	0x02097990	0x020979bc	1	1	yes	yes	lib/msl/src/extras.c
+full	lib/msl/src/mbstring.c	yes	4	main	0x02092264	0x02092344	4	4	yes	yes	lib/msl/src/mbstring.c
+full	lib/msl/src/mem_funcs.c	yes	1	main	0x02092430	0x020924dc	1	1	yes	yes	lib/msl/src/mem_funcs.c
+full	lib/msl/src/msl_mem.c	yes	5	main	0x02092344	0x02092430	5	5	yes	yes	lib/msl/src/mem_msl.c
+full	lib/msl/src/printf.c	yes	10	main	0x020924dc	0x0209455c	10	10	yes	yes	lib/msl/src/printf.c
+full	lib/msl/src/qsort.c	yes	1	main	0x0209455c	0x02094694	1	1	yes	yes	lib/msl/src/qsort_msl.c
+full	lib/msl/src/rand.c	yes	2	main	0x02094694	0x020946d8	2	2	yes	yes	lib/msl/src/rand.c
+full	lib/msl/src/runtime/call_static_initializers.c	yes	1	main	0x0209d820	0x0209d850	1	1	yes	yes	lib/msl/src/runtime/runtime.c
+full	lib/msl/src/runtime/console_io.c	yes	3	main	0x0209d784	0x0209d820	3	3	yes	yes	lib/msl/src/runtime/runtime.c
+full	lib/msl/src/runtime/global_destructor_chain.c	yes	1	main	0x0209d850	0x0209d870	1	1	yes	yes	lib/msl/src/runtime/__register_global_object.c
+full	lib/msl/src/runtime/register_atexit.c	yes	1	main	0x0209d728	0x0209d774	1	1	yes	yes	lib/msl/src/runtime/runtime.c
+full	lib/msl/src/scanf.c	yes	1	main	0x020946d8	0x02094750	1	1	yes	yes	lib/msl/src/scanf.c
+full	lib/msl/src/string.c	yes	9	main	0x0209477c	0x02094b8c	9	9	yes	yes	lib/msl/src/string.c
+full	lib/msl/src/strtold.c	yes	3	main	0x02094b8c	0x02095b3c	3	3	yes	yes	lib/msl/src/strtold.c
+full	lib/msl/src/wchar_io.c	yes	1	main	0x02096508	0x02096578	1	1	yes	yes	lib/msl/src/wchar_io.c
+full	lib/msl/src/wstring.c	yes	2	main	0x02096578	0x020965b4	2	2	yes	yes	lib/msl/src/wstring.c
+full	lib/nitro/src/card/card_request.c	yes	2	main	0x020763bc	0x02076540	2	2	yes	yes	lib/nitro/src/card/card_backup.c
+full	lib/nitro/src/cp/cp_context.c	yes	2	main	0x020775b8	0x02077634	2	2	yes	yes	lib/nitro/src/cp/cp_context.c
+full	lib/nitro/src/crypto/rc4.c	yes	2	main	0x0202fab4	0x0202fbac	2	2	yes	yes	lib/nitro/src/crypto/rc4.c
+full	lib/nitro/src/fx/fx_atanidx.c	yes	1	main	0x0207cfb8	0x0207d148	1	1	yes	yes	lib/nitro/src/fx/fx_atanidx.c
+full	lib/nitro/src/fx/fx_mtx33.c	yes	11	main	0x0207adc4	0x0207b598	11	11	yes	yes	lib/nitro/src/fx/fx_mtx33.c
+full	lib/nitro/src/fx/fx_mtx43.c	yes	10	main	0x0207b598	0x0207bdb4	10	10	yes	yes	lib/nitro/src/fx/fx_mtx43.c
+full	lib/nitro/src/fx/fx_mtx44.c	yes	6	main	0x0207bdb4	0x0207c768	6	6	yes	yes	lib/nitro/src/fx/fx_mtx44.c
+full	lib/nitro/src/fx/fx_trig.c	yes	1	main	0x0207d184	0x0207d204	1	1	yes	yes	lib/nitro/src/fx/fx_asinacosidx.c
+full	lib/nitro/src/fx/fx_vec.c	yes	13	main	0x0207c9d0	0x0207cfb8	13	13	yes	yes	lib/nitro/src/fx/fx_vec.c
+full	lib/nitro/src/gx/g3_util.c	yes	6	main	0x0207d704	0x0207d8c4	6	6	yes	yes	lib/nitro/src/gx/g3_util.c
+full	lib/nitro/src/gx/g3imm.c	yes	6	main	0x0207d8c4	0x0207d988	6	6	yes	yes	lib/nitro/src/gx/g3imm.c
+full	lib/nitro/src/gx/gx_state.c	yes	1	main	0x02080cc4	0x02080d24	1	1	yes	yes	
+full	lib/nitro/src/gx/gxasm.c	yes	2	main	0x02080c84	0x02080cc4	2	2	yes	yes	lib/nitro/src/gx/gxasm.c
+full	lib/nitro/src/math/math.c	yes	1	main	0x02081be4	0x02081e6c	1	1	yes	yes	lib/nitro/src/math/qsort.c
+full	lib/nitro/src/math/math_sha1.c	yes	9	main	0x020812e0	0x02081940	9	9	yes	yes	src/main/main_02080d68.c
+full	lib/nitro/src/math/sha1_block.c	yes	1	main	0x02081e7c	0x02082198	1	1	yes	yes	lib/nitro/src/math/sha1_block.c
+full	lib/nitro/src/mb/mb_frame.c	yes	7	ov107	0x021f6804	0x021f6af8	7	7	yes	yes	lib/nitro/src/mb/mb_block.c
+full	lib/nitro/src/mi/mi_dma.c	yes	10	main	0x020821c0	0x02082760	10	10	yes	yes	src/main/main_020821c0.c
+full	lib/nitro/src/mi/mi_dma_card.c	yes	1	main	0x020835a0	0x0208361c	1	1	yes	yes	lib/nitro/src/mi/mi_dma_card.c
+full	lib/nitro/src/mi/mi_dma_gxcommand.c	yes	5	main	0x02082760	0x02082a48	5	5	yes	yes	src/main/main_020821c0.c
+full	lib/nitro/src/mi/mi_dma_itcm.c	yes	1	itcm	0x01ff8020	0x01ff80f0	1	1	yes	yes	
+full	lib/nitro/src/mi/mi_swap.c	yes	1	main	0x020834b8	0x020834c0	1	1	yes	yes	
+full	lib/nitro/src/mi/mi_uncompress.c	yes	1	main	0x020834c0	0x020835a0	1	1	yes	yes	lib/nitro/src/mi/mi_uncompress.c
+full	lib/nitro/src/mi/mi_wram.c	yes	1	main	0x020821b0	0x020821c0	1	1	yes	yes	lib/nitro/src/mi/mi_wram.c
+full	lib/nitro/src/os/os_address_check.c	yes	2	main	0x02086c70	0x02086ce0	2	2	yes	yes	
+full	lib/nitro/src/os/os_alloc.c	yes	9	main	0x020867f4	0x02086c70	9	9	yes	yes	lib/nitro/src/os/os_alloc.c
+full	lib/nitro/src/os/os_application_jump.c	yes	1	main	0x020883d4	0x02088498	1	1	yes	yes	lib/nitro/src/os/os_application_jump.c
+full	lib/nitro/src/os/os_cache.c	yes	7	main	0x02086284	0x02086348	7	7	yes	yes	lib/nitro/src/os/os_cache.c
+full	lib/nitro/src/os/os_codecmode.c	yes	1	main	0x02087b20	0x02087b78	1	1	yes	yes	lib/nitro/src/os/os_systemWork.c
+full	lib/nitro/src/os/os_context.c	yes	3	main	0x02085b9c	0x02085cbc	3	3	yes	yes	lib/nitro/src/os/os_context.c
+full	lib/nitro/src/os/os_deliverArg.c	yes	6	main	0x02087f60	0x02088168	6	6	yes	yes	src/main/main_02087f60.c
+full	lib/nitro/src/os/os_entropy.c	yes	1	main	0x02088168	0x02088234	1	1	yes	yes	lib/nitro/src/os/os_entropy.c
+full	lib/nitro/src/os/os_event.c	yes	3	main	0x020882dc	0x020883d4	3	3	yes	yes	lib/nitro/src/os/os_event.c
+full	lib/nitro/src/os/os_irqHandler.c	yes	1	main	0x0208459c	0x02084610	1	1	yes	yes	lib/nitro/src/os/os_irqHandler.c
+full	lib/nitro/src/os/os_irqHandler_itcm.c	yes	2	itcm	0x01ff80f0	0x01ff82a8	2	2	yes	yes	
+full	lib/nitro/src/os/os_message.c	yes	5	main	0x02085d94	0x02086004	5	5	yes	yes	lib/nitro/src/os/os_message.c
+full	lib/nitro/src/os/os_protectionRegion.c	yes	18	main	0x02086d14	0x02086dd8	18	18	yes	yes	lib/nitro/src/os/os_protectionRegion.c
+full	lib/nitro/src/os/os_protectionUnit.c	yes	2	main	0x02086cf4	0x02086d14	2	2	yes	yes	lib/nitro/src/os/os_protectionUnit.c
+full	lib/nitro/src/os/os_reset.c	yes	2	main	0x02087b78	0x02087c6c	2	2	yes	yes	lib/nitro/src/os/os_reset.c
+full	lib/nitro/src/os/os_tcm.c	yes	1	main	0x02086ce0	0x02086cf4	1	1	yes	yes	lib/nitro/src/os/os_tcm.c
+full	lib/nitro/src/os/os_timer.c	yes	1	main	0x02086fc4	0x02086fe8	1	1	yes	yes	lib/nitro/src/os/os_timer.c
+full	lib/nitro/src/pxi/pxi_fifo.c	yes	5	main	0x020884a4	0x02088788	5	5	yes	yes	lib/nitro/src/pxi/pxi_fifo.c
+full	lib/nitro/src/rtc/rtc_convert.c	yes	7	main	0x02088f58	0x02089330	7	7	yes	yes	lib/nitro/src/rtc/convert.c
+full	lib/nitro/src/rtc/rtc_internal.c	yes	5	main	0x02088eec	0x02088f58	5	5	yes	yes	lib/nitro/src/rtc/internal.c
+full	lib/nitro/src/snd/snd_alarm.c	yes	4	main	0x02089f88	0x0208a054	4	4	yes	yes	lib/nitro/src/snd/snd_alarm.c
+full	lib/nitro/src/snd/snd_bank.c	yes	8	main	0x0208a2bc	0x0208a6b0	8	8	yes	yes	lib/nitro/src/snd/snd_bank.c
+full	lib/nitro/src/snd/snd_command.c	yes	16	main	0x020898a8	0x02089f88	16	16	yes	yes	lib/nitro/src/snd/snd_command.c
+full	lib/nitro/src/snd/snd_util.c	yes	1	main	0x0208a24c	0x0208a2bc	1	1	yes	yes	lib/nitro/src/snd/snd_util.c
+full	lib/nitro/src/wm/wm_dcf.c	yes	3	main	0x0208fe64	0x0209004c	3	3	yes	yes	lib/nitro/src/wm/wm_dcf.c
+full	lib/nitro/src/wm/wm_etc.c	yes	6	main	0x02090bc4	0x02090ecc	6	6	yes	yes	lib/nitro/src/wm/wm_etc.c
+full	lib/nitro/src/wm/wm_sync.c	yes	12	main	0x0208eac8	0x0208f224	12	12	yes	yes	lib/nitro/src/wm/wm_sync.c
+full	lib/nitrowifi/src/soc/socl_cleanup.c	yes	8	ov009	0x0215ebf0	0x0215efb0	8	8	yes	yes	lib/nitrowifi/src/soc/socl_cleanup.c
+full	lib/nitrowifi/src/soc/socl_poll.c	yes	2	ov009	0x0215efb0	0x0215f0c8	2	2	yes	yes	lib/nitrowifi/src/soc/socl_poll.c
+full	lib/nitrowifi/src/soc/socl_shutdown.c	yes	2	ov009	0x0215e6b8	0x0215e794	2	2	yes	yes	lib/nitrowifi/src/soc/socl_shutdown.c
+full	lib/nitrowifi/src/soc/socl_ssl.c	yes	3	ov009	0x0215fc80	0x0215fda4	3	3	yes	yes	lib/nitrowifi/src/soc/socl_ssl.c
+full	lib/nitrowifi/src/ssl/sha1.c	yes	8	ov009	0x02163558	0x02163e40	8	8	yes	yes	lib/nitrowifi/src/ssl/sha1.c
+full	lib/nitrowifi/src/ssl/ssl_rc4.c	yes	2	ov009	0x02163e40	0x02163f24	2	2	yes	yes	lib/nitrowifi/src/ssl/ssl_rc4.c
+full	lib/nitrowifi/src/wcm/wcm_util.c	yes	6	ov009	0x02166680	0x02166880	6	6	yes	yes	lib/nitrowifi/src/wcm/wcm.c
+full	lib/nnsys/src/fnd/list.c	yes	8	main	0x02060468	0x02060640	8	8	yes	yes	lib/nnsys/src/fnd/list.c
+full	lib/nnsys/src/fnd/unitheap.c	yes	3	main	0x02061224	0x0206128c	3	3	yes	yes	lib/nnsys/src/fnd/unitheap.c
+full	lib/nnsys/src/g2d/g2d_CellTransferManager.c	yes	7	main	0x02066878	0x02066b84	7	7	yes	yes	lib/nnsys/src/g2d/g2d_CellTransferManager.c
+full	lib/nnsys/src/g2d/g2d_Font.c	yes	7	main	0x02067eb0	0x020681e4	7	7	yes	yes	lib/nnsys/src/g2d/g2d_Font.c
+full	lib/nnsys/src/g2d/g2d_Load.c	yes	2	main	0x02062b64	0x02062bf4	2	2	yes	yes	lib/nnsys/src/g2d/load/g2d_Load.c
+full	lib/nnsys/src/g2d/g2d_NCE_load.c	yes	5	main	0x020627f0	0x02062920	5	5	yes	yes	lib/nnsys/src/g2d/load/g2d_NOB_load.c
+full	lib/nnsys/src/g2d/g2d_NCL_load.c	yes	4	main	0x02062a98	0x02062b30	4	4	yes	yes	lib/nnsys/src/g2d/load/g2d_NCL_load.c
+full	lib/nnsys/src/g2d/g2d_NFT_load.c	yes	2	main	0x020698f8	0x02069ba0	2	2	yes	yes	lib/nnsys/src/g2d/load/g2d_NFT_load.c
+full	lib/nnsys/src/g2d/g2d_NSC_load.c	yes	1	main	0x02062b30	0x02062b64	1	1	yes	yes	lib/nnsys/src/g2d/load/g2d_NSC_load.c
+full	lib/nnsys/src/g2d/g2d_Node.c	yes	1	main	0x02064178	0x0206419c	1	1	yes	yes	lib/nnsys/src/g2d/g2d_Node.c
+full	lib/nnsys/src/g2d/g2d_PaletteTable.c	yes	1	main	0x02063784	0x02063790	1	1	yes	yes	
+full	lib/nnsys/src/g2d/g2d_SRTControl.c	yes	5	main	0x020640dc	0x02064178	5	5	yes	yes	lib/nnsys/src/g2d/g2d_SRTControl.c
+full	lib/nnsys/src/g2d/g2d_TextCanvas.c	yes	4	main	0x020694d8	0x020698f8	4	4	yes	yes	lib/nnsys/src/g2d/g2d_TextCanvas.c
+full	lib/nnsys/src/g2d/g2di_BitReader.c	yes	1	main	0x02069ba0	0x02069c00	1	1	yes	yes	lib/nnsys/src/g2d/internal/g2di_BitReader.c
+full	lib/nnsys/src/g2d/g2di_Mtx32.c	yes	1	main	0x02066754	0x02066878	1	1	yes	yes	lib/nnsys/src/g2d/internal/g2di_Mtx32.c
+full	lib/nnsys/src/g2d/g2di_SplitChar.c	yes	1	main	0x02069c00	0x02069c14	1	1	yes	yes	
+full	lib/nnsys/src/g3d/3dsmax.c	yes	9	main	0x02071a24	0x02072068	9	9	yes	yes	lib/nnsys/src/g3d/cgtool/3dsmax.c
+full	lib/nnsys/src/g3d/basic.c	yes	2	main	0x02070c5c	0x02070d18	2	2	yes	yes	lib/nnsys/src/g3d/cgtool/basic.c
+full	lib/nnsys/src/g3d/nsbma.c	yes	4	main	0x0207010c	0x02070524	4	4	yes	yes	lib/nnsys/src/g3d/anm/nsbma.c
+full	lib/nnsys/src/g3d/nsbtp.c	yes	4	main	0x02070948	0x02070bd8	4	4	yes	yes	lib/nnsys/src/g3d/anm/nsbtp.c
+full	lib/nnsys/src/g3d/nsbva.c	yes	2	main	0x02070bd8	0x02070c5c	2	2	yes	yes	lib/nnsys/src/g3d/anm/nsbva.c
+full	lib/nnsys/src/g3d/res_struct_accessor_anm.c	yes	5	main	0x0206e9a4	0x0206eb00	5	5	yes	yes	lib/nnsys/src/g3d/binres/res_struct_accessor_anm.c
+full	lib/nnsys/src/g3d/si3d.c	yes	3	main	0x02071510	0x02071a24	3	3	yes	yes	lib/nnsys/src/g3d/cgtool/si3d.c
+full	lib/nnsys/src/gfd/gfd_LinkedListPlttVramMan.c	yes	5	main	0x0206246c	0x02062634	5	5	yes	yes	lib/nnsys/src/gfd/VramManager/gfd_LinkedListPlttVramMan.c
+full	lib/nnsys/src/snd/snd_capture.c	yes	5	main	0x02073d5c	0x02073fb8	5	5	yes	yes	lib/nnsys/src/snd/capture.c
+full	lib/nnsys/src/snd/snd_fader.c	yes	5	main	0x02075b94	0x02075c38	5	5	yes	yes	lib/nnsys/src/snd/fader.c
+full	lib/nnsys/src/snd/snd_resource_mgr.c	yes	6	main	0x0207292c	0x02072a44	6	6	yes	yes	lib/nnsys/src/snd/nns_snd_main.c,lib/nnsys/src/snd/resource_mgr.c
+full	lib/nnsys/src/snd/snd_seqdata.c	yes	1	main	0x02075b54	0x02075b94	1	1	yes	yes	lib/nnsys/src/snd/seqdata.c
+full	lib/nnsys/src/snd/snd_waveout.c	yes	8	main	0x02072a44	0x02072d98	8	8	yes	yes	lib/nnsys/src/snd/waveout.c
+full	lib/spl/src/spl_anim.c	yes	6	main	0x02057ab8	0x02057ef8	6	6	yes	yes	lib/spl/src/spl_anim.c
+full	lib/spl/src/spl_behavior.c	yes	6	main	0x02057ef8	0x02058300	6	6	yes	yes	lib/spl/src/spl_behavior.c
+full	lib/spl/src/spl_draw.c	yes	12	main	0x02053e1c	0x02056684	12	12	yes	yes	lib/spl/src/spl_draw.c
+full	lib/spl/src/spl_emit.c	yes	4	main	0x02056684	0x02057ab8	4	4	yes	yes	lib/spl/src/spl_emit.c
+full	lib/spl/src/spl_list.c	yes	3	main	0x02058300	0x0205841c	3	3	yes	yes	lib/spl/src/spl_list.c
+full	lib/spl/src/spl_random.c	yes	2	main	0x0205841c	0x020584e0	2	2	yes	yes	lib/spl/src/spl_random.c
+full	lib/twl/src/camera/camera.c	yes	17	ltd_autoload_0	0x02702080	0x02702434	17	17	yes	yes	lib/twl/src/camera/camera.c
+full	lib/twl/src/dsp/dsp_g711.c	yes	3	ltd_autoload_0	0x0270723c	0x02707310	3	3	yes	yes	lib/twl/src/dsp/dsp_g711.c
+full	lib/twl/src/dsp/dsp_if.c	yes	14	ltd_autoload_0	0x02704e90	0x027052b4	14	14	yes	yes	lib/twl/src/dsp/dsp_if.c
+full	lib/twl/src/dsp/dsp_pipe.c	yes	16	ltd_autoload_0	0x0270633c	0x0270723c	16	16	yes	yes	lib/twl/src/dsp/dsp_pipe.c
+full	lib/twl/src/dsp/dsp_util.c	yes	7	ltd_autoload_0	0x02705f64	0x0270633c	7	7	yes	yes	lib/twl/src/dsp/dsp_audio.c
+full	lib/twl/src/mic/mic_twl.c	yes	7	ltd_autoload_0	0x02703c60	0x027040b4	7	7	yes	yes	lib/twl/src/mic/mic_twl.c
+full	lib/twl/src/nwm/nwm.c	yes	27	ltd_autoload_0	0x02702a98	0x02703c60	27	27	yes	yes	lib/twl/src/nwm/nwm.c
+full	lib/twl/src/nwm/nwm_setup.c	yes	4	ltd_autoload_0	0x02702434	0x027026dc	4	4	yes	yes	lib/twl/src/nwm/nwm.c
+full	lib/twl/src/photo_sign.c	yes	5	ltd_autoload_0	0x02707558	0x02707994	5	5	yes	yes	lib/twl/src/photo_sign.c
+full	lib/twl/src/photo_sign_client.c	yes	6	ltd_autoload_0	0x02707310	0x02707558	6	6	yes	yes	lib/twl/src/photo_sign_client.c
+full	lib/twl/src/photo_sign_util.c	yes	11	ltd_autoload_0	0x02707994	0x02707cb4	11	11	yes	yes	lib/twl/src/photo_sign_util.c
+full	lib/twl/src/rtc/rtc_api_ex.c	yes	1	ltd_autoload_0	0x02700000	0x02700078	1	1	yes	yes	lib/twl/src/rtc/rtc_api_ex.c
+full	lib/twl/src/scfg/scfg_proc_itcm.c	yes	1	itcm	0x01ff87d4	0x01ff8804	1	1	yes	yes	
+full	src/gfl/assert.c	yes	4	main	0x020346ec	0x02034768	4	4	yes	yes	lib/gfl/src/assert.c
+full	src/gfl/debug_print.c	yes	4	main	0x02034768	0x0203499c	4	4	yes	yes	lib/gfl/src/debug_print.c
+full	src/gfl/dma_vblank.c	yes	2	main	0x02050a70	0x02050b80	2	2	yes	yes	lib/gfl/src/dma_vblank.c
+full	src/gfl/double3Ddisp.c	yes	8	main	0x0204e8c0	0x0204ebd4	8	8	yes	yes	lib/gfl/src/double3Ddisp.c
+full	src/gfl/fade.c	yes	8	main	0x0204e5e8	0x0204e8c0	8	8	yes	yes	lib/gfl/src/fade.c
+full	src/gfl/heap_dtcm.c	yes	3	main	0x02030534	0x02030608	3	3	yes	yes	lib/gfl/src/heap_dtcm.c
+full	src/gfl/heapsys.c	yes	22	main	0x0202fbac	0x02030534	22	22	yes	yes	lib/gfl/src/heapsys.c
+full	src/gfl/rtc_cache.c	yes	10	main	0x0203f3b4	0x0203f5fc	10	10	yes	yes	lib/gfl/src/rtc_cache.c
+full	src/gfl/systemfont.c	yes	6	main	0x020461f4	0x02046440	6	6	yes	yes	
+full	src/gfl/textprint.c	yes	6	main	0x0204e130	0x0204e5e8	6	6	yes	yes	lib/gfl/src/textprint.c
+full	src/ov003/event_battle_video.c	yes	3	ov003	0x021542c0	0x021543c8	3	3	yes	yes	src/ov003/event_battle_video.c
+full	src/ov012/building_enter_effect.c	yes	3	ov010	0x02166a6c	0x02166b58	3	3	yes	yes	src/ov010/building_enter_effect.c
+full	src/ov012/oneshot_dr.c	yes	2	ov010	0x0216bf74	0x0216bfd4	2	2	yes	yes	src/ov010/oneshot_dr.c
+full	src/ov012/scrcmd_weather.c	yes	1	ov010	0x02166f1c	0x02166f9c	1	1	yes	yes	src/ov010/scrcmd_weather.c
+full	src/ov012/season_form.c	yes	1	ov010	0x0216aae4	0x0216abd8	1	1	yes	yes	src/ov010/season_form.c
+full	src/ov012/shaymin_form.c	yes	4	ov010	0x0216a298	0x0216a3f8	4	4	yes	yes	src/ov010/shaymin_form.c
+full	src/ov012/symbol_save_field.c	yes	8	ov010	0x021673a8	0x02167518	8	8	yes	yes	src/ov010/symbol_save_field.c
+full	src/ov033/event_cgear_shutdown.c	yes	2	ov021	0x021d297c	0x021d29f0	2	2	yes	yes	src/ov021/event_cgear_shutdown.c
+full	src/ov033/event_sweet_scent.c	yes	8	ov021	0x021c6068	0x021c63ac	8	8	yes	yes	src/ov021/event_sweet_scent.c
+full	src/ov033/unity_visitor.c	yes	6	ov021	0x021cfc4c	0x021cfea0	6	6	yes	yes	src/ov021/unity_visitor.c
+full	src/ov036/field_map_chunk_gc.c	yes	3	ov021	0x021933c0	0x02193544	3	3	yes	yes	src/ov021/field_map_chunk_gc.c
+full	src/ov036/field_map_chunk_height.c	yes	1	ov021	0x021d14c4	0x021d1670	1	1	yes	yes	src/ov021/field_map_chunk_height.c
+full	src/ov036/field_map_chunk_ng.c	yes	2	ov021	0x02193544	0x02193628	2	2	yes	yes	src/ov021/field_map_chunk_ng.c
+full	src/ov036/field_map_chunk_wb.c	yes	2	ov021	0x021932c0	0x021933c0	2	2	yes	yes	src/ov021/field_map_chunk_wb.c
+full	src/ov036/field_menu_event.c	yes	2	ov021	0x021945a4	0x02194670	2	2	yes	yes	src/ov021/field_menu_event.c
+full	src/ov036/fld_act_rail.c	yes	9	ov021	0x0219e0a8	0x0219e2c0	9	9	yes	yes	src/ov021/ov021_0219d524.c
+full	src/ov036/rail_data_handle.c	yes	1	ov021	0x0219ef14	0x0219ef44	1	1	yes	yes	src/ov021/field_rail_loader.c
+full	src/ov036/scrcmd_pep_quiz.c	yes	1	ov021	0x021d2468	0x021d2524	1	1	yes	yes	src/ov021/ov021_021d2468.c
+full	src/ov036/scrcmd_place_name.c	yes	1	ov021	0x021b2fb0	0x021b2fd8	1	1	yes	yes	src/ov021/scrcmd_place_name.c
+full	src/ov036/sound_obj.c	yes	9	ov021	0x021c4d14	0x021c4f7c	9	9	yes	yes	src/ov021/sound_obj.c
+full	src/ov131/rail_slipdown.c	yes	4	ov063	0x021f36c0	0x021f3d74	4	4	yes	yes	src/ov063/rail_slipdown.c
+full	src/ov150/encounter_effect_grid.c	yes	5	ov077	0x021f5620	0x021f5a58	5	5	yes	yes	src/ov077/encounter_effect_grid.c
+full	src/ov167/battle_action.c	yes	17	ov093	0x021d82d0	0x021d8484	17	17	yes	yes	src/ov093/battle_action.c
+full	src/ov167/battle_condition.c	yes	20	ov093	0x021e8918	0x021e8ce0	20	20	yes	yes	src/ov093/battle_condition.c
+full	src/ov169/btl_faintrec.c	yes	9	ov095	0x0689d0fc	0x0689d1fc	9	9	yes	yes	src/ov095/btl_faintrec.c
+full	src/ov184/error_window_screen.c	yes	1	ov109	0x021bb8e0	0x021bba4c	1	1	yes	yes	src/ov109/error_window_screen.c
+full	src/ov185/pmsi_search.c	yes	11	ov110	0x021baedc	0x021bb1f4	11	11	yes	yes	src/ov110/pmsi_search.c
+full	src/ov185/pmsiv_wordwin.c	yes	23	ov110	0x021bf844	0x021c0134	23	23	yes	yes	src/ov110/pmsiv_wordwin.c
+full	src/ov190/wifilogin_disp.c	yes	17	ov115	0x021d4d38	0x021d5984	17	17	yes	yes	src/ov115/wifilogin_disp.c
+full	src/ov192/pokemontrade_ircdemo.c	yes	2	ov117	0x021d4bf4	0x021d51dc	2	2	yes	yes	src/ov117/pokemontrade_ircdemo.c
+full	src/ov194/pokemontrade_touchbar.c	yes	1	ov119	0x021e3c20	0x021e3d04	1	1	yes	yes	src/ov119/pokemontrade_2d.c
+full	src/ov205/codein_pv.c	yes	21	ov129	0x021d8950	0x021d9838	21	21	yes	yes	src/ov129/codein_pv.c
+full	src/ov207/p_status.c	yes	3	ov131	0x021d6324	0x021d65d8	3	3	yes	yes	src/ov131/p_status.c
+full	src/ov207/ribbon.c	yes	2	ov131	0x021dbf2c	0x021dbfa0	2	2	yes	yes	src/ov131/ribbon.c
+full	src/ov209/sta_act_script.c	yes	9	ov132	0x021faaf4	0x021fae1c	9	9	yes	yes	src/ov132/sta_act_script.c
+full	src/ov215/mailbox.c	yes	3	ov136	0x021c5480	0x021c54fc	3	3	yes	yes	src/ov136/mailbox.c
+full	src/ov256/dpc_ui.c	yes	3	ov171	0x021de8a8	0x021dea44	3	3	yes	yes	src/ov171/dpc_ui.c
+full	src/ov257/ima_adpcm.c	yes	8	ov172	0x021b69e0	0x021b6be0	8	8	yes	yes	src/ov172/ima_adpcm.c
+full	src/ov268/br_btlsubway_proc.c	yes	18	ov183	0x021dd37c	0x021de1c8	18	18	yes	yes	src/ov183/br_btlsubway_proc.c
+full	src/ov268/br_bvsave_proc.c	yes	20	ov183	0x021e2578	0x021e3268	20	20	yes	yes	src/ov183/br_bvsave_proc.c
+full	src/ov268/br_bvsearch_proc.c	yes	19	ov183	0x021df920	0x021e050c	19	19	yes	yes	src/ov183/br_bvsearch_proc.c
+full	src/ov268/br_bvsend_proc.c	yes	6	ov183	0x021e1c80	0x021e2028	6	6	yes	yes	src/ov183/br_bvsend_proc.c
+full	src/ov268/br_codein_proc.c	yes	3	ov183	0x021e050c	0x021e06d0	3	3	yes	yes	src/ov183/br_codein_proc.c
+full	src/ov268/br_menu_proc.c	yes	4	ov183	0x021db698	0x021db940	4	4	yes	yes	src/ov183/br_menu_proc.c
+full	src/ov268/br_rndmatch_proc.c	yes	11	ov183	0x021de1c8	0x021de9a0	11	11	yes	yes	src/ov183/br_rndmatch_proc.c
+full	src/ov287/b_plist_anm.c	yes	12	ov198	0x0220b120	0x0220bc24	12	12	yes	yes	src/ov198/b_plist_anm.c
+full	src/ov293/demo3d_capture.c	yes	7	ov203	0x021be9b8	0x021bebc8	7	7	yes	yes	src/ov203/demo3d_capture.c
+full	src/ov310/research_data.c	yes	6	ov217	0x021c2644	0x021c26e8	6	6	yes	yes	src/ov217/research_data.c
+full	src/ov338/ir_check.c	yes	6	ov231	0x02180820	0x021809f0	6	6	yes	yes	src/ov231/ir_check.c
+full	src/system/bmp_cursor.c	yes	4	main	0x02020d18	0x02020dec	4	4	yes	yes	src/system/bmp_cursor.c
+full	src/system/brightness.c	yes	7	main	0x02023e0c	0x02024044	7	7	yes	yes	src/system/brightness.c
+full	src/system/dwc_friend.c	yes	7	main	0x0200f34c	0x0200f698	7	7	yes	yes	src/system/dwc_friend.c
+full	src/system/hall_of_fame_savedata.c	yes	14	main	0x0200ea0c	0x0200ed38	14	14	yes	yes	src/system/hall_of_fame_savedata.c
+full	src/system/hp_gauge.c	yes	2	main	0x0202d01c	0x0202d060	2	2	yes	yes	src/system/hp_gauge.c
+full	src/system/livematch_savedata.c	yes	7	main	0x0200e904	0x0200e9dc	7	7	yes	yes	src/system/livematch_savedata.c
+full	src/system/net_bgm_volume.c	yes	1	main	0x0200f698	0x0200f6b8	1	1	yes	yes	src/system/net_bgm_volume.c
+full	src/system/poke_friendship.c	yes	5	main	0x0201b7a0	0x0201b920	5	5	yes	yes	src/system/poke_friendship.c
+full	src/system/poke_recover.c	yes	4	main	0x0201b920	0x0201ba68	4	4	yes	yes	src/system/poke_recover.c
+full	src/system/rndmatch_savedata.c	yes	4	main	0x0200dfcc	0x0200e024	4	4	yes	yes	src/system/rndmatch_savedata.c
+full	src/system/rtc.c	yes	4	main	0x020113d8	0x02011428	4	4	yes	yes	src/system/rtc.c
+full	src/system/screentex.c	yes	3	main	0x0202e560	0x0202e770	3	3	yes	yes	src/system/screentex.c
+full	src/system/scroll_bar.c	yes	2	main	0x0202ede4	0x0202ee30	2	2	yes	yes	src/system/scroll_bar.c
+full	src/system/shinka_check.c	yes	5	main	0x0201b2b0	0x0201b7a0	5	5	yes	yes	src/system/shinka_check.c
+full	src/system/shooter_item.c	yes	4	main	0x0202f114	0x0202f190	4	4	yes	yes	src/system/shooter_item.c
+full	src/system/sin_wave_table.c	yes	1	main	0x02024230	0x0202428c	1	1	yes	yes	src/system/sin_wave_table.c
+full	src/system/trainer_log_savedata.c	yes	21	main	0x0200a8a0	0x0200ad6c	21	21	yes	yes	src/system/trainer_log_savedata.c
+full	src/system/unity_tower_register.c	yes	9	main	0x0202eb7c	0x0202ede4	9	9	yes	yes	src/system/unity_tower_register.c
+full	src/system/wipe_wnd.c	yes	12	main	0x02023b48	0x02023e0c	12	12	yes	yes	src/system/wipe_wnd.c
+partial	lib/nitro/src/syscall/secure_area.c	no	18	main	0x0200407e	0x020047ac	18	18	yes	no	
+partial	lib/dwc/src/qr2/qr2.c	yes	35	ov009	0x0219aeb4	0x0219d114	35	34	no	yes	lib/dwc/src/gs/qr2/qr2.c
+partial	lib/nitro/src/snd/snd_interface.c	yes	35	main	0x02089330	0x02089848	34	34	yes	yes	lib/nitro/src/snd/snd_interface.c
+partial	src/ov268/br_record_proc.c	yes	30	ov183	0x021db940	0x021dd37c	30	29	no	yes	src/ov183/br_record_proc.c
+partial	src/ov256/dpc_obj.c	yes	25	ov171	0x021ddfe8	0x021de8a8	25	24	no	yes	src/ov171/dpc_obj.c
+partial	src/gfl/bmp_win.c	yes	24	main	0x02045088	0x020457a0	24	23	no	yes	lib/gfl/src/bmp_win.c
+partial	src/ov286/b_bag_bmp.c	yes	21	ov197	0x0220b120	0x0220b9a4	21	20	no	yes	src/ov197/b_bag_bmp.c
+partial	lib/dwc/src/gamespy/darray.c	yes	20	ov009	0x021840cc	0x02184610	20	19	no	yes	lib/dwc/src/gs/darray.c
+partial	lib/dwc/src/gp/gpiProfile.c	yes	20	ov009	0x0218f9f8	0x02190188	19	19	yes	yes	lib/dwc/src/gs/gp/gpiProfile.c
+partial	src/gfl/wm_icon.c	yes	20	main	0x02036bd4	0x02037224	20	19	no	yes	lib/gfl/src/wm_icon.c
+partial	src/ov216/guru2_main.c	yes	185	ov137	0x021de960	0x021e1a2c	184	175	no	yes	src/ov137/guru2_main.c
+partial	lib/dwc/src/serverbrowsing/sb_serverlist.c	yes	55	ov009	0x0219f0e0	0x021a1974	55	52	no	yes	lib/dwc/src/gs/serverbrowsing/sb_serverlist.c
+partial	lib/twl/src/snd/sndex.c	yes	18	ltd_autoload_0	0x02704364	0x02704e90	18	17	no	yes	lib/twl/src/snd/sndex.c
+partial	src/gfl/strbuf.c	yes	18	main	0x020457a0	0x02045b38	17	17	yes	yes	lib/gfl/src/strbuf.c
+partial	src/ov036/scrcmd_buildmodel.c	yes	18	ov021	0x021b2ab0	0x021b2ebc	18	17	no	yes	src/ov021/scrcmd_buildmodel.c
+partial	src/ov121/castelia_rush.c	yes	35	ov055	0x021f39c0	0x021f45c0	35	33	no	yes	src/ov055/castelia_rush.c
+partial	lib/dwc/src/base/dwc_account.c	yes	52	main	0x02059058	0x02059b40	52	49	no	yes	lib/dwc/src/account/dwc_account.c
+partial	lib/dwc/src/serverbrowsing/sb_serverbrowsing.c	yes	17	ov009	0x0219e9f4	0x0219f0e0	17	16	no	yes	lib/dwc/src/gs/serverbrowsing/sb_serverbrowsing.c
+partial	src/ov109/gimmick_skyarrow_bridge.c	yes	17	ov053	0x021f36c0	0x021f3b40	16	16	yes	yes	src/ov053/gimmick_skyarrow_bridge.c
+partial	src/ov215/mb_obj.c	yes	17	ov136	0x021c64a8	0x021c68a0	17	16	no	yes	src/ov136/mb_obj.c
+partial	src/system/timesig_savedata.c	yes	17	main	0x020089a8	0x02008aec	17	16	no	yes	src/system/timesig_savedata.c
+partial	src/gfl/billboard.c	yes	48	main	0x0204ebd4	0x0204f7dc	45	45	yes	yes	lib/gfl/src/billboard.c
+partial	src/system/snd_bgm_stack.c	yes	16	main	0x020057dc	0x02005b24	16	15	no	yes	src/system/snd_bgm_stack.c
+partial	src/ov195/gtsnego_message.c	yes	47	ov120	0x021d7724	0x021d88c8	46	44	no	yes	src/ov120/gtsnego_message.c
+partial	src/system/pm_voice.c	yes	31	main	0x02006544	0x02006cbc	31	29	no	yes	src/system/pm_voice.c
+partial	lib/dwc/src/gt2/gt2Socket.c	yes	15	ov009	0x02197cfc	0x02198620	15	14	no	yes	lib/dwc/src/gs/gt2/gt2Socket.c
+partial	lib/dwc/src/vct/vct_session.c	yes	30	ov013	0x021b1f2c	0x021b2ed8	30	28	no	yes	lib/dwc/src/vct/vct_session.c
+partial	src/gfl/msgdata.c	yes	15	main	0x02045b38	0x020461f4	15	14	no	yes	lib/gfl/src/msgdata.c
+partial	src/ov012/musical_program.c	yes	15	ov010	0x02157028	0x0215739c	15	14	no	yes	src/ov010/musical_program.c
+partial	src/ov036/comm_entry_menu.c	yes	75	ov021	0x021cd5a4	0x021cf45c	74	70	no	yes	src/ov021/ov021_021cd5a4.c
+partial	src/ov036/field_rail_func.c	yes	30	ov021	0x021b9a50	0x021bb088	30	28	no	yes	src/ov021/field_rail.c
+partial	src/ov146/event_encounter_cutin.c	yes	30	ov073	0x021f526c	0x021f54c4	28	28	yes	no	src/ov073/event_encounter_cutin.c
+partial	src/ov294/intro_mcss.c	yes	15	ov204	0x021bf5e0	0x021bf8dc	14	14	yes	yes	src/ov204/intro_mcss.c
+partial	src/system/record.c	yes	15	main	0x02008c64	0x02008eac	15	14	no	yes	src/system/record.c
+partial	lib/dwc/src/gt2/gt2Connection.c	yes	14	ov009	0x02195590	0x02195ab4	14	13	no	yes	lib/dwc/src/gs/gt2/gt2Connection.c
+partial	src/ov287/b_plist_bmp.c	yes	56	ov198	0x0220bc24	0x0220e2b4	56	52	no	yes	src/ov198/b_plist_bmp.c
+partial	lib/twl/src/camera/camera_api.c	yes	41	ltd_autoload_0	0x02700078	0x02702080	41	38	no	yes	lib/twl/src/camera/camera_api.c
+partial	src/system/bsubway_savedata.c	yes	53	main	0x0200d858	0x0200dfcc	53	49	no	yes	src/system/bsubway_savedata.c
+partial	lib/dwc/src/gp/gpiInfo.c	yes	13	ov009	0x0218ba10	0x0218d7cc	13	12	no	yes	lib/dwc/src/gs/gp/gpiInfo.c
+partial	lib/dwc/src/gt2/gt2Message.c	no	51	ov009	0x02195e80	0x02197cfc	51	47	no	yes	lib/dwc/src/gs/gt2/gt2Message.c
+partial	src/ov070/oekaki.c	yes	89	ov023	0x02184674	0x02186a6c	88	82	no	yes	src/ov023/oekaki.c
+partial	lib/dwc/src/vct/vct_buffer.c	yes	25	ov013	0x021b12fc	0x021b1f2c	25	23	no	yes	lib/dwc/src/vct/vct_buffer.c
+partial	src/gfl/particle.c	yes	73	main	0x02050b80	0x02051b04	71	67	no	no	lib/gfl/src/particle.c
+partial	src/ov036/pleasure_boat.c	yes	12	ov021	0x021c8660	0x021c881c	11	11	yes	yes	src/ov021/pleasure_boat.c
+partial	src/ov069/union_app.c	yes	36	ov022	0x02183b60	0x021841b0	36	33	no	yes	src/ov022/union_app.c
+partial	src/ov070/oekaki_comm.c	yes	12	ov023	0x021841e0	0x02184560	11	11	yes	yes	src/ov023/oekaki_comm.c
+partial	src/ov300/zknsearch_ui.c	yes	12	ov210	0x021bfeac	0x021c01c0	11	11	yes	yes	src/ov210/zknsearch_ui.c
+partial	src/ov012/field_g3d_map.c	yes	47	ov010	0x02169148	0x02169ab8	47	43	no	yes	src/ov010/field_g3d_map.c
+partial	src/ov167/battle_event.c	yes	46	ov093	0x021d6eac	0x021d7840	46	42	no	yes	src/ov093/battle_event.c
+partial	lib/dwcutil/src/dwc_mov_wh.c	no	45	ov016	0x021d298c	0x021d3b18	45	41	no	no	lib/dwcutil/src/dwc_mov_wh.c
+partial	lib/dwc/src/nhttp/d_nhttp_private.c	no	11	ov114	0x021bf04c	0x021bf4b0	10	10	yes	yes	lib/dwc/src/nhttp/d_nhttp_private.c
+partial	lib/nnsys/src/fnd/frameheap.c	yes	11	main	0x02060fa4	0x02061224	11	10	no	yes	lib/nnsys/src/fnd/frameheap.c
+partial	src/ov036/fldeff_btrain.c	yes	11	ov021	0x021d0140	0x021d038c	11	10	no	yes	src/ov021/fldeff_btrain.c,src/ov021/ov021_021d0160.c
+partial	src/ov167/btl_handler_work.c	yes	11	ov093	0x021cc8c8	0x021ccaa8	11	10	no	yes	src/ov093/btl_handler_work.c
+partial	src/ov194/pokemontrade_mcss.c	yes	11	ov119	0x021dfa60	0x021dfd24	10	10	yes	yes	src/ov119/pokemontrade_mcss.c
+partial	src/ov268/br_bvdelete_proc.c	yes	11	ov183	0x021e20a4	0x021e2578	10	10	yes	yes	src/ov183/br_bvdelete_proc.c
+partial	src/system/battle_box.c	yes	11	main	0x0200ba78	0x0200bc10	11	10	no	yes	src/system/battle_box.c
+partial	lib/nitrowifi/src/wcm/wcm_wmif.c	yes	21	ov009	0x02166880	0x02167e88	21	19	no	yes	lib/nitrowifi/src/wcm/wcm.c
+partial	src/ov167/btl_pokeparam.c	yes	154	ov093	0x021d4efc	0x021d6ea0	149	139	no	yes	src/ov093/btl_pokeparam.c
+partial	src/ov185/pmsiv_menu.c	yes	41	ov110	0x021bca30	0x021bd484	40	37	no	yes	src/ov110/pmsiv_menu.c
+partial	lib/dwc/src/ghttp/ghttpConnection.c	yes	10	ov114	0x021c08b0	0x021c109c	10	9	no	yes	lib/dwc/src/ghttp/ghttpConnection.c
+partial	lib/dwc/src/nhttp/nhttp_thread.c	yes	30	ov114	0x021bbea0	0x021be648	29	27	no	yes	lib/dwc/src/nhttp/nhttp_thread.c
+partial	lib/dwc/src/serverbrowsing/sb_queryengine.c	yes	20	ov009	0x0219d4b4	0x0219df30	20	18	no	yes	lib/dwc/src/gs/serverbrowsing/sb_queryengine.c
+partial	lib/nitro/src/gx/gx_load3d.c	yes	10	main	0x0207f7a0	0x0207fd34	10	9	no	yes	src/main/main_0207f7a0.c
+partial	lib/nitro/src/os/os_valarm.c	yes	10	main	0x02087578	0x02087974	10	9	no	yes	lib/nitro/src/os/os_valarm.c
+partial	src/ov209/sta_act_obj.c	yes	10	ov112	0x021f69e4	0x021f6bd8	10	9	no	yes	src/ov112/sta_act_obj.c
+partial	src/system/mcss_tool.c	yes	10	main	0x02017100	0x020173c8	9	9	yes	yes	src/system/mcss_tool.c
+partial	src/ov287/b_plist_main.c	yes	79	ov198	0x0220f3e8	0x02211970	77	71	no	yes	src/ov198/b_plist_main.c
+partial	lib/nitro/src/gx/g3x.c	yes	19	main	0x0207d988	0x0207df60	17	17	yes	yes	lib/nitro/src/gx/g3x.c
+partial	src/gfl/billboard_act.c	yes	38	main	0x0204fe94	0x02050a70	37	34	no	yes	lib/gfl/src/billboard_act.c
+partial	src/ov029/dwc_rap_vchat.c	yes	19	ov013	0x021aeb20	0x021af340	19	17	no	yes	src/ov013/dwc_rap_vchat.c
+partial	src/ov319/manual_list.c	yes	19	ov225	0x021ba65c	0x021bb2b4	19	17	no	yes	src/ov225/manual_list.c
+partial	src/system/config.c	yes	19	main	0x020082ec	0x02008468	18	17	no	yes	src/system/config.c
+partial	lib/nitro/src/mb/mb_wm.c	no	28	ov107	0x021f4538	0x021f636c	28	25	no	yes	lib/nitro/src/mb/mb_gameinfo.c,lib/nitro/src/mb/mb_wm_base.c
+partial	lib/dwc/src/base/dwc_connectinet.c	yes	18	main	0x0205c6ac	0x0205d0e4	18	16	no	yes	lib/dwc/src/base/dwc_connectinet.c
+partial	lib/dwc/src/gamespy/hashtable.c	yes	9	ov009	0x02184610	0x02184938	9	8	no	yes	lib/dwc/src/gs/hashtable.c
+partial	lib/dwc/src/nhttp/nhttp_recvbuf.c	yes	9	ov114	0x021baed4	0x021bb3c0	9	8	no	yes	lib/dwc/src/nhttp/nhttp_recvbuf.c
+partial	lib/nitro/src/mi/mi_memory.c	yes	18	main	0x02082a48	0x020834b8	18	16	no	yes	lib/nitro/src/mi/mi_memory.c
+partial	lib/nnsys/src/g3d/xsi.c	yes	9	main	0x02072068	0x020726d0	9	8	no	yes	lib/nnsys/src/g3d/cgtool/xsi.c
+partial	src/gfl/vman.c	yes	9	main	0x02034520	0x020346ec	9	8	no	yes	lib/gfl/src/vman.c
+partial	src/ov033/event_pokemon_center.c	yes	9	ov021	0x021c0820	0x021c0aa0	9	8	no	yes	src/ov021/event_pokemon_center.c
+partial	src/ov154/encounter_effect_spread.c	yes	9	ov081	0x021f5abc	0x021f5d00	8	8	yes	yes	src/ov081/encounter_effect_spread.c
+partial	src/ov185/pmsiv_tool.c	yes	9	ov110	0x021bc78c	0x021bc990	9	8	no	yes	src/ov110/pmsiv_tool.c
+partial	src/ov203/wf2dmap_scrdraw.c	yes	9	ov127	0x021c59f4	0x021c5eec	9	8	no	yes	src/ov127/wf2dmap_scrdraw.c
+partial	src/ov209/sta_act_poke.c	yes	36	ov112	0x021f7120	0x021f815c	35	32	no	yes	src/ov112/sta_act_poke.c
+partial	lib/dwc/src/gt2/gsUdpEngine.c	yes	26	ov009	0x02180410	0x0218198c	25	23	no	yes	lib/dwc/src/gt2/gt2.c
+partial	lib/twl/src/dsp/dsp_process.c	yes	17	ltd_autoload_0	0x027052b4	0x02705f64	17	15	no	yes	lib/twl/src/dsp/dsp_process.c
+partial	src/ov155/fld_faceup.c	yes	17	ov082	0x021f5260	0x021f58d0	17	15	no	yes	src/ov082/fld_faceup.c
+partial	src/ov265/ddemo_seq.c	yes	17	ov180	0x021b6a10	0x021b7318	17	15	no	yes	src/ov180/ddemo_seq.c
+partial	src/ov271/br_fade.c	yes	17	ov186	0x021fe6c0	0x021fed50	17	15	no	yes	src/ov186/br_fade.c
+partial	src/ov286/b_bag_main.c	yes	34	ov197	0x0220c834	0x0220d8c4	34	30	no	yes	src/ov197/b_bag_main.c
+partial	src/system/musical_savedata.c	yes	34	main	0x0200a53c	0x0200a840	31	30	no	yes	src/system/musical_savedata.c
+partial	src/system/survey_savedata.c	yes	17	main	0x0200e368	0x0200e588	17	15	no	yes	src/system/survey_savedata.c
+partial	src/ov214/worldtrade_box.c	yes	58	ov135	0x021f5154	0x021f6e58	59	52	no	yes	src/ov135/worldtrade_box.c
+partial	src/ov205/codein_disp.c	yes	25	ov129	0x021d9838	0x021da62c	25	22	no	yes	src/ov129/codein_disp.c
+partial	src/ov298/zukan_detail_form.c	yes	75	ov208	0x021c3b6c	0x021c80e0	74	66	no	yes	src/ov208/zukan_detail_form.c
+partial	src/ov300/zknsearch_bmp.c	yes	25	ov210	0x021be368	0x021bed2c	25	22	no	yes	src/ov210/zknsearch_bmp.c
+partial	lib/dwc/src/base/dwc_main.c	no	49	ov009	0x0216ab20	0x0216c8dc	49	43	no	yes	lib/dwc/src/base/dwc_main.c
+partial	lib/dwc/src/auth/AuthService.c	no	8	ov175	0x021e2290	0x021e2c68	8	7	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/dwc/src/auth/dwc_conntest.c	no	8	ov009	0x0217a880	0x0217b828	8	7	no	yes	lib/dwc/src/auth/dwc_netcheck.c
+partial	lib/dwc/src/nhttp/nhttp_request.c	no	8	ov114	0x021bb3c0	0x021bbb28	8	7	no	yes	lib/dwc/src/nhttp/nhttp_request.c
+partial	lib/dwc/src/sake/sakeRequest.c	yes	8	ov175	0x021dd56c	0x021ddb38	8	7	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/nitro/src/card/card_task.c	yes	8	main	0x02076100	0x020763bc	8	7	no	yes	lib/nitro/src/card/card_hook.c,lib/nitro/src/card/card_task.c,lib/nitro/src/card/card_utility.c
+partial	lib/nitro/src/os/os_mutex.c	yes	8	main	0x02086004	0x02086284	8	7	no	yes	lib/nitro/src/os/os_mutex.c,src/main/main_02086004.c
+partial	lib/nitrowifi/src/soc/socl_write.c	yes	8	ov009	0x0215e024	0x0215e6b8	8	7	no	yes	lib/nitrowifi/src/soc/socl_write.c
+partial	lib/nnsys/src/g2d/g2d_OAM.c	yes	8	main	0x02063054	0x02063784	8	7	no	yes	lib/nnsys/src/g2d/g2d_OAM.c
+partial	src/ov012/event_royal_unova.c	yes	8	ov010	0x02166658	0x02166824	8	7	no	yes	src/ov010/event_royal_unova.c
+partial	src/ov012/scrcmd_trial_house.c	yes	16	ov010	0x0216a3f8	0x0216a7a0	16	14	no	no	src/ov010/scrcmd_trial_house.c
+partial	src/ov033/event_dendou_machine.c	yes	8	ov021	0x021c0aa0	0x021c0c94	7	7	yes	yes	src/ov021/event_dendou_machine.c
+partial	src/ov036/fld_particle.c	yes	8	ov021	0x021c1a08	0x021c1aec	7	7	yes	yes	src/ov021/fld_particle.c,src/ov021/fld3d_ci.c
+partial	src/ov139/yesno_menu.c	yes	8	ov067	0x021b709c	0x021b7754	7	7	yes	yes	src/ov067/yesno_menu.c
+partial	src/ov151/encounter_effect_ripple.c	yes	8	ov078	0x021f5620	0x021f5bb0	8	7	no	yes	src/ov078/encounter_effect_ripple.c
+partial	src/ov167/poke_type_pair.c	yes	8	ov093	0x021e8ce0	0x021e8da8	7	7	yes	yes	src/ov093/poke_type_pair.c
+partial	src/ov168/btlv_timer.c	yes	8	ov094	0x022092e8	0x0220975c	7	7	yes	yes	src/ov094/btlv_timer.c
+partial	src/ov199/gsync_download.c	yes	16	ov123	0x021d5ac0	0x021d5d94	16	14	no	yes	src/ov123/gsync_download.c
+partial	src/ov256/dpc_bmp.c	yes	8	ov171	0x021dd874	0x021ddfe8	8	7	no	yes	src/ov171/dpc_bmp.c
+partial	src/ov264/cdemo_control.c	yes	8	ov179	0x021b6380	0x021b66dc	8	7	no	yes	src/ov179/cdemo_control.c
+partial	src/system/battle_examination.c	yes	8	main	0x0200e588	0x0200e6b0	8	7	no	yes	src/system/battle_examination.c
+partial	src/system/regulation.c	yes	24	main	0x0200ade8	0x0200b364	24	21	no	yes	src/system/regulation.c
+partial	lib/dwcutil/src/dwc_aoss.c	yes	71	ov016	0x021b61d0	0x021b83fc	69	62	no	yes	lib/dwcutil/src/dwc_aoss.c
+partial	src/gfl/bg_sys.c	yes	78	main	0x0203f8f4	0x0204335c	78	68	no	yes	lib/gfl/src/bg_sys.c
+partial	src/ov204/wifi_note.c	yes	170	ov128	0x021c6208	0x021ca4f4	169	148	no	yes	src/ov128/wifi_note.c
+partial	src/ov036/talkmsgwin.c	yes	54	ov021	0x02194670	0x02196030	53	47	no	yes	src/ov021/talkmsgwin.c
+partial	src/ov211/mus_comm_func.c	yes	77	ov132	0x021fc644	0x021fda6c	75	67	no	yes	src/ov132/mus_comm_func.c
+partial	lib/nnsys/src/g3d/kernel.c	yes	23	main	0x02069c14	0x0206a700	23	20	no	yes	lib/nnsys/src/g3d/kernel.c
+partial	src/system/unity_tower_savedata.c	yes	23	main	0x02009454	0x020097bc	22	20	no	yes	src/system/unity_tower_savedata.c
+partial	src/ov214/worldtrade_search.c	yes	61	ov135	0x021fd924	0x021ff58c	61	53	no	yes	src/ov135/worldtrade_search.c
+partial	src/ov305/comm_btl_demo.c	yes	61	ov213	0x021b9740	0x021baabc	59	53	no	yes	src/ov213/comm_btl_demo.c
+partial	lib/dwc/src/ghttp/dwc_ghttp.c	yes	15	ov114	0x021bf520	0x021bfb90	15	13	no	yes	lib/dwc/src/ghttp/dwc_ghttp.c
+partial	lib/nitrowifi/src/ssl/ssl.c	no	60	ov009	0x0215fee0	0x02162fc0	58	52	no	yes	lib/nitrowifi/src/ssl/ssl.c
+partial	src/ov036/fld_vreq.c	yes	14	ov021	0x021d317c	0x021d33a8	15	13	no	yes	src/ov021/fld_vreq.c
+partial	src/ov215/mb_bmp.c	yes	15	ov136	0x021c5e58	0x021c64a8	15	13	no	yes	src/ov136/mb_bmp.c
+partial	lib/dwc/src/base/friend.c	no	67	ov009	0x02167e88	0x0216ab20	67	58	no	yes	lib/dwc/src/base/dwc_nasfunc.c,lib/dwc/src/base/dwc_nastime.c,lib/dwc/src/base/dwc_common.c,lib/dwc/src/base/dwc_login.c,lib/dwc/src/base/dwc_main.c,lib/dwc/src/base/dwc_friend_base.c
+partial	lib/dwcutil/src/dwcutil_ac.c	no	66	ov016	0x021b9038	0x021bc820	66	57	no	yes	lib/dwcutil/src/atermset.c
+partial	src/system/wipe_sub.c	yes	51	main	0x020226e0	0x02023b48	51	44	no	yes	src/system/wipe_sub.c
+partial	lib/dwc/src/natneg/natneg.c	yes	29	ov009	0x021990d4	0x0219aeb4	28	25	no	yes	lib/dwc/src/gs/natneg/natneg.c
+partial	src/ov207/p_sta_ribbon.c	yes	29	ov131	0x021d881c	0x021d96b0	28	25	no	yes	src/ov131/p_sta_ribbon.c
+partial	src/ov208/dup_fitting.c	yes	58	ov133	0x021b6294	0x021ba0c8	56	50	no	yes	src/ov133/dup_fitting.c
+partial	src/ov215/mailsys.c	yes	29	ov136	0x021c3e3c	0x021c4bfc	29	25	no	yes	src/ov136/mailsys.c
+partial	src/ov194/pokemontrade_message.c	yes	50	ov119	0x021e0da0	0x021e2b14	50	43	no	yes	src/ov119/pokemontrade_message.c
+partial	src/ov214/worldtrade_upload.c	yes	71	ov135	0x02200c0c	0x0220254c	70	61	no	yes	src/ov135/worldtrade_upload.c
+partial	lib/dwc/src/natneg/NATify.c	yes	7	ov009	0x02198850	0x021990a0	7	6	no	yes	
+partial	lib/dwc/src/sc/sciInterface.c	yes	7	ov175	0x021df734	0x021df968	6	6	yes	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/dwc/src/sc/sciReport.c	yes	14	ov175	0x021dfe2c	0x021e04fc	14	12	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/msl/src/strtoul.c	yes	7	main	0x02095b3c	0x020964f4	6	6	yes	yes	lib/msl/src/strtoul.c
+partial	lib/nitro/src/mb/mb_gameinfo.c	no	14	ov107	0x021f3cb8	0x021f42d4	13	12	no	yes	lib/nitro/src/mb/mb_common.c,lib/nitro/src/mb/mb_gameinfo.c
+partial	lib/nitro/src/nvram/nvram.c	yes	21	main	0x02083644	0x0208459c	21	18	no	yes	src/main/main_02083644.c
+partial	lib/nitro/src/os/os_irqTable.c	yes	14	main	0x02084614	0x0208475c	13	12	no	yes	lib/nitro/src/os/os_irqTable.c
+partial	lib/nitrowifi/src/soc/socl_close.c	yes	7	ov009	0x0215e794	0x0215ebf0	7	6	no	yes	lib/nitrowifi/src/soc/socl_close.c
+partial	lib/nnsys/src/gfd/gfd_FrameTexVramMan.c	yes	7	main	0x02061390	0x020616cc	7	6	no	yes	lib/nnsys/src/gfd/VramManager/gfd_FrameTexVramMan.c
+partial	lib/poke_net/src/poke_net_ssl.c	yes	7	ov125	0x021d8b44	0x021d8c80	6	6	yes	yes	lib/poke_net/src/poke_net_ssl.c
+partial	lib/spl/src/spl_emitter.c	yes	7	main	0x02052fc8	0x02053e1c	7	6	no	yes	lib/spl/src/spl_emitter.c
+partial	lib/spl/src/spl_manager.c	yes	14	main	0x020524c8	0x02052f90	13	12	no	yes	lib/spl/src/spl_manager.c
+partial	src/gfl/button_man.c	yes	7	main	0x02051b84	0x02051e74	7	6	no	yes	lib/gfl/src/button_man.c
+partial	src/gfl/tcbl.c	yes	14	main	0x02030ef0	0x02031288	13	12	no	yes	lib/gfl/src/tcbl.c
+partial	src/ov012/g3d_text_draw.c	yes	7	ov010	0x0216fab4	0x0216fe2c	7	6	no	yes	src/ov010/g3d_text_draw.c
+partial	src/ov012/scrcmd_unity_tower.c	yes	7	ov010	0x02166824	0x02166a6c	7	6	no	yes	src/ov010/scrcmd_unity_tower.c
+partial	src/ov012/script_sub_event.c	yes	7	ov010	0x02159130	0x02159240	7	6	no	yes	src/ov010/script_sub_event.c
+partial	src/ov033/bsubway_trainers.c	yes	7	ov021	0x021cbd08	0x021cbfb0	7	6	no	yes	src/ov021/ov021_021ca544.c
+partial	src/ov036/field_slope_slip.c	yes	14	ov021	0x021c8984	0x021c8b9c	14	12	no	yes	src/ov021/ov021_021c8984.c
+partial	src/ov089/pleasure_boat_rooms.c	yes	7	ov036	0x021f38ac	0x021f3a7c	6	6	yes	yes	src/ov036/pleasure_boat_rooms.c
+partial	src/ov167/btl_net.c	yes	63	ov093	0x021d4150	0x021d4d84	63	54	no	yes	src/ov093/btl_net.c
+partial	src/ov175/irc_compatible.c	yes	28	ov101	0x021b6938	0x021b70dc	28	24	no	yes	src/ov101/irc_compatible.c
+partial	src/ov201/battle_rec_ov.c	yes	7	ov125	0x021d7540	0x021d7700	6	6	yes	yes	src/ov125/battle_rec_ov.c
+partial	src/ov256/dpc_seq.c	yes	21	ov171	0x021dce70	0x021dd874	21	18	no	yes	src/ov171/dpc_seq.c
+partial	src/ov258/waza_oshie_main.c	yes	84	ov173	0x021b6100	0x021b81d0	84	72	no	yes	src/ov173/waza_oshie_main.c
+partial	src/ov265/ddemo_obj.c	yes	35	ov180	0x021b7318	0x021b800c	35	30	no	yes	src/ov180/ddemo_obj.c
+partial	src/ov268/br_start_proc.c	yes	7	ov183	0x021db2e0	0x021db690	6	6	yes	yes	src/ov183/br_start_proc.c
+partial	src/ov310/bg_font.c	yes	7	ov217	0x021c0ef4	0x021c10c8	7	6	no	yes	src/ov217/bg_font.c
+partial	src/system/bmp_menuwork.c	yes	7	main	0x0201f81c	0x0201f93c	7	6	no	yes	src/system/bmp_menuwork.c
+partial	src/system/pms_word.c	yes	14	main	0x020247a8	0x02024a20	14	12	no	yes	src/system/pms_word.c
+partial	src/ov036/map_attr.c	yes	69	ov021	0x021ab0d4	0x021ab5f4	68	59	no	yes	src/ov021/map_attr.c
+partial	lib/dwc/src/transport/dwc_transport.c	no	41	ov009	0x02176b80	0x02177ec8	40	35	no	yes	lib/dwc/src/base/dwc_transport.c
+partial	src/ov012/delivery_irc.c	yes	27	ov010	0x02157948	0x02157e8c	26	23	no	yes	src/ov010/delivery_irc.c
+partial	src/ov036/field_menu.c	yes	27	ov021	0x021a84a8	0x021a9350	26	23	no	yes	src/ov021/field_menu.c
+partial	src/system/cursor_move.c	yes	20	main	0x02025cd0	0x020261e4	20	17	no	yes	src/system/cursor_move.c
+partial	lib/nnsys/src/g2d/g2d_Animation.c	yes	13	main	0x02062bf4	0x02063054	13	11	no	yes	lib/nnsys/src/g2d/g2d_Animation.c
+partial	lib/nnsys/src/g2d/g2d_Image.c	yes	13	main	0x02063790	0x02063f4c	12	11	no	yes	lib/nnsys/src/g2d/g2d_Image.c
+partial	lib/nnsys/src/g2d/g2d_Renderer.c	yes	26	main	0x02064e3c	0x02066748	24	22	no	yes	lib/nnsys/src/g2d/g2d_Renderer.c
+partial	src/gfl/bmp.c	yes	26	main	0x02043678	0x02045088	26	22	no	yes	lib/gfl/src/bmp.c
+partial	src/gfl/tcb.c	yes	13	main	0x02030bd4	0x02030ef0	12	11	no	yes	lib/gfl/src/tcb.c
+partial	src/ov012/ev_time.c	yes	13	ov010	0x02168eec	0x02169138	12	11	no	yes	src/ov010/ev_time.c
+partial	src/ov036/field_task_manager.c	yes	52	ov021	0x021c6d10	0x021c7dac	49	44	no	yes	src/ov021/field_task_manager.c,src/ov021/ov021_021c6ea8.c
+partial	src/ov168/btlv_camera.c	yes	13	ov094	0x021f6e3c	0x021f73f0	13	11	no	yes	src/ov094/btlv_camera.c
+partial	src/system/adventure_savedata.c	yes	12	main	0x02008aec	0x02008c20	13	11	no	yes	src/system/adventure_savedata.c
+partial	src/system/zone_spawn.c	yes	13	main	0x020140f8	0x020142d0	13	11	no	yes	src/system/zone_spawn.c
+partial	src/ov036/field_ground_anime.c	yes	32	ov021	0x021a7360	0x021a7b08	32	27	no	yes	src/ov021/field_ground_anime.c
+partial	src/system/wipe.c	yes	32	main	0x0202208c	0x020226e0	32	27	no	yes	src/system/wipe.c
+partial	src/ov194/pokemontrade_proc.c	yes	179	ov119	0x021d8980	0x021dd080	177	151	no	yes	src/ov119/pokemontrade_proc.c
+partial	src/ov030/wih.c	yes	70	ov014	0x02178138	0x02179678	70	59	no	yes	src/ov014/wih.c
+partial	lib/dpw/src/dpw_tr.c	yes	19	ov114	0x021c7c1c	0x021c8f2c	18	16	no	yes	lib/dpw/src/dpw_tr.c
+partial	lib/dwc/src/bm/dwc_bm_check.c	yes	19	main	0x0205faa8	0x0206043c	17	16	no	yes	lib/dwc/src/bm/dwc_bm_check.c
+partial	lib/nitro/src/wm/wm_standard.c	yes	19	main	0x0208f234	0x0208fa28	18	16	no	yes	lib/nitro/src/wm/wm_standard.c
+partial	lib/nitrowifi/src/cps/cps.c	no	113	ov009	0x02157280	0x0215ca8c	113	95	no	yes	lib/nitrowifi/src/cps/cps.c
+partial	lib/nitro/src/fs/fs_archive.c	yes	25	main	0x02077634	0x020788ac	25	21	no	yes	lib/nitro/src/fs/fs_archive.c,lib/nitro/src/fs/fs_file.c
+partial	lib/nitro/src/spi/pm.c	yes	50	main	0x0208b7bc	0x0208c960	44	42	no	yes	lib/nitro/src/spi/pm.c
+partial	src/ov216/guru2_comm.c	yes	25	ov137	0x021dcafc	0x021dce10	25	21	no	yes	src/ov137/guru2_comm.c
+partial	src/ov036/field_light.c	yes	31	ov021	0x021a03d0	0x021a0cf4	29	26	no	yes	src/ov021/ov021_021a0448.c
+partial	src/ov185/pmsiv_category.c	yes	31	ov110	0x021bb2cc	0x021bbc5c	30	26	no	yes	src/ov110/pmsiv_category.c
+partial	src/ov195/gtsnego_disp.c	yes	61	ov120	0x021d5f98	0x021d7710	59	51	no	yes	src/ov120/gtsnego_disp.c
+partial	src/ov296/zukan_info.c	yes	61	ov206	0x021b9de0	0x021bc0e0	59	51	no	yes	src/ov206/zukan_info.c
+partial	lib/dwc/src/ghttp/ghttpProcess.c	yes	18	ov114	0x021c3a38	0x021c5430	17	15	no	yes	lib/dwc/src/ghttp/ghttpProcess.c
+partial	lib/dwc/src/gp/gpiPeer.c	yes	24	ov009	0x0218e3b0	0x0218f9f8	24	20	no	yes	lib/dwc/src/gs/gp/gpiPeer.c
+partial	lib/dwc/src/nhttp/nhttp_list.c	yes	6	ov114	0x021bacec	0x021baec8	5	5	yes	yes	lib/dwc/src/nhttp/nhttp_list.c
+partial	lib/nitro/src/fs/fs_command_default.c	yes	48	main	0x02079304	0x0207a7bc	47	40	no	yes	lib/nitro/src/fs/fs_proc_default.c
+partial	lib/nitro/src/fs/fs_rom.c	yes	12	main	0x0207a980	0x0207ad04	12	10	no	yes	lib/nitro/src/fs/fs_proc_rom.c
+partial	lib/nitro/src/mb/mb_comm.c	yes	18	ov107	0x021f1b3c	0x021f2f1c	18	15	no	yes	lib/nitro/src/mb/mb_parent.c
+partial	lib/nitro/src/snd/snd_work.c	yes	6	main	0x0208a054	0x0208a24c	5	5	yes	yes	lib/nitro/src/snd/snd_work.c
+partial	lib/nitrowifi/src/soc/socl_startup.c	yes	6	ov009	0x0215ca8c	0x0215cd24	5	5	yes	yes	lib/nitrowifi/src/soc/socl_startup.c
+partial	lib/nitrowifi/src/ssl/md5.c	yes	6	ov009	0x02162fd8	0x02163558	5	5	yes	yes	lib/nitrowifi/src/ssl/md5.c
+partial	lib/nnsys/src/g3d/glbstate.c	yes	18	main	0x0206a700	0x0206af08	18	15	no	yes	lib/nnsys/src/g3d/glbstate.c
+partial	lib/nnsys/src/snd/snd_arc_player.c	yes	6	main	0x02075560	0x02075858	5	5	yes	yes	lib/nnsys/src/snd/sndarc_player.c
+partial	src/gfl/areaman.c	yes	18	main	0x02033c00	0x02034520	18	15	no	yes	lib/gfl/src/areaman.c
+partial	src/gfl/gf_standard.c	yes	12	main	0x0203ef5c	0x0203f3b4	12	10	no	yes	lib/gfl/src/gf_standard.c
+partial	src/gfl/heap.c	yes	24	main	0x02030608	0x02030ba4	21	20	no	yes	lib/gfl/src/heap.c
+partial	src/ov010/event_make.c	yes	6	ov008	0x02154ca0	0x0215513c	6	5	no	yes	src/ov008/event_make.c
+partial	src/ov012/symbol_map.c	yes	12	ov010	0x0216628c	0x02166658	12	10	no	yes	src/ov010/symbol_map.c
+partial	src/ov033/scrcmd_field_move.c	yes	6	ov021	0x021c457c	0x021c46f8	6	5	no	yes	src/ov021/scrcmd_field_move.c
+partial	src/ov036/field_camera.c	yes	84	ov021	0x0218e0e4	0x0218f848	82	70	no	yes	src/ov021/field_camera.c
+partial	src/ov036/field_g3dobj.c	yes	30	ov021	0x021c6400	0x021c6b18	29	25	no	yes	src/ov021/ov021_021c6400.c
+partial	src/ov051/scrcmd_pleasure_boat.c	yes	6	ov021	0x021c8848	0x021c8984	5	5	yes	yes	src/ov021/scrcmd_pleasure_boat.c
+partial	src/ov209/sta_act_light.c	yes	12	ov112	0x021f6c7c	0x021f6f24	11	10	no	yes	src/ov112/sta_act_light.c
+partial	src/ov215/mailtool.c	yes	6	ov136	0x021c3cc0	0x021c3e3c	6	5	no	yes	src/ov136/mailtool.c
+partial	src/ov300/zknsearch_obj.c	yes	42	ov210	0x021bed2c	0x021bfeac	42	35	no	yes	src/ov210/zknsearch_obj.c
+partial	src/system/net_save.c	yes	12	main	0x0201088c	0x02010a5c	11	10	no	yes	src/system/net_save.c
+partial	src/system/season.c	yes	6	main	0x0202e848	0x0202e8d8	5	5	yes	yes	src/system/season.c
+partial	src/ov214/worldtrade_deposit.c	yes	59	ov135	0x021f73dc	0x021f89b4	59	49	no	yes	src/ov135/worldtrade_deposit.c
+partial	src/ov173/wifi_p2pmatchroom.c	yes	88	ov099	0x021b95a0	0x021ba7cc	88	73	no	yes	src/ov099/wifi_p2pmatchroom.c
+partial	src/system/mcss.c	yes	88	main	0x02014ba8	0x02016fc8	86	73	no	yes	src/system/mcss.c
+partial	lib/dwc/src/nhttp/d_nhttp_common.c	no	35	ov114	0x021bea20	0x021bf04c	35	29	no	yes	lib/dwc/src/nhttp/d_nhttp_common.c
+partial	src/ov167/btl_calc.c	yes	58	ov093	0x021d7840	0x021d82d0	56	48	no	yes	src/ov093/btl_calc.c
+partial	src/ov214/worldtrade_partner.c	yes	29	ov135	0x021fcc40	0x021fd924	29	24	no	yes	src/ov135/worldtrade_partner.c
+partial	lib/dwc/src/match/dwc_match.c	no	161	ov009	0x0216c8dc	0x02176b68	161	133	no	yes	lib/dwc/src/base/dwc_match.c
+partial	src/ov194/pokemontrade_2d.c	yes	108	ov119	0x021e3d04	0x021e757c	108	89	no	yes	src/ov119/pokemontrade_2d.c
+partial	src/ov199/gsync_message.c	yes	17	ov123	0x021d54f4	0x021d5ab0	14	14	yes	yes	src/ov123/gsync_message.c
+partial	src/ov284/shinka_demo_effect.c	no	28	ov195	0x022086c8	0x02208c40	28	23	no	yes	src/ov195/shinka_demo_effect.c
+partial	src/ov298/zukan_detail_voice.c	yes	39	ov208	0x021c2560	0x021c3b68	38	32	no	yes	src/ov208/zukan_detail_voice.c
+partial	src/ov215/mb_seq.c	yes	50	ov136	0x021c68a0	0x021c7648	50	41	no	yes	src/ov136/mb_seq.c
+partial	lib/dwc/src/sake/sakeRequestModify.c	yes	11	ov175	0x021ddbe4	0x021de14c	10	9	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/nnsys/src/g3d/maya.c	yes	11	main	0x02070d18	0x020713a4	9	9	yes	yes	lib/nnsys/src/g3d/cgtool/maya.c
+partial	src/ov036/fldeff_encount.c	yes	22	ov021	0x021ad764	0x021adcb8	21	18	no	yes	src/ov021/fldeff_encount.c
+partial	src/ov098/gym_icirrus.c	yes	11	ov045	0x021f36c0	0x021f3b38	11	9	no	yes	src/ov045/gym_icirrus.c
+partial	src/ov167/btl_server.c	yes	55	ov093	0x021baa94	0x021bb964	53	45	no	yes	src/ov093/btl_server.c
+partial	src/ov269/br_musical_send_proc.c	yes	11	ov184	0x021f857c	0x021f8a04	9	9	yes	yes	src/ov184/br_musical_send_proc.c
+partial	src/ov286/b_bag_obj.c	yes	22	ov197	0x0220c034	0x0220c834	22	18	no	yes	src/ov197/b_bag_obj.c
+partial	src/ov319/manual_explain.c	yes	11	ov225	0x021bba74	0x021bbde4	11	9	no	yes	src/ov225/manual_explain.c
+partial	src/system/player_volume_fader.c	yes	11	main	0x02028760	0x02028844	11	9	no	yes	src/system/player_volume_fader.c
+partial	src/ov036/fldmmdl_acmd.c	yes	247	ov021	0x02197c4c	0x0219a098	242	202	no	no	src/ov021/ov021_02197c4c.c,src/ov021/ov021_02197da0.c,src/ov021/ov021_02198d24.c,src/ov021/ov021_02198d94.c
+partial	src/system/printsys.c	yes	60	main	0x0201c41c	0x0201d7ec	60	49	no	yes	src/system/printsys.c
+partial	src/ov307/egg_demo.c	no	38	ov215	0x021f57e0	0x021f6328	38	31	no	yes	src/ov215/egg_demo.c
+partial	src/system/palanm.c	yes	38	main	0x02021548	0x0202208c	34	31	no	yes	src/system/palanm.c
+partial	src/system/wifilist.c	yes	38	main	0x020097bc	0x02009ed4	38	31	no	yes	src/system/cygnus_savedata.c
+partial	src/ov199/pdwacc_state.c	yes	27	ov123	0x021d9fd4	0x021da5d0	26	22	no	yes	src/ov123/pdwacc_state.c
+partial	src/ov214/worldtrade_mypoke.c	yes	27	ov135	0x021fc06c	0x021fcc40	27	22	no	yes	src/ov135/worldtrade_mypoke.c
+partial	src/ov270/br_musical_look_proc.c	yes	27	ov185	0x021f8590	0x021f9088	25	22	no	yes	src/ov185/br_musical_look_proc.c
+partial	src/ov036/field_rail.c	yes	107	ov021	0x021b7884	0x021b9a50	106	87	no	yes	src/ov021/field_rail.c
+partial	lib/dwc/src/sake/sakeMain.c	yes	16	ov175	0x021dd1ec	0x021dd560	15	13	no	yes	src/ov175/ov175_021dd1ec.c
+partial	src/ov034/union_eff.c	yes	32	ov019	0x0217f7e4	0x0217fdc8	32	26	no	yes	src/ov019/union_eff.c
+partial	src/ov036/weather.c	yes	16	ov021	0x021a1aac	0x021a1db4	15	13	no	yes	src/ov021/weather.c,src/ov021/weather_task.c
+partial	src/ov294/intro_msg.c	yes	16	ov204	0x021bf0a0	0x021bf580	15	13	no	yes	src/ov204/intro_msg.c
+partial	src/ov216/guru2_receipt.c	yes	69	ov137	0x021dcf50	0x021de7f4	67	56	no	yes	src/ov137/guru2_receipt.c
+partial	lib/nitro/src/os/os_thread.c	yes	37	main	0x02084fb4	0x02085b9c	37	30	no	yes	lib/nitro/src/os/os_thread.c,src/main/main_02084fb4.c
+partial	lib/nnsys/src/fnd/expheap.c	yes	21	main	0x02060764	0x02060fa4	21	17	no	yes	lib/nnsys/src/fnd/expheap.c
+partial	src/ov141/bsubway_records.c	yes	42	ov069	0x021b95a0	0x021ba58c	42	34	no	yes	src/ov069/bsubway_records.c
+partial	src/ov261/livebattlematch_irc.c	yes	26	ov176	0x0217e00c	0x0217e538	26	21	no	yes	src/ov176/livebattlematch_irc.c
+partial	src/ov306/btl_rec_sel.c	yes	52	ov214	0x021b9834	0x021bb0d4	50	42	no	yes	src/ov214/btl_rec_sel.c
+partial	src/ov011/dwc_rap.c	yes	77	ov009	0x02155374	0x02156dfc	77	62	no	yes	src/ov009/dwc_rap.c
+partial	lib/dwc/src/auth/dwc_http_client.c	no	25	ov009	0x0217956c	0x0217a880	25	20	no	yes	lib/dwc/src/auth/dwc_http.c
+partial	lib/dwc/src/gamespy/md5c.c	yes	10	ov009	0x02184938	0x021858fc	10	8	no	yes	lib/dwc/src/gs/md5c.c
+partial	lib/dwc/src/gp/gpiConnect.c	yes	10	ov009	0x0218a1d0	0x0218ba10	10	8	no	yes	lib/dwc/src/gs/gp/gpiConnect.c
+partial	lib/dwc/src/nhttp/d_nhttp.c	yes	15	ov114	0x021be648	0x021bea20	15	12	no	yes	lib/dwc/src/nhttp/d_nhttp.c
+partial	lib/dwc/src/sc/sciWebServices.c	yes	10	ov175	0x021e06dc	0x021e10cc	10	8	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/dwc/src/vct/vct.c	yes	5	ov013	0x021b3844	0x021b3a00	4	4	yes	yes	lib/dwc/src/vct/vct.c
+partial	lib/msl/src/buffer_io.c	yes	5	main	0x02091594	0x020916d4	5	4	no	yes	lib/msl/src/buffer_io.c
+partial	lib/nitro/src/os/os_emulator.c	yes	5	main	0x02085cbc	0x02085d88	4	4	yes	yes	lib/nitro/src/os/os_emulator.c
+partial	lib/nitro/src/os/os_exception.c	yes	5	main	0x02086dd8	0x02086f48	4	4	yes	yes	lib/nitro/src/os/os_exception.c
+partial	lib/nitro/src/os/os_tick.c	yes	5	main	0x02086fe8	0x02087180	5	4	no	yes	lib/nitro/src/os/os_tick.c
+partial	lib/nitro/src/wm/wm_mp.c	yes	5	main	0x0208fba8	0x0208fe64	4	4	yes	yes	lib/nitro/src/wm/wm_mp.c
+partial	lib/nnsys/src/gfd/gfd_LinkedListTexVramMan.c	yes	5	main	0x02062114	0x0206246c	4	4	yes	yes	lib/nnsys/src/gfd/VramManager/gfd_LinkedListTexVramMan.c
+partial	src/gfl/net_queue.c	yes	15	main	0x02036670	0x02036bd4	15	12	no	yes	lib/gfl/src/net_queue.c
+partial	src/ov032/wfc_user_info_warning.c	yes	5	ov017	0x021b6100	0x021b6498	5	4	no	yes	src/ov017/wfc_user_info_warning.c
+partial	src/ov036/fldeff_bubble.c	yes	15	ov021	0x021d0610	0x021d096c	14	12	no	yes	src/ov021/fldeff_bubble.c,src/ov021/ov021_021d0750.c
+partial	src/ov036/fldeff_footmark.c	yes	10	ov021	0x021bbcbc	0x021bbf74	9	8	no	yes	src/ov021/fldeff_footmark.c
+partial	src/ov036/fldeff_grass.c	yes	10	ov021	0x021ac68c	0x021aca38	10	8	no	yes	src/ov021/fldeff_grass.c
+partial	src/ov169/btl_poke_select.c	yes	10	ov095	0x0689ca98	0x0689cb3c	10	8	no	yes	src/ov095/btl_poke_select.c
+partial	src/ov203/wf2dmap_scroll.c	yes	5	ov127	0x021c5994	0x021c59f4	5	4	no	yes	src/ov127/wf2dmap_scroll.c
+partial	src/ov205/codein.c	yes	5	ov129	0x021d8714	0x021d8950	4	4	yes	yes	src/ov129/codein.c
+partial	src/ov286/b_bag_anm.c	yes	5	ov197	0x0220bd14	0x0220c034	4	4	yes	yes	src/ov197/b_bag_anm.c
+partial	src/system/actor_tool.c	yes	10	main	0x02025318	0x02025538	10	8	no	yes	src/system/actor_tool.c
+partial	src/system/app_printsys_common.c	yes	5	main	0x02028470	0x02028590	5	4	no	yes	src/system/app_printsys_common.c
+partial	src/system/text_speed.c	yes	5	main	0x02012ffc	0x02013090	4	4	yes	yes	src/system/text_speed.c
+partial	src/ov036/fldmmdl_movecode.c	yes	98	ov021	0x0219a098	0x0219b414	98	78	no	yes	src/ov021/ov021_02198d94.c
+partial	src/ov036/event_trainer_eye.c	yes	39	ov021	0x021ae198	0x021ae930	36	31	no	yes	src/ov021/event_trainer_eye.c
+partial	src/ov214/worldtrade_title.c	yes	39	ov135	0x021ffda8	0x02200c0c	39	31	no	yes	src/ov135/worldtrade_title.c
+partial	src/ov036/fldmmdl_blact.c	yes	58	ov021	0x0219c4ac	0x0219d448	57	46	no	yes	src/ov021/fldmmdl_blact.c
+partial	src/system/pms_data.c	yes	29	main	0x0202428c	0x020247a8	29	23	no	yes	src/system/pms_data.c
+partial	src/ov173/wifi_p2pmatch.c	yes	332	ov099	0x021ba828	0x021c24f0	329	263	no	yes	src/ov099/wifi_p2pmatch.c
+partial	src/ov175/compatible_irc_sys.c	yes	48	ov101	0x021b6100	0x021b6938	48	38	no	yes	src/ov101/compatible_irc_sys.c
+partial	lib/nnsys/src/g2d/g2d_RendererCore.c	yes	19	main	0x02067080	0x02067dc8	18	15	no	yes	lib/nnsys/src/g2d/g2d_RendererCore.c
+partial	src/ov168/btlv_mcss.c	yes	95	ov094	0x021feb78	0x02201a8c	93	75	no	no	src/ov094/btlv_mcss.c
+partial	src/system/waza_tool.c	yes	19	main	0x0201bd28	0x0201c408	18	15	no	yes	src/system/waza_tool.c
+partial	src/system/app_menu_common.c	yes	52	main	0x020275e8	0x02027778	49	41	no	yes	src/system/app_menu_common.c
+partial	lib/dwc/src/nhttp/nhttp_socket.c	no	14	ov114	0x021b9c80	0x021ba100	12	11	no	yes	lib/dwc/src/nhttp/nhttp_socket.c
+partial	lib/nitrowifi/src/wcm/wcm_aplist.c	yes	14	ov009	0x02165b80	0x02166304	13	11	no	yes	lib/nitrowifi/src/wcm/wcm.c
+partial	src/ov210/mus_item_data.c	yes	14	ov112	0x021f4f54	0x021f5164	12	11	no	yes	src/ov112/mus_item_data.c
+partial	src/ov284/shinka_demo_view.c	yes	56	ov195	0x02205c74	0x022086c8	56	44	no	yes	src/ov195/shinka_demo_view.c
+partial	src/system/trainer_data_savedata.c	yes	14	main	0x02008730	0x02008828	12	11	no	yes	src/system/trainer_data_savedata.c
+partial	src/ov036/field_player_grid_event.c	yes	23	ov021	0x021c0ca4	0x021c1a08	23	18	no	yes	src/ov021/field_player_grid_event.c,src/ov021/ov021_021c12c4.c
+partial	src/ov036/fldeff_d06denki.c	yes	23	ov021	0x021c8e68	0x021c939c	23	18	no	yes	src/ov021/fldeff_d06denki.c,src/ov021/ov021_021c8f7c.c
+partial	src/ov165/plist_message.c	yes	23	ov091	0x021bb594	0x021bba8c	23	18	no	yes	src/ov091/plist_message.c
+partial	src/ov185/pmsiv_edit.c	yes	32	ov110	0x021bbcf0	0x021bc78c	31	25	no	yes	src/ov110/pmsiv_edit.c
+partial	src/ov300/zknsearch_seq.c	yes	41	ov210	0x021bcf50	0x021be324	40	32	no	yes	src/ov210/zknsearch_seq.c
+partial	lib/dwc/src/gscommon/gsXML.c	yes	50	ov009	0x0218198c	0x02183ee0	49	39	no	yes	lib/dwc/src/gt2/gt2.c,lib/dwc/src/gs/xml.c
+partial	src/ov209/sta_acting.c	yes	68	ov132	0x021f8640	0x021f9e4c	66	53	no	yes	src/ov132/sta_acting.c
+partial	lib/dwc/src/nhttp/nhttp_bgnend.c	no	9	ov114	0x021ba7dc	0x021baa1c	9	7	no	yes	lib/dwc/src/nhttp/nhttp_bgnend.c
+partial	lib/nitro/src/os/os_alarm.c	yes	9	main	0x02087180	0x0208748c	8	7	no	yes	lib/nitro/src/os/os_alarm.c
+partial	lib/twl/src/fatfs/fatfs_api.c	yes	9	ltd_autoload_0	0x027040b4	0x02704364	9	7	no	yes	lib/twl/src/fatfs/fatfs_api.c
+partial	src/gfl/gf_overlay.c	yes	9	main	0x0203499c	0x02034e24	9	7	no	yes	lib/gfl/src/gf_overlay.c
+partial	src/ov012/bsubway_comm.c	yes	27	ov010	0x02167ab0	0x02167ef4	27	21	no	yes	src/ov010/bsubway_comm.c
+partial	src/ov012/scrcmd_network.c	yes	9	ov010	0x0215f168	0x0215f2b8	7	7	yes	yes	src/ov010/scrcmd_network.c
+partial	src/ov035/event_season_banner.c	yes	27	ov020	0x021876e0	0x02187da4	27	21	no	yes	src/ov020/event_season_banner.c
+partial	src/ov036/fieldmap_func.c	yes	9	ov021	0x021bb890	0x021bba6c	8	7	no	yes	src/ov021/fieldmap_func.c
+partial	src/ov036/scrcmd_trainer.c	yes	18	ov021	0x021ae948	0x021aede0	16	14	no	yes	src/ov021/scrcmd_trainer.c
+partial	src/ov139/ui_scene.c	yes	9	ov067	0x021b6100	0x021b62e0	9	7	no	yes	src/ov067/ui_scene.c
+partial	src/ov149/encounter_effect_model.c	yes	9	ov076	0x021f5260	0x021f5334	8	7	no	yes	src/ov076/encounter_effect_model.c
+partial	src/ov162/delete_save.c	yes	27	ov088	0x021bcccc	0x021bd25c	27	21	no	yes	src/ov088/delete_save.c
+partial	src/ov167/btl_rec.c	yes	18	ov093	0x021ee63c	0x021eea30	14	14	yes	yes	src/ov093/btl_rec.c
+partial	src/ov169/btl_tables.c	yes	27	ov095	0x0689c888	0x0689ca98	27	21	no	no	
+partial	src/ov185/pms_input_data.c	yes	18	ov110	0x021b95a0	0x021b9a3c	16	14	no	yes	src/ov110/pms_input_data.c
+partial	src/ov207/p_sta_sys.c	yes	36	ov131	0x021d44c8	0x021d6324	33	28	no	yes	src/ov131/p_sta_sys.c
+partial	src/ov271/br_sidebar.c	yes	18	ov186	0x021fed50	0x021ff408	18	14	no	yes	src/ov186/br_sidebar.c
+partial	src/ov285/b_app_tool.c	yes	9	ov196	0x0220af40	0x0220b0f4	9	7	no	yes	src/ov196/b_app_tool.c
+partial	src/ov293/demo3d_cmd.c	yes	36	ov203	0x021bebc8	0x021bf79c	33	28	no	yes	src/ov203/demo3d_cmd.c
+partial	src/ov294/intro_g3d.c	yes	9	ov204	0x021bf9d0	0x021bfc24	8	7	no	yes	src/ov204/intro_g3d.c
+partial	src/ov312/geonet.c	yes	49	ov219	0x02183b60	0x02185db0	49	38	no	yes	src/ov219/geonet.c
+partial	src/gfl/net_system.c	yes	62	main	0x02037234	0x020395ec	61	48	no	yes	lib/gfl/src/net_system.c
+partial	src/ov185/pms_select.c	yes	44	ov110	0x021c022c	0x021c1610	42	34	no	yes	src/ov110/pms_select.c
+partial	src/ov012/field_actor_tool.c	yes	69	ov010	0x02163010	0x021643ac	70	54	no	yes	src/ov010/field_actor_tool.c
+partial	src/ov198/comm_tvt_field.c	yes	35	ov122	0x021d424c	0x021d5704	33	27	no	yes	src/ov122/comm_tvt_field.c
+partial	src/system/event_sound.c	yes	35	main	0x02029488	0x02029cf0	35	27	no	no	src/system/event_sound.c
+partial	src/ov310/research_graph.c	yes	204	ov217	0x021bd5f4	0x021c097c	202	157	no	yes	src/ov217/research_graph.c
+partial	lib/nitro/src/fx/fx_cp.c	yes	13	main	0x0207c788	0x0207c9d0	11	10	no	yes	lib/nitro/src/fx/fx_cp.c
+partial	lib/nitro/src/gx/gx.c	yes	13	main	0x0207d204	0x0207d59c	11	10	no	yes	lib/nitro/src/gx/gx.c
+partial	lib/nitrowifi/src/soc/socl_command.c	yes	13	ov009	0x0215cdd0	0x0215cfa8	10	10	yes	yes	lib/nitrowifi/src/soc/socl_command.c
+partial	lib/nitrowifi/src/wcm/wcm_cpsif.c	yes	13	ov009	0x02166304	0x02166680	11	10	no	yes	lib/nitrowifi/src/wcm/wcm.c
+partial	src/ov012/event_action_call.c	yes	13	ov010	0x02161824	0x02161b1c	10	10	yes	yes	src/ov010/event_action_call.c
+partial	src/ov036/fieldmap_ctrl_hybrid.c	yes	13	ov021	0x021a6dc4	0x021a7360	12	10	no	yes	src/ov021/fieldmap_ctrl_hybrid.c
+partial	src/ov036/rail_attr.c	yes	13	ov021	0x021bb088	0x021bb1f4	13	10	no	yes	src/ov021/rail_attr.c
+partial	src/ov173/wifi_status.c	yes	13	ov099	0x021c27d4	0x021c2874	11	10	no	yes	src/ov099/wifi_status.c
+partial	src/ov199/pdwacc_message.c	yes	13	ov123	0x021d9404	0x021d9958	12	10	no	yes	src/ov123/pdwacc_message.c
+partial	src/ov012/scrcmd_pokemon.c	yes	43	ov010	0x0215b4ac	0x0215c5ec	41	33	no	yes	src/ov010/scrcmd_pokemon.c
+partial	src/ov036/party_select_list.c	yes	30	ov021	0x021cc810	0x021cd1c8	28	23	no	yes	src/ov021/ov021_021cc7b4.c
+partial	src/ov012/scrcmd_work.c	yes	47	ov010	0x0215a5a4	0x0215aa50	44	36	no	yes	src/ov010/scrcmd_work.c
+partial	src/ov076/weather_rain.c	yes	47	ov026	0x021ee740	0x021efcf0	47	36	no	yes	src/ov026/weather_rain.c
+partial	src/system/snd_sys.c	yes	64	main	0x02005b74	0x02006544	60	49	no	yes	src/system/snd_sys.c
+partial	lib/dwc/src/ghttp/ghttpEncryption.c	yes	17	ov114	0x021c109c	0x021c1d30	17	13	no	yes	lib/dwc/src/ghttp/ghttpEncryption.c
+partial	src/ov167/btl_adapter.c	yes	17	ov093	0x021eea30	0x021eec78	17	13	no	yes	src/ov093/btl_adapter.c
+partial	src/ov214/worldtrade_sublcd.c	yes	17	ov135	0x021ff914	0x021ffda8	15	13	no	yes	src/ov135/worldtrade_sublcd.c
+partial	src/ov256/dpc_main.c	yes	17	ov171	0x021dc8b8	0x021dce70	17	13	no	yes	src/ov171/dpc_main.c
+partial	src/ov287/b_plist_obj.c	yes	34	ov198	0x0220e2b4	0x0220f3e8	34	26	no	yes	src/ov198/b_plist_obj.c
+partial	lib/nitro/src/card/card_common.c	yes	21	main	0x02075c38	0x02076100	21	16	no	yes	lib/nitro/src/card/card_api.c,lib/nitro/src/card/card_common.c
+partial	lib/nnsys/src/snd/snd_player.c	yes	42	main	0x02072d98	0x020737c0	41	32	no	no	lib/nnsys/src/snd/player.c
+partial	src/ov214/worldtrade_adapter.c	yes	21	ov135	0x022025e4	0x02202a50	19	16	no	yes	src/ov135/worldtrade_adapter.c
+partial	src/system/bgwinfrm.c	yes	21	main	0x0202ca0c	0x0202d018	19	16	no	yes	src/system/bgwinfrm.c
+partial	src/ov036/event_entrance_effect.c	yes	25	ov021	0x021a7b20	0x021a836c	23	19	no	yes	src/ov021/event_entrance_effect.c
+partial	src/ov036/field_fog.c	yes	22	ov021	0x021a0104	0x021a0358	25	19	no	no	src/ov021/field_fog.c,src/ov021/ov021_021a0138.c,src/ov021/field_zonefog.c,src/ov021/ov021_021a02f4.c
+partial	lib/dwc/src/sc/dwc_sc.c	yes	29	ov175	0x021dee3c	0x021df734	29	22	no	yes	src/ov175/ov175_021dd1ec.c
+partial	src/ov207/p_sta_sub.c	yes	29	ov131	0x021d694c	0x021d7b00	22	22	yes	yes	src/ov131/p_sta_sub.c
+partial	src/ov012/musical_event.c	yes	33	ov010	0x02155a98	0x02156bd0	32	25	no	yes	src/ov010/musical_event.c
+partial	src/ov036/scrcmd_sound.c	yes	37	ov021	0x021aee28	0x021af544	35	28	no	no	src/ov021/scrcmd_sound.c
+partial	src/ov191/wifi_bsubway.c	yes	74	ov116	0x021d6710	0x021d821c	73	56	no	yes	src/ov116/wifi_bsubway.c
+partial	src/ov194/pokemontrade_3d.c	yes	41	ov119	0x021e2b14	0x021e3c20	41	31	no	yes	src/ov119/pokemontrade_3d.c
+partial	src/ov199/gsync_menu.c	yes	41	ov123	0x021d4384	0x021d54e0	38	31	no	yes	src/ov123/gsync_menu.c
+partial	src/ov036/entrance_camera.c	yes	53	ov021	0x021bd648	0x021be1dc	49	40	no	yes	src/ov021/ov021_021bd2b8.c,src/ov021/entrance_camera.c,src/ov021/ov021_021bddc0.c
+partial	lib/dwc/src/base/dwc_init.c	yes	4	main	0x02059fa8	0x0205a12c	3	3	yes	yes	lib/dwc/src/account/dwc_init.c
+partial	lib/dwc/src/bm/dwc_nvram.c	yes	8	main	0x0205f648	0x0205f9d8	6	6	yes	yes	lib/dwc/src/bm/dwc_nvram.c
+partial	lib/dwc/src/enc/dwc_encsession.c	no	16	ov114	0x021c9858	0x021ca470	15	12	no	yes	lib/dwc/src/gamestats/gamestats.c
+partial	lib/dwc/src/gp/gpiBuddy.c	yes	12	ov009	0x02187010	0x0218934c	12	9	no	yes	lib/dwc/src/gs/gp/gpiBuddy.c
+partial	lib/dwc/src/gp/gpiKeys.c	yes	8	ov009	0x0218d7cc	0x0218da40	7	6	no	yes	lib/dwc/src/gs/gp/gpiKeys.c
+partial	lib/dwc/src/nhttp/nhttp_response.c	yes	4	ov114	0x021bbb28	0x021bbe94	4	3	no	yes	lib/dwc/src/nhttp/nhttp_response.c
+partial	lib/dwc/src/serverbrowsing/sb_server.c	yes	36	ov009	0x0219df64	0x0219e9f4	33	27	no	yes	lib/dwc/src/gs/serverbrowsing/sb_server.c
+partial	lib/dwcutil/src/dwc_aoss_ap.c	no	12	ov016	0x021b83fc	0x021b89dc	12	9	no	yes	lib/dwcutil/src/dwc_aoss_ap.c
+partial	lib/nitro/src/fx/fx_mtx22.c	yes	4	main	0x0207ad40	0x0207ad70	3	3	yes	yes	lib/nitro/src/fx/fx_mtx22.c
+partial	lib/nitro/src/math/math_crc.c	yes	12	main	0x02081940	0x02081be4	12	9	no	yes	lib/nitro/src/math/crc.c
+partial	lib/nitro/src/math/math_md5.c	yes	4	main	0x02080d68	0x0208122c	3	3	yes	yes	src/main/main_02080d68.c
+partial	lib/nitro/src/os/os_ownerInfo.c	yes	4	main	0x02087c6c	0x02087d1c	3	3	yes	yes	lib/nitro/src/os/os_ownerInfo.c
+partial	lib/nitro/src/os/os_printf.c	yes	4	main	0x02084f40	0x02084fa8	3	3	yes	yes	lib/nitro/src/os/os_printf.c
+partial	lib/nitrowifi/src/soc/socl_bind.c	yes	4	ov009	0x0215d43c	0x0215d650	3	3	yes	yes	lib/nitrowifi/src/soc/socl_bind.c
+partial	lib/nitrowifi/src/soc/socl_create.c	yes	8	ov009	0x0215d070	0x0215d43c	8	6	no	yes	lib/nitrowifi/src/soc/socl_create.c
+partial	lib/nnsys/src/fnd/heapcommon.c	yes	4	main	0x02060640	0x0206074c	3	3	yes	yes	lib/nnsys/src/fnd/heapcommon.c
+partial	lib/nnsys/src/g2d/g2d_NMC_load.c	yes	4	main	0x02062920	0x02062a00	4	3	no	yes	lib/nnsys/src/g2d/load/g2d_NMC_load.c
+partial	lib/nnsys/src/g3d/anm.c	yes	4	main	0x0206af08	0x0206b3d0	3	3	yes	yes	lib/nnsys/src/g3d/anm.c
+partial	lib/nnsys/src/g3d/sbc.c	yes	20	main	0x0206b458	0x0206db24	20	15	no	yes	lib/nnsys/src/g3d/sbc.c
+partial	lib/nnsys/src/gfd/gfdi_LinkedListVramMan_Common.c	yes	8	main	0x02061d0c	0x0206210c	8	6	no	yes	lib/nnsys/src/gfd/VramManager/gfdi_LinkedListVramMan_Common.c
+partial	lib/nnsys/src/snd/snd_main.c	yes	8	main	0x020726d0	0x02072920	7	6	no	yes	lib/nnsys/src/snd/nns_snd_main.c
+partial	src/gfl/calctool.c	yes	8	main	0x02051e74	0x02052274	7	6	no	yes	lib/gfl/src/calctool.c
+partial	src/gfl/gx_layers.c	yes	16	main	0x0204335c	0x02043658	14	12	no	yes	lib/gfl/src/gx_layers.c
+partial	src/gfl/key.c	yes	20	main	0x02035ee8	0x0203640c	20	15	no	yes	lib/gfl/src/key.c
+partial	src/ov012/scrcmd_actor_move.c	yes	4	ov010	0x0216a7a0	0x0216a8f0	3	3	yes	yes	src/ov010/scrcmd_actor_move.c
+partial	src/ov012/waza_oshie.c	yes	4	ov010	0x0216f918	0x0216fab4	4	3	no	yes	src/ov010/waza_oshie.c
+partial	src/ov031/net_irc.c	yes	24	ov015	0x0217993c	0x02179ee0	23	18	no	yes	src/ov015/net_irc.c
+partial	src/ov033/field_actor_animation.c	yes	12	ov021	0x021d182c	0x021d1aec	12	9	no	no	src/ov021/field_actor_animation.c
+partial	src/ov035/el_scoreboard.c	yes	4	ov020	0x021875f4	0x021876e0	4	3	no	yes	src/ov020/el_scoreboard.c
+partial	src/ov036/field_3dbg.c	yes	20	ov021	0x021a15a4	0x021a19e8	20	15	no	yes	src/ov021/field_3dbg.c
+partial	src/ov036/field_comm_actor.c	yes	12	ov021	0x02194284	0x021945a0	12	9	no	yes	src/ov021/field_comm_actor.c
+partial	src/ov036/field_saveanime.c	yes	12	ov021	0x021d1164	0x021d14c4	12	9	no	yes	src/ov021/field_saveanime.c
+partial	src/ov036/scrcmd_pokemon_fld.c	yes	4	ov021	0x021b6850	0x021b69b0	3	3	yes	yes	src/ov021/scrcmd_pokemon_fld.c
+partial	src/ov036/shortcut_menu.c	yes	24	ov021	0x021c51a0	0x021c5a54	22	18	no	yes	src/ov021/shortcut_menu.c
+partial	src/ov036/union_mine_pms.c	yes	4	ov021	0x021bbbd8	0x021bbcbc	3	3	yes	yes	
+partial	src/ov106/gimmick_league_lift.c	yes	12	ov050	0x021f36c0	0x021f3890	10	9	no	yes	src/ov050/gimmick_league_lift.c
+partial	src/ov126/underwater_effect.c	yes	4	ov057	0x021f37bc	0x021f387c	3	3	yes	yes	src/ov057/underwater_effect.c
+partial	src/ov139/msgsearch.c	yes	4	ov067	0x021b6c74	0x021b6dc0	4	3	no	yes	src/ov067/msgsearch.c
+partial	src/ov148/encounter_effect_capture.c	yes	8	ov075	0x021f5260	0x021f55f8	8	6	no	yes	src/ov075/encounter_effect_capture.c
+partial	src/ov152/encounter_effect_cells.c	yes	4	ov079	0x021f5abc	0x021f5b70	3	3	yes	yes	src/ov079/encounter_effect_cells.c
+partial	src/ov153/encounter_effect_columns.c	yes	4	ov080	0x021f5abc	0x021f5b64	3	3	yes	yes	src/ov080/encounter_effect_columns.c
+partial	src/ov171/vs_multi_list.c	yes	40	ov097	0x021f6560	0x021f734c	38	30	no	yes	src/ov097/vs_multi_list.c
+partial	src/ov181/mbp.c	yes	16	ov107	0x021f08e4	0x021f0de8	13	12	no	yes	src/ov107/mbp.c
+partial	src/ov193/pokemontrade_demo_up.c	yes	4	ov118	0x021d4b14	0x021d54f0	4	3	no	yes	src/ov118/pokemontrade_demo_up.c
+partial	src/ov203/wf2dmap_cmdq.c	yes	4	ov127	0x021c5eec	0x021c5fb0	4	3	no	yes	src/ov127/wf2dmap_cmdq.c
+partial	src/ov215/mailview.c	yes	16	ov136	0x021c4d14	0x021c5480	14	12	no	yes	src/ov136/mailview.c
+partial	src/ov257/draw_system.c	yes	12	ov172	0x021b6be0	0x021b6ee0	12	9	no	yes	src/ov172/draw_system.c
+partial	src/ov264/cdemo_main.c	yes	16	ov179	0x021b6100	0x021b6380	16	12	no	yes	src/ov179/cdemo_main.c
+partial	src/ov284/shinka_demo.c	no	44	ov195	0x02203fa0	0x02205854	44	33	no	yes	src/ov195/shinka_demo.c
+partial	src/ov319/manual.c	yes	4	ov225	0x021b95a0	0x021b98fc	3	3	yes	yes	src/ov225/manual.c
+partial	src/system/bgm_info.c	yes	4	main	0x02006e40	0x02006ea4	3	3	yes	yes	src/system/bgm_info.c
+partial	src/system/infowin.c	yes	8	main	0x02024a20	0x02025318	8	6	no	yes	src/system/infowin.c
+partial	src/system/iss_city_unit.c	yes	16	main	0x0202af3c	0x0202b1ac	12	12	yes	yes	src/system/iss_city_unit.c
+partial	src/system/mystery_data.c	yes	36	main	0x02009ed4	0x0200a53c	36	27	no	yes	src/system/mystery_data.c
+partial	src/system/pokerus.c	yes	8	main	0x0201b038	0x0201b2b0	8	6	no	yes	src/system/pokerus.c
+partial	src/ov197/mystery_album.c	yes	59	ov121	0x021dac18	0x021de2a0	59	44	no	yes	src/ov121/mystery_album.c
+partial	src/ov207/p_sta_skill.c	yes	43	ov131	0x021d9740	0x021dba90	41	32	no	yes	src/ov131/p_sta_skill.c
+partial	src/ov036/fldeff_namipoke.c	yes	27	ov021	0x021aca38	0x021ad758	27	20	no	yes	src/ov021/fldeff_namipoke.c
+partial	src/ov036/scrcmd_pokemon_misc.c	yes	27	ov021	0x021b5b8c	0x021b6708	26	20	no	yes	src/ov021/ov021_021b5b4c.c,src/ov021/scrcmd_pokemon_fld.c
+partial	src/system/pokeparty.c	yes	27	main	0x0201a918	0x0201ad88	27	20	no	yes	src/system/pokeparty.c
+partial	src/ov185/pms_input.c	yes	96	ov110	0x021bd534	0x021bf844	95	71	no	yes	src/ov110/pms_input.c
+partial	src/ov203/wf2dmap_obj.c	yes	46	ov127	0x021c4880	0x021c5370	46	34	no	yes	src/ov127/wf2dmap_obj.c
+partial	src/ov215/mb_main.c	yes	23	ov136	0x021c5518	0x021c5e58	21	17	no	yes	src/ov136/mb_main.c
+partial	src/ov033/trial_house.c	yes	19	ov021	0x021d096c	0x021d10a8	18	14	no	yes	src/ov021/trial_house.c
+partial	src/ov036/field_camera_anime.c	yes	34	ov021	0x0218f878	0x021901e4	34	25	no	yes	src/ov021/field_camera.c,src/ov021/field_camera_anime.c,src/ov021/ov021_02190110.c
+partial	src/system/field_sound_system.c	yes	83	main	0x02028844	0x0202947c	82	61	no	yes	src/system/field_sound_system.c
+partial	lib/dwc/src/auth/dwc_nasfunc.c	yes	30	ov009	0x02177ee8	0x0217956c	28	22	no	yes	lib/dwc/src/auth/dwc_auth.c,lib/dwc/src/auth/dwc_authlogin.c,lib/dwc/src/auth/dwc_cal.c
+partial	src/ov209/sta_act_audience.c	yes	15	ov132	0x021f9fec	0x021fa5b0	15	11	no	yes	src/ov132/sta_act_audience.c
+partial	src/system/bmp_oam.c	yes	15	main	0x02025588	0x02025b38	14	11	no	yes	src/system/bmp_oam.c
+partial	src/system/gf_font.c	yes	30	main	0x0201d9c8	0x0201ec64	27	22	no	yes	src/system/gf_font.c
+partial	src/ov262/wifibattlematch_view.c	yes	52	ov177	0x021e5868	0x021e8568	51	38	no	yes	src/ov177/wifibattlematch_view.c
+partial	src/ov271/br_util.c	yes	63	ov186	0x021fc6a4	0x021fe6c0	63	46	no	yes	src/ov186/br_util.c
+partial	lib/dwc/src/gscommon/gsPlatformSocket.c	no	22	ov009	0x0217eb00	0x0217f0b4	22	16	no	no	lib/dwc/src/gscommon/gsPlatformSocket.c
+partial	lib/nitro/src/os/os_interrupt.c	yes	11	main	0x02084774	0x020849f4	9	8	no	yes	lib/nitro/src/os/os_interrupt.c
+partial	src/ov012/map_replace.c	yes	11	ov010	0x02159d84	0x02159f80	10	8	no	yes	src/ov010/map_replace.c
+partial	src/ov172/pdc_main.c	yes	11	ov098	0x021b61e8	0x021b67a4	10	8	no	yes	src/ov098/pdc_main.c
+partial	src/ov209/mus_shot_info.c	yes	11	ov112	0x021f4284	0x021f48c0	11	8	no	yes	src/ov112/mus_shot_info.c
+partial	src/system/bmp_winframe.c	yes	11	main	0x0201f554	0x0201f81c	9	8	no	yes	src/system/bmp_winframe.c
+partial	src/system/traded_pokemon_savedata.c	yes	11	main	0x0200e740	0x0200e874	9	8	no	yes	src/system/traded_pokemon_savedata.c
+partial	src/system/worldtrade_data.c	yes	11	main	0x0200ad6c	0x0200ade8	11	8	no	yes	src/system/worldtrade_data.c
+partial	src/ov030/net_whpipe.c	yes	60	ov014	0x0217727c	0x02178138	62	45	no	yes	src/ov014/net_whpipe.c
+partial	src/ov036/weather_task.c	yes	91	ov021	0x021a1db4	0x021a2d88	91	66	no	yes	src/ov021/weather_task.c
+partial	lib/nitro/src/spi/mic.c	yes	18	main	0x0208b24c	0x0208b798	13	13	yes	yes	lib/nitro/src/spi/mic.c
+partial	lib/poke_net/src/poke_net_gds.c	yes	18	ov125	0x021d8598	0x021d8b3c	18	13	no	yes	lib/poke_net/src/poke_net_gds.c
+partial	src/gfl/ui.c	yes	54	main	0x02034e24	0x02035750	54	39	no	no	lib/gfl/src/ui.c
+partial	src/ov012/scrcmd_sodateya.c	yes	18	ov010	0x0215ce98	0x0215d1e4	16	13	no	yes	src/ov010/scrcmd_sodateya.c
+partial	src/ov192/pokemontrade_demo_common_irc.c	yes	18	ov117	0x021d4240	0x021d4bf4	18	13	no	yes	src/ov117/pokemontrade_demo_common_irc.c
+partial	src/ov268/br_codein_disp.c	yes	18	ov183	0x021e08e4	0x021e11d0	17	13	no	yes	src/ov183/br_codein_disp.c
+partial	lib/dwc/src/nd/nd.c	no	61	ov114	0x021c569c	0x021c7a44	56	44	no	yes	lib/dwc/src/nd/nd.c
+partial	src/ov174/ircbattlematch.c	yes	86	ov100	0x021b95b8	0x021bb65c	78	62	no	yes	src/ov100/ircbattlematch.c
+partial	lib/nnsys/src/snd/snd_arc.c	yes	25	main	0x02073fb8	0x020746e8	20	18	no	yes	lib/nnsys/src/snd/sndarc.c
+partial	src/ov140/config_panel.c	yes	89	ov068	0x021b980c	0x021bb538	87	64	no	yes	src/ov068/config_panel.c
+partial	src/ov033/bsubway_scr.c	yes	32	ov021	0x021c9924	0x021ca4c0	31	23	no	yes	src/ov021/bsubway_scr.c
+partial	src/ov190/wifilogin.c	yes	39	ov115	0x021d4240	0x021d4d38	39	28	no	no	src/ov115/wifilogin.c
+partial	src/ov298/zukan_detail_common.c	yes	39	ov208	0x021bc35c	0x021bca68	39	28	no	yes	src/ov208/zukan_detail_common.c
+partial	src/ov311/un_select.c	yes	53	ov218	0x021b95a0	0x021ba7a4	53	38	no	yes	src/ov218/un_select.c
+partial	src/ov176/irc_compat_menu.c	yes	60	ov102	0x021b7560	0x021b8ab8	60	43	no	yes	src/ov102/irc_compat_menu.c
+partial	src/ov214/worldtrade_input.c	yes	74	ov135	0x021f9660	0x021fc06c	73	53	no	no	src/ov135/worldtrade_input.c
+partial	lib/nitro/src/mb/mb_task.c	yes	7	ov107	0x021f6590	0x021f6804	6	5	no	yes	lib/nitro/src/mb/mb_task.c
+partial	lib/nnsys/src/snd/snd_stream.c	yes	14	main	0x020737c0	0x02073d5c	13	10	no	yes	lib/nnsys/src/snd/stream.c
+partial	src/gfl/g3d_light.c	yes	7	main	0x02048bc4	0x02048cec	7	5	no	yes	lib/gfl/src/g3d_light.c
+partial	src/gfl/math_util.c	yes	7	main	0x0203f5fc	0x0203f768	5	5	yes	yes	lib/gfl/src/math_util.c
+partial	src/ov012/event_league_lift.c	yes	7	ov010	0x0216c204	0x0216c484	6	5	no	yes	src/ov010/event_league_lift.c
+partial	src/ov036/scrcmd_camera.c	yes	14	ov021	0x021b52a4	0x021b5610	14	10	no	yes	src/ov021/scrcmd_camera.c
+partial	src/ov165/status_rcv.c	yes	7	ov091	0x021be874	0x021bea78	5	5	yes	yes	src/ov091/status_rcv.c
+partial	src/ov169/btl_wazarec.c	yes	7	ov095	0x0689d01c	0x0689d0fc	5	5	yes	yes	src/ov095/btl_wazarec.c
+partial	src/ov175/irc_appbar.c	yes	14	ov101	0x021b71c0	0x021b7404	13	10	no	yes	src/ov101/irc_appbar.c
+partial	src/ov190/wifilogin_message.c	yes	21	ov115	0x021d5984	0x021d603c	21	15	no	yes	src/ov115/wifilogin_message.c
+partial	src/ov209/sta_act_bg.c	yes	7	ov112	0x021f6f24	0x021f7098	6	5	no	yes	src/ov112/sta_act_bg.c
+partial	src/ov255/box2_bgwfrm.c	yes	35	ov170	0x021ef32c	0x021ef78c	32	25	no	yes	src/ov170/box2_bgwfrm.c
+partial	src/ov286/b_bag_item.c	yes	7	ov197	0x0220b9a4	0x0220bbd8	6	5	no	yes	src/ov197/b_bag_item.c
+partial	src/ov298/zukan_detail_procsys.c	yes	7	ov208	0x021bc240	0x021bc34c	6	5	no	yes	src/ov208/zukan_detail_procsys.c
+partial	src/ov308/beacon_detail_sub.c	yes	35	ov216	0x021bccc4	0x021bdb28	31	25	no	yes	src/ov216/beacon_detail_sub.c
+partial	src/ov319/manual_touchbar.c	yes	21	ov225	0x021b9fbc	0x021ba65c	19	15	no	yes	src/ov225/manual_touchbar.c
+partial	src/system/tpoke_data.c	yes	7	main	0x0202a188	0x0202a230	5	5	yes	yes	src/system/tpoke_data.c
+partial	src/system/zone_weather.c	yes	7	main	0x0202c794	0x0202c9b4	7	5	no	yes	src/system/zone_weather.c
+partial	src/ov307/egg_demo_view.c	no	38	ov215	0x021f66c8	0x021f7118	38	27	no	yes	src/ov215/egg_demo_view.c
+partial	lib/poke_net/src/poke_net.c	no	31	ov125	0x021d770c	0x021d8588	29	22	no	yes	lib/poke_net/src/poke_net.c
+partial	src/ov201/gds_rap.c	yes	24	ov125	0x021d67c8	0x021d732c	22	17	no	yes	src/ov125/gds_rap.c
+partial	src/ov310/percentage.c	yes	24	ov217	0x021c26e8	0x021c29c8	24	17	no	yes	src/ov217/percentage.c
+partial	src/system/poke_regulation.c	yes	24	main	0x02019da4	0x0201a918	21	17	no	yes	src/system/poke_regulation.c
+partial	src/ov012/script_sys.c	yes	41	ov010	0x02158768	0x02158e54	41	29	no	yes	src/ov010/script_sys.c
+partial	src/ov194/pokemontrade_nego.c	yes	99	ov119	0x021dd080	0x021dfa60	99	70	no	yes	src/ov119/pokemontrade_nego.c
+partial	src/gfl/g3d_util.c	yes	17	main	0x02047cfc	0x02048a24	16	12	no	yes	lib/gfl/src/g3d_util.c
+partial	src/system/field_event.c	yes	17	main	0x02014488	0x02014840	14	12	no	yes	src/system/field_event.c
+partial	src/ov294/intro_cmd.c	yes	61	ov204	0x021be10c	0x021bf094	59	43	no	yes	src/ov204/intro_cmd.c
+partial	src/ov260/wifibattlematch_link_random.c	yes	44	ov175	0x021d44d4	0x021d6964	42	31	no	yes	src/ov175/wifibattlematch_link_random.c
+partial	src/system/dream_world_savedata.c	yes	27	main	0x02009230	0x02009454	26	19	no	yes	src/system/dream_world_savedata.c
+partial	src/ov075/weather_particles.c	yes	37	ov025	0x021ee740	0x021ef75c	37	26	no	yes	src/ov025/weather_particles.c
+partial	src/ov082/union_subdisp.c	yes	37	ov031	0x021effe8	0x021f0fe0	35	26	no	yes	src/ov031/union_subdisp.c
+partial	src/ov185/pms_input_view.c	yes	67	ov110	0x021b9b20	0x021baedc	66	47	no	yes	src/ov110/pms_input_view.c
+partial	lib/twl/src/nwm/nwm_events.c	yes	10	ltd_autoload_0	0x027026ec	0x02702a78	7	7	yes	yes	lib/twl/src/nwm/nwm.c
+partial	src/ov033/event_chatot.c	yes	10	ov021	0x021d1c24	0x021d213c	10	7	no	yes	src/ov021/event_chatot.c
+partial	src/ov036/fld_scenearea_loader.c	yes	20	ov021	0x021ab7e4	0x021abd50	20	14	no	yes	src/ov021/fld_scenearea_loader.c
+partial	src/ov036/fldeff_fishing.c	yes	10	ov021	0x021adedc	0x021ae0cc	10	7	no	yes	src/ov021/fldeff_fishing.c
+partial	src/ov036/fldeff_iwakudaki.c	yes	10	ov021	0x021adcb8	0x021adea0	9	7	no	yes	src/ov021/fldeff_iwakudaki.c
+partial	src/ov036/fldeff_kemuri.c	yes	10	ov021	0x021ac494	0x021ac688	9	7	no	yes	src/ov021/fldeff_kemuri.c
+partial	src/ov077/weather_sandstorm.c	yes	10	ov027	0x021ee740	0x021eeb48	10	7	no	yes	src/ov027/weather_sandstorm.c
+partial	src/ov201/gds_rap_response.c	yes	10	ov125	0x021d732c	0x021d7520	9	7	no	yes	src/ov125/gds_rap_response.c
+partial	src/ov207/p_sta_oam.c	yes	10	ov131	0x021dba90	0x021dbf2c	10	7	no	yes	src/ov131/p_sta_oam.c
+partial	src/ov214/worldtrade_enter.c	yes	30	ov135	0x021f89b4	0x021f9260	30	21	no	yes	src/ov135/worldtrade_enter.c
+partial	src/ov268/br_bvrank_proc.c	yes	20	ov183	0x021de9a0	0x021df920	20	14	no	yes	src/ov183/br_bvrank_proc.c
+partial	src/ov286/b_bag_ui.c	yes	10	ov197	0x0220d8c4	0x0220da08	10	7	no	yes	src/ov197/b_bag_ui.c
+partial	lib/nitrowifi/src/ssl/biginteger.c	yes	19	ov009	0x02163f24	0x02164d64	23	16	no	yes	lib/nitrowifi/src/ssl/biginteger.c
+partial	lib/nnsys/src/snd/snd_arc_loader.c	yes	23	main	0x02074a98	0x020754c4	21	16	no	yes	lib/nnsys/src/snd/sndarc_loader.c
+partial	src/ov107/field_gimmick_d06.c	yes	23	ov051	0x021f36c0	0x021f3d94	22	16	no	yes	src/ov051/field_gimmick_d06.c
+partial	src/ov310/research_radar.c	yes	23	ov217	0x021b95a0	0x021b9a24	22	16	no	yes	src/ov217/research_radar.c
+partial	src/ov214/worldtrade.c	yes	36	ov135	0x021f46a8	0x021f5154	35	25	no	yes	src/ov135/ov135_021f4580.c
+partial	src/ov310/research_list.c	yes	186	ov217	0x021bab80	0x021bd5f4	185	129	no	yes	src/ov217/research_list.c
+partial	lib/nitro/src/rtc/rtc_api.c	yes	13	main	0x02088788	0x02088eec	12	9	no	yes	lib/nitro/src/rtc/external.c
+partial	lib/nitrowifi/src/soc/socl_read.c	yes	13	ov009	0x0215d7fc	0x0215e024	12	9	no	yes	lib/nitrowifi/src/soc/socl_read.c
+partial	src/system/perapvoice.c	yes	13	main	0x02007b00	0x02007cb0	13	9	no	yes	src/system/perapvoice.c
+partial	src/ov139/frame_list.c	yes	55	ov067	0x021b79e4	0x021b942c	45	38	no	yes	src/ov067/frame_list.c
+partial	src/ov257/ctvt_camera.c	yes	29	ov172	0x021b70a8	0x021b7ba8	25	20	no	yes	src/ov172/ctvt_camera.c
+partial	src/system/net_err.c	yes	29	main	0x0200f6b8	0x020101d4	26	20	no	yes	src/system/net_err.c
+partial	src/ov012/eventdata_system.c	yes	61	ov010	0x021623bc	0x02163010	59	42	no	yes	src/ov010/eventdata_system.c
+partial	src/ov203/wifi_2dchar.c	yes	61	ov127	0x021c3f80	0x021c4790	59	42	no	yes	src/ov127/wifi_2dchar.c
+partial	src/ov167/handler_common.c	yes	16	ov093	0x021e85f8	0x021e88cc	12	11	no	yes	src/ov093/handler_common.c
+partial	src/ov194/pokemontrade_save.c	yes	32	ov119	0x021dfd3c	0x021e0da0	31	22	no	yes	src/ov119/pokemontrade_save.c
+partial	src/ov209/mus_item_draw.c	yes	32	ov112	0x021f48c0	0x021f4f04	30	22	no	yes	src/ov112/mus_item_draw.c
+partial	src/ov268/br_codein_pv.c	yes	16	ov183	0x021e1244	0x021e1c14	13	11	no	yes	src/ov183/br_codein_pv.c
+partial	src/ov209/musical_mcss.c	yes	35	ov112	0x021f55f8	0x021f660c	26	24	no	yes	src/ov112/musical_mcss.c
+partial	lib/nitro/src/card/card_rom.c	yes	19	main	0x02076bbc	0x020773c4	15	13	no	yes	lib/nitro/src/card/card_rom.c
+partial	src/gfl/net_irc_wireless.c	yes	19	main	0x0203d8f0	0x0203e5ac	18	13	no	yes	lib/gfl/src/net_irc_wireless.c
+partial	src/ov301/zukan_open.c	yes	19	ov211	0x021bc240	0x021bc8bc	19	13	no	yes	src/ov211/zukan_open.c
+partial	src/gfl/clact.c	yes	209	main	0x0204a5ac	0x0204e130	210	143	no	no	lib/gfl/src/clact.c
+partial	lib/dwc/src/gscommon/gsPlatformUtil.c	yes	25	ov009	0x0217f150	0x0217fd7c	23	17	no	yes	lib/dwc/src/gscommon/gsPlatformUtil.c
+partial	src/ov203/wf2dmap_objdraw.c	yes	25	ov127	0x021c5590	0x021c5994	25	17	no	yes	src/ov127/wf2dmap_objdraw.c
+partial	src/ov271/br_btn.c	yes	56	ov186	0x021f9f48	0x021fb5e4	55	38	no	yes	src/ov186/br_btn.c
+partial	src/ov036/field_msgbg.c	yes	177	ov021	0x0219027c	0x021932c0	175	120	no	yes	src/ov021/field_msgbg.c,src/ov021/ov021_021929e8.c
+partial	src/ov036/field_player_core.c	yes	65	ov021	0x021a36e4	0x021a4140	65	44	no	yes	src/ov021/field_player_core.c
+partial	src/ov036/fldmmdl_movecode_pair.c	yes	68	ov021	0x0219b8bc	0x0219c4ac	67	46	no	no	src/ov021/ov021_02198d94.c
+partial	src/system/iss_3ds_sys.c	yes	37	main	0x0202b914	0x0202be68	31	25	no	yes	src/system/iss_3ds_sys.c
+partial	src/ov012/fldmmdl.c	yes	270	ov010	0x0216cd88	0x0216e62c	247	182	no	yes	src/ov010/fldmmdl.c
+partial	src/ov253/mictest.c	yes	46	ov168	0x02183b60	0x02184868	46	31	no	yes	src/ov168/mictest.c
+partial	src/ov260/wifibattlematch_link_competition.c	yes	46	ov175	0x021d6b38	0x021d9dc8	44	31	no	yes	src/ov175/wifibattlematch_link_competition.c
+partial	src/ov012/scrcmd_game_state.c	yes	55	ov010	0x0215aa60	0x0215b4ac	48	37	no	no	src/ov010/scrcmd_game_state.c
+partial	src/ov180/irc_ranking.c	yes	70	ov106	0x021b7798	0x021b9490	69	47	no	yes	src/ov106/irc_ranking.c
+partial	src/ov167/btl_main.c	yes	231	ov093	0x021b64cc	0x021ba820	206	155	no	yes	src/ov093/btl_main.c
+partial	lib/dwc/src/ghttp/ghttpPost.c	yes	21	ov114	0x021c235c	0x021c3834	20	14	no	yes	lib/dwc/src/ghttp/ghttpPost.c
+partial	lib/dwc/src/gp/gpiUtility.c	yes	9	ov009	0x0219327c	0x021937d0	9	6	no	yes	lib/dwc/src/gs/gp/gpiUtility.c,lib/dwc/src/gs/gstats/gbucket.c
+partial	lib/msl/src/pool_alloc.c	yes	3	main	0x0209138c	0x020913d0	3	2	no	yes	lib/msl/src/alloc.c
+partial	lib/nitro/src/fs/fs_memfile.c	yes	3	main	0x0207a890	0x0207a980	2	2	yes	yes	lib/nitro/src/fs/fs_proc_mem.c
+partial	lib/nitro/src/fs/fs_overlay.c	yes	12	main	0x02078c40	0x02079304	12	8	no	yes	lib/nitro/src/fs/fs_file.c,lib/nitro/src/fs/fs_overlay.c
+partial	lib/nitro/src/mb/mb_cache.c	yes	3	ov107	0x021f636c	0x021f6480	3	2	no	yes	lib/nitro/src/mb/mb_cache.c
+partial	lib/nitro/src/os/os_reset_pxi.c	yes	3	main	0x02084a38	0x02084ab0	2	2	yes	yes	lib/nitro/src/os/os_reset_pxi.c
+partial	lib/nitro/src/std/std_sprintf.c	yes	6	main	0x0208d708	0x0208d80c	4	4	yes	yes	lib/nitro/src/std/std_sprintf.c
+partial	lib/nitrowifi/src/soc/socl_list.c	yes	9	ov009	0x0215f2dc	0x0215f428	9	6	no	yes	lib/nitrowifi/src/soc/socl_list.c
+partial	lib/nnsys/src/gfd/gfd_FramePlttVramMan.c	yes	3	main	0x02061808	0x02061840	2	2	yes	yes	lib/nnsys/src/gfd/VramManager/gfd_FramePlttVramMan.c
+partial	src/ov002/event_wifibattlematch.c	yes	3	ov002	0x021543e8	0x0215444c	2	2	yes	yes	src/ov002/event_wifibattlematch.c
+partial	src/ov012/event_cgear_poweron.c	yes	3	ov010	0x02168b18	0x02168bf0	3	2	no	yes	src/ov010/event_cgear_poweron.c
+partial	src/ov012/event_trial_house.c	yes	6	ov010	0x02168bf0	0x02168eb0	5	4	no	yes	src/ov010/event_trial_house.c
+partial	src/ov012/musical_stage_sys.c	yes	9	ov010	0x02156f24	0x02157028	7	6	no	yes	src/ov010/musical_stage_sys.c
+partial	src/ov012/script_work.c	yes	31	ov010	0x02158e54	0x02159130	33	22	no	yes	src/ov010/script_work.c
+partial	src/ov033/event_fishing.c	yes	9	ov021	0x021c5fa8	0x021c6068	6	6	yes	yes	src/ov021/event_fishing.c
+partial	src/ov033/event_fly.c	yes	3	ov021	0x021c82c4	0x021c8608	2	2	yes	yes	src/ov021/event_fly.c
+partial	src/ov033/event_game_manual.c	yes	3	ov021	0x021d30b8	0x021d317c	3	2	no	yes	src/ov021/event_game_manual.c
+partial	src/ov036/fld_exp_obj.c	yes	24	ov021	0x021be2a8	0x021be760	20	16	no	yes	src/ov021/fld_exp_obj.c
+partial	src/ov036/fld_scenearea.c	yes	12	ov021	0x021ab5f4	0x021ab7e4	12	8	no	yes	src/ov021/fld_scenearea.c
+partial	src/ov036/land_data_patch.c	yes	6	ov021	0x021c93e4	0x021c94bc	4	4	yes	yes	src/ov021/ov021_021c93d0.c
+partial	src/ov036/scrcmd_fade.c	yes	18	ov021	0x021b2830	0x021b2a90	13	12	no	yes	src/ov021/scrcmd_fade.c
+partial	src/ov036/scrcmd_mapchange.c	yes	9	ov021	0x021afcd8	0x021b0084	8	6	no	yes	src/ov021/scrcmd_mapchange.c
+partial	src/ov108/field_gimmick_bsubway.c	yes	12	ov052	0x021f36c0	0x021f39cc	12	8	no	yes	src/ov052/field_gimmick_bsubway.c
+partial	src/ov110/gimmick_tubeline_bridge.c	yes	9	ov054	0x021f36c0	0x021f393c	8	6	no	yes	src/ov054/gimmick_tubeline_bridge.c
+partial	src/ov139/print_msg.c	yes	3	ov067	0x021b6ae4	0x021b6c74	3	2	no	yes	src/ov067/print_msg.c
+partial	src/ov162/boot_screens.c	yes	3	ov088	0x021bc9c0	0x021bcccc	3	2	no	yes	src/ov088/boot_screens.c
+partial	src/ov168/btlv_effvm.c	yes	138	ov094	0x021f9478	0x021feac0	135	92	no	no	src/ov094/btlv_effvm.c
+partial	src/ov191/wifi_bsubway_graphic.c	yes	6	ov116	0x021d821c	0x021d839c	5	4	no	yes	src/ov116/wifi_bsubway_graphic.c
+partial	src/ov209/sta_act_button.c	yes	6	ov132	0x021fa5b0	0x021faaf4	6	4	no	yes	src/ov132/sta_act_button.c
+partial	src/ov209/sta_act_effect.c	yes	9	ov132	0x021f9e50	0x021f9fec	9	6	no	yes	src/ov132/sta_act_effect.c
+partial	src/ov214/worldtrade_status.c	yes	3	ov135	0x021ff65c	0x021ff6a4	2	2	yes	yes	src/ov135/worldtrade_status.c
+partial	src/ov255/box2.c	yes	3	ov170	0x021dc900	0x021dc94c	2	2	yes	yes	src/ov170/box2.c
+partial	src/ov256/dendou_pc.c	yes	3	ov171	0x021dc860	0x021dc8b8	3	2	no	yes	src/ov171/dendou_pc.c
+partial	src/ov281/prof_word.c	yes	6	ov194	0x021f5354	0x021f5524	5	4	no	yes	src/ov194/prof_word.c
+partial	src/ov295/battle_lose_message.c	yes	6	ov205	0x021b9bac	0x021b9e50	6	4	no	yes	src/ov205/battle_lose_message.c
+partial	src/ov300/zukansearch.c	yes	3	ov210	0x021bc240	0x021bc294	3	2	no	yes	src/ov210/zukansearch.c
+partial	src/ov319/manual_common.c	yes	6	ov225	0x021b9dec	0x021b9f20	4	4	yes	yes	src/ov225/manual_common.c
+partial	src/system/battle_video_proc.c	yes	3	main	0x02010bb8	0x02010db4	3	2	no	yes	src/system/battle_video_proc.c
+partial	src/system/cgear_picture_save.c	yes	3	main	0x0200c6e4	0x0200c720	3	2	no	yes	src/system/cgear_picture_save.c
+partial	src/system/country_region.c	yes	12	main	0x02025b3c	0x02025c74	11	8	no	yes	src/system/country_region.c
+partial	src/system/game_sync_settings_proc.c	yes	3	main	0x02010a5c	0x02010bb8	3	2	no	yes	src/system/game_sync_settings_proc.c
+partial	src/system/iss_zone_sys.c	yes	12	main	0x0202be68	0x0202c070	12	8	no	yes	src/system/iss_zone_sys.c
+partial	src/system/playtime_ctrl.c	yes	3	main	0x02021444	0x02021518	2	2	yes	yes	src/system/playtime_ctrl.c
+partial	src/system/pms_draw.c	yes	30	main	0x0202dbc4	0x0202e430	28	20	no	yes	src/system/pms_draw.c
+partial	src/system/pokedex_skin_save.c	yes	6	main	0x0200e8b0	0x0200e8e8	6	4	no	yes	src/system/pokedex_skin_save.c
+partial	src/system/snd_mic.c	yes	9	main	0x02006d44	0x02006e40	7	6	no	yes	src/system/snd_mic.c
+partial	src/system/trainer_card_savedata.c	yes	3	main	0x02008c28	0x02008c64	2	2	yes	yes	src/system/trainer_card_savedata.c
+partial	src/ov181/mb_comm_sys.c	yes	47	ov107	0x021f0efc	0x021f1404	42	31	no	yes	src/ov107/mb_comm_sys.c
+partial	src/ov177/irc_sync_check.c	yes	79	ov103	0x021b7560	0x021b9214	78	52	no	yes	src/ov103/irc_sync_check.c
+partial	src/gfl/net_handle.c	yes	32	main	0x02039658	0x0203a494	31	21	no	yes	lib/gfl/src/net_handle.c
+partial	src/ov036/fieldmap_event.c	yes	55	ov021	0x0218a074	0x0218b6f8	51	36	no	yes	src/ov021/fieldmap_event.c
+partial	src/gfl/backup_system.c	yes	52	main	0x020316c8	0x02033534	52	34	no	yes	lib/gfl/src/backup_system.c
+partial	src/system/ica_anime.c	no	23	main	0x02011428	0x02011d28	22	15	no	yes	src/system/ica_anime.c
+partial	src/gfl/g3d_system.c	yes	66	main	0x02046440	0x02047cfc	66	43	no	yes	lib/gfl/src/g3d_system.c
+partial	lib/nitro/src/wm/wm_system.c	yes	20	main	0x0208e010	0x0208ea80	17	13	no	yes	lib/nitro/src/wm/wm_system.c,src/main/main_0208ea4c.c
+partial	src/gfl/g3d_camera.c	yes	20	main	0x02048a24	0x02048ba8	17	13	no	yes	lib/gfl/src/g3d_camera.c
+partial	src/ov271/br_res.c	yes	20	ov186	0x021fb92c	0x021fc31c	15	13	no	yes	src/ov186/br_res.c
+partial	src/system/game_event.c	yes	17	main	0x020122c0	0x020124e4	13	11	no	yes	src/system/game_event.c
+partial	src/ov178/irc_rhythm_check.c	yes	73	ov104	0x021b7560	0x021b8f24	73	47	no	yes	src/ov104/irc_rhythm_check.c
+partial	lib/nitro/src/spi/tp.c	yes	14	main	0x0208a6b0	0x0208b238	13	9	no	yes	lib/nitro/src/spi/tp.c
+partial	src/system/ringtone_sys.c	yes	14	main	0x02029f14	0x0202a0e8	13	9	no	yes	src/system/ringtone_sys.c
+partial	src/system/symbol_save.c	yes	14	main	0x0200e024	0x0200e2bc	13	9	no	yes	src/system/symbol_save.c
+partial	src/ov310/circle_graph.c	yes	64	ov217	0x021c10c8	0x021c2070	64	41	no	yes	src/ov217/circle_graph.c
+partial	src/gfl/arc_tool.c	no	25	main	0x02048cec	0x02049624	25	16	no	yes	lib/gfl/src/arc_tool.c
+partial	src/ov310/arrow.c	yes	25	ov217	0x021c2070	0x021c2644	25	16	no	yes	src/ov217/arrow.c
+partial	lib/dwc/src/gscommon/gsCore.c	yes	11	ov009	0x0217ca2c	0x0217cf5c	10	7	no	yes	lib/dwc/src/gs/core.c
+partial	lib/nitro/src/os/os_arena.c	yes	11	main	0x020863e0	0x020867f4	9	7	no	yes	lib/nitro/src/os/os_arena.c
+partial	lib/nitro/src/std/std_string.c	yes	11	main	0x0208cadc	0x0208cf84	9	7	no	yes	lib/nitro/src/std/std_string.c
+partial	lib/nnsys/src/fnd/allocator.c	yes	11	main	0x0206128c	0x02061370	11	7	no	yes	lib/nnsys/src/fnd/allocator.c
+partial	lib/nnsys/src/snd/snd_heap.c	yes	11	main	0x020746e8	0x02074a54	10	7	no	yes	lib/nnsys/src/snd/snd_heap.c
+partial	src/gfl/net_ring_buff.c	yes	11	main	0x0203640c	0x0203666c	10	7	no	yes	lib/gfl/src/net_ring_buff.c
+partial	src/ov012/delivery_beacon.c	yes	22	ov010	0x0215766c	0x02157948	18	14	no	yes	src/ov010/delivery_beacon.c
+partial	src/ov012/trainer_script.c	yes	11	ov010	0x0215a438	0x0215a4d8	7	7	yes	yes	src/ov010/trainer_script.c
+partial	src/ov036/field_zonefog.c	yes	11	ov021	0x021a02f4	0x021a03cc	9	7	no	yes	src/ov021/local_tvt_callselect.c,src/ov021/ov021_021a02f4.c,src/ov021/ov021_021a0390.c
+partial	src/ov265/ddemo_main.c	yes	44	ov180	0x021b61d4	0x021b6a10	39	28	no	yes	src/ov180/ddemo_main.c
+partial	src/ov319/manual_data.c	yes	22	ov225	0x021b9ba4	0x021b9d18	21	14	no	yes	src/ov225/manual_data.c
+partial	src/ov139/touchbar.c	yes	41	ov067	0x021b62e0	0x021b6ae4	41	26	no	yes	src/ov067/touchbar.c
+partial	src/gfl/procsys.c	yes	19	main	0x0203129c	0x020316c8	19	12	no	yes	lib/gfl/src/procsys.c
+partial	src/ov104/gimmick_obj_elboard.c	yes	19	ov048	0x021f472c	0x021f4e5c	18	12	no	yes	src/ov048/gimmick_obj_elboard.c
+partial	src/ov167/btl_server_cmd.c	yes	19	ov093	0x021ccad4	0x021cd6ec	17	12	no	yes	src/ov093/btl_server_cmd.c
+partial	src/system/app_taskmenu.c	yes	38	main	0x02027778	0x02028454	35	24	no	yes	src/system/app_taskmenu.c
+partial	src/system/poke_tool.c	yes	129	main	0x020173e8	0x02019d84	112	81	no	no	src/system/poke_tool.c
+partial	src/ov036/field_player_grid.c	yes	99	ov021	0x021a41b0	0x021a5810	96	62	no	yes	src/ov021/field_player_grid.c
+partial	lib/dwc/src/ghttp/ghttpMain.c	no	16	ov114	0x021c1d30	0x021c2338	13	10	no	yes	lib/dwc/src/ghttp/ghttpMain.c
+partial	lib/dwc/src/gscommon/gsMemory.c	yes	8	ov009	0x0217ea7c	0x0217eb00	5	5	yes	yes	lib/dwc/src/gs/memory.c
+partial	src/ov033/event_pc.c	yes	8	ov021	0x021c96cc	0x021c9924	6	5	no	yes	src/ov021/event_pc.c
+partial	src/ov172/pdc_msg.c	yes	16	ov098	0x021b68dc	0x021b6cdc	14	10	no	yes	src/ov098/pdc_msg.c
+partial	src/ov197/mystery_net.c	yes	40	ov121	0x021de2a0	0x021def6c	40	25	no	yes	src/ov121/mystery_net.c
+partial	src/ov203/wf2dmap_map.c	yes	8	ov127	0x021c47a0	0x021c4880	8	5	no	yes	src/ov127/wf2dmap_map.c
+partial	src/ov314/chihou_zukan_award.c	yes	16	ov221	0x021b9748	0x021b9dd4	15	10	no	yes	src/ov221/chihou_zukan_award.c
+partial	src/system/daycare_savedata.c	yes	16	main	0x0200bc10	0x0200bdbc	14	10	no	yes	src/system/daycare_savedata.c
+partial	src/system/str_tool.c	yes	8	main	0x0201f35c	0x0201f53c	5	5	yes	yes	src/system/str_tool.c
+partial	src/ov036/scrcmd_fldmmdl.c	yes	50	ov021	0x021b1668	0x021b2380	39	31	no	yes	src/ov021/scrcmd_fldmmdl.c
+partial	src/ov050/scrcmd_bsubway.c	yes	21	ov021	0x021ca544	0x021cbd08	20	13	no	yes	src/ov021/ov021_021ca544.c
+partial	src/ov088/c_gear_power_onoff.c	yes	21	ov035	0x021efec0	0x021f0370	17	13	no	yes	src/ov035/c_gear_power_onoff.c
+partial	src/gfl/net.c	yes	74	main	0x0203cb34	0x0203d8f0	76	47	no	yes	lib/gfl/src/net.c
+partial	lib/nitro/src/os/os_system.c	yes	13	main	0x02087974	0x02087a04	8	8	yes	yes	lib/nitro/src/os/os_system.c
+partial	src/ov012/event_ircbattle.c	yes	13	ov010	0x02155160	0x02155a98	13	8	no	yes	src/ov010/event_ircbattle.c
+partial	src/ov143/monolith_record.c	yes	13	ov071	0x021b889c	0x021b8ee8	12	8	no	yes	src/ov071/monolith_record.c
+partial	src/ov216/guru2.c	yes	13	ov137	0x021dc860	0x021dcafc	13	8	no	yes	src/ov137/guru2.c
+partial	src/ov293/demo3d_data.c	yes	13	ov203	0x021be7a8	0x021be990	10	8	no	yes	src/ov203/demo3d_data.c
+partial	src/ov295/game_clear_save.c	yes	13	ov205	0x021b9874	0x021b9bac	11	8	no	yes	src/ov205/game_clear_save.c
+partial	src/ov298/zukan_detail_headbar.c	yes	13	ov208	0x021be710	0x021bea00	13	8	no	yes	src/ov208/zukan_detail_headbar.c
+partial	src/ov209/script_command.c	yes	70	ov132	0x021fae1c	0x021fc644	68	43	no	yes	src/ov132/script_command.c
+partial	lib/dwc/src/gscommon/gsLargeInt.c	no	18	ov009	0x0217d3ac	0x0217ea58	18	11	no	yes	lib/dwc/src/gs/largeint.c
+partial	src/ov028/colosseum.c	yes	18	ov012	0x02175094	0x02175358	15	11	no	yes	src/ov012/colosseum.c
+partial	src/ov036/field_flash.c	yes	18	ov021	0x021c7dac	0x021c7f70	18	11	no	yes	src/ov021/field_flash.c,src/ov021/ov021_021c7de0.c
+partial	lib/nitrowifi/src/soc/soc.c	no	23	ov009	0x0215f428	0x0215fbcc	22	14	no	no	lib/nitrowifi/src/soc/soc.c
+partial	src/ov034/union_actor.c	yes	23	ov019	0x0217ae38	0x0217b75c	22	14	no	yes	src/ov019/union_actor.c
+partial	src/ov310/palette_anime.c	yes	28	ov217	0x021c2a18	0x021c2e30	20	17	no	yes	src/ov217/palette_anime.c
+partial	src/ov036/field_effect.c	yes	38	ov021	0x021abde8	0x021ac218	37	23	no	yes	src/ov021/field_effect.c
+partial	lib/dwc/src/gscommon/gsDebug.c	yes	5	ov009	0x0217d188	0x0217d3ac	5	3	no	yes	lib/dwc/src/gs/gsiDebug.c
+partial	lib/dwc/src/sake/sakeRequestRead.c	yes	25	ov175	0x021de14c	0x021dee3c	25	15	no	yes	src/ov175/ov175_021dd1ec.c
+partial	lib/nitro/src/card/card_backup.c	yes	10	main	0x02076540	0x02076bbc	10	6	no	yes	lib/nitro/src/card/card_backup.c
+partial	lib/nitro/src/fs/fs_file.c	yes	15	main	0x020788ac	0x02078c18	11	9	no	yes	lib/nitro/src/fs/fs_file.c
+partial	lib/nitro/src/os/os_terminate_proc.c	yes	5	main	0x02088234	0x020882dc	3	3	yes	yes	lib/nitro/src/os/os_terminate_proc.c
+partial	lib/nitro/src/wm/wm_ds.c	yes	10	main	0x0209028c	0x02090b9c	9	6	no	yes	lib/nitro/src/wm/wm_ds.c
+partial	lib/nitrowifi/src/soc/socl_misc.c	no	5	ov009	0x0215f0c8	0x0215f2dc	5	3	no	yes	lib/nitrowifi/src/soc/socl_misc.c,lib/nitrowifi/src/soc/socl_list.c
+partial	lib/nnsys/src/g2d/g2d_NAN_load.c	yes	5	main	0x02062634	0x020627f0	5	3	no	yes	lib/nnsys/src/g2d/load/g2d_NAN_load.c
+partial	lib/nnsys/src/g3d/model.c	yes	10	main	0x0206e394	0x0206e62c	6	6	yes	yes	lib/nnsys/src/g3d/model.c
+partial	src/ov012/event_3d_demo.c	yes	5	ov010	0x02161c84	0x02161d64	3	3	yes	yes	src/ov010/event_3d_demo.c
+partial	src/ov033/entree_forest.c	yes	5	ov018	0x0217c1d0	0x0217c458	5	3	no	yes	src/ov018/entree_forest.c
+partial	src/ov036/fieldmap_ctrl_grid.c	yes	5	ov021	0x021a2d88	0x021a2e50	5	3	no	yes	src/ov021/fieldmap_ctrl_grid.c
+partial	src/ov036/fldeff_gyoe.c	yes	15	ov021	0x021bb4bc	0x021bb890	13	9	no	yes	src/ov021/fldeff_gyoe.c
+partial	src/ov036/scrcmd_item.c	yes	10	ov021	0x021af544	0x021af75c	9	6	no	yes	src/ov021/scrcmd_item.c
+partial	src/ov162/save_control_intr.c	yes	10	ov088	0x021bd29c	0x021bd3d4	9	6	no	yes	src/ov088/save_control_intr.c
+partial	src/ov182/dwc_raputil.c	yes	5	ov016	0x021b6100	0x021b6190	4	3	no	yes	src/ov016/dwc_raputil.c
+partial	src/ov209/mus_shot_photo.c	yes	10	ov112	0x021f3af0	0x021f40f4	8	6	no	yes	src/ov112/mus_shot_photo.c
+partial	src/ov257/ctvt_draw.c	yes	15	ov172	0x021ba8c4	0x021bba6c	11	9	no	yes	src/ov172/ctvt_draw.c
+partial	src/ov319/manual_top.c	yes	10	ov225	0x021bb2b4	0x021bb6e0	10	6	no	yes	src/ov225/manual_top.c
+partial	src/system/c_gear_phrase_savedata.c	yes	5	main	0x0200e6b4	0x0200e730	5	3	no	yes	src/system/c_gear_phrase_savedata.c
+partial	src/system/dsi.c	yes	5	main	0x0202eb14	0x0202eb7c	4	3	no	yes	src/system/dsi.c
+partial	src/system/gds_profile.c	yes	15	main	0x0200d59c	0x0200d858	15	9	no	yes	src/system/gds_profile.c
+partial	src/system/gimmick_savedata.c	yes	10	main	0x0200b364	0x0200b3dc	9	6	no	yes	src/system/gimmick_savedata.c
+partial	src/system/playtime.c	yes	15	main	0x0200857c	0x02008700	15	9	no	yes	src/system/playtime.c
+partial	src/system/union_view.c	yes	5	main	0x02025c74	0x02025cd0	4	3	no	yes	src/system/union_view.c
+partial	src/system/zonedata.c	yes	72	main	0x02013a48	0x02014068	59	43	no	yes	src/ov169/btl_tables.c
+partial	src/ov167/btlv_scu.c	yes	124	ov093	0x021eb1d8	0x021ee5e4	118	74	no	no	src/ov093/btlv_scu.c
+partial	src/ov197/mystery.c	yes	57	ov121	0x021d6888	0x021d9554	54	34	no	yes	src/ov121/mystery.c
+partial	src/ov280/namein.c	yes	111	ov194	0x021f1878	0x021f46f4	95	66	no	yes	src/ov194/ctvt_game_cam.c
+partial	src/ov012/scrcmd_vm.c	yes	59	ov010	0x02159248	0x02159b10	57	35	no	yes	src/ov010/scrcmd_vm.c
+partial	src/ov102/gimmick_roller_coaster.c	yes	27	ov039	0x021f36c0	0x021f4bc4	27	16	no	yes	src/ov039/gimmick_roller_coaster.c
+partial	lib/nitro/src/os/os_spinLock.c	yes	22	main	0x02084ab0	0x02084f40	22	13	no	yes	lib/nitro/src/os/os_spinLock.c,lib/nitro/src/os/os_reset_pxi.c
+partial	src/ov012/hiden_event.c	yes	44	ov010	0x0215ea14	0x0215f168	42	26	no	no	src/ov010/hiden_event.c
+partial	src/ov028/union_receive.c	yes	44	ov012	0x021739a8	0x0217413c	40	26	no	yes	src/ov012/union_receive.c
+partial	lib/nitrowifi/src/wcm/wcm_system.c	yes	39	ov009	0x02164d64	0x02165b80	25	23	no	yes	lib/nitrowifi/src/wcm/wcm.c
+partial	src/gfl/touchpanel.c	yes	34	main	0x02035760	0x02035ee8	33	20	no	yes	lib/gfl/src/touchpanel.c
+partial	src/ov036/fldmmdl_evtype.c	yes	17	ov021	0x0219b41c	0x0219b8bc	16	10	no	yes	src/ov021/ov021_02198d94.c
+partial	src/ov271/br_pokesearch.c	yes	17	ov186	0x021ffc6c	0x02200188	14	10	no	yes	src/ov186/br_pokesearch.c
+partial	src/system/mail.c	yes	26	main	0x02008eac	0x020090b0	29	17	no	yes	src/system/mail.c
+partial	src/ov132/gimmick_dragonspiral_tower_9.c	yes	12	ov064	0x021f37b8	0x021f3c04	9	7	no	yes	src/ov064/gimmick_dragonspiral_tower_9.c
+partial	src/ov203/wf2dmap_judge.c	yes	12	ov127	0x021c5370	0x021c5590	12	7	no	yes	src/ov127/wf2dmap_judge.c
+partial	src/ov207/p_sta_info.c	yes	12	ov131	0x021d7b34	0x021d8288	9	7	no	yes	src/ov131/p_sta_info.c
+partial	src/ov257/ctvt_mic.c	yes	24	ov172	0x021ba01c	0x021ba280	22	14	no	yes	src/ov172/ctvt_mic.c
+partial	src/ov272/br_main.c	yes	12	ov187	0x0220af40	0x0220b164	9	7	no	yes	src/ov187/br_main.c
+partial	src/system/iss_road_sys.c	yes	12	main	0x0202b20c	0x0202b2cc	7	7	yes	yes	src/system/iss_road_sys.c
+partial	src/ov036/field_fade.c	yes	43	ov021	0x021bf5e8	0x021c05d4	39	25	no	no	src/ov021/ov021_021be89c.c,src/ov021/height_ex.c
+partial	src/gfl/net_command.c	yes	19	main	0x0203a494	0x0203ad74	19	11	no	yes	lib/gfl/src/net_command.c
+partial	src/ov036/field_buildmodel.c	yes	85	ov021	0x0218b910	0x0218c9e8	84	49	no	yes	src/ov021/field_buildmodel.c
+partial	src/system/battle_rec.c	yes	33	main	0x0200b400	0x0200ba58	29	19	no	yes	src/system/battle_rec.c
+partial	lib/nitro/src/os/os_reset_itcm.c	yes	7	itcm	0x01ff836c	0x01ff87d4	6	4	no	yes	
+partial	src/ov011/dwc_rapcommon.c	yes	14	ov009	0x02156e24	0x02157170	12	8	no	yes	src/ov009/dwc_rapcommon.c
+partial	src/ov012/respawn_zone.c	yes	7	ov010	0x02159f94	0x0215a07c	6	4	no	yes	src/ov010/respawn_zone.c
+partial	src/ov033/event_dive.c	yes	7	ov021	0x021d2278	0x021d2468	4	4	yes	yes	src/ov021/event_dive.c
+partial	src/ov036/fld_wipe_3dobj.c	yes	7	ov021	0x021c8054	0x021c81f8	5	4	no	yes	src/ov021/fld_wipe_3dobj.c,src/ov021/ov021_021c812c.c
+partial	src/ov036/height_ex.c	yes	14	ov021	0x021c05d4	0x021c0820	14	8	no	yes	src/ov021/gimmick_league_champion.c,src/ov021/height_ex.c,src/ov021/ov021_021c06a8.c
+partial	src/ov036/scrcmd_field.c	yes	7	ov021	0x021d1aec	0x021d1c24	4	4	yes	yes	src/ov021/field_actor_animation.c
+partial	src/ov104/field_gimmick_gate.c	yes	48	ov048	0x021f374c	0x021f4698	49	28	no	yes	src/ov048/field_gimmick_gate.c
+partial	src/ov168/btlv_finger_cursor.c	yes	7	ov094	0x02209b30	0x02209ce8	6	4	no	yes	src/ov094/btlv_finger_cursor.c
+partial	src/ov173/wifi_p2pmatch_net.c	yes	7	ov099	0x021ba7d4	0x021ba810	6	4	no	yes	src/ov099/wifi_p2pmatch_net.c
+partial	src/ov197/mystery_util.c	yes	56	ov121	0x021d99a4	0x021dac18	56	32	no	yes	src/ov121/mystery_util.c
+partial	src/ov302/zukan_search_engine.c	yes	7	ov212	0x021c9428	0x021c9938	7	4	no	yes	src/ov212/zukan_search_engine.c
+partial	src/ov313/th_award.c	yes	14	ov220	0x021b9770	0x021ba0d8	13	8	no	yes	src/ov220/th_award.c
+partial	src/system/field_sound.c	yes	13	main	0x02029cf0	0x02029f14	14	8	no	yes	src/system/field_sound.c
+partial	src/system/pml_item.c	yes	28	main	0x02020f08	0x0202142c	22	16	no	yes	src/system/pml_item.c
+partial	src/ov167/ability_handlers.c	yes	442	ov093	0x021d8484	0x021dcec4	428	252	no	yes	src/ov093/ability_handlers.c
+partial	src/ov197/mystery_graphic.c	yes	23	ov121	0x021d9580	0x021d99a4	23	13	no	yes	src/ov121/mystery_graphic.c
+partial	src/ov257/ctvt_call.c	yes	16	ov172	0x021bbe5c	0x021bd1ac	12	9	no	yes	src/ov172/ctvt_call.c
+partial	src/ov310/research_top.c	yes	96	ov217	0x021b9b08	0x021bab68	92	54	no	yes	src/ov217/research_top.c
+partial	src/system/iss_dungeon_sys.c	yes	16	main	0x0202b2cc	0x0202b4bc	16	9	no	yes	src/system/iss_dungeon_sys.c
+partial	src/system/wih_dwc.c	yes	16	main	0x0201042c	0x02010884	13	9	no	yes	src/system/wih_dwc.c
+partial	src/ov189/nhttp_rap.c	yes	25	ov114	0x021b95a0	0x021b9a1c	20	14	no	yes	src/ov114/nhttp_rap.c
+partial	lib/nnsys/src/g2d/g2d_CharCanvas.c	yes	18	main	0x020682dc	0x020691e0	16	10	no	yes	lib/nnsys/src/g2d/g2d_CharCanvas.c
+partial	src/ov008/event_wificlub.c	yes	9	ov006	0x0215444c	0x02154c20	7	5	no	yes	src/ov006/event_wificlub.c
+partial	src/ov012/scrcmd_stadium.c	yes	9	ov010	0x0215f318	0x0215f64c	8	5	no	yes	src/ov010/scrcmd_stadium.c
+partial	src/ov036/field_water_current.c	yes	18	ov021	0x021c8b9c	0x021c8e68	18	10	no	yes	src/ov021/ov021_021c8984.c
+partial	src/ov036/fldeff_ripple.c	yes	9	ov021	0x021c47fc	0x021c4974	6	5	no	yes	src/ov021/fldeff_ripple.c
+partial	src/ov036/fldeff_shadow.c	yes	9	ov021	0x021ac2ac	0x021ac3f8	5	5	yes	yes	src/ov021/fldeff_shadow.c
+partial	src/ov036/scrcmd_encount.c	yes	9	ov021	0x021b5094	0x021b51bc	6	5	no	yes	src/ov021/scrcmd_encount.c
+partial	src/ov185/pmsi_initial_data.c	yes	9	ov110	0x021bb1f4	0x021bb250	5	5	yes	yes	src/ov110/pmsi_initial_data.c
+partial	src/ov287/b_plist_cursor.c	yes	9	ov198	0x02211998	0x02211a40	5	5	yes	yes	src/ov198/b_plist_cursor.c
+partial	src/system/field_actor_savedata.c	yes	9	main	0x0200ee48	0x0200f0cc	6	5	no	yes	src/system/field_actor_savedata.c
+partial	src/system/time_icon.c	yes	9	main	0x0202ee30	0x0202f114	9	5	no	yes	src/system/time_icon.c
+partial	src/system/game_beacon_accessor.c	yes	78	ov010	0x02165c10	0x0216626c	57	43	no	yes	src/ov010/game_beacon_accessor.c
+partial	src/ov298/zukan_detail_info.c	yes	20	ov208	0x021befa0	0x021bf784	14	11	no	yes	src/ov208/zukan_detail_info.c
+partial	src/system/player_savedata.c	yes	31	main	0x02008854	0x020089a8	18	17	no	yes	src/system/player_savedata.c
+partial	lib/nitro/src/mb/mb_segment.c	yes	11	ov107	0x021f2f1c	0x021f3cb8	11	6	no	yes	lib/nitro/src/mb/mb_fileinfo.c,lib/nitro/src/mb/mb_common.c
+partial	lib/nitro/src/os/os_ownerInfoEx.c	yes	11	main	0x02087d28	0x02087ea0	7	6	no	yes	lib/nitro/src/os/os_ownerInfoEx.c
+partial	src/ov156/field_pass_power.c	yes	11	ov083	0x021f5340	0x021f556c	7	6	no	yes	src/ov083/field_pass_power.c
+partial	src/ov271/br_proc_sys.c	yes	11	ov186	0x021f99cc	0x021f9cb8	11	6	no	yes	src/ov186/br_proc_sys.c
+partial	src/system/event_work.c	yes	11	main	0x020142e8	0x020143f0	7	6	no	yes	src/system/event_work.c
+partial	lib/nitro/src/gx/gx_vramcnt.c	yes	46	main	0x0207fd34	0x02080c84	46	25	no	yes	lib/nitro/src/gx/gx_vramcnt.c
+partial	src/ov209/mus_poke_draw.c	yes	24	ov112	0x021f51b0	0x021f5518	22	13	no	yes	src/ov112/mus_poke_draw.c
+partial	lib/dwc/src/gp/gpiBuffer.c	no	13	ov009	0x0218934c	0x02189d78	13	7	no	no	lib/dwc/src/gs/gp/gpiBuffer.c,lib/dwc/src/gs/gp/gpiBuddy.c
+partial	lib/nnsys/src/g2d/g2d_MultiCellAnimation.c	yes	13	main	0x02064648	0x02064e3c	12	7	no	yes	lib/nnsys/src/g2d/g2d_MultiCellAnimation.c
+partial	src/ov036/fldeff_iaigiri.c	yes	13	ov021	0x021c94bc	0x021c96cc	9	7	no	yes	src/ov021/fldeff_iaigiri.c,src/ov021/ov021_021c9550.c
+partial	src/ov036/sodateya.c	yes	65	ov021	0x021c3204	0x021c452c	65	35	no	yes	src/ov021/sodateya.c
+partial	src/ov310/queue.c	yes	13	ov217	0x021c0e08	0x021c0ef4	13	7	no	yes	src/ov217/queue.c
+partial	src/ov261/battle_championship_flow.c	yes	41	ov176	0x0217aecc	0x0217b984	37	22	no	yes	src/ov176/battle_championship_flow.c
+partial	src/ov170/tr_ai.c	yes	161	ov096	0x02187fb0	0x0218a574	160	86	no	yes	src/ov096/tr_ai.c
+partial	src/ov012/map_matrix.c	yes	15	ov010	0x02159b94	0x02159d84	15	8	no	yes	src/ov010/map_matrix.c
+partial	src/ov308/beacon_detail.c	yes	30	ov216	0x021bbe7c	0x021bc930	28	16	no	yes	src/ov216/beacon_detail.c
+partial	lib/nitro/src/init/crt0.c	no	17	main	0x02004a00	0x02005030	15	9	no	yes	
+partial	src/ov012/event_bsubway.c	yes	17	ov010	0x0216c680	0x0216cb48	13	9	no	yes	src/ov010/event_bsubway.c
+partial	src/ov143/monolith_tool.c	yes	35	ov071	0x021b6a0c	0x021b7234	38	20	no	yes	src/ov071/monolith_tool.c
+partial	src/ov036/enceff.c	yes	21	ov021	0x021cf520	0x021cfa58	17	11	no	yes	src/ov021/enceff.c
+partial	src/ov143/monolith_main.c	yes	21	ov071	0x021b64d0	0x021b69ac	17	11	no	yes	src/ov071/ov071_021b6100.c
+partial	src/ov144/townmap.c	yes	84	ov072	0x021b98f8	0x021bb6dc	79	44	no	yes	src/ov072/townmap.c
+partial	src/ov264/cdemo_script.c	yes	21	ov179	0x021b66dc	0x021b68d4	20	11	no	yes	src/ov179/cdemo_script.c
+partial	src/ov280/namein_data.c	yes	23	ov194	0x021f4d3c	0x021f513c	21	12	no	yes	src/ov194/namein_data.c
+partial	src/ov033/pdw_postman.c	yes	47	ov021	0x021b6d0c	0x021b7884	46	24	no	no	src/ov021/field_rail.c,src/ov021/pdw_postman.c,src/ov021/scrcmd_misc.c
+partial	src/ov310/research_common.c	yes	49	ov217	0x021c097c	0x021c0dc4	49	25	no	yes	src/ov217/research_common.c
+partial	src/ov036/field_rail_loader.c	yes	57	ov021	0x0219ef44	0x021a006c	56	29	no	yes	src/ov021/field_rail_loader.c
+partial	src/ov168/btlv_effect.c	no	119	ov094	0x021f745c	0x021f93f4	114	60	no	no	src/ov094/btlv_effect.c
+partial	lib/dwc/src/auth/dwc_profanity.c	no	6	ov009	0x0217bc44	0x0217c050	3	3	yes	yes	lib/dwc/src/auth/dwc_prof.c
+partial	lib/dwc/src/gp/gpiCallback.c	yes	4	ov009	0x02189d78	0x0218a1d0	4	2	no	yes	
+partial	lib/dwc/src/gp/gpiUnique.c	yes	2	ov009	0x0219305c	0x0219316c	1	1	yes	yes	lib/dwc/src/gs/gp/gpiUnique.c
+partial	lib/dwc/src/gt2/gt2Main.c	yes	22	ov009	0x02195ab4	0x02195e80	22	11	no	yes	lib/dwc/src/gs/gt2/gt2Main.c
+partial	lib/dwc/src/nhttp/nhttp_control.c	no	6	ov114	0x021bab24	0x021bacec	5	3	no	yes	lib/dwc/src/nhttp/nhttp_control.c
+partial	lib/dwc/src/nhttp/nhttp_os.c	no	8	ov114	0x021b9b64	0x021b9c60	5	4	no	yes	lib/dwc/src/nhttp/nhttp_os.c
+partial	lib/dwc/src/nhttp/nhttp_stdlib.c	yes	16	ov114	0x021ba150	0x021ba714	10	8	no	yes	lib/dwc/src/nhttp/nhttp_stdlib.c
+partial	lib/msl/src/secure_error.c	yes	2	main	0x02094750	0x02094778	1	1	yes	yes	lib/msl/src/secure_error.c
+partial	lib/nitro/src/fs/fs_api.c	yes	2	main	0x0207ad04	0x0207ad30	1	1	yes	yes	lib/nitro/src/fs/fs_api.c
+partial	lib/nitro/src/gx/gx_load2d.c	yes	42	main	0x0207e3d0	0x0207f7a0	36	21	no	yes	src/main/main_0207e3d0.c
+partial	lib/nitro/src/math/math_pop.c	yes	2	main	0x02087ea0	0x02087ea8	1	1	yes	yes	lib/nitro/src/os/os_vramExclusive.c
+partial	lib/nitro/src/wm/wm_ks.c	yes	2	main	0x02090b9c	0x02090bb8	1	1	yes	yes	lib/nitro/src/wm/wm_ks.c
+partial	lib/nnsys/src/g2d/g2d_CellAnimation.c	yes	8	main	0x0206419c	0x020643c4	7	4	no	yes	lib/nnsys/src/g2d/g2d_CellAnimation.c
+partial	lib/nnsys/src/g2d/g2d_NCG_load.c	yes	4	main	0x02062a00	0x02062a4c	2	2	yes	yes	lib/nnsys/src/g2d/load/g2d_NCG_load.c
+partial	lib/nnsys/src/g3d/gecom.c	yes	12	main	0x0206db40	0x0206de88	7	6	no	yes	lib/nnsys/src/g3d/gecom.c
+partial	lib/nnsys/src/g3d/mem.c	yes	4	main	0x0206e348	0x0206e388	3	2	no	yes	lib/nnsys/src/g3d/mem.c
+partial	lib/nnsys/src/g3d/res_struct_accessor.c	yes	4	main	0x0206e954	0x0206e9a4	2	2	yes	yes	lib/nnsys/src/g3d/binres/res_struct_accessor.c
+partial	lib/nnsys/src/g3d/util.c	yes	4	main	0x0206de88	0x0206df3c	2	2	yes	yes	lib/nnsys/src/g3d/util.c
+partial	lib/nnsys/src/gfd/gfd_PlttVramMan.c	yes	2	main	0x02061378	0x02061380	1	1	yes	yes	lib/nnsys/src/gfd/VramManager/gfd_TexVramMan.c
+partial	src/gfl/str_sjis.c	yes	2	main	0x02052274	0x020522e4	1	1	yes	yes	lib/gfl/src/str_sjis.c
+partial	src/ov001/event_gtsnego.c	yes	4	ov001	0x02154560	0x02154694	2	2	yes	yes	src/ov001/event_gtsnego.c
+partial	src/ov011/net_devwifi.c	yes	26	ov009	0x02155168	0x02155374	25	13	no	yes	src/ov009/net_devwifi.c
+partial	src/ov012/event_battle_lose.c	yes	2	ov010	0x0215f6e8	0x0215f734	1	1	yes	yes	src/ov010/event_battle_lose.c
+partial	src/ov012/scrcmd_phrase_select.c	yes	2	ov010	0x02166d30	0x02166e50	1	1	yes	yes	src/ov010/scrcmd_phrase_select.c
+partial	src/ov012/scrcmd_sp_poke_gimmick.c	yes	8	ov010	0x0216bbd4	0x0216bf74	8	4	no	yes	src/ov010/scrcmd_sp_poke_gimmick.c
+partial	src/ov018/event_research_radar.c	yes	2	ov010	0x02167044	0x02167080	1	1	yes	yes	src/ov010/event_research_radar.c
+partial	src/ov033/event_phrase_input.c	yes	6	ov021	0x021d1670	0x021d182c	3	3	yes	yes	src/ov021/event_phrase_input.c
+partial	src/ov036/field_map_chunk_rd.c	yes	2	ov021	0x02193790	0x021938ac	1	1	yes	yes	src/ov021/field_map_chunk_rd.c
+partial	src/ov036/field_palace_sys.c	yes	6	ov021	0x021d33a8	0x021d359c	6	3	no	yes	src/ov021/field_palace_sys.c
+partial	src/ov036/fieldmap_tcb_camera_zoom.c	yes	6	ov021	0x021c6b18	0x021c6c70	3	3	yes	yes	src/ov021/fieldmap_tcb_camera_zoom.c
+partial	src/ov063/scrcmd_badge_gate.c	yes	2	ov021	0x021d3068	0x021d3090	1	1	yes	yes	src/ov021/scrcmd_plugin14.c
+partial	src/ov087/report.c	yes	20	ov034	0x021eff34	0x021f09bc	16	10	no	yes	src/ov034/report.c
+partial	src/ov128/gimmick_passing_vehicles.c	yes	6	ov058	0x021f36c0	0x021f391c	4	3	no	yes	src/ov058/gimmick_passing_vehicles.c
+partial	src/ov162/game_start.c	yes	22	ov088	0x021bc3e4	0x021bc9c0	13	11	no	yes	src/ov088/game_start.c
+partial	src/ov166/event_battle_return.c	yes	10	ov092	0x021b95a0	0x021b9d44	10	5	no	yes	src/ov092/event_battle_return.c
+partial	src/ov181/mb_parent_sys.c	yes	28	ov107	0x021ee824	0x021f0754	27	14	no	yes	src/ov107/mb_parent_sys.c
+partial	src/ov185/pms_select_graphic.c	yes	14	ov110	0x021c1610	0x021c1838	11	7	no	yes	src/ov110/pms_select_graphic.c
+partial	src/ov189/nhttp_rap_evilcheck.c	yes	6	ov114	0x021b9a1c	0x021b9aa8	4	3	no	yes	src/ov114/nhttp_rap_evilcheck.c
+partial	src/ov197/mystery_check.c	yes	2	ov121	0x021def6c	0x021defac	1	1	yes	yes	src/ov121/mystery_check.c
+partial	src/ov208/dup_fitting_item.c	yes	30	ov133	0x021ba0cc	0x021ba3d8	30	15	no	yes	src/ov133/dup_fitting_item.c
+partial	src/ov214/worldtrade_demo.c	yes	6	ov135	0x021f7268	0x021f73dc	4	3	no	yes	src/ov135/worldtrade_demo.c
+partial	src/ov215/mb_ui.c	yes	10	ov136	0x021c7658	0x021c7750	9	5	no	yes	src/ov136/mb_ui.c
+partial	src/ov268/br_codein.c	yes	8	ov183	0x021e075c	0x021e0808	4	4	yes	yes	src/ov183/br_codein.c
+partial	src/ov293/demo3d.c	yes	10	ov203	0x021bdb64	0x021bdd40	6	5	no	yes	src/ov203/demo3d.c
+partial	src/ov293/demo3d_exp_c_cruiser.c	yes	4	ov203	0x021bfae4	0x021bfb3c	2	2	yes	yes	src/ov203/demo3d_exp_c_cruiser.c
+partial	src/ov293/demo3d_graphic.c	yes	24	ov203	0x021bdd40	0x021be13c	22	12	no	yes	src/ov203/demo3d_graphic.c
+partial	src/ov294/intro_particle.c	yes	4	ov204	0x021bfc24	0x021bfd20	4	2	no	yes	src/ov204/intro_particle.c
+partial	src/ov297/zukan_toroku.c	yes	6	ov207	0x0220b0a4	0x0220b318	4	3	no	yes	src/ov207/zukan_toroku.c
+partial	src/ov319/manual_category.c	yes	4	ov225	0x021bb6e0	0x021bb844	2	2	yes	yes	src/ov225/manual_category.c
+partial	src/ov319/manual_title.c	yes	4	ov225	0x021bb854	0x021bba64	2	2	yes	yes	src/ov225/manual_title.c
+partial	src/system/box_savedata.c	yes	36	main	0x0200745c	0x02007b00	33	18	no	no	src/system/box_savedata.c
+partial	src/system/btl_setup.c	yes	38	main	0x02013128	0x020138c4	28	19	no	yes	src/system/btl_setup.c
+partial	src/system/codein_param.c	yes	2	main	0x0202e4ec	0x0202e54c	1	1	yes	yes	src/system/codein_param.c
+partial	src/system/comm_player_support.c	yes	7	main	0x0202e770	0x0202e818	8	4	no	yes	src/system/comm_player_support.c
+partial	src/system/field_light_status.c	yes	4	main	0x02014a20	0x02014b08	2	2	yes	yes	src/system/field_light_status.c
+partial	src/system/file_util.c	yes	2	main	0x02020dec	0x02020e08	1	1	yes	yes	src/system/file_util.c
+partial	src/system/game_comm.c	yes	23	main	0x02026250	0x020266c0	24	12	no	yes	src/system/game_comm.c
+partial	src/system/nsbtx_to_clwk.c	yes	4	ov194	0x021f513c	0x021f51e4	2	2	yes	yes	src/ov194/nsbtx_to_clwk.c
+partial	src/system/pml_hm_check.c	yes	2	main	0x0202f738	0x0202f768	1	1	yes	yes	src/system/pml_hm_check.c
+partial	src/system/save_error.c	yes	6	main	0x0202f774	0x0202f940	4	3	no	yes	src/system/save_error.c
+partial	src/ov167/move_handlers.c	yes	620	ov093	0x021e02dc	0x021e85f8	576	306	no	yes	src/ov093/move_handlers.c
+partial	src/gfl/arc_util.c	yes	39	main	0x02049658	0x0204a48c	38	19	no	yes	lib/gfl/src/arc_util.c
+partial	src/ov271/br_net.c	yes	37	ov186	0x021ff52c	0x021ffbd4	35	18	no	yes	src/ov186/br_net.c
+partial	src/ov036/field_player_nogrid.c	yes	91	ov021	0x021a5880	0x021a6cb8	90	44	no	yes	src/ov021/field_player_nogrid.c
+partial	src/ov300/zknsearch_main.c	yes	46	ov210	0x021bc2b8	0x021bcf50	44	22	no	yes	src/ov210/zknsearch_main.c
+partial	src/ov078/weather_tint.c	yes	19	ov028	0x021ee740	0x021eea64	17	9	no	yes	src/ov028/weather_tint.c
+partial	src/ov144/townmap_grh.c	yes	19	ov072	0x021bb6e8	0x021bbafc	14	9	no	yes	src/ov072/townmap_grh.c
+partial	src/system/iss_city_sys.c	yes	38	main	0x0202ab64	0x0202aeec	32	18	no	yes	src/system/iss_city_sys.c
+partial	src/system/pml_met_data.c	yes	19	main	0x0202f190	0x0202f47c	10	9	no	yes	src/system/pml_met_data.c
+partial	src/system/pokegra.c	yes	36	main	0x0202d064	0x0202db0c	35	17	no	yes	src/system/pokegra.c
+partial	src/ov012/comm_player.c	yes	12	ov010	0x02167518	0x02167ab0	17	8	no	yes	src/ov010/comm_player.c
+partial	src/ov036/fldmmdl_rail.c	yes	64	ov021	0x0219e2c0	0x0219ef04	62	30	no	yes	src/ov021/ov021_0219d524.c
+partial	src/ov165/plist_plate.c	yes	32	ov091	0x021baae4	0x021bb594	24	15	no	yes	src/ov091/plist_plate.c
+partial	lib/nnsys/src/g3d/nsbca.c	yes	13	main	0x0206eb7c	0x0206f844	9	6	no	yes	lib/nnsys/src/g3d/anm/nsbca.c
+partial	src/ov012/itemuse_event.c	yes	13	ov010	0x021644f4	0x021646e8	11	6	no	yes	src/ov010/itemuse_event.c
+partial	src/ov261/digitalcardcheck.c	yes	24	ov176	0x0217d410	0x0217e000	22	11	no	yes	src/ov176/digitalcardcheck.c
+partial	src/ov036/field_g3d_mapper.c	yes	57	ov021	0x0218cee0	0x0218e018	52	26	no	no	src/ov021/field_g3d_mapper.c
+partial	lib/nitro/src/card/card_pull_out.c	yes	11	main	0x020773dc	0x020775b8	7	5	no	yes	lib/nitro/src/card/card_pullOut.c
+partial	src/ov012/calender.c	yes	11	ov010	0x021647f0	0x02164910	8	5	no	yes	src/ov010/calender.c
+partial	src/ov033/fld_trade.c	yes	11	ov021	0x021cc040	0x021cc544	9	5	no	yes	src/ov021/fld_trade.c
+partial	src/ov036/fldeff_hide.c	yes	11	ov021	0x021d04a4	0x021d05d8	6	5	no	yes	src/ov021/ov021_021d046c.c
+partial	src/ov168/btlv_field.c	yes	11	ov094	0x021f6d5c	0x021f6e3c	5	5	yes	yes	src/ov094/btlv_field.c
+partial	src/system/iss_switch.c	yes	31	main	0x0202c5b4	0x0202c794	19	14	no	yes	src/system/iss_switch.c
+partial	lib/dwc/src/sc/sciMain.c	yes	20	ov175	0x021df9d8	0x021dfce8	10	9	no	yes	src/ov175/ov175_021dd1ec.c
+partial	src/ov028/colosseum_comm.c	yes	29	ov012	0x02174b40	0x02174f4c	28	13	no	yes	src/ov012/colosseum_comm.c
+partial	src/ov036/scrcmd_msg.c	yes	65	ov021	0x021b03e4	0x021b162c	58	29	no	yes	src/ov021/scrcmd_msg.c
+partial	src/gfl/backup_card.c	yes	9	main	0x020335ac	0x020338f8	7	4	no	yes	lib/gfl/src/flash_access.c
+partial	src/ov036/fldeff_splash.c	yes	9	ov021	0x021c4bc4	0x021c4d14	6	4	no	yes	src/ov021/fldeff_splash.c
+partial	src/ov036/scrcmd_fld_battle.c	yes	9	ov021	0x021b5700	0x021b5a18	6	4	no	yes	src/ov021/scrcmd_fld_battle.c
+partial	src/system/main.c	yes	9	main	0x02005124	0x02005328	8	4	no	yes	src/system/main.c
+partial	src/ov271/br_core.c	yes	30	ov186	0x021f92f4	0x021f99cc	28	13	no	yes	src/ov186/br_core.c
+partial	src/ov012/namein_setup.c	yes	7	ov010	0x0216c0a4	0x0216c0e4	3	3	yes	yes	src/ov010/namein_setup.c
+partial	src/ov012/survey.c	yes	14	ov010	0x0216b970	0x0216bb70	8	6	no	no	src/ov010/survey.c
+partial	src/ov036/fieldmap_ctrl_nogrid_work.c	yes	7	ov021	0x021a6cb8	0x021a6dc0	7	3	no	yes	src/ov021/fieldmap_ctrl_nogrid_work.c
+partial	src/ov074/weather_sunny.c	yes	7	ov024	0x021ee740	0x021ee8a0	7	3	no	yes	src/ov024/weather_sunny.c
+partial	src/ov036/fld3d_ci.c	yes	54	ov021	0x021c1c04	0x021c31d4	44	23	no	yes	src/ov021/gimmick_pokewood_poster.c,src/ov021/sodateya.c,src/ov021/fld3d_ci.c
+partial	src/ov036/field_transition.c	yes	45	ov021	0x021be89c	0x021bf584	43	19	no	yes	src/ov021/ov021_021be89c.c
+partial	src/ov257/ctvt_comm.c	yes	69	ov172	0x021b8050	0x021b8c14	42	29	no	yes	src/ov172/ctvt_comm.c
+partial	src/ov162/title.c	yes	24	ov088	0x021b98bc	0x021b9f94	18	10	no	yes	src/ov088/title.c
+partial	src/ov179/irc_compat_result.c	yes	53	ov105	0x021b7560	0x021b8958	53	22	no	yes	src/ov105/irc_compat_result.c
+partial	src/ov036/scrcmd_proc_fld.c	yes	17	ov021	0x021b4d14	0x021b503c	9	7	no	yes	src/ov021/scrcmd_encount.c,src/ov021/scrcmd_proc_fld.c
+partial	src/ov260/wifibattlematch_net.c	no	100	ov175	0x021d9ed4	0x021dd020	92	41	no	yes	src/ov175/wifibattlematch_net.c
+partial	src/ov167/item_handlers.c	yes	431	ov093	0x021dcec4	0x021e02dc	425	176	no	yes	src/ov093/item_handlers.c
+partial	src/ov012/game_beacon_set.c	yes	86	ov010	0x0216505c	0x02165844	70	35	no	yes	src/ov010/game_beacon_set.c
+partial	lib/nnsys/src/g3d/nsbta.c	yes	5	main	0x02070730	0x02070948	3	2	no	yes	lib/nnsys/src/g3d/anm/nsbta.c
+partial	src/gfl/net_lower_data.c	yes	15	main	0x0203ea54	0x0203ee18	7	6	no	yes	lib/gfl/src/net_lower_data.c
+partial	src/ov012/scrcmd_ndemo.c	yes	5	ov010	0x02164978	0x021649c8	2	2	yes	yes	src/ov010/scrcmd_ndemo.c
+partial	src/ov036/effect_encount.c	yes	30	ov021	0x021aa794	0x021ab0d4	29	12	no	yes	src/ov021/effect_encount.c
+partial	src/ov036/fldmmdl_g3dobj_draw.c	yes	5	ov021	0x021a006c	0x021a00e0	2	2	yes	yes	src/ov021/ov021_021a006c.c
+partial	src/ov257/comm_tvt_sys.c	yes	75	ov172	0x021bd5d8	0x021be468	59	30	no	yes	src/ov172/comm_tvt_sys.c
+partial	src/ov260/wifibattlematch_net_fields.c	no	5	ov175	0x021dd034	0x021dd1ec	4	2	no	yes	src/ov175/wifibattlematch_net_fields.c
+partial	src/ov267/the_end_graphic.c	yes	15	ov182	0x021b9840	0x021b9b8c	14	6	no	yes	src/ov182/the_end_graphic.c
+partial	src/ov302/zukan_common.c	yes	20	ov212	0x021c9288	0x021c9428	8	8	yes	yes	src/ov212/zukan_common.c
+partial	src/ov330/event_pdc_return.c	yes	5	ov227	0x021b95d0	0x021b963c	2	2	yes	yes	src/ov227/event_pdc_return.c
+partial	src/system/pmsi_param.c	yes	20	main	0x02024128	0x0202421c	11	8	no	yes	src/system/pmsi_param.c
+partial	src/ov036/field_player.c	yes	68	ov021	0x021a2e50	0x021a3674	57	27	no	no	src/ov021/field_player.c
+partial	src/ov012/scrcmd_entree_forest.c	yes	16	ov010	0x0216abd8	0x0216b3ec	18	7	no	yes	src/ov010/scrcmd_entree_forest.c
+partial	src/ov167/btl_field.c	yes	36	ov093	0x021ef83c	0x021efcf0	28	14	no	yes	src/ov093/btl_field.c
+partial	src/ov012/event_shortcut_menu.c	yes	13	ov010	0x0215ff34	0x0216075c	12	5	no	yes	src/ov010/event_shortcut_menu.c
+partial	src/ov036/fldmmdl_g3dobj.c	yes	91	ov021	0x0219d448	0x0219e084	89	35	no	no	src/ov021/fldmmdl_g3dobj.c,src/ov021/ov021_0219d524.c
+partial	src/system/bmp_menulist.c	yes	26	main	0x0202020c	0x02020d18	24	10	no	yes	src/system/bmp_menulist.c
+partial	src/system/wordset.c	yes	52	main	0x0201ec64	0x0201f344	45	20	no	yes	src/system/wordset.c
+partial	src/ov012/scrcmd_proc.c	yes	21	ov010	0x0215c5ec	0x0215cc4c	17	8	no	yes	src/ov010/scrcmd_proc.c
+partial	lib/dwc/src/ghttp/ghttpCommon.c	no	8	ov114	0x021c0378	0x021c07b8	3	3	yes	yes	lib/dwc/src/ghttp/ghttpCommon.c
+partial	lib/nitro/src/gx/gx_bgcnt.c	yes	16	main	0x0207df60	0x0207e184	7	6	no	yes	lib/nitro/src/gx/gx_bgcnt.c
+partial	src/ov199/pdwacc_disp.c	yes	8	ov123	0x021d9ae8	0x021d9fd4	5	3	no	yes	src/ov123/pdwacc_disp.c
+partial	src/ov271/br_btn_data.c	yes	8	ov186	0x021fb5e4	0x021fb884	8	3	no	yes	src/ov186/br_btn_data.c
+partial	src/system/app_keycursor.c	yes	8	main	0x02028590	0x020286c4	5	3	no	yes	src/system/app_keycursor.c
+partial	src/system/musical_dist_save.c	yes	8	main	0x0200c5a4	0x0200c6d8	3	3	yes	yes	src/system/musical_dist_save.c
+partial	src/ov012/scrcmd_musical.c	yes	27	ov010	0x0215d864	0x0215e2b8	21	10	no	no	src/ov010/scrcmd_musical.c
+partial	src/ov028/union_comm.c	yes	41	ov012	0x02172edc	0x02173744	27	15	no	yes	src/ov012/union_comm.c
+partial	lib/twl/src/syscall/syscall_twl.c	yes	11	main	0x020911d8	0x02091284	10	4	no	yes	lib/twl/src/syscall/syscall_twl.c
+partial	src/ov036/field_task.c	yes	11	ov021	0x021c6c70	0x021c6d10	10	4	no	yes	src/ov021/field_task.c,src/ov021/field_task_manager.c
+partial	src/ov036/scrcmd_menu.c	yes	11	ov021	0x021b010c	0x021b03bc	9	4	no	yes	src/ov021/scrcmd_menu.c
+partial	src/ov036/scrcmd_ochiba.c	yes	22	ov021	0x021cfea0	0x021d0140	10	8	no	yes	src/ov021/scrcmd_ochiba.c
+partial	src/ov080/no_gear.c	yes	11	ov030	0x021eff54	0x021f0134	8	4	no	yes	src/ov030/no_gear.c
+partial	src/ov167/btl_string.c	yes	33	ov093	0x021eed00	0x021ef83c	28	12	no	yes	src/ov093/btl_string.c
+partial	src/ov261/livebattlematch_flow.c	yes	36	ov176	0x0217ba9c	0x0217d398	33	13	no	yes	src/ov176/livebattlematch_flow.c
+partial	lib/dwc/src/gstats/gstats.c	no	28	ov009	0x02193d64	0x02194954	23	10	no	no	lib/dwc/src/gs/gstats/gstats.c
+partial	src/ov263/wifibattlematch_subproc.c	yes	14	ov178	0x021e57e0	0x021e5b1c	9	5	no	yes	src/ov178/wifibattlematch_subproc.c
+partial	src/ov036/ircbattlemenu.c	yes	65	ov021	0x0219603c	0x02197c4c	63	23	no	yes	src/ov021/ircbattlemenu.c
+partial	src/ov193/pokemontrade_demo_down.c	yes	20	ov118	0x021d572c	0x021d64f4	12	7	no	yes	src/ov118/pokemontrade_demo_down.c
+partial	src/ov034/union_msg.c	yes	66	ov019	0x0217ec54	0x0217f640	58	23	no	no	src/ov019/union_msg.c
+partial	src/ov294/intro_graphic.c	yes	23	ov204	0x021bdb70	0x021be0d4	20	8	no	yes	src/ov204/intro_graphic.c
+partial	src/ov169/btl_monset.c	yes	38	ov095	0x0689cb3c	0x0689cd78	13	13	yes	yes	src/ov095/btl_monset.c
+partial	lib/dwc/src/gscommon/gsPlatformThread.c	yes	6	ov009	0x0217f0b4	0x0217f0fc	2	2	yes	yes	lib/dwc/src/gscommon/gsPlatformThread.c
+partial	lib/msl/src/extras_string.c	yes	3	main	0x0209ab8c	0x0209abec	1	1	yes	yes	lib/msl/src/string_extras.c
+partial	lib/nitro/src/mi/mi_init.c	yes	3	main	0x0208361c	0x02083644	1	1	yes	yes	lib/nitro/src/mi/mi_init.c
+partial	lib/nitro/src/mi/mi_sharedWram.c	yes	3	main	0x02082198	0x020821b0	1	1	yes	yes	
+partial	lib/nitro/src/os/os_init.c	yes	3	main	0x02086348	0x02086368	1	1	yes	yes	lib/nitro/src/os/os_init.c
+partial	lib/nitro/src/snd/nitro_snd_main.c	yes	3	main	0x02089848	0x02089880	1	1	yes	yes	lib/nitro/src/snd/snd_main.c
+partial	lib/nitro/src/wm/wm_common.c	yes	3	main	0x02090ed8	0x02090ef4	1	1	yes	yes	lib/nitro/src/wm/wm_etc.c
+partial	lib/nnsys/src/g2d/g2d_OamSoftwareSpriteDraw.c	yes	6	main	0x02066b84	0x02067080	6	2	no	yes	lib/nnsys/src/g2d/g2d_OamSoftwareSpriteDraw.c
+partial	src/gfl/savedata.c	yes	9	main	0x02033908	0x02033a3c	3	3	yes	yes	lib/gfl/src/savedata.c
+partial	src/ov000/event_gsync.c	yes	3	ov000	0x02154670	0x021546c4	1	1	yes	yes	src/ov000/event_gsync.c
+partial	src/ov004/event_worldtrade.c	yes	3	ov004	0x021542cc	0x02154390	1	1	yes	yes	src/ov004/event_worldtrade.c
+partial	src/ov009/event_wifi_bsubway.c	yes	3	ov007	0x021542cc	0x02154310	1	1	yes	yes	src/ov007/event_wifi_bsubway.c
+partial	src/ov012/city_state.c	yes	3	ov010	0x02161d64	0x02161d98	1	1	yes	yes	src/ov010/city_state.c
+partial	src/ov012/event_colosseum_battle.c	yes	3	ov010	0x02157650	0x0215765c	1	1	yes	yes	src/ov010/event_colosseum_battle.c
+partial	src/ov030/net_devwireless.c	yes	39	ov014	0x02177028	0x0217725c	34	13	no	yes	src/ov014/net_devwireless.c
+partial	src/ov033/entralink_warp.c	yes	3	ov020	0x02183c34	0x02183c58	1	1	yes	yes	src/ov020/event_mapchange.c
+partial	src/ov036/enc_pokeset.c	yes	27	ov021	0x021a94b0	0x021a9cac	17	9	no	yes	src/ov021/enc_pokeset.c
+partial	src/ov036/field_bbd_color.c	yes	6	ov021	0x021cd204	0x021cd2a4	2	2	yes	yes	src/ov021/ov021_021cd1f0.c
+partial	src/ov036/field_nogrid_mapper.c	yes	18	ov021	0x021bb1f4	0x021bb394	8	6	no	yes	src/ov021/field_nogrid_mapper.c
+partial	src/ov036/fieldmap_proc.c	yes	3	ov021	0x02187fd0	0x02187fe8	1	1	yes	yes	src/ov021/fieldmap.c
+partial	src/ov036/fieldskill_mapeff.c	yes	9	ov021	0x021c7f70	0x021c8000	7	3	no	yes	src/ov021/fieldskill_mapeff.c
+partial	src/ov036/fldeff_reflect.c	yes	15	ov021	0x021bbff4	0x021bc388	7	5	no	yes	src/ov021/ov021_021bbfb8.c
+partial	src/ov105/gimmick_league_statue.c	yes	6	ov049	0x021f36c0	0x021f3708	2	2	yes	yes	src/ov049/gimmick_league_statue.c
+partial	src/ov133/gimmick_nuvema.c	yes	6	ov065	0x021f37c4	0x021f38f0	5	2	no	yes	src/ov065/gimmick_nuvema.c
+partial	src/ov143/monolith_power_info.c	yes	12	ov071	0x021ba1fc	0x021ba4ec	8	4	no	yes	src/ov071/monolith_power_info.c
+partial	src/ov165/plist_item.c	yes	21	ov091	0x021bbe74	0x021bcc40	17	7	no	yes	src/ov091/plist_item.c
+partial	src/ov168/btlv_bg.c	yes	15	ov094	0x022097cc	0x02209a7c	6	5	no	yes	src/ov094/btlv_bg.c
+partial	src/ov209/musical_shot_sys.c	yes	6	ov112	0x021f3a08	0x021f3ae0	3	2	no	yes	src/ov112/musical_shot_sys.c
+partial	src/ov262/wifibattlematch_util.c	yes	24	ov177	0x021e8628	0x021e8b00	20	8	no	yes	src/ov177/wifibattlematch_util.c
+partial	src/ov265/dendou_demo.c	yes	3	ov180	0x021b6148	0x021b6158	1	1	yes	yes	src/ov180/dendou_demo.c
+partial	src/ov290/wifibattlematch_battle.c	yes	3	ov199	0x02213814	0x02213850	1	1	yes	yes	src/ov199/wifibattlematch_battle.c
+partial	src/ov294/intro.c	yes	3	ov204	0x021bdb30	0x021bdb70	1	1	yes	yes	src/ov204/intro.c
+partial	src/ov299/zukanlist.c	yes	3	ov209	0x021bc288	0x021bc298	1	1	yes	yes	src/ov209/zukanlist.c
+partial	src/ov317/subway_map.c	yes	6	ov224	0x021b9718	0x021b9820	2	2	yes	yes	src/ov224/subway_map.c
+partial	src/system/ctvt_beacon.c	yes	3	main	0x0202e8d8	0x0202e930	1	1	yes	yes	src/system/ctvt_beacon.c
+partial	src/system/net_define.c	yes	6	main	0x0200f16c	0x0200f34c	5	2	no	yes	src/system/net_define.c
+partial	src/system/poke_icon.c	yes	12	main	0x0201ba68	0x0201bcb4	7	4	no	yes	src/system/poke_icon.c
+partial	src/system/trial_house_savedata.c	yes	3	main	0x0200e394	0x0200e3a0	1	1	yes	yes	src/system/survey_savedata.c
+partial	src/ov035/event_mapchange.c	yes	78	ov020	0x02183b6c	0x02186278	85	28	no	yes	src/ov020/event_mapchange.c
+partial	src/ov027/scrcmd_survey.c	yes	31	ov010	0x02167080	0x021672e4	12	10	no	yes	src/ov010/scrcmd_survey.c
+partial	src/ov086/dowsing.c	yes	22	ov033	0x021f06ac	0x021f0b74	9	7	no	yes	src/ov033/dowsing.c
+partial	src/ov195/gtsnego_proc.c	yes	67	ov120	0x021d424c	0x021d5e88	60	21	no	yes	src/ov120/gtsnego_proc.c
+partial	src/ov299/zknlist_main.c	yes	29	ov209	0x021bc2bc	0x021bc824	15	9	no	yes	src/ov209/zknlist_main.c
+partial	src/ov167/btl_client.c	yes	311	ov093	0x021cd924	0x021d3fdc	239	96	no	no	src/ov093/btl_client.c
+partial	src/ov028/union_subproc.c	yes	13	ov012	0x02174654	0x02174b08	5	4	no	yes	src/ov012/colosseum_comm.c
+partial	src/system/iss_sys.c	yes	52	main	0x0202b500	0x0202b894	50	16	no	yes	src/system/iss_sys.c
+partial	lib/nnsys/src/gfd/gfd_VramTransferManager.c	yes	49	main	0x02061840	0x02061d0c	49	15	no	yes	lib/nnsys/src/gfd/VramTransferMan/gfd_VramTransferManager.c
+partial	src/system/game_data.c	yes	148	main	0x02012798	0x02012ff0	120	45	no	no	src/system/game_data.c
+partial	src/ov028/union_main.c	yes	10	ov012	0x02173840	0x0217394c	7	3	no	yes	src/ov012/union_main.c
+partial	src/ov034/colosseum_tool.c	yes	10	ov019	0x0217fdc8	0x0217ff78	8	3	no	yes	src/ov019/union_eff.c
+partial	src/ov034/union_oneself.c	yes	64	ov019	0x0217b908	0x0217e904	54	19	no	yes	src/ov019/union_oneself.c
+partial	src/ov036/scrcmd_poke_disp.c	yes	17	ov021	0x021d26ac	0x021d2f44	15	5	no	yes	src/ov021/event_cgear_shutdown.c,src/ov021/scrcmd_plugin14.c,src/ov021/ov021_021d2524.c,src/ov021/ov021_021d29f0.c
+partial	src/ov200/cg_help.c	yes	17	ov124	0x021d4240	0x021d4be0	17	5	no	yes	src/ov124/cg_help.c
+partial	src/ov168/btlv_input.c	yes	127	ov094	0x022021f4	0x02206908	91	37	no	yes	src/ov094/btlv_input.c
+partial	src/system/pokedex.c	yes	46	main	0x0200c40c	0x0200d3c0	59	17	no	no	src/system/musical_dist_save.c,src/system/cgear_picture_save.c
+partial	src/ov012/event_field_menu.c	yes	7	ov010	0x0215fce0	0x0215fed4	3	2	no	yes	src/ov010/event_field_menu.c,src/ov010/event_shortcut_menu.c
+partial	src/ov164/net_sync.c	yes	7	ov090	0x021b6108	0x021b61fc	5	2	no	yes	src/ov090/net_sync.c
+partial	src/ov165/plist_menu.c	yes	14	ov091	0x021bba8c	0x021bbbe4	6	4	no	yes	src/ov091/plist_menu.c
+partial	src/ov168/btlv_b_gauge.c	yes	7	ov094	0x022090a4	0x02209224	3	2	no	yes	src/ov094/btlv_b_gauge.c
+partial	src/ov293/demo3d_cmdsys.c	yes	7	ov203	0x021bf924	0x021bf9d0	3	2	no	yes	src/ov203/demo3d_cmdsys.c
+partial	src/ov300/zknsearch_list.c	yes	21	ov210	0x021c0550	0x021c06f8	14	6	no	yes	src/ov210/zknsearch_list.c
+partial	src/gfl/net_state.c	yes	92	main	0x0203ad74	0x0203cb34	92	26	no	yes	lib/gfl/src/net_state.c
+partial	src/ov290/wifibattlematch_sys.c	yes	33	ov199	0x0221268c	0x02213814	32	9	no	yes	src/ov199/wifibattlematch_sys.c
+partial	src/system/high_link_savedata.c	yes	15	main	0x0200bde4	0x0200be84	8	4	no	yes	src/system/high_link_savedata.c
+partial	src/ov284/shinka_demo_graphic.c	no	23	ov195	0x022058f8	0x02205c48	19	6	no	yes	src/ov195/shinka_demo_graphic.c
+partial	src/ov298/zukan_detail_graphic.c	yes	23	ov208	0x021bce10	0x021bd11c	19	6	no	yes	src/ov208/zukan_detail_graphic.c
+partial	lib/dsprot/src/dsprot_cipher.c	yes	8	ov230	0x0218949c	0x02189580	2	2	yes	yes	
+partial	src/ov012/fld_btl_inst_event.c	yes	4	ov010	0x02168174	0x021681c8	1	1	yes	yes	src/ov010/fld_btl_inst_event.c
+partial	src/ov012/hidden_item.c	yes	4	ov010	0x021646e8	0x02164708	1	1	yes	yes	src/ov010/hidden_item.c
+partial	src/ov012/scrcmd_sp_poke.c	yes	4	ov010	0x0216cc30	0x0216cc40	1	1	yes	yes	src/ov010/scrcmd_sp_poke.c
+partial	src/ov036/field_gimmick.c	yes	4	ov021	0x021be288	0x021be2a8	1	1	yes	yes	src/ov021/ov021_021bddc0.c
+partial	src/ov144/townmap_data.c	yes	4	ov072	0x021bbb3c	0x021bbb48	1	1	yes	yes	src/ov072/townmap_data.c
+partial	src/system/field_status.c	yes	16	main	0x02014428	0x02014488	16	4	no	yes	src/system/field_status.c
+partial	src/system/unity_tower_floor_savedata.c	yes	4	main	0x0200e874	0x0200e878	1	1	yes	yes	src/system/unity_tower_floor_savedata.c
+partial	src/ov186/trainer_card.c	yes	63	ov111	0x021c3ef8	0x021c6000	54	15	no	yes	src/ov111/trainer_card.c
+partial	src/system/misc_savedata.c	yes	21	main	0x0200ed3c	0x0200ee48	6	5	no	yes	src/system/misc_savedata.c
+partial	src/system/save_control.c	yes	38	main	0x02007150	0x0200734c	22	9	no	yes	src/system/save_control.c
+partial	src/ov036/field_subscreen.c	yes	72	ov021	0x021a0d68	0x021a13e4	35	17	no	yes	src/ov021/key_system_util.c,src/ov021/ov021_021a0d44.c,src/ov021/ov021_021a0ee4.c
+partial	src/ov298/zknd_tbar.c	yes	39	ov208	0x021bd360	0x021bd8c0	30	9	no	yes	src/ov208/zknd_tbar.c
+partial	src/ov255/box2_ui.c	yes	71	ov170	0x021ee418	0x021ef274	61	16	no	yes	src/ov170/box2_ui.c
+partial	src/ov257/ctvt_talk.c	yes	40	ov172	0x021b8cb0	0x021b9f98	18	9	no	yes	src/ov172/ctvt_talk.c
+partial	src/ov310/research_list_recovery.c	yes	9	ov217	0x021c0dc4	0x021c0df0	3	2	no	yes	src/ov217/research_list_recovery.c
+partial	src/system/mystatus.c	yes	27	main	0x0200846c	0x0200857c	26	6	no	yes	src/system/mystatus.c
+partial	src/ov036/fieldmap.c	yes	125	ov021	0x021880a4	0x02189bd0	116	27	no	no	src/ov021/fieldmap.c
+partial	src/ov167/btl_server_flow.c	yes	997	ov093	0x021bbb48	0x021ca7f4	514	215	no	no	src/ov093/btl_server_flow.c
+partial	src/ov036/scrcmd_misc.c	yes	16	ov021	0x021b69d8	0x021b7400	42	9	no	yes	src/ov021/pdw_postman.c,src/ov021/scrcmd_misc.c,src/ov021/ov021_021b69b0.c
+partial	src/ov255/box2_obj.c	yes	130	ov170	0x021ebdd8	0x021ee2c4	103	27	no	yes	src/ov170/box2_obj.c
+partial	src/ov169/btl_pospoke.c	yes	44	ov095	0x0689d2f8	0x0689d608	12	9	no	yes	src/ov095/btl_pospoke.c
+partial	src/system/iss_switch_sys.c	yes	44	main	0x0202c0f8	0x0202c2c0	17	9	no	yes	src/system/iss_switch_sys.c
+partial	lib/nitro/src/gx/g2.c	yes	5	main	0x0207d59c	0x0207d63c	1	1	yes	yes	lib/nitro/src/gx/g2.c
+partial	src/ov012/event_save.c	yes	5	ov010	0x021616f0	0x0216171c	1	1	yes	yes	src/ov010/event_save.c
+partial	src/ov012/musical_dressup_sys.c	yes	5	ov010	0x02156c4c	0x02156cac	1	1	yes	yes	src/ov010/musical_dressup_sys.c
+partial	src/ov012/report_event.c	yes	20	ov010	0x0216a1c0	0x0216a264	4	4	yes	yes	src/ov010/report_event.c
+partial	src/ov012/scrcmd_keysystem.c	yes	5	ov010	0x0216b60c	0x0216b63c	1	1	yes	yes	
+partial	src/ov193/pokemontrade_demo_common.c	yes	20	ov118	0x021d49f4	0x021d4b14	5	4	no	yes	src/ov118/pokemontrade_demo_common.c
+partial	src/ov298/zukan_detail.c	yes	5	ov208	0x021bcb4c	0x021bcbb4	1	1	yes	yes	src/ov208/zukan_detail.c
+partial	src/system/poke_personal.c	yes	10	main	0x0201add0	0x0201af80	5	2	no	yes	src/system/poke_personal.c
+partial	src/ov199/gsync_disp.c	yes	36	ov123	0x021d5f4c	0x021d6934	25	7	no	yes	src/ov123/gsync_disp.c
+partial	src/ov012/event_battle.c	yes	26	ov010	0x0216ee20	0x0216f064	10	5	no	yes	src/ov010/event_battle.c
+partial	src/ov012/event_field_proclink.c	yes	37	ov010	0x02160a28	0x02161350	19	7	no	yes	src/ov010/event_field_proclink.c
+partial	src/system/trainer_game_info_savedata.c	yes	53	main	0x0200c0f0	0x0200c2b0	26	10	no	yes	src/system/trainer_game_info_savedata.c
+partial	src/ov271/br_graphic.c	yes	16	ov186	0x021fc3bc	0x021fc6a4	16	3	no	yes	src/ov186/br_graphic.c
+partial	src/ov299/zknlist_seq.c	yes	16	ov209	0x021bcde0	0x021bd354	12	3	no	yes	src/ov209/zknlist_seq.c
+partial	src/ov193/pokemontrade_demo_middle.c	yes	27	ov118	0x021d6f2c	0x021d7c84	5	5	yes	yes	src/ov118/pokemontrade_demo_middle.c
+partial	src/ov273/battle_rec_tool.c	yes	28	ov188	0x021eeed8	0x021ef1ac	8	5	no	yes	src/ov188/battle_rec_tool.c
+partial	src/system/myitem_savedata.c	yes	56	main	0x02007cc8	0x02008254	23	10	no	yes	src/system/myitem_savedata.c
+partial	src/ov255/box2_main.c	yes	163	ov170	0x021dc9e0	0x021df348	94	29	no	yes	src/ov170/box2_main.c
+partial	src/ov190/wifilogout.c	yes	17	ov115	0x021d6104	0x021d6330	15	3	no	yes	src/ov115/wifilogout.c
+partial	src/system/tr_tool.c	yes	17	main	0x0202a230	0x0202a9f4	12	3	no	yes	src/system/tr_tool.c
+partial	src/ov012/intrude_work.c	yes	12	ov010	0x02158318	0x02158378	2	2	yes	yes	src/ov010/intrude_work.c
+partial	src/ov031/net_devirc.c	yes	24	ov015	0x021797c0	0x021798b4	19	4	no	yes	src/ov015/net_devirc.c
+partial	src/ov036/scrcmd_net.c	yes	6	ov021	0x021b4bec	0x021b4c14	1	1	yes	yes	src/ov021/scrcmd_net.c
+partial	src/ov143/monolith_mission_info.c	yes	18	ov071	0x021b8618	0x021b86bc	3	3	yes	yes	src/ov071/monolith_status.c
+partial	src/ov172/pdc.c	yes	12	ov098	0x021b6100	0x021b61c4	11	2	no	yes	src/ov098/pdc.c
+partial	src/ov186/trcard_obj.c	yes	6	ov111	0x021c6fa0	0x021c6fc4	1	1	yes	yes	src/ov111/trcard_obj.c
+partial	src/ov210/musical_system.c	yes	6	ov112	0x021f6888	0x021f68bc	1	1	yes	yes	src/ov112/musical_system.c
+partial	src/system/game_system.c	yes	48	main	0x02011ec0	0x020122c0	40	8	no	yes	src/system/game_system.c
+partial	src/system/survey_data.c	yes	6	ov010	0x02167358	0x0216736c	1	1	yes	yes	src/ov010/survey_data.c
+partial	src/ov142/itemmenu.c	yes	125	ov070	0x021b619c	0x021b8f90	95	20	no	yes	src/ov070/itemmenu.c
+partial	lib/nnsys/src/snd/snd_arc_stream.c	yes	39	main	0x02075968	0x02075b54	6	6	yes	yes	lib/nnsys/src/snd/sndarc_stream.c
+partial	src/ov012/event_game_clear.c	yes	13	ov010	0x0215f900	0x0215fa00	6	2	no	yes	src/ov010/event_game_clear.c
+partial	src/ov036/field_encount.c	yes	20	ov021	0x021a9f28	0x021aa6e0	14	3	no	yes	src/ov021/field_encount.c
+partial	src/ov084/beacon_view_setup.c	yes	34	ov032	0x021f25d4	0x021f3214	27	5	no	yes	src/ov032/beacon_view.c
+partial	src/system/pass_power.c	yes	34	main	0x02010ea0	0x02010fac	11	5	no	yes	src/system/pass_power.c
+partial	src/ov167/btl_server_flow_sub.c	yes	151	ov093	0x021caa24	0x021cc8b8	49	22	no	yes	src/ov093/btl_server_flow_sub.c
+partial	src/ov036/field_wfbc.c	yes	7	ov021	0x02193b04	0x02193b20	1	1	yes	yes	src/ov021/field_wfbc.c
+partial	src/ov213/battle_select.c	yes	7	ov134	0x021dcc48	0x021dcc9c	1	1	yes	yes	src/ov134/battle_select.c
+partial	src/ov267/the_end.c	yes	7	ov182	0x021b964c	0x021b96bc	1	1	yes	yes	src/ov182/the_end.c
+partial	src/ov305/comm_btl_demo_graphic.c	yes	21	ov213	0x021baabc	0x021bae40	18	3	no	yes	src/ov213/comm_btl_demo_graphic.c
+partial	src/ov306/btl_rec_sel_graphic.c	yes	21	ov214	0x021bb178	0x021bb360	9	3	no	yes	src/ov214/btl_rec_sel_graphic.c
+partial	src/ov308/beacon_detail_gra.c	yes	14	ov216	0x021bc930	0x021bcb70	10	2	no	yes	src/ov216/beacon_detail_gra.c
+partial	src/system/game_beacon.c	yes	84	main	0x02027220	0x02027460	19	12	no	yes	src/system/game_beacon.c
+partial	src/system/gfl_use.c	yes	21	main	0x02005768	0x020057dc	5	3	no	yes	src/system/gfl_use.c
+partial	src/system/resh_zek_savedata.c	yes	7	main	0x0200a864	0x0200a870	1	1	yes	yes	src/system/musical_savedata.c
+partial	src/ov012/fld_btl_inst_tool.c	yes	22	ov010	0x0216883c	0x02168b18	6	3	no	yes	src/ov010/fld_btl_inst_tool.c
+partial	src/system/area_data.c	yes	15	main	0x020140c0	0x020140d8	2	2	yes	yes	src/system/area_data.c
+partial	src/system/memory_link_savedata.c	yes	15	main	0x0200c34c	0x0200c364	2	2	yes	yes	src/system/trainer_game_info_savedata.c
+partial	src/ov036/scrcmd_shop.c	yes	53	ov021	0x021b30c8	0x021b4bec	48	7	no	yes	src/ov021/scrcmd_shop.c
+partial	src/ov168/btlv_clact.c	yes	23	ov094	0x02201af8	0x0220203c	11	3	no	yes	src/ov094/btlv_clact.c
+partial	src/ov162/startmenu.c	yes	62	ov088	0x021ba990	0x021bbbac	31	8	no	yes	src/ov088/startmenu.c
+partial	src/ov167/btlv_core.c	yes	295	ov093	0x021e8f08	0x021eaf7c	141	37	no	yes	src/ov093/btlv_core.c
+partial	src/ov097/gym_driftveil_lift.c	yes	8	ov038	0x021f39b4	0x021f39d8	1	1	yes	yes	
+partial	src/ov259/local_tvt_person.c	yes	8	ov195	0x022060bc	0x022060c8	1	1	yes	yes	src/ov195/shinka_demo_view.c
+partial	src/ov297/zukan_toroku_graphic.c	yes	16	ov207	0x0220b318	0x0220b4e0	9	2	no	yes	src/ov207/zukan_toroku_graphic.c
+partial	src/ov168/btlv_gauge.c	yes	58	ov094	0x0220793c	0x02208d50	43	7	no	yes	src/ov094/btlv_gauge.c
+partial	src/ov066/scrcmd_plugin14.c	yes	17	ov021	0x021d2f6c	0x021d3068	2	2	yes	yes	src/ov021/scrcmd_plugin14.c
+partial	src/ov143/monolith_top.c	yes	17	ov071	0x021b8308	0x021b8350	2	2	yes	yes	src/ov071/monolith_top.c
+partial	src/ov165/plist_battle.c	yes	18	ov091	0x021bd18c	0x021bd480	4	2	no	yes	src/ov091/plist_battle.c
+partial	src/ov297/zukan_nickname.c	yes	9	ov207	0x0220b908	0x0220b940	1	1	yes	yes	src/ov207/zukan_nickname.c
+partial	src/system/cygnus_savedata.c	yes	9	main	0x02009da4	0x02009db8	1	1	yes	yes	src/system/cygnus_savedata.c
+partial	src/ov036/scrcmd_gym.c	yes	28	ov021	0x021b23b8	0x021b25dc	11	3	no	no	src/ov021/scrcmd_gym.c
+partial	src/ov127/inf_dungeon_retire.c	yes	19	ov217	0x021c0c50	0x021c0d14	6	2	no	no	src/ov217/research_common.c
+partial	src/ov255/box2_bmp.c	yes	58	ov170	0x021eb6d8	0x021ebc58	26	6	no	yes	src/ov170/box2_bmp.c
+partial	src/ov199/gsync_state.c	yes	98	ov123	0x021d6e70	0x021d920c	93	10	no	yes	src/ov123/gsync_state.c
+partial	src/ov165/plist_sys.c	yes	89	ov091	0x021b6d64	0x021ba65c	74	9	no	yes	src/ov091/plist_sys.c
+partial	src/ov079/c_gear_sw.c	yes	130	ov029	0x021f0370	0x021f1f80	73	12	no	yes	src/ov029/c_gear_sw.c
+partial	src/ov027/fest_mission_data.c	yes	11	main	0x0202a170	0x0202a188	1	1	yes	yes	src/system/tpoke_data.c
+partial	src/ov100/gym_virbank.c	yes	11	main	0x020074cc	0x020074d8	1	1	yes	yes	src/system/box_savedata.c
+partial	src/ov137/resort_npc.c	yes	11	main	0x02012088	0x0201209c	1	1	yes	yes	src/system/game_system.c
+partial	src/ov055/wbt_system.c	yes	45	main	0x0200854c	0x0200855c	4	4	yes	no	src/system/mystatus.c
+partial	src/ov012/trcard_sys.c	yes	23	ov010	0x0216f088	0x0216f40c	14	2	no	yes	src/ov010/trcard_sys.c
+partial	src/ov259/local_tvt_calldata.c	yes	23	ov225	0x021b9be0	0x021b9bf8	2	2	yes	yes	src/ov225/manual_data.c
+partial	src/ov142/itemmenu_disp.c	yes	58	ov070	0x021b8f98	0x021bb73c	54	5	no	yes	src/ov070/itemmenu_disp.c
+partial	src/ov257/camera_system.c	yes	108	ov172	0x021b65c4	0x021b69e0	20	9	no	yes	src/ov172/camera_system.c
+partial	src/ov299/zknlist_bmp.c	yes	12	ov209	0x021bd5d4	0x021bd628	1	1	yes	yes	src/ov209/zknlist_bmp.c
+partial	src/system/join_avenue_savedata.c	yes	12	main	0x02021438	0x02021444	1	1	yes	yes	src/system/playtime_ctrl.c
+partial	lib/dsprot/src/dsprot_detect.c	yes	14	ov230	0x02189004	0x02189098	1	1	yes	yes	
+partial	src/ov012/field_encount_st.c	yes	14	ov010	0x0215e3e4	0x0215e404	1	1	yes	yes	src/ov010/move_pokemon.c
+partial	src/ov084/beacon_view.c	yes	28	ov032	0x021f0050	0x021f00c8	2	2	yes	yes	src/ov032/beacon_view_sub.c
+partial	src/ov259/local_tvt_graphic.c	yes	14	ov177	0x021e5440	0x021e54e0	1	1	yes	yes	
+partial	src/ov313/th_award_graphic.c	yes	14	ov220	0x021ba0d8	0x021ba178	1	1	yes	yes	src/ov220/th_award_graphic.c
+partial	src/ov319/manual_graphic.c	yes	14	ov225	0x021b9900	0x021b99a0	1	1	yes	yes	src/ov225/manual_graphic.c
+partial	src/ov331/save_outside.c	yes	14	ov228	0x021dfeb0	0x021dff18	1	1	yes	yes	src/ov228/save_outside.c
+partial	src/system/bmp_menu.c	yes	14	main	0x0201f9d0	0x0201f9e8	1	1	yes	yes	src/system/bmp_menu.c
+partial	src/ov298/zukan_detail_touchbar.c	yes	44	ov208	0x021be300	0x021be3c4	3	3	yes	yes	src/ov208/zukan_detail_touchbar.c
+partial	src/ov036/field_place_name.c	yes	96	ov021	0x021bc484	0x021bd2dc	118	8	no	yes	src/ov021/ov021_021bbfb8.c,src/ov021/field_place_name.c,src/ov021/ov021_021bd068.c,src/ov021/place_name_letter.c,src/ov021/ov021_021bd2b8.c
+partial	src/ov315/zenkoku_zukan_award.c	yes	16	ov222	0x021b9c1c	0x021b9ce4	1	1	yes	yes	src/ov222/zenkoku_zukan_award.c
+partial	src/ov316/psel.c	yes	80	ov223	0x021b95a0	0x021bb540	69	5	no	yes	src/ov223/psel.c
+partial	src/system/battlematch_savedata.c	yes	16	main	0x0200ea00	0x0200ea04	1	1	yes	yes	src/system/battlematch_savedata.c
+partial	src/ov299/zknlist_obj.c	yes	33	ov209	0x021bd984	0x021be34c	11	2	no	yes	src/ov209/zknlist_obj.c
+partial	src/ov012/game_beacon_search.c	yes	17	main	0x02026484	0x0202648c	1	1	yes	yes	src/system/game_comm.c
+partial	src/system/hollow_rival_savedata.c	yes	17	ov011	0x02175fb4	0x02175fb8	1	1	yes	yes	src/ov011/intrude_comm.c
+partial	src/system/iss_switch_set.c	yes	35	main	0x0202c2ec	0x0202c504	25	2	no	yes	src/system/iss_switch_set.c
+partial	src/ov143/monolith_power_select.c	yes	53	ov071	0x021b9bac	0x021b9c30	6	3	no	yes	src/ov071/monolith_power_select.c
+partial	src/ov186/badge_view.c	yes	71	ov111	0x021c7934	0x021c810c	20	4	no	yes	src/ov111/badge_view.c
+partial	src/ov036/scrcmd_hidden_hollow.c	yes	18	main	0x0201f53c	0x0201f548	1	1	yes	yes	src/system/bmp_winframe.c
+partial	src/ov169/field_handlers.c	yes	36	ov095	0x068980a4	0x068980cc	3	2	no	yes	src/ov095/field_handlers.c
+partial	src/system/encounter_savedata.c	yes	18	main	0x0200d4b8	0x0200d50c	1	1	yes	yes	
+partial	src/ov298/zukan_detail_map.c	yes	76	ov208	0x021c0b6c	0x021c239c	34	4	no	yes	src/ov208/ov208_021bf784.c
+partial	src/ov130/gimmick_funfest_levels.c	yes	20	ov060	0x021f3938	0x021f3950	1	1	yes	yes	
+partial	src/ov157/event_fest_mission.c	yes	20	ov135	0x021f90a0	0x021f90b8	1	1	yes	yes	src/ov135/worldtrade_enter.c
+partial	src/system/c_gear_savedata.c	yes	20	main	0x02008fbc	0x02008fc0	1	1	yes	yes	src/system/mail.c
+partial	src/ov307/egg_demo_graphic.c	no	21	ov215	0x021f63cc	0x021f6474	1	1	yes	yes	src/ov215/egg_demo_graphic.c
+partial	src/ov084/beacon_view_sub.c	yes	69	ov032	0x021f0820	0x021f0f44	30	3	no	yes	src/ov032/beacon_view_sub.c
+partial	src/system/funfest_savedata.c	yes	23	main	0x0200ed38	0x0200ed3c	1	1	yes	yes	src/system/misc_savedata.c
+partial	src/ov052/scrcmd_pokemon_league.c	yes	24	ov021	0x021b5650	0x021b568c	1	1	yes	yes	src/ov021/scrcmd_pokemon_league.c
+partial	src/ov196/net_common_download.c	yes	24	ov217	0x021bc94c	0x021bc954	1	1	yes	yes	src/ov217/research_list.c
+partial	src/ov255/box2_seq.c	yes	192	ov170	0x021e2094	0x021ea908	161	8	no	yes	src/ov170/box2_seq.c
+partial	src/system/fest_mission_beacon.c	yes	24	main	0x020084d4	0x020084e4	1	1	yes	yes	src/system/mystatus.c
+partial	src/system/medal_box.c	yes	24	main	0x0200ed48	0x0200ed54	1	1	yes	yes	src/system/misc_savedata.c
+partial	src/ov062/pokewood_system.c	yes	25	ov021	0x02188c9c	0x02188ca4	1	1	yes	yes	src/ov021/fieldmap.c
+partial	src/ov083/beacon_view_common.c	yes	25	ov119	0x021d90c0	0x021d90d4	1	1	yes	yes	src/ov119/pokemontrade_proc.c
+partial	src/ov259/local_tvt_util.c	yes	51	ov177	0x021e8a80	0x021e8aa0	2	2	yes	yes	src/ov177/wifibattlematch_util.c
+partial	src/ov181/mb_util_msg.c	yes	26	ov107	0x021f1628	0x021f1704	1	1	yes	yes	src/ov107/mb_util_msg.c
+partial	src/ov266/staff_roll_main.c	yes	57	ov181	0x021b95e8	0x021ba390	42	2	no	yes	src/ov181/staff_roll.c,src/ov181/staff_roll_main.c
+partial	src/ov096/gym_driftveil.c	yes	30	ov044	0x021f390c	0x021f392c	1	1	yes	yes	src/ov044/gym_driftveil_lift.c
+partial	src/ov187/medal_info_viewer.c	yes	30	ov115	0x021d42a8	0x021d42b8	1	1	yes	yes	src/ov115/wifilogin.c
+partial	src/ov129/sp_poke_gimmick.c	yes	31	ov040	0x021f377c	0x021f3798	1	1	yes	yes	
+partial	src/ov257/ctvt_game_cam.c	yes	67	ov194	0x021f3e78	0x021f3ef0	3	2	no	yes	src/ov194/ctvt_game_cam.c
+partial	src/ov094/gym_mistralton.c	yes	34	ov010	0x02161fec	0x02161ff0	1	1	yes	yes	src/ov010/city_state.c
+partial	src/ov143/monolith_mission_select.c	yes	69	ov071	0x021b9560	0x021b95fc	2	2	yes	yes	src/ov071/monolith_power_select.c
+partial	src/ov036/scrcmd_word.c	yes	36	ov018	0x02182988	0x02182998	1	1	yes	yes	
+partial	src/ov127/infinity_dungeon_gimmick.c	yes	40	ov132	0x021f9db8	0x021f9dc0	1	1	yes	yes	src/ov132/sta_acting.c
+partial	src/ov023/event_pokewood.c	yes	41	ov021	0x021a213c	0x021a2148	1	1	yes	yes	src/ov021/weather_task.c
+partial	src/ov169/btlv_scd.c	yes	428	ov095	0x06899e2c	0x0689b69c	40	10	no	yes	src/ov095/btlv_scd.c
+partial	src/ov101/gym_humilau.c	yes	43	ov206	0x021ba514	0x021ba51c	1	1	yes	yes	src/ov206/zukan_info.c
+partial	src/ov137/resort_people.c	yes	46	ov088	0x021bd0c8	0x021bd0d8	1	1	yes	yes	src/ov088/delete_save.c
+partial	src/system/link_festival.c	yes	50	ov071	0x021b7be4	0x021b7bf0	1	1	yes	yes	src/ov071/ov071_021b7234.c
+partial	src/ov085/fmission_view.c	yes	61	ov088	0x021bbe3c	0x021bbe48	1	1	yes	yes	src/ov088/startmenu.c
+partial	src/ov332/cygnus_flow.c	yes	66	main	0x02012924	0x0201292c	1	1	yes	yes	src/system/game_data.c
+partial	src/ov169/side_handlers.c	yes	261	ov095	0x06898bfc	0x06898d10	4	3	no	yes	src/ov095/side_handlers.c
+partial	src/ov169/condition_effects.c	yes	263	ov095	0x0689b92c	0x0689c888	22	3	no	yes	src/ov095/condition_effects.c
+partial	src/ov137/resort_field.c	yes	113	ov106	0x021b9198	0x021b91a8	1	1	yes	yes	src/ov106/irc_ranking.c
+partial	src/ov255/box_search.c	yes	118	ov210	0x021c0660	0x021c0678	1	1	yes	yes	src/ov210/zknsearch_list.c
+partial	src/system/resonance_resort_data.c	yes	140	main	0x0200c234	0x0200c248	1	1	yes	yes	src/system/trainer_game_info_savedata.c
+none	lib/dsprot/src/dsprot_cipher_multi.c	yes	8				0	0			
+none	lib/dsprot/src/dsprot_decrypt.c	yes	5				0	0			
+none	lib/dsprot/src/dsprot_decrypt_multi.c	yes	5				0	0			
+none	lib/dsprot/src/dsprot_detect_multi.c	yes	26				0	0			
+none	lib/dsprot/src/dsprot_run.c	yes	6				0	0			
+none	lib/dsprot/src/dsprot_run_multi.c	yes	9				0	0			
+none	lib/dsprot/src/dsprot_stub_check.c	yes	5				0	0			
+none	lib/dsprot/src/dsprot_stub_check_multi.c	yes	9				0	0			
+none	lib/dwc/src/base/dwc_init_version.c	yes	0				0	0			
+none	lib/dwc/src/gscommon/gsCrypt.c	yes	1				0	0			
+none	lib/dwc/src/vct/vct_version.c	yes	0				0	0			
+none	lib/dwcutilui/src/dwc_util_address_edit.c	yes	21				0	0			
+none	lib/dwcutilui/src/dwc_util_address_settings.c	yes	40				0	0			
+none	lib/dwcutilui/src/dwc_util_aoss_session.c	yes	5				0	0			
+none	lib/dwcutilui/src/dwc_util_ap_scan.c	yes	8				0	0			
+none	lib/dwcutilui/src/dwc_util_ap_search.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_auto_connect.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_auto_connect_intro.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_auto_connect_ok.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_bank.c	yes	5				0	0			
+none	lib/dwcutilui/src/dwc_util_bg_buffer.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_bg_overlay.c	yes	6				0	0			
+none	lib/dwcutilui/src/dwc_util_button_sprites.c	yes	5				0	0			
+none	lib/dwcutilui/src/dwc_util_cell.c	yes	10				0	0			
+none	lib/dwcutilui/src/dwc_util_connection.c	yes	7				0	0			
+none	lib/dwcutilui/src/dwc_util_dialog.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_display.c	yes	7				0	0			
+none	lib/dwcutilui/src/dwc_util_error.c	yes	14				0	0			
+none	lib/dwcutilui/src/dwc_util_fade.c	yes	7				0	0			
+none	lib/dwcutilui/src/dwc_util_gfx_resource.c	yes	7				0	0			
+none	lib/dwcutilui/src/dwc_util_heap.c	yes	6				0	0			
+none	lib/dwcutilui/src/dwc_util_info_menu.c	yes	39				0	0			
+none	lib/dwcutilui/src/dwc_util_irq.c	yes	3				0	0			
+none	lib/dwcutilui/src/dwc_util_keyboard.c	yes	30				0	0			
+none	lib/dwcutilui/src/dwc_util_link_icon.c	yes	3				0	0			
+none	lib/dwcutilui/src/dwc_util_list.c	yes	6				0	0			
+none	lib/dwcutilui/src/dwc_util_main.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_main_menu.c	no	19				0	0			
+none	lib/dwcutilui/src/dwc_util_menu.c	yes	28				0	0			
+none	lib/dwcutilui/src/dwc_util_move.c	yes	8				0	0			
+none	lib/dwcutilui/src/dwc_util_msg_resource.c	yes	6				0	0			
+none	lib/dwcutilui/src/dwc_util_notice_screen.c	yes	12				0	0			
+none	lib/dwcutilui/src/dwc_util_oam.c	yes	11				0	0			
+none	lib/dwcutilui/src/dwc_util_oam_buf.c	yes	6				0	0			
+none	lib/dwcutilui/src/dwc_util_option_menu.c	yes	14				0	0			
+none	lib/dwcutilui/src/dwc_util_page_ap_list.c	yes	28				0	0			
+none	lib/dwcutilui/src/dwc_util_page_move.c	yes	12				0	0			
+none	lib/dwcutilui/src/dwc_util_page_multi4.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_page_multi5.c	yes	14				0	0			
+none	lib/dwcutilui/src/dwc_util_page_step3.c	yes	18				0	0			
+none	lib/dwcutilui/src/dwc_util_prompt_yes_no.c	yes	12				0	0			
+none	lib/dwcutilui/src/dwc_util_rom_resource.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_save_settings.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_screen.c	yes	3				0	0			
+none	lib/dwcutilui/src/dwc_util_screen_ap.c	yes	19				0	0			
+none	lib/dwcutilui/src/dwc_util_screen_way.c	yes	14				0	0			
+none	lib/dwcutilui/src/dwc_util_scrollbar.c	yes	16				0	0			
+none	lib/dwcutilui/src/dwc_util_sound.c	yes	7				0	0			
+none	lib/dwcutilui/src/dwc_util_string.c	yes	2				0	0			
+none	lib/dwcutilui/src/dwc_util_sub_screen.c	yes	18				0	0			
+none	lib/dwcutilui/src/dwc_util_task.c	yes	10				0	0			
+none	lib/dwcutilui/src/dwc_util_test_connect.c	yes	16				0	0			
+none	lib/dwcutilui/src/dwc_util_test_done.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_test_progress.c	yes	16				0	0			
+none	lib/dwcutilui/src/dwc_util_test_start.c	yes	16				0	0			
+none	lib/dwcutilui/src/dwc_util_text.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_timed_notice.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_top_menu.c	yes	34				0	0			
+none	lib/dwcutilui/src/dwc_util_touch.c	no	15				0	0			
+none	lib/dwcutilui/src/dwc_util_ui_effect.c	yes	3				0	0			
+none	lib/dwcutilui/src/dwc_util_ui_object.c	yes	15				0	0			
+none	lib/dwcutilui/src/dwc_util_usb_done.c	yes	9				0	0			
+none	lib/dwcutilui/src/dwc_util_usb_intro.c	yes	12				0	0			
+none	lib/dwcutilui/src/dwc_util_usb_scan.c	no	8				0	0			
+none	lib/dwcutilui/src/dwc_util_usb_setup.c	yes	18				0	0			
+none	lib/dwcutilui/src/dwc_util_vram_alloc.c	yes	3				0	0			
+none	lib/dwcutilui/src/dwc_util_wep_keyboard.c	yes	19				0	0			
+none	lib/dwcutilui/src/dwc_util_wifi_settings.c	yes	29				0	0			
+none	lib/irc/src/irc_link.c	yes	19				0	0			
+none	lib/irc/src/irc_spi.c	yes	7				0	0			
+none	lib/msl/src/fp/fp_fastI.s	yes	47				0	0			
+none	lib/msl/src/math/w_pow.c	yes	1				0	0			
+none	lib/msl/src/runtime/trk_stubs.c	yes	3				0	0			
+none	lib/nitro/src/card/card_backup_version.c	yes	0				0	0			
+none	lib/nitro/src/ctrdg/ctrdg.c	yes	8				0	0			
+none	lib/nitro/src/ctrdg/ctrdg_proc.c	yes	2				0	0			
+none	lib/nitro/src/fx/fx.c	yes	4				0	0			
+none	lib/nitro/src/os/os_vramExclusive.c	yes	3				0	0			
+none	lib/nitro/src/pxi/pxi_init.c	yes	1				0	0			
+none	lib/nitrowifi/src/cps/cps_version.c	yes	0				0	0			
+none	lib/nitrowifi/src/soc/socl_startup_version.c	yes	0				0	0			
+none	lib/nitrowifi/src/ssl/ssl_version.c	yes	0				0	0			
+none	lib/nnsys/src/g2d/g2di_VRamLocation.c	yes	3				0	0			
+none	lib/nnsys/src/gfd/gfd_TexVramMan.c	yes	2				0	0			
+none	lib/twl/src/dsp/dsp_graphics.c	yes	5				0	0			
+none	lib/twl/src/scfg/scfg_proc.c	yes	3				0	0			
+none	lib/twl/src/ssp_exifdec.c	yes	4				0	0			
+none	lib/twl/src/ssp_exifenc.c	yes	11				0	0			
+none	lib/twl/src/ssp_jpegdec.c	no	12				0	0			
+none	lib/twl/src/ssp_jpegenc.c	no	21				0	0			
+none	src/gfl/clact_itcm.c	yes	4				0	0			
+none	src/ov005/event_wbt_wifi.c	yes	2				0	0			
+none	src/ov012/burmy_form.c	yes	1				0	0			
+none	src/ov012/event_field_open_lcd.c	yes	3				0	0			
+none	src/ov012/fest_mission_field.c	yes	5				0	0			
+none	src/ov012/hidden_hollow.c	yes	2				0	0			
+none	src/ov012/mystery_gift_pokemon.c	yes	1				0	0			
+none	src/ov012/pair_sys.c	yes	16				0	0			
+none	src/ov012/pass_power_check.c	yes	2				0	0			
+none	src/ov012/scrcmd_download_data.c	yes	6				0	0			
+none	src/ov012/scrcmd_hollow_rival.c	yes	7				0	0			
+none	src/ov012/scrcmd_join_avenue_store.c	yes	4				0	0			
+none	src/ov012/scrcmd_pedometer.c	yes	3				0	0			
+none	src/ov012/script_plugin.c	yes	5				0	0			
+none	src/ov012/townmap_util.c	yes	2				0	0			
+none	src/ov012/zone_change.c	yes	9				0	0			
+none	src/ov013/event_beacon_detail.c	yes	2				0	0			
+none	src/ov014/event_pass_power.c	yes	3				0	0			
+none	src/ov015/event_medal_info_beacon.c	yes	2				0	0			
+none	src/ov016/event_egg_demo.c	yes	2				0	0			
+none	src/ov017/event_comm_tvt.c	yes	2				0	0			
+none	src/ov020/event_poke_status.c	yes	6				0	0			
+none	src/ov021/event_festival.c	yes	3				0	0			
+none	src/ov022/event_wbt.c	yes	10				0	0			
+none	src/ov024/fest_mission_sparkle_place.c	yes	5				0	0			
+none	src/ov025/fest_mission_people.c	yes	17				0	0			
+none	src/ov026/fest_mission_hollow.c	yes	5				0	0			
+none	src/ov033/entree_forest_first_warp.c	yes	1				0	0			
+none	src/ov033/event_abyssal_ruins.c	yes	1				0	0			
+none	src/ov033/event_funfest_mission.c	yes	2				0	0			
+none	src/ov033/scrcmd_funfest.c	yes	13				0	0			
+none	src/ov036/event_name_entry.c	yes	8				0	0			
+none	src/ov036/fes_gimmick.c	yes	18				0	0			
+none	src/ov036/field_fmission_info.c	yes	26				0	0			
+none	src/ov036/field_goout_effect.c	yes	11				0	0			
+none	src/ov036/field_goout_effect_data.c	yes	9				0	0			
+none	src/ov036/fldeff_fes_kira.c	yes	18				0	0			
+none	src/ov036/fldeff_ochiba.c	yes	12				0	0			
+none	src/ov036/hidden_hollow_generate.c	yes	1				0	0			
+none	src/ov036/place_name_letter.c	yes	39				0	0			
+none	src/ov036/resort_mapcreate.c	yes	6				0	0			
+none	src/ov036/scrcmd_medal.c	yes	13				0	0			
+none	src/ov036/scrcmd_save.c	yes	3				0	0			
+none	src/ov053/scrcmd_palpark.c	yes	2				0	0			
+none	src/ov054/scrcmd_abyssal_ruins.c	yes	2				0	0			
+none	src/ov055/scrcmd_wbt.c	yes	22				0	0			
+none	src/ov055/wbt_party.c	yes	19				0	0			
+none	src/ov055/wbt_setup.c	yes	11				0	0			
+none	src/ov055/wbt_tool.c	yes	25				0	0			
+none	src/ov056/scrcmd_wbt_entrance.c	yes	20				0	0			
+none	src/ov057/scrcmd_wbt_stadium.c	yes	24				0	0			
+none	src/ov059/scrcmd_medalinfo.c	yes	3				0	0			
+none	src/ov059/scrcmd_resort.c	yes	43				0	0			
+none	src/ov060/scrcmd_resort_shop.c	yes	76				0	0			
+none	src/ov061/scrcmd_black_tower.c	yes	32				0	0			
+none	src/ov062/pokewood_setup.c	yes	9				0	0			
+none	src/ov062/scrcmd_pokewood.c	yes	36				0	0			
+none	src/ov064/scrcmd_plasma_frigate.c	yes	13				0	0			
+none	src/ov065/scrcmd_pokemon_center.c	yes	66				0	0			
+none	src/ov067/scrcmd_plugin15.c	yes	2				0	0			
+none	src/ov068/scrcmd_plugin16.c	yes	9				0	0			
+none	src/ov071/fest_mission_sparkle.c	yes	10				0	0			
+none	src/ov072/fest_mission_gimmick.c	yes	16				0	0			
+none	src/ov073/rival_select.c	yes	7				0	0			
+none	src/ov081/wbt_subscreen.c	yes	15				0	0			
+none	src/ov084/beacon_view_accessor.c	yes	7				0	0			
+none	src/ov085/fmission_log_accessor_fv.c	yes	18				0	0			
+none	src/ov085/fmission_view_setup.c	yes	34				0	0			
+none	src/ov090/gimmick_state.c	yes	3				0	0			
+none	src/ov091/gym_insect.c	no	21				0	0			
+none	src/ov092/gym_elec.c	no	77				0	0			
+none	src/ov093/gym_nacrene.c	yes	3				0	0			
+none	src/ov095/gym_striaton.c	yes	3				0	0			
+none	src/ov099/gym_opelucid.c	yes	35				0	0			
+none	src/ov103/gimmick_badge_gate.c	yes	17				0	0			
+none	src/ov111/gimmick_marine_tube.c	yes	11				0	0			
+none	src/ov112/gimmick_aspertia_city.c	yes	11				0	0			
+none	src/ov113/gimmick_humilau.c	yes	10				0	0			
+none	src/ov114/gimmick_underground_ruins.c	yes	9				0	0			
+none	src/ov115/gimmick_league_center.c	yes	10				0	0			
+none	src/ov116/gimmick_giant_chasm_6.c	yes	14				0	0			
+none	src/ov117/gimmick_plasma_frigate.c	yes	55				0	0			
+none	src/ov118/gimmick_plasma_frigate_deck.c	yes	6				0	0			
+none	src/ov119/gimmick_plasma_frigate_lights.c	yes	18				0	0			
+none	src/ov120/gimmick_league_champion.c	yes	28				0	0			
+none	src/ov122/gimmick_league_shauntal.c	yes	48				0	0			
+none	src/ov123/gimmick_league_grimsley.c	yes	18				0	0			
+none	src/ov124/gimmick_league_marshal.c	yes	28				0	0			
+none	src/ov125/gimmick_league_caitlin.c	yes	32				0	0			
+none	src/ov127/infinity_dungeon.c	yes	34				0	0			
+none	src/ov127/infinity_dungeon_creator.c	yes	6				0	0			
+none	src/ov127/infinity_dungeon_rooms.c	yes	38				0	0			
+none	src/ov129/sp_poke_event.c	yes	9				0	0			
+none	src/ov134/wbt_battle.c	yes	32				0	0			
+none	src/ov134/wbt_stadium_gimmick.c	yes	35				0	0			
+none	src/ov135/wbt_makematch.c	yes	39				0	0			
+none	src/ov136/gimmick_pokewood_poster.c	yes	13				0	0			
+none	src/ov137/resort_data_manager.c	yes	30				0	0			
+none	src/ov137/resort_sys.c	yes	61				0	0			
+none	src/ov142/bag_item.c	yes	13				0	0			
+none	src/ov143/monolith_status.c	yes	9				0	0			
+none	src/ov145/medalbox.c	yes	74				0	0			
+none	src/ov145/medalbox_data_sys.c	yes	9				0	0			
+none	src/ov147/battle_cutin_db.c	yes	1				0	0			
+none	src/ov165/plist_demo.c	yes	21				0	0			
+none	src/ov165/pokelist.c	yes	4				0	0			
+none	src/ov167/battle_overlay.c	yes	2				0	0			
+none	src/ov167/pokewood_cutin.c	yes	48				0	0			
+none	src/ov168/btlv_stage.c	yes	11				0	0			
+none	src/ov169/pos_handlers.c	yes	175				0	0			
+none	src/ov173/wifi_p2pmatchroom_map.c	yes	2				0	0			
+none	src/ov181/mb_parent_dataconv_sys.c	yes	15				0	0			
+none	src/ov182/download_play_sys.c	yes	20				0	0			
+none	src/ov186/trcard_bmp.c	yes	22				0	0			
+none	src/ov187/medal_info_beacon.c	yes	7				0	0			
+none	src/ov189/dpw_profile.c	yes	1				0	0			
+none	src/ov255/box_search_graphic.c	yes	16				0	0			
+none	src/ov257/ctvt_game.c	yes	93				0	0			
+none	src/ov257/ctvt_game_balloon.c	yes	12				0	0			
+none	src/ov257/ctvt_game_cam_graphic.c	yes	8				0	0			
+none	src/ov257/ctvt_game_target.c	yes	6				0	0			
+none	src/ov259/local_tvt_callmode.c	yes	16				0	0			
+none	src/ov259/local_tvt_callselect.c	yes	50				0	0			
+none	src/ov259/local_tvt_chara.c	yes	32				0	0			
+none	src/ov259/local_tvt_message.c	yes	29				0	0			
+none	src/ov259/local_tvt_person_chelen.c	yes	9				0	0			
+none	src/ov259/local_tvt_person_doctor.c	yes	11				0	0			
+none	src/ov259/local_tvt_person_mother.c	yes	7				0	0			
+none	src/ov259/local_tvt_person_rival.c	yes	7				0	0			
+none	src/ov259/local_tvt_person_secret.c	yes	27				0	0			
+none	src/ov259/local_tvt_person_support.c	yes	8				0	0			
+none	src/ov259/local_tvt_scriptmode.c	yes	15				0	0			
+none	src/ov259/local_tvt_sys.c	yes	11				0	0			
+none	src/ov260/wifibattlematch_link.c	yes	3				0	0			
+none	src/ov262/wifibattlematch_graphic.c	yes	14				0	0			
+none	src/ov279/new_game.c	yes	4				0	0			
+none	src/ov280/namein_graphic.c	yes	14				0	0			
+none	src/ov288/b_scenario_graphic.c	yes	32				0	0			
+none	src/ov288/b_scenario_main.c	yes	42				0	0			
+none	src/ov289/b_choice_main.c	yes	33				0	0			
+none	src/ov293/demo3d_engine.c	yes	11				0	0			
+none	src/ov294/intro_script.c	yes	1				0	0			
+none	src/ov299/zknlist_ui.c	yes	1				0	0			
+none	src/ov302/zukan.c	yes	19				0	0			
+none	src/ov303/zukan_habitat.c	yes	56				0	0			
+none	src/ov303/zukan_habitat_graphic.c	yes	58				0	0			
+none	src/ov304/zukan_area_list.c	yes	34				0	0			
+none	src/ov304/zukan_area_list_view.c	yes	58				0	0			
+none	src/ov309/fmission_app.c	yes	34				0	0			
+none	src/ov309/fmission_app_draw.c	yes	26				0	0			
+none	src/ov309/fmission_app_gra.c	yes	21				0	0			
+none	src/ov309/fmission_log_accessor_fapp.c	yes	6				0	0			
+none	src/ov311/un_select_graphic.c	yes	17				0	0			
+none	src/ov314/chihou_zukan_award_graphic.c	yes	17				0	0			
+none	src/ov315/zenkoku_zukan_award_graphic.c	yes	17				0	0			
+none	src/ov316/psel_graphic.c	yes	23				0	0			
+none	src/ov317/subway_map_graphic.c	yes	15				0	0			
+none	src/ov318/marine_tube_board.c	yes	4				0	0			
+none	src/ov318/marine_tube_board_graphic.c	yes	12				0	0			
+none	src/ov318/marine_tube_board_message.c	yes	6				0	0			
+none	src/ov320/wbt_list.c	yes	50				0	0			
+none	src/ov320/wbt_list_graphic.c	yes	16				0	0			
+none	src/ov321/pkwd_count.c	yes	34				0	0			
+none	src/ov321/pkwd_count_graphic.c	yes	17				0	0			
+none	src/ov322/pkwd_book.c	yes	101				0	0			
+none	src/ov322/pkwd_book_graphic.c	yes	16				0	0			
+none	src/ov323/pkwd_selectscreen.c	yes	63				0	0			
+none	src/ov323/pkwd_selectscreen_graphic.c	yes	14				0	0			
+none	src/ov324/pkwd_briefing.c	yes	74				0	0			
+none	src/ov325/pkwd_record_monitor.c	yes	65				0	0			
+none	src/ov325/pkwd_record_monitor_graphic.c	yes	16				0	0			
+none	src/ov326/t_download.c	yes	34				0	0			
+none	src/ov326/t_download_graphic.c	yes	16				0	0			
+none	src/ov326/t_download_save.c	yes	19				0	0			
+none	src/ov326/t_download_util.c	yes	66				0	0			
+none	src/ov326/win_record.c	yes	47				0	0			
+none	src/ov326/win_record_graphic.c	yes	16				0	0			
+none	src/ov327/wbt_download_net_graphic.c	yes	12				0	0			
+none	src/ov327/wbt_download_net_util.c	yes	33				0	0			
+none	src/ov327/wbt_download_sys.c	yes	15				0	0			
+none	src/ov328/gpower_app.c	yes	50				0	0			
+none	src/ov328/gpower_app_graphic.c	yes	16				0	0			
+none	src/ov332/data_convert_flow.c	yes	38				0	0			
+none	src/ov332/key_system_flow.c	yes	48				0	0			
+none	src/ov332/key_system_flow_sub.c	yes	33				0	0			
+none	src/ov332/key_system_graphic.c	yes	22				0	0			
+none	src/ov332/key_system_main.c	yes	53				0	0			
+none	src/ov332/key_system_net.c	yes	35				0	0			
+none	src/ov332/key_system_util.c	yes	82				0	0			
+none	src/ov332/wb_save_block.c	yes	4				0	0			
+none	src/ov332/wb_save_convert.c	yes	3				0	0			
+none	src/system/bag_param.c	yes	1				0	0			
+none	src/system/beacon_status.c	yes	7				0	0			
+none	src/system/blink_palanm.c	yes	9				0	0			
+none	src/system/boot_proc.c	yes	3				0	0			
+none	src/system/c_gear_name_savedata.c	yes	5				0	0			
+none	src/system/cygnus_save_control.c	yes	13				0	0			
+none	src/system/extra_block_savedata.c	yes	5				0	0			
+none	src/system/fest_mission.c	yes	18				0	0			
+none	src/system/field_dir.c	yes	1				0	0			
+none	src/system/key_data_savedata.c	yes	25				0	0			
+none	src/system/key_info.c	yes	16				0	0			
+none	src/system/machine_use.c	yes	13				0	0			
+none	src/system/player_action_perms.c	yes	2				0	0			
+none	src/system/plist_data_setup.c	yes	2				0	0			
+none	src/system/pml_species_names.c	yes	1				0	0			
+none	src/system/pokewood_rec.c	yes	14				0	0			
+none	src/system/pokewood_savedata.c	yes	24				0	0			
+none	src/system/resort_binary.c	yes	20				0	0			
+none	src/system/resort_layout.c	yes	6				0	0			
+none	src/system/resort_work.c	yes	5				0	0			
+none	src/system/shortcut_savedata.c	yes	10				0	0			
+none	src/system/shortcut_util.c	yes	2				0	0			
+none	src/system/snd_strm.c	yes	9				0	0			
+none	src/system/version.c	yes	1				0	0			
+none	src/system/vm.c	yes	17				0	0			
+none	src/system/wbt_savedata.c	yes	8				0	0			
+none	src/system/zukan_habitat_savedata.c	yes	17				0	0			

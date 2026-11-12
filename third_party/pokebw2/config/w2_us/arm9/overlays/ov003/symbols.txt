@@ -1,0 +1,3 @@
+EventBattleVideo_Callback kind:function(thumb,size=0xbc) addr:0x0214f540
+EventBattleVideo_Create kind:function(thumb,size=0x40) addr:0x0214f5fc
+EventBattleVideo_CreateFromArgs kind:function(thumb,size=0xc) addr:0x0214f63c

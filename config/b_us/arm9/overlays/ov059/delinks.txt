@@ -1,0 +1,11 @@
+    .text       start:0x021f36c0 end:0x021f3e50 kind:code align:32
+    .rodata     start:0x021f3e50 end:0x021f4064 kind:rodata align:4
+    .ctor       start:0x021f4064 end:0x021f4064 kind:rodata align:4
+    .data       start:0x021f4080 end:0x021f40a0 kind:data align:32
+    .bss        start:0x021f40a0 end:0x021f40a0 kind:bss align:32
+
+src/ov059/sp_poke_gimmick_ov059.c:
+    complete
+    .text       start:0x021f36c0 end:0x021f3e50
+    .rodata     start:0x021f3e50 end:0x021f4064
+    .data       start:0x021f4080 end:0x021f40a0

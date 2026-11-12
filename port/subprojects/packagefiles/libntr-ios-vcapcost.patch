@@ -1,0 +1,66 @@
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -71,12 +71,23 @@
+   u32 shin[32];
+   s16 vtx[3]; // the last vertex (VTX_XY/XZ/YZ/DIFF are relative to it; POS_TEST sets it too)
+   bool vtxSet;
++  u32 lazy; // libntr-ios-vcapcost.patch: LZ_* bits: normalVec / normalTex / texcoordTex are vec / tex now, not copied yet
+ };
+ enum { SET_DIFAMB = 1, SET_SPEEMI = 2, SET_POLY = 4, SET_TEX = 8, SET_PLTT = 16, SET_VIEWPORT = 32, SET_TEXCOORD = 64,
+        SET_SHIN = 128 };
+ 
+ static G3State sG3;
+ 
++// libntr-ios-vcapcost.patch: NORMAL and TEXCOORD (a vertex each, often) note the matrices current then; they are copied when
++// a matrix command is about to change one, or when the state is read (Prologue), not at every vertex
++enum { LZ_NV = 1, LZ_NT = 2, LZ_TT = 4 };
++static void Materialize(G3State &g) {
++  if (g.lazy & LZ_NV) g.normalVec = g.vec;
++  if (g.lazy & LZ_NT) g.normalTex = g.tex;
++  if (g.lazy & LZ_TT) g.texcoordTex = g.tex;
++  g.lazy = 0;
++}
++
+ static void G3Reset(G3State &g) {
+   memset(&g, 0, sizeof g);
+   g.proj = g.pos = g.vec = g.tex = g.projStk = g.texStk = Identity();
+@@ -94,6 +105,7 @@
+ }
+ 
+ static void G3Apply(G3State &g, u32 op, const u32 *p) {
++  if (g.lazy && op >= G3OP_MTX_POP && op <= G3OP_MTX_TRANS && op != G3OP_MTX_STORE) Materialize(g); // (may change vec or tex)
+   switch (op) {
+   case G3OP_MTX_MODE: g.mode = p[0] & 3; break;
+   case G3OP_MTX_PUSH:
+@@ -150,8 +162,8 @@
+     else MulInto(g.tex, m);
+   } break;
+   case G3OP_COLOR: g.color = p[0]; g.lastColorSrc = 1; break;
+-  case G3OP_NORMAL: g.normal = p[0]; g.normalVec = g.vec; g.normalTex = g.tex; g.lastColorSrc = 3; break;
+-  case G3OP_TEXCOORD: g.texcoord = p[0]; g.texcoordTex = g.tex; g.set |= SET_TEXCOORD; break;
++  case G3OP_NORMAL: g.normal = p[0]; g.lazy |= LZ_NV | LZ_NT; g.lastColorSrc = 3; break;
++  case G3OP_TEXCOORD: g.texcoord = p[0]; g.lazy |= LZ_TT; g.set |= SET_TEXCOORD; break;
+   case G3OP_POLYGON_ATTR: g.polyAttr = p[0]; g.set |= SET_POLY; break;
+   case G3OP_TEXIMAGE_PARAM: g.texParam = p[0]; g.set |= SET_TEX; break;
+   case G3OP_TEXPLTT_BASE: g.plttBase = p[0]; g.set |= SET_PLTT; break;
+@@ -286,7 +298,9 @@
+   sCur.words.push_back(op | (n << 8) | (flags << 16));
+   for (u32 i = 0; i < n; i++) sCur.words.push_back(p[i]);
+   sCur.commands++;
+-  if (n < (u32)NumParams(op)) return; // a list cut short: the command is kept as it came, the state not followed
++  // a list cut short: the command is kept as it came, the state not followed (only a list's can be: the other callers give
++  // each command its whole parameter count)
++  if ((flags & FLAG_LIST) && n < (u32)NumParams(op)) return;
+   if (op == G3OP_NORMAL) sLastNormal = p[0];
+   if (op == G3OP_TEXCOORD) sLastTexcoord = p[0];
+   G3Apply(sG3, op, p);
+@@ -433,7 +447,8 @@
+ }
+ 
+ // commands that take a geometry engine from its reset state to s
+-static void Prologue(const G3State &s, std::vector<u32> &out, u32 &count) {
++static void Prologue(G3State s, std::vector<u32> &out, u32 &count) {
++  Materialize(s); // libntr-ios-vcapcost.patch
+   u32 p[2];
+   for (int l = 0; l < 4; l++) {
+     if (s.lightVecSet & (1u << l)) {

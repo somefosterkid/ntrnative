@@ -1,0 +1,9 @@
+    .text       start:0x021f5a80 end:0x021f5b64 kind:code align:32
+    .rodata     start:0x021f5b64 end:0x021f5b70 kind:rodata align:4
+    .ctor       start:0x021f5b70 end:0x021f5b70 kind:rodata align:4
+    .bss        start:0x021f5b80 end:0x021f5b80 kind:bss align:32
+
+src/ov080/encounter_effect_columns.c:
+    complete
+    .text       start:0x021f5a80 end:0x021f5b64
+    .rodata     start:0x021f5b64 end:0x021f5b70

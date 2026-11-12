@@ -1,0 +1,85 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -224,6 +224,7 @@
+ // Vcount stuff
+ static SDL_sem *vcountResetSemaphore;
+ static SDL_sem *vcountVblankSemaphore;
++static void SIM_StartVBlankLines();
+ 
+ SDL_Joystick *s_SIM_SDLJoystick = NULL;
+ 
+@@ -1298,6 +1299,7 @@
+     OS_IRQTable[OS_IE_H_BLANK - 1]();
+ 
+     // Run VBlank Interrupt
++    SIM_StartVBlankLines();
+     OS_IRQTable[OS_IE_V_BLANK - 1]();
+     s_HW_INTR_CHECK_BUF |= 1;
+     *((u32 *)HW_VBLANK_COUNT_BUF) = *((u32 *)HW_VBLANK_COUNT_BUF) + 1;
+@@ -1392,6 +1394,29 @@
+   return sFullFrameTime;
+ }
+ 
++// The V-count as the DS's would read: 192 at the V-blank (the V-blank interrupt, and again when OS_WaitIrq returns
++// and the game's own V-blank work starts), then a line every 63.555 us (263 lines at 59.8261 Hz), 0 after 262, and
++// held at 191 when the frame runs longer than the DS's. Code that does its VRAM loads early in the V-blank (mcss.c's
++// load tasks, 192 to 200) and code that spreads work over the frame read what the DS would; it was always 0
++static struct timespec s_SIM_vblankStart;
++
++static void SIM_StartVBlankLines() { clock_gettime(CLOCK_MONOTONIC, &s_SIM_vblankStart); }
++
++extern "C" REGType16v *SIM_GetVCountReg(void) {
++  struct timespec now;
++  clock_gettime(CLOCK_MONOTONIC, &now);
++  s64 ns = (s64)(now.tv_sec - s_SIM_vblankStart.tv_sec) * 1000000000LL + (now.tv_nsec - s_SIM_vblankStart.tv_nsec);
++  s64 line = 192 + ns / 63555;
++  if (line >= 263) {
++    line -= 263;
++    if (line > 191) {
++      line = 191;
++    }
++  }
++  s_reg_GX_VCOUNT = (u16)line;
++  return &s_reg_GX_VCOUNT;
++}
++
+ void SIM_PreRenderVBlank() { SDL_SemPost(vcountVblankSemaphore); }
+ 
+ void SIM_PostRenderVBlank() {
+@@ -1400,8 +1425,8 @@
+     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+     G3SIM_ResetSwapBuffersCall();
+   }
+-  // Reset Vcount
+-  s_reg_GX_VCOUNT = 0;
++  // The game's V-blank work (after OS_WaitIrq) starts at line 192 too
++  SIM_StartVBlankLines();
+   SDL_SemPost(vcountResetSemaphore);
+ }
+ 
+--- a/include/nitro/hw/X86/ioreg_GX.h
++++ b/include/nitro/hw/X86/ioreg_GX.h
+@@ -58,7 +58,9 @@
+ 
+ #define REG_VCOUNT_OFFSET                                  0x006
+ #define REG_VCOUNT_ADDR                                    (&s_reg_GX_VCOUNT)
+-#define reg_GX_VCOUNT                                      (*( REGType16v *) REG_VCOUNT_ADDR)
++// The V-count runs with the time since the V-blank (sim_main.cpp's SIM_GetVCountReg; nothing advanced it before)
++REGType16v *SIM_GetVCountReg(void);
++#define reg_GX_VCOUNT                                      (*SIM_GetVCountReg())
+ 
+ /* DISPCAPCNT */
+ 
+--- a/include/twl/hw/X86/ioreg_GX.h
++++ b/include/twl/hw/X86/ioreg_GX.h
+@@ -44,7 +44,9 @@
+ 
+ #define REG_VCOUNT_OFFSET 0x006
+ #define REG_VCOUNT_ADDR (&s_reg_GX_VCOUNT)
+-#define reg_GX_VCOUNT (*(REGType16v *)REG_VCOUNT_ADDR)
++// The V-count runs with the time since the V-blank (sim_main.cpp's SIM_GetVCountReg; nothing advanced it before)
++REGType16v *SIM_GetVCountReg(void);
++#define reg_GX_VCOUNT                                      (*SIM_GetVCountReg())
+ 
+ #define REG_DISPCAPCNT_OFFSET 0x064
+ #define REG_DISPCAPCNT_ADDR (&s_reg_GX_DISPCAPCNT)

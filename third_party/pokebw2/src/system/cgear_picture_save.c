@@ -1,0 +1,24 @@
+#include "types.h"
+#include "gfl/std.h"
+#include "save/cgear_picture_save.h"
+#include "save/save_control.h"
+
+// The downloaded C-Gear skin, extra save block 4. The ROM has no string for the file, so the name is a guess
+
+u32 CGearPictureSave_GetSize(void) {
+    return sizeof(CGearPictureSave);
+}
+
+void CGearPictureSave_Init(CGearPictureSave *picture) {
+}
+
+BOOL CGearPictureSave_IsValid(CGearPictureSave *picture) {
+    u8 empty[0x20];
+    BOOL valid = FALSE;
+
+    MI_CpuFill8(empty, 0, sizeof(empty));
+    if (GFL_STD_MemCmp(empty, &picture->chars[sizeof(picture->chars) - sizeof(empty)], sizeof(empty))) {
+        valid = TRUE;
+    }
+    return valid;
+}

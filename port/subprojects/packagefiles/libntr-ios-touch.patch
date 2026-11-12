@@ -1,0 +1,962 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -53,6 +53,20 @@
+ #else
+ #define SIM_IOS 0
+ #endif
++
++// bw-port (libntr-ios-touch.patch): the phone's on-screen controls (sim_touch.cpp)
++extern "C" {
++int SimTouch_Active(void);
++int SimTouch_ForcedSize(int * w, int * h);
++void SimTouch_Hints(void);
++void SimTouch_Window(SDL_Window * w);
++void SimTouch_Layout(int winW, int winH, float * x, float * y, float * w, float * h);
++int SimTouch_Event(const SDL_Event * e);
++unsigned SimTouch_Pressed(void);
++int SimTouch_Stylus(float * x, float * y);
++int SimTouch_FFEdge(void);
++int SimTouch_Background(void);
++}
+ 
+ #ifdef SDK_BUILD_WIN64
+ #include <windows.h>
+@@ -1036,6 +1050,7 @@
+ #ifdef __APPLE__
+   if (SIM_HiddenWanted()) SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
+ #endif
++  SimTouch_Hints();
+   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+@@ -1117,6 +1132,15 @@
+     float ds = SIM::GUI::DisplayScale();
+     windowWidth = (u32)((float)windowWidth * ds + 0.5f);
+     windowHeight = (u32)((float)windowHeight * ds + 0.5f) + (u32)SIM::GUI::InitialBarHeight();
++  }
++  if (SimTouch_Active()) {
++    // bw-port (libntr-ios-touch.patch): the touch layout stacks the screens (a desktop test: a phone-shaped window)
++    int fw, fh;
++    if (SimTouch_ForcedSize(&fw, &fh)) { windowWidth = fw; windowHeight = fh; }
++    s_SIM_config.screenLayout = SIM_CONFIG_SCREEN_LAYOUT_VERTICAL;
++    s_SIM_config.swapScreens = 0;
++    s_SIM_config.showInputPanel = 0;
++    s_SIM_config.showMetrics = 0;   // (on by default for the desktop; the settings screen turns it on for the session)
+   }
+ 
+   std::string windowTitle = "libntr Application";
+@@ -1169,6 +1193,7 @@
+       | SDL_WINDOW_RESIZABLE
+       #endif
+     );
++  SimTouch_Window(window);
+   context = SDL_GL_CreateContext(window);
+   if (context == NULL) {
+     // no 4.2 core context: say so, not a crash in the first GL call
+@@ -1862,6 +1887,20 @@
+   }
+ }
+ 
++// bw-port (libntr-ios-touch.patch): the app is in the background (iOS kills an app that issues OpenGL ES commands there): no
++// drawing, the game and the sound stand still until it is back
++static void SimTouchBackgroundWait(void) {
++  if (!SimTouch_Active() || !SimTouch_Background()) return;
++  fprintf(stderr, "bwport: in the background: paused\n");
++  SDL_PauseAudio(1);
++  while (SimTouch_Background()) {
++    SDL_PumpEvents();
++    SDL_Delay(50);
++  }
++  SDL_PauseAudio(0);
++  fprintf(stderr, "bwport: back in the foreground\n");
++}
++
+ void *SIM_Render(void *arg) {
+ 
+   SDL_Event Event;
+@@ -1875,6 +1914,7 @@
+   u32 i;
+ 
+   do {
++    SimTouchBackgroundWait();
+ #ifdef SDK_TRACY_ENABLE
+     TracyCZone(SimRenderZone, 1);
+ #endif
+@@ -1939,7 +1979,8 @@
+       break;
+     }
+     // The input panel sits right of the screens: the screens and the panel are fitted together
+-    bool sideOn = s_SIM_config.showInputPanel || s_SIM_config.showMetrics;
++    const bool touchMode = SimTouch_Active() != 0;
++    bool sideOn = !touchMode && (s_SIM_config.showInputPanel || s_SIM_config.showMetrics);
+     float panelW = sideOn ? layoutH * 0.625f : 0.0f;
+     aspectRatio = (layoutW + panelW) / layoutH;
+     {
+@@ -1972,6 +2013,15 @@
+     if (viewHeight > areaH) viewHeight = areaH;
+     viewX = (windowWidth - viewWidth) / 2;
+     int viewTop = barH + (areaH - viewHeight) / 2;
++    if (touchMode) {
++      // bw-port (libntr-ios-touch.patch): the touch layout's rectangle (sim_touch.cpp)
++      float tx, ty, tw, th;
++      SimTouch_Layout(windowWidth, windowHeight, &tx, &ty, &tw, &th);
++      viewX = (int)(tx + 0.5f);
++      viewTop = (int)(ty + 0.5f);
++      viewWidth = (int)(tw + 0.5f);
++      viewHeight = (int)(th + 0.5f);
++    }
+     viewY = windowHeight - viewHeight - viewTop;
+ 
+     // the screens take their share of the width; the panel the rest
+@@ -2036,6 +2086,10 @@
+       sTouchLatch = 0;
+     }
+     while (SDL_PollEvent(&Event)) {
++      // bw-port (libntr-ios-touch.patch): the fingers (sim_touch.cpp)
++      if (touchMode && SimTouch_Event(&Event)) {
++        continue;
++      }
+       // bw-port (libntr-ui68.patch): the GUI takes a key it is waiting for (a key being assigned) or Esc for a window
+       if (SIM::GUI::ProcessEvent(&Event)) {
+         continue;
+@@ -2226,7 +2280,7 @@
+                               SIM_CONFIG_JOY_AXIS_MINUS_MASK);
+         }
+       }
+-      if (Event.type == SDL_MOUSEBUTTONDOWN && Event.button.button == SDL_BUTTON_LEFT) {
++      if (!touchMode && Event.type == SDL_MOUSEBUTTONDOWN && Event.button.button == SDL_BUTTON_LEFT) {
+         // a click on the menu bar or a window is not a touch; neither is one outside the touch screen. The stroke then
+         // lasts until the button is up: it leaves the screen and comes back, the stylus is lifted and put down again
+         float ex = (float)Event.button.x + 0.5f, ey = (float)Event.button.y + 0.5f;
+@@ -2248,12 +2302,12 @@
+           }
+         }
+       }
+-      if (Event.type == SDL_MOUSEMOTION && isMouseDown &&
++      if (!touchMode && Event.type == SDL_MOUSEMOTION && isMouseDown &&
+           TouchOnScreen((float)Event.motion.x + 0.5f, (float)Event.motion.y + 0.5f)) {
+         sTouchLastX = (float)Event.motion.x + 0.5f; // where the pen was last (a quick click that moves on before the frame)
+         sTouchLastY = (float)Event.motion.y + 0.5f;
+       }
+-      if (Event.type == SDL_MOUSEBUTTONUP && Event.button.button == SDL_BUTTON_LEFT) {
++      if (!touchMode && Event.type == SDL_MOUSEBUTTONUP && Event.button.button == SDL_BUTTON_LEFT) {
+         if (isMouseDown && TouchLogFile() != NULL) {
+           fprintf(sTouchLog, "ev up %u %d %d\n", *((u32 *)HW_VBLANK_COUNT_BUF), Event.button.x, Event.button.y);
+           fflush(sTouchLog);
+@@ -2268,11 +2322,52 @@
+     }
+     s_reg_PAD_KEYINPUT = s_reg_PAD_KEYINPUT;
+ 
+-    Uint32 mouseButtons = SDL_GetMouseState(&x, &y);
++    Uint32 mouseButtons;
++    if (touchMode) {
++      // bw-port (libntr-ios-touch.patch): the touch buttons are ORed into the pad registers where the keyboard writes them
++      // (a bit changes only when the touch state does, so a key held at the same time keeps working); the bottom screen's
++      // finger is the stylus; the fast-forward button is the Space key's flag
++      static unsigned sTouchPadPrev;
++      unsigned now = SimTouch_Pressed();
++      unsigned ch = now ^ sTouchPadPrev;
++      static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};  // A B X Y L R Start Select Up Down Left Right
++      for (int b = 0; b < 12; b++) {
++        if (!((ch >> b) & 1)) continue;
++        bool down = (now >> b) & 1;
++        if (padBit[b] != 0xff) {
++          s_reg_PAD_KEYINPUT = (u16)(down ? s_reg_PAD_KEYINPUT & ~(1u << padBit[b]) : s_reg_PAD_KEYINPUT | (1u << padBit[b]));
++        } else {
++          vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
++          u16 bit = (u16)(1u << (b == 2 ? 10 : 11));
++          *xy = (u16)(down ? *xy & ~bit : *xy | bit);
++        }
++      }
++      sTouchPadPrev = now;
++      int ff = SimTouch_FFEdge();
++      if (ff >= 0) sFastForward = ff != 0;
++      float fx, fy;
++      int d = SimTouch_Stylus(&fx, &fy);
++      x = (int)fx;
++      y = (int)fy;
++      mouseButtons = d ? SDL_BUTTON_LMASK : 0;
++      if (d && !isMouseDown) {
++        isMouseDown = 1;
++        s_tpData.validity = 0;
++        s_tpData.touch = 1;
++        sTouchLatch = 1;
++        sTouchLatchAt = sTouchSamples;
++        sTouchLatchFrames = 0;
++        sTouchLastX = fx;
++        sTouchLastY = fy;
++      }
++      SimTouchBackgroundWait();   // (the events above may have been the background: no GL from here)
++    } else {
++      mouseButtons = SDL_GetMouseState(&x, &y);
++    }
+     if (isMouseDown && !(mouseButtons & SDL_BUTTON_LMASK)) {
+       isMouseDown = 0; // the release never reached us (focus change, a grab that ended)
+     }
+-    if (isMouseDown && SDL_GetMouseFocus() == NULL && !(SDL_GetGlobalMouseState(NULL, NULL) & SDL_BUTTON_LMASK)) {
++    if (!touchMode && isMouseDown && SDL_GetMouseFocus() == NULL && !(SDL_GetGlobalMouseState(NULL, NULL) & SDL_BUTTON_LMASK)) {
+       isMouseDown = 0; // the pointer is outside the window with no grab: ask the system whether the button is still down
+     }
+ 
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -30,6 +30,16 @@
+ 
+ // bw-port (libntr-ui68.patch): the menu bar, the settings windows, the right side (metrics on top, the controller below)
+ // and the sharp text (a vector font at the pixel size drawn). the maintainers' notes "The UI".
++// bw-port (libntr-ios-touch.patch): the phone's touch controls and their settings screen (sim_touch.cpp)
++extern "C" {
++int SimTouch_Active(void);
++int SimTouch_MenuOpen(void);
++void SimTouch_MenuClose(void);
++void SimTouch_Draw(void);
++void SimTouch_FeedImGui(void);
++void SimTouch_Safe(float * s);
++}
++
+ namespace SIM::GUI {
+ static SDL_Window * sWindow;
+ static SDL_GLContext sContext;
+@@ -120,8 +130,12 @@
+ // ---- the display's scale ------------------------------------------------------------------------------------------
+ 
+ float DisplayScale() {
++    if (SimTouch_Active()) {
++        return 1.5f;   // bw-port (libntr-ios-touch.patch): the touch settings' size (points), a phone or a test window alike
++    }
+ #if defined(__APPLE__) && TARGET_OS_IOS
+-    return 1.0f;   // bw-port (libntr-ios-ui.patch): the window is in points; the display's DPI (460) would make the panel 3x
++    return 1.5f;   // bw-port (libntr-ios-ui.patch): the window is in points; the display's DPI (460) would make the panel 3x
++                   // (libntr-ios-touch.patch: 1.5, the touch settings' size)
+ #endif
+     float ddpi = 96.0f;
+     if (SDL_GetDisplayDPI(0, &ddpi, nullptr, nullptr) != 0) {
+@@ -157,6 +171,9 @@
+ // FullscreenMenuBar=always (otherwise it slides in over the picture)
+ static bool Pinned() {
+     SIM_config_type * c = C();
++    if (SimTouch_Active()) {
++        return false;   // bw-port (libntr-ios-touch.patch): no menu bar on the phone
++    }
+     return c->showMenuBar && (!c->fullScreen || c->fullscreenMenuBar);
+ }
+ 
+@@ -182,6 +199,10 @@
+     (void)windowH;
+     SIM_config_type * c = C();
+     sSideRect[2] = sSideRect[3] = 0.0f; // DrawSide sets it again when the side is drawn
++    if (SimTouch_Active()) {
++        sBarVisible = false;   // bw-port (libntr-ios-touch.patch): no menu bar on the phone
++        return 0;
++    }
+     int mx = 0, my = 0;
+     Uint32 b = SDL_GetMouseState(&mx, &my);
+     bool focus = SDL_GetMouseFocus() == sWindow;
+@@ -489,7 +510,7 @@
+ static const char * const SpeedNames[] = {"1x (normal)", "2x", "3x", "4x"};
+ static const char * const SpeedShort[] = {"1x", "2x", "3x", "4x"};
+ static const char * const DisplayCapNames[] = {"60 per second", "120 per second", "Monitor's refresh rate", "Unlimited (Tab)"};
+-static const char * const DisplayCapShort[] = {"60", "120", "Monitor", "Unlimited"};
++static const char * const DisplayCapShort[] = {"60", "120", "Monitor", "Max"};
+ static const char * const SpeedTip = "how fast the game runs: sound effects and cries follow, the music keeps its tempo (Audio: Music at normal speed). No effect at Unlimited";
+ static const char * const DisplayCapTip = "how many pictures a second the window shows: 60, 120, the monitor's refresh rate, or Unlimited (no cap, no VSync: as fast as the computer can; Tab switches to Unlimited and back). The game runs on its own clock (Game speed)";
+ static const char * const NoEffectTip = "no effect at Unlimited";
+@@ -1654,6 +1675,8 @@
+         fflush(f);
+     }
+ }
++
++static void TouchMenu();
+ 
+ void Main() {
+     SIM_config_type * c = C();
+@@ -1662,6 +1685,10 @@
+     if (fabsf(fh - sBarH) > 0.5f) {
+         sBarH = fh;
+     }
++    if (SimTouch_Active()) {
++        SimTouch_Draw();   // bw-port (libntr-ios-touch.patch): the controls, and the settings screen over them
++        TouchMenu();
++    } else {
+     if (sBarVisible) {
+         MenuBar();
+     }
+@@ -1675,6 +1702,7 @@
+     if (sWins[W_NET].open) { AppNetMain(&sWins[W_NET].open); }
+     if (sWins[W_DEMO].open) { ImGui::ShowDemoWindow(&sWins[W_DEMO].open); }
+     if (sWins[W_APP].open) { PrjMain(&sWins[W_APP].open); }
++    }
+ 
+     if (sResetAsk) {
+         ImGui::OpenPopup("Reset the game");
+@@ -2330,6 +2358,123 @@
+ }
+ 
+ // the UI's rectangles as a line of text for BWPORT_TOUCHLOG: the bar (when drawn), the side, the settings windows drawn
++// ---- the phone's settings screen (libntr-ios-touch.patch) -------------------------------------------------------------
++// The existing settings in a touch size: rows of big buttons, one full-width toggle each, dragging the background scrolls.
++
++static const float kTouchRow = 46.0f;
++
++static bool TouchSeg(const char * const * names, int n, int cur, int * pick) {
++    float sp = ImGui::GetStyle().ItemSpacing.x;
++    float w = (ImGui::GetContentRegionAvail().x - sp * (float)(n - 1)) / (float)n;
++    bool changed = false;
++    for (int i = 0; i < n; i++) {
++        if (i > 0) { ImGui::SameLine(); }
++        bool on = i == cur;
++        ImGui::PushID(i);
++        ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.95f, 0.70f, 0.15f, 1.0f) : ImVec4(0.22f, 0.24f, 0.33f, 1.0f));
++        ImGui::PushStyleColor(ImGuiCol_Text, on ? ImVec4(0.08f, 0.07f, 0.03f, 1.0f) : ImVec4(0.93f, 0.94f, 0.97f, 1.0f));
++        if (ImGui::Button(names[i], ImVec2(w, kTouchRow))) {
++            *pick = i;
++            changed = true;
++        }
++        ImGui::PopStyleColor(2);
++        ImGui::PopID();
++    }
++    return changed;
++}
++
++static bool TouchToggle(const char * label, bool on) {
++    ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.95f, 0.70f, 0.15f, 1.0f) : ImVec4(0.22f, 0.24f, 0.33f, 1.0f));
++    ImGui::PushStyleColor(ImGuiCol_Text, on ? ImVec4(0.08f, 0.07f, 0.03f, 1.0f) : ImVec4(0.93f, 0.94f, 0.97f, 1.0f));
++    char t[96];
++    snprintf(t, sizeof t, "%s: %s", label, on ? "on" : "off");
++    bool hit = ImGui::Button(t, ImVec2(-FLT_MIN, kTouchRow));
++    ImGui::PopStyleColor(2);
++    return hit;
++}
++
++static void TouchHead(const char * t) {
++    ImGui::Spacing();
++    ImGui::TextColored(ImVec4(0.55f, 0.75f, 1.0f, 1.0f), "%s", t);
++}
++
++static void TouchMenu() {
++    SIM_config_type * c = C();
++    if (!SimTouch_MenuOpen()) {
++        return;
++    }
++    ImGuiViewport * vp = ImGui::GetMainViewport();
++    float safe[4];
++    SimTouch_Safe(safe);
++    float x = safe[0] + 8.0f, y = safe[1] + 8.0f, w = vp->Size.x - safe[0] - safe[2] - 16.0f, h = vp->Size.y - safe[1] - safe[3] - 16.0f;
++    float mh = c->showMetrics ? std::min(h * 0.5f, 320.0f) : 0.0f;
++    ImGui::SetNextWindowPos(ImVec2(x, y));
++    ImGui::SetNextWindowSize(ImVec2(w, h - mh));
++    ImGui::SetNextWindowBgAlpha(0.96f);
++    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 8.0f));
++    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 10.0f));
++    ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, 18.0f);
++    ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 34.0f);
++    bool vis = ImGui::Begin("##touchmenu", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav);
++    if (vis) {
++        ImGui::AlignTextToFramePadding();
++        ImGui::TextUnformatted("Settings");
++        ImGui::SameLine(ImGui::GetWindowWidth() - 150.0f - ImGui::GetStyle().WindowPadding.x);
++        if (ImGui::Button("Close", ImVec2(150.0f, kTouchRow))) {
++            SimTouch_MenuClose();
++        }
++        int p = 0;
++        TouchHead("Renderer");
++        if (TouchSeg(RendererShort, 3, c->renderer < 3 ? c->renderer : 0, &p)) { c->renderer = (u8)p; Dirty(); }
++        ImGui::TextDisabled("%s", SIM_RendererStatus());
++        TouchHead("Resolution");
++        {
++            static const char * const rn[] = {"1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x"};
++            int cur = c->resolution - 1;
++            if (TouchSeg(rn, 4, cur < 4 ? cur : -1, &p)) { c->resolution = (u8)(p + 1); Dirty(); }
++            if (TouchSeg(rn + 4, 4, cur >= 4 ? cur - 4 : -1, &p)) { c->resolution = (u8)(p + 5); Dirty(); }
++        }
++        TouchHead("Frame rate");
++        {
++            static const char * const dn[] = {"60", "120", "Monitor", "Max"};
++            if (TouchSeg(dn, 4, DisplayCapIndex(), &p)) { SetDisplayCap(p); }
++        }
++        TouchHead("Game speed");
++        {
++            static const char * const sn[] = {"1x", "2x", "3x", "4x"};
++            ImGui::BeginDisabled(FrameRateUnlimited());
++            if (TouchSeg(sn, 4, SpeedIndex(), &p)) { SetSpeed(p); }
++            ImGui::EndDisabled();
++        }
++        ImGui::Spacing();
++        if (TouchToggle("Music at normal speed", c->musicNormalSpeed != 0)) { c->musicNormalSpeed = !c->musicNormalSpeed; Dirty(); }
++        ImGui::BeginDisabled(FrameRateUnlimited());
++        if (TouchToggle("Smooth motion", c->interpolation != 0)) { c->interpolation = !c->interpolation; Dirty(); }
++        ImGui::EndDisabled();
++        if (TouchToggle("Metrics", c->showMetrics != 0)) { c->showMetrics = !c->showMetrics; Dirty(); }
++        TouchHead("Volume");
++        {
++            int vol = (int)((c->masterVolume * 100 + 63) / 127);
++            ImGui::SetNextItemWidth(-FLT_MIN);
++            if (ImGui::SliderInt("##vol", &vol, 0, 100, "%d%%")) {
++                c->masterVolume = (u8)((vol * 127 + 50) / 100);
++                Dirty();
++            }
++        }
++        // a drag on the background scrolls (the buttons take their own)
++        if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemActive() && ImGui::IsMouseDragging(0, 4.0f)) {
++            ImGui::SetScrollY(ImGui::GetScrollY() - ImGui::GetIO().MouseDelta.y);
++        }
++    }
++    ImGui::End();
++    ImGui::PopStyleVar(4);
++    if (mh > 0.0f) {
++        ImDrawList * bg = ImGui::GetBackgroundDrawList();
++        bg->AddRectFilled(ImVec2(x, y + h - mh), ImVec2(x + w, y + h), cBack, 8.0f);
++        SideMetrics(x, y + h - mh, w, mh);
++    }
++}
++
+ void RectsString(char * buf, int n) {
+     int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
+                      sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
+@@ -2385,6 +2530,9 @@
+ void NewFrame() {
+     ImGui_ImplOpenGL3_NewFrame();
+     ImGui_ImplSDL2_NewFrame();
++    if (SimTouch_Active()) {
++        SimTouch_FeedImGui();   // bw-port (libntr-ios-touch.patch): the settings screen's finger as the mouse
++    }
+     ImGui::NewFrame();
+ }
+ 
+--- a/libraries/sim/src/meson.build
++++ b/libraries/sim/src/meson.build
+@@ -27,6 +27,7 @@
+     'sim_net.cpp',
+     'sim_RomExtractor.cpp',
+     'sim_screenquads.c',
++    'sim_touch.cpp',
+     'sim_vcapture.cpp',
+     'sim_vars.c'
+ )
+--- /dev/null
++++ b/libraries/sim/src/sim_touch.cpp
+@@ -0,0 +1,524 @@
++// bw-port (libntr-ios-touch.patch): the phone's on-screen controls. Active on iOS, and on a desktop when BWPORT_TOUCH=WxH is
++// set (a phone-shaped window for quick tests; BWPORT_TOUCH_INSETS=l,t,r,b for its safe area).
++//
++// Layout (points): portrait = both DS screens stacked at the top as wide as the window allows, the controls in the space below;
++// landscape = the screens stacked in the middle at full height, a control group on each side. Nothing goes into the safe area
++// (the notch / Dynamic Island, the home indicator). Input: real multi-touch from SDL's finger events (SDL's touch -> mouse
++// synthesis is switched off): a finger that starts on a button stays that button; the D-pad follows its finger (diagonals); the
++// bottom screen is the stylus (its own finger, also while another holds a button); the menu button opens the touch settings.
++#ifdef __APPLE__
++#include <TargetConditionals.h>
++#endif
++#include <SDL2/SDL.h>
++#include <math.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <vector>
++
++#include "simulator/imgui/imgui.hpp"
++
++#if defined(__APPLE__) && TARGET_OS_IOS
++#define SIM_TOUCH_IOS 1
++extern "C" int bwport_ios_safe_area(SDL_Window * window, float * l, float * t, float * r, float * b);
++extern "C" void bwport_ios_set_orientation(int landscape);
++#else
++#define SIM_TOUCH_IOS 0
++#endif
++
++namespace {
++
++enum { B_A, B_B, B_X, B_Y, B_L, B_R, B_START, B_SELECT, B_UP, B_DOWN, B_LEFT, B_RIGHT, B_COUNT };
++enum { K_NONE, K_BTN, K_DPAD, K_STYLUS, K_UI, K_TOGGLE, K_DEAD };
++
++struct Finger {
++    bool used;
++    SDL_FingerID id;
++    int kind;
++    int idx;     // K_BTN: the button
++    float x, y;  // points
++};
++
++struct Btn {
++    float x, y, w, h;  // the drawn rectangle (a circle when round)
++    bool round;
++    const char * label;
++};
++
++struct Layout {
++    int winW, winH;
++    float safe[4];                // l, t, r, b
++    float scr[4];                 // both screens: x, y, w, h
++    float bottom[4];              // the touch screen: x0, y0, x1, y1
++    Btn btn[B_COUNT];             // (the four directions are not used: the D-pad is below)
++    float dcx, dcy, dc;           // the D-pad's centre and cell
++    Btn menu, ff;
++    bool landscape;
++};
++
++Layout sL;
++bool sActive, sInit;
++Finger sF[10];
++bool sMenuOpen;
++bool sFF;
++int sFFEdge = -1;
++unsigned sLiveMask;               // buttons held by fingers now
++unsigned sLatchUntil[B_COUNT];    // a tap lasts at least 3 frames (the game reads the pad once a frame)
++unsigned sFrame;
++unsigned sPressed;                // the mask the game sees (live + latched)
++bool sStylusPending;              // a press not yet reported to the stylus
++float sStylusX, sStylusY;
++int sStylusDown;                  // the finger is down
++int sLogStylus;
++volatile bool sBackground;
++SDL_Window * sWindow;
++int sForceW, sForceH;
++
++struct UiEv { int type; float x, y; };  // 0 move, 1 down, 2 up
++std::vector<UiEv> sUiEvents;
++
++void ReadInsets(float * s) {
++    s[0] = s[1] = s[2] = s[3] = 0;
++    bool ok = false;
++#if SIM_TOUCH_IOS
++    ok = bwport_ios_safe_area(sWindow, &s[0], &s[1], &s[2], &s[3]) != 0;
++#endif
++    const char * e = getenv("BWPORT_TOUCH_INSETS");
++    if (e != NULL && sscanf(e, "%f,%f,%f,%f", &s[0], &s[1], &s[2], &s[3]) == 4) {
++        return;
++    }
++    (void)ok;
++}
++
++void Compute(int W, int H, const float * safe) {
++    Layout & L = sL;
++    memset(&L, 0, sizeof L);
++    L.winW = W;
++    L.winH = H;
++    L.landscape = W > H;
++    float * s = L.safe;
++    memcpy(s, safe, 4 * sizeof(float));
++    const float pad = 8.0f;
++    float zl = s[0] + pad, zr = (float)W - s[2] - pad, zt = s[1] + pad, zb = (float)H - s[3] - pad;
++    float c;  // the D-pad's cell
++
++    if (!L.landscape) {
++        float availH = (float)H - s[1] - s[3];
++        float sw = fminf((float)W, (availH - 200.0f) / 1.5f);
++        L.scr[2] = sw;
++        L.scr[3] = sw * 1.5f;
++        L.scr[0] = ((float)W - sw) * 0.5f;
++        L.scr[1] = s[1];
++        float ay = L.scr[1] + L.scr[3];  // the controls' area
++        float rowH = 46.0f;
++        float rowY = ay + 4.0f;
++        L.btn[B_L] = {zl, rowY, 100, rowH, false, "L"};
++        L.btn[B_R] = {zr - 100, rowY, 100, rowH, false, "R"};
++        float cx = (float)W * 0.5f;
++        L.menu = {cx - 54, rowY, 48, rowH, false, ""};
++        L.ff = {cx + 6, rowY, 48, rowH, false, ""};
++        float top = rowY + rowH + 6.0f, bot = zb;
++        float ch = bot - top;
++        c = fminf(48.0f, ch / 3.0f);
++        float my = top + ch * 0.5f;
++        L.dc = c;
++        L.dcx = zl + 1.5f * c + 4.0f;
++        L.dcy = my;
++        float ro = 1.08f * c, rb = 0.62f * c;
++        float ax = zr - ro - rb - 2.0f;
++        L.btn[B_X] = {ax - rb, my - ro - rb, 2 * rb, 2 * rb, true, "X"};
++        L.btn[B_B] = {ax - rb, my + ro - rb, 2 * rb, 2 * rb, true, "B"};
++        L.btn[B_Y] = {ax - ro - rb, my - rb, 2 * rb, 2 * rb, true, "Y"};
++        L.btn[B_A] = {ax + ro - rb, my - rb, 2 * rb, 2 * rb, true, "A"};
++        L.btn[B_SELECT] = {cx - 44, my - 40, 88, 34, false, "SELECT"};
++        L.btn[B_START] = {cx - 44, my + 6, 88, 34, false, "START"};
++    } else {
++        float sh = (float)H - s[1] - s[3];
++        float sw = sh * (256.0f / 384.0f);
++        L.scr[2] = sw;
++        L.scr[3] = sh;
++        L.scr[0] = ((float)W - sw) * 0.5f;
++        L.scr[1] = s[1];
++        float lz0 = zl, lz1 = L.scr[0] - pad, rz0 = L.scr[0] + sw + pad, rz1 = zr;
++        float zw = fminf(lz1 - lz0, rz1 - rz0);
++        c = fminf(54.0f, (zw - 16.0f) / 3.5f);
++        L.dc = c;
++        float rowH = 46.0f;
++        L.btn[B_L] = {lz0, zt, 100, rowH, false, "L"};
++        L.menu = {lz1 - 48, zt, 48, rowH, false, ""};
++        L.btn[B_R] = {rz1 - 100, zt, 100, rowH, false, "R"};
++        L.ff = {rz0, zt, 48, rowH, false, ""};
++        L.btn[B_SELECT] = {(lz0 + lz1) * 0.5f - 44, zb - 34, 88, 34, false, "SELECT"};
++        L.btn[B_START] = {(rz0 + rz1) * 0.5f - 44, zb - 34, 88, 34, false, "START"};
++        float my = (zt + rowH + zb - 34) * 0.5f;
++        L.dcx = (lz0 + lz1) * 0.5f;
++        L.dcy = my;
++        float ro = 1.08f * c, rb = 0.62f * c;
++        float ax = (rz0 + rz1) * 0.5f;
++        L.btn[B_X] = {ax - rb, my - ro - rb, 2 * rb, 2 * rb, true, "X"};
++        L.btn[B_B] = {ax - rb, my + ro - rb, 2 * rb, 2 * rb, true, "B"};
++        L.btn[B_Y] = {ax - ro - rb, my - rb, 2 * rb, 2 * rb, true, "Y"};
++        L.btn[B_A] = {ax + ro - rb, my - rb, 2 * rb, 2 * rb, true, "A"};
++    }
++    L.bottom[0] = L.scr[0];
++    L.bottom[1] = L.scr[1] + L.scr[3] * 0.5f;
++    L.bottom[2] = L.scr[0] + L.scr[2];
++    L.bottom[3] = L.scr[1] + L.scr[3];
++}
++
++// what is under a point: a button, the D-pad, the menu / fast-forward buttons, the touch screen
++int HitTest(float x, float y, int * idx) {
++    const Layout & L = sL;
++    *idx = 0;
++    // round buttons: the nearest centre within the radius + a margin
++    float best = 1e9f;
++    int bi = -1;
++    for (int i = 0; i < B_UP; i++) {
++        const Btn & b = L.btn[i];
++        if (b.w <= 0) continue;
++        if (b.round) {
++            float cx = b.x + b.w * 0.5f, cy = b.y + b.h * 0.5f;
++            float d = hypotf(x - cx, y - cy);
++            if (d <= b.w * 0.5f + 7.0f && d < best) { best = d; bi = i; }
++        } else if (x >= b.x - 6 && x < b.x + b.w + 6 && y >= b.y - 6 && y < b.y + b.h + 6) {
++            float d = hypotf(x - (b.x + b.w * 0.5f), y - (b.y + b.h * 0.5f));
++            if (d < best) { best = d; bi = i; }
++        }
++    }
++    if (bi >= 0) { *idx = bi; return K_BTN; }
++    if (hypotf(x - L.dcx, y - L.dcy) <= L.dc * 2.0f) return K_DPAD;
++    const Btn * t[2] = {&L.menu, &L.ff};
++    for (int i = 0; i < 2; i++) {
++        if (x >= t[i]->x - 6 && x < t[i]->x + t[i]->w + 6 && y >= t[i]->y - 6 && y < t[i]->y + t[i]->h + 6) {
++            *idx = i;
++            return K_TOGGLE;
++        }
++    }
++    if (x >= L.bottom[0] && x < L.bottom[2] && y >= L.bottom[1] && y < L.bottom[3]) return K_STYLUS;
++    return K_DEAD;
++}
++
++// the D-pad's directions from a point: a dead zone in the middle; a diagonal when both axes are well off the centre
++unsigned DpadMask(float x, float y) {
++    float dx = x - sL.dcx, dy = y - sL.dcy, dz = sL.dc * 0.30f;
++    unsigned m = 0;
++    float ax = fabsf(dx), ay = fabsf(dy);
++    if (ax < dz && ay < dz) return 0;
++    if (ax > dz && ax * 2.4f > ay) m |= dx > 0 ? 1u << B_RIGHT : 1u << B_LEFT;
++    if (ay > dz && ay * 2.4f > ax) m |= dy > 0 ? 1u << B_DOWN : 1u << B_UP;
++    return m;
++}
++
++void Recompute() {
++    unsigned m = 0;
++    for (const Finger & f : sF) {
++        if (!f.used) continue;
++        if (f.kind == K_BTN) m |= 1u << f.idx;
++        if (f.kind == K_DPAD) m |= DpadMask(f.x, f.y);
++    }
++    unsigned added = m & ~sLiveMask;
++    for (int i = 0; i < B_COUNT; i++) {
++        if (added & (1u << i)) sLatchUntil[i] = sFrame + 3;
++    }
++    sLiveMask = m;
++}
++
++Finger * FindFinger(SDL_FingerID id) {
++    for (Finger & f : sF) if (f.used && f.id == id) return &f;
++    return NULL;
++}
++
++void ReleaseAll() {
++    for (Finger & f : sF) {
++        if (f.used && f.kind != K_UI) f.kind = K_DEAD;
++    }
++    sLiveMask = 0;
++    sStylusDown = 0;
++    sStylusPending = false;
++}
++
++void Event(const SDL_Event * e) {
++    float x = e->tfinger.x * (float)sL.winW, y = e->tfinger.y * (float)sL.winH;
++    SDL_FingerID id = e->tfinger.fingerId;
++    if (e->type == SDL_FINGERDOWN) {
++        Finger * f = NULL;
++        for (Finger & g : sF) if (!g.used) { f = &g; break; }
++        if (f == NULL) return;
++        *f = {true, id, K_DEAD, 0, x, y};
++        if (sMenuOpen) {
++            bool haveUi = false;
++            for (const Finger & g : sF) if (g.used && g.kind == K_UI) haveUi = true;
++            f->kind = haveUi ? K_DEAD : K_UI;
++            if (f->kind == K_UI) {
++                sUiEvents.push_back({0, x, y});
++                sUiEvents.push_back({1, x, y});
++            }
++            return;
++        }
++        int idx;
++        int k = HitTest(x, y, &idx);
++        f->kind = k;
++        f->idx = idx;
++        if (k == K_TOGGLE) {
++            if (idx == 0) { sMenuOpen = true; ReleaseAll(); f->kind = K_DEAD; }
++            else { sFF = !sFF; sFFEdge = sFF; }
++        } else if (k == K_STYLUS) {
++            if (sStylusDown) { f->kind = K_DEAD; return; }
++            sStylusDown = 1;
++            sStylusPending = true;
++            sStylusX = x; sStylusY = y;
++        } else if (k == K_BTN || k == K_DPAD) {
++            Recompute();
++        }
++    } else if (e->type == SDL_FINGERMOTION) {
++        Finger * f = FindFinger(id);
++        if (f == NULL) return;
++        f->x = x; f->y = y;
++        if (f->kind == K_UI) sUiEvents.push_back({0, x, y});
++        else if (f->kind == K_DPAD) Recompute();
++        else if (f->kind == K_STYLUS) { sStylusX = x; sStylusY = y; }
++    } else if (e->type == SDL_FINGERUP) {
++        Finger * f = FindFinger(id);
++        if (f == NULL) return;
++        f->x = x; f->y = y;
++        if (f->kind == K_UI) {
++            sUiEvents.push_back({0, x, y});
++            sUiEvents.push_back({2, x, y});
++            sUiEvents.push_back({0, -1e6f, -1e6f});
++        } else if (f->kind == K_STYLUS) {
++            sStylusX = x; sStylusY = y;
++            sStylusDown = 0;   // (a press not reported yet still is: SimTouch_Stylus)
++        }
++        f->kind = K_DEAD;
++        f->used = false;
++        Recompute();
++    }
++}
++
++int Watch(void *, SDL_Event * e) {
++    // on the delegate's callback itself (the event queue is read too late: iOS kills an app that draws in the background)
++    if (e->type == SDL_APP_WILLENTERBACKGROUND || e->type == SDL_APP_DIDENTERBACKGROUND) sBackground = true;
++    if (e->type == SDL_APP_WILLENTERFOREGROUND || e->type == SDL_APP_DIDENTERFOREGROUND) sBackground = false;
++    return 0;
++}
++
++}  // namespace
++
++extern "C" {
++
++int SimTouch_Active(void) {
++    if (!sInit) {
++        sInit = true;
++        const char * e = getenv("BWPORT_TOUCH");
++        if (e != NULL && sscanf(e, "%dx%d", &sForceW, &sForceH) != 2) sForceW = sForceH = 0;
++#if SIM_TOUCH_IOS
++        sActive = true;
++#else
++        sActive = sForceW > 0;
++#endif
++    }
++    return sActive;
++}
++
++// the window size a desktop test asks for (0: the normal one)
++int SimTouch_ForcedSize(int * w, int * h) {
++    SimTouch_Active();
++    *w = sForceW; *h = sForceH;
++    return sForceW > 0;
++}
++
++// before the window exists
++void SimTouch_Hints(void) {
++    if (!SimTouch_Active()) return;
++    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");   // the fingers are handled here
++}
++
++void SimTouch_Window(SDL_Window * w) {
++    sWindow = w;
++    SDL_AddEventWatch(Watch, NULL);
++#if SIM_TOUCH_IOS
++    const char * o = getenv("BWPORT_TOUCH_ORIENT");
++    if (o != NULL) bwport_ios_set_orientation(strcmp(o, "landscape") == 0);
++#endif
++}
++
++// the screens' rectangle in points (top-left origin) for a window of this size
++void SimTouch_Layout(int winW, int winH, float * x, float * y, float * w, float * h) {
++    static int pw, ph;
++    static float pins[4];
++    float cur[4];
++    ReadInsets(cur);
++    if (winW != pw || winH != ph || memcmp(cur, pins, sizeof cur) != 0 || sL.winW == 0) {
++        pw = winW;
++        ph = winH;
++        memcpy(pins, cur, sizeof cur);
++        float s[4];
++        memcpy(s, cur, sizeof s);
++        if (sForceW > 0 && getenv("BWPORT_TOUCH_INSETS") == NULL) {
++            // the test window: an iPhone 16 Pro Max's insets
++            if (winW > winH) { s[0] = s[2] = 62; s[3] = 21; } else { s[1] = 62; s[3] = 34; }
++        }
++        Compute(winW, winH, s);
++        fprintf(stderr, "bwport: touch layout %dx%d %s, safe area %.0f %.0f %.0f %.0f, screens %.0f %.0f %.0f %.0f\n", winW, winH,
++                sL.landscape ? "landscape" : "portrait", sL.safe[0], sL.safe[1], sL.safe[2], sL.safe[3], sL.scr[0], sL.scr[1],
++                sL.scr[2], sL.scr[3]);
++        {
++            static const char * const nm[] = {"A", "B", "X", "Y", "L", "R", "Start", "Select"};
++            fprintf(stderr, "bwport: touch centres: dpad %.0f,%.0f (cell %.0f)", sL.dcx, sL.dcy, sL.dc);
++            for (int i = 0; i < 8; i++) fprintf(stderr, " %s %.0f,%.0f", nm[i], sL.btn[i].x + sL.btn[i].w * 0.5f, sL.btn[i].y + sL.btn[i].h * 0.5f);
++            fprintf(stderr, " menu %.0f,%.0f ff %.0f,%.0f\n", sL.menu.x + sL.menu.w * 0.5f, sL.menu.y + sL.menu.h * 0.5f,
++                    sL.ff.x + sL.ff.w * 0.5f, sL.ff.y + sL.ff.h * 0.5f);
++        }
++    }
++    *x = sL.scr[0]; *y = sL.scr[1]; *w = sL.scr[2]; *h = sL.scr[3];
++}
++
++// a finger event: 1 when it was one
++int SimTouch_Event(const SDL_Event * e) {
++    if (e->type != SDL_FINGERDOWN && e->type != SDL_FINGERMOTION && e->type != SDL_FINGERUP) return 0;
++    if (sL.winW > 0) Event(e);
++    return 1;
++}
++
++// once a frame, after the events: the pad bits the game should see (bit B_*: A B X Y L R Start Select Up Down Left Right)
++unsigned SimTouch_Pressed(void) {
++    sFrame++;
++    unsigned m = sLiveMask;
++    for (int i = 0; i < B_COUNT; i++) {
++        if (sFrame <= sLatchUntil[i]) m |= 1u << i;
++    }
++    if (m != sPressed || sStylusDown != sLogStylus) {
++        static int sLog = -1;
++        if (sLog < 0) sLog = getenv("BWPORT_TOUCH_LOG") != NULL;
++        if (sLog) fprintf(stderr, "bwport: touch pad %03x stylus %d frame %u\n", m, sStylusDown, sFrame);
++        sLogStylus = sStylusDown;
++    }
++    sPressed = m;
++    return m;
++}
++
++// the stylus: 1 while down (a press that came and went between two calls is reported once), at x, y in points
++int SimTouch_Stylus(float * x, float * y) {
++    *x = sStylusX; *y = sStylusY;
++    if (sStylusPending) { sStylusPending = false; return 1; }
++    return sStylusDown;
++}
++
++// -1: no change; 0 / 1: the fast-forward button was tapped (off / on)
++int SimTouch_FFEdge(void) {
++    int e = sFFEdge;
++    sFFEdge = -1;
++    return e;
++}
++
++int SimTouch_MenuOpen(void) { return sMenuOpen; }
++void SimTouch_MenuClose(void) { sMenuOpen = false; }
++int SimTouch_Background(void) { return sBackground; }
++
++// the safe area (l, t, r, b), for the settings window
++void SimTouch_Safe(float * s) { memcpy(s, sL.safe, sizeof sL.safe); }
++
++// after ImGui_ImplSDL2_NewFrame (which writes the mouse position itself): the menu's finger as the mouse
++void SimTouch_FeedImGui(void) {
++    ImGuiIO & io = ImGui::GetIO();
++    if (sUiEvents.empty()) return;
++    io.AddMouseSourceEvent(ImGuiMouseSource_TouchScreen);
++    for (const UiEv & u : sUiEvents) {
++        if (u.type == 0) io.AddMousePosEvent(u.x, u.y);
++        else io.AddMouseButtonEvent(0, u.type == 1);
++    }
++    sUiEvents.clear();
++}
++
++// the controls, in the frame being built (under the settings window)
++void SimTouch_Draw(void) {
++    if (sMenuOpen || sL.winW == 0) return;
++    ImDrawList * dl = ImGui::GetBackgroundDrawList();
++    ImFont * font = ImGui::GetFont();
++    const ImU32 body = IM_COL32(30, 32, 46, 130), edge = IM_COL32(215, 220, 238, 170), lit = IM_COL32(255, 196, 64, 215),
++                ink = IM_COL32(245, 246, 250, 235), inkLit = IM_COL32(28, 24, 12, 255), shade = IM_COL32(0, 0, 0, 70);
++    const Layout & L = sL;
++    unsigned m = sPressed;
++
++    for (int i = 0; i < B_UP; i++) {
++        const Btn & b = L.btn[i];
++        if (b.w <= 0) continue;
++        bool on = (m >> i) & 1;
++        ImVec2 p0(b.x, b.y), p1(b.x + b.w, b.y + b.h);
++        float fs;
++        if (b.round) {
++            ImVec2 ctr(b.x + b.w * 0.5f, b.y + b.h * 0.5f);
++            dl->AddCircleFilled(ImVec2(ctr.x, ctr.y + 2), b.w * 0.5f, shade, 32);
++            dl->AddCircleFilled(ctr, b.w * 0.5f, on ? lit : body, 32);
++            dl->AddCircle(ctr, b.w * 0.5f, edge, 32, 2.0f);
++            fs = b.w * 0.5f;
++        } else {
++            float r = b.h * 0.5f;
++            // L and R are slabs; the middle buttons are pills
++            if (i == B_L || i == B_R) r = 14.0f;
++            dl->AddRectFilled(ImVec2(p0.x, p0.y + 2), ImVec2(p1.x, p1.y + 2), shade, r);
++            dl->AddRectFilled(p0, p1, on ? lit : body, r);
++            dl->AddRect(p0, p1, edge, r, 0, 2.0f);
++            fs = (i == B_L || i == B_R) ? 22.0f : 14.0f;
++        }
++        ImVec2 ts = font->CalcTextSizeA(fs, 1000.0f, 0.0f, b.label);
++        dl->AddText(font, fs, ImVec2(b.x + (b.w - ts.x) * 0.5f, b.y + (b.h - ts.y) * 0.5f), on ? inkLit : ink, b.label);
++    }
++
++    // the D-pad: a plus of two slabs, arrows on the arms, the held arm lit
++    {
++        float c = L.dc, x = L.dcx, y = L.dcy, rr = c * 0.28f;
++        // the plus as one outline (corners cut), so no line crosses its middle
++        {
++            const float a = 0.5f * c, b = 1.5f * c;
++            const float vx[12] = {-a, a, a, b, b, a, a, -a, -a, -b, -b, -a}, vy[12] = {-b, -b, -a, -a, a, a, b, b, a, a, -a, -a};
++            ImVec2 pts[24];
++            for (int i = 0; i < 12; i++) {
++                int pi = (i + 11) % 12, ni = (i + 1) % 12;
++                float px = vx[pi] - vx[i], py = vy[pi] - vy[i], nx = vx[ni] - vx[i], ny = vy[ni] - vy[i];
++                float pl = hypotf(px, py), nl = hypotf(nx, ny), r = rr;
++                pts[2 * i] = ImVec2(x + vx[i] + px / pl * r, y + vy[i] + py / pl * r);
++                pts[2 * i + 1] = ImVec2(x + vx[i] + nx / nl * r, y + vy[i] + ny / nl * r);
++            }
++            ImVec2 sh[24];
++            for (int i = 0; i < 24; i++) sh[i] = ImVec2(pts[i].x, pts[i].y + 2);
++            dl->AddConcavePolyFilled(sh, 24, shade);
++            dl->AddConcavePolyFilled(pts, 24, body);
++            dl->AddPolyline(pts, 24, edge, ImDrawFlags_Closed, 2.0f);
++        }
++        struct Arm { int bit; float dx, dy; } arms[4] = {{B_UP, 0, -1}, {B_DOWN, 0, 1}, {B_LEFT, -1, 0}, {B_RIGHT, 1, 0}};
++        for (const Arm & a : arms) {
++            bool on = (m >> a.bit) & 1;
++            float cx = x + a.dx * c, cy = y + a.dy * c;
++            if (on) dl->AddRectFilled(ImVec2(cx - 0.5f * c + 3, cy - 0.5f * c + 3), ImVec2(cx + 0.5f * c - 3, cy + 0.5f * c - 3), lit, rr * 0.7f);
++            float t = c * 0.22f;
++            ImVec2 tip(cx + a.dx * t, cy + a.dy * t), b1(cx - a.dx * t + a.dy * t * 1.2f, cy - a.dy * t + a.dx * t * 1.2f),
++                b2(cx - a.dx * t - a.dy * t * 1.2f, cy - a.dy * t - a.dx * t * 1.2f);
++            dl->AddTriangleFilled(tip, b1, b2, on ? inkLit : ink);
++        }
++    }
++
++    // menu (three bars) and fast-forward (two arrows, lit while on)
++    {
++        const Btn & b = L.menu;
++        ImVec2 p0(b.x, b.y), p1(b.x + b.w, b.y + b.h);
++        dl->AddRectFilled(p0, p1, body, 12.0f);
++        dl->AddRect(p0, p1, edge, 12.0f, 0, 2.0f);
++        for (int i = 0; i < 3; i++) {
++            float yy = b.y + b.h * 0.5f + (i - 1) * 8.0f;
++            dl->AddRectFilled(ImVec2(b.x + 12, yy - 1.5f), ImVec2(b.x + b.w - 12, yy + 1.5f), ink, 1.5f);
++        }
++        const Btn & f = L.ff;
++        ImVec2 q0(f.x, f.y), q1(f.x + f.w, f.y + f.h);
++        dl->AddRectFilled(q0, q1, sFF ? lit : body, 12.0f);
++        dl->AddRect(q0, q1, edge, 12.0f, 0, 2.0f);
++        float cx = f.x + f.w * 0.5f, cy = f.y + f.h * 0.5f;
++        ImU32 col = sFF ? inkLit : ink;
++        for (int i = 0; i < 2; i++) {
++            float ox = cx + (i - 1) * 11.0f + 5.0f;
++            dl->AddTriangleFilled(ImVec2(ox - 6, cy - 9), ImVec2(ox - 6, cy + 9), ImVec2(ox + 7, cy), col);
++        }
++    }
++}
++
++}  // extern "C"

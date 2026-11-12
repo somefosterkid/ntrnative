@@ -1,0 +1,87 @@
+    .text       start:0x021f4580 end:0x02202bac kind:code align:32
+    .rodata     start:0x02202bac end:0x02203a74 kind:rodata align:4
+    .ctor       start:0x02203a74 end:0x02203a74 kind:rodata align:4
+    .data       start:0x02203a80 end:0x02203f80 kind:data align:32
+    .bss        start:0x02203f80 end:0x02203fa0 kind:bss align:32
+
+src/ov135/worldtrade_status.c:
+    complete
+    .text       start:0x021ff58c end:0x021ff6a4
+    .data       start:0x02203e30 end:0x02203e44
+
+src/ov135/worldtrade_demo.c:
+    complete
+    .text       start:0x021f6e58 end:0x021f73dc
+    .data       start:0x02203b6c end:0x02203b84
+
+src/ov135/worldtrade_adapter.c:
+    complete
+    .text       start:0x022025e4 end:0x02202bac
+    .data       start:0x02203f5c end:0x02203f80
+
+src/ov135/worldtrade_sublcd.c:
+    complete
+    .text       start:0x021ff6a4 end:0x021ffda8
+    .rodata     start:0x02203884 end:0x022038e0
+    .data       start:0x02203e44 end:0x02203e58
+
+src/ov135/worldtrade_enter.c:
+    complete
+    .text       start:0x021f89b4 end:0x021f9260
+    .rodata     start:0x022031ec end:0x02203200
+    .data       start:0x02203c1c end:0x02203c48
+
+src/ov135/worldtrade_mypoke.c:
+    complete
+    .text       start:0x021fc06c end:0x021fcc40
+    .rodata     start:0x022034ac end:0x022035fc
+    .data       start:0x02203cf0 end:0x02203d14
+
+src/ov135/worldtrade_upload.c:
+    complete
+    .text       start:0x02200c0c end:0x022025e4
+    .rodata     start:0x02203a04 end:0x02203a74
+    .data       start:0x02203e94 end:0x02203f5c
+
+src/ov135/worldtrade_box.c:
+    complete
+    .text       start:0x021f5154 end:0x021f6e58
+    .rodata     start:0x02202c50 end:0x02202eac
+    .data       start:0x02203b0c end:0x02203b6c
+
+src/ov135/worldtrade_input.c:
+    complete
+    .text       start:0x021f9260 end:0x021fc06c
+    .rodata     start:0x02203200 end:0x022034ac
+    .data       start:0x02203c48 end:0x02203cf0
+
+src/ov135/worldtrade_search.c:
+    complete
+    .text       start:0x021fd924 end:0x021ff58c
+    .rodata     start:0x022037a8 end:0x02203884
+    .data       start:0x02203d38 end:0x02203e30
+
+src/ov135/worldtrade_partner.c:
+    complete
+    .text       start:0x021fcc40 end:0x021fd924
+    .rodata     start:0x022035fc end:0x022037a8
+    .data       start:0x02203d14 end:0x02203d38
+
+src/ov135/worldtrade_deposit.c:
+    complete
+    .text       start:0x021f73dc end:0x021f89b4
+    .rodata     start:0x02202eac end:0x022031ec
+    .data       start:0x02203b84 end:0x02203c1c
+
+src/ov135/worldtrade_title.c:
+    complete
+    .text       start:0x021ffda8 end:0x02200c0c
+    .rodata     start:0x022038e0 end:0x02203a04
+    .data       start:0x02203e58 end:0x02203e94
+
+src/ov135/ov135_021f4580.c:
+    complete
+    .text       start:0x021f4580 end:0x021f5154
+    .rodata     start:0x02202bac end:0x02202c50
+    .data       start:0x02203a80 end:0x02203b0c
+    .bss        start:0x02203f80 end:0x02203fa0

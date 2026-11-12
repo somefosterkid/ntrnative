@@ -1,0 +1,14 @@
+Scrcmd_PlasmaFrigate_PressSwitch kind:function(thumb,size=0x36) addr:0x021e5840
+Scrcmd_PlasmaFrigate_SetLightsState kind:function(thumb,size=0x32) addr:0x021e5878
+Scrcmd_PlasmaFrigate_PlayGroupASecond kind:function(thumb,size=0x1e) addr:0x021e58ac
+Scrcmd_PlasmaFrigate_PlayGroupBSecond kind:function(thumb,size=0x1e) addr:0x021e58cc
+Scrcmd_PlasmaFrigate_EnterPassword kind:function(thumb,size=0x38) addr:0x021e58ec
+Scrcmd_PlasmaFrigate_GetPasswordIndex kind:function(thumb,size=0x2c) addr:0x021e5924
+Scrcmd_PlasmaFrigate_SetSwitchLightState kind:function(thumb,size=0x32) addr:0x021e5950
+Scrcmd_PlasmaFrigate_PlaySwitchAnim kind:function(thumb,size=0x1e) addr:0x021e5984
+Scrcmd_PlasmaFrigate_PlaySwitchLightAnim kind:function(thumb,size=0x1e) addr:0x021e59a4
+PlasmaFrigate_CreatePasswordEvent kind:function(thumb,size=0x6c) addr:0x021e59c4
+PlasmaFrigate_PasswordEvent kind:function(thumb,size=0x60) addr:0x021e5a30
+PlasmaFrigate_CheckPassword kind:function(thumb,size=0x64) addr:0x021e5a90
+PlasmaFrigate_GetPasswordIndex kind:function(thumb,size=0x16) addr:0x021e5af4
+PLASMA_FRIGATE_SCRIPT_COMMANDS kind:data(any) addr:0x021e5b0c

@@ -1,0 +1,4 @@
+# game: black
+# from: lab
+# reaches: out of the lab through the door mat (README: down5), Bianca's scene outside
+walk 300 48 down5

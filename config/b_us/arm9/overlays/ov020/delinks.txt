@@ -1,0 +1,28 @@
+    .text       start:0x02183b60 end:0x02187da4 kind:code align:32
+    .rodata     start:0x02187da4 end:0x02187e88 kind:rodata align:4
+    .ctor       start:0x02187e88 end:0x02187e88 kind:rodata align:4
+    .data       start:0x02187ea0 end:0x02187f00 kind:data align:32
+    .bss        start:0x02187f00 end:0x02187f00 kind:bss align:32
+
+src/ov020/el_scoreboard.c:
+    complete
+    .text       start:0x021875f4 end:0x021876e0
+    .rodata     start:0x02187e08 end:0x02187e28
+    .data       start:0x02187ecc end:0x02187f00
+
+src/ov020/event_season_banner.c:
+    complete
+    .text       start:0x021876e0 end:0x02187da4
+    .rodata     start:0x02187e28 end:0x02187e88
+
+src/ov020/event_mapchange.c:
+    complete
+    .text       start:0x02183b60 end:0x02186278
+    .rodata     start:0x02187da4 end:0x02187dbc
+    .data       start:0x02187ea0 end:0x02187eb4
+
+src/ov020/field_wfbc_data_local.c:
+    complete
+    .text       start:0x02186278 end:0x021875f4
+    .rodata     start:0x02187dbc end:0x02187e08
+    .data       start:0x02187eb4 end:0x02187ecc

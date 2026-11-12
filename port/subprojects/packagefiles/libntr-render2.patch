@@ -1,0 +1,108 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -89,6 +89,7 @@
+ static u64 sRenderFrameTime;
+ static u64 sGameWorkTime, sRenderWorkTime;
+ static u64 sFullFrameTime;
++static u64 sRealFrameTime;
+ 
+ static constexpr auto SteamDeckWidth = 1280;
+ static constexpr auto SteamDeckHeight = 800;
+@@ -1711,7 +1712,14 @@
+     }
+ 
+ 
+-    clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
++    {
++      // bw-port: the real frame period, from one frame's end (after the cap's wait) to the next's; sFullFrameTime is
++      // taken before the wait, so the debug window's fps read too high with the cap
++      struct timespec prevEnd = s_SIM_lastFrameEnd;
++      clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
++      sRealFrameTime = ((s_SIM_lastFrameEnd.tv_sec - prevEnd.tv_sec) * 1000000000) +
++                       (s_SIM_lastFrameEnd.tv_nsec - prevEnd.tv_nsec);
++    }
+ #ifdef SDK_TRACY_ENABLE
+     TracyCFrameMark;
+ #endif
+@@ -1753,6 +1761,8 @@
+ }
+ 
+ // Get the full frame time (including vsync wait) in nanoseconds
++u64 SIM_GetRealFrameTime() { return sRealFrameTime; }
++
+ u64 SIM_GetFullFrameTime() {
+   return sFullFrameTime;
+ }
+--- a/libraries/sim/src/g3_draw.cpp
++++ b/libraries/sim/src/g3_draw.cpp
+@@ -269,7 +269,8 @@
+ 		u32 textureCRC = SIM_crc32buf(vramTex, texBytes.size());
+ 		texture = sTextureCache.GetTexture(textureCRC, paletteCRC);
+ 		if(texture == nullptr) {
+-			// decode texture and create it in the cache
++			// decode texture and create it in the cache (bw-port: the decoders take the rows (T) and the row's length
++			// (S) as the DS stores a texture, S pixels across: they were given S rows of T, scrambling a non-square one)
+ 			//Convert the DS texture data into a format opengl can understand
+ 			u8 * outTexBuf = new u8[4*s_texImageParam.textureSSize * s_texImageParam.textureTSize];
+ 			memset((void*)outTexBuf, 0, 4*s_texImageParam.textureSSize * s_texImageParam.textureTSize);
+@@ -277,26 +278,26 @@
+ 
+ 			switch( s_texImageParam.textureFormat ){
+ 				case GX_TEXFMT_A3I5:
+-					G3SIM_DecodeTexA3I5(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTexA3I5(vramTex, colorAddr, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 				case GX_TEXFMT_PLTT4:
+-					G3SIM_DecodeTex4(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTex4(vramTex, colorAddr, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 				case GX_TEXFMT_PLTT16:
+-					G3SIM_DecodeTex16(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTex16(vramTex, colorAddr, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 				case GX_TEXFMT_PLTT256:
+-					G3SIM_DecodeTex256(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTex256(vramTex, colorAddr, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 				case GX_TEXFMT_COMP4x4:
+ 					decodeTexComp4x4(vramTex, (const u16*)(vramTex + vramTexBufSize), colorAddr, outTexBuf,
+ 					                 s_texImageParam.textureSSize, s_texImageParam.textureTSize);
+ 					break;
+ 				case GX_TEXFMT_A5I3:
+-					G3SIM_DecodeTexA5I3(vramTex, colorAddr, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTexA5I3(vramTex, colorAddr, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 				case GX_TEXFMT_DIRECT:
+-					G3SIM_DecodeTexDirect(vramTex, outTexBuf, s_texImageParam.textureSSize, s_texImageParam.textureTSize);
++					G3SIM_DecodeTexDirect(vramTex, outTexBuf, s_texImageParam.textureTSize, s_texImageParam.textureSSize);
+ 					break;
+ 			}
+ 
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -181,8 +181,13 @@
+         float renderTimeMs = static_cast<float>(SIM_GetRenderFrameTime()) / 1000000.0f;
+         ImGui::Text("Render time: %.3fms", renderTimeMs);
+ 
+-        float frameTimeMs = static_cast<float>(SIM_GetFullFrameTime()) / 1000000.0f;
+-        ImGui::Text("%.0ffps", 1000.0f / frameTimeMs);
++        // the real frame rate: the period between frames (SIM_GetFullFrameTime ends before the cap's wait), smoothed
++        static float sPeriodMs = 16.7f;
++        float periodMs = static_cast<float>(SIM_GetRealFrameTime()) / 1000000.0f;
++        if (periodMs > 0.0f) {
++            sPeriodMs += (periodMs - sPeriodMs) * 0.1f;
++        }
++        ImGui::Text("%.0ffps", 1000.0f / sPeriodMs);
+ 
+         // the frame budget: the game's work and our render against the DS's 16.7 ms frame
+         {
+--- a/include/simulator/sim.h
++++ b/include/simulator/sim.h
+@@ -77,6 +77,7 @@
+ u64 SIM_GetGameWorkTime();
+ u64 SIM_GetRenderWorkTime();
+ u64 SIM_GetFullFrameTime();
++u64 SIM_GetRealFrameTime();
+ const char * SIM_GetLibntrGitHash();
+ const char * SIM_GetProjectGitHash();
+ SDL_Window * SIM_GetSDLWindow();

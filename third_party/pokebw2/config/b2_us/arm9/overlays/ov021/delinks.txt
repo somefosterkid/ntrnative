@@ -1,0 +1,7 @@
+    .text       start:0x0216e660 end:0x0216e884 kind:code align:32
+    .ctor       start:0x0216e884 end:0x0216e884 kind:rodata align:4
+    .bss        start:0x0216e8a0 end:0x0216e8a0 kind:bss align:32
+
+src/ov021/event_festival.c:
+    complete
+    .text       start:0x0216e660 end:0x0216e884

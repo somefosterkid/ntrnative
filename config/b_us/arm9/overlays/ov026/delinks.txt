@@ -1,0 +1,11 @@
+    .text       start:0x021ee740 end:0x021efcf0 kind:code align:32
+    .rodata     start:0x021efcf0 end:0x021efdbc kind:rodata align:4
+    .ctor       start:0x021efdbc end:0x021efdbc kind:rodata align:4
+    .data       start:0x021efdc0 end:0x021efec0 kind:data align:32
+    .bss        start:0x021efec0 end:0x021efec0 kind:bss align:32
+
+src/ov026/weather_rain.c:
+    complete
+    .text       start:0x021ee740 end:0x021efcf0
+    .rodata     start:0x021efcf0 end:0x021efdbc
+    .data       start:0x021efdc0 end:0x021efec0

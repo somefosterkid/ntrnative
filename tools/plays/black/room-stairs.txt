@@ -1,0 +1,4 @@
+# game: black
+# from: room
+# reaches: the room with Cheren talking (the saved room is mid-scene): up2 right5 up2 right2 (README: the top row, the stairs); check final.png
+walk 300 48 up2 right5 up2 right2

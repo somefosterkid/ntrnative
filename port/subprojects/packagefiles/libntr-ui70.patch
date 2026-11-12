@@ -1,0 +1,602 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -80,6 +80,8 @@
+     u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+     u8 showMetrics; /* bw-port (libntr-ui68.patch): the metrics at the top of the right side (sim_config.ini ShowMetrics) */
+     u8 showMenuBar; /* the menu bar at the top of the window, windowed (`; ShowMenuBar); fullscreen: out on the mouse at the top edge or Alt */
++    u8 metricsRefresh; /* bw-port (libntr-ui70.patch): the metrics' refresh interval: 0 = 0.25 s, 1 = 0.5 s (default), 2 = 1 s (MetricsRefresh=0.25|0.5|1) */
++    u8 graphPeriod; /* the frame time graph's period: 0..3 = 15, 30, 60, 120 s (GraphPeriod=15|30|60|120) */
+     u8 fullscreenMenuBar; /* bw-port (libntr-ux69.patch): fullscreen with the menu bar shown (ShowMenuBar): 0 = the bar slides in over the picture on the mouse at the top edge / Alt (FullscreenMenuBar=autohide, default), 1 = it stays and the screens start below it (=always) */
+     u8 uiScale; /* the UI's size in percent, 0 = from the display's DPI (UiScale=auto|100|125|...) */
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=auto|vcore|gpu (BWPORT_RENDERER overrides it) */
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -33,6 +33,8 @@
+ // bw-port (libntr-ux69.patch): is the window pixel (x, y) under the bar, a settings window, the side or an open menu, as
+ // drawn last frame? (WantMouse is ImGui's flag, which lags a frame behind a quick move and click)
+ bool WantMouseAt(int x, int y);
++// bw-port (libntr-ui70.patch): one frame's period (start to start, in ns) and its game / draw work, for the metrics and the frame time graph
++void FrameRecord(unsigned long long frameNs, unsigned long long gameNs, unsigned long long drawNs);
+ bool WantMouse();         // ImGui has the mouse (over a window or the bar): the click is not a touch
+ bool WantKeyboard();      // ImGui has the keyboard (a text field)
+ void DrawStatus(const char * text); // libntr-onerender.patch: the renderer status over the picture
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -75,6 +75,14 @@
+     if(MATCH("General", "ShowMenuBar")) {
+         config->showMenuBar = StringToBool(value);
+     }
++    if(MATCH("General", "MetricsRefresh")) {
++        double v = atof(value);
++        config->metricsRefresh = v < 0.4 ? 0 : v < 0.75 ? 1 : 2;
++    }
++    if(MATCH("General", "GraphPeriod")) {
++        int v = atoi(value);
++        config->graphPeriod = v < 23 ? 0 : v < 45 ? 1 : v < 90 ? 2 : 3;
++    }
+     if(MATCH("General", "FullscreenMenuBar")) {
+         config->fullscreenMenuBar = (strcmp(value, "always") == 0 || strcmp(value, "1") == 0 || strcmp(value, "true") == 0) ? 1 : 0;
+     }
+@@ -473,6 +481,8 @@
+     aConfig->showMetrics = TRUE;
+     aConfig->showMenuBar = TRUE;
+     aConfig->fullscreenMenuBar = 0;
++    aConfig->metricsRefresh = 1;
++    aConfig->graphPeriod = 1;
+     aConfig->uiScale = 0;
+     aConfig->renderer = SIM_CONFIG_RENDERER_AUTO;
+     aConfig->resolution = 1;
+@@ -567,6 +577,8 @@
+     fprintf(configFile, "ShowMetrics=%s\n", BoolToString(aConfig->showMetrics));
+     fprintf(configFile, "ShowMenuBar=%s\n", BoolToString(aConfig->showMenuBar));
+     fprintf(configFile, "FullscreenMenuBar=%s\n", aConfig->fullscreenMenuBar ? "always" : "autohide");
++    fprintf(configFile, "MetricsRefresh=%s\n", aConfig->metricsRefresh == 0 ? "0.25" : aConfig->metricsRefresh == 1 ? "0.5" : "1");
++    fprintf(configFile, "GraphPeriod=%d\n", aConfig->graphPeriod == 0 ? 15 : aConfig->graphPeriod == 1 ? 30 : aConfig->graphPeriod == 2 ? 60 : 120);
+     if(aConfig->uiScale == 0) {
+         fprintf(configFile, "UiScale=auto\n");
+     } else {
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1650,6 +1650,7 @@
+       clock_gettime(CLOCK_MONOTONIC, &s_SIM_lastFrameEnd);
+       sRealFrameTime = ((s_SIM_lastFrameEnd.tv_sec - prevEnd.tv_sec) * 1000000000) +
+                        (s_SIM_lastFrameEnd.tv_nsec - prevEnd.tv_nsec);
++      SIM::GUI::FrameRecord(sRealFrameTime, sGameWorkTime, sRenderWorkTime);
+     }
+ #ifdef SDK_TRACY_ENABLE
+     TracyCFrameMark;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -159,6 +159,12 @@
+ }
+ 
+ static float sSideRect[4];
++static float sItemRect[8][4]; // bw-port (libntr-ui70.patch): item rectangles for the click tests (qr, qres, joy, menu bar items)
++static int sJoyClicks;
++static void ItemRect(int i) {
++    ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
++    sItemRect[i][0] = a.x; sItemRect[i][1] = a.y; sItemRect[i][2] = b.x; sItemRect[i][3] = b.y;
++}
+ static int sSideMetrics, sSideController;
+ 
+ // ---- the menu bar's state -----------------------------------------------------------------------------------------
+@@ -199,7 +205,10 @@
+     } else if (b & SDL_BUTTON_LMASK) {
+         sBarDwell = SDL_GetTicks() | 1u; // clicking at the top edge: the count starts again from the click
+     }
+-    sBarVisible = pinned || sBarMouse || sBarLatch || popup;
++    // a popup keeps the bar out only when the bar was already out: a combo in the side or a settings window opening a
++    // popup must not bring the bar out (a new window takes the focus and ImGui closes the popup: the combo opened and
++    // shut at once, fullscreen with the bar on auto-hide)
++    sBarVisible = pinned || sBarMouse || sBarLatch || (popup && sBarVisible);
+     sBarReserve = pinned ? (int)ceilf(sBarH) : 0;
+     return sBarReserve;
+ }
+@@ -379,6 +388,8 @@
+ 
+ static const char * const LayoutNames[] = {"Vertical", "Horizontal", "Large screen"};
+ static const char * const FsBarNames[] = {"Auto-hide", "Always visible"};
++static const char * const RefreshNames[] = {"0.25 s", "0.5 s", "1 s"};
++static const char * const PeriodNames[] = {"15 s", "30 s", "60 s", "120 s"};
+ static const char * const RendererNames[] = {
+     "auto (the GPU when there is one, else vcore)",
+     "vcore (the DS video core on the CPU)",
+@@ -778,9 +789,16 @@
+         FormRow("Metrics");
+         bool m = c->showMetrics;
+         if (ImGui::Checkbox("##met", &m)) { c->showMetrics = m; Dirty(); }
++        ItemRect(6);
+         FormRow("Controller panel (F1)");
+         bool k = c->showInputPanel;
+         if (ImGui::Checkbox("##pad", &k)) { c->showInputPanel = k; Dirty(); }
++        FormRow("Metrics refresh", "The numbers show the average of this many seconds");
++        int mr = c->metricsRefresh < 3 ? c->metricsRefresh : 1;
++        if (ComboIndex("##mref", &mr, RefreshNames, 3)) { c->metricsRefresh = (u8)mr; Dirty(); }
++        FormRow("Frame time graph", "How many seconds the frame time graph shows");
++        int gp = c->graphPeriod < 4 ? c->graphPeriod : 1;
++        if (ComboIndex("##gper", &gp, PeriodNames, 4)) { c->graphPeriod = (u8)gp; Dirty(); }
+         ImGui::EndTable();
+     }
+     ImGui::SeparatorText("Menu and text");
+@@ -791,6 +809,7 @@
+         FormRow("Menu bar in fullscreen", "Auto-hide: slides in over the picture at the top edge or with Alt. Always visible: stays, the screens start below it");
+         int fb = c->fullscreenMenuBar ? 1 : 0;
+         if (ComboIndex("##fsmb", &fb, FsBarNames, 2)) { c->fullscreenMenuBar = (u8)fb; Dirty(); }
++        ItemRect(7);
+         FormRow("UI size");
+         int cur = 0;
+         for (int i = 0; i < 7; i++) {
+@@ -926,7 +945,9 @@
+     if (!ImGui::BeginMainMenuBar()) {
+         return;
+     }
+-    if (ImGui::BeginMenu("Game")) {
++    bool mgame = ImGui::BeginMenu("Game");
++    ItemRect(3);
++    if (mgame) {
+         ImGui::MenuItem("Pause", nullptr, &sPauseGameLogic);
+         if (RestartSupported() && ImGui::MenuItem("Reset...")) {
+             sResetAsk = true;
+@@ -938,7 +959,9 @@
+         }
+         ImGui::EndMenu();
+     }
+-    if (ImGui::BeginMenu("Video")) {
++    bool mvideo = ImGui::BeginMenu("Video");
++    ItemRect(5);
++    if (mvideo) {
+         if (ImGui::MenuItem("Video settings...")) {
+             OpenWin(W_VIDEO);
+         }
+@@ -1036,7 +1059,9 @@
+         if (ImGui::MenuItem("Controller panel", "F1", &k)) { c->showInputPanel = k; Dirty(); }
+         ImGui::EndMenu();
+     }
+-    if (ImGui::BeginMenu("View")) {
++    bool mview = ImGui::BeginMenu("View");
++    ItemRect(4);
++    if (mview) {
+         if (ImGui::MenuItem("View settings...")) {
+             OpenWin(W_VIEW);
+         }
+@@ -1056,6 +1081,18 @@
+         if (ImGui::MenuItem("Metrics", nullptr, &m)) { c->showMetrics = m; Dirty(); }
+         bool k = c->showInputPanel;
+         if (ImGui::MenuItem("Controller panel", "F1", &k)) { c->showInputPanel = k; Dirty(); }
++        if (ImGui::BeginMenu("Metrics refresh")) {
++            for (int i = 0; i < 3; i++) {
++                if (MenuRadio(RefreshNames[i], c->metricsRefresh == i)) { c->metricsRefresh = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
++        if (ImGui::BeginMenu("Frame time graph")) {
++            for (int i = 0; i < 4; i++) {
++                if (MenuRadio(PeriodNames[i], c->graphPeriod == i)) { c->graphPeriod = (u8)i; Dirty(); }
++            }
++            ImGui::EndMenu();
++        }
+         if (ImGui::BeginMenu("Menu bar in fullscreen")) {
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(FsBarNames[i], (c->fullscreenMenuBar ? 1 : 0) == i)) { c->fullscreenMenuBar = (u8)i; Dirty(); }
+@@ -1092,6 +1129,38 @@
+ 
+ // ---- Main: once a frame, between NewFrame and Render --------------------------------------------------------------
+ 
++static void UiLog() {
++    static FILE * f;
++    static int init;
++    if (!init) {
++        init = 1;
++        const char * p = getenv("BWPORT_UILOG");
++        if (p != nullptr && p[0] != 0) { f = fopen(p, "a"); }
++    }
++    if (f == nullptr) { return; }
++    ImGuiContext & g = *sImguiContext;
++    ImGuiIO & io = ImGui::GetIO();
++    int sx = 0, sy = 0, ww = 0, wh = 0, dw = 0, dh = 0, px = 0, py = 0;
++    Uint32 b = SDL_GetMouseState(&sx, &sy);
++    SDL_GetWindowSize(sWindow, &ww, &wh);
++    SDL_GL_GetDrawableSize(sWindow, &dw, &dh);
++    SDL_GetWindowPosition(sWindow, &px, &py);
++    Uint32 fl = SDL_GetWindowFlags(sWindow);
++    char line[600];
++    snprintf(line, sizeof line,
++             "sdl %d %d b%u imgui %.0f %.0f down%d disp %.0f %.0f fbs %.2f win %d %d at %d %d draw %d %d fl %x hov %s id %x want %d popup %d active %x",
++             sx, sy, b, io.MousePos.x, io.MousePos.y, (int)io.MouseDown[0], io.DisplaySize.x, io.DisplaySize.y, io.DisplayFramebufferScale.x,
++             ww, wh, px, py, dw, dh, fl & (SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_MOUSE_FOCUS | SDL_WINDOW_FULLSCREEN_DESKTOP),
++             g.HoveredWindow != nullptr ? g.HoveredWindow->Name : "-", g.HoveredId, (int)io.WantCaptureMouse,
++             (int)ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel), g.ActiveId);
++    static char last[600];
++    if (strcmp(line, last) != 0) {
++        strcpy(last, line);
++        fprintf(f, "%u %s\n", SDL_GetTicks(), line);
++        fflush(f);
++    }
++}
++
+ void Main() {
+     SIM_config_type * c = C();
+     // the bar's real height (ImGui's), for the next frame's layout
+@@ -1133,6 +1202,7 @@
+         ImGui::EndPopup();
+     }
+ 
++    UiLog();
+     // the settings are written when the mouse is up (a slider is not written at every step)
+     if (sDirty && !ImGui::IsMouseDown(0) && sCap.target == nullptr) {
+         sDirty = false;
+@@ -1150,36 +1220,308 @@
+ static const ImGuiWindowFlags kSideFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                                            ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBackground;
+ 
++// ---- frame times: the metrics and the graph (libntr-ui70.patch) ----------------------------------------------------
++// FrameRecord() is called once a frame with the frame's period (from one frame's end to the next's, the cap's wait
++// included) and costs a few table writes. Kept: a ring of every frame (for the 1 % low, by a sliding log histogram per
++// graph period: O(1) a frame), 10 ms buckets with min / max / sum (for the graph's columns and the exact min and max)
++// and the sums of the metrics' refresh window. The graph's columns are aligned to absolute time (a column is the same
++// buckets until it is complete): the picture scrolls by whole columns and a spike stays one column wide.
++
++namespace {
++const int kRing = 1 << 18;      // frames kept: 120 s at up to 2180 fps (older ones leave when the ring is full)
++const int kHistBins = 640;      // 32 bins an octave from 0.01 ms up
++const int kBuckets = 16384;     // 10 ms each: 163 s
++const int kColCap = 4096;
++const double kPeriodS[4] = {15.0, 30.0, 60.0, 120.0};
++
++struct FrameRec { unsigned long long end; float ms; unsigned short bin; };
++struct Bucket { unsigned stamp; unsigned short n; float mn, mx, sum; };
++struct PeriodStat { unsigned long long tail, count; double sumMs; unsigned hist[kHistBins]; };
++struct Col { unsigned long long abs; bool final; unsigned short n; float mn, mx, avg; };
++
++FrameRec sRing[kRing];
++unsigned long long sRingHead;
++unsigned long long sTotalNs;    // the sum of the periods: the graph's clock
++Bucket sBuckets[kBuckets];
++PeriodStat sPer[4];
++Col sCols[kColCap];
++unsigned sColsKey;
++
++// the metrics' refresh window
++unsigned long long sWinN, sWinNs, sWinMaxNs, sWinGameNs, sWinDrawNs, sSnapAt;
++struct Snap {
++    float fps = 0.0f, avgMs = 0.0f, worstMs = 0.0f, gameMs = 0.0f, drawMs = 0.0f;      // the last refresh window
++    float pMin = 0.0f, pAvg = 0.0f, pMax = 0.0f, pLowMs = 0.0f, pP99 = 0.0f;           // the graph period
++    float top = 0.0f;                                                                 // the graph's y axis (ms)
++    int lowerCount = 0;
++    int period = -1;
++} sSnap;
++double sCostFrameUs, sCostDrawUs;     // BWPORT_GRAPHCOST=1: mean cost of FrameRecord and of the graph's drawing
++unsigned long long sCostN;
++
++int BinOf(float ms) {
++    if (ms < 0.01f) {
++        return 0;
++    }
++    int b = (int)(log2f(ms * 100.0f) * 32.0f);
++    return b < 0 ? 0 : b >= kHistBins ? kHistBins - 1 : b;
++}
++float BinMs(int b) { return 0.01f * exp2f(((float)b + 0.5f) / 32.0f); }
++
++float NiceTop(float v) {
++    static const float steps[] = {1.0f, 1.5f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 8.0f, 10.0f};
++    float e = powf(10.0f, floorf(log10f(v)));
++    for (float st : steps) {
++        if (v <= st * e * 1.0001f) { return st * e; }
++    }
++    return 10.0f * e;
++}
++
++// the numbers of the graph's period: the average (exact), the 1 % low (the mean of the slowest 1 % of the frames, from
++// the histogram), the minimum and maximum (exact, from the buckets), and the axis
++void PeriodSnapshot(bool settle) {
++    SIM_config_type * c = C();
++    int p = c->graphPeriod < 4 ? c->graphPeriod : 1;
++    PeriodStat & ps = sPer[p];
++    sSnap.period = p;
++    if (ps.count == 0) {
++        return;
++    }
++    sSnap.pAvg = (float)(ps.sumMs / (double)ps.count);
++    unsigned long long want = (ps.count + 99) / 100, got = 0;
++    double sum = 0.0;
++    float p99 = 0.0f;
++    for (int b = kHistBins - 1; b >= 0 && got < want; b--) {
++        unsigned n = ps.hist[b];
++        if (n == 0) { continue; }
++        unsigned long long take = std::min<unsigned long long>(n, want - got);
++        sum += (double)take * BinMs(b);
++        got += take;
++        p99 = BinMs(b);
++    }
++    sSnap.pLowMs = got ? (float)(sum / (double)got) : 0.0f;
++    sSnap.pP99 = p99;
++    unsigned long long cb = sTotalNs / 10000000ull, n = (unsigned long long)(kPeriodS[p] * 100.0);
++    float mn = 1e9f, mx = 0.0f;
++    for (unsigned long long i = 0; i <= n && i <= cb; i++) {
++        const Bucket & bk = sBuckets[(cb - i) % kBuckets];
++        if (bk.stamp == (unsigned)(cb - i) + 1u && bk.n) {
++            mn = std::min(mn, bk.mn);
++            mx = std::max(mx, bk.mx);
++        }
++    }
++    sSnap.pMin = mn > 1e8f ? 0.0f : mn;
++    sSnap.pMax = mx;
++    // the axis: up to the largest frame, but at most 5 times the 1 % mark (a spike beyond it is marked at the top);
++    // it rises at once and falls only after three refreshes, so it does not jump
++    float want_top = NiceTop(std::max(0.5f, std::min(mx, 5.0f * std::max(p99, sSnap.pAvg))));
++    if (settle || sSnap.top == 0.0f || want_top > sSnap.top) {
++        sSnap.top = want_top;
++        sSnap.lowerCount = 0;
++    } else if (want_top < sSnap.top) {
++        if (++sSnap.lowerCount >= 3) {
++            sSnap.top = want_top;
++            sSnap.lowerCount = 0;
++        }
++    } else {
++        sSnap.lowerCount = 0;
++    }
++}
++
++void FrameSnapshot() {
++    if (sWinN) {
++        double secs = (double)sWinNs / 1e9;
++        sSnap.fps = (float)((double)sWinN / secs);
++        sSnap.avgMs = (float)(secs * 1000.0 / (double)sWinN);
++        sSnap.worstMs = (float)((double)sWinMaxNs / 1e6);
++        sSnap.gameMs = (float)((double)sWinGameNs / 1e6 / (double)sWinN);
++        sSnap.drawMs = (float)((double)sWinDrawNs / 1e6 / (double)sWinN);
++    }
++    sWinN = sWinNs = sWinMaxNs = sWinGameNs = sWinDrawNs = 0;
++    sSnapAt = sTotalNs;
++    PeriodSnapshot(false);
++}
++} // namespace
++
++void FrameRecord(unsigned long long ns, unsigned long long gameNs, unsigned long long drawNs) {
++    if (ns == 0 || ns > 10000000000ull) {
++        return;
++    }
++    static int sCost = -1;
++    unsigned long long t0 = 0;
++    if (sCost < 0) { sCost = getenv("BWPORT_GRAPHCOST") != nullptr; }
++    if (sCost) { t0 = SDL_GetPerformanceCounter(); }
++    float ms = (float)((double)ns / 1e6);
++    int bin = BinOf(ms);
++    for (PeriodStat & ps : sPer) {      // the ring is full: the oldest frame goes first
++        while (ps.count && sRingHead - ps.tail >= (unsigned long long)kRing) {
++            const FrameRec & o = sRing[ps.tail % kRing];
++            ps.hist[o.bin]--; ps.count--; ps.sumMs -= o.ms; ps.tail++;
++        }
++        if (ps.count == 0) { ps.tail = sRingHead; }
++    }
++    sTotalNs += ns;
++    FrameRec & r = sRing[sRingHead % kRing];
++    r.end = sTotalNs; r.ms = ms; r.bin = (unsigned short)bin;
++    sRingHead++;
++    unsigned long long bi = sTotalNs / 10000000ull;
++    Bucket & bk = sBuckets[bi % kBuckets];
++    if (bk.stamp != (unsigned)bi + 1u) {
++        bk.stamp = (unsigned)bi + 1u; bk.n = 0; bk.mn = ms; bk.mx = ms; bk.sum = 0.0f;
++    }
++    bk.n++; bk.sum += ms; bk.mn = std::min(bk.mn, ms); bk.mx = std::max(bk.mx, ms);
++    for (int p = 0; p < 4; p++) {
++        PeriodStat & ps = sPer[p];
++        ps.hist[bin]++; ps.count++; ps.sumMs += ms;
++        unsigned long long lim = (unsigned long long)(kPeriodS[p] * 1e9);
++        while (ps.count > 1 && sTotalNs - sRing[ps.tail % kRing].end > lim) {
++            const FrameRec & o = sRing[ps.tail % kRing];
++            ps.hist[o.bin]--; ps.count--; ps.sumMs -= o.ms; ps.tail++;
++        }
++    }
++    sWinN++; sWinNs += ns; sWinMaxNs = std::max(sWinMaxNs, ns); sWinGameNs += gameNs; sWinDrawNs += drawNs;
++    static const unsigned long long interval[3] = {250000000ull, 500000000ull, 1000000000ull};
++    SIM_config_type * c = C();
++    if (sTotalNs - sSnapAt >= interval[c->metricsRefresh < 3 ? c->metricsRefresh : 1] || (sSnap.fps == 0.0f && sWinN >= 5)) {
++        FrameSnapshot();
++    } else if (sSnap.period != c->graphPeriod) {
++        PeriodSnapshot(true);
++    }
++    if (sCost) {
++        sCostFrameUs += (double)(SDL_GetPerformanceCounter() - t0) * 1e6 / (double)SDL_GetPerformanceFrequency();
++    }
++}
++
++static float sMetricsContentH = 0.0f; // the metrics window's content height, last frame (the side gives it the room)
++static float sSideH = 0.0f;
++
++// the graph: one column a pixel, each the min..max of its frames (a band) and their mean (a line); the y axis from 0
++static void FrameGraph(float w, float h) {
++    ImDrawList * dl = ImGui::GetWindowDrawList();
++    ImVec2 pos = ImGui::GetCursorScreenPos();
++    ImGui::InvisibleButton("##ftgraph", ImVec2(w, h));
++    bool hov = ImGui::IsItemHovered();
++    unsigned long long t0 = SDL_GetPerformanceCounter();
++    int p = C()->graphPeriod < 4 ? C()->graphPeriod : 1;
++    int ncols = (int)w < 40 ? 40 : (int)w > 2000 ? 2000 : (int)w;
++    unsigned colB = (unsigned)ceil(kPeriodS[p] * 100.0 / (double)ncols);
++    if (colB < 1) { colB = 1; }
++    if (sColsKey != colB) {
++        sColsKey = colB;
++        memset(sCols, 0, sizeof sCols);
++    }
++    long long cb = (long long)(sTotalNs / 10000000ull);
++    long long clast = cb / (long long)colB;
++    long long first = clast - ncols + 1;
++    float top = sSnap.top > 0.0f ? sSnap.top : 1.0f;
++    float x0 = pos.x + (w - (float)ncols) * 0.5f;
++    auto yOf = [&](float ms) {
++        float f = ms / top;
++        return pos.y + h - 1.0f - (f > 1.0f ? 1.0f : f) * (h - 2.0f);
++    };
++    dl->AddRectFilled(pos, ImVec2(pos.x + w, pos.y + h), IM_COL32(12, 12, 16, 255));
++    static ImVec2 pts[2001];
++    int np = 0;
++    const ImU32 band = IM_COL32(70, 130, 200, 255), line = IM_COL32(130, 200, 255, 255), spike = IM_COL32(255, 90, 70, 255);
++    int hoverCol = hov ? (int)(ImGui::GetIO().MousePos.x - x0) : -1;
++    for (long long c = std::max(first, 0ll); c <= clast; c++) {
++        Col & k = sCols[c % kColCap];
++        if (k.abs != (unsigned long long)c + 1 || !k.final) {
++            k.abs = (unsigned long long)c + 1;
++            k.n = 0; k.mn = 1e9f; k.mx = 0.0f;
++            float sum = 0.0f;
++            for (unsigned i = 0; i < colB; i++) {
++                unsigned long long bi = (unsigned long long)c * colB + i;
++                const Bucket & bk = sBuckets[bi % kBuckets];
++                if (bk.stamp == (unsigned)bi + 1u && bk.n) {
++                    k.n = (unsigned short)(k.n + bk.n); sum += bk.sum;
++                    k.mn = std::min(k.mn, bk.mn); k.mx = std::max(k.mx, bk.mx);
++                }
++            }
++            k.avg = k.n ? sum / (float)k.n : 0.0f;
++            k.final = c < clast;
++        }
++        if (k.n == 0) { continue; }
++        float x = floorf(x0 + (float)(c - first));
++        float ya = yOf(k.mx), yb = yOf(k.mn);
++        dl->AddRectFilled(ImVec2(x, ya), ImVec2(x + 1.0f, yb + 1.0f), band);
++        if (k.mx > top) { dl->AddRectFilled(ImVec2(x, pos.y), ImVec2(x + 1.0f, pos.y + 3.0f), spike); }
++        if (np < 2001) { pts[np++] = ImVec2(x + 0.5f, yOf(k.avg)); }
++        if (hoverCol == (int)(c - first)) { hoverCol = -2 - (int)(c % kColCap); }
++    }
++    if (np > 1) { dl->AddPolyline(pts, np, line, 0, 1.0f); }
++    if (16.715f < top) {
++        float y = floorf(yOf(16.715f)) + 0.5f;
++        dl->AddLine(ImVec2(pos.x, y), ImVec2(pos.x + w, y), IM_COL32(255, 205, 60, 150), 1.0f);
++        dl->AddText(ImVec2(pos.x + 3.0f, y - ImGui::GetTextLineHeight() - 1.0f), IM_COL32(255, 205, 60, 200), "16.7 ms");
++    }
++    char tb[32];
++    snprintf(tb, sizeof tb, "%g ms", top);
++    dl->AddText(ImVec2(pos.x + w - ImGui::CalcTextSize(tb).x - 3.0f, pos.y + 1.0f), IM_COL32(160, 162, 176, 255), tb);
++    snprintf(tb, sizeof tb, "-%g s", kPeriodS[p]);
++    dl->AddText(ImVec2(pos.x + 3.0f, pos.y + h - ImGui::GetTextLineHeight() - 1.0f), IM_COL32(160, 162, 176, 255), tb);
++    dl->AddRect(pos, ImVec2(pos.x + w, pos.y + h), IM_COL32(90, 92, 108, 255));
++    if (hov && hoverCol <= -2) {
++        const Col & k = sCols[(-2 - hoverCol)];
++        double ago = (double)(clast - (long long)k.abs + 1) * (double)colB * 0.01;
++        ImGui::SetTooltip("%.1f s ago: %d frames\nmin %.2f  avg %.2f  max %.2f ms", ago, (int)k.n, k.mn, k.avg, k.mx);
++    }
++    static int sCostOn = -1;
++    if (sCostOn < 0) { sCostOn = getenv("BWPORT_GRAPHCOST") != nullptr; }
++    if (sCostOn) {
++        sCostDrawUs += (double)(SDL_GetPerformanceCounter() - t0) * 1e6 / (double)SDL_GetPerformanceFrequency();
++        sCostN++;
++        static FILE * cf; static int ci;
++        if (!ci) { ci = 1; if (getenv("BWPORT_GRAPHCOST")) { cf = fopen(getenv("BWPORT_GRAPHCOST"), "a"); } }
++        if (cf != nullptr && sCostN % 600 == 0) {
++            fprintf(cf, "graph cost: frames %llu  FrameRecord %.2f us  graph %.2f us (per frame)  ring %llu\n", sCostN,
++                    sCostFrameUs / (double)sCostN, sCostDrawUs / (double)sCostN, sRingHead);
++            fflush(cf);
++        }
++    }
++}
++
+ static void SideMetrics(float x, float y, float w, float h) {
+     SIM_config_type * c = C();
+     ImGui::SetNextWindowPos(ImVec2(x, y));
+     ImGui::SetNextWindowSize(ImVec2(w, h));
+-    if (!ImGui::Begin("##metrics", nullptr, kSideFlags)) {
++    if (!ImGui::Begin("##metrics", nullptr, kSideFlags & ~ImGuiWindowFlags_NoScrollbar)) {
+         ImGui::End();
+         return;
+     }
+-    static float sPeriodMs = 16.7f, sGameMs = 0.0f, sRenderMs = 0.0f;
+-    float periodMs = static_cast<float>(SIM_GetRealFrameTime()) / 1000000.0f;
+-    if (periodMs > 0.0f) {
+-        sPeriodMs += (periodMs - sPeriodMs) * 0.1f;
+-    }
+-    sGameMs += (static_cast<float>(SIM_GetGameWorkTime()) / 1000000.0f - sGameMs) * 0.1f;
+-    sRenderMs += (static_cast<float>(SIM_GetRenderWorkTime()) / 1000000.0f - sRenderMs) * 0.1f;
++    const Snap & m = sSnap;
+     const float kFrameMs = 16.715f;
+-    float fps = 1000.0f / sPeriodMs;
+-    float budget = (sGameMs + sRenderMs) / kFrameMs;
++    float budget = (m.gameMs + m.drawMs) / kFrameMs;
+ 
+     ImGui::TextColored(ImVec4(0.55f, 0.75f, 1.0f, 1.0f), "Metrics");
+     ImGui::Separator();
++    float fps = m.fps;
+     ImVec4 fc = fps >= 55.0f ? ImVec4(0.5f, 1.0f, 0.5f, 1.0f) : fps >= 30.0f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(1.0f, 0.4f, 0.3f, 1.0f);
+     ImGui::TextColored(fc, "%.0f fps", fps);
+     ImGui::SameLine();
+-    ImGui::TextDisabled("%.1f ms a frame", sPeriodMs);
+-    char over[64];
+-    snprintf(over, sizeof over, "game %.1f + draw %.1f ms", sGameMs, sRenderMs);
+-    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, budget > 1.0f ? ImVec4(0.8f, 0.3f, 0.25f, 1.0f) : budget > 0.7f ? ImVec4(0.8f, 0.65f, 0.2f, 1.0f) : ImVec4(0.25f, 0.6f, 0.35f, 1.0f));
+-    ImGui::ProgressBar(budget > 1.0f ? 1.0f : budget, ImVec2(-FLT_MIN, 0.0f), over);
+-    ImGui::PopStyleColor();
++    ImGui::TextDisabled("avg %.2f ms  worst %.1f ms", m.avgMs, m.worstMs);
++    ImGui::TextColored(budget > 1.0f ? ImVec4(1.0f, 0.45f, 0.35f, 1.0f) : budget > 0.7f ? ImVec4(1.0f, 0.85f, 0.3f, 1.0f) : ImVec4(0.6f, 0.9f, 0.65f, 1.0f),
++                       "game %.2f + draw %.2f ms", m.gameMs, m.drawMs);
++    // the graph's header: its name and the period buttons on the right
++    ImGui::TextDisabled("Frame time");
++    {
++        float bw = 0.0f;
++        for (int i = 0; i < 4; i++) { bw += ImGui::CalcTextSize(PeriodNames[i]).x + 2.0f * ImGui::GetStyle().FramePadding.x + 3.0f; }
++        ImGui::SameLine(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowWidth() - bw - ImGui::GetStyle().WindowPadding.x));
++        for (int i = 0; i < 4; i++) {
++            bool on = c->graphPeriod == i;
++            ImGui::PushStyleColor(ImGuiCol_Button, on ? ImVec4(0.26f, 0.45f, 0.75f, 1.0f) : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
++            ImGui::PushID(i);
++            if (ImGui::SmallButton(PeriodNames[i])) { c->graphPeriod = (u8)i; Dirty(); }
++            ImGui::PopID();
++            ImGui::PopStyleColor();
++            if (i < 3) { ImGui::SameLine(0.0f, 3.0f); }
++        }
++    }
++    float gh = std::max(56.0f * sUiScale, std::min(140.0f * sUiScale, sSideH * 0.14f));
++    FrameGraph(ImGui::GetContentRegionAvail().x, gh);
++    ImGui::TextDisabled("min %.2f  avg %.2f  max %.1f ms", m.pMin, m.pAvg, m.pMax);
++    ImGui::TextDisabled("1%% low %.1f ms (%.0f fps)", m.pLowMs, m.pLowMs > 0.0f ? 1000.0f / m.pLowMs : 0.0f);
+     int pw = 0, ph = 0;
+     SIM_RendererPicture(&pw, &ph);
+     ImGui::Text("%s %dx", ActiveRenderer(), SIM_RenderScale());
+@@ -1193,10 +1535,13 @@
+     if (BeginForm("##q")) {
+         FormRow("Renderer");
+         RendererCombo("##qr", false);
++        ItemRect(0);
+         FormRow("Resolution");
+         ResolutionCombo("##qres");
++        ItemRect(1);
+         ImGui::EndTable();
+     }
++    sMetricsContentH = ImGui::GetCursorPosY() + ImGui::GetStyle().WindowPadding.y;
+     ImGui::End();
+ }
+ 
+@@ -1319,7 +1664,9 @@
+         ImGui::SetCursorScreenPos(a);
+         if (ImGui::InvisibleButton("##joy", ImVec2(b.x - a.x, std::max(6.0f, b.y - a.y)))) {
+             sShowJoy = !sShowJoy;
++            sJoyClicks++;
+         }
++        ItemRect(2);
+         float fs = std::max(7.0f, roundf(9.0f * u));
+         const char * l = sShowJoy ? "gamepad (click: keyboard)" : "keyboard (click: gamepad)";
+         dl->AddText(font, fs, ImVec2(a.x + 4.0f * u, roundf(P(0, -2).y - fs / 2.0f)), cDim, l);
+@@ -1331,6 +1678,14 @@
+ void RectsString(char * buf, int n) {
+     int k = snprintf(buf, n, "bar %d vis %d side %.0f %.0f %.0f %.0f m%d c%d", sBarReserve, sBarVisible ? (int)ceilf(sBarH) : 0,
+                      sSideRect[0], sSideRect[1], sSideRect[2], sSideRect[3], sSideMetrics, sSideController);
++    static const char * const itemNames[8] = {"qr", "qres", "joy", "mgame", "mview", "mvideo", "vmet", "vfsmb"};
++    k += snprintf(buf + k, n - k, " joyn %d", sJoyClicks);
++    for (int i = 0; i < 8 && k < n - 80; i++) {
++        if (sItemRect[i][2] > 0.0f) {
++            k += snprintf(buf + k, n - k, " %s %.0f %.0f %.0f %.0f", itemNames[i],
++                          sItemRect[i][0], sItemRect[i][1], sItemRect[i][2], sItemRect[i][3]);
++        }
++    }
+     for (int i = 0; i < W_COUNT && k < n - 80; i++) {
+         if (sWins[i].open && sWins[i].w > 0.0f) {
+             k += snprintf(buf + k, n - k, " win%d %.0f %.0f %.0f %.0f", i, sWins[i].x, sWins[i].y, sWins[i].w, sWins[i].h);
+@@ -1347,8 +1702,9 @@
+     ImDrawList * bg = ImGui::GetBackgroundDrawList();
+     bg->AddRectFilled(ImVec2(x, y), ImVec2(x + w, y + h), cBack);
+     float mh = 0.0f;
++    sSideH = h;
+     if (metrics && controller) {
+-        mh = floorf(h * 0.40f);
++        mh = floorf(std::min(h * 0.75f, std::max(h * 0.40f, sMetricsContentH)));
+     } else if (metrics) {
+         mh = h;
+     }

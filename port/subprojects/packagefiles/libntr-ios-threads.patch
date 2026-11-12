@@ -1,0 +1,53 @@
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1300,7 +1300,19 @@
+         }
+         if (any && (k == 0 || k == 3)) {
+             fprintf(f, "  %-6s %-36s %9.3f\n", kPerfKind[k], k == 0 ? "(sum)" : "(sum: the GPU's busy time a frame)", ksum);
++        }
++    }
++    // libntr-ios-threads.patch: the means in the log too, a line a kind (the phone's performance test leaves no file a reader sees)
++    for (int k = 0; k < 4; k++) {
++        std::string ln;
++        char t[96];
++        for (int i = 0; i < sPerfN; i++) {
++            const PerfStage & p = sPerf[i];
++            if (p.kind != k || !p.inLog) { continue; }
++            snprintf(t, sizeof t, "%s%s %.3f", ln.empty() ? "" : ", ", p.name, p.logSum / (double)n);
++            ln += t;
+         }
++        if (!ln.empty()) { fprintf(stderr, "stages: %s %s ms a frame (mean of %zu): %s\n", sLogFile.c_str(), kPerfKind[k], n, ln.c_str()); }
+     }
+     fprintf(f, "#\n# per frame, ms: the frame's period, then the stages above (kind:name)\nframe period");
+     for (int j = 0; j < nc; j++) {
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1055,7 +1055,7 @@
+           (int)s_SIM_config.displayCap, (int)s_SIM_config.frameSkip, (int)s_SIM_config.interpolation);
+   static const char *const kScript =
+       "p1:renderer=gpu,resolution=2,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu2-60;"  // (libntr-ios-metaltune.patch: 18 rows, each setting every key it depends on)
+-      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-60;"
++      "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-60;p10:perflog=gpu3-60;"  // libntr-ios-threads.patch: the frame thread's stages (a 'stages:' line)
+       "p1:renderer=gpu,resolution=3,antialias=2,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-aa4s-60;"
+       "p1:renderer=gpu,resolution=3,antialias=3,speed=1,framerate=60,frameskip=0,smooth=0,ff=0,passes=0;p60:bench=gpu3-smaa-60;"
+       "p1:renderer=gpu,resolution=3,antialias=1,speed=1,framerate=monitor,frameskip=0,smooth=1,ff=0,passes=0;p60:bench=gpu3-mon-sm;"
+@@ -2486,7 +2486,11 @@
+   char name[40];
+   std::string table;
+ } sBench;
++// libntr-ios-threads.patch: each bench row's CPU split by thread name (bw-port port/src/sysmetrics.c; nothing where it is absent)
++extern "C" void bwport_sys_threads_mark(void) __attribute__((weak));
++extern "C" void bwport_sys_threads_row(const char *name, double frames, double secs) __attribute__((weak));
+ static void BenchStart(const char *name) {
++  if (bwport_sys_threads_mark != nullptr) bwport_sys_threads_mark();  // libntr-ios-threads.patch
+   sBench.on = true;
+   sBench.t0 = SpNowNs();
+   sBench.endNs = sBench.t0 + 4000000000ull;
+@@ -2660,6 +2664,7 @@
+              (sPc.ipLateGpu - a.ipLateGpu) / dt);
+     sBench.table += row;
+     fputs(row, stderr);
++    if (bwport_sys_threads_row != nullptr) bwport_sys_threads_row(sBench.name, (double)(sPc.drawn - a.drawn), dt);  // libntr-ios-threads.patch
+     if (sPerfTestOn) sPerfRowsDone++;  // libntr-ios-testbadge.patch
+     if (sPassOn && sPassNg > 0) {  // libntr-ios-passes.patch: the row's parts, means a frame in ms
+       const double nc = sPassNc ? (double)sPassNc : 1.0, ng = (double)sPassNg;

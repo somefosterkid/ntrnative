@@ -1,0 +1,35 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1103,7 +1103,9 @@
+   double rssMB, privMB;
+   SwMemory(&rssMB, &privMB);
+   SwGLCensus gc = SwCensus();
+-  int objs = gc.tex + gc.fbo + gc.buf + gc.prog + gc.vao + gc.rbo;
++  // libntr-switchrule.patch: programs are not counted: port/gpu makes each shader program once per context and keeps it
++  // (its fix for Apple's GL keeping deleted programs' pipelines), so a variant first used later (multisampling) adds one
++  int objs = gc.tex + gc.fbo + gc.buf + gc.vao + gc.rbo;
+   char why[200] = "";
+   if (sSwRefMean < 0 && sSwMean >= 0) sSwRefMean = sSwMean;
+   // black: nothing at all, or far darker than the first step's picture (a scene that stands still; the game itself may
+@@ -1131,8 +1133,9 @@
+   // change grows past the envelope within a few steps
+   if (ok) {
+     double env = -1;
+-    int eff = st.res;  // memory follows the internal size, Resolution x the Antialiasing in force (capped at 8)
+-    for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { eff = st.res * k; break; }
++    // memory follows the internal size. libntr-switchrule.patch: Antialiasing is off or 4 samples (libntr-ios-msaa.patch):
++    // vcore supersamples at Resolution x 2 while that stays within 8x, gpu multisamples at the output size
++    int eff = st.aa > 1 && wantActive == 1 && st.res * 2 <= 8 ? st.res * 2 : st.res;
+     bool own = false;  // an earlier step of this renderer at this internal size or more
+     for (auto &h : sSwHist) {
+       if (h.res < eff) continue;
+@@ -1142,8 +1145,7 @@
+     if (own && env >= 0 && rssMB > env + 64.0 + env * 0.1)
+       ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB resident, no earlier step at %dx or more held over %.0f)", rssMB, eff, env);
+   }
+-  int effRes = st.res;
+-  for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { effRes = st.res * k; break; }
++  int effRes = st.aa > 1 && wantActive == 1 && st.res * 2 <= 8 ? st.res * 2 : st.res;  // as eff above
+   sSwHist.push_back({wantActive, effRes, rssMB});
+   if (seen == NULL) sSwSeen.push_back({key, {cost, rssMB, gc.texMB, objs}});
+   if (!ok) sSwFails++;

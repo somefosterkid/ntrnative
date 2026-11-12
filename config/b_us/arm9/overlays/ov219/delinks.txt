@@ -1,0 +1,9 @@
+    .text       start:0x02183b60 end:0x02185db0 kind:code align:32
+    .rodata     start:0x02185db0 end:0x02186184 kind:rodata align:4
+    .ctor       start:0x02186184 end:0x02186184 kind:rodata align:4
+    .bss        start:0x021861a0 end:0x021861a0 kind:bss align:32
+
+src/ov219/geonet.c:
+    complete
+    .text       start:0x02183b60 end:0x02185db0
+    .rodata     start:0x02185db0 end:0x02186184

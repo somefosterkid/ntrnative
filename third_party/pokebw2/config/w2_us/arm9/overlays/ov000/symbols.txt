@@ -1,0 +1,3 @@
+EventGameSync_Callback kind:function(thumb,size=0x3a8) addr:0x0214f540
+EventGameSync_CreateFromArgs kind:function(thumb,size=0x8) addr:0x0214f8e8
+EventGameSync_Create kind:function(thumb,size=0x54) addr:0x0214f8f0

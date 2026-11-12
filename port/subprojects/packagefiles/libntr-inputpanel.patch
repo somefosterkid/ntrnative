@@ -1,0 +1,390 @@
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -61,6 +61,7 @@
+     BOOL swapScreens; /* Swap screen positions */
+     u8 vsyncInterval; /* Vertical sync interval. Set to 0 to disable vsync, 1 every vblank, 2 every second vblank etc*/
+     u8 capFrameRate; /* Should the frame rate be capped to 60 fps? */
++    u8 showInputPanel; /* Side panel with the DS buttons and their keys (F1) */
+     u8 macAddr[6]; /* MAC address */
+     SIM_config_pad_settings_type padSettings; /* Input pad settings */
+     NVRAMConfig osNvramConfig; /* OS NVRAM config */
+--- a/include/simulator/sim_gui.hpp
++++ b/include/simulator/sim_gui.hpp
+@@ -17,6 +17,9 @@
+ void Enable();
+ void OpenFileDialog(std::function<void(std::string)> callback);
+ bool IsGameLogicPaused();
++// The input panel: the DS's buttons drawn in the window rectangle (x, y, w, h), lit where bit n of pressed is set
++// (bit 0 A, 1 B, 2 X, 3 Y, 4 L, 5 R, 6 Start, 7 Select, 8 Up, 9 Down, 10 Left, 11 Right)
++void DrawInputPanel(float x, float y, float w, float h, unsigned pressed);
+ void AppButton(const char * label, bool * state, void (*aInitFunc)(void), void (*aAppFunc)(bool *));
+ 
+ 
+--- a/include/simulator/sim.h
++++ b/include/simulator/sim.h
+@@ -73,6 +73,9 @@
+ void SIM_u16ToRGB( u16 in, u8 * r, u8 *g, u8 * b );
+ SIM_config_type * SIM_GetConfigPtr();
+ u64 SIM_GetRenderFrameTime();
++// The game's work and our render in the last frame, nanoseconds (the frame budget line of the debug GUI)
++u64 SIM_GetGameWorkTime();
++u64 SIM_GetRenderWorkTime();
+ u64 SIM_GetFullFrameTime();
+ const char * SIM_GetLibntrGitHash();
+ const char * SIM_GetProjectGitHash();
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -63,6 +63,9 @@
+     if(MATCH("General", "CapFrameRate")) {
+         config->capFrameRate = StringToBool(value);
+     }
++    if(MATCH("General", "ShowInputPanel")) {
++        config->showInputPanel = StringToBool(value);
++    }
+ 
+     if(MATCH("General", "MacAddr")) {
+         char * pos = value;
+@@ -356,6 +359,7 @@
+     aConfig->swapScreens = FALSE;
+     aConfig->vsyncInterval = 1;
+     aConfig->capFrameRate = TRUE;
++    aConfig->showInputPanel = TRUE;
+     aConfig->masterVolume = 127;
+ 
+     aConfig->padSettings.joyAxisDeadzone = 32767 / 4;
+@@ -437,6 +441,7 @@
+     fprintf(configFile, "SwapScreens=%s\n", BoolToString(aConfig->swapScreens));
+     fprintf(configFile, "VsyncInterval=%d\n", aConfig->vsyncInterval);
+     fprintf(configFile, "CapFrameRate=%s\n", BoolToString(aConfig->capFrameRate));
++    fprintf(configFile, "ShowInputPanel=%s\n", BoolToString(aConfig->showInputPanel));
+     fprintf(configFile, "MacAddr=%02x%02x%02x%02x%02x%02x\n", aConfig->macAddr[0],
+                                                               aConfig->macAddr[1],
+                                                               aConfig->macAddr[2],
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -87,6 +87,7 @@
+ 
+ static struct timespec s_SIM_lastFrameEnd;
+ static u64 sRenderFrameTime;
++static u64 sGameWorkTime, sRenderWorkTime;
+ static u64 sFullFrameTime;
+ 
+ static constexpr auto SteamDeckWidth = 1280;
+@@ -378,6 +379,20 @@
+     windowWidth = s_SIM_config.windowWidth;
+   }
+ 
++  if (s_SIM_config.showInputPanel && (s_SIM_config.windowWidth == 0 || s_SIM_config.windowHeight == 0)) {
++    // room for the input panel (SIM_Render: layoutH * 0.625 beside the screens)
++    switch (s_SIM_config.screenLayout) {
++    default:
++    case SIM_CONFIG_SCREEN_LAYOUT_VERTICAL:
++    case SIM_CONFIG_SCREEN_LAYOUT_LARGE:
++      windowWidth += (u32)(SIM_NDS_SCREEN_HEIGHT * 2 * 0.625f * 2);
++      break;
++    case SIM_CONFIG_SCREEN_LAYOUT_HORIZONTAL:
++      windowWidth += (u32)(SIM_NDS_SCREEN_HEIGHT * 0.625f * 2);
++      break;
++    }
++  }
++
+   std::string windowTitle = "libntr Application";
+ 
+   CARDRomHeader *cardHeader = (CARDRomHeader *)(HW_ROM_HEADER_BUF);
+@@ -1223,6 +1238,13 @@
+ #ifdef SDK_TRACY_ENABLE
+     TracyCZone(SimRenderZone, 1);
+ #endif
++    // the game's work: from the end of the last frame to here (the game calls us from its V-blank wait)
++    {
++      struct timespec tStart;
++      clock_gettime(CLOCK_MONOTONIC, &tStart);
++      sGameWorkTime = ((tStart.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
++                      (tStart.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
++    }
+     // SIM_Net_Process();
+     if ((*((u32 *)HW_VBLANK_COUNT_BUF) % 10) == 0) {
+       SIM_Net_SendBeaconIndication();
+@@ -1247,18 +1269,34 @@
+     SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+ 
+     // Scale the viewport to the correct aspect ratio and center it
++    float layoutW, layoutH;
+     switch (s_SIM_config.screenLayout) {
+     default:
+     case SIM_CONFIG_SCREEN_LAYOUT_VERTICAL:
+-      aspectRatio = 256.0f / 384.0f;
++      layoutW = 256.0f; layoutH = 384.0f;
+       break;
+     case SIM_CONFIG_SCREEN_LAYOUT_HORIZONTAL:
+-      aspectRatio = 512.0f / 192.0f;
++      layoutW = 512.0f; layoutH = 192.0f;
+       break;
+     case SIM_CONFIG_SCREEN_LAYOUT_LARGE:
+-      aspectRatio = 768.0f / 384.0f;
++      layoutW = 768.0f; layoutH = 384.0f;
+       break;
+     }
++    // The input panel sits right of the screens: the screens and the panel are fitted together
++    float panelW = s_SIM_config.showInputPanel ? layoutH * 0.625f : 0.0f;
++    aspectRatio = (layoutW + panelW) / layoutH;
++    {
++      // the window grows (shrinks) by the panel's width when the panel is switched
++      static int sPanelShown = -1;
++      int shown = s_SIM_config.showInputPanel ? 1 : 0;
++      if (sPanelShown >= 0 && sPanelShown != shown && !s_SIM_config.fullScreen &&
++          !(SDL_GetWindowFlags(window) & (SDL_WINDOW_MAXIMIZED | SDL_WINDOW_FULLSCREEN_DESKTOP))) {
++        float f = shown ? (layoutW + layoutH * 0.625f) / layoutW : layoutW / (layoutW + layoutH * 0.625f);
++        SDL_SetWindowSize(window, (int)((float)windowWidth * f + 0.5f), windowHeight);
++        windowWidth = (int)((float)windowWidth * f + 0.5f);
++      }
++      sPanelShown = shown;
++    }
+ 
+     viewWidth = windowWidth;
+     viewHeight = (int)((float)windowWidth / aspectRatio);
+@@ -1271,6 +1309,15 @@
+       viewY = 0;
+     }
+ 
++    // the screens take their share of the width; the panel the rest
++    int panelPxX = viewX + viewWidth, panelPxW = 0;
++    if (panelW > 0.0f) {
++      int screensW = (int)((float)viewWidth * layoutW / (layoutW + panelW));
++      panelPxX = viewX + screensW;
++      panelPxW = viewWidth - screensW;
++      viewWidth = screensW;
++    }
++
+     glViewport(viewX, viewY, viewWidth, viewHeight);
+ 
+     // Set up the bounding box of the touch panel
+@@ -1378,6 +1425,10 @@
+         } else if (keyRead == s_SIM_config.padSettings.guiKey) {
+           // Toggle Debug GUI
+           SIM::GUI::Toggle();
++        } else if (keyRead == SDLK_F1) {
++          // Toggle the input panel
++          s_SIM_config.showInputPanel = !s_SIM_config.showInputPanel;
++          SIM_Config_SaveConfigFile(&s_SIM_config);
+         } else if (keyRead == s_SIM_config.padSettings.frameCapToggleKey) {
+           // Toggle Frame Cap
+           if (s_SIM_config.capFrameRate) {
+@@ -1526,6 +1577,19 @@
+ 
+     SIM::GUI::NewFrame();
+     SIM::GUI::Main();
++    if (panelPxW > 0) {
++      // lit where the pad registers say pressed (keyboard, gamepad or script alike): 0 is pressed
++      u16 pad = s_reg_PAD_KEYINPUT;
++      u16 xy = *(vu16 *)HW_BUTTON_XY_BUF;
++      unsigned lit = 0;
++      static const u8 padBit[12] = {0, 1, 0xff, 0xff, 9, 8, 3, 2, 6, 7, 5, 4};
++      for (int b = 0; b < 12; b++) {
++        if (padBit[b] != 0xff && !((pad >> padBit[b]) & 1)) lit |= 1u << b;
++      }
++      if (!((xy >> 10) & 1)) lit |= 1u << 2;
++      if (!((xy >> 11) & 1)) lit |= 1u << 3;
++      SIM::GUI::DrawInputPanel((float)panelPxX, (float)viewY, (float)panelPxW, (float)viewHeight, lit);
++    }
+ 
+     memset(bgtex, 0,
+            sizeof(u8) * 4 * SIM_NDS_SCREEN_WIDTH * SIM_NDS_SCREEN_HEIGHT * 2);
+@@ -1620,6 +1684,7 @@
+     frameNs = ((curTime.tv_sec - s_SIM_lastFrameEnd.tv_sec) * 1000000000) +
+               (curTime.tv_nsec - s_SIM_lastFrameEnd.tv_nsec);
+     sFullFrameTime = frameNs;
++    sRenderWorkTime = frameNs > sGameWorkTime ? frameNs - sGameWorkTime : 0;
+ 
+     // Limit framerate to 60 fps: after the swap (a software GL does its drawing there, so the wait is only
+     // what is left of the frame), coarse sleep then a spin for the last 2 ms (Windows' sleeps overshoot)
+@@ -1679,6 +1744,9 @@
+   return nullptr;
+ }
+ 
++u64 SIM_GetGameWorkTime() { return sGameWorkTime; }
++u64 SIM_GetRenderWorkTime() { return sRenderWorkTime; }
++
+ // Get the rendering time in nanoseconds
+ u64 SIM_GetRenderFrameTime() {
+   return sRenderFrameTime;
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -8,6 +8,11 @@
+ #include "gui_internal.hpp"
+ 
+ #include "ImGuiFileDialog.h"
++#include "simulator/config/sim_config.h"
++
++#include <algorithm>
++#include <string>
++#include <string.h>
+ 
+ namespace SIM::GUI {
+ static SDL_Window * sWindow;
+@@ -35,6 +40,115 @@
+     }
+ }
+ 
++
++// ---- The input panel: a DS's buttons in their places, each with the key it is mapped to, lit while pressed
++static std::string KeyLabel(int key) {
++    std::string n = SDL_GetKeyName(key);
++    static const char * const sShort[][2] = {
++        {"Return", "Enter"}, {"Right Shift", "R-Shift"}, {"Left Shift", "L-Shift"}, {"Right Ctrl", "R-Ctrl"},
++        {"Left Ctrl", "L-Ctrl"}, {"Right Alt", "R-Alt"}, {"Left Alt", "L-Alt"}, {"Backspace", "Bksp"},
++        {"Keypad ", "KP "}, {"Escape", "Esc"}, {"Page Down", "PgDn"}, {"Page Up", "PgUp"}, {"Delete", "Del"},
++    };
++    for (auto & s : sShort) {
++        if (n.compare(0, strlen(s[0]), s[0]) == 0) {
++            n = std::string(s[1]) + n.substr(strlen(s[0]));
++            break;
++        }
++    }
++    return n.empty() ? "-" : n;
++}
++
++void DrawInputPanel(float px, float py, float pw, float ph, unsigned pressed) {
++    ImDrawList * dl = ImGui::GetBackgroundDrawList();
++    ImFont * font = ImGui::GetFont();
++    SIM_config_type * cfg = SIM_GetConfigPtr();
++    const SIM_config_pad_settings_type & pad = cfg->padSettings;
++    const float CW = 240.0f, CH = 300.0f;    // the drawing's own units
++    float u = std::min(pw / (CW + 20.0f), ph / (CH + 20.0f));
++    if (u <= 0.0f) {
++        return;
++    }
++    float ox = px + (pw - CW * u) / 2.0f, oy = py + (ph - CH * u) / 2.0f;
++    const ImU32 cBack = IM_COL32(22, 22, 28, 255), cBody = IM_COL32(52, 54, 68, 255), cBtn = IM_COL32(86, 88, 104, 255),
++                cLit = IM_COL32(255, 205, 60, 255), cEdge = IM_COL32(150, 152, 168, 255),
++                cText = IM_COL32(235, 235, 240, 255), cTextLit = IM_COL32(20, 20, 24, 255),
++                cDim = IM_COL32(160, 162, 176, 255);
++
++    auto P = [&](float x, float y) { return ImVec2(ox + x * u, oy + y * u); };
++    // text centred on (cx, cy), at most maxW wide (units)
++    auto Text = [&](float cx, float cy, float size, const std::string & s, ImU32 col, float maxW) {
++        float fs = size * u;
++        ImVec2 sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, s.c_str());
++        if (sz.x > maxW * u) {
++            fs *= maxW * u / sz.x;
++            sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, s.c_str());
++        }
++        ImVec2 c = P(cx, cy);
++        dl->AddText(font, fs, ImVec2(c.x - sz.x / 2.0f, c.y - sz.y / 2.0f), col, s.c_str());
++    };
++    auto Rect = [&](float x, float y, float w, float h, float r, bool lit) {
++        dl->AddRectFilled(P(x, y), P(x + w, y + h), lit ? cLit : cBtn, r * u);
++        dl->AddRect(P(x, y), P(x + w, y + h), cEdge, r * u, 0, std::max(1.0f, u));
++    };
++    auto Circle = [&](float cx, float cy, float r, bool lit) {
++        dl->AddCircleFilled(P(cx, cy), r * u, lit ? cLit : cBtn, 32);
++        dl->AddCircle(P(cx, cy), r * u, cEdge, 32, std::max(1.0f, u));
++    };
++    auto Lit = [&](int bit) { return (pressed >> bit & 1) != 0; };
++
++    dl->AddRectFilled(ImVec2(px, py), ImVec2(px + pw, py + ph), cBack);
++    dl->AddRectFilled(P(-6, -6), P(CW + 6, CH + 6), cBody, 16.0f * u);
++
++    // shoulder buttons
++    Rect(8, 6, 100, 30, 8, Lit(4));
++    Text(58, 21, 13, "L   " + KeyLabel(pad.lKey), Lit(4) ? cTextLit : cText, 92);
++    Rect(132, 6, 100, 30, 8, Lit(5));
++    Text(182, 21, 13, "R   " + KeyLabel(pad.rKey), Lit(5) ? cTextLit : cText, 92);
++
++    // D-pad, arms of 34
++    struct Arm { float x, y; int bit; int key; };
++    const Arm arms[] = {{45, 64, 8, pad.upKey}, {45, 132, 9, pad.downKey}, {11, 98, 10, pad.leftKey},
++                        {79, 98, 11, pad.rightKey}};
++    dl->AddRectFilled(P(45, 98), P(79, 132), cBtn);
++    for (const Arm & a : arms) {
++        Rect(a.x, a.y, 34, 34, 5, Lit(a.bit));
++        Text(a.x + 17, a.y + 17, 11, KeyLabel(a.key), Lit(a.bit) ? cTextLit : cText, 30);
++    }
++
++    // A B X Y
++    struct Face { float x, y; int bit; const char * name; int key; };
++    const Face faces[] = {{178, 78, 2, "X", pad.xKey}, {144, 112, 3, "Y", pad.yKey}, {212, 112, 0, "A", pad.aKey},
++                          {178, 146, 1, "B", pad.bKey}};
++    for (const Face & f : faces) {
++        Circle(f.x, f.y, 19, Lit(f.bit));
++        Text(f.x, f.y - 7, 15, f.name, Lit(f.bit) ? cTextLit : cText, 30);
++        Text(f.x, f.y + 9, 10, KeyLabel(f.key), Lit(f.bit) ? cTextLit : cText, 32);
++    }
++
++    // Start, Select
++    Rect(130, 196, 102, 28, 14, Lit(6));
++    Text(181, 210, 12, "START  " + KeyLabel(pad.startKey), Lit(6) ? cTextLit : cText, 94);
++    Rect(130, 232, 102, 28, 14, Lit(7));
++    Text(181, 246, 12, "SELECT  " + KeyLabel(pad.selectKey), Lit(7) ? cTextLit : cText, 94);
++
++    // the emulator's own keys
++    const std::string hints[] = {
++        "F1  hide this panel", KeyLabel(pad.frameCapToggleKey) + "  frame cap on/off",
++        KeyLabel(pad.frameCapKey) + "  hold: fast forward", KeyLabel(pad.guiKey) + "  debug window",
++    };
++    float hy = 200.0f;
++    for (const std::string & h : hints) {
++        ImVec2 c = P(10, hy);
++        float fs = 10.0f * u;
++        ImVec2 sz = font->CalcTextSizeA(fs, 100000.0f, 0.0f, h.c_str());
++        if (sz.x > 106.0f * u) {
++            fs *= 106.0f * u / sz.x;
++        }
++        dl->AddText(font, fs, ImVec2(c.x, c.y - fs / 2.0f), cDim, h.c_str());
++        hy += 16.0f;
++    }
++}
++
+ void Init(SDL_Window * window, SDL_GLContext context) {
+     sWindow = window;
+     sContext = context;
+@@ -70,6 +184,21 @@
+         float frameTimeMs = static_cast<float>(SIM_GetFullFrameTime()) / 1000000.0f;
+         ImGui::Text("%.0ffps", 1000.0f / frameTimeMs);
+ 
++        // the frame budget: the game's work and our render against the DS's 16.7 ms frame
++        {
++            static float sGameMs = 0.0f, sRenderMs = 0.0f;
++            float g = static_cast<float>(SIM_GetGameWorkTime()) / 1000000.0f;
++            float r = static_cast<float>(SIM_GetRenderWorkTime()) / 1000000.0f;
++            sGameMs += (g - sGameMs) * 0.1f;
++            sRenderMs += (r - sRenderMs) * 0.1f;
++            const float kFrameMs = 16.715f;
++            float total = (sGameMs + sRenderMs) * 100.0f / kFrameMs;
++            ImVec4 col = total > 100.0f ? ImVec4(1.0f, 0.4f, 0.3f, 1.0f) : ImVec4(0.5f, 1.0f, 0.5f, 1.0f);
++            ImGui::TextColored(col, "Frame budget: %.0f%% of 16.7 ms", total);
++            ImGui::Text("  game %.1f ms (%.0f%%), render %.1f ms (%.0f%%)", sGameMs, sGameMs * 100.0f / kFrameMs,
++                        sRenderMs, sRenderMs * 100.0f / kFrameMs);
++        }
++
+ 
+         AppButton("Config", &sShowAppConfig, AppConfigInit, AppConfigMain);
+         AppButton("Input", &sShowAppPad, AppPadInit, AppPadMain);
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -42,6 +42,7 @@
+     int vSyncInterval = sConfig->vsyncInterval;
+     bool frameLimit = sConfig->capFrameRate;
+     bool fullScreen = sConfig->fullScreen;
++    bool showPanel = sConfig->showInputPanel;
+     
+     ImGui::Begin("Config", openState);
+ 
+@@ -55,6 +56,9 @@
+         configChanged = true;
+     }
+ 
++    if(ImGui::Checkbox("Input panel (F1)", &showPanel)) {
++        configChanged = true;
++    }
+     if(ImGui::Combo("Layout", &screenLayout, ScreenLayoutStrings, 3, 3)) {
+         configChanged = true;
+     }
+@@ -78,6 +82,7 @@
+     if(configChanged) {
+         sConfig->screenLayout = static_cast<SIM_config_screen_layout_type>(screenLayout);
+         sConfig->swapScreens = swapScreens;
++        sConfig->showInputPanel = showPanel;
+         sConfig->fullScreen = fullScreen;
+         if(sConfig->fullScreen) {
+             SDL_SetWindowFullscreen(SIM_GetSDLWindow(), SDL_WINDOW_FULLSCREEN_DESKTOP);

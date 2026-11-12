@@ -1,0 +1,7 @@
+func_ov008_02154ca0 kind:function(thumb,size=0x28) addr:0x02154ca0
+func_ov008_02154cc8 kind:function(thumb,size=0x2e) addr:0x02154cc8
+func_ov008_02154cf8 kind:function(thumb,size=0x3a8) addr:0x02154cf8
+eventMakeFunc kind:function(thumb,size=0x10) addr:0x021550a0
+func_ov008_021550b0 kind:function(thumb,size=0x2c) addr:0x021550b0
+func_ov008_021550dc kind:function(thumb,size=0x60) addr:0x021550dc
+data_ov008_0215513c kind:data(any) addr:0x0215513c

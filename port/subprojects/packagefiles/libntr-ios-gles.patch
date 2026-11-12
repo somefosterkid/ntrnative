@@ -1,0 +1,160 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -43,6 +43,17 @@
+ 
+ #include "screenquads.h"
+ 
++// bw-port (libntr-ios-gles.patch): iOS (device and Simulator) is OpenGL ES 3.0 through SDL's UIKit view
++#ifdef __APPLE__
++#include <TargetConditionals.h>
++#endif
++#if defined(__APPLE__) && TARGET_OS_IOS
++#define SIM_IOS 1
++static GLuint sDefaultFbo;   // SDL's UIKit view draws into a framebuffer object, not 0
++#else
++#define SIM_IOS 0
++#endif
++
+ #ifdef SDK_BUILD_WIN64
+ #include <windows.h>
+ #include <winsock2.h>
+@@ -1002,7 +1013,11 @@
+   if (w <= 0 || h <= 0) return;
+   std::vector<unsigned char> px((size_t)w * h * 4), flip((size_t)w * h * 4);
+   glPixelStorei(GL_PACK_ALIGNMENT, 1);
++#if SIM_IOS
++  glBindFramebuffer(GL_FRAMEBUFFER, sDefaultFbo);
++#else
+   glReadBuffer(GL_BACK);
++#endif
+   glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+   for (int y = 0; y < h; y++) memcpy(&flip[(size_t)y * w * 4], &px[(size_t)(h - 1 - y) * w * 4], (size_t)w * 4);
+   for (size_t i = 3; i < flip.size(); i += 4) flip[i] = 255;
+@@ -1025,6 +1040,12 @@
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+ 
++#if SIM_IOS
++  // bw-port (libntr-ios-gles.patch): iOS has OpenGL ES only (Apple's OpenGLES.framework, 3.0)
++  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
++  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
++  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
++#else
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+ #ifdef __APPLE__
+   // bw-port (libntr-ios-gl.patch): macOS has GL 4.1 core at most, and only a forward-compatible one
+@@ -1034,6 +1055,7 @@
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+ #endif
+   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
++#endif
+   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+   SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+   SDL_GL_SetSwapInterval(s_SIM_config.displayCap == SIM_CONFIG_DISPLAYCAP_MONITOR ? 1 : 0);
+@@ -1136,7 +1158,9 @@
+   sBaseTitle = windowTitle;
+   window = SDL_CreateWindow(
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
+-#ifdef __APPLE__
++#if SIM_IOS
++      SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALLOW_HIGHDPI
++#elif defined(__APPLE__)
+       (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | SDL_WINDOW_OPENGL
+ #else
+       SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
+@@ -1170,6 +1194,14 @@
+     sGLPost();
+   }
+ 
++#if SIM_IOS
++  // SDL's UIKit view draws into its own framebuffer object: the "default" one is not 0
++  {
++    GLint fb = 0;
++    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fb);
++    sDefaultFbo = (GLuint)fb;
++  }
++#endif
+   glViewport(0, 0, windowWidth, windowHeight);
+ 
+   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+@@ -1201,7 +1233,9 @@
+ // bw-port (libntr-vbridge.patch): the frame renderer's picture, a 256x384 RGBA8 texture (top screen in its first
+ // rows) drawn with the window's screen quads (sim_screenquads.c: the layout and the swap), which sample the top screen
+ // from the upper half of t: t is flipped for the picture's rows, which go down
+-#ifdef __APPLE__
++#if SIM_IOS
++#define SIM_FRAME_GLSL "#version 300 es\nprecision highp float;\nprecision highp int;\n"
++#elif defined(__APPLE__)
+ #define SIM_FRAME_GLSL "#version 410 core"
+ #else
+ #define SIM_FRAME_GLSL "#version 420 core"
+@@ -1261,7 +1295,13 @@
+   glAttachShader(s_frameProgram, vs);
+   glAttachShader(s_frameProgram, fs);
+   glLinkProgram(s_frameProgram);
++#if SIM_IOS
++  glUseProgram(s_frameProgram);   // (no glProgramUniform in ES 3.0)
++  glUniform1i(glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
++  glUseProgram(0);
++#else
+   glProgramUniform1i(s_frameProgram, glGetUniformLocation(s_frameProgram, "frameTexture"), 0);
++#endif
+   glBindTexture(GL_TEXTURE_2D, (GLuint)prevTex);
+   glActiveTexture((GLenum)prevUnit);
+ }
+@@ -1944,6 +1984,9 @@
+       viewWidth = screensW;
+     }
+ 
++#if SIM_IOS
++    glBindFramebuffer(GL_FRAMEBUFFER, sDefaultFbo);   // (a renderer may have left another one bound)
++#endif
+     glViewport(viewX, viewY, viewWidth, viewHeight);
+ 
+     // The touch screen's rectangle, from the quads (sim_screenquads.c): vertical = one above the other, horizontal = side
+@@ -2571,7 +2614,13 @@
+ }
+ #endif
+ 
++#if SIM_IOS
++// bw-port (libntr-ios-gles.patch): port/src/ios_main.c's main() hands this to SDL_UIKitRunApp
++extern "C" int SIM_main(int argc, char *argv[]);
++int SIM_main(int argc, char *argv[]) {
++#else
+ int main(int argc, char *argv[]) {
++#endif
+ #ifdef SDK_BUILD_NX
+   // Start up libnx sockets
+   socketInitializeDefault();
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -1,3 +1,6 @@
++#ifdef __APPLE__
++#include <TargetConditionals.h>
++#endif
+ #include "simulator/sim.h"
+ #include "simulator/sim_gui.hpp"
+ 
+@@ -354,7 +357,9 @@
+     igIO.DisplaySize.y = (float)(SIM_NDS_SCREEN_HEIGHT*2*SIM_NDS_WINDOW_SCALE_FACTOR);
+ 
+     ImGui_ImplSDL2_InitForOpenGL(sWindow, sContext);
+-#ifdef __APPLE__
++#if defined(__APPLE__) && TARGET_OS_IOS
++    const char * glsl_version = "#version 300 es";   // bw-port (libntr-ios-gles.patch): OpenGL ES 3.0
++#elif defined(__APPLE__)
+     const char * glsl_version = "#version 410";   // bw-port (libntr-ios-gl.patch): macOS stops at GL 4.1
+ #else
+     const char * glsl_version = "#version 420";
+--- a/libraries/sim/src/imgui/imgui_impl_opengl3.cpp
++++ b/libraries/sim/src/imgui/imgui_impl_opengl3.cpp
+@@ -138,6 +138,9 @@
+ #if defined(__APPLE__)
+ #include <TargetConditionals.h>
+ #endif
++#if defined(__APPLE__) && TARGET_OS_IOS && !defined(IMGUI_IMPL_OPENGL_ES3)
++#define IMGUI_IMPL_OPENGL_ES3   // bw-port (libntr-ios-gles.patch): iOS has OpenGL ES 3.0 only
++#endif
+ 
+ // Clang/GCC warnings with -Weverything
+ #if defined(__clang__)

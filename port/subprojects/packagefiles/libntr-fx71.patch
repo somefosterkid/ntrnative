@@ -1,0 +1,161 @@
+--- a/include/simulator/sim.h
++++ b/include/simulator/sim.h
+@@ -100,6 +100,9 @@
+  * with SIM_RendererAAUsed(k): the status line shows both */
+ int SIM_AntialiasWanted(void);
+ void SIM_RendererAAUsed(int k);
++/* bw-port (libntr-fx71.patch): the grid the 3D is drawn on, Resolution x the k the renderers use (1..8); the look options
++ * (Dot, Line, Edge, Filter) act only above 1 */
++int SIM_InternalScale(void);
+ /* 1 = the OpenGL driver is a real GPU's, 0 = software GL or none (gd66; sim_main.cpp has a weak default) */
+ int SIM_GLIsHardware(void);
+ const char * SIM_GLRendererName(void);
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -308,6 +308,15 @@
+   return k >= 4 ? 4 : k >= 2 ? 2 : 1;
+ }
+ extern "C" void SIM_RendererAAUsed(int k) { sAAUsed = k; }
++// bw-port (libntr-fx71.patch): the grid the 3D is drawn on: Resolution x k, k the Antialiasing lowered until the product is
++// at most 8 (what both bridges do), or the k the bridge reported when that is lower
++extern "C" int SIM_InternalScale(void) {
++  int n = SIM_RenderScale();
++  int k = SIM_AntialiasWanted();
++  while (k > 1 && n * k > 8) k >>= 1;
++  if (sAAUsed > 0 && sAAUsed < k) k = sAAUsed;
++  return n * k;
++}
+ // " AA 2x" when the setting is on and in force, " AA 4x -> 2x (8x cap)" when it was lowered, " AA 4x off (8x cap)" when no k fits
+ static const char *AAText(char *buf, size_t n) {
+   int w = SIM_AntialiasWanted();
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -402,6 +402,38 @@
+ static const char * const LineNames[] = {"wide (N pixels)", "thin (one N x pixel)"};
+ static const char * const EdgeNames[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
+ static const char * const FilterNames[] = {"nearest (the DS look)", "bilinear"};
++static const char * const DotTip = "this game never draws 1-dot polygons, so the setting changes nothing in it";
++static const char * const FilterTip = "how textures are sampled when the picture is drawn at 2x and above (the GPU and vcore renderers)";
++// bw-port (libntr-fx71.patch): the look options (Dot, Line, Edge, Filter) act on the grid the 3D is drawn on, Resolution x the
++// Antialiasing k in use (SIM_InternalScale), in both renderers: true when they can act now, else why not in 'why'
++// the head of a look option's menu: when the options cannot act, say so and grey the items (BeginDisabled .. EndDisabled)
++static void LookMenuBegin() {
++    bool on = SIM_InternalScale() > 1;
++    if (!on) {
++        ImGui::TextDisabled("Only at 2x and above (the 3D is drawn at 1x now)");
++        ImGui::Separator();
++    }
++    ImGui::BeginDisabled(!on);
++}
++static void NoteText(const char * fmt, const char * s) {
++    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
++    ImGui::TextWrapped(fmt, s);
++    ImGui::PopStyleColor();
++}
++static bool LookNote(char * why, size_t n) {
++    int in = SIM_InternalScale();
++    int res = SIM_RenderScale();
++    if (in > 1) {
++        if (res > 1) {
++            snprintf(why, n, "In force: the 3D is drawn at %dx.", in);
++        } else {
++            snprintf(why, n, "In force: the 3D is drawn at %dx (Resolution 1x, Antialiasing %dx), then averaged to 1x.", in, in);
++        }
++        return true;
++    }
++    snprintf(why, n, "Only at 2x and above: the 3D is drawn at 1x now. Raise Resolution, or turn Antialiasing on.");
++    return false;
++}
+ static const char * const FrameSkipNames[] = {
+     "Off (draw every frame)", "1 (draw every 2nd frame)", "2 (draw every 3rd frame)", "3 (draw every 4th frame)",
+     "Auto (only when too slow for 60 fps)"
+@@ -517,7 +549,7 @@
+     ImGui::TableSetColumnIndex(0);
+     ImGui::AlignTextToFramePadding();
+     ImGui::TextUnformatted(label);
+-    if (tip != nullptr && ImGui::IsItemHovered()) {
++    if (tip != nullptr && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+         ImGui::SetTooltip("%s", tip);
+     }
+     ImGui::TableSetColumnIndex(1);
+@@ -602,20 +634,26 @@
+     }
+ 
+     ImGui::SeparatorText("Look at 2x and above");
+-    ImGui::BeginDisabled(c->resolution <= 1);
+-    if (BeginForm("##vl")) {
+-        int dot = c->gpuDot, line = c->gpuLine, edge = c->gpuEdge, filter = c->gpuFilter;
+-        FormRow("Dots");
+-        if (ComboIndex("##dots", &dot, DotNames, 2)) { c->gpuDot = (u8)dot; Dirty(); }
+-        FormRow("Lines");
+-        if (ComboIndex("##lines", &line, LineNames, 2)) { c->gpuLine = (u8)line; Dirty(); }
+-        FormRow("Edge marking");
+-        if (ComboIndex("##edge", &edge, EdgeNames, 2)) { c->gpuEdge = (u8)edge; Dirty(); }
+-        FormRow("Texture filter", "the GPU renderer's");
+-        if (ComboIndex("##filter", &filter, FilterNames, 2)) { c->gpuFilter = (u8)filter; Dirty(); }
+-        ImGui::EndTable();
++    {
++        char why[200];
++        bool lookOn = LookNote(why, sizeof why);
++        NoteText("%s", why);
++        ImGui::BeginDisabled(!lookOn);
++        if (BeginForm("##vl")) {
++            int dot = c->gpuDot, line = c->gpuLine, edge = c->gpuEdge, filter = c->gpuFilter;
++            FormRow("Dots", DotTip);
++            if (ComboIndex("##dots", &dot, DotNames, 2)) { c->gpuDot = (u8)dot; Dirty(); }
++            FormRow("Lines");
++            if (ComboIndex("##lines", &line, LineNames, 2)) { c->gpuLine = (u8)line; Dirty(); }
++            FormRow("Edge marking");
++            if (ComboIndex("##edge", &edge, EdgeNames, 2)) { c->gpuEdge = (u8)edge; Dirty(); }
++            FormRow("Texture filter", FilterTip);
++            if (ComboIndex("##filter", &filter, FilterNames, 2)) { c->gpuFilter = (u8)filter; Dirty(); }
++            ImGui::EndTable();
++        }
++        ImGui::EndDisabled();
++        NoteText("Dots: %s.", DotTip);
+     }
+-    ImGui::EndDisabled();
+ 
+     ImGui::SeparatorText("Window and timing");
+     if (BeginForm("##vw")) {
+@@ -1006,30 +1044,40 @@
+             ImGui::EndMenu();
+         }
+         if (ImGui::BeginMenu("Texture filter")) {
++            LookMenuBegin();
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(FilterNames[i], c->gpuFilter == i)) {
+                     c->gpuFilter = (u8)i;
+                     Dirty();
+                 }
+             }
++            ImGui::EndDisabled();
+             ImGui::EndMenu();
+         }
+         if (ImGui::BeginMenu("Dots")) {
++            LookMenuBegin();
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(DotNames[i], c->gpuDot == i)) { c->gpuDot = (u8)i; Dirty(); }
+             }
++            ImGui::EndDisabled();
++            ImGui::Separator();
++            ImGui::TextDisabled("This game never draws 1-dot polygons");
+             ImGui::EndMenu();
+         }
+         if (ImGui::BeginMenu("Lines")) {
++            LookMenuBegin();
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(LineNames[i], c->gpuLine == i)) { c->gpuLine = (u8)i; Dirty(); }
+             }
++            ImGui::EndDisabled();
+             ImGui::EndMenu();
+         }
+         if (ImGui::BeginMenu("Edge marking")) {
++            LookMenuBegin();
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(EdgeNames[i], c->gpuEdge == i)) { c->gpuEdge = (u8)i; Dirty(); }
+             }
++            ImGui::EndDisabled();
+             ImGui::EndMenu();
+         }
+         ImGui::Separator();

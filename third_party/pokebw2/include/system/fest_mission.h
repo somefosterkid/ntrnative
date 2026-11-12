@@ -1,0 +1,103 @@
+#ifndef POKEBW2_SYSTEM_FEST_MISSION_H
+#define POKEBW2_SYSTEM_FEST_MISSION_H
+
+#include "types.h"
+#include "field/fest_mission_data.h"
+#include "gfl/heap.h"
+#include "struct_decls.h"
+
+// A Funfest mission's config (fest_mission.c, named by the ROM's string). ClearFesMissionCfg, isFesMissionAvailable,
+// allocateForFestMission and UpdateFesMissionConfigSecondsTime are swan's names
+// (https://github.com/ds-pokemon-hacking/swan, GPL-3.0)
+
+#define FEST_MISSION_NONE 0x7f
+#define FEST_MISSION_SCORE_MAX 9999
+#define FEST_MISSION_SECONDS_MAX 3599
+
+// The part of a Funfest mission that its beacons send, the first 0x14 bytes of a FestMissionConfig, packed
+typedef struct {
+    // FEST_MISSION_NONE when there is no mission
+    u32 index : 7;
+    u32 level : 3;
+    // The species or item the mission is about
+    u32 target : 10;
+    // Which of the target's variants the mission uses: a table index or file, by the target
+    u32 targetVariant : 10;
+    u32 unk0_30 : 1;
+    // Whether the mission is of Black 2, and of White 2 when clear
+    u32 isBlack : 1;
+    // The item of the mission's reward
+    u32 rewardItem : 10;
+    u32 rewardItemCount : 7;
+    // The total score the mission wants
+    u32 count : 14;
+    // The mission ends once its target is reached, with its time left shown
+    u32 endsAtTarget : 1;
+    // 3 bits for each of a zone's 6 stages, which pick how many sparkles or people the zone has
+    u32 stagePatterns : 18;
+    // An event flag that must be set to join the mission, or 0
+    u32 requiredFlag : 12;
+    u32 unk8_30 : 2;
+    // What a log entry of the mission's beacon is about: an item, a move, a Pass Power or a species
+    u32 unkC_0 : 10;
+    // The mission's seconds left
+    u32 seconds : 12;
+    // A second item, or 0
+    u32 rewardItem2 : 10;
+    u16 rewardItem2Count : 6;
+    // What the mission's target counts, which picks its goal's message, its "Target:" line and its icon
+    u16 targetKind : 3;
+    // Which of FestMission_ExtraSeconds a gain of time counts
+    u16 extraSecondsIndex : 2;
+    u16 unk10_11 : 5;
+    u8 messageId;
+    u8 resultMessageId;
+} FestMissionInfo;
+
+// A Funfest mission at a level: what fest_mission_data.c's FestMission_Load fills from the missions' archive, and the
+// config that the festival keeps of the mission it runs (GetFestMissionCfg). A mission's beacons send its first 0x14
+// bytes
+struct FestMissionConfig {
+    // unk00[0] and seed together tell one mission from another
+    union {
+        FestMissionInfo info;
+        u32 unk00[5];
+    };
+    // header.kind is the kind of mission, which picks the overlay that runs it on the field
+    FestMissionHeader header;
+    // The player's score in the mission, at most FEST_MISSION_SCORE_MAX
+    u16 missionId;
+    u8 unk1A;
+    // The seed of the mission's random choices, drawn when it starts, which its beacons send
+    u32 seed;
+    // The mission's seconds left when it ended
+    u32 secondsLeftAtEnd;
+    // When the mission's time started, in the RTC's seconds, or -1 until it starts (FestMissionConfig_StartTimer)
+    s64 startSeconds;
+}; // size: 0x2c
+
+FestMissionConfig *allocateForFestMission(HeapID heapId);
+void ClearFesMissionCfg(FestMissionConfig *config);
+// Copies a mission to start it, or to join it when joined is set
+void FestMissionConfig_Start(FestMissionConfig *config, const FestMissionConfig *src, u8 joined);
+// Starts the mission's time
+void FestMissionConfig_StartTimer(FestMissionConfig *config);
+void FestMissionConfig_Clear(FestMissionConfig *config);
+void UpdateFesMissionConfigSecondsTime(FestMissionConfig *config);
+// The mission's seconds left
+u32 FestMissionConfig_GetSecondsLeft(FestMissionConfig *config);
+// Whether the mission has 30 seconds left
+BOOL FestMissionConfig_HasTimeLeft(FestMissionConfig *config);
+BOOL isFesMissionAvailable(FestMissionConfig *config);
+// Whether a log entry of this kind and value is of the mission's target
+BOOL FestMissionConfig_IsTarget(FestMissionConfig *config, u32 kind, u32 value);
+// Adds count to the score when the entry is of the mission's target
+BOOL FestMissionConfig_AddScore(FestMissionConfig *config, u32 kind, u32 value, int count);
+// Gives the mission more time, gain times, and returns the seconds given
+u32 FestMissionConfig_AddSeconds(FestMissionConfig *config, u16 gain);
+// Whether the two are the same mission
+BOOL FestMissionConfig_IsSame(const FestMissionConfig *config, const FestMissionConfig *other);
+// The mission of a beacon; FALSE when the beacon's type has none
+BOOL FestMissionConfig_FromBeacon(FestMissionConfig *config, const GameBeacon *beacon);
+
+#endif // POKEBW2_SYSTEM_FEST_MISSION_H

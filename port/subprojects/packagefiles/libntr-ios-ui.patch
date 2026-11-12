@@ -1,0 +1,60 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -1243,7 +1243,7 @@
+ static const char *kFrameVertexShader = SIM_FRAME_GLSL R""(
+ layout (location = 0) in vec3 position;
+ layout (location = 1) in vec2 texCoord;
+-smooth out vec2 fragTexCoord;
++out vec2 fragTexCoord;
+ void main()
+ {
+     gl_Position = vec4(position.x, position.y, position.z, 1.);
+@@ -1251,7 +1251,7 @@
+ }
+ )"";
+ static const char *kFrameFragmentShader = SIM_FRAME_GLSL R""(
+-smooth in vec2 fragTexCoord;
++in vec2 fragTexCoord;
+ out vec4 fragColor;
+ uniform sampler2D frameTexture;
+ void main()
+@@ -1987,7 +1987,17 @@
+ #if SIM_IOS
+     glBindFramebuffer(GL_FRAMEBUFFER, sDefaultFbo);   // (a renderer may have left another one bound)
+ #endif
++#if SIM_IOS
++    {
++      // bw-port (libntr-ios-ui.patch): the window and the layout are in points, the framebuffer in pixels (3x on an iPhone)
++      int dw = windowWidth, dh = windowHeight;
++      SDL_GL_GetDrawableSize(window, &dw, &dh);
++      float px = (float)dw / (float)windowWidth, py = (float)dh / (float)windowHeight;
++      glViewport((int)(viewX * px + 0.5f), (int)(viewY * py + 0.5f), (int)(viewWidth * px + 0.5f), (int)(viewHeight * py + 0.5f));
++    }
++#else
+     glViewport(viewX, viewY, viewWidth, viewHeight);
++#endif
+ 
+     // The touch screen's rectangle, from the quads (sim_screenquads.c): vertical = one above the other, horizontal = side
+     // by side, large = the first screen over the left two thirds and the second in the lower right third
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -120,6 +120,9 @@
+ // ---- the display's scale ------------------------------------------------------------------------------------------
+ 
+ float DisplayScale() {
++#if defined(__APPLE__) && TARGET_OS_IOS
++    return 1.0f;   // bw-port (libntr-ios-ui.patch): the window is in points; the display's DPI (460) would make the panel 3x
++#endif
+     float ddpi = 96.0f;
+     if (SDL_GetDisplayDPI(0, &ddpi, nullptr, nullptr) != 0) {
+         ddpi = 96.0f;
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -380,6 +380,7 @@
+         memset(config->netSettings.serverIp, 0, sizeof(config->netSettings.serverIp));
+         strncpy(config->netSettings.serverIp, value, sizeof(config->netSettings.serverIp)-1);
+     }
++    return 1;   // bw-port (libntr-ios-ui.patch): the handler had no return: on arm64 whatever was in w0 (0 = an error, the parse stops)
+ }
+ 
+ static const char * BoolToString(BOOL arg)

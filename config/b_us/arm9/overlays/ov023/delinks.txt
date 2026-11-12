@@ -1,0 +1,16 @@
+    .text       start:0x021841e0 end:0x02186a6c kind:code align:32
+    .rodata     start:0x02186a6c end:0x02186e74 kind:rodata align:4
+    .ctor       start:0x02186e74 end:0x02186e74 kind:rodata align:4
+    .data       start:0x02186e80 end:0x02186f80 kind:data align:32
+    .bss        start:0x02186f80 end:0x02186f80 kind:bss align:32
+
+src/ov023/oekaki.c:
+    complete
+    .text       start:0x02184560 end:0x02186a6c
+    .rodata     start:0x02186aac end:0x02186e74
+    .data       start:0x02186e80 end:0x02186f80
+
+src/ov023/oekaki_comm.c:
+    complete
+    .text       start:0x021841e0 end:0x02184560
+    .rodata     start:0x02186a6c end:0x02186aac

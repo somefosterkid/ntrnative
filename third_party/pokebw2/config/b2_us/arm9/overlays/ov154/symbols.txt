@@ -1,0 +1,10 @@
+EncEffSpread_Create kind:function(thumb,size=0x3c) addr:0x021f6200
+EncEffSpread_CreateGridEvent kind:function(thumb,size=0x30) addr:0x021f623c
+EncEffSpread_Init kind:function(thumb,size=0x44) addr:0x021f626c
+EncEffSpread_Update kind:function(thumb,size=0x64) addr:0x021f62b0
+EncEffSpread_UpdateCell kind:function(thumb,size=0x38) addr:0x021f6314
+EncEffSpread_IsCellNext kind:function(thumb,size=0x30) addr:0x021f634c
+EncEffSpread_AddCell kind:function(thumb,size=0x40) addr:0x021f637c
+EncEffSpread_AddNeighbors kind:function(thumb,size=0x64) addr:0x021f63bc
+EncEffSpread_ShowNextWave kind:function(thumb,size=0x60) addr:0x021f6420
+data_ov154_021f6480 kind:data(any) addr:0x021f6480

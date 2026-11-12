@@ -1,0 +1,18 @@
+--- a/meson.build	2026-11-01 11:07:30
++++ b/meson.build	2026-11-01 11:07:30
+@@ -1,4 +1,4 @@
+-project('libntr', 'c', 'cpp', 'nasm',
++project('libntr', 'c', 'cpp',
+     default_options: {
+         'default_library': 'static',
+         'prefer_static':    false
+@@ -12,6 +12,9 @@
+ buildtype = get_option('buildtype')
+ cc = meson.get_compiler('c')
+ build_target = get_option('build_target')
++if build_target == 'arm'
++    add_languages('nasm', native: false)
++endif
+ sdk_version_major = get_option('sdk_version_major')
+ hardware_type = get_option('hardware_type')
+ 

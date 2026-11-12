@@ -1,0 +1,14 @@
+--- a/meson.build
++++ b/meson.build
+@@ -58,6 +58,11 @@
+ 
+ c_args = shared_args
+ cpp_args = shared_args
++if build_target != 'arm'
++    # The SDK's C was written for a compiler that never exploited signed overflow, type punning or a dereference
++    # before a null check; at -O2 (the bw-port's macOS and iOS builds) clang would, so keep the game's settings
++    c_args += ['-fwrapv', '-fno-strict-aliasing', '-fno-delete-null-pointer-checks']
++endif
+ 
+ add_project_arguments(c_args,
+     language: 'c',

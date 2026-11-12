@@ -1,0 +1,26 @@
+GimmickGC6_Setup kind:function(thumb,size=0x30) addr:0x021eec80
+GimmickGC6_End kind:function(thumb,size=0x18) addr:0x021eecb0
+GimmickGC6_Update kind:function(thumb,size=0xf8) addr:0x021eecc8
+GimmickGC6_ShowModel01 kind:function(thumb,size=0x48) addr:0x021eedc0
+GimmickGC6_PlayModel01 kind:function(thumb,size=0x32) addr:0x021eee08
+GimmickGC6_CallStartHover kind:function(thumb,size=0x2c) addr:0x021eee3c
+GimmickGC6_HideModel3 kind:function(thumb,size=0x4c) addr:0x021eee68
+GimmickGC6_PlayModel23 kind:function(thumb,size=0x2a) addr:0x021eeeb4
+GimmickGC6_Init kind:function(thumb,size=0x1a8) addr:0x021eeee0
+GimmickGC6_Free kind:function(thumb,size=0xc) addr:0x021ef088
+GimmickGC6_StepAnimations kind:function(thumb,size=0xc) addr:0x021ef094
+GimmickGC6_PlayModel kind:function(thumb,size=0x78) addr:0x021ef0a0
+GimmickGC6_StartHover kind:function(thumb,size=0x44) addr:0x021ef118
+GimmickGC6_HoverTask kind:function(thumb,size=0x60) addr:0x021ef15c
+sModel1Animations kind:data(any) addr:0x021ef1bc
+sModel3Animations kind:data(any) addr:0x021ef1c4
+sModel0Animations kind:data(any) addr:0x021ef1cc
+sModel2Animations kind:data(any) addr:0x021ef1d4
+sSceneSetup kind:data(any) addr:0x021ef1dc
+sAnimationCounts kind:data(any) addr:0x021ef1ec
+sActors kind:data(any) addr:0x021ef1fc
+data_ov116_021ef211 kind:data(any) addr:0x021ef211 ambiguous
+data_ov116_021ef231 kind:data(any) addr:0x021ef231 ambiguous
+sResources kind:data(any) addr:0x021ef23c
+data_ov116_021ef289 kind:data(any) addr:0x021ef289 ambiguous
+data_ov116_021ef29d kind:data(any) addr:0x021ef29d ambiguous

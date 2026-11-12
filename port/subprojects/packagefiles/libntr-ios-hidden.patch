@@ -1,0 +1,85 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -967,13 +967,60 @@
+   // %s\n",
+   //          ( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" ),
+   //           type, severity, message );
++}
++
++#ifdef __APPLE__
++// bw-port (libntr-ios-hidden.patch): BWPORT_HIDDEN=1 runs without a visible window or Dock icon (a test Mac is not for
++// test windows); BWPORT_SHOTS=DIR,S,S,... then writes DIR/sNNN.png (the window's composed frame, read back before the swap)
++// at S seconds of run time through the program's vcore_write_png
++static bool SIM_HiddenWanted() {
++  const char *e = getenv("BWPORT_HIDDEN");
++  return e != NULL && *e != 0 && *e != '0';
++}
++extern "C" int vcore_write_png(const char *path, const unsigned char *rgba, int w, int h) __attribute__((weak));
++static void SIM_ShotMaybe(SDL_Window *win) {
++  static int state = 0, n = 0, next = 0;   // 0: not read yet, 1: on, 2: off
++  static char dir[512];
++  static double at[64];
++  static Uint64 t0;
++  if (state == 2 || vcore_write_png == NULL) return;
++  if (state == 0) {
++    const char *e = getenv("BWPORT_SHOTS");
++    state = 2;
++    if (e == NULL || !*e) return;
++    char *copy = strdup(e), *save = NULL;
++    snprintf(dir, sizeof dir, "%s", strtok_r(copy, ",", &save));
++    for (char *p; (p = strtok_r(NULL, ",", &save)) != NULL && n < 64;) at[n++] = atof(p);
++    free(copy);
++    if (n == 0) return;
++    state = 1;
++    t0 = SDL_GetTicks64();
++  }
++  if (next >= n || (SDL_GetTicks64() - t0) / 1000.0 < at[next]) return;
++  int w = 0, h = 0;
++  SDL_GL_GetDrawableSize(win, &w, &h);
++  if (w <= 0 || h <= 0) return;
++  std::vector<unsigned char> px((size_t)w * h * 4), flip((size_t)w * h * 4);
++  glPixelStorei(GL_PACK_ALIGNMENT, 1);
++  glReadBuffer(GL_BACK);
++  glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
++  for (int y = 0; y < h; y++) memcpy(&flip[(size_t)y * w * 4], &px[(size_t)(h - 1 - y) * w * 4], (size_t)w * 4);
++  for (size_t i = 3; i < flip.size(); i += 4) flip[i] = 255;
++  char path[640];
++  snprintf(path, sizeof path, "%s/s%03d.png", dir, (int)at[next]);
++  vcore_write_png(path, flip.data(), w, h);
++  next++;
+ }
++#endif
+ 
+ void *SIM_RenderInit(void *arg) {
+ 
+   // bw-port (libntr-ui68.patch): per-monitor DPI awareness on Windows: the window's pixels are the screen's (Windows
+   // otherwise stretches the whole window, text and picture, on a scaled display); the UI scales by the display's DPI
+   SDL_SetHint("SDL_WINDOWS_DPI_AWARENESS", "permonitorv2");
++#ifdef __APPLE__
++  if (SIM_HiddenWanted()) SDL_SetHint(SDL_HINT_MAC_BACKGROUND_APP, "1");
++#endif
+   SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER |
+            SDL_INIT_JOYSTICK);
+   SIM_Audio_Init(44100);
+@@ -1089,7 +1136,11 @@
+   sBaseTitle = windowTitle;
+   window = SDL_CreateWindow(
+       windowTitle.c_str(), 100, 100, windowWidth, windowHeight,
++#ifdef __APPLE__
++      (SIM_HiddenWanted() ? SDL_WINDOW_HIDDEN : SDL_WINDOW_SHOWN) | SDL_WINDOW_OPENGL
++#else
+       SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL
++#endif
+       #if defined(SDK_BUILD_WIN64) || defined(SDK_BUILD_LINUX)
+       | SDL_WINDOW_RESIZABLE
+       #endif
+@@ -2299,6 +2350,9 @@
+       glFlush();
+     } else if (sTickPresent) {
+       swapCall = SpNowNs();
++#ifdef __APPLE__
++      SIM_ShotMaybe(window);
++#endif
+       SDL_GL_SwapWindow(window);
+       SpAfterSwap(0, swapCall);
+     }

@@ -1,0 +1,11 @@
+    .text       start:0x021eecc0 end:0x021eefcc kind:code align:32
+    .rodata     start:0x021eefcc end:0x021ef0a4 kind:rodata align:4
+    .ctor       start:0x021ef0a4 end:0x021ef0a4 kind:rodata align:4
+    .data       start:0x021ef0c0 end:0x021ef0e0 kind:data align:32
+    .bss        start:0x021ef0e0 end:0x021ef0e0 kind:bss align:32
+
+src/ov108/field_gimmick_bsubway.c:
+    complete
+    .text       start:0x021eecc0 end:0x021eefcc
+    .rodata     start:0x021eefcc end:0x021ef0a4
+    .data       start:0x021ef0c0 end:0x021ef0e0

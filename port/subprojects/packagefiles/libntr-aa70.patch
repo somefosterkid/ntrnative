@@ -1,0 +1,276 @@
+--- a/include/simulator/sim.h
++++ b/include/simulator/sim.h
+@@ -94,6 +94,12 @@
+ void SIM_RendererFailed(const char * reason);
+ const char * SIM_RendererStatus(void);
+ void SIM_RendererPicture(int * w, int * h);
++/* bw-port (libntr-aa70.patch): the Antialiasing setting (sim_config.ini Antialiasing=off|2x|4x, BWPORT_AA=off|2|4):
++ * SIM_AntialiasWanted is 1 (off), 2 or 4: the renderers draw at Resolution x k internally and show the k x k box average at
++ * Resolution; the internal size is capped (8x), so a bridge lowers k when Resolution x k is over it and says what it used
++ * with SIM_RendererAAUsed(k): the status line shows both */
++int SIM_AntialiasWanted(void);
++void SIM_RendererAAUsed(int k);
+ /* 1 = the OpenGL driver is a real GPU's, 0 = software GL or none (gd66; sim_main.cpp has a weak default) */
+ int SIM_GLIsHardware(void);
+ const char * SIM_GLRendererName(void);
+--- a/include/simulator/config/sim_config.h
++++ b/include/simulator/config/sim_config.h
+@@ -85,6 +85,7 @@
+     u8 renderer; /* SIM_config_renderer_type: sim_config.ini Renderer=auto|vcore|gpu (BWPORT_RENDERER overrides it) */
+     u8 sound; /* SIM_config_sound_type: sim_config.ini Sound=acore|libntr (BWPORT_SOUND overrides it) */
+     u8 resolution; /* the picture at this many times the DS resolution, 1..8 (sim_config.ini Resolution, BWPORT_RESOLUTION; old: Scale, BWPORT_GPU_SCALE) */
++    u8 antialias; /* bw-port (libntr-aa70.patch): supersampling 1 (off, the default), 2 or 4: sim_config.ini Antialiasing=off|2x|4x, BWPORT_AA */
+     u8 gpuDot;    /* Renderer=gpu, Scale > 1: 0 = a 1-dot polygon is an N x N block (Dot=block), 1 = one N x pixel (Dot=fine); BWPORT_GPU_DOT */
+     u8 gpuLine;   /* 0 = lines and wire-frames N wide (Line=wide), 1 = one N x pixel (Line=thin); BWPORT_GPU_LINE */
+     u8 gpuEdge;   /* 0 = edge marking one DS pixel wide (Edge=ds), 1 = one N x pixel (Edge=fine); BWPORT_GPU_EDGE */
+--- a/libraries/sim/src/config/sim_config.c
++++ b/libraries/sim/src/config/sim_config.c
+@@ -95,6 +95,10 @@
+         config->resolution = (u8)(n < 1 ? 1 : n > 8 ? 8 : n);
+         sResolutionKey = 1;
+     }
++    if(MATCH("General", "Antialiasing")) {
++        int n = atoi(value);
++        config->antialias = (u8)(n >= 4 ? 4 : n >= 2 ? 2 : 1); /* off, 2x, 4x (also 1, 2, 4) */
++    }
+     if(MATCH("General", "Scale") && !sResolutionKey) {
+         /* the old name of Resolution (Renderer=gpu's N x) */
+         int n = atoi(value);
+@@ -417,6 +421,10 @@
+     if(e != NULL && atoi(e) >= 1) {
+         aConfig->resolution = (u8)(atoi(e) > 8 ? 8 : atoi(e));
+     }
++    e = getenv("BWPORT_AA");
++    if(e != NULL) {
++        aConfig->antialias = (u8)(atoi(e) >= 4 ? 4 : atoi(e) >= 2 ? 2 : 1);
++    }
+     // the N x looks: BWPORT_GPU_DOT=block|fine, _LINE=wide|thin, _EDGE=ds|fine, _FILTER=nearest|bilinear
+     e = getenv("BWPORT_GPU_DOT");
+     if(e != NULL) {
+@@ -476,6 +484,7 @@
+     aConfig->uiScale = 0;
+     aConfig->renderer = SIM_CONFIG_RENDERER_AUTO;
+     aConfig->resolution = 1;
++    aConfig->antialias = 1;
+     aConfig->gpuDot = 0;
+     aConfig->gpuLine = 0;
+     aConfig->gpuEdge = 0;
+@@ -576,6 +585,7 @@
+     fprintf(configFile, "Renderer=%s\n", aConfig->renderer == SIM_CONFIG_RENDERER_GPU ? "gpu"
+                                          : aConfig->renderer == SIM_CONFIG_RENDERER_VCORE ? "vcore" : "auto");
+     fprintf(configFile, "Resolution=%d\n", aConfig->resolution);
++    fprintf(configFile, "Antialiasing=%s\n", aConfig->antialias >= 4 ? "4x" : aConfig->antialias >= 2 ? "2x" : "off");
+     fprintf(configFile, "Dot=%s\n", aConfig->gpuDot ? "fine" : "block");
+     fprintf(configFile, "Line=%s\n", aConfig->gpuLine ? "thin" : "wide");
+     fprintf(configFile, "Edge=%s\n", aConfig->gpuEdge ? "fine" : "ds");
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -232,7 +232,8 @@
+ extern "C" __attribute__((weak)) int SIM_GLIsHardware(void) { return 0; }
+ extern "C" __attribute__((weak)) const char *SIM_GLRendererName(void) { return ""; }
+ static unsigned sRendererSerial = 1;
+-static int sLastWanted = -1, sLastRes = -1;
++static int sLastWanted = -1, sLastRes = -1, sLastAA = -1;
++static int sAAUsed;               // the supersampling the bridge that drew the last frame used (SIM_RendererAAUsed), 0 none yet
+ static int sActive;               // what drew the last frame: 0 nothing yet, 1 vcore, 2 gpu
+ static int sPicW, sPicH;          // the size of that picture
+ static char sFailReason[200];     // a bridge's last "cannot draw" (SIM_RendererFailed), empty when none
+@@ -248,6 +249,24 @@
+   return n < 1 ? 1 : n > 8 ? 8 : n;
+ }
+ 
++// bw-port (libntr-aa70.patch): Antialiasing=off|2x|4x. The renderers draw at Resolution x k and show the k x k box average at
++// Resolution; the bridges cap the internal size (8x) by lowering k and report what they used.
++extern "C" int SIM_AntialiasWanted(void) {
++  int k = s_SIM_config.antialias;
++  return k >= 4 ? 4 : k >= 2 ? 2 : 1;
++}
++extern "C" void SIM_RendererAAUsed(int k) { sAAUsed = k; }
++// " AA 2x" when the setting is on and in force, " AA 4x -> 2x (8x cap)" when it was lowered, " AA 4x off (8x cap)" when no k fits
++static const char *AAText(char *buf, size_t n) {
++  int w = SIM_AntialiasWanted();
++  buf[0] = 0;
++  if (w <= 1) return buf;
++  if (sAAUsed == w || sAAUsed == 0) snprintf(buf, n, ", AA %dx", w);
++  else if (sAAUsed > 1) snprintf(buf, n, ", AA %dx lowered to %dx (internal size capped at 8x: %dx x %d)", w, sAAUsed, SIM_RenderScale(), sAAUsed);
++  else snprintf(buf, n, ", AA %dx not drawn (internal size capped at 8x: %dx x %d)", w, SIM_RenderScale(), w);
++  return buf;
++}
++
+ extern "C" int SIM_RendererWanted(void) {
+   int r = s_SIM_config.renderer;
+   if (r == SIM_CONFIG_RENDERER_AUTO) {
+@@ -276,6 +295,8 @@
+   static char buf[400];
+   int want = SIM_RendererWanted(), n = SIM_RenderScale();
+   const char *wn = want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore";
++  char aa[160];
++  AAText(aa, sizeof aa);
+   if (sActive == 0) {
+     snprintf(buf, sizeof buf, "%s %dx: no picture yet", wn, n);
+     return buf;
+@@ -292,7 +313,7 @@
+   } else if (sActive != (want == SIM_CONFIG_RENDERER_GPU ? 2 : 1)) {
+     snprintf(buf, sizeof buf, "%s %dx: %s draws %dx%d, %.1f ms", wn, n, an, sPicW, sPicH, sCostMs);
+   } else {
+-    snprintf(buf, sizeof buf, "%s %dx: %dx%d, %.1f ms%s", an, n, sPicW, sPicH, sCostMs, gl);
++    snprintf(buf, sizeof buf, "%s %dx: %dx%d, %.1f ms%s%s", an, n, sPicW, sPicH, sCostMs, aa, gl);
+   }
+   return buf;
+ }
+@@ -302,9 +323,10 @@
+ static void SIM_RendererPoll(void) {
+   int want = SIM_RendererWanted(), n = SIM_RenderScale();
+   u32 frame = *((u32 *)HW_VBLANK_COUNT_BUF);
+-  if (want != sLastWanted || n != sLastRes) {
++  if (want != sLastWanted || n != sLastRes || SIM_AntialiasWanted() != sLastAA) {
+     sLastWanted = want;
+     sLastRes = n;
++    sLastAA = SIM_AntialiasWanted();
+     sRendererSerial++;
+     sFailReason[0] = 0;
+     sStatusUntil = frame + 240;
+@@ -318,7 +340,9 @@
+   if (window != NULL) {
+     char t[256];
+     int ok = sActive == (want == SIM_CONFIG_RENDERER_GPU ? 2 : 1);
+-    snprintf(t, sizeof t, "%s - %s %dx%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n,
++    char aat[16] = "";
++    if (SIM_AntialiasWanted() > 1) snprintf(aat, sizeof aat, " AA%dx", sAAUsed > 0 && sAAUsed < SIM_AntialiasWanted() ? sAAUsed : SIM_AntialiasWanted());
++    snprintf(t, sizeof t, "%s - %s %dx%s%s", sBaseTitle.c_str(), want == SIM_CONFIG_RENDERER_GPU ? "gpu" : "vcore", n, aat,
+              ok || sActive == 0 ? "" : (sActive == 2 ? " (gpu drawing)" : " (vcore drawing)"));
+     if (sShownTitle != t) {
+       sShownTitle = t;
+@@ -333,7 +357,7 @@
+ // at the end that the renderer in force drew a picture of 256N x 384N; the cost of a frame (render work in ms, the
+ // last two thirds of the step) is printed to stderr and switch_test.txt. Exit status 0 when every step passed.
+ // Example: BWPORT_SWITCH_TEST=vcore:1,gpu:1,gpu:2,gpu:4,gpu:1,vcore:1/60
+-struct SwStep { int renderer, res; };
++struct SwStep { int renderer, res, aa; };
+ static std::vector<SwStep> sSwSteps;
+ static int sSwFrames = 90, sSwIdx = -2, sSwFrame, sSwN, sSwFails;
+ static double sSwCost, sSwPrevCost;
+@@ -463,6 +487,7 @@
+ static void SwApply(int i) {
+   s_SIM_config.renderer = (u8)sSwSteps[i].renderer;
+   s_SIM_config.resolution = (u8)sSwSteps[i].res;
++  s_SIM_config.antialias = (u8)sSwSteps[i].aa;
+   sSwFrame = 0;
+   sSwN = 0;
+   sSwCost = 0;
+@@ -485,6 +510,9 @@
+       SwStep st;
+       st.res = colon != NULL ? atoi(colon + 1) : 1;
+       st.res = st.res < 1 ? 1 : st.res > 8 ? 8 : st.res;
++      // "gpu:2a4" = Resolution 2 with Antialiasing 4x (a2, a4; no "a" = off)
++      char *at = colon != NULL ? strchr(colon, 'a') : NULL;
++      st.aa = at != NULL && atoi(at + 1) >= 4 ? 4 : at != NULL && atoi(at + 1) >= 2 ? 2 : 1;
+       st.renderer = strncmp(tok, "gpu", 3) == 0 ? SIM_CONFIG_RENDERER_GPU
+                   : strncmp(tok, "vcore", 5) == 0 ? SIM_CONFIG_RENDERER_VCORE : SIM_CONFIG_RENDERER_AUTO;
+       sSwSteps.push_back(st);
+@@ -530,7 +558,7 @@
+     snprintf(why, sizeof why, " (BLACK picture, mean %.2f, the first step's %.2f)", sSwMean, sSwRefMean);
+   }
+   // drift: the same renderer and Resolution as an earlier step must not cost, hold or own more than it did then
+-  int key = st.renderer * 16 + st.res;
++  int key = st.renderer * 256 + st.res * 16 + st.aa;
+   SwSeen *seen = NULL;
+   for (auto &e : sSwSeen) if (e.first == key) seen = &e.second;
+   if (ok && seen != NULL) {
+@@ -545,16 +573,20 @@
+   // allocator keeps some freed memory, so a margin); a leak per change grows past it within a few steps
+   if (ok) {
+     double env = -1;
+-    for (auto &h : sSwHist) if (h.res >= st.res && h.rss > env) env = h.rss;
++    int eff = st.res;  // memory follows the internal size, Resolution x the Antialiasing in force (capped at 8)
++    for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { eff = st.res * k; break; }
++    for (auto &h : sSwHist) if (h.res >= eff && h.rss > env) env = h.rss;
+     if (env >= 0 && rssMB > env + 64.0 + env * 0.1)
+-      ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB resident, no earlier step at %dx or more held over %.0f)", rssMB, st.res, env);
++      ok = false, snprintf(why, sizeof why, " (DRIFT: %.0f MB resident, no earlier step at %dx or more held over %.0f)", rssMB, eff, env);
+   }
+-  sSwHist.push_back({st.res, rssMB});
++  int effRes = st.res;
++  for (int k = st.aa; k > 1; k >>= 1) if (st.res * k <= 8) { effRes = st.res * k; break; }
++  sSwHist.push_back({effRes, rssMB});
+   if (seen == NULL) sSwSeen.push_back({key, {cost, rssMB, gc.texMB, objs}});
+   if (!ok) sSwFails++;
+-  SwOut("switch-test step %d: %s:%d -> %s drew %dx%d (want %dx%d), render %.2f ms (was %.2f): %s\n", sSwIdx,
++  SwOut("switch-test step %d: %s:%d%s -> %s drew %dx%d (want %dx%d), render %.2f ms (was %.2f): %s\n", sSwIdx,
+         st.renderer == SIM_CONFIG_RENDERER_GPU ? "gpu" : st.renderer == SIM_CONFIG_RENDERER_VCORE ? "vcore" : "auto",
+-        st.res, sSwActive == 2 ? "gpu" : sSwActive == 1 ? "vcore" : "nothing", sSwW, sSwH, 256 * st.res, 384 * st.res, cost,
++        st.res, st.aa == 4 ? "a4" : st.aa == 2 ? "a2" : "", sSwActive == 2 ? "gpu" : sSwActive == 1 ? "vcore" : "nothing", sSwW, sSwH, 256 * st.res, 384 * st.res, cost,
+         sSwPrevCost, ok ? "ok" : "FAIL");
+   SwOut("    mem %.0f MB resident %.0f MB virtual; GL: %d textures (%.1f MB) %d fbo %d buffers %d programs %d vao %d rbo; picture mean %.1f%s\n",
+         rssMB, privMB, gc.tex, gc.texMB, gc.fbo, gc.buf, gc.prog, gc.vao, gc.rbo, sSwMean, why);
+--- a/libraries/sim/src/sim_gui.cpp
++++ b/libraries/sim/src/sim_gui.cpp
+@@ -385,6 +385,8 @@
+     "gpu (OpenGL)"
+ };
+ static const char * const RendererShort[] = {"auto", "vcore", "gpu"};
++static const char * const AntialiasNames[] = {"off", "2x (2 x 2 samples)", "4x (4 x 4 samples)"};
++static int AntialiasIndex(int k) { return k >= 4 ? 2 : k >= 2 ? 1 : 0; }
+ static const char * const DotNames[] = {"block (N x N, the DS look)", "fine (one N x pixel)"};
+ static const char * const LineNames[] = {"wide (N pixels)", "thin (one N x pixel)"};
+ static const char * const EdgeNames[] = {"DS (N pixels wide)", "fine (one N x pixel)"};
+@@ -580,6 +582,14 @@
+         }
+     }
+ 
++    ImGui::SeparatorText("Antialiasing");
++    if (BeginForm("##va")) {
++        FormRow("Supersampling", "draws at Resolution x 2 or x 4 and shows the average: 3D edges and textures smooth, the 2D stays sharp; internal sizes over 8x are lowered");
++        int aa = AntialiasIndex(c->antialias);
++        if (ComboIndex("##aa", &aa, AntialiasNames, 3)) { c->antialias = (u8)(aa == 2 ? 4 : aa == 1 ? 2 : 1); Dirty(); }
++        ImGui::EndTable();
++    }
++
+     ImGui::SeparatorText("Look at 2x and above");
+     ImGui::BeginDisabled(c->resolution <= 1);
+     if (BeginForm("##vl")) {
+@@ -963,6 +973,15 @@
+             ImGui::TextDisabled("%s", SIM_RendererStatus());
+             ImGui::EndMenu();
+         }
++        if (ImGui::BeginMenu("Antialiasing")) {
++            for (int i = 0; i < 3; i++) {
++                if (MenuRadio(AntialiasNames[i], AntialiasIndex(c->antialias) == i)) {
++                    c->antialias = (u8)(i == 2 ? 4 : i == 1 ? 2 : 1);
++                    Dirty();
++                }
++            }
++            ImGui::EndMenu();
++        }
+         if (ImGui::BeginMenu("Texture filter")) {
+             for (int i = 0; i < 2; i++) {
+                 if (MenuRadio(FilterNames[i], c->gpuFilter == i)) {
+--- a/libraries/sim/src/sim_gui_config.cpp
++++ b/libraries/sim/src/sim_gui_config.cpp
+@@ -66,6 +66,7 @@
+     bool showPanel = sConfig->showInputPanel;
+     int renderer = sConfig->renderer;
+     int resolution = sConfig->resolution;
++    int antialias = sConfig->antialias >= 4 ? 2 : sConfig->antialias >= 2 ? 1 : 0;
+     int frameSkip = sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip;
+     int gpuDot = sConfig->gpuDot, gpuLine = sConfig->gpuLine, gpuEdge = sConfig->gpuEdge, gpuFilter = sConfig->gpuFilter;
+     
+@@ -84,6 +85,10 @@
+     if(ImGui::SliderInt("Resolution", &resolution, 1, 8, "%dx DS")) {
+         configChanged = true;
+     }
++    static const char * const AntialiasStrings[] = {"off", "2x", "4x"};
++    if(ImGui::Combo("Antialiasing", &antialias, AntialiasStrings, 3, 3)) {
++        configChanged = true;
++    }
+     ImGui::TextWrapped("%s", SIM_RendererStatus());
+     if(renderer != SIM_CONFIG_RENDERER_VCORE) {
+         if(resolution > 1) {
+@@ -134,6 +139,7 @@
+         sConfig->showInputPanel = showPanel;
+         sConfig->renderer = (u8)renderer;
+         sConfig->resolution = (u8)resolution;
++        sConfig->antialias = (u8)(antialias == 2 ? 4 : antialias == 1 ? 2 : 1);
+         // a value from BWPORT_FRAMESKIP (above 3) stays unless the combo was changed
+         if(frameSkip != (sConfig->frameSkip == SIM_CONFIG_FRAMESKIP_AUTO ? 4 : sConfig->frameSkip > 3 ? 3 : sConfig->frameSkip)) {
+             sConfig->frameSkip = frameSkip == 4 ? SIM_CONFIG_FRAMESKIP_AUTO : (u8)frameSkip;
