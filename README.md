@@ -1,7 +1,7 @@
 # NTR Native
 
 Decompiled Nintendo DS games rebuilt as native apps, with our own renderers and sound core, for Pokémon Black, White,
-Black 2 and White 2. NTR is the DS's product code. Bring your own ROM: none is included or will be provided.
+Black 2 and White 2. "NTR" is the DS's product code. Bring your own ROM: none is included or will be provided.
 
 ## Games
 
