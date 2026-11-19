@@ -23,7 +23,7 @@ SHARED = re.compile(r'^port/(src|subprojects|extern|extern_b2w2|include|include_
 ANDROID = re.compile(r'android|^port/src/.*(jni|sdl)', re.I)
 TOOL_CHECK = [  # tools whose change needs the live check they belong to
     (re.compile(r'^tools/(touch_.*|port_run)\.py$'), 'touch'),
-    (re.compile(r'^tools/(port_run|play_script)\.py$|^tools/plays/'), 'switch'),
+    (re.compile(r'^tools/(port_run|play_script)\.py$'), 'switch'),   # (a play file under tools/plays/ is data the switch test never reads)
     (re.compile(r'^tools/lockstep/|^tools/port_run\.py$'), 'sweep'),
     (re.compile(r'^tools/android'), 'apk'),
 ]
@@ -41,8 +41,12 @@ def select(files, full=False):
             if HEADERS.search(f):
                 why['port'] = why['port'] or f'header/lib {f} (port compile check)'
         if PORT.search(f):
-            for c in ('port', 'cores', 'switch', 'sweep', 'touch'):
+            for c in ('port', 'switch', 'sweep', 'touch'):
                 why[c] = why[c] or f'port file {f}'
+            # cores: vcore/gpu/acore are meson projects of their own (no file outside port/vcore|gpu|acore goes into their
+            # tests or vcore_render): another port file cannot change what they check
+            if CORES.search(f):
+                why['cores'] = why['cores'] or f'core file {f}'
             if SHARED.search(f) or ANDROID.search(f):
                 why['apk'] = why['apk'] or f'android/shared port file {f}'
         if ANDROID.search(f):

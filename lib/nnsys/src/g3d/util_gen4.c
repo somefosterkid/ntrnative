@@ -126,10 +126,22 @@ void NNS_G3dDraw1Mat1Shp(const NNSG3dResMdl *mdl, u32 matID, u32 shpID, BOOL sen
         }
     }
     {
+        // The model's vertices are stored divided by its position scale (big models: buildings, furniture), which the
+        // SBC path applies with its POSSCALE command. This path has no SBC, so it scales around the shape itself, as
+        // NitroSystem's does: without it a map prop drawn shape by shape came out 1/posScale of its size
+        const NNSG3dResMdlInfo *info = NNS_G3dGetMdlInfo(mdl);
+        BOOL scaling = info->posScale != FX32_ONE;
         const NNSG3dResShp *shp = NNS_G3dGetShp(mdl);
+
+        if (scaling) {
+            NNS_G3dGeScale(info->posScale, info->posScale, info->posScale);
+        }
         if (shpID < shp->dict.numEntry) {
             const NNSG3dResShpData *shpData = NNS_G3dGetShpDataByIdx(shp, shpID);
             NNS_G3dGeSendDL((const u8 *)shpData + shpData->ofsDL, shpData->sizeDL);
+        }
+        if (scaling) {
+            NNS_G3dGeScale(info->invPosScale, info->invPosScale, info->invPosScale);
         }
     }
 }

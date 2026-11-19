@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-out
+# reaches: Twinleaf Town from pt-out (CONTINUE), then a walk round the town (left, down, right, up) with the camera moving: the houses at their full size (mp1: map props drawn shape by shape, NNS_G3dDraw1Mat1Shp's posScale), shots by BWPORT_CFGSCRIPT for the black specks check
+# end: f9200
+keys start@f6300 a@f6700
+walk 7500 40 left6 down5 right12 up5 left6

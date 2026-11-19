@@ -30,6 +30,13 @@ def t_decomp():
     assert r == {'rom', 'port'}, r
 
 
+def t_plays():   # a play script is data for --play runs (the round's plays, play_script_tests): no Gen 5 gate check reads it
+    r, _ = ran(['tools/plays/platinum/town-walk.txt'])
+    assert r == set(), r
+    r, _ = ran(['tools/play_script.py'])
+    assert 'switch' in r and 'port' in r, r
+
+
 def t_docs():
     r, _ = ran(['docs/a.md', 'CLAUDE.md'])
     assert r == set(), r
@@ -48,7 +55,11 @@ def t_port():
     r, _ = ran(['port/vcore/a.c'])
     assert r == {'port', 'cores', 'switch', 'sweep', 'touch'}, r
     r, _ = ran(['port/subprojects/packagefiles/libntr-x.patch'])
-    assert 'apk' in r and 'cores' in r, r
+    assert 'apk' in r and 'cores' not in r, r
+    r, _ = ran(['port/src/audio.c', 'port/bridge/vcore_bridge.c'])   # the cores' own projects only
+    assert 'cores' not in r and 'switch' in r, r
+    r, _ = ran(['port/gpu/src/a.c'])
+    assert 'cores' in r, r
     r, _ = ran(['tools/android/app/a.kt'])
     assert r == {'apk'}, r
 
@@ -58,7 +69,7 @@ def t_plat_only():
                 'port/include_plat/port_plat.h', 'port/include_gen4/nnsys_gen4.h'])
     assert r == set(), r
     r, _ = ran(['port/game/route_gen4.c', 'port/src/audio.c'])   # one shared file and the whole port tier is back
-    assert r == {'port', 'cores', 'switch', 'sweep', 'touch', 'apk'}, r
+    assert r == {'port', 'switch', 'sweep', 'touch', 'apk'}, r
     r, _ = ran(['port/game/game_table.c'])   # Gen 5's table too: not Platinum-only
     assert 'port' in r, r
 
