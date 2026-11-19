@@ -1,0 +1,77 @@
+pokeheartgold-speed-spd2.patch (tools/pokehg_gen.py applies the patches in name order): the Transitions setting's HeartGold and
+SoulSilver side (docs/speed-options.md "Platinum and HeartGold/SoulSilver"; Platinum's twin is pokeplatinum-speed-spd2.patch).
+Each hook asks port/game/speed_gen4.c, which reads `fadespeed` (0 = the game's, 1 = 2x, 2 = 4x, 3 = Instant). At the default
+setting each hook is exactly the game's own code path, so the route chain's frames are unchanged.
+Fades: unk_0200FA24_0200FA24.c BeginNormalPaletteFade (the one entry of every fade) halves its framesPerStep, then its steps, once
+(2x) or twice (4x), or takes one step of one frame (Instant); both stay >= 1 (the asserts' own bound).
+The transition window: field_system.c FieldSystem_Main walks the task chain (TaskManager->prev) each field frame and, while a
+map-change task is in it, opens libntr's SIM_SetTransition window (the game runs at 2x / 4x, its frames are the same).
+field_warp_tasks.c exports PortSpeed4_IsWarpTask, which compares the tasks (its statics: the stairs and warp-panel warps, the
+script warp, the special spawn warps, the Union Room's; sub_02055DBC, the door / stairs / escalator / ladder / cave-warp task of
+unk_02055BF0.c; PokecenterAnimRun, the healing machine; ov01_021F2944, the Waterfall climb).
+Not the new game and continue.
+Handover-ID: none (port-only)
+
+--- a/src/unk_0200FA24_0200FA24.c
++++ b/src/unk_0200FA24_0200FA24.c
+@@ -178,7 +178,10 @@
+ static ScreenFadeManager _021D0EF4;
+ 
++void PortSpeed4_Fade(int *steps, int *framesPerStep); // the port's Transitions setting (port/game/speed_gen4.c)
++
+ void BeginNormalPaletteFade(enum FadeMode mode, enum FadeType typeMain, enum FadeType typeSub, u16 color, int steps, int framesPerStep, enum HeapID heapID) {
+     GF_ASSERT(steps);
+     GF_ASSERT(framesPerStep);
++    PortSpeed4_Fade(&steps, &framesPerStep); // bw-port: Transitions (2x / 4x / Instant: fewer steps and frames, at least 1 of each)
+     GF_ASSERT(_021D0EF4.active == FALSE);
+     ScreenFadeManager *manager = &_021D0EF4;
+--- a/src/field_system.c
++++ b/src/field_system.c
+@@ -182,4 +182,22 @@
+ void PortRoute4_Frame(FieldSystem *fieldSystem); // the port's route pilot (port/game/route_gen4.c)
+ 
++// bw-port: the Transitions setting's window (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). Each field frame the
++// task chain is walked (TaskManager->prev, like Black's event chain); while one of the map-change tasks is in it (a door, warp,
++// a script's map change, the Waterfall climb, the Pokemon Center heal) the game runs at the Transitions speed
++// (port/game/speed_gen4.c; libntr's SIM_SetTransition).
++#include "task.h"
++void PortSpeed4_TransitionWindow(int on);
++BOOL PortSpeed4_IsWarpTask(TaskFunc func); // field_warp_tasks.c (its statics, the heal task and the Waterfall task)
++
++static void PortSpeed4_TransitionFrame(FieldSystem *fieldSystem) {
++    BOOL on = FALSE;
++    TaskManager *task;
++
++    for (task = fieldSystem->taskman; task != NULL && !on; task = task->prev) {
++        on = PortSpeed4_IsWarpTask(task->func);
++    }
++    PortSpeed4_TransitionWindow(on);
++}
++
+ static BOOL FieldSystem_Main(FieldSystem *fieldSystem) {
+     FieldSystem_Control(fieldSystem);
+@@ -189,4 +207,5 @@
+         }
+     }
++    PortSpeed4_TransitionFrame(fieldSystem);
+     if (fieldSystem->processManager->parent) {
+         ppOverlayManager_RunFrame_DeleteIfFinished(&fieldSystem->processManager->parent);
+--- a/src/field_warp_tasks.c
++++ b/src/field_warp_tasks.c
+@@ -105,4 +105,16 @@
+ static BOOL sub_020540A4(TaskManager *taskManager);
+ 
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the map-change tasks, the Pokemon Center's
++// healing machine and the Waterfall climb. Not the new game and the continue (FieldTask_NewGame, FieldTask_ContinueGame_*).
++BOOL PokecenterAnimRun(TaskManager *taskManager);
++BOOL ov01_021F2944(TaskManager *taskManager);
++BOOL sub_02055DBC(TaskManager *taskManager);
++
++BOOL PortSpeed4_IsWarpTask(TaskFunc func) {
++    return func == sub_02053688 || func == sub_02053740 || func == Task_ScriptWarp || func == sub_02053950
++        || func == sub_02053B3C || func == sub_02053CCC || func == sub_02053E5C || func == sub_02053F70
++        || func == sub_020540A4 || func == sub_02055DBC || func == PokecenterAnimRun || func == ov01_021F2944;
++}
++
+ static const struct MapLoadMode sMapLoadModes[] = {
+     { .fieldBottomScreen = 1,

@@ -9,7 +9,9 @@
 # ignored. The intro runs at 30 fps, so a message takes ~200 V-blanks: each cycle is A, 200 frames, an 11-frame touch (the
 # 4th opens it at V-blank 9864). Then start + A cycles: A through the text and the gender (the default), start + A on the
 # naming keyboards (the default names), into the room (zone 415 at V-blank ~18660), Wf through its scene.
-new-look | NEWGAME | K0:6300 Ks:6 K0:394 (Ka:6 K0:114)*6 Ka:6 K0:294 Ka:6 K0:694 Ka:6 K0:174 KD:6 K0:34 KD:6 K0:34 Ka:6 K0:214 (Ka:6 K0:200 T:128,100:11 K0:20)*5 (Ks:4 K0:30 Ka:4 K0:120)*50 Wf | zone 415 4,6
+# new-look: defaultopts (spd1, 2026-11-19): its keys are timed for the game's own text pace (K0 waits); with Text
+# speed Instant (route.py's FAST_OPTS) the intro's boxes end earlier and the keys land elsewhere.
+new-look | NEWGAME | K0:6300 Ks:6 K0:394 (Ka:6 K0:114)*6 Ka:6 K0:294 Ka:6 K0:694 Ka:6 K0:174 KD:6 K0:34 KD:6 K0:34 Ka:6 K0:214 (Ka:6 K0:200 T:128,100:11 K0:20)*5 (Ks:4 K0:30 Ka:4 K0:120)*50 Wf | zone 415 4,6 | - | defaultopts
 room-look | pt-room | Md C | zone 415 4,6
 down | pt-room | G:warp:414 Wf | zone 414 10,3
 mom | pt-room | G:warp:414 Wf G:npc:0 Wf | zone 414 8,8
@@ -21,7 +23,10 @@ barry | pt-out | G:trig:1 Wf:60 G:warp:412 Wf G:warp:413 Wf:200 S | zone 413 3,5
 # north: down out of the rival's house, across Twinleaf (its north exit's guitarist trigger is dead once the rival has left home) and onto Route 201's south end; the scene's trigger is six tiles on.
 north | pt-barry | G:warp:412 Wf G:warp:411 Wf G:warp:342 Wf:60 S | zone 342 110,863 | pt-r201
 # scene: the rival's coordinate event on Route 201 (script 2, work 0x4086 = 0): he runs at the player, the professor steps in, two yes/no questions (Py Py: the second one loops on No), the counterpart brings the briefcase; ends free with the briefcase actor on the ground, before choosing.
-scene | pt-r201 | G:trig:0 Py Py Wf S | zone 342 114,854 | pt-briefcase
+# scene: defaultopts (spd4, 2026-11-19): with Walk speed 4x the leg hangs on the professor's text (event on, 3000 frames, the
+# text waits for A and none lands); at Walk 1x it passes (9136 frames). Most likely the pilot's A pulse (one V-blank in four while
+# an event runs) on the V-blanks the 30 fps game does not poll the pad, a phase the faster walk flips: a pilot race, as clowns.
+scene | pt-r201 | G:trig:0 Py Py Wf S | zone 342 114,854 | pt-briefcase | defaultopts
 # starter: open the briefcase (G:npc:12:nota, Wf:20 settles the player, Ka:5 is the A that talks), the choice app's A presses take the default left ball, the professor and the counterpart leave, the rival challenges (Py: yes), the first battle (the test cheat: one hit; --no-cheat plays it in full), the story warps home (zone 414) and the mother's scene gives the running shoes; S once the field is free
 starter | pt-briefcase | Pa G:npc:12:nota Wf:20 Ka:5 Py Wf:60 S W30 | zone 414 6,8 | pt-starter
 # follow: out of the house, up Route 201 to its trigger 5 (work 0x4086 = 2: the rival notices the player and becomes the follower, state 3). Needs pokeplatinum-widepointers8.patch: that scene's movement list lies BEFORE its script (a negative offset), which crashed ApplyMovement on the 64-bit host
@@ -39,13 +44,20 @@ catch | pt-parcel | G:warp:411 Wf:60 G:warp:342 Wf:60 G:warp:343 Wf:60 G:trig:0 
 # r202: Route 202 north to Jubilife (zone 3) by G:warp. Three trainers (uid 0-2 of zone 343) see the player on the way: the walk presses through each battle itself (the pilot's event 2: A in the action menu; no Pa). Arrives east of the city's first-arrival trigger (z 796, x 173-176)
 r202 | pt-catch | G:warp:3 Wf S | zone 3 177,799 | pt-r202
 # jubilife: the city's first-arrival trigger (script 2, x 173-176, z 796): the counterpart runs up, the detective Looker appears and gives the VS Recorder, one yes/no (Py; both answers lead on), the walk north to the school; Pa presses through the text. The next trigger (T4, script 17, VAR_POKETCH_CAMPAIGN_STATE) is at the school door
-jubilife | pt-r202 | Pa G:trig:0 Py Wf S | zone 3 175,775 | pt-jubilife
+# jubilife: defaultopts (spd4, 2026-11-19): with Walk speed 4x Py waits 2999 frames for a yes/no list the script never opens
+# (the pulse race of clowns: the list is answered by Py's own A pulse); at Walk 1x it passes.
+jubilife | pt-r202 | Pa G:trig:0 Py Wf S | zone 3 175,775 | pt-jubilife | defaultopts
 # school: the school (zone 29) and the rival's talk (uid 1, no question). Its flags unhide the Poketch company's people in the city, whose campaign trigger (zone 3 T4, x 172-176, z 776) is the next step. Needed before the Looker lets the player east to Route 203 (the Poketch is given at the end of that campaign)
 school | pt-jubilife | Pa G:warp:29 Wf G:npc:1 Wf S | zone 29 7,3 | pt-school
 # campaign: out of the school into the city; the campaign trigger T4 (x 172-176, z 776, script 17): the president asks the player to find three clowns (state 2). Pa presses through the text.
 campaign | pt-school | Pa G:warp:3 Wf G:trig:4 Wf S | zone 3 172,776 | pt-campaign
 # clowns: the three clowns of zone 3 (uids 24, 25, 27) each ask one yes/no question whose right answer is Yes and give a coupon. They wander: the talk is Ka:5 right after the walk's settle (clown 2 walks off if the settle is long: Wf:6). Pa presses the text; Py answers.
-clowns | pt-campaign | Pa G:npc:24:nota Wf:20 Ka:5 Py Wf:60 G:npc:25:nota Wf:6 Ka:5 Py Wf:60 G:npc:27:nota Wf:20 Ka:5 Py Wf:60 S | zone 3 163,752 | pt-clowns
+# clowns: defaultopts (spd1, 2026-11-19): with Text speed Instant the question's text is done at once and the yes/no
+# list opens on a frame Py's own pulse A lands on (answered by itself; Py then hangs). A pilot race, as hg radio-card.
+# clowns, spd4 (2026-11-19): with Walk speed 4x in the legs before it the save it starts from differed (play time) and the leg
+# ended off-route (164,753) or hung in Py (no yes/no list, 183,770) even at the game's own speeds. In int5's merged options chain
+# (spd1-spd4 and the cheat's residual damage, 2026-11-19) it passes, twice with the same frames (13,056).
+clowns | pt-campaign | Pa G:npc:24:nota Wf:20 Ka:5 Py Wf:60 G:npc:25:nota Wf:6 Ka:5 Py Wf:60 G:npc:27:nota Wf:20 Ka:5 Py Wf:60 S | zone 3 163,752 | pt-clowns | defaultopts
 # poketch: with all three coupons the president (uid 23, at 174,771; the plan talks from the tile north of him, 174,770: the planner sees actors where they stand) gives the Pokétch in the city itself: the apps are registered by the script, no touch screen step. Needs ovl.c's NitroStaticInit (port/include_plat/nitro/sinit.h) and port_plat.h's real FS_OVERLAY_ID: the Pokétch app overlay's init hands the system its New/Exit.
 poketch | pt-clowns | Pa G:npc:23:nota Wf:20 Ka:5 Wf:300 S | zone 3 174,770 | pt-poketch
 # r203: Jubilife's east exit is open once the Pokétch is given (VAR_JUBILIFE_CITY_STATE 2). Route 203's coordinate event 0 starts the rival's second battle (the pilot presses through the text and the battle's menus; the test cheat wins it in a hit).
@@ -84,7 +96,9 @@ mars | pt-windworks | Pa G:warp:201 Wf:60 G:trig:0 Wf:60 S | zone 201 19,7 | pt-
 # looker: G:warp:200 out of the building: scene 3 (OnFrame_Looker) plays itself; VAR_VALLEY_WINDWORKS_LOOKER_STATE 2
 looker | pt-mars | Pa G:warp:200 Wf:300 S | zone 200 243,656 | pt-looker
 # forest: out of the Valley Windworks onto Route 205 south (G:warp:347), then north by coordinates (G:warp:203 straight from the south end plans a loop past the signpost at 215,659: the field of grass x 206-212 is the way), G:warp:203 from 209,632 is the forest door, two tiles wide (D0 at 206,581, D1 at 207,581): the plan now takes D1 (arrive 29,86), before the planner saw the actors where they stand it took D0 (28,86); either is the way in
-forest | pt-looker | Pa G:warp:347 Wf:60 G:217,656 G:210,652 Wf:10 G:209,632 Wf:10 G:warp:203 Wf:60 S | zone 203 29,86 | pt-forest
+# forest: defaultopts (spd2, 2026-11-19): with Transitions Instant (route.py's FAST_OPTS) the leg's frames differ and the planner takes
+# the forest's other door tile (D0 at 206,581: arrives at 28,86, not D1's 29,86); the walk is the same. A pilot choice, not a game bug.
+forest | pt-looker | Pa G:warp:347 Wf:60 G:217,656 G:210,652 Wf:10 G:209,632 Wf:10 G:warp:203 Wf:60 S | zone 203 29,86 | pt-forest | defaultopts
 # cheryl: trigger 0 (28,85, two tiles wide: 28-29): G:28,86 first, so the leg ends at 28,85 from either door tile of the forest leg (28,86 in the library save, 29,86 in the chain); the follower walks up to the player, asks to come along, joins (SetHasPartner, VAR_PARTNER_TRAINER_ID): the next trainer fights are double battles
 cheryl | pt-forest | Pa G:28,86 G:trig:0 Wf:60 S | zone 203 28,85 | pt-cheryl
 # exitforest: G:warp:349 walks the forest north exit (D2/D3 at 86,36-37); trainers are fought by the walk (double battles with the follower), trigger 2 (82,34): the follower leaves, VAR_ETERNA_FOREST_FOLLOWER_CHERYL_STATE 2, FLAG_TRAVELED_WITH_CHERYL
@@ -333,8 +347,14 @@ ver15 | pt-ver14 | Pa To:30000 G:1,3 Wf:10 G:5,3 Wf:10 G:5,11 Wf:10 G:16,11 Wf:1
 # ver16: Candice (uid 0 at 11,3) one step north of the ramp: the battle under the pulse key (the test cheat wins), the badge, the machine
 ver16 | pt-ver15 | Pa To:30000 G:npc:0 Wf:60 S | zone 167 11,4 | pt-ver16
 # ver17: out of the gym (the planner slides straight down column 12, smashing the snowballs there), the city, the lakefront, Route 217 south by ver10/ver9's hops reversed, the item ball with HM08 (uid 10 at 296,305)
-ver17 | pt-ver16 | Pa To:20000 G:warp:165 Wf:60 To:12000 G:warp:340 Wf:60 To:12000 G:warp:385 Wf:60 To:12000 G:304,268 Wf:5 To:12000 G:290,272 Wf:5 To:12000 G:290,287 Wf:5 To:12000 G:npc:10 Wf:30 S | zone 385 296,304 | pt-ver17
+# ver17: defaultopts (spd4, 2026-11-19): with Walk speed 4x the player is at Snowpoint's east field (333,242) and the planner finds
+# no path to the warp (464 goal tiles, none reachable); at Walk 1x it passes. Cause not pinned down: the actor (309,242) in
+# the corridor west of the field is the likely blocker, which has not moved on at the faster pace.
+ver17 | pt-ver16 | Pa To:20000 G:warp:165 Wf:60 To:12000 G:warp:340 Wf:60 To:12000 G:warp:385 Wf:60 To:12000 G:304,268 Wf:5 To:12000 G:290,272 Wf:5 To:12000 G:290,287 Wf:5 To:12000 G:npc:10 Wf:30 S | zone 385 296,304 | pt-ver17 | defaultopts
 # ver18: Route 217 north again by ver9/ver10's hops, the lakefront, F:climb up its Rock Climb wall (the climb's foot 310,242 facing up: the test cheat knows the move, the Icicle badge is real), Lake Acuity's entrance scene (LakeAcuity_CoordEvent_JupiterRival) plays on the way in
+# ver18: from the options chain's ver17 save the Route 217 trainer's battle once ended with the lead fainted to the hail (spd4,
+# 2026-11-19, Walk 4x; it was defaultopts). The test cheat now takes no HP loss outside a hit either (PortRoute4_CheatHpCalc,
+# int5), so the leg runs with the options again.
 ver18 | pt-ver17 | Pa To:12000 G:290,287 Wf:5 To:12000 G:290,272 Wf:5 To:12000 G:304,268 Wf:5 To:12000 G:warp:340 Wf:60 To:12000 F:climb Wf:30 To:12000 G:warp:318 Wf:60 S | zone 318 16,45 | pt-ver18
 # ver19: F:fly:132 (route_fly.h on Gen 4): X, the Pokemon entry, the lead, its Fly entry (the test cheat gives slot 0 the entry: nobody knows the move), the Town Map's cursor to Veilstone, A; the flight ends on Veilstone's fly spot by the Center door.
 ver19 | pt-ver18 | F:fly:132 Wf:60 S | zone 132 717,612 | pt-ver19

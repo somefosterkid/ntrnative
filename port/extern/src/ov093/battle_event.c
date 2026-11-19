@@ -13,12 +13,17 @@
 
 void BattleEvent_CallHandlers(BtlServerFlow *flow, u32 event) {
     BattleEvent_CallHandlers_game(flow, event);
-    if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
+    if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e || event == 0x80) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
         if (event == 0x4e) {   // the PP a move uses (func_ov093_021c07d4): attacker var 3, amount var 0x20: the player's
             // moves use none, so a long leg never runs its first move dry (the pilot only presses A: a move with no PP
             // left looped on "no PP" until the hang check)
             if (BattleEventVar_GetValue(3) < 12) {
                 BattleEventVar_SetValue(0x20, 0);
+            }
+        } else if (event == 0x80) {   // CHECK_SIMPLE_DAMAGE_ENABLED: mon var 4, result var 0x51 (Magic Guard's own rewrite): the
+            // player's side takes no damage outside a hit either (burn, poison, weather, Leech Seed, recoil, Life Orb; int5 11-19)
+            if (BattleEventVar_GetValue(4) < 12) {
+                BattleEventVar_SetValue(0x51, 0);
             }
         } else if (event == 0x32) {   // CHECK_ALWAYS_HIT: attacker var 3, result flag var 0x51: the player's moves never miss
             if (BattleEventVar_GetValue(3) < 12) {

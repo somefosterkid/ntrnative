@@ -1,0 +1,38 @@
+pokeplatinum-speed-spd3.patch (tools/pokeplat_gen.py applies the patches in name order): the port's Save speed and battle intro hooks
+(docs/speed-options.md "Platinum and HeartGold/SoulSilver"); the Text speed hook is pokeplatinum-speed.patch. Each hook asks
+port/game/speed_gen4_spd3.c, which reads the same settings Black's and Black 2's stand-ins read. At every default setting each
+hook does nothing the game's own code did not do, so the route chain's frames are unchanged (both are pacing windows anyway: they
+run libntr's tick timeline faster, never a game frame).
+Save speed: scrcmd.c ScrCmd_258 (the save script's player pose, common.s CommonScript_StartSave: after the player's last Yes/No
+answer and the "saving" message) opens the save window and ScrCmd_CloseSaveInfo (the script's last command, also the error path's)
+closes it: the pose, the write, the saved message, the save jingle and the wait for A run at Save speed; the Yes/No questions do not.
+The start menu's Save (start_menu.c StartMenu_Save) and every scripted save (a save script, the Battle Frontier's) run that script.
+Battle intro (its hunk is in pokeplatinum-speed-spd2.patch, whose field_transition.c hunk sits at the same place):
+field_transition.c FieldTask_RunEncounterEffect (the field task that plays the encounter's screen effect, in the field
+overlay, before the battle's overlay loads) opens the battle window at its start and closes it when the effect is done.
+diff --git a/src/scrcmd.c b/src/scrcmd.c
+--- a/src/scrcmd.c
++++ b/src/scrcmd.c
+@@ -5679,7 +5679,15 @@
+ }
+ 
++// bw-port: Save speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The save script (common.s
++// CommonScript_StartSave) starts the player's save pose with this command after the player's last Yes/No answer and the "saving"
++// message; the window (port/game/speed_gen4_spd3.c) is open from here to ScrCmd_CloseSaveInfo, the script's last command (the
++// pose, the write, the saved message, the save jingle and the wait for A). At the default Save speed it does nothing.
++void PortSpeed4_SaveWindow(int on);
++
+ static BOOL ScrCmd_258(ScriptContext *ctx)
+ {
+     SysTask **v0 = FieldSystem_GetScriptMemberPtr(ctx->fieldSystem, SCRIPT_MANAGER_PLAYER_TASK);
++
++    PortSpeed4_SaveWindow(1);
+ 
+     *v0 = NULL;
+@@ -6559,4 +6567,6 @@
+ {
+     FieldSystem *fieldSystem = ctx->fieldSystem;
++
++    PortSpeed4_SaveWindow(0);
+     SaveInfoWindow **saveInfoWin = FieldSystem_GetScriptMemberPtr(fieldSystem, SCRIPT_MANAGER_SAVE_INFO_WINDOW);
+ 

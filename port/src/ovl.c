@@ -334,12 +334,19 @@ BOOL FS_LoadOverlayInfo(FSOverlayInfo *p_ovi, MIProcessor target, FSOverlayID id
 // The battle waits at its command menu with the idle camera on (port/extern/src/ov094/btlv_effect.c)
 static BOOL sBattleIdle;
 
+// Gen 4's battle intro, the encounter effect: a field task in the field overlay, so no overlay of its own (the game's hook
+// calls PortOvl_SetEncounter: port/game/speed_gen4_spd3.c)
+static BOOL sEncounter;
+
 // The battle or its intro is in, and neither the battle's Bag nor its party screen is, nor its command menu
 static BOOL PortOvl_BattleIn(void) {
     u32 id;
 
     if (sLoaded[PORT_Game->ovlBag] || sLoaded[PORT_Game->ovlParty] || sBattleIdle) {
         return FALSE;
+    }
+    if (sEncounter) {
+        return TRUE;
     }
     for (id = PORT_Game->ovlEncFirst; id <= PORT_Game->ovlEncLast; id++) {
         if (sLoaded[id]) {
@@ -353,7 +360,19 @@ static BOOL PortOvl_BattleIn(void) {
 void PortOvl_Reset(void) {
     memset(sLoaded, 0, sizeof(sLoaded));
     sBattleIdle = FALSE;
+    sEncounter = FALSE;
     SIM_SetBattle(0);
+}
+
+// The encounter effect (Gen 4's battle intro) starts (on) or ends: the battle window follows
+void PortOvl_SetEncounter(int on) {
+    if ((on != 0) != sEncounter) {
+        sEncounter = on != 0;
+        if (sLog) {
+            PortOvl_Print("ovl: [f%u t%u] encounter effect %s\n", (unsigned)OS_GetVBlankCount(), PortOvl_Ms(), on ? "up" : "down");
+        }
+        SIM_SetBattle(PortOvl_BattleIn());
+    }
 }
 
 // Each battle tick (BtlvEffect_Main): the battle's idle camera is on, i.e. the game waits for the player's command

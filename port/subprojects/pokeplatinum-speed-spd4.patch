@@ -1,0 +1,167 @@
+pokeplatinum-speed-spd4.patch (tools/pokeplat_gen.py applies the patches in name order): Walk, Surf and Run speed (spd4), part of the
+port's per-part speed options (docs/speed-options.md "Platinum and HeartGold/SoulSilver"; the others are pokeplatinum-speed.patch's
+Text speed and their own patch files). player_move.c's overworld step pick (PlayerAvatar_SetMovement_NormalOverworld, the player's own
+step: NPCs, scripts, the bike and the distortion world never come through it) swaps the walk action WALK_NORMAL (8 frames a tile) for
+WALK_FAST (2x) or WALK_FASTER (4x), and the Surf action WALK_FAST (4 frames) for WALK_FASTER (2x and 4x: WALK_FASTEST's 1-frame step
+stops the Surf legs ver58 and ver62), through PortSpeed4_WalkAction / PortSpeed4_SurfAction, which ask port/game/speed_gen4.c (the
+WalkSpeed / SurfSpeed settings, Black's). The player's action speed follows, which the following object (unk_02069BE0.c) reads. Run
+speed: the run action (RUN_*, 4 px a frame for 4 frames, the run animation) is remade by unk_020655F4.c's own Step0 (PortSpeed4_InitRun)
+for the player's object only (local id 0xFF): 8 px for 2 frames at 2x and 4x, the run's animation; no new movement-action rows (the
+game's checks for "is the player running", which read the action code, still see RUN). Jumps, deep snow's slower steps and the turn
+keep the game's. At every default setting each hunk is exactly the game's own code path. The DS build never sees the patch.
+diff --git a/src/player_move.c b/src/player_move.c
+index 93d032e79..3ea876f64 100644
+--- a/src/player_move.c
++++ b/src/player_move.c
+@@ -1011,4 +1011,49 @@ static void PlayerAvatar_SetMovement_Moving(PlayerAvatar *playerAvatar, MapObjec
+ }
+ 
++// bw-port: Walk speed and Surf speed (the port's settings; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The
++// player's own step pick swaps the game's walk (WALK_NORMAL, 8 frames a tile) for the next faster action (2x: WALK_FAST,
++// 4 frames) or the one after (4x: WALK_FASTER, 2) and Surf (WALK_FAST) for WALK_FASTER (2x and 4x: WALK_FASTEST's 1-frame step
++// breaks a step's end logic, the Surf legs ver58 and ver62 stop with it); the
++// action speed follows, which the following object reads. Only the overworld's step pick below calls them: NPCs, scripts, the
++// bike, water, grass, running, jumps and the distortion world keep the game's actions. At the default setting both return the
++// game's action and speed unchanged (port/game/speed_gen4.c).
++int PortSpeed4_WalkSteps(void);
++int PortSpeed4_SurfSteps(void);
++
++static enum MovementAction PortSpeed4_WalkAction(enum MovementAction movementAction, int *speed)
++{
++    if (movementAction == MOVEMENT_ACTION_WALK_NORMAL_NORTH) {
++        switch (PortSpeed4_WalkSteps()) {
++        case 1:
++            *speed = PLAYER_ACTION_SPEED_FAST;
++            return MOVEMENT_ACTION_WALK_FAST_NORTH;
++        case 2:
++            *speed = PLAYER_ACTION_SPEED_FASTER;
++            return MOVEMENT_ACTION_WALK_FASTER_NORTH;
++        }
++    }
++
++    return movementAction;
++}
++
++// The run's action speed: FASTER (a following object then walks WALK_FASTER) at a faster Run speed (unk_020655F4.c's run action).
++int PortSpeed4_RunSteps(void);
++
++static int PortSpeed4_RunActionSpeed(int speed)
++{
++    return PortSpeed4_RunSteps() != 0 ? PLAYER_ACTION_SPEED_FASTER : speed;
++}
++
++static enum MovementAction PortSpeed4_SurfAction(enum MovementAction movementAction, int *speed)
++{
++    switch (PortSpeed4_SurfSteps()) {
++    case 1:
++        *speed = PLAYER_ACTION_SPEED_FASTER;
++        return MOVEMENT_ACTION_WALK_FASTER_NORTH;
++    }
++
++    return movementAction;
++}
++
+ /**
+  * Set movement function for the moving state while walking, running, or surfing in the overworld.
+@@ -1046,9 +1091,10 @@ static void PlayerAvatar_SetMovement_NormalOverworld(PlayerAvatar *playerAvatar,
+                 if (PlayerAvatar_IsRunButtonHeld(playerAvatar, keyPress) == TRUE) {
+                     movementAction = MOVEMENT_ACTION_RUN_NORTH;
+-                    speed = PLAYER_ACTION_SPEED_FAST;
++                    speed = PortSpeed4_RunActionSpeed(PLAYER_ACTION_SPEED_FAST);
+                 }
+             }
+ 
+             movementAction = MapObject_GetDeepSnowMovementAction(mapObj, MapObject_GetCurrTileBehavior(mapObj), movementAction);
++            movementAction = PortSpeed4_WalkAction(movementAction, &speed);
+ 
+             PlayerAvatar_IncrementStepsRecord(playerAvatar);
+@@ -1060,4 +1106,5 @@ static void PlayerAvatar_SetMovement_NormalOverworld(PlayerAvatar *playerAvatar,
+             movementAction = MOVEMENT_ACTION_WALK_FAST_NORTH;
+             movementAction = MapObject_DummyReturnMovementAction(mapObj, MapObject_GetCurrTileBehavior(mapObj), movementAction);
++            movementAction = PortSpeed4_SurfAction(movementAction, &speed);
+ 
+             PlayerAvatar_IncrementStepsRecord(playerAvatar);
+diff --git a/src/unk_020655F4.c b/src/unk_020655F4.c
+index f9c6ec5c5..9c1d6606f 100644
+--- a/src/unk_020655F4.c
++++ b/src/unk_020655F4.c
+@@ -612,7 +612,25 @@ static BOOL MovementAction_WalkFastestEast_Step0(MapObject *mapObj)
+ }
+ 
++// bw-port: Run speed (the port's RunSpeed setting; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The run action is
++// 4 px a frame for 4 frames with the run animation; for the player's own object at 2x and 4x it is 8 px for 2 frames (a 1-frame
++// step breaks a step's end logic, see player_move.c's Surf; the new movement actions this would otherwise need are this one action
++// with its own numbers: only the player's object, local id 0xFF, takes them; an NPC's run is the game's). At the default setting it
++// is exactly the game's run.
++int PortSpeed4_RunSteps(void);
++
++static void PortSpeed4_InitRun(MapObject *mapObj, int dir)
++{
++    int steps = PortSpeed4_RunSteps();
++
++    if (steps != 0 && MapObject_GetLocalID(mapObj) == 0xFF) {
++        MovementAction_InitWalk(mapObj, dir, FX32_CONST(4) << steps, 4 >> steps, MAP_OBJ_UNK_A0_09);
++    } else {
++        MovementAction_InitWalk(mapObj, dir, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
++    }
++}
++
+ static BOOL MovementAction_RunNorth_Step0(MapObject *mapObj)
+ {
+-    MovementAction_InitWalk(mapObj, DIR_NORTH, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
++    PortSpeed4_InitRun(mapObj, DIR_NORTH);
+     return TRUE;
+ }
+@@ -620,5 +638,5 @@ static BOOL MovementAction_RunNorth_Step0(MapObject *mapObj)
+ static BOOL MovementAction_RunSouth_Step0(MapObject *mapObj)
+ {
+-    MovementAction_InitWalk(mapObj, DIR_SOUTH, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
++    PortSpeed4_InitRun(mapObj, DIR_SOUTH);
+     return TRUE;
+ }
+@@ -626,5 +644,5 @@ static BOOL MovementAction_RunSouth_Step0(MapObject *mapObj)
+ static BOOL MovementAction_RunWest_Step0(MapObject *mapObj)
+ {
+-    MovementAction_InitWalk(mapObj, DIR_WEST, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
++    PortSpeed4_InitRun(mapObj, DIR_WEST);
+     return TRUE;
+ }
+@@ -632,5 +650,5 @@ static BOOL MovementAction_RunWest_Step0(MapObject *mapObj)
+ static BOOL MovementAction_RunEast_Step0(MapObject *mapObj)
+ {
+-    MovementAction_InitWalk(mapObj, DIR_EAST, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
++    PortSpeed4_InitRun(mapObj, DIR_EAST);
+     return TRUE;
+ }
+diff --git a/src/unk_02069BE0.c b/src/unk_02069BE0.c
+index d6f754731..ebd457038 100644
+--- a/src/unk_02069BE0.c
++++ b/src/unk_02069BE0.c
+@@ -193,4 +193,8 @@ static void sub_02069D30(MapObject *mapObj, UnkStruct_02069CA8 *param1)
+ }
+ 
++// bw-port: Run speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): a following object copies the player's run as the
++// walk 0x10 (4 frames a tile); at a faster Run speed it copies it as 0x14 (WALK_FASTER, 2 frames), the player's own pace.
++int PortSpeed4_FollowRunAdd(void);
++
+ static u32 sub_02069D50(MapObject *mapObj)
+ {
+@@ -203,14 +207,14 @@ static u32 sub_02069D50(MapObject *mapObj)
+     switch (v0) {
+     case 0x58:
+-        v0 = 0x10;
++        v0 = 0x10 + PortSpeed4_FollowRunAdd();
+         break;
+     case 0x59:
+-        v0 = 0x11;
++        v0 = 0x11 + PortSpeed4_FollowRunAdd();
+         break;
+     case 0x5a:
+-        v0 = 0x12;
++        v0 = 0x12 + PortSpeed4_FollowRunAdd();
+         break;
+     case 0x5b:
+-        v0 = 0x13;
++        v0 = 0x13 + PortSpeed4_FollowRunAdd();
+         break;
+     }

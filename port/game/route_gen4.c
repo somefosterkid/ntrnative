@@ -73,6 +73,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "system.h"
+
 #include "port_route.h"
 #include "port_route_map.h"
 
@@ -935,6 +937,15 @@ void PortRoute4_BattleMenu(int kind, int arg) {
         // 2 give up learning it, 3 use the next Pokemon (wild), 4 switch before the trainer's next one, 5 nickname the catch.
         // No (B) to 0, 1, 4, 5: keep the moves, keep the Pokemon in (Gen 5's answers); Yes (A) to 2 (else 1 comes back) and 3.
         gPortRouteYesNo = arg == 2 || arg == 3 ? 1 : 2;
+        // The pilot's A pulse (every 4th frame, set a frame ahead) can land on the question's very first frame, before
+        // gPortRouteYesNo says "answer B": the menu then reads A as Yes (a Yes to "switch Pokemon?" opens the party screen and the
+        // leg waits there for ever: Platinum ver16, Candice, with Instant text, whose question has no printing delay to keep
+        // the pulse's phase). Drop that one A: the question is answered No by the B pulses that follow.
+        if (gPortRouteYesNo == 2 && sLast != 2 && (gSystem.pressedKeys & PAD_BUTTON_A)) {
+            gSystem.pressedKeys &= ~PAD_BUTTON_A;
+            fprintf(stderr, "pilot: battle yes/no question: the A pulse of its first frame dropped (V-blank %u)\n",
+                    (unsigned)OS_GetVBlankCount());
+        }
     } else if (kind == 3) {
         gPortRouteYesNo = 2;   // reached only after a Yes to type 1: B backs out (no move forgotten)
     } else if (kind < 0) {
@@ -1040,8 +1051,10 @@ int PortRoute4_TargetCursorKeep(int button, const u8 *present) {
 // calls them). BWPORT_TESTCHEAT=win (PortRoute_CheatWin): the battles play in full, but the player's side (side 0) moves
 // first (the turn order's speeds: player 32x, opponents 1/10; a move's priority and Quick Claw still count, as on Gen 5),
 // its moves always hit and use no PP (CheatSide), its hits take all the target's HP and the hits on it do none (CheatDamage,
-// at BattleControllerPlayer_UpdateHP: every move's damage on its target, fixed-damage and OHKO moves too). Not covered: the
-// damage outside a move's hit (poison, burn, weather, recoil, confusion), status moves, stat drops.
+// at BattleControllerPlayer_UpdateHP: every move's damage on its target, fixed-damage and OHKO moves too), and the HP the battle
+// scripts take from it outside a hit (CheatHpCalc, at battle_script.c BtlCmd_UpdateHealthBar / BtlCmd_UpdateHealthBarValue: burn,
+// poison, hail, sandstorm, Leech Seed, Curse, Nightmare, recoil, Spikes, a move's own HP cost) is none either (int5, 2026-11-19:
+// a burn or the hail fainted the lead in chains whose frames the speed options moved). Not covered: status moves, stat drops.
 // BWPORT_NOENCOUNTER=1 (PortRoute_NoEncounter, the pilot's E:on / E:off): no wild encounter on a step (walking, surfing;
 // field_control.c Field_CheckWildEncounter, as a Repel would); fishing, scripts, trainers and the Pal Park still happen.
 int PortRoute4_CheatSide(BattleSystem *battleSys, int battler) {
@@ -1072,6 +1085,15 @@ int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, 
     }
     fprintf(stderr, "cheat: damage atk %d def %d %d -> %d (V-blank %u)\n", attacker, defender, damage, n, (unsigned)OS_GetVBlankCount());
     return n;
+}
+
+// The HP change a battle script applies to `battler` (hpCalcTemp: < 0 a loss): with the cheat on, a loss of the player's side is 0.
+int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc) {
+    if (hpCalc >= 0 || !PortRoute_CheatWin(PORT_ROUTE_GAME) || BattleSystem_GetBattlerSide(battleSys, battler) != 0) {
+        return hpCalc;
+    }
+    fprintf(stderr, "cheat: script HP battler %d %d -> 0 (V-blank %u)\n", battler, hpCalc, (unsigned)OS_GetVBlankCount());
+    return 0;
 }
 
 int PortRoute4_NoEncounter(void) {
@@ -2757,8 +2779,9 @@ int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const
 
 // The test cheats (docs/platinum.md "Test cheats"; the same switches): side 0 (BattleSystem_GetFieldSide) is the player's.
 // battle_controller_player.c: ov12_0224B1FC (the PP use) and BattleSystem_CheckMoveHit (FALSE = hits) ask CheatSide,
-// BattleControllerPlayer_HpCalc (after the OHKO line) CheatDamage; overlay_12_0224E4FC.c CheckSortSpeed CheatSpeed;
-// field_control.c FieldSystem_CheckWildEncounter (after the Pal Park branch) NoEncounter.
+// BattleControllerPlayer_HpCalc (after the OHKO line) CheatDamage; battle_command.c BtlCmd_UpdateHealthbar /
+// BtlCmd_UpdateHealthbarValue CheatHpCalc (the HP a script takes outside a hit: burn, poison, weather, recoil; Platinum's comment);
+// overlay_12_0224E4FC.c CheckSortSpeed CheatSpeed; field_control.c FieldSystem_CheckWildEncounter (after the Pal Park branch) NoEncounter.
 int PortRoute4_CheatSide(BattleSystem *battleSys, int battler) {
     return (PortRoute_CheatWin(Pr4_Game()) || getenv("BWPORT_HG_TESTHIT") != NULL) && BattleSystem_GetFieldSide(battleSys, battler) == 0;
 }
@@ -2784,6 +2807,15 @@ int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, 
     }
     fprintf(stderr, "cheat: damage atk %d def %d %d -> %d (V-blank %u)\n", attacker, defender, damage, n, (unsigned)OS_GetVBlankCount());
     return n;
+}
+
+// The HP change a battle script applies to `battler` (hpCalc: < 0 a loss): with the cheat on, a loss of the player's side is 0.
+int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc) {
+    if (hpCalc >= 0 || !PortRoute_CheatWin(Pr4_Game()) || BattleSystem_GetFieldSide(battleSys, battler) != 0) {
+        return hpCalc;
+    }
+    fprintf(stderr, "cheat: script HP battler %d %d -> 0 (V-blank %u)\n", battler, hpCalc, (unsigned)OS_GetVBlankCount());
+    return 0;
 }
 
 // BWPORT_HG_TESTBATTLE=SPECIES:LEVEL[:M1,M2,M3,M4[:OPPSPECIES[/OPPLEVEL][:O1,O2,O3,O4]]] (test only, a throwaway run: never

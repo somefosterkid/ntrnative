@@ -233,11 +233,14 @@ GameData_FindPartyPkmByMove), see Surf and Waterfall as MOVE1/MOVE2 of every Pok
 port/extern*/src/ov021|ov036/fieldmap_event.c, the only place that file reads moves). 0x115 (a given slot) is untouched. Proven on Black's Dreamyard Cut tree (leg dreamyard-cut: `Pa G:zone:152 Wf:60 G:npc:8 Wf G:trig:0 Wf S W30` from b-fennel,
 save b-dream1): the script asks 'use Cut?' and G:npc's pulse key (A) answers Yes at the cursor's Yes (no Py needed); the tree goes
 and the next token walks onto its tile.
+The damage outside a hit (poison, burn, weather, Leech Seed, recoil, Life Orb: the engine's "simple damage") is none either (int5,
+2026-11-19): the CHECK_SIMPLE_DAMAGE_ENABLED event (0x80, the one Magic Guard answers) answers 0 for the player's mons.
 Not covered: a move of the opponent's with priority (Quick Attack) still goes first, but does 0 damage; moves that do not go through
-CALC_DAMAGE (fixed damage: Dragon Rage, Seismic Toss, Super Fang), status moves, poison/burn, weather, recoil, confusion; the
-opponent can still cause status conditions and stat drops.
-Platinum (11-14): the same switches, its own hooks in the Gen 4 battle engine (turn-order speeds, accuracy, PP, the hit's damage)
-and the field's step encounter check: docs/platinum.md "Test cheats".
+CALC_DAMAGE (fixed damage: Dragon Rage, Seismic Toss, Super Fang), status moves, confusion's self-hit; the opponent can still cause
+status conditions and stat drops.
+Platinum (11-14) and HG/SS: the same switches, their own hooks in the Gen 4 battle engine (turn-order speeds, accuracy, PP, the hit's
+damage, and since 11-19 every HP loss a battle script applies to the player's side: PortRoute4_CheatHpCalc) and the field's step
+encounter check: docs/platinum.md "Test cheats".
 
 ## The probe
 

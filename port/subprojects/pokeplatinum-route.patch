@@ -12,7 +12,9 @@ fainted (blank, A does nothing on it) is not restored; the cursor starts where t
 The test cheats (docs/platinum.md "Test cheats"; nothing changes unless BWPORT_TESTCHEAT=win / BWPORT_NOENCOUNTER=1):
 battle_lib.c BattleSystem_CompareBattlerSpeed passes the turn order's speeds through PortRoute4_CheatSpeed,
 battle_controller_player.c asks PortRoute4_CheatSide in DecrementPP (no PP used) and CheckMoveHitAccuracy (always hits)
-and PortRoute4_CheatDamage in UpdateHP (the hit's damage); field_control.c Field_CheckWildEncounter asks
+and PortRoute4_CheatDamage in UpdateHP (the hit's damage); battle_script.c BtlCmd_UpdateHealthBar and
+BtlCmd_UpdateHealthBarValue pass hpCalcTemp through PortRoute4_CheatHpCalc (the player's side's HP loss a script applies:
+burn, poison, weather, Leech Seed, Curse, recoil, Spikes); field_control.c Field_CheckWildEncounter asks
 PortRoute4_NoEncounter (no wild encounter on a step).
 The party "knows" the field moves under the test cheat (BWPORT_TESTCHEAT=win; docs/platinum.md "Test cheats"): scrcmd_party.c
 ScrCmd_FindPartySlotWithMove (every field move script: Cut, Rock Smash, Strength, Rock Climb, Surf, Defog, Waterfall) and
@@ -305,3 +307,29 @@ diff --git a/src/overlay006/wild_encounters.c b/src/overlay006/wild_encounters.c
      int playerX = PlayerAvatar_GetXPos(fieldSystem->playerAvatar);
      int playerZ = PlayerAvatar_GetZPos(fieldSystem->playerAvatar);
      u8 tileBehavior = TerrainCollisionManager_GetTileBehavior(fieldSystem, playerX, playerZ);
+diff --git a/src/battle/battle_script.c b/src/battle/battle_script.c
+index 39c160068..f4e23db2c 100644
+--- a/src/battle/battle_script.c
++++ b/src/battle/battle_script.c
+@@ -1692,4 +1692,9 @@ static BOOL BtlCmd_FlickerMon(BattleSystem *battleSys, BattleContext *battleCtx)
+  * @return FALSE
+  */
++// bw-port: the test cheat's residual damage (port/game/route_gen4.c PortRoute4_CheatHpCalc): under BWPORT_TESTCHEAT=win an HP loss
++// of the player's side that a script applies (burn, poison, weather, Leech Seed, Curse, recoil, Spikes: not a move's hit, which
++// battle_controller_player.c's UpdateHP already zeroes) is made 0, in the gauge and in the value. Without the cheat it is the game's.
++int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc);
++
+ static BOOL BtlCmd_UpdateHealthBarValue(BattleSystem *battleSys, BattleContext *battleCtx)
+ {
+@@ -1699,4 +1704,5 @@ static BOOL BtlCmd_UpdateHealthBarValue(BattleSystem *battleSys, BattleContext *
+     // Cap the hit damage to the battler's current HP
+     int battler = BattleScript_Battler(battleSys, battleCtx, inBattler);
++    battleCtx->hpCalcTemp = PortRoute4_CheatHpCalc(battleSys, battler, battleCtx->hpCalcTemp);
+     if (battleCtx->battleMons[battler].curHP + battleCtx->hpCalcTemp <= 0) {
+         battleCtx->hitDamage = battleCtx->battleMons[battler].curHP * -1;
+@@ -1739,4 +1745,5 @@ static BOOL BtlCmd_UpdateHealthBar(BattleSystem *battleSys, BattleContext *battl
+     int battler = BattleScript_Battler(battleSys, battleCtx, inBattler);
+ 
++    battleCtx->hpCalcTemp = PortRoute4_CheatHpCalc(battleSys, battler, battleCtx->hpCalcTemp);
+     BattleController_EmitUpdateHPGauge(battleSys, battleCtx, battler);
+ 

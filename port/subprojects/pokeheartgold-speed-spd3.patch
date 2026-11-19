@@ -1,0 +1,74 @@
+pokeheartgold-speed-spd3.patch (tools/pokehg_gen.py applies the patches in name order): the port's Save speed and battle intro hooks
+(docs/speed-options.md "Platinum and HeartGold/SoulSilver"); the Text speed hook is pokeheartgold-speed.patch. Each hook asks
+port/game/speed_gen4_spd3.c, which reads the same settings Black's and Black 2's stand-ins read. At every default setting each
+hook does nothing the game's own code did not do, so the route chain's frames are unchanged (both are pacing windows anyway: they
+run libntr's tick timeline faster, never a game frame).
+Save speed: touch_save_app.c ov30_0225D700 (the save app's task, the start menu's Save) keeps the save window open from the
+"Saving..." message, which follows the player's last Yes/No answer, to the app's close (the waiting icon, the write, the saved
+message, the save jingle and the wait after it); the Yes/No questions stay at the player's speed.
+Battle intro: unk_020551B8_020551B8.c sub_020551B8 (the field task that plays the encounter's screen effect, in the field overlay,
+before the battle's overlay loads) opens the battle window at its start and closes it when the effect is done.
+Handover-ID: none (port-only)
+
+diff --git a/src/touch_save_app.c b/src/touch_save_app.c
+--- a/src/touch_save_app.c
++++ b/src/touch_save_app.c
+@@ -254,4 +254,17 @@
+ }
+ 
++// bw-port: Save speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The window (port/game/speed_gen4_spd3.c) is
++// open from the "Saving..." message, which follows the player's last Yes/No answer, to the app's close (the waiting icon, the
++// write, the "saved the game" message, the save jingle and the wait after it): the states from PRINT_SAVING_MESSAGE on, where the
++// text printer's wait state counts as the state it goes to. The Yes/No questions stay at the player's speed. At the default
++// Save speed it does nothing.
++void PortSpeed4_SaveWindow(int on);
++
++static BOOL PortSpeed4_TouchSaveAfterYes(const TouchSaveAppData *data) {
++    enum TouchSaveApp_State state = data->state == TOUCHSAVEAPP_STATE_WAIT_FOR_TEXT_PRINTER ? data->stateAfterTextPrint : data->state;
++
++    return state >= TOUCHSAVEAPP_STATE_PRINT_SAVING_MESSAGE;
++}
++
+ static void ov30_0225D700(SysTask *task, void *ptr) {
+     TouchSaveAppData *data = ptr;
+@@ -264,7 +277,12 @@
+         G2S_BlendNone();
+     } else {
+-        if (data->fieldSystem->unkD2_0 == 2 && sTouchSaveAppStateFuncs[data->state](data) == TRUE) {
+-            data->fieldSystem->unkD2_0 = 3;
+-            ov01_021F6A9C(data->fieldSystem, 0, 0);
++        if (data->fieldSystem->unkD2_0 == 2) {
++            BOOL done = sTouchSaveAppStateFuncs[data->state](data);
++
++            PortSpeed4_SaveWindow(done != TRUE && PortSpeed4_TouchSaveAfterYes(data));
++            if (done == TRUE) {
++                data->fieldSystem->unkD2_0 = 3;
++                ov01_021F6A9C(data->fieldSystem, 0, 0);
++            }
+         }
+     }
+diff --git a/src/unk_020551B8_020551B8.c b/src/unk_020551B8_020551B8.c
+--- a/src/unk_020551B8_020551B8.c
++++ b/src/unk_020551B8_020551B8.c
+@@ -8,4 +8,9 @@
+ 
+ s32 sub_020551B8(TaskManager *arg0);
++
++// bw-port: the battle intro runs at Battle speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): the encounter
++// effect is a task of the field overlay, so the overlay window does not cover it; port/game/speed_gen4_spd3.c opens the
++// battle window from the effect's start to its end (at the default Battle speed it does nothing).
++void PortSpeed4_EncounterWindow(int on);
+ 
+ s32 sub_020551B8(TaskManager *taskManager) {
+@@ -22,4 +27,5 @@
+         ov01_021EFC94(data->encEffectID, fieldSystem, &data->done);
+         Sound_SetSceneAndPlayBGM(5U, (u16)data->battleBGM, 1);
++        PortSpeed4_EncounterWindow(1);
+         data->taskState = (s32)(data->taskState + 1);
+     default:
+@@ -27,4 +33,5 @@
+     case 1:
+         if (data->done == 1) {
++            PortSpeed4_EncounterWindow(0);
+             ov01_021EFC04(data->encEffectID);
+             Heap_Free(data);

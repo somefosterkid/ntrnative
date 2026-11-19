@@ -1,0 +1,185 @@
+pokeheartgold-speed-spd4.patch (tools/pokehg_gen.py applies the patches in name order): Walk, Surf and Run speed (spd4), part of the
+port's per-part speed options (docs/speed-options.md "Platinum and HeartGold/SoulSilver"; the others are pokeheartgold-speed.patch's
+Text speed and their own patch files). The player's step pick (sub_0205D4B4 in unk_0205CB48_0205D450_0205D4B4_0205D4B4.c: 0xc walk,
+0x58 run, 0x10 Surf) swaps the walk action 0xc (8 frames a tile) for 0x10 (2x) or 0x14 (4x) and the Surf action 0x10 (4 frames) for
+0x14 (2x and 4x: 0x54's 1-frame step stops Platinum's Surf legs), through PortSpeed4_WalkCode / PortSpeed4_SurfCode, which ask
+port/game/speed_gen4.c (the WalkSpeed / SurfSpeed settings, Black's). The following Pokemon copies the action the pick gives
+(ov01_02205990), but its follow code (one request per player step, one held) drops requests when the player's step is shorter than 4
+frames and the Pokemon then stays tiles behind (route hg cherry at Walk 4x): while a follower is active (FollowMon.active) the pick
+tells port/game/speed_gen4.c (PortSpeed4_SetFollower), which holds Walk to 2x (4 frames, the game's own run pace) and Run to the
+game's. Run speed: the run command (cmds 88-91, 4 px a frame for 4 frames, the run animation) is remade by
+unk_02062108_020626AC.c's own Step0s (PortSpeed4_InitRun) for the player's object only: 8 px for 2 frames at 2x and 4x; no new command
+rows (the follower and the checks that read the action code still see 0x58; the follower copies the run as the walk 0x10, or at a
+faster Run speed as 0x14: unk_020658D4_02065D78_02065D78.c, unk_020658D4_02065DB4.c). NPCs, scripts, the bike and jumps keep the
+game's. At every default setting each hunk is exactly the game's own code path. The DS build never sees the patch.
+diff --git a/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c b/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c
+index bad026f..e7badf5 100644
+--- a/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c
++++ b/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c
+@@ -185,4 +185,32 @@ s32 sub_0205DE88(PlayerAvatar *, u32);
+ void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u32 param_4, u16 param_5);
+ 
++// bw-port: Walk speed and Surf speed (the port's settings; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The
++// player's own step pick below swaps the game's walk (0xc, 8 frames a tile) for the next faster action (2x: 0x10, 4 frames) or
++// the one after (4x: 0x14, 2) and Surf (0x10) for 0x14 (2x and 4x: 0x54's 1-frame step breaks a step's end logic, as in Platinum
++// where the Surf legs ver58 and ver62 stop with it). The following Pokemon copies the action the
++// pick gives (ov01_02205990 below), so it steps at the player's pace. Only this pick calls them: NPCs, scripts, the bike, running
++// (0x58) and jumps keep the game's actions. At the default setting both return the game's action (port/game/speed_gen4.c).
++int PortSpeed4_WalkSteps(void);
++int PortSpeed4_SurfSteps(void);
++void PortSpeed4_SetFollower(int active);
++
++static u32 PortSpeed4_WalkCode(u32 code) {
++    switch (PortSpeed4_WalkSteps()) {
++    case 1:
++        return 0x10;
++    case 2:
++        return 0x14;
++    }
++    return code;
++}
++
++static u32 PortSpeed4_SurfCode(u32 code) {
++    switch (PortSpeed4_SurfSteps()) {
++    case 1:
++        return 0x14;
++    }
++    return code;
++}
++
+ void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u32 param_4, u16 param_5) {
+     BOOL bVar1;
+@@ -202,4 +230,5 @@ void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u
+ 
+     bVar1 = FALSE;
++    PortSpeed4_SetFollower(MapObject_GetFieldSystem(param_2)->followMon.active);
+     uVar3 = sub_0205DA34(param_1, param_2, param_3);
+     sVar4 = PlayerAvatar_GetState(param_1);
+@@ -232,4 +261,7 @@ void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u
+                     uVar11 = 0x58;
+                 }
++                if (uVar11 == 0xc) {
++                    uVar11 = PortSpeed4_WalkCode(uVar11);
++                }
+                 uVar2 = sub_0205F504(param_2);
+                 MStack_28 = sub_0205D44C(param_2, (u8)uVar2, uVar11);
+@@ -241,5 +273,5 @@ void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u
+         if ((uVar3 == 0) || (uVar3 == 0x20)) {
+             uVar2 = sub_0205F504(param_2);
+-            MStack_28 = sub_0205D44C(param_2, (u8)uVar2, 0x10);
++            MStack_28 = sub_0205D44C(param_2, (u8)uVar2, PortSpeed4_SurfCode(0x10));
+             sub_0205E048(param_1);
+             PlayerAvatar_SetFlag6(param_1);
+diff --git a/src/unk_02062108_020626AC.c b/src/unk_02062108_020626AC.c
+index c4206bb..bea6f84 100644
+--- a/src/unk_02062108_020626AC.c
++++ b/src/unk_02062108_020626AC.c
+@@ -236,8 +236,29 @@ s32 MapObjectMovementCmd087_Step0(void *arg0) {
+ }
+ 
++// bw-port: Run speed (the port's RunSpeed setting; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The run action
++// (cmds 88-91) is 4 px a frame for 4 frames with the run animation; for the player's own object at 2x and 4x it is 8 px for 2
++// frames (a 1-frame step breaks a step's end logic, as the Surf 0x54 does in Platinum; the new movement rows this would otherwise
++// need are this action with its own numbers: an NPC's run is the game's; the following Pokemon copies the player's run as a walk,
++// and at a faster Run speed the follower is held to the game's run, in the step pick). At the default setting it is exactly the
++// game's run.
++int PortSpeed4_RunSteps(void);
++void *MapObject_GetFieldSystem(void *mapObj);
++void *FieldSystem_GetPlayerAvatar(void *fieldSystem);
++void *PlayerAvatar_GetMapObject(void *avatar);
++
++static void PortSpeed4_InitRun(void *mapObj, s32 dir) {
++    int steps = PortSpeed4_RunSteps();
++
++    if (steps != 0 && PlayerAvatar_GetMapObject(FieldSystem_GetPlayerAvatar(MapObject_GetFieldSystem(mapObj))) == mapObj) {
++        sub_020624CC(mapObj, dir, 0x4000 << steps, 4 >> steps, 9);
++    } else {
++        sub_020624CC(mapObj, dir, 0x4000, 4, 9);
++    }
++}
++
+ s32 MapObjectMovementCmd088_Step0(void *arg0);
+ 
+ s32 MapObjectMovementCmd088_Step0(void *arg0) {
+-    sub_020624CC(arg0, 0, 0x4000, 4, 9);
++    PortSpeed4_InitRun(arg0, 0);
+     return 1;
+ }
+@@ -246,5 +267,5 @@ s32 MapObjectMovementCmd089_Step0(void *arg0);
+ 
+ s32 MapObjectMovementCmd089_Step0(void *arg0) {
+-    sub_020624CC(arg0, 1, 0x4000, 4, 9);
++    PortSpeed4_InitRun(arg0, 1);
+     return 1;
+ }
+@@ -253,5 +274,5 @@ s32 MapObjectMovementCmd090_Step0(void *arg0);
+ 
+ s32 MapObjectMovementCmd090_Step0(void *arg0) {
+-    sub_020624CC(arg0, 2, 0x4000, 4, 9);
++    PortSpeed4_InitRun(arg0, 2);
+     return 1;
+ }
+@@ -260,5 +281,5 @@ s32 MapObjectMovementCmd091_Step0(void *arg0);
+ 
+ s32 MapObjectMovementCmd091_Step0(void *arg0) {
+-    sub_020624CC(arg0, 3, 0x4000, 4, 9);
++    PortSpeed4_InitRun(arg0, 3);
+     return 1;
+ }
+diff --git a/src/unk_020658D4_02065D78_02065D78.c b/src/unk_020658D4_02065D78_02065D78.c
+index dd0a0df..9247522 100644
+--- a/src/unk_020658D4_02065D78_02065D78.c
++++ b/src/unk_020658D4_02065D78_02065D78.c
+@@ -8,4 +8,8 @@
+ u32 sub_02065D78(LocalMapObject *arg0);
+ 
++// bw-port: Run speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): the follower copies the player's run as the
++// walk 0x10 (4 frames a tile); at a faster Run speed it copies it as 0x14 (2 frames), the player's own pace.
++int PortSpeed4_FollowRunAdd(void);
++
+ u32 sub_02065D78(LocalMapObject *arg0) {
+     FieldSystem *temp_r0;
+@@ -19,11 +23,11 @@ u32 sub_02065D78(LocalMapObject *arg0) {
+     switch (temp_r1) {
+     case 0:
+-        return 0x10U;
++        return 0x10U + PortSpeed4_FollowRunAdd();
+     case 1:
+-        return 0x11U;
++        return 0x11U + PortSpeed4_FollowRunAdd();
+     case 2:
+-        return 0x12U;
++        return 0x12U + PortSpeed4_FollowRunAdd();
+     case 3:
+-        var_r0 = 0x13;
++        return 0x13U + PortSpeed4_FollowRunAdd();
+     default:
+         return var_r0;
+diff --git a/src/unk_020658D4_02065DB4.c b/src/unk_020658D4_02065DB4.c
+index cd0bfa8..3f91a2b 100644
+--- a/src/unk_020658D4_02065DB4.c
++++ b/src/unk_020658D4_02065DB4.c
+@@ -7,4 +7,7 @@
+ u32 sub_02065DB4(LocalMapObject *param_1);
+ 
++// bw-port: Run speed: as sub_02065D78 (unk_020658D4_02065D78_02065D78.c), the run copied as a faster walk at a faster Run speed.
++int PortSpeed4_FollowRunAdd(void);
++
+ u32 sub_02065DB4(LocalMapObject *param_1) {
+     FieldSystem *fieldSystem;
+@@ -19,11 +22,11 @@ u32 sub_02065DB4(LocalMapObject *param_1) {
+     switch (uVar1) {
+     case 0x58:
+-        return 0x10;
++        return 0x10 + PortSpeed4_FollowRunAdd();
+     case 0x59:
+-        return 0x11;
++        return 0x11 + PortSpeed4_FollowRunAdd();
+     case 0x5a:
+-        return 0x12;
++        return 0x12 + PortSpeed4_FollowRunAdd();
+     case 0x5b:
+-        uVar1 = 0x13;
++        return 0x13 + PortSpeed4_FollowRunAdd();
+     }
+     return uVar1;

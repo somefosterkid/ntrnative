@@ -511,6 +511,15 @@ if b2w2_games.length() > 0 or build_plat or build_hg   # (Platinum's and HeartGo
   endforeach
 endif
 
+# The Gen 4 games' working copies (build/pokeplatinum, build/pokeheartgold) are made by tools/pokeplat_gen.py and tools/pokehg_gen.py,
+# which meson runs at configure time, from the pinned tree plus every port/subprojects/pokeplatinum-*.patch / pokeheartgold-*.patch.
+# Reading each patch here makes an edit to one reconfigure an existing build dir (so the generators run again); before this a build
+# dir kept its old tree when a patch changed or a patch file was added (the speed options' patches, 2026-11-19). A NEW patch file
+# is only seen at the next configure: touch this file (or any meson.build input) when a commit adds one.
+foreach p : run_command(python, '-c', 'import glob, sys; print("\\n".join(sorted(glob.glob(sys.argv[1] + "/port/subprojects/poke[ph]*-*.patch"))))', repo, check: true).stdout().strip().split('\n')
+  fs.read(p, encoding: 'latin-1')
+endforeach
+
 # Platinum (docs/platinum.md): pret's pokeplatinum (third_party/pokeplatinum; the port compiles its working copy build/pokeplatinum,
 # the port's patches applied and pret's generated headers made: tools/pokeplat_gen.py), compiled as Black 2 is: Black's flags
 # without Black's include dirs and prefix, then Platinum's (tools/pokeplat_cc.py --meson-args), PLATINUM defined; its overlay
@@ -560,7 +569,9 @@ if build_plat
     endif
   endforeach
   main_files = [meson.current_source_dir() / 'game/game_table.c', meson.current_source_dir() / 'game/plat_online.c',
-                meson.current_source_dir() / 'game/route_gen4.c', gen_dir / 'ovltab.c']
+                meson.current_source_dir() / 'game/route_gen4.c', meson.current_source_dir() / 'game/speed_gen4.c',
+                gen_dir / 'ovltab.c']
+  main_files += meson.current_source_dir() / 'game/speed_gen4_spd3.c'   # Save speed, battle intro (spd3)
   foreach s : pl_sources
     if s not in ovl_files
       main_files += s
@@ -681,7 +692,8 @@ if build_hg
     endif
   endforeach
   main_files = [meson.current_source_dir() / 'game/game_table.c', meson.current_source_dir() / 'game/route_gen4.c',
-                gen_dir / 'ovltab.c']
+                meson.current_source_dir() / 'game/speed_gen4.c', gen_dir / 'ovltab.c']
+  main_files += meson.current_source_dir() / 'game/speed_gen4_spd3.c'   # Save speed, battle intro (spd3)
   foreach s : run_command(python, repo / 'tools/pokehg_cc.py', '--nonmatching', check: true).stdout().strip().split('\n')
     if s not in hg_skip
       main_files += s

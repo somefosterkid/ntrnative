@@ -1,0 +1,56 @@
+pokeplatinum-speed.patch (tools/pokeplat_gen.py applies the patches in name order): the port's per-part speed options
+(docs/speed-options.md "Platinum and HeartGold/SoulSilver"), hooked where Platinum's C decides each part's pace; each hook asks
+port/game/speed_gen4.c, which reads the same settings Black's and Black 2's stand-ins read. At every default setting each hook
+is exactly the game's own code path, so the route chain's frames are unchanged.
+Text speed: text.c SysTask_RunTextPrinter (the task every timed text printer runs once a frame: the field's and the battle's
+messages, menus, every Options-speed caller and the fixed-speed ones) renders through PortTextSpeed_Render, which at Faster /
+Fastest / Instant (4 / 8 / 1024 characters, PortSpeed4_TextChars) draws that many plain characters in the frame, clearing the
+character wait before each; a control code, callback, key wait, scroll, pause or the end stops the frame as the game's one
+render did. Instant printers (TEXT_SPEED_INSTANT) never reach the task and are unchanged. The DS build never sees the patch.
+diff --git a/src/text.c b/src/text.c
+index 0d8040c09..ca7a66935 100644
+--- a/src/text.c
++++ b/src/text.c
+@@ -226,4 +226,35 @@ u8 Text_AddPrinter(const TextPrinterTemplate *template, u32 renderDelay, TextPri
+ }
+ 
++// bw-port: Text speed (the port's setting; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). At Faster, Fastest
++// or Instant a printer's frame draws up to that many characters with no wait between them (port/game/speed_gen4.c says how
++// many); at the game's own speed (0, the default) it is the one render a frame it always was. Only plain characters repeat:
++// a control code, a callback, a wait for a key, a scroll, a pause or the end stop the frame exactly as before.
++int PortSpeed4_TextChars(void);
++
++static enum RenderResult PortTextSpeed_Render(TextPrinter *printer)
++{
++    int n = PortSpeed4_TextChars();
++    int printed = 0;
++    enum RenderResult result;
++
++    if (n == 0) {
++        return TextPrinter_Render(printer);
++    }
++    for (;;) {
++        if (printer->state == 0) {   // handling characters: no wait before the next one
++            printer->delayCounter = 0;
++        }
++        result = TextPrinter_Render(printer);
++        if (result != RENDER_PRINT || --n <= 0 || printer->state != 0 || printer->callbackParam != 0) {
++            break;
++        }
++        printed = 1;
++    }
++    if (printed && result != RENDER_PRINT) {   // this frame's earlier characters reach the screen (RENDER_PRINT's copy)
++        Window_CopyToVRAM(printer->template.window);
++    }
++    return result;
++}
++
+ static void SysTask_RunTextPrinter(SysTask *task, void *data)
+ {
+@@ -238,5 +269,5 @@ static void SysTask_RunTextPrinter(SysTask *task, void *data)
+         Text_GenerateFontHalfRowLookupTable(printer->template.fgColor, printer->template.bgColor, printer->template.shadowColor);
+ 
+-        switch (TextPrinter_Render(printer)) {
++        switch (PortTextSpeed_Render(printer)) {
+         case RENDER_PRINT:
+             Window_CopyToVRAM(printer->template.window);

@@ -67,3 +67,4 @@ c15d0549b9f37178f1f7a93d0032f358c0bc114b	67	arm64 Mach-O, stb_image: stbi__zdist
 0d6b3bbe57f1a2be3c9e9b51422eeaa9aa2e2ede	65	IPA binary __TEXT,__ustring: the same host step-2 ramp of 16-bit codes as the macOS row above, at the extent the IPA's layout gives
 a00df7eb5170a37ae3f08958cd4b5bbf508fea9b	75	IPA binary, SDL 2.32.10 static: SDL_uikitevents' SDL_ASCIIKeyInfoTable (scancode, modifier pairs), equal by chance to a table of number pairs in HeartGold's overlay 7
 af8b9d6f43d1c759cbe7f83a62893f513944c844	516	macOS app, SDL 2.32.10 static (tools/ios_deps.sh macosx): SDL_mixer.c mix8, a 0..255 clamp ramp with the zeros before it; equal to the ROM JPEG code's clamp table (ov172)
+0cfe5e18fe0494e79a3e610e9c6423b50f287ea0	48	win64 bwport.exe (d4f030f63): route_test.c CatchKeys kDefault (two pointers into our own .rdata) and the 0xff fill after it, equal by chance to 48 bytes of the Black ROM file; the bytes are link addresses, so a relink moves them

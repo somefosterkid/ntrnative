@@ -1,0 +1,162 @@
+pokeplatinum-speed-spd2.patch (tools/pokeplat_gen.py applies the patches in name order): the Transitions setting's Platinum side
+(docs/speed-options.md "Platinum and HeartGold/SoulSilver"; Black's twin: port/extern/lib/gfl/src/fade.c and
+port/extern/src/system/game_event.c). Each hook asks port/game/speed_gen4.c, which reads `fadespeed` (0 = the game's, 1 = 2x,
+2 = 4x, 3 = Instant). At the default setting each hook is exactly the game's own code path, so the route chain's frames are
+unchanged.
+Fades: screen_fade.c StartScreenFade (the one entry of every fade: field, menus, apps) halves its framesPerStep, then its steps,
+once (2x) or twice (4x), or takes one step of one frame (Instant); both stay >= 1 (the asserts' own bound).
+The transition window: field_system.c HandleInputsEventsAndProcesses walks the field task chain (FieldTask->prev) each field
+frame and, while a map-change task is in it, opens libntr's SIM_SetTransition window (the game runs at 2x / 4x, its frames are
+the same). The tasks are statics of their files, so each file exports a one-line predicate that compares them:
+field_map_change.c (ChangeMap, ChangeMapSub, ChangeMapFull, MapChangeFly, MapChangeByFieldWarp, MapChangeWarp: the map changes,
+Fly, field warps, scripted map changes), field_transition.c (the fade-out-and-finish-map and start-map-and-fade-in tasks),
+unk_02056B30.c (sub_02056CFC: doors, stairs, escalators, warp tiles), pokecenter.c (the healing machine), ov5_021DFB54.c (the
+Waterfall climb). Not the new game and continue, the Underground and the Colosseum. The DS build never sees the patch.
+
+field_transition.c also carries Save speed and battle intro's hook (pokeplatinum-speed-spd3.patch: FieldTask_RunEncounterEffect
+opens and closes PortSpeed4_EncounterWindow): both insert after EncounterEffectTaskData, so the two are one hunk here.
+--- a/src/screen_fade.c
++++ b/src/screen_fade.c
+@@ -125,8 +125,11 @@
+ static ScreenFadeManager sScreenFadeManager;
+ 
++void PortSpeed4_Fade(int *steps, int *framesPerStep); // the port's Transitions setting (port/game/speed_gen4.c)
++
+ void StartScreenFade(enum FadeMode mode, enum FadeType typeMain, enum FadeType typeSub, u16 color, int steps, int framesPerStep, enum HeapID heapID)
+ {
+     GF_ASSERT(steps);
+     GF_ASSERT(framesPerStep);
++    PortSpeed4_Fade(&steps, &framesPerStep); // bw-port: Transitions (2x / 4x / Instant: fewer steps and frames, at least 1 of each)
+     GF_ASSERT(sScreenFadeManager.active == FALSE);
+ 
+--- a/src/field_system.c
++++ b/src/field_system.c
+@@ -56,4 +56,27 @@
+ void PortRoute4_Frame(FieldSystem *fieldSystem); // the port's route pilot (port/game/route_gen4.c)
+ 
++// bw-port: the Transitions setting's window (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). Each field frame the
++// field task chain is walked (FieldTask->prev, like Black's event chain); while one of the map-change tasks is in it (a door,
++// warp, Fly, a script's map change, the Waterfall climb, the Pokemon Center heal) the game runs at the Transitions speed
++// (port/game/speed_gen4.c; libntr's SIM_SetTransition). Each predicate compares a task function of its own file.
++void PortSpeed4_TransitionWindow(int on);
++BOOL PortSpeed4_IsMapChangeTask(FieldTaskFunc func);   // field_map_change.c
++BOOL PortSpeed4_IsFadeTask(FieldTaskFunc func);        // field_transition.c
++BOOL PortSpeed4_IsDoorTask(FieldTaskFunc func);        // unk_02056B30.c
++BOOL PortSpeed4_IsHealTask(FieldTaskFunc func);        // overlay006/healing_machine_animation/pokecenter.c
++BOOL PortSpeed4_IsWaterfallTask(FieldTaskFunc func);   // overlay005/ov5_021DFB54.c
++
++static void PortSpeed4_TransitionFrame(FieldSystem *fieldSystem)
++{
++    BOOL on = FALSE;
++
++    for (FieldTask *task = fieldSystem->task; task != NULL && !on; task = task->prev) {
++        on = PortSpeed4_IsMapChangeTask(task->func) || PortSpeed4_IsFadeTask(task->func) || PortSpeed4_IsDoorTask(task->func)
++            || PortSpeed4_IsHealTask(task->func) || PortSpeed4_IsWaterfallTask(task->func);
++    }
++
++    PortSpeed4_TransitionWindow(on);
++}
++
+ static BOOL InitFieldSystemContinue(ApplicationManager *appMan, int *state)
+ {
+@@ -211,4 +234,6 @@
+     }
+ 
++    PortSpeed4_TransitionFrame(fieldSystem);
++
+     if (fieldSystem->processManager->parent) {
+         ExecuteAndCleanupIfDone(&fieldSystem->processManager->parent);
+--- a/src/field_map_change.c
++++ b/src/field_map_change.c
+@@ -167,4 +167,16 @@
+ static BOOL FieldTask_StartUndergroundMapTransition(FieldTask *task, enum UGMapTransition param1);
+ 
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the map-change tasks. The new game and the
++// continue (FieldTask_LoadNewGameSpawn, FieldTask_LoadSavedGameMap), the error reload, the Underground and the Colosseum are not.
++static BOOL FieldTask_ChangeMapSub(FieldTask *task);
++static BOOL FieldTask_ChangeMapFull(FieldTask *task);
++static BOOL FieldTask_MapChangeWarp(FieldTask *task);
++
++BOOL PortSpeed4_IsMapChangeTask(FieldTaskFunc func)
++{
++    return func == FieldTask_ChangeMap || func == FieldTask_ChangeMapSub || func == FieldTask_ChangeMapFull
++        || func == FieldTask_MapChangeFly || func == FieldTask_MapChangeByFieldWarp || func == FieldTask_MapChangeWarp;
++}
++
+ static const MapLoadMode sMapLoadMode[] = {
+     { 0x1, FALSE, FALSE, 0x0, FALSE, TRUE, 0x0, 0xC4000 },
+--- a/src/field_transition.c
++++ b/src/field_transition.c
+@@ -23,4 +23,19 @@
+ } EncounterEffectTaskData;
+ 
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the fade out and finish map, start map and
++// fade in tasks every field map change runs
++static BOOL FieldTask_FadeOutAndFinishMap(FieldTask *task);
++static BOOL FieldTask_StartMapAndFadeIn(FieldTask *task);
++
++BOOL PortSpeed4_IsFadeTask(FieldTaskFunc func)
++{
++    return func == FieldTask_FadeOutAndFinishMap || func == FieldTask_StartMapAndFadeIn;
++}
++
++// bw-port: the battle intro runs at Battle speed (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): the encounter
++// effect is a task of the field overlay, so the overlay window does not cover it; port/game/speed_gen4_spd3.c opens the
++// battle window from the effect's start to its end (at the default Battle speed it does nothing).
++void PortSpeed4_EncounterWindow(int on);
++
+ static BOOL FieldTask_RunEncounterEffect(FieldTask *task)
+ {
+@@ -32,4 +47,5 @@
+         EncounterEffect_Start(data->encEffectID, fieldSystem, &data->done);
+         Sound_SetSceneAndPlayBGM(SOUND_SCENE_BATTLE, data->battleBGM, 1);
++        PortSpeed4_EncounterWindow(1);
+         data->taskState++;
+         break;
+@@ -37,4 +53,5 @@
+     case 1:
+         if (data->done == TRUE) {
++            PortSpeed4_EncounterWindow(0);
+             Heap_Free(data);
+             return TRUE;
+--- a/src/unk_02056B30.c
++++ b/src/unk_02056B30.c
+@@ -71,4 +71,11 @@
+ static void sub_02057368(FieldSystem *fieldSystem);
+ 
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the door, stairs, escalator and warp-tile
++// task (the player walks in, the fade, the map change, the walk out)
++BOOL PortSpeed4_IsDoorTask(FieldTaskFunc func)
++{
++    return func == sub_02056CFC;
++}
++
+ static const UnkFuncPtr_020EC560 Unk_020EC560[7] = {
+     sub_02056DE4,
+--- a/src/overlay006/healing_machine_animation/pokecenter.c
++++ b/src/overlay006/healing_machine_animation/pokecenter.c
+@@ -30,4 +30,10 @@
+ static BOOL FieldTask_PlayHealingAnimation_Pokecenter(FieldTask *param0);
+ 
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the Pokemon Center's healing machine
++BOOL PortSpeed4_IsHealTask(FieldTaskFunc func)
++{
++    return func == FieldTask_PlayHealingAnimation_Pokecenter;
++}
++
+ static VecFx32 PokecenterHealingAnimation_PokeballOffsets[MAX_PARTY_SIZE] = {
+     HEALING_MACHINE_ANIMATION_CREATE_POKEBALL_OFFSETS(TOP, LEFT),
+--- a/src/overlay005/ov5_021DFB54.c
++++ b/src/overlay005/ov5_021DFB54.c
+@@ -158,4 +158,11 @@
+ static WaterfallTaskEnv *WaterfallTaskEnv_New(FieldSystem *fieldSystem, int param1, const MonRideTask *monRideTask);
+ static BOOL FieldTask_UseWaterfall(FieldTask *param0);
++
++// bw-port: the Transitions window (src/field_system.c PortSpeed4_TransitionFrame): the Waterfall climb and descent
++BOOL PortSpeed4_IsWaterfallTask(FieldTaskFunc func)
++{
++    return func == FieldTask_UseWaterfall;
++}
++
+ static SysTask *ov5_021E0F54(FieldSystem *fieldSystem, u32 param1);
+ static void ov5_021E0FC0(SysTask *param0);

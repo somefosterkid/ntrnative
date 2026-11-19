@@ -14,12 +14,17 @@
 
 void BattleEvent_CallHandlers(BtlServerFlow *flow, u32 event) {
     BattleEvent_CallHandlers_game(flow, event);
-    if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
+    if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e || event == 0x80) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
         if (event == 0x4e) {   // BTL_EVENT_CALC_PP_DECREMENT (btl_server_flow.c): attacker BTL_EVAR_ATTACKER 3, amount BTL_EVAR_AMOUNT
             // 0x20: the player's moves use none, as in Black (the pilot only presses A, and the move menu refuses a move with no PP
             // left: Black 2's frigate battle hung on a lead whose first move had run dry)
             if (BattleEventVar_GetValue(3) < 12) {
                 BattleEventVar_SetValue(0x20, 0);
+            }
+        } else if (event == 0x80) {   // BTL_EVENT_CHECK_SIMPLE_DAMAGE_ENABLED: mon var 4, result var 0x51 (Magic Guard's own rewrite):
+            // the player's side takes no damage outside a hit either (burn, poison, weather, Leech Seed, recoil, Life Orb; int5 11-19)
+            if (BattleEventVar_GetValue(4) < 12) {
+                BattleEventVar_SetValue(0x51, 0);
             }
         } else if (event == 0x32) {   // CHECK_ALWAYS_HIT: attacker var 3, result flag var 0x51: the player's moves never miss
             if (BattleEventVar_GetValue(3) < 12) {

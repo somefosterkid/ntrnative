@@ -572,7 +572,7 @@ def run_leg(game, leg, args, produced, st=None, tag="", under_gdb=False):
         env["BWPORT_NOENCOUNTER"] = "1"
     cfg = []
     if args.fast_opts and "defaultopts" not in leg["flags"]:
-        cfg.append(FAST_OPTS)
+        cfg.append(FAST_OPTS + (";f0:surfspeed=4" if game in ("pt", "hg", "ss") else ""))   # Gen 4: Surf 4x too (spd4, 2026-11-19)
     if shot:
         # Max does not draw the shot frame itself (a stale picture): leave Max for the frames around the shot. Several
         # (--shot 2200,2400): route.png for one, routeN.png for each (the frames at least 9 apart: the Max steps between)

@@ -15,7 +15,9 @@ nothing unless its environment variables are set; game behaviour and the DS buil
   local struct gets MoveSelectMenuData's invalidMoves) and ov12_0225FA44 (the yes/no) call PortRoute4_BattleMenu each frame
   they wait, ov12_022609F8 (forget a move) too; the move menu's answer goes through PortRoute4_BattleMove.
 - the test cheats: battle_controller_player.c ov12_0224B1FC (PP) and BattleSystem_CheckMoveHit ask PortRoute4_CheatSide,
-  BattleControllerPlayer_HpCalc PortRoute4_CheatDamage; overlay_12_0224E4FC.c CheckSortSpeed PortRoute4_CheatSpeed;
+  BattleControllerPlayer_HpCalc PortRoute4_CheatDamage; battle_command.c BtlCmd_UpdateHealthbar and
+  BtlCmd_UpdateHealthbarValue pass hpCalc through PortRoute4_CheatHpCalc (the player's side's HP loss a script applies: burn,
+  poison, weather, Leech Seed, Curse, recoil, Spikes); overlay_12_0224E4FC.c CheckSortSpeed PortRoute4_CheatSpeed;
   field/field_control.c FieldSystem_CheckWildEncounter PortRoute4_NoEncounter.
 - script_manager.c SetupScriptEngine (every script start: StartMapSceneScript, QueueScript, StartScriptFromMenu): PortRoute4_ScriptStart(script)
   (the interaction sweep's log of the script ids a talk, a sign or a trigger tile began: tools/hg_int_sweep.py).
@@ -410,3 +412,31 @@ Handover-ID: none (port-only)
          ov01_021EE568(param);
          break;
      }
+diff --git a/src/battle/battle_command.c b/src/battle/battle_command.c
+index f0a9727..0ba3d8d 100644
+--- a/src/battle/battle_command.c
++++ b/src/battle/battle_command.c
+@@ -940,8 +940,14 @@ BOOL BtlCmd_FlickerMon(BattleSystem *battleSystem, BattleContext *ctx) {
+ }
+ 
++// bw-port: the test cheat's residual damage (port/game/route_gen4.c PortRoute4_CheatHpCalc): under BWPORT_TESTCHEAT=win an HP loss
++// of the player's side that a script applies (burn, poison, weather, Leech Seed, Curse, recoil, Spikes: not a move's hit, which
++// battle_controller_player.c's HpCalc already zeroes) is made 0, in the gauge and in the value. Without the cheat it is the game's.
++int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc);
++
+ BOOL BtlCmd_UpdateHealthbarValue(BattleSystem *battleSystem, BattleContext *ctx) {
+     BattleScriptIncrementPointer(ctx, 1);
+ 
+     int battlerId = BattleSystem_GetBattlerIDBySide(battleSystem, ctx, BattleScriptReadWord(ctx));
++    ctx->hpCalc = PortRoute4_CheatHpCalc(battleSystem, battlerId, ctx->hpCalc);
+ 
+     if ((ctx->battleMons[battlerId].hp + ctx->hpCalc) <= 0) {
+@@ -971,5 +977,7 @@ BOOL BtlCmd_UpdateHealthbar(BattleSystem *battleSystem, BattleContext *ctx) {
+     BattleScriptIncrementPointer(ctx, 1);
+ 
+-    BattleController_EmitUpdateHPGauge(battleSystem, ctx, BattleSystem_GetBattlerIDBySide(battleSystem, ctx, BattleScriptReadWord(ctx)));
++    int battlerId = BattleSystem_GetBattlerIDBySide(battleSystem, ctx, BattleScriptReadWord(ctx));
++    ctx->hpCalc = PortRoute4_CheatHpCalc(battleSystem, battlerId, ctx->hpCalc);
++    BattleController_EmitUpdateHPGauge(battleSystem, ctx, battlerId);
+ 
+     return FALSE;

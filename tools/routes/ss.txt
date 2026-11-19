@@ -19,7 +19,8 @@ lab-out | ss-aide | Pa G:warp:60 Wf:30 S | zone 60 685,396 | ss-town2
 # pokegear (hgr3): as tools/routes/hg.txt's leg of the same name (read its comment); SoulSilver plays it with the same keys and frames.
 pokegear | ss-town2 | Pa G:warp:63 Wf:20 G:npc:0 Wf:30 S | zone 63 5,7 | ss-gear2
 # west (hgr3): as tools/routes/hg.txt's leg of the same name (read its comment); SoulSilver plays it with the same keys and frames.
-west | ss-gear2 | Pa G:3,10 KD:16 Wf:20 KD:16 Wf:10 G:trig:0 Wf:30 S | zone 60 676,400 | ss-town3
+# west: defaultopts (spd2, 2026-11-19): as hg's west (its KD taps are timed for the game's own door and fade frames).
+west | ss-gear2 | Pa G:3,10 KD:16 Wf:20 KD:16 Wf:10 G:trig:0 Wf:30 S | zone 60 676,400 | ss-town3 | defaultopts
 # r29-in (hgr3): as tools/routes/hg.txt's leg of the same name (read its comment); SoulSilver plays it with the same keys and frames.
 r29-in | ss-town3 | Pa G:warp:33 Wf:30 S | zone 33 671,400 | ss-r29
 # cherry (hgr3): as tools/routes/hg.txt's leg of the same name (read its comment); SoulSilver plays it with the same keys and frames.
@@ -107,7 +108,10 @@ r34-daycare | ss-ilexnorth | Pa To:30000 G:warp:38 Wf:30 G:372,440 G:372,425 G:3
 # r34-gold (hgr10): from below the day care door north through the route's west lane into Goldenrod City (zone 76); the city's fly point flag is set on arrival.
 r34-gold | ss-r34out | Pa To:30000 G:365,408 G:364,398 G:360,386 G:360,376 G:360,368 Wf:30 S | zone 76 360,368 | ss-r34gold
 # radio-card (hgr10): the clerk's quiz at the counter (13,12: stand at 13,10 and face down, the counter between). Its answers are the touch-screen yes/no (ScrCmd_GetMenuChoice: overlay 27's choice app): Py / Pn answer it since route_gen4.c publishes the app's state 4 and cursor row (Pr4_TouchYesNo). The script's right answers: the start Yes, then Yes Yes No Yes No; a win sets the radio card flag and hides the woman at the gym door.
-radio-card | ss-r34gold | Pa To:30000 G:warp:112 Wf:30 G:13,10 KD:6 Wf:20 Ka:5 Py Py Py Pn Py Pn Pa Wf:100 S | zone 112 13,9 | ss-radiocard
+# radio-card: defaultopts (spd1, 2026-11-19): with Text speed Instant (route.py's FAST_OPTS) each quiz question's text is done
+# at once and the yes/no list opens before Py sees it; the pulse A (Pa) answers one question Yes by itself, the quiz goes
+# wrong and Py hangs. A pilot race, not a game bug: Py should stop the pulse while it waits for its list.
+radio-card | ss-r34gold | Pa To:30000 G:warp:112 Wf:30 G:13,10 KD:6 Wf:20 Ka:5 Py Py Py Pn Py Pn Pa Wf:100 S | zone 112 13,9 | ss-radiocard | defaultopts
 # gold-gym (hgr10): the gym has two floors (decks at 3 tiles, ramps, bridge cells whose lower floor leads to the leader: the planner sees only the floor the player stands on, so the walk goes in hops, one floor each). G:12,10 = ramp up to the deck and along it; G:22,11 over the bridge cells; G:26,12 down the east ramp; G:19,13 along the lower corridors; G:10,15 lures the lass on the chokepoint row (z 15) west (a battle), G:14,17 goes round by the south to the east side of the chokepoint, G:13,15 then KU walks the corridor under the deck to the trigger tile 13,11 (inactive before the win); G:npc:0 is the leader's talk and battle.
 gold-gym | ss-radiocard | Pa To:30000 G:warp:76 Wf:30 G:warp:137 Wf:30 G:12,10 G:22,11 G:26,12 G:19,13 G:10,15 G:14,17 G:14,15 G:13,15 KU:30 Wf:10 G:npc:0 Wf:30 S | zone 137 13,5 | ss-whitney
 # gold-badge (hgr10): after the win the trigger tile 13,11 (var 0x410a = 1) runs the lass's scene (the flag the leader's talk checks), then the leader's second talk gives the badge and a TM.
