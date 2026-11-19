@@ -1,0 +1,31 @@
+	.include "macros.inc"
+	.include "overlay_85.inc"
+	.include "global.inc"
+
+	.public ov85_021E6DF0
+	.public ov85_021E6DFC
+	.public ov85_021E6E08
+	.public ov85_021E6EA8
+	.public ov85_021E7044
+	.public ov85_021E7644
+	.public ov85_021E78A4
+	.public ov85_021E7D78
+	.public ov85_021E7DA8
+	.public ov85_021EA4F0
+	.public ov85_021EA528
+	.public ov85_021EA758
+	.public ov85_021EA8D8
+	.public ov85_021EA8E0
+	.public ov85_021EA8EA
+	.public ov85_021EA8EB
+	.public ov85_021EA8F4
+	.public ov85_021EA904
+	.public ov85_021EA914
+	.public ov85_021EA92C
+	.public ov85_021EA948
+	.public ov85_021EA964
+	.public ov85_021EA980
+	.public ov85_021EA99C
+	.public ov85_021EA9E0
+	.public ov85_021E84A4
+	.text

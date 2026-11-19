@@ -1,0 +1,8 @@
+# game: platinum
+# from: pt-cel24
+# reaches: the Pokemon Center PC's own script (CommonScript_PC, id 2018: BWPORT_PT_SCRIPT starts it at the first free field frame from f1700, after BWPORT_PT_WARP's warp into the Jubilife pokecenter, whose map has the PC prop the script's boot-up animation needs; V-blank ~1748): a press every 40 frames through the booted-up message, the PC menu, the storage message, then the storage menu entry (deposit) opens the box app (ov019, ~f2260); a few presses in the app, B out
+# end: f3500
+env BWPORT_PT_WARP=6:8:12 BWPORT_PT_SCRIPT=2018:1700
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys a*f4@f1900 a*f4@f1940 a*f4@f1980 a*f4@f2020 a*f4@f2060 a*f4@f2100 a*f4@f2140 a*f4@f2180 a*f4@f2220 
+keys a*f4@f2400 right*f4@f2500 a*f4@f2600 b*f4@f2700 b*f4@f2800 b*f4@f2900 b*f4@f3000 b*f4@f3100 b*f4@f3200 b*f4@f3300

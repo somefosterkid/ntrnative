@@ -1,0 +1,26 @@
+pokebw2-tcbslot.patch (tools/pokebw2_fetch.sh, the maintainers' notes): GFL_TCBExMgrCreate's per-task data slot is the
+caller's DS number (32 for the game clear save's manager); a task's work that fits in the slot lives in the manager's
+pool and is never freed, a bigger one is a heap block freed when the task ends. The hourglass (WaitIcon, 0x1c on the
+DS, 0x2c here) fit on the DS and went to the heap here; GameClearSave_Main calls WaitIcon_Main on it after WaitIcon_Free
+ended its task (harmless on the DS: the pool slot keeps active FALSE), and on a PC the freed block had been taken by
+the message's string: SIGSEGV in BmpWin_GetBitmap <- WaitIcon_Main <- GameClearSave_Main after the Hall of Fame. The
+slot now scales by the pointer size (x1 on the DS, the same code; x2 here, as the heaps are), so a work that lived in
+the pool on the DS does here too. Black's lib/gfl tcbl.c has the same line.
+
+diff --git a/src/gfl/tcbl.c b/src/gfl/tcbl.c
+index c1f5ecef2..42a423713 100644
+--- a/src/gfl/tcbl.c
++++ b/src/gfl/tcbl.c
+@@ -107,6 +107,12 @@ static void GFL_TCBExMgrInitTasks(TCBExManager *manager) {
+ TCBExManager *GFL_TCBExMgrCreate(HeapID heapId, HeapID dataHeapId, u32 count, u32 dataSize) {
+     TCBExManager *manager = GFL_HeapAllocate(heapId, sizeof(TCBExManager), FALSE, "tcbl.c", 199);
+ 
++    // The callers give each task's data slot its DS size: a work that fits in the slot lives in the pool and is never
++    // freed, one that does not is a heap block freed with the task. With pointers twice as wide a work that fit on the
++    // DS outgrew its slot here and went to the heap, and the game's reads of it after its task ended (the hourglass of
++    // the game clear save, WaitIcon_Main after WaitIcon_Free) read a freed block another allocation had taken. The slot
++    // scales by the pointer size, like the heaps: 1 on the DS (the same code)
++    dataSize *= sizeof(void *) / 4;
+     manager->count = count;
+     manager->dataSize = dataSize;
+     manager->dataHeapId = dataHeapId;

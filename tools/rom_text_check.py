@@ -38,7 +38,7 @@ happens to be in the game.
     python3 tools/rom_text_check.py PATH...            # files or directories (git-tracked files under them)
     git log -p main..HEAD | python3 tools/rom_text_check.py --stdin    # a stream (history), reported by line
     python3 tools/rom_text_check.py --rom FILE PATH... # these ROMs only (repeatable); the default is every ROM of
-                                                       # ROMS (orig/baserom_{plat,b,w,b2,w2}_us.nds) that exists
+                                                       # ROMS (orig/baserom_{plat,b,w,b2,w2,hg,ss}_us.nds) that exists
 
 Exit 1 when something is found; 2 when no ROM was found (nothing to compare with).
 """
@@ -54,11 +54,12 @@ import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOW = os.path.join(ROOT, 'tools/rom_text_allow.txt')
-ROMS = ['orig/baserom_%s_us.nds' % g for g in ('plat', 'b', 'w', 'b2', 'w2')]
+ROMS = ['orig/baserom_%s_us.nds' % g for g in ('plat', 'b', 'w', 'b2', 'w2', 'hg', 'ss')]
 RUN = 4
 LONG = 6       # a stretch of this many words always counts
 COVER = 0.6    # a shorter one must be this share of the prose words of its lines
 GEN5_NARCS = ('a/0/0/2', 'a/0/0/3')
+HGSS_NARCS = ('a/0/2/7',)
 COMMON = frozenset("""
 a an the and or but nor so if then else than that this these those there here of to in on at by for from with without
 into onto over under about as up down out off is are was were be been being am do does did done have has had having
@@ -220,14 +221,22 @@ def h(words):
     return hashlib.blake2b(' '.join(words).encode(), digest_size=8).digest()
 
 
-def rom_banks(rom):
-    """(gen, [bank]) of an NDS image: the message files of Gen 5 (a/0/0/2, a/0/0/3) when it has them, else the Gen 4
-    banks under msgdata/."""
-    files = nds_files(rom)
+def message_paths(code, files):
+    """(gen, the NARCs holding the messages) of a ROM by its game code's first 3 letters and its file names: HeartGold /
+    SoulSilver's Gen 4 banks are a/0/2/7 (they too have an a/0/0/2 and a/0/0/3, not text); else Gen 5's (a/0/0/2,
+    a/0/0/3) when it has them, else the Gen 4 banks under msgdata/ (Diamond, Pearl, Platinum)."""
+    if code in (b'IPK', b'IPG'):
+        return 4, [p for p in HGSS_NARCS if p in files]
     gen5 = [p for p in GEN5_NARCS if p in files]
-    paths = gen5 or [p for p in sorted(files) if p.startswith('msgdata/')]
-    return (5 if gen5 else 4), [b for p in paths if rom[files[p][0]:files[p][0] + 4] == b'NARC'
-                                for b in narc_members(rom[files[p][0]:files[p][1]])]
+    return (5, gen5) if gen5 else (4, [p for p in sorted(files) if p.startswith('msgdata/')])
+
+
+def rom_banks(rom):
+    """(gen, [bank]) of an NDS image (message_paths)."""
+    files = nds_files(rom)
+    gen, paths = message_paths(bytes(rom[0xC:0xF]), files)
+    return gen, [b for p in paths if rom[files[p][0]:files[p][0] + 4] == b'NARC'
+                 for b in narc_members(rom[files[p][0]:files[p][1]])]
 
 
 def rom_index(rom_path, idx=None):

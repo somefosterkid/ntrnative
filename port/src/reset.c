@@ -9,6 +9,9 @@
 //   shows the library (android_main.c bwport_android_leave); an old-layout run: a message box and the app ends (the maintainer opens it again; the save is on disk already;
 //   an exec of /proc/self/exe would start the app's zygote binary, not the game).
 // Android gets the in-process restart when its link has the machine's ranges (the maintainers' notes, owed).
+// The log names the game function that reset: GameSystem_End is the end of the game system proc, which on Black and
+// White comes after the credits' last screen (EventGameClear's state 13 stops the game system: the DS resets to the
+// title there too, and CONTINUE starts in the hero's room); delete_save.c's is the save deletion, and so on.
 #define BWPORT_PORT_RUNTIME_IMPL
 #include <nitro.h>
 #include <stdio.h>
@@ -18,9 +21,9 @@
 #include <SDL2/SDL.h>
 #endif
 
-void PORT_ResetSystem(u32 parameter) {
+void PORT_ResetSystem(u32 parameter, const char *caller) {
     (void)parameter;
-    fprintf(stderr, "bwport: the game reset the system: starting again\n");
+    fprintf(stderr, "bwport: the game reset the system (from %s): starting again\n", caller ? caller : "?");
     fflush(NULL);
 #if defined(__ANDROID__)
     {

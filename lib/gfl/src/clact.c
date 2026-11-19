@@ -218,15 +218,6 @@ struct ClActor {
     ClActAnim anim;
 };
 
-// What the renderers pass the culling callback of a surface for each OAM, which sets skip when it is out of view
-// Black 2's, not checked against Black
-typedef struct {
-    u8 unk0[0x30];
-    BOOL skip;
-    u32 unk34;
-    GXOamAttr oam;
-} ClActDrawState;
-
 void func_0204c944(ClActUnit *unit);
 
 static ClActSys *g_ClActSys;
@@ -261,7 +252,7 @@ static BOOL func_0204c060(const NNSG2dCellData *cell, const MtxFx32 *mtx, const 
 static BOOL func_0204c214(const NNSG2dCellData *cell, const MtxFx32 *mtx, const NNSG2dViewRect *view);
 static BOOL func_0204c3cc(fx32 posX, fx32 posY, fx32 left, fx32 right, fx32 top, fx32 bottom, const MtxFx32 *mtx,
                           const NNSG2dViewRect *view);
-static void func_0204c2c8(ClActDrawState *state, NNSG2dViewRect *view, u32 a2, u32 a3, const MtxFx32 *mtx);
+static void func_0204c2c8(NNSG2dRendererInstance *rend, NNSG2dViewRect *view, u32 a2, u32 a3, const MtxFx32 *mtx);
 static void func_0204c660(ClActTransfer *transfer, u8 count, HeapID heapId);
 static void func_0204c6e4(ClActTransfer *transfer);
 static void func_0204c718(ClActTransfer *transfer, u32 count, HeapID heapId);
@@ -1528,9 +1519,11 @@ static inline s16 ClAct_WrapOamY(s16 y) {
     return y;
 }
 
-// Called by the renderers before each OAM: skips one that is out of view
-static void func_0204c2c8(ClActDrawState *state, NNSG2dViewRect *view, u32 a2, u32 a3, const MtxFx32 *mtx) {
-    GXOamAttr *oam = &state->oam;
+// The surface's callback before each OAM (NNSG2dRndDrawOamCallBack: the renderer, its surface, whose view rect it
+// starts with): skips the OAM, through the core's bDrawEnable, when it is out of view. The renderer's own fields, not
+// a DS-offset overlay of it: on a 64-bit host the core's 0x30 is pFuncOamRegister, not bDrawEnable
+static void func_0204c2c8(NNSG2dRendererInstance *rend, NNSG2dViewRect *view, u32 a2, u32 a3, const MtxFx32 *mtx) {
+    GXOamAttr *oam = &rend->rendererCore.currentOam;
     GXOamShape shape = oam->attr01 & (GX_OAM_ATTR01_SHAPE_MASK | GX_OAM_ATTR01_SIZE_MASK);
     fx32 left = ClAct_WrapOamX(oam->x) << FX32_SHIFT;
     fx32 right = (ClAct_WrapOamX(oam->x) + NNS_G2dGetOamSizeX(&shape)) << FX32_SHIFT;
@@ -1539,9 +1532,9 @@ static void func_0204c2c8(ClActDrawState *state, NNSG2dViewRect *view, u32 a2, u
 
     if (func_0204c3cc(mtx->_20 - view->posTopLeft.x, mtx->_21 - view->posTopLeft.y, left, right, top, bottom, mtx,
                       view)) {
-        state->skip = TRUE;
+        rend->rendererCore.bDrawEnable = TRUE;
     } else {
-        state->skip = FALSE;
+        rend->rendererCore.bDrawEnable = FALSE;
     }
 }
 

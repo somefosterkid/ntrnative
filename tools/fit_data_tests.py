@@ -6,7 +6,8 @@ words Black has no relocation for, .rodata/.data that only dropped code reaches,
 
     python3 tools/fit_data_tests.py        # prints "ok" per test, exits 1 on a failure
 
-The tree's tests need the build (build/b_us); they change nothing.
+The tree's tests need the build (build/b_us), the ROM's extract (extract/b_us) and build/twins_b_us.tsv, and print
+"skip" without them; they change nothing.
 """
 import os
 import sys
@@ -16,6 +17,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fit_data as fd  # noqa: E402
 
 _ranges = []
+
+
+class Skip(Exception):
+    """a test whose data (the ROM's extract, the build) is not on this machine"""
+
+
+def need_tree():
+    for path, what in ((f"{fd.ROOT}/build/twins_b_us.tsv", "build/twins_b_us.tsv"),
+                       (f"{fd.ROOT}/extract/b_us/arm9", "extract/b_us (the ROM's extract)"),
+                       (f"{fd.ROOT}/build/b_us", "build/b_us (the build)")):
+        if not os.path.exists(path):
+            raise Skip(f"no {what}")
 
 
 def ranges():
@@ -107,6 +120,7 @@ def test_the_inner_symbols_hook_gives_back_what_it_wrote():
 
 def fitted(dest):
     """fit() of a file of the tree, dry: (its ranges, the new ones), after checking nothing stops it."""
+    need_tree()
     r = ranges()
     mod = next(m for m, (_, files) in r.delinks.items() if files.get(dest))
     old = r.delinks[mod][1][dest]
@@ -142,8 +156,10 @@ def test_tree_words_black_has_no_relocation_for():
 
 def test_tree_data_only_dropped_code_reaches_goes():
     # mb_wm_base.c's bss_fill of MBi_ScanUnlock (only the dropped MB_StartChild calls it): "no relocation reaches
-    # it, and its bytes are at 0 places"; dwc_mov_wh.c's .data of the dropped ChildConnectAuto chain
-    for dest in ("lib/nitro/src/mb/mb_wm_base.c", "lib/dwcutil/src/dwc_mov_wh.c", "lib/nnsys/src/snd/sndarc_stream.c"):
+    # it, and its bytes are at 0 places"; dwc_mov_wh.c's .data of the dropped ChildConnectAuto chain. (lib/nnsys's
+    # sndarc_stream.c was a third until it was re-ported from pokebw2: with a stream of its own over memory its
+    # object has code Black's file lacks, and fit() rightly stops at "functions not where Black has them")
+    for dest in ("lib/nitro/src/mb/mb_wm_base.c", "lib/dwcutil/src/dwc_mov_wh.c"):
         old, found = fitted(dest)
         assert found == old, (dest, found, old)
 
@@ -204,6 +220,8 @@ def main():
             try:
                 fn()
                 print("ok", name)
+            except Skip as e:
+                print("skip", name, e)
             except Exception as e:  # noqa: BLE001
                 bad += 1
                 print("FAIL", name, type(e).__name__, e)

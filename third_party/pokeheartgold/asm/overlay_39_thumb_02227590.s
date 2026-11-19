@@ -1,0 +1,33 @@
+#include "config.h"
+	.include "macros.inc"
+	.include "overlay_39_thumb.inc"
+	.include "global.inc"
+
+	.public ov39_022278D4
+	.public ov39_02227A5C
+	.public ov39_02227D50
+	.public ov39_02227D5C
+	.public ov39_02227DB8
+	.public ov39_02227DEC
+	.public ov39_02227E3C
+	.public ov39_02228BAC
+	.public ov39_02228C78
+	.public ov39_02228D0C
+	.public ov39_02228D90
+	.public ov39_02228DA0
+	.public ov39_02228E54
+	.public ov39_02228EA4
+	.public ov39_02228EC8
+	.public ov39_02228F18
+	.public ov39_02228F54
+	.public ov39_02228FC8
+	.public ov39_0222908C
+	.public ov39_022290A4
+	.public ov39_0222915C
+	.public ov39_02229224
+	.public ov39_02227060
+	.public ov39_02227088
+	.public ov39_02227188
+	.public ov39_022271A4
+	.public ov39_022271CC
+	.text

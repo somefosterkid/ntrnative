@@ -24,6 +24,11 @@ typedef NNSG2dAnimBankData NNSG2dMultiCellAnimBankData;
 #ifndef NNS_G2D_1D_MAPPING_CHAR_SIZE
 #define NNS_G2D_1D_MAPPING_CHAR_SIZE ((u16)0xFFFF)
 #endif
+// the shift of the VRAM-transfer flag in NNSG2dCharacterData::characterFmt (071126's g2d_Load.h; Platinum's char_transfer.c
+// has the same test as CHAR_TRANSFER_SHIFT 8)
+#define NNS_G2D_VRAMTRANSFERDATA_FLAG_SHIFT 8
+// 071126 pops one matrix with no count; lib/nnsys (Black's NitroSystem) takes a count it ignores
+#define NNS_G2dPopMtx() NNS_G2dPopMtx(1)
 
 // g3d: the kernel's key types (071126 has its own names for gfd's)
 typedef NNSGfdTexKey NNSG3dTexKey;
@@ -42,5 +47,12 @@ typedef NNSGfdPlttKey NNSG3dPlttKey;
 #ifndef NNS_SND_WAVEOUT_INVALID_HANDLE
 #define NNS_SND_WAVEOUT_INVALID_HANDLE NULL
 #endif
+// NitroSystem's that the Gen 4 games call and Black doesn't: lib/nnsys defines them outside the DS build (snd_heap.c,
+// player.c, nns_snd_main.c: #ifndef __MWERKS__), not in nnsys/snd.h, so HeartGold's sound.c and the sound setup declared
+// them implicitly (an int return)
+u32 NNS_SndHeapGetSize(NNSSndHeapHandle heap);
+u32 NNS_SndHeapGetFreeSize(NNSSndHeapHandle heap);
+void NNS_SndPlayerSetTrackAllocatableChannel(NNSSndHandle *handle, u32 trackBitMask, u32 chBitFlag);
+BOOL NNS_SndReadDriverChannelInfo(int chNo, SNDChannelInfo *chInfo);
 
 #endif // BWPORT_NNSYS_GEN4_H

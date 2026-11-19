@@ -1,0 +1,12 @@
+	.include "macros.inc"
+	.include "unk_02034354.inc"
+	.include "global.inc"
+
+	.public sub_020346E8
+	.text
+
+	.bss
+
+	.global _021D4130
+_021D4130:
+	.space 0x4

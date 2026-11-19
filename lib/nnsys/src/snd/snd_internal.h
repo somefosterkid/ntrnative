@@ -18,27 +18,6 @@ typedef struct NNSSndHeap {
     NNSFndList sectionList;
 } NNSSndHeap;
 
-// A stream (snd_stream.c). Its buffer is split into one part per channel, each played in a loop in interval blocks of
-// chBufLen / interval bytes; curBuffer is the block the callback fills next
-typedef struct NNSSndStrm {
-    NNSFndLink link;
-    PMSleepCallbackInfo preSleepInfo;
-    PMSleepCallbackInfo postSleepInfo;
-    NNSSndStrmFormat format;
-    BOOL activeFlag : 1;
-    BOOL startFlag : 1;
-    u32 chBufLen;
-    int interval;
-    NNSSndStrmCallback callback;
-    void *callbackArg;
-    int curBuffer;
-    int volume;
-    int alarmNo;
-    u32 chBitMask;
-    int numChannels;
-    u8 channelNo[NNS_SND_STRM_CHANNEL_MAX];
-} NNSSndStrm;
-
 // The sound archive's tables (snd_arc.c), which nnsys/snd.h's NNSSndArc points to. A file of the table records where
 // the file was loaded, else NULL
 typedef struct NNSSndArcOffsetTable {
@@ -216,7 +195,7 @@ typedef struct CaptureParam {
     u32 chBitMask;
     u32 capBitMask;
     int alarmNo;
-    void *callback;
+    NNSSndCaptureEffectCallback callback;
     void *arg;
     int interval;
     NNSSndFader fader;

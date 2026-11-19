@@ -1,0 +1,36 @@
+	.include "macros.inc"
+	.include "overlay_86.inc"
+	.include "global.inc"
+
+	.public ov86_021E5E98
+	.public ov86_021E5ECC
+	.public ov86_021E5F58
+	.public ov86_021E60B8
+	.public ov86_021E6E30
+	.public ov86_021E6E98
+	.public ov86_021E6FF4
+	.public ov86_021E703C
+	.public ov86_021E7094
+	.public ov86_021E71C0
+	.public ov86_021E71FC
+	.public ov86_021E720C
+	.public ov86_021E7258
+	.public ov86_021E73E8
+	.public ov86_021E7678
+	.public ov86_021E7680
+	.public ov86_021E7710
+	.public ov86_021E78A8
+	.public ov86_021E78B0
+	.public ov86_021E7984
+	.public ov86_021E7B54
+	.public ov86_021E7DF8
+	.public ov86_021E7E40
+	.public ov86_021E7E68
+	.public ov86_021E7E90
+	.public _021E7E98
+	.public ov86_021E7EC8
+	.public ov86_021E7F04
+	.public ov86_021E7F20
+	.public ov86_021E7F3C
+	.public ov86_021E7F58
+	.text

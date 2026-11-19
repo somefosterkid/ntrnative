@@ -11,6 +11,7 @@ import contextlib
 import io
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,11 +49,26 @@ def test_shared_address_takes_the_overlay_the_caller_is_laid_out_on():
 
 
 def test_the_module_s_relocations_come_first():
-    # ov207 is laid out on ov094 on ov093, but its relocations reach ov206 four times at ov206-only addresses
+    # ov207 is laid out on ov094 on ov093, but its relocations reach ov206 at ov206-only addresses. Its calls to
+    # 0x021ba534 were module:overlays(93,206) until inner_symbols.py --apply named them overlay(206), so
+    # the address is no longer shared in the tree's relocs.txt: put the ambiguity back in a copy of the module's
+    # relocs.txt (the module's directory is looked up through fu.module_dir), and the pick must still be ov206's
     src = next(l[:-1] for l in (ROOT / "config/b_us/arm9/overlays/ov207/delinks.txt").read_text().splitlines()
                if l.endswith(".c:"))
     assert 93 in fu.ancestors(207)
-    assert pick("func_ov093_021ba534", src) == "func_ov206_021ba534"
+    real = fu.module_dir
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp) / "ov207"
+        d.mkdir()
+        text = (real(src) / "relocs.txt").read_text()
+        shared = text.replace("to:0x021ba534 module:overlay(206)", "to:0x021ba534 module:overlays(93,206)")
+        assert shared.count("to:0x021ba534 module:overlays(93,206)") >= 1, "ov207 no longer calls 0x021ba534"
+        (d / "relocs.txt").write_text(shared)
+        fu.module_dir = lambda s: d
+        try:
+            assert pick("func_ov093_021ba534", src) == "func_ov206_021ba534"
+        finally:
+            fu.module_dir = real
 
 
 def main():

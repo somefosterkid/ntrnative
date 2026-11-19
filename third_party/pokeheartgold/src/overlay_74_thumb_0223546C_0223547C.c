@@ -1,0 +1,785 @@
+#include "global.h"
+#include "overlay_74_main_menu_util.h"
+#include "sprite_resources_header.h"
+#include "bg_window.h"
+#include "save.h"
+#include "pm_string.h"
+#include "filesystem.h"
+#include "font_types_def.h"
+#include "pokemon_types_def.h"
+#include "mystery_gift.h"
+#include "sprite.h"
+#include "overlay_41_sprite_resource_collection.h"
+#include "overlay_manager.h"
+#include "message_format.h"
+#include "gf_gfx_planes.h"
+#include "filesystem_files_def.h"
+#include "font.h"
+#include "msgdata.h"
+#include "struct_defs/resdat_narc_structs.h"
+
+struct OverlayManager;
+
+struct MainMenuUtilManager;
+
+struct MainMenuWindow;
+
+struct MessageBank;
+
+struct MsgData;
+
+struct Pokemon;
+
+struct PokepicTemplate;
+
+struct Sprite;
+
+struct String;
+
+struct MessageFormat;
+
+struct StringTemplateArg;
+
+struct Window;
+
+struct WonderCard;
+
+enum FadeType {
+    FADE_TYPE_BRIGHTNESS_OUT = 0,
+    FADE_TYPE_BRIGHTNESS_IN = 1,
+    FADE_TYPE_DOWNWARD_OUT = 2,
+    FADE_TYPE_DOWNWARD_IN = 3,
+    FADE_TYPE_UPWARD_OUT = 4,
+    FADE_TYPE_UNK_5 = 5,
+    FADE_TYPE_UNK_6 = 6,
+    FADE_TYPE_UNK_7 = 7,
+    FADE_TYPE_UNK_8 = 8,
+    FADE_TYPE_UNK_9 = 9,
+    FADE_TYPE_UNK_10 = 10,
+    FADE_TYPE_UNK_11 = 11,
+    FADE_TYPE_UNK_12 = 12,
+    FADE_TYPE_UNK_13 = 13,
+    FADE_TYPE_UNK_14 = 14,
+    FADE_TYPE_UNK_15 = 15,
+    FADE_TYPE_CIRCLE_OUT = 16,
+    FADE_TYPE_CIRCLE_IN = 17,
+    FADE_TYPE_TOP_HALF_CIRCLE_OUT = 18,
+    FADE_TYPE_TOP_HALF_CIRCLE_IN = 19,
+    FADE_TYPE_UNK_20 = 20,
+    FADE_TYPE_UNK_21 = 21,
+    FADE_TYPE_UNK_22 = 22,
+    FADE_TYPE_UNK_23 = 23,
+    FADE_TYPE_UNK_24 = 24,
+    FADE_TYPE_UNK_25 = 25,
+    FADE_TYPE_UNK_26 = 26,
+    FADE_TYPE_UNK_27 = 27,
+    FADE_TYPE_UNK_28 = 28,
+    FADE_TYPE_UNK_29 = 29,
+    FADE_TYPE_UNK_30 = 30,
+    FADE_TYPE_UNK_31 = 31,
+    FADE_TYPE_UNK_32 = 32,
+    FADE_TYPE_UNK_33 = 33,
+    FADE_TYPE_UNK_34 = 34,
+    FADE_TYPE_UNK_35 = 35,
+    FADE_TYPE_UNK_36 = 36,
+    FADE_TYPE_UNK_37 = 37,
+    FADE_TYPE_UNK_38 = 38,
+    FADE_TYPE_UNK_39 = 39,
+    FADE_TYPE_CLAMP_OUT = 40,
+    FADE_TYPE_CLAMP_IN = 41,
+    FADE_TYPE_MAX = 42,
+};
+
+enum HeapSize {
+    HEAP_SIZE_SYSTEM = 0xD200,
+    HEAP_SIZE_SAVE = 0x20E00,
+    HEAP_SIZE_DEBUG = 0x10,
+    HEAP_SIZE_APPLICATION = 0x10D800,
+
+    HEAP_SIZE_BATTLE_HALL_APP = 0x20000,
+    HEAP_SIZE_BATTLE_FACTORY_APP = 0x20000,
+    HEAP_SIZE_BATTLE_ARCADE_APP = 0x20000,
+    HEAP_SIZE_FRONTIER_RECORDS_APP = 0x20000,
+    HEAP_SIZE_BAG = 0x30000,
+
+    HEAP_SIZE_PRE_POKETCH_SUBSCREEN = 0x18000,
+    HEAP_SIZE_POKETCH_MAIN = 0xC000,
+    HEAP_SIZE_POKETCH_APP = 0xC000,
+    HEAP_SIZE_BOX_DATA = 0x4000,
+    HEAP_SIZE_BOX_GRAPHICS = 0x3C000,
+
+    HEAP_SIZE_FIELD1 = 0x20000,
+    HEAP_SIZE_FIELD2 = 0x1C000,
+    HEAP_SIZE_FIELD3 = 0x4000,
+
+    HEAP_SIZE_TOWN_MAP = 0x20000,
+
+    HEAP_SIZE_EGG_HATCH = 0x40000,
+    HEAP_SIZE_CHOOSE_STARTER_APP = 0x40000,
+    HEAP_SIZE_LIBRARY_TV = 0x40000,
+    HEAP_SIZE_TRAINER_CASE = 0x28000,
+    HEAP_SIZE_MINING = 0x50000,
+    HEAP_SIZE_DISTORTION_WORLD_WARP = 0x50000,
+    HEAP_SIZE_UNDERGROUND = 0xE800,
+    HEAP_SIZE_DRAWING = 0x40000,
+    HEAP_SIZE_MAIL = 0x1000,
+    HEAP_SIZE_MAIL_VIEWER = 0x20000,
+    HEAP_SIZE_BOAT_CUTSCENE = 0x20000,
+    HEAP_SIZE_EVOLUTION = 0x30000,
+    HEAP_SIZE_GAME_START = 0x20000,
+    HEAP_SIZE_RECORD_LIST = 0x6000,
+    HEAP_SIZE_MAIN_MENU = 0x40000,
+    HEAP_SIZE_MIGRATE_FROM_GBA = 0x38000,
+    HEAP_SIZE_RANGER_LINK = 0x20000,
+    HEAP_SIZE_MYSTERY_GIFT_APP = 0x30000,
+    HEAP_SIZE_WONDER_CARDS_APP = 0x30000,
+    HEAP_SIZE_NETWORK_ICON = 0x300,
+};
+
+void FillWindowPixelBuffer(Window *window, u8 val);
+
+u8 GetWindowWidth(Window *window);
+
+void String_Delete(String *string);
+
+enum FontAttribute {
+    FONTATTR_MAX_LETTER_WIDTH = 0,
+    FONTATTR_MAX_LETTER_HEIGHT,
+    FONTATTR_LETTER_SPACING,
+    FONTATTR_LINE_SPACING,
+    FONTATTR_DUMMY,
+    FONTATTR_FG_COLOR,
+    FONTATTR_BG_COLOR,
+    FONTATTR_SHADOW_COLOR,
+};
+
+u8 GetFontAttribute(u8 font, u8 attribute);
+
+typedef u32 TextColor;
+
+u8 AddTextPrinterParameterizedWithColor(Window *window, u32 fontID, const String *string, u32 xOffset, u32 yOffset, u32 renderDelay, TextColor color, PrinterCallback_t callback);
+
+typedef struct MessageBank MessageBank;
+
+void DestroyMsgData(MsgData *loader);
+
+enum Species {
+    SPECIES_NONE = 0,
+    SPECIES_BULBASAUR = 1,
+    SPECIES_IVYSAUR = 2,
+    SPECIES_VENUSAUR = 3,
+    SPECIES_CHARMANDER = 4,
+    SPECIES_CHARMELEON = 5,
+    SPECIES_CHARIZARD = 6,
+    SPECIES_SQUIRTLE = 7,
+    SPECIES_WARTORTLE = 8,
+    SPECIES_BLASTOISE = 9,
+    SPECIES_CATERPIE = 10,
+    SPECIES_METAPOD = 11,
+    SPECIES_BUTTERFREE = 12,
+    SPECIES_WEEDLE = 13,
+    SPECIES_KAKUNA = 14,
+    SPECIES_BEEDRILL = 15,
+    SPECIES_PIDGEY = 16,
+    SPECIES_PIDGEOTTO = 17,
+    SPECIES_PIDGEOT = 18,
+    SPECIES_RATTATA = 19,
+    SPECIES_RATICATE = 20,
+    SPECIES_SPEAROW = 21,
+    SPECIES_FEAROW = 22,
+    SPECIES_EKANS = 23,
+    SPECIES_ARBOK = 24,
+    SPECIES_PIKACHU = 25,
+    SPECIES_RAICHU = 26,
+    SPECIES_SANDSHREW = 27,
+    SPECIES_SANDSLASH = 28,
+    SPECIES_NIDORAN_F = 29,
+    SPECIES_NIDORINA = 30,
+    SPECIES_NIDOQUEEN = 31,
+    SPECIES_NIDORAN_M = 32,
+    SPECIES_NIDORINO = 33,
+    SPECIES_NIDOKING = 34,
+    SPECIES_CLEFAIRY = 35,
+    SPECIES_CLEFABLE = 36,
+    SPECIES_VULPIX = 37,
+    SPECIES_NINETALES = 38,
+    SPECIES_JIGGLYPUFF = 39,
+    SPECIES_WIGGLYTUFF = 40,
+    SPECIES_ZUBAT = 41,
+    SPECIES_GOLBAT = 42,
+    SPECIES_ODDISH = 43,
+    SPECIES_GLOOM = 44,
+    SPECIES_VILEPLUME = 45,
+    SPECIES_PARAS = 46,
+    SPECIES_PARASECT = 47,
+    SPECIES_VENONAT = 48,
+    SPECIES_VENOMOTH = 49,
+    SPECIES_DIGLETT = 50,
+    SPECIES_DUGTRIO = 51,
+    SPECIES_MEOWTH = 52,
+    SPECIES_PERSIAN = 53,
+    SPECIES_PSYDUCK = 54,
+    SPECIES_GOLDUCK = 55,
+    SPECIES_MANKEY = 56,
+    SPECIES_PRIMEAPE = 57,
+    SPECIES_GROWLITHE = 58,
+    SPECIES_ARCANINE = 59,
+    SPECIES_POLIWAG = 60,
+    SPECIES_POLIWHIRL = 61,
+    SPECIES_POLIWRATH = 62,
+    SPECIES_ABRA = 63,
+    SPECIES_KADABRA = 64,
+    SPECIES_ALAKAZAM = 65,
+    SPECIES_MACHOP = 66,
+    SPECIES_MACHOKE = 67,
+    SPECIES_MACHAMP = 68,
+    SPECIES_BELLSPROUT = 69,
+    SPECIES_WEEPINBELL = 70,
+    SPECIES_VICTREEBEL = 71,
+    SPECIES_TENTACOOL = 72,
+    SPECIES_TENTACRUEL = 73,
+    SPECIES_GEODUDE = 74,
+    SPECIES_GRAVELER = 75,
+    SPECIES_GOLEM = 76,
+    SPECIES_PONYTA = 77,
+    SPECIES_RAPIDASH = 78,
+    SPECIES_SLOWPOKE = 79,
+    SPECIES_SLOWBRO = 80,
+    SPECIES_MAGNEMITE = 81,
+    SPECIES_MAGNETON = 82,
+    SPECIES_FARFETCHD = 83,
+    SPECIES_DODUO = 84,
+    SPECIES_DODRIO = 85,
+    SPECIES_SEEL = 86,
+    SPECIES_DEWGONG = 87,
+    SPECIES_GRIMER = 88,
+    SPECIES_MUK = 89,
+    SPECIES_SHELLDER = 90,
+    SPECIES_CLOYSTER = 91,
+    SPECIES_GASTLY = 92,
+    SPECIES_HAUNTER = 93,
+    SPECIES_GENGAR = 94,
+    SPECIES_ONIX = 95,
+    SPECIES_DROWZEE = 96,
+    SPECIES_HYPNO = 97,
+    SPECIES_KRABBY = 98,
+    SPECIES_KINGLER = 99,
+    SPECIES_VOLTORB = 100,
+    SPECIES_ELECTRODE = 101,
+    SPECIES_EXEGGCUTE = 102,
+    SPECIES_EXEGGUTOR = 103,
+    SPECIES_CUBONE = 104,
+    SPECIES_MAROWAK = 105,
+    SPECIES_HITMONLEE = 106,
+    SPECIES_HITMONCHAN = 107,
+    SPECIES_LICKITUNG = 108,
+    SPECIES_KOFFING = 109,
+    SPECIES_WEEZING = 110,
+    SPECIES_RHYHORN = 111,
+    SPECIES_RHYDON = 112,
+    SPECIES_CHANSEY = 113,
+    SPECIES_TANGELA = 114,
+    SPECIES_KANGASKHAN = 115,
+    SPECIES_HORSEA = 116,
+    SPECIES_SEADRA = 117,
+    SPECIES_GOLDEEN = 118,
+    SPECIES_SEAKING = 119,
+    SPECIES_STARYU = 120,
+    SPECIES_STARMIE = 121,
+    SPECIES_MR_MIME = 122,
+    SPECIES_SCYTHER = 123,
+    SPECIES_JYNX = 124,
+    SPECIES_ELECTABUZZ = 125,
+    SPECIES_MAGMAR = 126,
+    SPECIES_PINSIR = 127,
+    SPECIES_TAUROS = 128,
+    SPECIES_MAGIKARP = 129,
+    SPECIES_GYARADOS = 130,
+    SPECIES_LAPRAS = 131,
+    SPECIES_DITTO = 132,
+    SPECIES_EEVEE = 133,
+    SPECIES_VAPOREON = 134,
+    SPECIES_JOLTEON = 135,
+    SPECIES_FLAREON = 136,
+    SPECIES_PORYGON = 137,
+    SPECIES_OMANYTE = 138,
+    SPECIES_OMASTAR = 139,
+    SPECIES_KABUTO = 140,
+    SPECIES_KABUTOPS = 141,
+    SPECIES_AERODACTYL = 142,
+    SPECIES_SNORLAX = 143,
+    SPECIES_ARTICUNO = 144,
+    SPECIES_ZAPDOS = 145,
+    SPECIES_MOLTRES = 146,
+    SPECIES_DRATINI = 147,
+    SPECIES_DRAGONAIR = 148,
+    SPECIES_DRAGONITE = 149,
+    SPECIES_MEWTWO = 150,
+    SPECIES_MEW = 151,
+    SPECIES_CHIKORITA = 152,
+    SPECIES_BAYLEEF = 153,
+    SPECIES_MEGANIUM = 154,
+    SPECIES_CYNDAQUIL = 155,
+    SPECIES_QUILAVA = 156,
+    SPECIES_TYPHLOSION = 157,
+    SPECIES_TOTODILE = 158,
+    SPECIES_CROCONAW = 159,
+    SPECIES_FERALIGATR = 160,
+    SPECIES_SENTRET = 161,
+    SPECIES_FURRET = 162,
+    SPECIES_HOOTHOOT = 163,
+    SPECIES_NOCTOWL = 164,
+    SPECIES_LEDYBA = 165,
+    SPECIES_LEDIAN = 166,
+    SPECIES_SPINARAK = 167,
+    SPECIES_ARIADOS = 168,
+    SPECIES_CROBAT = 169,
+    SPECIES_CHINCHOU = 170,
+    SPECIES_LANTURN = 171,
+    SPECIES_PICHU = 172,
+    SPECIES_CLEFFA = 173,
+    SPECIES_IGGLYBUFF = 174,
+    SPECIES_TOGEPI = 175,
+    SPECIES_TOGETIC = 176,
+    SPECIES_NATU = 177,
+    SPECIES_XATU = 178,
+    SPECIES_MAREEP = 179,
+    SPECIES_FLAAFFY = 180,
+    SPECIES_AMPHAROS = 181,
+    SPECIES_BELLOSSOM = 182,
+    SPECIES_MARILL = 183,
+    SPECIES_AZUMARILL = 184,
+    SPECIES_SUDOWOODO = 185,
+    SPECIES_POLITOED = 186,
+    SPECIES_HOPPIP = 187,
+    SPECIES_SKIPLOOM = 188,
+    SPECIES_JUMPLUFF = 189,
+    SPECIES_AIPOM = 190,
+    SPECIES_SUNKERN = 191,
+    SPECIES_SUNFLORA = 192,
+    SPECIES_YANMA = 193,
+    SPECIES_WOOPER = 194,
+    SPECIES_QUAGSIRE = 195,
+    SPECIES_ESPEON = 196,
+    SPECIES_UMBREON = 197,
+    SPECIES_MURKROW = 198,
+    SPECIES_SLOWKING = 199,
+    SPECIES_MISDREAVUS = 200,
+    SPECIES_UNOWN = 201,
+    SPECIES_WOBBUFFET = 202,
+    SPECIES_GIRAFARIG = 203,
+    SPECIES_PINECO = 204,
+    SPECIES_FORRETRESS = 205,
+    SPECIES_DUNSPARCE = 206,
+    SPECIES_GLIGAR = 207,
+    SPECIES_STEELIX = 208,
+    SPECIES_SNUBBULL = 209,
+    SPECIES_GRANBULL = 210,
+    SPECIES_QWILFISH = 211,
+    SPECIES_SCIZOR = 212,
+    SPECIES_SHUCKLE = 213,
+    SPECIES_HERACROSS = 214,
+    SPECIES_SNEASEL = 215,
+    SPECIES_TEDDIURSA = 216,
+    SPECIES_URSARING = 217,
+    SPECIES_SLUGMA = 218,
+    SPECIES_MAGCARGO = 219,
+    SPECIES_SWINUB = 220,
+    SPECIES_PILOSWINE = 221,
+    SPECIES_CORSOLA = 222,
+    SPECIES_REMORAID = 223,
+    SPECIES_OCTILLERY = 224,
+    SPECIES_DELIBIRD = 225,
+    SPECIES_MANTINE = 226,
+    SPECIES_SKARMORY = 227,
+    SPECIES_HOUNDOUR = 228,
+    SPECIES_HOUNDOOM = 229,
+    SPECIES_KINGDRA = 230,
+    SPECIES_PHANPY = 231,
+    SPECIES_DONPHAN = 232,
+    SPECIES_PORYGON2 = 233,
+    SPECIES_STANTLER = 234,
+    SPECIES_SMEARGLE = 235,
+    SPECIES_TYROGUE = 236,
+    SPECIES_HITMONTOP = 237,
+    SPECIES_SMOOCHUM = 238,
+    SPECIES_ELEKID = 239,
+    SPECIES_MAGBY = 240,
+    SPECIES_MILTANK = 241,
+    SPECIES_BLISSEY = 242,
+    SPECIES_RAIKOU = 243,
+    SPECIES_ENTEI = 244,
+    SPECIES_SUICUNE = 245,
+    SPECIES_LARVITAR = 246,
+    SPECIES_PUPITAR = 247,
+    SPECIES_TYRANITAR = 248,
+    SPECIES_LUGIA = 249,
+    SPECIES_HO_OH = 250,
+    SPECIES_CELEBI = 251,
+    SPECIES_TREECKO = 252,
+    SPECIES_GROVYLE = 253,
+    SPECIES_SCEPTILE = 254,
+    SPECIES_TORCHIC = 255,
+    SPECIES_COMBUSKEN = 256,
+    SPECIES_BLAZIKEN = 257,
+    SPECIES_MUDKIP = 258,
+    SPECIES_MARSHTOMP = 259,
+    SPECIES_SWAMPERT = 260,
+    SPECIES_POOCHYENA = 261,
+    SPECIES_MIGHTYENA = 262,
+    SPECIES_ZIGZAGOON = 263,
+    SPECIES_LINOONE = 264,
+    SPECIES_WURMPLE = 265,
+    SPECIES_SILCOON = 266,
+    SPECIES_BEAUTIFLY = 267,
+    SPECIES_CASCOON = 268,
+    SPECIES_DUSTOX = 269,
+    SPECIES_LOTAD = 270,
+    SPECIES_LOMBRE = 271,
+    SPECIES_LUDICOLO = 272,
+    SPECIES_SEEDOT = 273,
+    SPECIES_NUZLEAF = 274,
+    SPECIES_SHIFTRY = 275,
+    SPECIES_TAILLOW = 276,
+    SPECIES_SWELLOW = 277,
+    SPECIES_WINGULL = 278,
+    SPECIES_PELIPPER = 279,
+    SPECIES_RALTS = 280,
+    SPECIES_KIRLIA = 281,
+    SPECIES_GARDEVOIR = 282,
+    SPECIES_SURSKIT = 283,
+    SPECIES_MASQUERAIN = 284,
+    SPECIES_SHROOMISH = 285,
+    SPECIES_BRELOOM = 286,
+    SPECIES_SLAKOTH = 287,
+    SPECIES_VIGOROTH = 288,
+    SPECIES_SLAKING = 289,
+    SPECIES_NINCADA = 290,
+    SPECIES_NINJASK = 291,
+    SPECIES_SHEDINJA = 292,
+    SPECIES_WHISMUR = 293,
+    SPECIES_LOUDRED = 294,
+    SPECIES_EXPLOUD = 295,
+    SPECIES_MAKUHITA = 296,
+    SPECIES_HARIYAMA = 297,
+    SPECIES_AZURILL = 298,
+    SPECIES_NOSEPASS = 299,
+    SPECIES_SKITTY = 300,
+    SPECIES_DELCATTY = 301,
+    SPECIES_SABLEYE = 302,
+    SPECIES_MAWILE = 303,
+    SPECIES_ARON = 304,
+    SPECIES_LAIRON = 305,
+    SPECIES_AGGRON = 306,
+    SPECIES_MEDITITE = 307,
+    SPECIES_MEDICHAM = 308,
+    SPECIES_ELECTRIKE = 309,
+    SPECIES_MANECTRIC = 310,
+    SPECIES_PLUSLE = 311,
+    SPECIES_MINUN = 312,
+    SPECIES_VOLBEAT = 313,
+    SPECIES_ILLUMISE = 314,
+    SPECIES_ROSELIA = 315,
+    SPECIES_GULPIN = 316,
+    SPECIES_SWALOT = 317,
+    SPECIES_CARVANHA = 318,
+    SPECIES_SHARPEDO = 319,
+    SPECIES_WAILMER = 320,
+    SPECIES_WAILORD = 321,
+    SPECIES_NUMEL = 322,
+    SPECIES_CAMERUPT = 323,
+    SPECIES_TORKOAL = 324,
+    SPECIES_SPOINK = 325,
+    SPECIES_GRUMPIG = 326,
+    SPECIES_SPINDA = 327,
+    SPECIES_TRAPINCH = 328,
+    SPECIES_VIBRAVA = 329,
+    SPECIES_FLYGON = 330,
+    SPECIES_CACNEA = 331,
+    SPECIES_CACTURNE = 332,
+    SPECIES_SWABLU = 333,
+    SPECIES_ALTARIA = 334,
+    SPECIES_ZANGOOSE = 335,
+    SPECIES_SEVIPER = 336,
+    SPECIES_LUNATONE = 337,
+    SPECIES_SOLROCK = 338,
+    SPECIES_BARBOACH = 339,
+    SPECIES_WHISCASH = 340,
+    SPECIES_CORPHISH = 341,
+    SPECIES_CRAWDAUNT = 342,
+    SPECIES_BALTOY = 343,
+    SPECIES_CLAYDOL = 344,
+    SPECIES_LILEEP = 345,
+    SPECIES_CRADILY = 346,
+    SPECIES_ANORITH = 347,
+    SPECIES_ARMALDO = 348,
+    SPECIES_FEEBAS = 349,
+    SPECIES_MILOTIC = 350,
+    SPECIES_CASTFORM = 351,
+    SPECIES_KECLEON = 352,
+    SPECIES_SHUPPET = 353,
+    SPECIES_BANETTE = 354,
+    SPECIES_DUSKULL = 355,
+    SPECIES_DUSCLOPS = 356,
+    SPECIES_TROPIUS = 357,
+    SPECIES_CHIMECHO = 358,
+    SPECIES_ABSOL = 359,
+    SPECIES_WYNAUT = 360,
+    SPECIES_SNORUNT = 361,
+    SPECIES_GLALIE = 362,
+    SPECIES_SPHEAL = 363,
+    SPECIES_SEALEO = 364,
+    SPECIES_WALREIN = 365,
+    SPECIES_CLAMPERL = 366,
+    SPECIES_HUNTAIL = 367,
+    SPECIES_GOREBYSS = 368,
+    SPECIES_RELICANTH = 369,
+    SPECIES_LUVDISC = 370,
+    SPECIES_BAGON = 371,
+    SPECIES_SHELGON = 372,
+    SPECIES_SALAMENCE = 373,
+    SPECIES_BELDUM = 374,
+    SPECIES_METANG = 375,
+    SPECIES_METAGROSS = 376,
+    SPECIES_REGIROCK = 377,
+    SPECIES_REGICE = 378,
+    SPECIES_REGISTEEL = 379,
+    SPECIES_LATIAS = 380,
+    SPECIES_LATIOS = 381,
+    SPECIES_KYOGRE = 382,
+    SPECIES_GROUDON = 383,
+    SPECIES_RAYQUAZA = 384,
+    SPECIES_JIRACHI = 385,
+    SPECIES_DEOXYS = 386,
+    SPECIES_TURTWIG = 387,
+    SPECIES_GROTLE = 388,
+    SPECIES_TORTERRA = 389,
+    SPECIES_CHIMCHAR = 390,
+    SPECIES_MONFERNO = 391,
+    SPECIES_INFERNAPE = 392,
+    SPECIES_PIPLUP = 393,
+    SPECIES_PRINPLUP = 394,
+    SPECIES_EMPOLEON = 395,
+    SPECIES_STARLY = 396,
+    SPECIES_STARAVIA = 397,
+    SPECIES_STARAPTOR = 398,
+    SPECIES_BIDOOF = 399,
+    SPECIES_BIBAREL = 400,
+    SPECIES_KRICKETOT = 401,
+    SPECIES_KRICKETUNE = 402,
+    SPECIES_SHINX = 403,
+    SPECIES_LUXIO = 404,
+    SPECIES_LUXRAY = 405,
+    SPECIES_BUDEW = 406,
+    SPECIES_ROSERADE = 407,
+    SPECIES_CRANIDOS = 408,
+    SPECIES_RAMPARDOS = 409,
+    SPECIES_SHIELDON = 410,
+    SPECIES_BASTIODON = 411,
+    SPECIES_BURMY = 412,
+    SPECIES_WORMADAM = 413,
+    SPECIES_MOTHIM = 414,
+    SPECIES_COMBEE = 415,
+    SPECIES_VESPIQUEN = 416,
+    SPECIES_PACHIRISU = 417,
+    SPECIES_BUIZEL = 418,
+    SPECIES_FLOATZEL = 419,
+    SPECIES_CHERUBI = 420,
+    SPECIES_CHERRIM = 421,
+    SPECIES_SHELLOS = 422,
+    SPECIES_GASTRODON = 423,
+    SPECIES_AMBIPOM = 424,
+    SPECIES_DRIFLOON = 425,
+    SPECIES_DRIFBLIM = 426,
+    SPECIES_BUNEARY = 427,
+    SPECIES_LOPUNNY = 428,
+    SPECIES_MISMAGIUS = 429,
+    SPECIES_HONCHKROW = 430,
+    SPECIES_GLAMEOW = 431,
+    SPECIES_PURUGLY = 432,
+    SPECIES_CHINGLING = 433,
+    SPECIES_STUNKY = 434,
+    SPECIES_SKUNTANK = 435,
+    SPECIES_BRONZOR = 436,
+    SPECIES_BRONZONG = 437,
+    SPECIES_BONSLY = 438,
+    SPECIES_MIME_JR = 439,
+    SPECIES_HAPPINY = 440,
+    SPECIES_CHATOT = 441,
+    SPECIES_SPIRITOMB = 442,
+    SPECIES_GIBLE = 443,
+    SPECIES_GABITE = 444,
+    SPECIES_GARCHOMP = 445,
+    SPECIES_MUNCHLAX = 446,
+    SPECIES_RIOLU = 447,
+    SPECIES_LUCARIO = 448,
+    SPECIES_HIPPOPOTAS = 449,
+    SPECIES_HIPPOWDON = 450,
+    SPECIES_SKORUPI = 451,
+    SPECIES_DRAPION = 452,
+    SPECIES_CROAGUNK = 453,
+    SPECIES_TOXICROAK = 454,
+    SPECIES_CARNIVINE = 455,
+    SPECIES_FINNEON = 456,
+    SPECIES_LUMINEON = 457,
+    SPECIES_MANTYKE = 458,
+    SPECIES_SNOVER = 459,
+    SPECIES_ABOMASNOW = 460,
+    SPECIES_WEAVILE = 461,
+    SPECIES_MAGNEZONE = 462,
+    SPECIES_LICKILICKY = 463,
+    SPECIES_RHYPERIOR = 464,
+    SPECIES_TANGROWTH = 465,
+    SPECIES_ELECTIVIRE = 466,
+    SPECIES_MAGMORTAR = 467,
+    SPECIES_TOGEKISS = 468,
+    SPECIES_YANMEGA = 469,
+    SPECIES_LEAFEON = 470,
+    SPECIES_GLACEON = 471,
+    SPECIES_GLISCOR = 472,
+    SPECIES_MAMOSWINE = 473,
+    SPECIES_PORYGON_Z = 474,
+    SPECIES_GALLADE = 475,
+    SPECIES_PROBOPASS = 476,
+    SPECIES_DUSKNOIR = 477,
+    SPECIES_FROSLASS = 478,
+    SPECIES_ROTOM = 479,
+    SPECIES_UXIE = 480,
+    SPECIES_MESPRIT = 481,
+    SPECIES_AZELF = 482,
+    SPECIES_DIALGA = 483,
+    SPECIES_PALKIA = 484,
+    SPECIES_HEATRAN = 485,
+    SPECIES_REGIGIGAS = 486,
+    SPECIES_GIRATINA = 487,
+    SPECIES_CRESSELIA = 488,
+    SPECIES_PHIONE = 489,
+    SPECIES_MANAPHY = 490,
+    SPECIES_DARKRAI = 491,
+    SPECIES_SHAYMIN = 492,
+    SPECIES_ARCEUS = 493,
+    SPECIES_EGG = 494,
+    SPECIES_BAD_EGG = 495,
+};
+
+enum MysteryGiftType {
+    MYST_GIFT_NONE = 0,
+    MYST_GIFT_POKEMON,
+    MYST_GIFT_EGG,
+    MYST_GIFT_ITEM,
+    MYST_GIFT_BATTLE_REG,
+    MYST_GIFT_DECORATION_GOOD,
+    MYST_GIFT_COSMETICS,
+    MYST_GIFT_MANAPHY_EGG,
+    MYST_GIFT_MEMBER_CARD,
+    MYST_GIFT_OAKS_LETTER,
+    MYST_GIFT_AZURE_FLUTE,
+    MYST_GIFT_POKETCH_APP,
+    MYST_GIFT_SECRET_KEY,
+    MYST_GIFT_UNKNOWN,
+    MYST_GIFT_TYPE_MAX,
+};
+
+typedef struct StringTemplateArg StringTemplateArg;
+
+void MessageFormat_Delete(MessageFormat *template);
+
+enum MysteryGiftAnimationStatus {
+    MG_ANIMATION_STATUS_DONE = 0,
+    MG_ANIMATION_STATUS_BEGIN,
+    MG_ANIMATION_STATUS_PROCEED_IMPLOSION
+};
+
+typedef struct MainMenuWindow {
+    BOOL scrollable;
+    BOOL drawFrame;
+    BOOL clearBeforePrinting;
+    BOOL textRightAligned;
+    Window *window;
+    MessageFormat *strTemplate;
+    int width;
+    int height;
+    int textXOffset;
+    int textYOffset;
+    int baseTile;
+    enum GFBgLayer bgLayer;
+    int textPltt;
+    int textBank;
+    int frameBaseTile;
+    int framePltt;
+    enum Font font;
+    TextColor textColor;
+    u8 backgroundColorIdx;
+    u8 pad_49[3];
+    int textEntryID;
+    int renderDelay;
+} MainMenuWindow;
+
+void ov74_022352A0(enum HeapID heapID);
+
+void *ov74_022352D0(OverlayManager *appMan, enum HeapID heapID, int appDataSize, enum HeapSize heapSize);
+
+void ov74_0223539C(enum FadeType fadeType, int destState, int *state, int waitState);
+
+void MainMenuWindow_SetScrollableAndFont(MainMenuWindow *window, BOOL scrollable, enum Font font);
+
+void ov74_02235728(enum NarcId narcID, int tilesID, int plttID, int cellID, int animID, enum GFScreen screen);
+
+void ov74_022358C8(enum MysteryGiftAnimationStatus animStatus);
+
+Sprite *ov74_02235930(enum GFScreen screen, Sprite *sprite, int x, int y, int animationIdx);
+
+void ov74_02235B14(Sprite *sprite, Pokemon *mon, enum Species species, int form, u8 *buffer, PokepicTemplate *monSpriteTemplate);
+
+void LoadGiftBoxSprite(MainMenuUtilManager *utilMan, enum MysteryGiftType giftType, WonderCard *wonderCard);
+
+void ov74_02235C10(MainMenuUtilManager *param0, enum MysteryGiftType giftType, WonderCard *wonderCard);
+
+int ov74_0223547C(MainMenuWindow *window, int textEntryID);
+
+int ov74_0223547C(MainMenuWindow *window, int textEntryID) {
+    MainMenuUtilManager *utilMan = &ov74_0223D454;
+    int printerID;
+
+    if (textEntryID != -1 && window->textEntryID != textEntryID) {
+        window->textEntryID = textEntryID;
+
+        if (window->clearBeforePrinting == 1) {
+            FillWindowPixelBuffer(window->window, window->backgroundColorIdx);
+        }
+
+        if (window->textEntryID != -1) {
+            MessageFormat *strTemplate;
+            MsgData *msgLoader = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, (enum NarcId)27, window->textBank, utilMan->heapID);
+
+            if (window->strTemplate == 0L) {
+                strTemplate = MessageFormat_New(utilMan->heapID);
+            } else {
+                strTemplate = window->strTemplate;
+            }
+
+            String *string = ReadMsgData_ExpandPlaceholders(strTemplate, msgLoader, window->textEntryID, utilMan->heapID);
+
+            if (window->textRightAligned == 0) {
+                printerID = AddTextPrinterParameterizedWithColor(window->window, window->font, string, window->textXOffset, window->textYOffset, window->renderDelay, window->textColor, 0L);
+            } else {
+                int textWidth = FontID_String_GetWidth(window->font, string, GetFontAttribute(window->font, FONTATTR_LETTER_SPACING));
+                int windowWidth = GetWindowWidth(window->window) * 8 - textWidth;
+                printerID = AddTextPrinterParameterizedWithColor(window->window, window->font, string, windowWidth, window->textYOffset, window->renderDelay, window->textColor, 0L);
+
+                window->textRightAligned = 0;
+            }
+
+            String_Delete(string);
+
+            if (window->strTemplate == 0L) {
+                MessageFormat_Delete(strTemplate);
+            }
+
+            DestroyMsgData(msgLoader);
+        }
+    }
+
+    window->renderDelay = 0xFF;
+    return printerID;
+}

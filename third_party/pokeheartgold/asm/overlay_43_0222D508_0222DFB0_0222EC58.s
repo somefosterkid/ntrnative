@@ -1,0 +1,29 @@
+	.include "macros.inc"
+	.include "overlay_43.inc"
+	.include "global.inc"
+
+	.public _0222ED5C
+	.public _0222F0E0
+	.public ov43_0222A9F4
+	.public ov43_0222AA70
+	.public ov43_0222AB20
+	.public ov43_0222AB5C
+	.public ov43_0222AB94
+	.public ov43_0222ABFC
+	.public ov43_0222AC18
+	.public ov43_0222AD00
+	.public ov43_0222AD20
+	.public ov43_0222AD40
+	.public ov43_0222AD74
+	.public ov43_0222AD98
+	.public ov43_0222EDAC
+	.public ov43_0222EDB8
+	.public ov43_0222EDF8
+	.public ov43_0222EE08
+	.public ov43_0222EF20
+	.public ov43_0222F0C4
+	.public ov43_0222F0D0
+	.public ov43_0222F10C
+	.public ov43_0222F12C
+	.public ov43_0222DEF8
+	.text

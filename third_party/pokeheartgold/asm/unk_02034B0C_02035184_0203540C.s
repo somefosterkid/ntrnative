@@ -1,0 +1,14 @@
+	.include "macros.inc"
+	.include "unk_02034B0C.inc"
+	.include "global.inc"
+
+	.public _021D4134
+	.public sub_02034C94
+	.public sub_020350D4
+	.public sub_02035784
+	.public sub_02035798
+	.public sub_0203567C
+	.public sub_02035724
+	.public sub_020352D8
+	.public sub_020353B8
+	.text

@@ -1,0 +1,35 @@
+#include "constants/sndseq.h"
+	.include "macros.inc"
+	.include "overlay_trainer_card_main.inc"
+	.include "global.inc"
+
+	.public ov51_021E6C00
+	.public ov51_021E6C6C
+	.public ov51_021E6CCC
+	.public ov51_021E6CF0
+	.public ov51_021E6D44
+	.public ov51_021E6DA8
+	.public ov51_021E6E10
+	.public ov51_021E6E60
+	.public ov51_021E6EF0
+	.public ov51_021E6F18
+	.public ov51_021E71D0
+	.public ov51_021E7208
+	.public ov51_021E74D4
+	.public ov51_021E7664
+	.public ov51_021E76A4
+	.public ov51_021E76EC
+	.public ov51_021E77A0
+	.public ov51_021E7804
+	.public ov51_021E786C
+	.public ov51_021E78F8
+	.public ov51_021E7AF4
+	.public ov51_021E7BD0
+	.public ov51_021E7CA4
+	.public ov51_021E7D44
+	.public ov51_021E7DA4
+	.public _021E7DB8
+	.public ov51_021E66C0
+	.public ov51_021E7DBC
+	.public ov51_021E7DC0
+	.text

@@ -12,12 +12,15 @@
   STAMP after each reset or setup): the reset as above, before a setup too. A new build dir's build.ninja is newer than
   any wrap, so the mtime test alone left a stale shared checkout in place (a fresh macOS dir built against a libntr
   without the newest patch and aborted at start on a missing symbol).
+- White's assets (build/w_us/asset) there but the dir configured without White (no libgame_w.a in build.ninja): meson setup
+  --reconfigure (port/meson.build looks for the assets at configure time only).
 The checkouts in port/subprojects/ are shared by the build dirs: a reset for one dir makes the others reset too
 (harmless; their next build recompiles what the reset touched).
 Prints the error output and exits 1 when a step fails.
 """
 import glob
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -56,6 +59,24 @@ def slice_cmd(cmd):
     return ['systemd-run', '--scope', '-q', '--slice=bwworkers.slice'] + cmd if SLICE else cmd
 
 
+def white_pending(build):
+    """True when White's assets exist now but this build dir was configured without them: port/meson.build decides
+    build_white once, at configure time (`fs.is_dir(<rom build>/w_us/asset)`), and nothing in meson makes it look again, so a
+    dir configured before `ninja` made build/w_us/asset (a worktree that was not at main's commit: setup_worktree.sh copies
+    White's build only then) stays White-less: the launcher says "Pokemon White is not playable in this build yet"."""
+    if not os.path.isdir(os.path.join(REPO, 'build/w_us/asset')) or sys.platform == 'darwin':
+        return False
+    try:
+        with open(os.path.join(build, 'build.ninja'), errors='replace') as f:
+            if 'libgame_w.a' in f.read():
+                return False
+        with open(os.path.join(build, 'meson-info/intro-buildoptions.json')) as f:
+            opts = json.load(f)
+    except (OSError, ValueError):
+        return False
+    return not any(o.get('name') == 'white' and o.get('value') == 'disabled' for o in opts)
+
+
 def refresh(build, setup_args=(), log=None):
     """meson setup / subprojects reset / reconfigure as the state needs; the error output, or None"""
     ninja = os.path.join(build, 'build.ninja')
@@ -90,6 +111,9 @@ def refresh(build, setup_args=(), log=None):
         r = r if r is not None and r.returncode else sh(slice_cmd(['meson', 'setup', '--reconfigure', build, 'port']), cwd=REPO)
     elif mtime(['port/src', 'port/exclude.txt', 'port/gpu/src', 'port/gpu/shaders', 'port/gpu/msl'] + extern_dirs) > os.path.getmtime(ninja):   # a file added or taken out
         say('sources changed: reconfigure')
+        r = sh(slice_cmd(['meson', 'setup', '--reconfigure', build, 'port']), cwd=REPO)
+    elif white_pending(build):
+        say("White's assets are there now: reconfigure")
         r = sh(slice_cmd(['meson', 'setup', '--reconfigure', build, 'port']), cwd=REPO)
     if r is not None and r.returncode != 0:
         return r.stdout

@@ -1,0 +1,34 @@
+	.include "macros.inc"
+	.include "overlay_48.inc"
+	.include "global.inc"
+
+	.public ov48_0225A634
+	.public ov48_0225A650
+	.public ov48_0225A668
+	.public ov48_0225A680
+	.public ov48_0225A6DC
+	.public ov48_0225A768
+	.public ov48_0225A790
+	.public ov48_0225A834
+	.public ov48_0225A858
+	.public ov48_0225A868
+	.public ov48_0225A894
+	.public ov48_0225A928
+	.public ov48_0225A95C
+	.public ov48_0225AA38
+	.public ov48_0225AA50
+	.public ov48_0225AA5C
+	.public ov48_0225AAAC
+	.public ov48_0225AC34
+	.public ov48_0225ACAC
+	.public ov48_0225ACD8
+	.public ov48_0225AD38
+	.public ov48_0225AD54
+	.public ov48_0225B038
+	.public ov48_0225B068
+	.public ov48_0225B0A4
+	.public ov48_0225B0C4
+	.public ov48_0225B0D4
+	.public ov48_0225B13C
+	.public ov48_02258CE4
+	.text

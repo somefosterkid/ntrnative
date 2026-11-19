@@ -126,7 +126,7 @@ void func_ov041_021f36c0(Field *param_1) {
 
     system = Field_GetExpObjSystem(param_1);
     heapId = Field_GetHeapID(param_1);
-    Field_AllocGimmickWorkBlock(param_1, 1, heapId, 0x730);
+    Field_AllocGimmickWorkBlock(param_1, 1, heapId, sizeof(Ov041Work));   // 0x730 on the DS; 8 more on 64 bits (curve)
     LoadFieldExpandObjData(system, &data_ov041_021f40a4, 0);
     actor = 0;
     {

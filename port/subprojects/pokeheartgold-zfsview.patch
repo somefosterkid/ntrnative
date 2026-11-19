@@ -1,0 +1,174 @@
+HGSS on the PC, crash 36 (hg23, 2026-11-14): the m2c files' `struct FieldSystem_t` (pokeplatinum's FieldSystem with pads moved
+per file: 251 views then, one at the pin a53ce07bc: port/nonmatching/ov115_0225F978.c) puts its pointers at other host offsets than HG's own struct FieldSystem, which HG allocates and fills;
+sub_02054940 read the collision manager at host 0xC0 (HG: 0xB8), NULL. Made by tools/pokehg_fsview.py on the tree with every
+other patch (each view's members at HG's host offset for their DS offset, _Static_assert each). Remake it at a re-pin
+(git -C build/pokeheartgold add -u; python3 tools/pokehg_fsview.py; git diff). DROP when upstream types these files on
+HG's FieldSystem (decomp: admin-79).
+Handover-ID: none (port-only)
+
+diff --git a/port/nonmatching/ov115_0225F978.c b/port/nonmatching/ov115_0225F978.c
+index 7308719f7b..4ba5154aad 100644
+--- a/port/nonmatching/ov115_0225F978.c
++++ b/port/nonmatching/ov115_0225F978.c
+@@ -3448,56 +3448,110 @@ typedef struct MapObjectsToPreload {
+     int ids[24 ];
+ } MapObjectsToPreload;
+-struct FieldSystem_t {
+-    FieldProcessManager *processManager;
+-    FieldSystem_sub2 *unk_04;
+-    BgConfig *bgConfig;
+-    SaveData *saveData;
+-    FieldTask *task;
+-    MapHeaderData *mapHeaderData;
+-    int bottomScreen;
+-    Location *location;
+-    int unk_20;
+-    Camera *camera;
+-    LandDataManager *landDataMan;
+-    MapMatrix *mapMatrix;
+-    AreaDataManager *areaDataManager;
+-    MapObjectsToPreload *mapObjectsToPreload;
+-    MapObjectManager *mapObjMan;
+-    PlayerAvatar *playerAvatar;
+-    FieldEffectManager *fieldEffMan;
+-    ModelAttributes *areaModelAttrs;
+-    FogManager *fogMan;
+-    AreaLightManager *areaLightMan;
+-    MapPropAnimationManager *mapPropAnimMan;
+-    MapPropOneShotAnimationManager *mapPropOneShotAnimMan;
+-    TerrainAttributes *terrainAttributes;
+-    const TerrainCollisionManager *terrainCollisionMan;
+-    BOOL skipMapAttributes;
+-    Signpost *signpost;
+-    BOOL runningFieldMap;
+-    UndergroundTopScreenContext *ugTopScreenCtx;
+-    int mapLoadType;
+-    const MapLoadMode *mapLoadMode;
+-    FieldWildBattleMetadata wildBattleMetadata;
+-    UnionRoomManager *unionRoomMan;
+-    UnkStruct_0205C22C *unk_80;
+-    UnkStruct_ov56_02256468 *unk_84;
+-    TradeRoom *tradeRoom;
+-    UnkStruct_ov5_021EB0E0 *unk_8C;
+-    int menuCursorPos;
+-    RadarChain *chain;
+-    BagCursor *bagCursor;
+-    JournalEntry *journalEntry;
+-    DynamicTerrainHeightManager *dynamicTerrainHeightMan;
+-    MapPropManager *mapPropManager;
+-    HoneyTreeShakeList *unk_A8;
+-    BattleTower *battleTower;
+-    const BattleRegulation *battleRegulation;
+-    PokedexMemory *pokedexMemory;
+-    BOOL temporaryMapChange;
+-    u8 *battleSubscreenCursorOn;
+-    u32 unk_C0;
+-    UnkStruct_ov66_0222DCE0_sub1 unk_C4;
++struct FieldSystem_t { // host layout: HG struct FieldSystem by DS offset (tools/pokehg_fsview.py)
++    union {
++        u8 hgfs_size[528];
++        void *hgfs_align;
++        struct __attribute__((packed)) { FieldProcessManager *processManager; }; // DS 0x0: HG processManager
++        struct __attribute__((packed)) { u8 hgfs_p4[8]; FieldSystem_sub2 *unk_04; }; // DS 0x4: HG unk4
++        struct __attribute__((packed)) { u8 hgfs_p8[16]; BgConfig *bgConfig; }; // DS 0x8: HG bgConfig
++        struct __attribute__((packed)) { u8 hgfs_pC[24]; SaveData *saveData; }; // DS 0xc: HG saveData
++        struct __attribute__((packed)) { u8 hgfs_p10[32]; FieldTask *task; }; // DS 0x10: HG taskman
++        struct __attribute__((packed)) { u8 hgfs_p14[40]; MapHeaderData *mapHeaderData; }; // DS 0x14: HG mapEvents
++        struct __attribute__((packed)) { u8 hgfs_p18[48]; int bottomScreen; }; // DS 0x18: HG bottomScreenType
++        struct __attribute__((packed)) { u8 hgfs_p1C[52]; Location *location; }; // DS 0x1c: HG unk1C
++        struct __attribute__((packed)) { u8 hgfs_p20[56]; int unk_20; }; // DS 0x20: HG location
++        struct __attribute__((packed)) { u8 hgfs_p24[64]; Camera *camera; }; // DS 0x24: HG camera
++        struct __attribute__((packed)) { u8 hgfs_p28[72]; LandDataManager *landDataMan; }; // DS 0x28: HG unk28
++        struct __attribute__((packed)) { u8 hgfs_p2C[80]; MapMatrix *mapMatrix; }; // DS 0x2c: HG mapLoadManager
++        struct __attribute__((packed)) { u8 hgfs_p30[88]; AreaDataManager *areaDataManager; }; // DS 0x30: HG mapMatrix
++        struct __attribute__((packed)) { u8 hgfs_p34[96]; MapObjectsToPreload *mapObjectsToPreload; }; // DS 0x34: HG areaDataManager
++        struct __attribute__((packed)) { u8 hgfs_p38[104]; MapObjectManager *mapObjMan; }; // DS 0x38: HG mapObjectsToPreload
++        struct __attribute__((packed)) { u8 hgfs_p3C[112]; PlayerAvatar *playerAvatar; }; // DS 0x3c: HG mapObjectManager
++        struct __attribute__((packed)) { u8 hgfs_p40[120]; FieldEffectManager *fieldEffMan; }; // DS 0x40: HG playerAvatar
++        struct __attribute__((packed)) { u8 hgfs_p44[128]; ModelAttributes *areaModelAttrs; }; // DS 0x44: HG fieldEffectManager
++        struct __attribute__((packed)) { u8 hgfs_p48[136]; FogManager *fogMan; }; // DS 0x48: HG modelAttributes
++        struct __attribute__((packed)) { u8 hgfs_p4C[144]; AreaLightManager *areaLightMan; }; // DS 0x4c: HG fog
++        struct __attribute__((packed)) { u8 hgfs_p50[152]; MapPropAnimationManager *mapPropAnimMan; }; // DS 0x50: HG areaLightManager
++        struct __attribute__((packed)) { u8 hgfs_p54[160]; MapPropOneShotAnimationManager *mapPropOneShotAnimMan; }; // DS 0x54: HG mapPropAnimationManager
++        struct __attribute__((packed)) { u8 hgfs_p58[168]; TerrainAttributes *terrainAttributes; }; // DS 0x58: HG mapPropOneShotAnimationManager
++        struct __attribute__((packed)) { u8 hgfs_p5C[176]; const TerrainCollisionManager *terrainCollisionMan; }; // DS 0x5c: HG terrainAttributes
++        struct __attribute__((packed)) { u8 hgfs_p60[184]; BOOL skipMapAttributes; }; // DS 0x60: HG unk60
++        struct __attribute__((packed)) { u8 hgfs_p64[192]; Signpost *signpost; }; // DS 0x64: HG skipMapAttributes
++        struct __attribute__((packed)) { u8 hgfs_p68[200]; BOOL runningFieldMap; }; // DS 0x68: HG signpost
++        struct __attribute__((packed)) { u8 hgfs_p6C[208]; UndergroundTopScreenContext *ugTopScreenCtx; }; // DS 0x6c: HG runningFieldMap
++        struct __attribute__((packed)) { u8 hgfs_p70[212]; int mapLoadType; }; // DS 0x70: HG mapLoadType
++        struct __attribute__((packed)) { u8 hgfs_p74[216]; const MapLoadMode *mapLoadMode; }; // DS 0x74: HG mapLoadMode
++        struct __attribute__((packed)) { u8 hgfs_p78[224]; FieldWildBattleMetadata wildBattleMetadata; }; // DS 0x78: HG unk78
++        struct __attribute__((packed)) { u8 hgfs_p7C[228]; UnionRoomManager *unionRoomMan; }; // DS 0x7c: HG reverseTurnFrameSteps
++        struct __attribute__((packed)) { u8 hgfs_p80[232]; UnkStruct_0205C22C *unk_80; }; // DS 0x80: HG unk80
++        struct __attribute__((packed)) { u8 hgfs_p84[240]; UnkStruct_ov56_02256468 *unk_84; }; // DS 0x84: HG unk84
++        struct __attribute__((packed)) { u8 hgfs_p88[248]; TradeRoom *tradeRoom; }; // DS 0x88: HG unk88
++        struct __attribute__((packed)) { u8 hgfs_p8C[256]; UnkStruct_ov5_021EB0E0 *unk_8C; }; // DS 0x8c: HG unk8C
++        struct __attribute__((packed)) { u8 hgfs_p90[264]; int menuCursorPos; }; // DS 0x90: HG unk90
++        struct __attribute__((packed)) { u8 hgfs_p94[272]; RadarChain *chain; }; // DS 0x94: HG bagCursor
++        struct __attribute__((packed)) { u8 hgfs_p98[280]; BagCursor *bagCursor; }; // DS 0x98: HG dynamicTerrainHeightManager
++        struct __attribute__((packed)) { u8 hgfs_p9C[288]; JournalEntry *journalEntry; }; // DS 0x9c: HG mapPropManager
++        struct __attribute__((packed)) { u8 hgfs_pA0[296]; DynamicTerrainHeightManager *dynamicTerrainHeightMan; }; // DS 0xa0: HG frontierFsys
++        struct __attribute__((packed)) { u8 hgfs_pA4[304]; MapPropManager *mapPropManager; }; // DS 0xa4: HG linkBattleRuleset
++        struct __attribute__((packed)) { u8 hgfs_pA8[312]; HoneyTreeShakeList *unk_A8; }; // DS 0xa8: HG unkA8
++        struct __attribute__((packed)) { u8 hgfs_pAC[320]; BattleTower *battleTower; }; // DS 0xac: HG unkAC
++        struct __attribute__((packed)) { u8 hgfs_pB0[328]; const BattleRegulation *battleRegulation; }; // DS 0xb0: HG unkB0
++        struct __attribute__((packed)) { u8 hgfs_pB4[336]; PokedexMemory *pokedexMemory; }; // DS 0xb4: HG unkB4
++        struct __attribute__((packed)) { u8 hgfs_pB8[340]; BOOL temporaryMapChange; }; // DS 0xb8: HG unkB4
++        struct __attribute__((packed)) { u8 hgfs_pBC[344]; u8 *battleSubscreenCursorOn; }; // DS 0xbc: HG unkBC
++        struct __attribute__((packed)) { u8 hgfs_pC0[352]; u32 unk_C0; }; // DS 0xc0: HG renderObjManager
++        struct __attribute__((packed)) { u8 hgfs_pC4[360]; UnkStruct_ov66_0222DCE0_sub1 unk_C4; }; // DS 0xc4: HG environmentSoundState
++    };
+ };
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, processManager) == 0, "FieldSystem_t.processManager");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_04) == 8, "FieldSystem_t.unk_04");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, bgConfig) == 16, "FieldSystem_t.bgConfig");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, saveData) == 24, "FieldSystem_t.saveData");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, task) == 32, "FieldSystem_t.task");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapHeaderData) == 40, "FieldSystem_t.mapHeaderData");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, bottomScreen) == 48, "FieldSystem_t.bottomScreen");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, location) == 52, "FieldSystem_t.location");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_20) == 56, "FieldSystem_t.unk_20");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, camera) == 64, "FieldSystem_t.camera");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, landDataMan) == 72, "FieldSystem_t.landDataMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapMatrix) == 80, "FieldSystem_t.mapMatrix");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, areaDataManager) == 88, "FieldSystem_t.areaDataManager");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapObjectsToPreload) == 96, "FieldSystem_t.mapObjectsToPreload");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapObjMan) == 104, "FieldSystem_t.mapObjMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, playerAvatar) == 112, "FieldSystem_t.playerAvatar");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, fieldEffMan) == 120, "FieldSystem_t.fieldEffMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, areaModelAttrs) == 128, "FieldSystem_t.areaModelAttrs");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, fogMan) == 136, "FieldSystem_t.fogMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, areaLightMan) == 144, "FieldSystem_t.areaLightMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapPropAnimMan) == 152, "FieldSystem_t.mapPropAnimMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapPropOneShotAnimMan) == 160, "FieldSystem_t.mapPropOneShotAnimMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, terrainAttributes) == 168, "FieldSystem_t.terrainAttributes");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, terrainCollisionMan) == 176, "FieldSystem_t.terrainCollisionMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, skipMapAttributes) == 184, "FieldSystem_t.skipMapAttributes");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, signpost) == 192, "FieldSystem_t.signpost");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, runningFieldMap) == 200, "FieldSystem_t.runningFieldMap");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, ugTopScreenCtx) == 208, "FieldSystem_t.ugTopScreenCtx");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapLoadType) == 212, "FieldSystem_t.mapLoadType");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapLoadMode) == 216, "FieldSystem_t.mapLoadMode");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, wildBattleMetadata) == 224, "FieldSystem_t.wildBattleMetadata");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unionRoomMan) == 228, "FieldSystem_t.unionRoomMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_80) == 232, "FieldSystem_t.unk_80");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_84) == 240, "FieldSystem_t.unk_84");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, tradeRoom) == 248, "FieldSystem_t.tradeRoom");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_8C) == 256, "FieldSystem_t.unk_8C");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, menuCursorPos) == 264, "FieldSystem_t.menuCursorPos");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, chain) == 272, "FieldSystem_t.chain");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, bagCursor) == 280, "FieldSystem_t.bagCursor");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, journalEntry) == 288, "FieldSystem_t.journalEntry");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, dynamicTerrainHeightMan) == 296, "FieldSystem_t.dynamicTerrainHeightMan");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, mapPropManager) == 304, "FieldSystem_t.mapPropManager");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_A8) == 312, "FieldSystem_t.unk_A8");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, battleTower) == 320, "FieldSystem_t.battleTower");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, battleRegulation) == 328, "FieldSystem_t.battleRegulation");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, pokedexMemory) == 336, "FieldSystem_t.pokedexMemory");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, temporaryMapChange) == 340, "FieldSystem_t.temporaryMapChange");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, battleSubscreenCursorOn) == 344, "FieldSystem_t.battleSubscreenCursorOn");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_C0) == 352, "FieldSystem_t.unk_C0");
++_Static_assert(__builtin_offsetof(struct FieldSystem_t, unk_C4) == 360, "FieldSystem_t.unk_C4");
+ typedef union {
+     struct {

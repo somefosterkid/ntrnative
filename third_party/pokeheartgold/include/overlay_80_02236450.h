@@ -1,0 +1,11 @@
+#ifndef POKEHEARTGOLD_OVERLAY_80_02236450_H
+#define POKEHEARTGOLD_OVERLAY_80_02236450_H
+
+#include "global.h"
+
+u32 ov80_02236A88(u8 challengeMode);
+
+s32 ov80_02236AF0(void);
+s32 ov80_02236B18(void);
+
+#endif // POKEHEARTGOLD_OVERLAY_80_02236450_H

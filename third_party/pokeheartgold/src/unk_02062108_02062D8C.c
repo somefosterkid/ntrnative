@@ -1,0 +1,341 @@
+#include "global.h"
+
+s32 sub_02062D54(void *, s32);
+
+s32 MapObjectMovementCmd060_Step0(void *arg0);
+
+struct MapObject;
+enum MovementAction {
+    MOVEMENT_ACTION_FACE_NORTH = 0,
+    MOVEMENT_ACTION_FACE_SOUTH = 1,
+    MOVEMENT_ACTION_FACE_WEST = 2,
+    MOVEMENT_ACTION_FACE_EAST = 3,
+    MOVEMENT_ACTION_WALK_SLOWER_NORTH = 4,
+    MOVEMENT_ACTION_WALK_SLOWER_SOUTH = 5,
+    MOVEMENT_ACTION_WALK_SLOWER_WEST = 6,
+    MOVEMENT_ACTION_WALK_SLOWER_EAST = 7,
+    MOVEMENT_ACTION_WALK_SLOW_NORTH = 8,
+    MOVEMENT_ACTION_WALK_SLOW_SOUTH = 9,
+    MOVEMENT_ACTION_WALK_SLOW_WEST = 10,
+    MOVEMENT_ACTION_WALK_SLOW_EAST = 11,
+    MOVEMENT_ACTION_WALK_NORMAL_NORTH = 12,
+    MOVEMENT_ACTION_WALK_NORMAL_SOUTH = 13,
+    MOVEMENT_ACTION_WALK_NORMAL_WEST = 14,
+    MOVEMENT_ACTION_WALK_NORMAL_EAST = 15,
+    MOVEMENT_ACTION_WALK_FAST_NORTH = 16,
+    MOVEMENT_ACTION_WALK_FAST_SOUTH = 17,
+    MOVEMENT_ACTION_WALK_FAST_WEST = 18,
+    MOVEMENT_ACTION_WALK_FAST_EAST = 19,
+    MOVEMENT_ACTION_WALK_FASTER_NORTH = 20,
+    MOVEMENT_ACTION_WALK_FASTER_SOUTH = 21,
+    MOVEMENT_ACTION_WALK_FASTER_WEST = 22,
+    MOVEMENT_ACTION_WALK_FASTER_EAST = 23,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_NORTH = 24,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_SOUTH = 25,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_WEST = 26,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_EAST = 27,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_NORTH = 28,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_SOUTH = 29,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_WEST = 30,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_EAST = 31,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_NORTH = 32,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_SOUTH = 33,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_WEST = 34,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_EAST = 35,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_NORTH = 36,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_SOUTH = 37,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_WEST = 38,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_EAST = 39,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_NORTH = 40,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_SOUTH = 41,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_WEST = 42,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_EAST = 43,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_NORTH = 44,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_SOUTH = 45,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_WEST = 46,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_EAST = 47,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_NORTH = 48,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_SOUTH = 49,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_WEST = 50,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_EAST = 51,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_NORTH = 52,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_SOUTH = 53,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_WEST = 54,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_EAST = 55,
+    MOVEMENT_ACTION_JUMP_FAR_NORTH = 56,
+    MOVEMENT_ACTION_JUMP_FAR_SOUTH = 57,
+    MOVEMENT_ACTION_JUMP_FAR_WEST = 58,
+    MOVEMENT_ACTION_JUMP_FAR_EAST = 59,
+    MOVEMENT_ACTION_DELAY_1 = 60,
+    MOVEMENT_ACTION_DELAY_2 = 61,
+    MOVEMENT_ACTION_DELAY_4 = 62,
+    MOVEMENT_ACTION_DELAY_8 = 63,
+    MOVEMENT_ACTION_DELAY_15 = 64,
+    MOVEMENT_ACTION_DELAY_16 = 65,
+    MOVEMENT_ACTION_DELAY_32 = 66,
+    MOVEMENT_ACTION_WARP_OUT = 67,
+    MOVEMENT_ACTION_WARP_IN = 68,
+    MOVEMENT_ACTION_SET_INVISIBLE = 69,
+    MOVEMENT_ACTION_SET_VISIBLE = 70,
+    MOVEMENT_ACTION_LOCK_DIR = 71,
+    MOVEMENT_ACTION_UNLOCK_DIR = 72,
+    MOVEMENT_ACTION_PAUSE_ANIMATION = 73,
+    MOVEMENT_ACTION_RESUME_ANIMATION = 74,
+    MOVEMENT_ACTION_EMOTE_EXCLAMATION_MARK = 75,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_NORTH = 76,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_SOUTH = 77,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_WEST = 78,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_EAST = 79,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_NORTH = 80,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_SOUTH = 81,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_WEST = 82,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_EAST = 83,
+    MOVEMENT_ACTION_WALK_FASTEST_NORTH = 84,
+    MOVEMENT_ACTION_WALK_FASTEST_SOUTH = 85,
+    MOVEMENT_ACTION_WALK_FASTEST_WEST = 86,
+    MOVEMENT_ACTION_WALK_FASTEST_EAST = 87,
+    MOVEMENT_ACTION_RUN_NORTH = 88,
+    MOVEMENT_ACTION_RUN_SOUTH = 89,
+    MOVEMENT_ACTION_RUN_WEST = 90,
+    MOVEMENT_ACTION_RUN_EAST = 91,
+    MOVEMENT_ACTION_JUMP_NEAR_SLOW_WEST = 92,
+    MOVEMENT_ACTION_JUMP_NEAR_SLOW_EAST = 93,
+    MOVEMENT_ACTION_JUMP_FARTHER_WEST = 94,
+    MOVEMENT_ACTION_JUMP_FARTHER_EAST = 95,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_NORTH = 96,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_SOUTH = 97,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_WEST = 98,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_EAST = 99,
+    MOVEMENT_ACTION_POKECENTER_NURSE_BOW = 100,
+    MOVEMENT_ACTION_REVEAL_TRAINER = 101,
+    MOVEMENT_ACTION_PLAYER_GIVE = 102,
+    MOVEMENT_ACTION_EMOTE_DOUBLE_EXCLAMATION_MARK = 103,
+    MOVEMENT_ACTION_PLAYER_RECEIVE = 104,
+    MOVEMENT_ACTION_105 = 105,
+    MOVEMENT_ACTION_106 = 106,
+    MOVEMENT_ACTION_107 = 107,
+    MOVEMENT_ACTION_108 = 108,
+    MOVEMENT_ACTION_109 = 109,
+    MOVEMENT_ACTION_110 = 110,
+    MOVEMENT_ACTION_111 = 111,
+    MOVEMENT_ACTION_112 = 112,
+    MOVEMENT_ACTION_113 = 113,
+    MOVEMENT_ACTION_114 = 114,
+    MOVEMENT_ACTION_115 = 115,
+    MOVEMENT_ACTION_116 = 116,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_NORTH = 117,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_SOUTH = 118,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_WEST = 119,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_EAST = 120,
+    MOVEMENT_ACTION_121 = 121,
+    MOVEMENT_ACTION_122 = 122,
+    MOVEMENT_ACTION_123 = 123,
+    MOVEMENT_ACTION_124 = 124,
+    MOVEMENT_ACTION_125 = 125,
+    MOVEMENT_ACTION_126 = 126,
+    MOVEMENT_ACTION_127 = 127,
+    MOVEMENT_ACTION_128 = 128,
+    MOVEMENT_ACTION_129 = 129,
+    MOVEMENT_ACTION_130 = 130,
+    MOVEMENT_ACTION_131 = 131,
+    MOVEMENT_ACTION_132 = 132,
+    MOVEMENT_ACTION_133 = 133,
+    MOVEMENT_ACTION_134 = 134,
+    MOVEMENT_ACTION_135 = 135,
+    MOVEMENT_ACTION_136 = 136,
+    MOVEMENT_ACTION_137 = 137,
+    MOVEMENT_ACTION_138 = 138,
+    MOVEMENT_ACTION_139 = 139,
+    MOVEMENT_ACTION_140 = 140,
+    MOVEMENT_ACTION_141 = 141,
+    MOVEMENT_ACTION_142 = 142,
+    MOVEMENT_ACTION_143 = 143,
+    MOVEMENT_ACTION_144 = 144,
+    MOVEMENT_ACTION_145 = 145,
+    MOVEMENT_ACTION_146 = 146,
+    MOVEMENT_ACTION_147 = 147,
+    MOVEMENT_ACTION_148 = 148,
+    MOVEMENT_ACTION_149 = 149,
+    MOVEMENT_ACTION_150 = 150,
+    MOVEMENT_ACTION_151 = 151,
+    MOVEMENT_ACTION_152 = 152,
+    MOVEMENT_ACTION_153 = 153,
+    MAX_MOVEMENT_ACTION = 154,
+    MOVEMENT_ACTION_END = 254,
+    MOVEMENT_ACTION_NONE = 255,
+};
+typedef struct MapObject MapObject;
+void sub_0205F328(MapObject *mapObj, u32 param1);
+void *sub_0205F3C0(MapObject *mapObj, int size);
+void MapObject_IncrementMovementStep(MapObject *mapObj);
+extern int (*const *const gMovementCmdTable[MAX_MOVEMENT_ACTION])(MapObject *);
+typedef struct WarpMovementData {
+    fx32 y;
+    fx32 dy;
+} WarpMovementData;
+BOOL MapObjectMovementCmd067_Step1(MapObject *mapObj);
+BOOL MapObjectMovementCmd068_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd071_Step0(MapObject *mapObj);
+void *sub_0205F3E4(MapObject *mapObj);
+void MapObject_SetFacingVector(MapObject *mapObj, const VecFx32 *vec);
+void MapObject_SetFlagsBits(MapObject *mapObj, u32 flag);
+void MapObject_ClearFlagsBits(MapObject *mapObj, u32 flag);
+BOOL MapObjectMovementCmd067_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd067_Step1(MapObject *mapObj);
+BOOL MapObjectMovementCmd068_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd068_Step1(MapObject *mapObj);
+BOOL MapObjectMovementCmd069_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd070_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd071_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd072_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd073_Step0(MapObject *mapObj);
+BOOL MapObjectMovementCmd074_Step0(MapObject *mapObj);
+
+s32 MapObjectMovementCmd060_Step0(void *arg0) {
+    sub_02062D54(arg0, 1);
+    return 1;
+}
+
+s32 MapObjectMovementCmd061_Step0(void *arg0);
+
+s32 MapObjectMovementCmd061_Step0(void *arg0) {
+    sub_02062D54(arg0, 2);
+    return 1;
+}
+
+s32 MapObjectMovementCmd062_Step0(void *arg0);
+
+s32 MapObjectMovementCmd062_Step0(void *arg0) {
+    sub_02062D54(arg0, 4);
+    return 1;
+}
+
+s32 MapObjectMovementCmd063_Step0(void *arg0);
+
+s32 MapObjectMovementCmd063_Step0(void *arg0) {
+    sub_02062D54(arg0, 8);
+    return 1;
+}
+
+s32 MapObjectMovementCmd064_Step0(void *arg0);
+
+s32 MapObjectMovementCmd064_Step0(void *arg0) {
+    sub_02062D54(arg0, 0xF);
+    return 1;
+}
+
+s32 MapObjectMovementCmd065_Step0(void *arg0);
+
+s32 MapObjectMovementCmd065_Step0(void *arg0) {
+    sub_02062D54(arg0, 0x10);
+    return 1;
+}
+
+s32 MapObjectMovementCmd066_Step0(void *arg0);
+
+s32 MapObjectMovementCmd066_Step0(void *arg0) {
+    sub_02062D54(arg0, 0x20);
+    return 1;
+}
+
+BOOL MapObjectMovementCmd067_Step0(MapObject *mapObj) {
+    WarpMovementData *data = sub_0205F3C0(mapObj, sizeof(WarpMovementData));
+    data->dy = ((fx32)(((16) > 0) ? ((16) * (1 << 12) + 0.5f) : ((16) * (1 << 12) - 0.5f)));
+
+    sub_0205F328(mapObj, 0);
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd067_Step1(MapObject *mapObj) {
+    WarpMovementData *data = sub_0205F3E4(mapObj);
+    data->y += data->dy;
+
+    VecFx32 v2 = { 0, 0, 0 };
+
+    v2.y = data->y;
+    MapObject_SetFacingVector(mapObj, &v2);
+
+    if (data->y / ((fx32)(((8) > 0) ? ((8) * (1 << 12) + 0.5f) : ((8) * (1 << 12) - 0.5f))) < 40) {
+        return 0;
+    }
+
+    MapObject_IncrementMovementStep(mapObj);
+    return 1;
+}
+
+BOOL MapObjectMovementCmd068_Step0(MapObject *mapObj) {
+    WarpMovementData *data = sub_0205F3C0(mapObj, sizeof(WarpMovementData));
+
+    data->y = ((fx32)(((8) > 0) ? ((8) * (1 << 12) + 0.5f) : ((8) * (1 << 12) - 0.5f))) * 40;
+    data->dy = -((fx32)(((16) > 0) ? ((16) * (1 << 12) + 0.5f) : ((16) * (1 << 12) - 0.5f)));
+
+    sub_0205F328(mapObj, 0);
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd068_Step1(MapObject *mapObj) {
+    WarpMovementData *data = sub_0205F3E4(mapObj);
+    data->y += data->dy;
+
+    if (data->y < 0) {
+        data->y = 0;
+    }
+
+    VecFx32 v1 = { 0, 0, 0 };
+
+    v1.y = data->y;
+    MapObject_SetFacingVector(mapObj, &v1);
+
+    if (data->y > 0) {
+        return 0;
+    }
+
+    MapObject_IncrementMovementStep(mapObj);
+    return 1;
+}
+
+BOOL MapObjectMovementCmd069_Step0(MapObject *mapObj) {
+    MapObject_SetFlagsBits(mapObj, (1 << 9));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd070_Step0(MapObject *mapObj) {
+    MapObject_ClearFlagsBits(mapObj, (1 << 9));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd071_Step0(MapObject *mapObj) {
+    MapObject_SetFlagsBits(mapObj, (1 << 7));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd072_Step0(MapObject *mapObj) {
+    MapObject_ClearFlagsBits(mapObj, (1 << 7));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd073_Step0(MapObject *mapObj) {
+    MapObject_SetFlagsBits(mapObj, (1 << 8));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}
+
+BOOL MapObjectMovementCmd074_Step0(MapObject *mapObj) {
+    MapObject_ClearFlagsBits(mapObj, (1 << 8));
+    MapObject_IncrementMovementStep(mapObj);
+
+    return 1;
+}

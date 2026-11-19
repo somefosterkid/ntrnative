@@ -1,0 +1,32 @@
+pokeplatinum-widepointers9.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after widepointers8.patch): battle_subscreen.c's
+GetTargetSlotFlags and GetBattlerTargetFlags count their output flags with SNELEMS(outFlags), where outFlags is a `u8 *` parameter:
+sizeof of the pointer, 4 bytes on the DS (so 4 flags, the size of every caller's u8[4]) and 8 on the 64-bit host. In a double battle's
+target menu the loop wrote 8 flags into the 4-byte buffer (it overwrote the caller's saved btlSubscreen pointer with 0x01 bytes: SIGSEGV
+in GetBattlerTargetFlags from BattleSubscreen_DrawTargetSelectBg) and read battlersByType[6..9], past its 6 entries. The count is now the
+constant 4. Found by the Jubilife tag battle (route pt leg galactic); tools/plat_lint.py's C5 (-Wsizeof-pointer-div) finds this class in
+the whole tree: these two lines were the only hits.
+diff --git a/src/battle/battle_subscreen.c b/src/battle/battle_subscreen.c
+--- a/src/battle/battle_subscreen.c
++++ b/src/battle/battle_subscreen.c
+@@ -2565,4 +2565,7 @@
+ }
+ 
++// outFlags is a u8[4] in every caller; SNELEMS(outFlags) on the pointer parameter was 4 on the DS and 8 on the host
++#define TARGET_FLAG_COUNT 4
++
+ static void GetTargetSlotFlags(BattleSubscreen *btlSubscreen, u8 *outFlags, BOOL checkPresence)
+ {
+@@ -2572,5 +2575,5 @@
+     BattleSystem_SetBattlersByType(btlSubscreen->battleSys, battlersByType);
+ 
+-    for (int i = 0; i < SNELEMS(outFlags); i++) {
++    for (int i = 0; i < TARGET_FLAG_COUNT; i++) {
+         int battlerIdx = battlersByType[2 + i];
+ 
+@@ -2591,5 +2594,5 @@
+     case 10:
+     case 11:
+-        for (int i = 0; i < SNELEMS(outFlags); i++) {
++        for (int i = 0; i < TARGET_FLAG_COUNT; i++) {
+             if (i == selectedTarget - 1) {
+                 outFlags[i] = TRUE;

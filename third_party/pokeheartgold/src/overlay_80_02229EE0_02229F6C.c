@@ -1,0 +1,643 @@
+#include "global.h"
+
+#include "frontier/overlay_80_02229EE0.h"
+#include "constants/heap.h"
+#include "filesystem_files_def.h"
+#include "overlay_80_frontier_opponent.h"
+
+enum Move {
+    MOVE_NONE = 0,
+    MOVE_POUND = 1,
+    MOVE_KARATE_CHOP = 2,
+    MOVE_DOUBLE_SLAP = 3,
+    MOVE_COMET_PUNCH = 4,
+    MOVE_MEGA_PUNCH = 5,
+    MOVE_PAY_DAY = 6,
+    MOVE_FIRE_PUNCH = 7,
+    MOVE_ICE_PUNCH = 8,
+    MOVE_THUNDER_PUNCH = 9,
+    MOVE_SCRATCH = 10,
+    MOVE_VICE_GRIP = 11,
+    MOVE_GUILLOTINE = 12,
+    MOVE_RAZOR_WIND = 13,
+    MOVE_SWORDS_DANCE = 14,
+    MOVE_CUT = 15,
+    MOVE_GUST = 16,
+    MOVE_WING_ATTACK = 17,
+    MOVE_WHIRLWIND = 18,
+    MOVE_FLY = 19,
+    MOVE_BIND = 20,
+    MOVE_SLAM = 21,
+    MOVE_VINE_WHIP = 22,
+    MOVE_STOMP = 23,
+    MOVE_DOUBLE_KICK = 24,
+    MOVE_MEGA_KICK = 25,
+    MOVE_JUMP_KICK = 26,
+    MOVE_ROLLING_KICK = 27,
+    MOVE_SAND_ATTACK = 28,
+    MOVE_HEADBUTT = 29,
+    MOVE_HORN_ATTACK = 30,
+    MOVE_FURY_ATTACK = 31,
+    MOVE_HORN_DRILL = 32,
+    MOVE_TACKLE = 33,
+    MOVE_BODY_SLAM = 34,
+    MOVE_WRAP = 35,
+    MOVE_TAKE_DOWN = 36,
+    MOVE_THRASH = 37,
+    MOVE_DOUBLE_EDGE = 38,
+    MOVE_TAIL_WHIP = 39,
+    MOVE_POISON_STING = 40,
+    MOVE_TWINEEDLE = 41,
+    MOVE_PIN_MISSILE = 42,
+    MOVE_LEER = 43,
+    MOVE_BITE = 44,
+    MOVE_GROWL = 45,
+    MOVE_ROAR = 46,
+    MOVE_SING = 47,
+    MOVE_SUPERSONIC = 48,
+    MOVE_SONIC_BOOM = 49,
+    MOVE_DISABLE = 50,
+    MOVE_ACID = 51,
+    MOVE_EMBER = 52,
+    MOVE_FLAMETHROWER = 53,
+    MOVE_MIST = 54,
+    MOVE_WATER_GUN = 55,
+    MOVE_HYDRO_PUMP = 56,
+    MOVE_SURF = 57,
+    MOVE_ICE_BEAM = 58,
+    MOVE_BLIZZARD = 59,
+    MOVE_PSYBEAM = 60,
+    MOVE_BUBBLE_BEAM = 61,
+    MOVE_AURORA_BEAM = 62,
+    MOVE_HYPER_BEAM = 63,
+    MOVE_PECK = 64,
+    MOVE_DRILL_PECK = 65,
+    MOVE_SUBMISSION = 66,
+    MOVE_LOW_KICK = 67,
+    MOVE_COUNTER = 68,
+    MOVE_SEISMIC_TOSS = 69,
+    MOVE_STRENGTH = 70,
+    MOVE_ABSORB = 71,
+    MOVE_MEGA_DRAIN = 72,
+    MOVE_LEECH_SEED = 73,
+    MOVE_GROWTH = 74,
+    MOVE_RAZOR_LEAF = 75,
+    MOVE_SOLAR_BEAM = 76,
+    MOVE_POISON_POWDER = 77,
+    MOVE_STUN_SPORE = 78,
+    MOVE_SLEEP_POWDER = 79,
+    MOVE_PETAL_DANCE = 80,
+    MOVE_STRING_SHOT = 81,
+    MOVE_DRAGON_RAGE = 82,
+    MOVE_FIRE_SPIN = 83,
+    MOVE_THUNDER_SHOCK = 84,
+    MOVE_THUNDERBOLT = 85,
+    MOVE_THUNDER_WAVE = 86,
+    MOVE_THUNDER = 87,
+    MOVE_ROCK_THROW = 88,
+    MOVE_EARTHQUAKE = 89,
+    MOVE_FISSURE = 90,
+    MOVE_DIG = 91,
+    MOVE_TOXIC = 92,
+    MOVE_CONFUSION = 93,
+    MOVE_PSYCHIC = 94,
+    MOVE_HYPNOSIS = 95,
+    MOVE_MEDITATE = 96,
+    MOVE_AGILITY = 97,
+    MOVE_QUICK_ATTACK = 98,
+    MOVE_RAGE = 99,
+    MOVE_TELEPORT = 100,
+    MOVE_NIGHT_SHADE = 101,
+    MOVE_MIMIC = 102,
+    MOVE_SCREECH = 103,
+    MOVE_DOUBLE_TEAM = 104,
+    MOVE_RECOVER = 105,
+    MOVE_HARDEN = 106,
+    MOVE_MINIMIZE = 107,
+    MOVE_SMOKE_SCREEN = 108,
+    MOVE_CONFUSE_RAY = 109,
+    MOVE_WITHDRAW = 110,
+    MOVE_DEFENSE_CURL = 111,
+    MOVE_BARRIER = 112,
+    MOVE_LIGHT_SCREEN = 113,
+    MOVE_HAZE = 114,
+    MOVE_REFLECT = 115,
+    MOVE_FOCUS_ENERGY = 116,
+    MOVE_BIDE = 117,
+    MOVE_METRONOME = 118,
+    MOVE_MIRROR_MOVE = 119,
+    MOVE_SELFDESTRUCT = 120,
+    MOVE_EGG_BOMB = 121,
+    MOVE_LICK = 122,
+    MOVE_SMOG = 123,
+    MOVE_SLUDGE = 124,
+    MOVE_BONE_CLUB = 125,
+    MOVE_FIRE_BLAST = 126,
+    MOVE_WATERFALL = 127,
+    MOVE_CLAMP = 128,
+    MOVE_SWIFT = 129,
+    MOVE_SKULL_BASH = 130,
+    MOVE_SPIKE_CANNON = 131,
+    MOVE_CONSTRICT = 132,
+    MOVE_AMNESIA = 133,
+    MOVE_KINESIS = 134,
+    MOVE_SOFTBOILED = 135,
+    MOVE_HI_JUMP_KICK = 136,
+    MOVE_GLARE = 137,
+    MOVE_DREAM_EATER = 138,
+    MOVE_POISON_GAS = 139,
+    MOVE_BARRAGE = 140,
+    MOVE_LEECH_LIFE = 141,
+    MOVE_LOVELY_KISS = 142,
+    MOVE_SKY_ATTACK = 143,
+    MOVE_TRANSFORM = 144,
+    MOVE_BUBBLE = 145,
+    MOVE_DIZZY_PUNCH = 146,
+    MOVE_SPORE = 147,
+    MOVE_FLASH = 148,
+    MOVE_PSYWAVE = 149,
+    MOVE_SPLASH = 150,
+    MOVE_ACID_ARMOR = 151,
+    MOVE_CRABHAMMER = 152,
+    MOVE_EXPLOSION = 153,
+    MOVE_FURY_SWIPES = 154,
+    MOVE_BONEMERANG = 155,
+    MOVE_REST = 156,
+    MOVE_ROCK_SLIDE = 157,
+    MOVE_HYPER_FANG = 158,
+    MOVE_SHARPEN = 159,
+    MOVE_CONVERSION = 160,
+    MOVE_TRI_ATTACK = 161,
+    MOVE_SUPER_FANG = 162,
+    MOVE_SLASH = 163,
+    MOVE_SUBSTITUTE = 164,
+    MOVE_STRUGGLE = 165,
+    MOVE_SKETCH = 166,
+    MOVE_TRIPLE_KICK = 167,
+    MOVE_THIEF = 168,
+    MOVE_SPIDER_WEB = 169,
+    MOVE_MIND_READER = 170,
+    MOVE_NIGHTMARE = 171,
+    MOVE_FLAME_WHEEL = 172,
+    MOVE_SNORE = 173,
+    MOVE_CURSE = 174,
+    MOVE_FLAIL = 175,
+    MOVE_CONVERSION_2 = 176,
+    MOVE_AEROBLAST = 177,
+    MOVE_COTTON_SPORE = 178,
+    MOVE_REVERSAL = 179,
+    MOVE_SPITE = 180,
+    MOVE_POWDER_SNOW = 181,
+    MOVE_PROTECT = 182,
+    MOVE_MACH_PUNCH = 183,
+    MOVE_SCARY_FACE = 184,
+    MOVE_FAINT_ATTACK = 185,
+    MOVE_SWEET_KISS = 186,
+    MOVE_BELLY_DRUM = 187,
+    MOVE_SLUDGE_BOMB = 188,
+    MOVE_MUD_SLAP = 189,
+    MOVE_OCTAZOOKA = 190,
+    MOVE_SPIKES = 191,
+    MOVE_ZAP_CANNON = 192,
+    MOVE_FORESIGHT = 193,
+    MOVE_DESTINY_BOND = 194,
+    MOVE_PERISH_SONG = 195,
+    MOVE_ICY_WIND = 196,
+    MOVE_DETECT = 197,
+    MOVE_BONE_RUSH = 198,
+    MOVE_LOCK_ON = 199,
+    MOVE_OUTRAGE = 200,
+    MOVE_SANDSTORM = 201,
+    MOVE_GIGA_DRAIN = 202,
+    MOVE_ENDURE = 203,
+    MOVE_CHARM = 204,
+    MOVE_ROLLOUT = 205,
+    MOVE_FALSE_SWIPE = 206,
+    MOVE_SWAGGER = 207,
+    MOVE_MILK_DRINK = 208,
+    MOVE_SPARK = 209,
+    MOVE_FURY_CUTTER = 210,
+    MOVE_STEEL_WING = 211,
+    MOVE_MEAN_LOOK = 212,
+    MOVE_ATTRACT = 213,
+    MOVE_SLEEP_TALK = 214,
+    MOVE_HEAL_BELL = 215,
+    MOVE_RETURN = 216,
+    MOVE_PRESENT = 217,
+    MOVE_FRUSTRATION = 218,
+    MOVE_SAFEGUARD = 219,
+    MOVE_PAIN_SPLIT = 220,
+    MOVE_SACRED_FIRE = 221,
+    MOVE_MAGNITUDE = 222,
+    MOVE_DYNAMIC_PUNCH = 223,
+    MOVE_MEGAHORN = 224,
+    MOVE_DRAGON_BREATH = 225,
+    MOVE_BATON_PASS = 226,
+    MOVE_ENCORE = 227,
+    MOVE_PURSUIT = 228,
+    MOVE_RAPID_SPIN = 229,
+    MOVE_SWEET_SCENT = 230,
+    MOVE_IRON_TAIL = 231,
+    MOVE_METAL_CLAW = 232,
+    MOVE_VITAL_THROW = 233,
+    MOVE_MORNING_SUN = 234,
+    MOVE_SYNTHESIS = 235,
+    MOVE_MOONLIGHT = 236,
+    MOVE_HIDDEN_POWER = 237,
+    MOVE_CROSS_CHOP = 238,
+    MOVE_TWISTER = 239,
+    MOVE_RAIN_DANCE = 240,
+    MOVE_SUNNY_DAY = 241,
+    MOVE_CRUNCH = 242,
+    MOVE_MIRROR_COAT = 243,
+    MOVE_PSYCH_UP = 244,
+    MOVE_EXTREME_SPEED = 245,
+    MOVE_ANCIENT_POWER = 246,
+    MOVE_SHADOW_BALL = 247,
+    MOVE_FUTURE_SIGHT = 248,
+    MOVE_ROCK_SMASH = 249,
+    MOVE_WHIRLPOOL = 250,
+    MOVE_BEAT_UP = 251,
+    MOVE_FAKE_OUT = 252,
+    MOVE_UPROAR = 253,
+    MOVE_STOCKPILE = 254,
+    MOVE_SPIT_UP = 255,
+    MOVE_SWALLOW = 256,
+    MOVE_HEAT_WAVE = 257,
+    MOVE_HAIL = 258,
+    MOVE_TORMENT = 259,
+    MOVE_FLATTER = 260,
+    MOVE_WILL_O_WISP = 261,
+    MOVE_MEMENTO = 262,
+    MOVE_FACADE = 263,
+    MOVE_FOCUS_PUNCH = 264,
+    MOVE_SMELLING_SALT = 265,
+    MOVE_FOLLOW_ME = 266,
+    MOVE_NATURE_POWER = 267,
+    MOVE_CHARGE = 268,
+    MOVE_TAUNT = 269,
+    MOVE_HELPING_HAND = 270,
+    MOVE_TRICK = 271,
+    MOVE_ROLE_PLAY = 272,
+    MOVE_WISH = 273,
+    MOVE_ASSIST = 274,
+    MOVE_INGRAIN = 275,
+    MOVE_SUPERPOWER = 276,
+    MOVE_MAGIC_COAT = 277,
+    MOVE_RECYCLE = 278,
+    MOVE_REVENGE = 279,
+    MOVE_BRICK_BREAK = 280,
+    MOVE_YAWN = 281,
+    MOVE_KNOCK_OFF = 282,
+    MOVE_ENDEAVOR = 283,
+    MOVE_ERUPTION = 284,
+    MOVE_SKILL_SWAP = 285,
+    MOVE_IMPRISON = 286,
+    MOVE_REFRESH = 287,
+    MOVE_GRUDGE = 288,
+    MOVE_SNATCH = 289,
+    MOVE_SECRET_POWER = 290,
+    MOVE_DIVE = 291,
+    MOVE_ARM_THRUST = 292,
+    MOVE_CAMOUFLAGE = 293,
+    MOVE_TAIL_GLOW = 294,
+    MOVE_LUSTER_PURGE = 295,
+    MOVE_MIST_BALL = 296,
+    MOVE_FEATHER_DANCE = 297,
+    MOVE_TEETER_DANCE = 298,
+    MOVE_BLAZE_KICK = 299,
+    MOVE_MUD_SPORT = 300,
+    MOVE_ICE_BALL = 301,
+    MOVE_NEEDLE_ARM = 302,
+    MOVE_SLACK_OFF = 303,
+    MOVE_HYPER_VOICE = 304,
+    MOVE_POISON_FANG = 305,
+    MOVE_CRUSH_CLAW = 306,
+    MOVE_BLAST_BURN = 307,
+    MOVE_HYDRO_CANNON = 308,
+    MOVE_METEOR_MASH = 309,
+    MOVE_ASTONISH = 310,
+    MOVE_WEATHER_BALL = 311,
+    MOVE_AROMATHERAPY = 312,
+    MOVE_FAKE_TEARS = 313,
+    MOVE_AIR_CUTTER = 314,
+    MOVE_OVERHEAT = 315,
+    MOVE_ODOR_SLEUTH = 316,
+    MOVE_ROCK_TOMB = 317,
+    MOVE_SILVER_WIND = 318,
+    MOVE_METAL_SOUND = 319,
+    MOVE_GRASS_WHISTLE = 320,
+    MOVE_TICKLE = 321,
+    MOVE_COSMIC_POWER = 322,
+    MOVE_WATER_SPOUT = 323,
+    MOVE_SIGNAL_BEAM = 324,
+    MOVE_SHADOW_PUNCH = 325,
+    MOVE_EXTRASENSORY = 326,
+    MOVE_SKY_UPPERCUT = 327,
+    MOVE_SAND_TOMB = 328,
+    MOVE_SHEER_COLD = 329,
+    MOVE_MUDDY_WATER = 330,
+    MOVE_BULLET_SEED = 331,
+    MOVE_AERIAL_ACE = 332,
+    MOVE_ICICLE_SPEAR = 333,
+    MOVE_IRON_DEFENSE = 334,
+    MOVE_BLOCK = 335,
+    MOVE_HOWL = 336,
+    MOVE_DRAGON_CLAW = 337,
+    MOVE_FRENZY_PLANT = 338,
+    MOVE_BULK_UP = 339,
+    MOVE_BOUNCE = 340,
+    MOVE_MUD_SHOT = 341,
+    MOVE_POISON_TAIL = 342,
+    MOVE_COVET = 343,
+    MOVE_VOLT_TACKLE = 344,
+    MOVE_MAGICAL_LEAF = 345,
+    MOVE_WATER_SPORT = 346,
+    MOVE_CALM_MIND = 347,
+    MOVE_LEAF_BLADE = 348,
+    MOVE_DRAGON_DANCE = 349,
+    MOVE_ROCK_BLAST = 350,
+    MOVE_SHOCK_WAVE = 351,
+    MOVE_WATER_PULSE = 352,
+    MOVE_DOOM_DESIRE = 353,
+    MOVE_PSYCHO_BOOST = 354,
+    MOVE_ROOST = 355,
+    MOVE_GRAVITY = 356,
+    MOVE_MIRACLE_EYE = 357,
+    MOVE_WAKE_UP_SLAP = 358,
+    MOVE_HAMMER_ARM = 359,
+    MOVE_GYRO_BALL = 360,
+    MOVE_HEALING_WISH = 361,
+    MOVE_BRINE = 362,
+    MOVE_NATURAL_GIFT = 363,
+    MOVE_FEINT = 364,
+    MOVE_PLUCK = 365,
+    MOVE_TAILWIND = 366,
+    MOVE_ACUPRESSURE = 367,
+    MOVE_METAL_BURST = 368,
+    MOVE_U_TURN = 369,
+    MOVE_CLOSE_COMBAT = 370,
+    MOVE_PAYBACK = 371,
+    MOVE_ASSURANCE = 372,
+    MOVE_EMBARGO = 373,
+    MOVE_FLING = 374,
+    MOVE_PSYCHO_SHIFT = 375,
+    MOVE_TRUMP_CARD = 376,
+    MOVE_HEAL_BLOCK = 377,
+    MOVE_WRING_OUT = 378,
+    MOVE_POWER_TRICK = 379,
+    MOVE_GASTRO_ACID = 380,
+    MOVE_LUCKY_CHANT = 381,
+    MOVE_ME_FIRST = 382,
+    MOVE_COPYCAT = 383,
+    MOVE_POWER_SWAP = 384,
+    MOVE_GUARD_SWAP = 385,
+    MOVE_PUNISHMENT = 386,
+    MOVE_LAST_RESORT = 387,
+    MOVE_WORRY_SEED = 388,
+    MOVE_SUCKER_PUNCH = 389,
+    MOVE_TOXIC_SPIKES = 390,
+    MOVE_HEART_SWAP = 391,
+    MOVE_AQUA_RING = 392,
+    MOVE_MAGNET_RISE = 393,
+    MOVE_FLARE_BLITZ = 394,
+    MOVE_FORCE_PALM = 395,
+    MOVE_AURA_SPHERE = 396,
+    MOVE_ROCK_POLISH = 397,
+    MOVE_POISON_JAB = 398,
+    MOVE_DARK_PULSE = 399,
+    MOVE_NIGHT_SLASH = 400,
+    MOVE_AQUA_TAIL = 401,
+    MOVE_SEED_BOMB = 402,
+    MOVE_AIR_SLASH = 403,
+    MOVE_X_SCISSOR = 404,
+    MOVE_BUG_BUZZ = 405,
+    MOVE_DRAGON_PULSE = 406,
+    MOVE_DRAGON_RUSH = 407,
+    MOVE_POWER_GEM = 408,
+    MOVE_DRAIN_PUNCH = 409,
+    MOVE_VACUUM_WAVE = 410,
+    MOVE_FOCUS_BLAST = 411,
+    MOVE_ENERGY_BALL = 412,
+    MOVE_BRAVE_BIRD = 413,
+    MOVE_EARTH_POWER = 414,
+    MOVE_SWITCHEROO = 415,
+    MOVE_GIGA_IMPACT = 416,
+    MOVE_NASTY_PLOT = 417,
+    MOVE_BULLET_PUNCH = 418,
+    MOVE_AVALANCHE = 419,
+    MOVE_ICE_SHARD = 420,
+    MOVE_SHADOW_CLAW = 421,
+    MOVE_THUNDER_FANG = 422,
+    MOVE_ICE_FANG = 423,
+    MOVE_FIRE_FANG = 424,
+    MOVE_SHADOW_SNEAK = 425,
+    MOVE_MUD_BOMB = 426,
+    MOVE_PSYCHO_CUT = 427,
+    MOVE_ZEN_HEADBUTT = 428,
+    MOVE_MIRROR_SHOT = 429,
+    MOVE_FLASH_CANNON = 430,
+    MOVE_ROCK_CLIMB = 431,
+    MOVE_DEFOG = 432,
+    MOVE_TRICK_ROOM = 433,
+    MOVE_DRACO_METEOR = 434,
+    MOVE_DISCHARGE = 435,
+    MOVE_LAVA_PLUME = 436,
+    MOVE_LEAF_STORM = 437,
+    MOVE_POWER_WHIP = 438,
+    MOVE_ROCK_WRECKER = 439,
+    MOVE_CROSS_POISON = 440,
+    MOVE_GUNK_SHOT = 441,
+    MOVE_IRON_HEAD = 442,
+    MOVE_MAGNET_BOMB = 443,
+    MOVE_STONE_EDGE = 444,
+    MOVE_CAPTIVATE = 445,
+    MOVE_STEALTH_ROCK = 446,
+    MOVE_GRASS_KNOT = 447,
+    MOVE_CHATTER = 448,
+    MOVE_JUDGMENT = 449,
+    MOVE_BUG_BITE = 450,
+    MOVE_CHARGE_BEAM = 451,
+    MOVE_WOOD_HAMMER = 452,
+    MOVE_AQUA_JET = 453,
+    MOVE_ATTACK_ORDER = 454,
+    MOVE_DEFEND_ORDER = 455,
+    MOVE_HEAL_ORDER = 456,
+    MOVE_HEAD_SMASH = 457,
+    MOVE_DOUBLE_HIT = 458,
+    MOVE_ROAR_OF_TIME = 459,
+    MOVE_SPACIAL_REND = 460,
+    MOVE_LUNAR_DANCE = 461,
+    MOVE_CRUSH_GRIP = 462,
+    MOVE_MAGMA_STORM = 463,
+    MOVE_DARK_VOID = 464,
+    MOVE_SEED_FLARE = 465,
+    MOVE_OMINOUS_WIND = 466,
+    MOVE_SHADOW_FORCE = 467,
+    MAX_MOVES = 468,
+};
+
+enum PokemonStat {
+    STAT_HP = 0,
+    STAT_ATTACK = 1,
+    STAT_DEFENSE = 2,
+    STAT_SPEED = 3,
+    STAT_SPECIAL_ATTACK = 4,
+    STAT_SPECIAL_DEFENSE = 5,
+    STAT_MAX = 6,
+};
+
+typedef struct FrontierPokemonBase {
+    u16 species;
+    u16 moves[4];
+    u8 evFlags;
+    u8 nature;
+    u16 item;
+    u16 form;
+} FrontierPokemonBase;
+
+typedef u16 charcode_t;
+
+enum SpeciesDataParam {
+    SPECIES_DATA_BASE_HP = 0,
+    SPECIES_DATA_BASE_ATK = 1,
+    SPECIES_DATA_BASE_DEF = 2,
+    SPECIES_DATA_BASE_SPEED = 3,
+    SPECIES_DATA_BASE_SP_ATK = 4,
+    SPECIES_DATA_BASE_SP_DEF = 5,
+    SPECIES_DATA_TYPE_1 = 6,
+    SPECIES_DATA_TYPE_2 = 7,
+    SPECIES_DATA_CATCH_RATE = 8,
+    SPECIES_DATA_BASE_EXP_REWARD = 9,
+    SPECIES_DATA_EV_HP_YIELD = 10,
+    SPECIES_DATA_EV_ATK_YIELD = 11,
+    SPECIES_DATA_EV_DEF_YIELD = 12,
+    SPECIES_DATA_EV_SPEED_YIELD = 13,
+    SPECIES_DATA_EV_SP_ATK_YIELD = 14,
+    SPECIES_DATA_EV_SP_DEF_YIELD = 15,
+    SPECIES_DATA_HELD_ITEM_COMMON = 16,
+    SPECIES_DATA_HELD_ITEM_RARE = 17,
+    SPECIES_DATA_GENDER_RATIO = 18,
+    SPECIES_DATA_HATCH_CYCLES = 19,
+    SPECIES_DATA_BASE_FRIENDSHIP = 20,
+    SPECIES_DATA_EXP_RATE = 21,
+    SPECIES_DATA_EGG_GROUP_1 = 22,
+    SPECIES_DATA_EGG_GROUP_2 = 23,
+    SPECIES_DATA_ABILITY_1 = 24,
+    SPECIES_DATA_ABILITY_2 = 25,
+    SPECIES_DATA_SAFARI_FLEE_RATE = 26,
+    SPECIES_DATA_BODY_COLOR = 27,
+    SPECIES_DATA_FLIP_SPRITE = 28,
+    SPECIES_DATA_TM_LEARNSET_MASK_1 = 29,
+    SPECIES_DATA_TM_LEARNSET_MASK_2 = 30,
+    SPECIES_DATA_TM_LEARNSET_MASK_3 = 31,
+    SPECIES_DATA_TM_LEARNSET_MASK_4 = 32,
+};
+
+u32 GetMonBaseStat(int monSpecies, enum SpeciesDataParam param);
+
+u8 GetNatureFromPersonality(u32 monPersonality);
+
+u8 CalcShininessByOtIdAndPersonality(u32 monOTID, u32 monPersonality);
+
+void ov80_02229EF4(FrontierPokemonBase *monData, int narcIdx, enum NarcId narcID);
+
+u32 MaskOfFlagNo(int index);
+
+u16 LCRandom(void);
+
+void GetSpeciesNameIntoArray(u16 species, u32 heapID, charcode_t *dst);
+
+extern const u16 _0223B620[4];
+
+u32 ov80_02229F6C(FrontierPokemon *mon, u16 narcIdx, u32 otID, u32 personality, u8 ivs, u8 itemIdx, BOOL alwaysFalse, enum HeapID heapID, enum NarcId narcID);
+
+u32 ov80_02229F6C(FrontierPokemon *mon, u16 narcIdx, u32 otID, u32 personality, u8 ivs, u8 itemIdx, BOOL alwaysFalse, enum HeapID heapID, enum NarcId narcID) {
+    MI_CpuClear8(mon, sizeof(FrontierPokemon));
+    FrontierPokemonBase baseMon;
+    ov80_02229EF4(&baseMon, narcIdx, narcID);
+
+    mon->species = baseMon.species;
+    mon->form = baseMon.form;
+
+    if (alwaysFalse) {
+        if (itemIdx >= (sizeof(_0223B620) / sizeof(*(_0223B620)))) {
+            itemIdx %= (sizeof(_0223B620) / sizeof(*(_0223B620)));
+        }
+
+        mon->item = _0223B620[itemIdx];
+    } else {
+        mon->item = baseMon.item;
+    }
+
+    u8 friendship = 255;
+
+    for (int i = 0; i < 4; i++) {
+        mon->moves[i] = baseMon.moves[i];
+
+        if (baseMon.moves[i] == MOVE_FRUSTRATION) {
+            friendship = 0;
+        }
+    }
+
+    mon->otID = otID;
+
+    if (personality == 0) {
+        do {
+            u32 rndLo = LCRandom();
+            u32 rndHi = LCRandom();
+            personality = rndLo | rndHi << 16;
+        } while (baseMon.nature != GetNatureFromPersonality(personality) || CalcShininessByOtIdAndPersonality(otID, personality) == 1);
+
+        mon->personality = personality;
+    } else {
+        mon->personality = personality;
+    }
+
+    mon->hpIV = ivs;
+    mon->atkIV = ivs;
+    mon->defIV = ivs;
+    mon->speedIV = ivs;
+    mon->spAtkIV = ivs;
+    mon->spDefIV = ivs;
+
+    int evs = 0;
+
+    for (int i = 0; i < STAT_MAX; i++) {
+        if (baseMon.evFlags & MaskOfFlagNo(i)) {
+            evs++;
+        }
+    }
+
+    if (510 / evs > 255) {
+        evs = 255;
+    } else {
+        evs = 510 / evs;
+    }
+
+    for (int i = 0; i < STAT_MAX; i++) {
+        if (baseMon.evFlags & MaskOfFlagNo(i)) {
+            mon->evList[i] = evs;
+        }
+    }
+
+    mon->combinedPPUps = 0;
+    mon->language = gGameLanguage;
+
+    int ability2 = GetMonBaseStat(mon->species, SPECIES_DATA_ABILITY_2);
+
+    if (ability2) {
+        if (mon->personality & 1) {
+            mon->ability = ability2;
+        } else {
+            mon->ability = GetMonBaseStat(mon->species, SPECIES_DATA_ABILITY_1);
+        }
+    } else {
+        mon->ability = GetMonBaseStat(mon->species, SPECIES_DATA_ABILITY_1);
+    }
+
+    mon->friendship = friendship;
+    GetSpeciesNameIntoArray(mon->species, heapID, &mon->nickname[0]);
+
+    return personality;
+}

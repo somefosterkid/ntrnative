@@ -5,7 +5,7 @@ White's config is not kept by hand: its 35,000 symbols, relocations and file ran
 so they follow every change made to Black's. delta.txt (written by tools/version_map.py from both ROMs) holds only what
 differs: each module's shifts, White's sizes and relocations of what White changed, its module hashes, and the files
 complete in Black that don't match White yet (docs/white.md). configure.py runs this for each version with a delta
-before it reads the configs:
+before it reads the configs, whether or not that version's ROM is in orig/ (the port's asset rows need White's):
 
     python3 tools/version_config.py w_us    # writes config/w_us/arm9/** and config/w_us/assets.tsv (not committed)
 

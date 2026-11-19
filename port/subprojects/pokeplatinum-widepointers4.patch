@@ -1,0 +1,18 @@
+pokeplatinum-widepointers4.patch (tools/pokeplat_gen.py applies it after widepointers3): an address carried in a u32 local.
+ov5_021EE320 (the field's billboard texture tables, overlay005) lays three arrays after its header in one Heap_Alloc and
+walks to each with `v0 = (uintptr_t)v5 + sizeof(...)`, but v0 was a u32: the host pointers lost their top half
+(0x5555'60879120 -> 0x60879120) and the first map object's draw (ov5_021EDFF0) faulted when the field came up after the
+new game's intro (pl8). The rule: a local that holds an address is uintptr_t (docs/platinum.md, the crash table).
+
+--- a/src/overlay005/ov5_021ECE40.c
++++ b/src/overlay005/ov5_021ECE40.c
+@@ -1791,7 +1791,8 @@
+ 
+ static void ov5_021EE320(UnkStruct_ov5_021ED0A4 *param0, int param1, int param2)
+ {
+-    u32 v0, v1, v2, v3, v4;
++    uintptr_t v0;
++    u32 v1, v2, v3, v4;
+     UnkStruct_ov5_021EDF3C *v5;
+ 
+     v4 = (sizeof(UnkStruct_ov5_021EE294)) * param1;

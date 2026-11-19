@@ -1,0 +1,21 @@
+#ifndef POKEHEARTGOLD_UNK_02058034_H
+#define POKEHEARTGOLD_UNK_02058034_H
+
+#include "field_system.h"
+#include "script.h"
+
+u8 sub_02057F18(BOOL arg0);
+void sub_020580E4(FieldSystem *fieldSystem, s32 arg1, s32 arg2);
+void sub_02058124(FieldSystem *fieldSystem, int, u32);
+void sub_02058164(u16 arg0);
+void sub_02058180();
+void sub_02058190(FieldSystem *fieldSystem);
+void sub_02058284(void);
+void sub_020582A8(void);
+void sub_02058720(int unused0, int sLotoId, void *message, void *unused3);
+BOOL sub_02058740(void);
+void sub_020588CC(int netId, int unused1, void *unused2, void *unused3);
+u8 *sub_020588DC(int netId, void *unused1, int unused2);
+int AdjustQuantityUsingDPad(s16 *quantity, u16 a1);
+
+#endif // POKEHEARTGOLD_UNK_02058034_H

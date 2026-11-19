@@ -1,0 +1,30 @@
+#include "constants/pokemon.h"
+	.include "macros.inc"
+	.include "overlay_65.inc"
+	.include "global.inc"
+
+	.public ov65_0221C3DC
+	.public ov65_0221C414
+	.public ov65_0221C46C
+	.public ov65_0221C5E0
+	.public ov65_0221CB5C
+	.public ov65_0221CC0C
+	.public ov65_0221CCB0
+	.public ov65_0221CD0C
+	.public ov65_0221CE1C
+	.public ov65_0221CE98
+	.public ov65_0221CEB8
+	.public ov65_0221D1C8
+	.public ov65_0221D25C
+	.public ov65_0221D280
+	.public ov65_0221D3B8
+	.public ov65_0221D3E8
+	.public ov65_0221D930
+	.public ov65_0221DD34
+	.public ov65_0221E06C
+	.public ov65_0221F714
+	.public ov65_0221FB4C
+	.public ov65_0221FB90
+	.public ov65_0221BFEC
+	.public ov65_0221C08C
+	.text

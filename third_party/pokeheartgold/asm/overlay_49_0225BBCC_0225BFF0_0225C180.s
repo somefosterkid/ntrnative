@@ -1,0 +1,31 @@
+	.include "macros.inc"
+	.include "overlay_49.inc"
+	.include "global.inc"
+
+	.public ov49_02259154
+	.public ov49_0225B388
+	.public ov49_0225B3A8
+	.public ov49_0225B3C8
+	.public ov49_0225B408
+	.public ov49_0225B418
+	.public ov49_0225B42C
+	.public ov49_0225B438
+	.public ov49_0225BA40
+	.public ov49_0225BB14
+	.public ov49_022696EC
+	.public ov49_022696F0
+	.public ov49_022696F4
+	.public ov49_022696F8
+	.public ov49_022696FC
+	.public ov49_02269704
+	.public ov49_0226970C
+	.public ov49_02269764
+	.public ov49_02269774
+	.public ov49_0226978C
+	.public ov49_0226988C
+	.public ov49_0226991C
+	.public ov49_022699AC
+	.public ov49_02269A6C
+	.public ov49_0225C828
+	.public ov49_0225C368
+	.text

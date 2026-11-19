@@ -83,8 +83,8 @@ static u8 data_ov021_021de298[5] = { 1, 2, 4, 8, 16 };
 static const VecFx32 data_ov021_021d9a00;
 extern const RailCurve data_ov021_021d9a30;
 void func_ov021_021b9464(RailDisabledLines *disabled);
-void func_ov021_021b87c8(void *param_1, void *param_2);
-void func_ov021_021b87bc(void *param_1);
+void func_ov021_021b87c8(RailDataHandle *data, RailDataHandle *src);
+void func_ov021_021b87bc(RailDataHandle *data);
 u16 RailUnit_GetState(RailUnit *unit);
 u32 func_ov021_021b7de0(RailUnit *unit, const RailPosition *pos);
 u32 func_ov021_021b960c(RailPoint *point, RailLine *line, RailDataHandle *handle);
@@ -998,12 +998,14 @@ void SetupLineWidthForLineChange(RailDataHandle *data, const RailLine *line, s32
     *outCur = curWidth;
 }
 
-void func_ov021_021b87bc(void *param_1) {
-    MI_CpuFill8(param_1, 0, 0x30);
+// Clears and copies a RailDataHandle: sizeof, not the DS's 0x30 (a PC's pointers make it 0x50; the copy of 0x30 left
+// the function tables NULL on the PC: the crash on the Skyarrow Bridge, Black's first rail map)
+void func_ov021_021b87bc(RailDataHandle *data) {
+    MI_CpuFill8(data, 0, sizeof(RailDataHandle));
 }
 
-void func_ov021_021b87c8(void *param_1, void *param_2) {
-    MI_CpuCopy8(param_2, param_1, 0x30);
+void func_ov021_021b87c8(RailDataHandle *data, RailDataHandle *src) {
+    MI_CpuCopy8(src, data, sizeof(RailDataHandle));
 }
 
 RailPoint *GetRailPoint(RailDataHandle *handle, u32 index) {

@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-cel24
+# reaches: the party (X menu, second entry), the first Pokemon's menu, its Summary (the info page at ~f2450), three pages on, the move page's detail, back out, the second Pokemon's summary, back out to the field (shots checked)
+# end: f3400
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys x*f4@f1800 down*f4@f1850 a*f4@f1900 a*f4@f2150 a*f4@f2300 right*f4@f2500 right*f4@f2560 right*f4@f2620 a*f4@f2700 b*f4@f2800 down*f4@f2850 down*f4@f2900 right*f4@f2950 right*f4@f3000 b*f4@f3050 b*f4@f3150 b*f4@f3250

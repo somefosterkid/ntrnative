@@ -1,0 +1,5 @@
+# game: platinum
+# from: pt-room
+# reaches: room-load's field in the player's room, then L+R+START+SELECT held (main.c's SoftReset, OS_ResetSystem: the port's in-process restart, hg40): the boot again, the title, CONTINUE, the field again (the reset keys are boot 0 only: #0; the run ends at boot 1's f8300 in the field)
+# end: f8300
+keys start@f6300 a@f6700 l*f30@f8000#0 r*f30@f8000#0 start*f30@f8000#0 select*f30@f8000#0

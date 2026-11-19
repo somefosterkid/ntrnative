@@ -1,0 +1,53 @@
+#include "constants/sndseq.h"
+#include "constants/moves.h"
+#include "constants/std_script.h"
+#include "constants/species.h"
+#include "constants/sprites.h"
+#include "constants/maps.h"
+#include "constants/mmodel.h"
+#include "constants/items.h"
+#include "msgdata/msg/msg_0096_D31R0201.h"
+#include "msgdata/msg/msg_0066_D23R0102.h"
+	.include "macros.inc"
+	.include "overlay_01_021F1AFC.inc"
+	.include "global.inc"
+
+	.public ov01_021F1C70
+	.public ov01_021F1C7C
+	.public ov01_021F1C98
+	.public ov01_021F1CB4
+	.public ov01_021F1CD0
+	.public ov01_021F1CEC
+	.public ov01_021F1D08
+	.public ov01_021F1D24
+	.public ov01_021F1D40
+	.public ov01_021F1D5C
+	.public ov01_021F1D78
+	.public ov01_021F2694
+	.public ov01_021F26AC
+	.public ov01_021F26CC
+	.public ov01_021F2700
+	.public ov01_021F2734
+	.public ov01_021F2758
+	.public ov01_021F27C0
+	.public ov01_021F27E8
+	.public ov01_021F2808
+	.public ov01_021F2830
+	.public ov01_021F2894
+	.public ov01_021F2998
+	.public ov01_021F29C0
+	.public ov01_021F29E4
+	.public ov01_021F2AB8
+	.public ov01_021F2AF8
+	.public ov01_021F2B80
+	.public ov01_021F2BA4
+	.public ov01_021F2BC8
+	.public ov01_021F2C88
+	.public ov01_021F2CD4
+	.public ov01_021F2E08
+	.public ov01_021F2E20
+	.public ov01_021F2E38
+	.public ov01_021F2E6C
+	.public ov01_021F2E94
+	.public ov01_021F3084
+	.text

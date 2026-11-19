@@ -93,7 +93,7 @@ u32 func_ov021_02193924(FieldWFBC *wfbc, void *terrain, FieldPropSystem *propSys
     return propCount;
 }
 
-void func_ov021_021939c0(FieldWFBC *wfbc, EventDataSystem *eventData, BOOL isOther, HeapID heapId) {
+void func_ov021_021939c0(FieldWFBC *wfbc, EventData *eventData, BOOL isOther, HeapID heapId) {
     u32 length;
     FieldWFBCEventEntry *table;
     u32 *list;

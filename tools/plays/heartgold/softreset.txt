@@ -1,0 +1,5 @@
+# game: heartgold
+# from: hg-room1
+# reaches: room-load's field in the player's house, then L+R+START+SELECT held (main.c's soft reset, OS_ResetSystem: the port's in-process restart, hg40): the boot again, the title, CONTINUE, the field again (the reset keys are boot 0 only: #0; the run ends at boot 1's f11600 in the field)
+# end: f11600
+keys start@f7700 a@f8300 a@f8700 a@f9100 l*f30@f11000#0 r*f30@f11000#0 start*f30@f11000#0 select*f30@f11000#0

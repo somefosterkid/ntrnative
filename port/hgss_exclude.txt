@@ -1,0 +1,2 @@
+# HeartGold's C that does not compile on the pinned pret tree (tools/pokehg_cc.py: its "FAILED FILES"), left out of the PC build
+# (port/meson.build): their functions are the link's undefined symbols. Paths under build/pokeheartgold; fewer lines as the pin moves

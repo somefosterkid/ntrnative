@@ -36,6 +36,7 @@ extern void SDL_Delay(uint32_t ms);
 
 // port/src/acapture.c
 extern void acapture_hook_install(void);
+extern void acapture_reset(void);
 
 // port/bridge/acore_bridge.c (acore's own types: plain integers here)
 extern void ab_lock(void);
@@ -97,23 +98,69 @@ void acglue_mem(u32 ds, const u8 *buf, u32 len) {
     ab_unlock();
 }
 
-void acglue_cmds(const u32 (*cmd)[5], u32 n) {
-    // the audio callback drains the queue (every ~5 ms); wait for room, but not forever
-    for (int tries = 0;; tries++) {
-        ab_lock();
-        int ok = ab_queue(cmd, n);
-        if (ok) sLists++;
-        ab_unlock();
-        if (ok) return;
-        if (tries > 500) {
-            fprintf(stderr, "acore: the command queue stayed full, a list is dropped\n");
-            ab_lock();
-            sDropped++;
-            ab_unlock();
-            return;
-        }
-        SDL_Delay(1);
+// Lists that found acore's queue full (64 lists) wait here, in order, and go into it before acore's next step (Run, Mix:
+// the core takes every queued list at its next wake). Before, the PXI thread retried every 1 ms for 500 ms and then dropped
+// the list: with the frame clock the queue only drains at the frame's end, so the wait held the PXI thread (and the frame's
+// SIM_PxiDrain) for real time and a long frame lost a list (wc1's audit a9: game frames, not wall clock)
+typedef struct {
+    u32 n;
+    u32 (*cmd)[5];
+} OverList;
+static OverList *sOver;
+static int sOverN, sOverCap, sOverMax;
+
+static void OverFree(void) {
+    for (int i = 0; i < sOverN; i++) free(sOver[i].cmd);
+    sOverN = 0;
+}
+
+// ab_lock held
+static void Refill(void) {
+    int k = 0;
+    while (k < sOverN && ab_queue((const uint32_t (*)[5])sOver[k].cmd, sOver[k].n)) {
+        free(sOver[k].cmd);
+        k++;
     }
+    if (k > 0) {
+        memmove(sOver, sOver + k, (size_t)(sOverN - k) * sizeof sOver[0]);
+        sOverN -= k;
+    }
+}
+
+void acglue_cmds(const u32 (*cmd)[5], u32 n) {
+    ab_lock();
+    if (sOverN == 0 && ab_queue(cmd, n)) {
+        sLists++;
+        ab_unlock();
+        return;
+    }
+    u32 m = n < 256 ? n : 256;   // AC_MAX_LIST: ab_queue keeps no more
+    u32 (*copy)[5] = malloc((m ? m : 1) * sizeof copy[0]);
+    if (sOverN == sOverCap) {
+        int cap = sOverCap ? sOverCap * 2 : 64;
+        OverList *grown = realloc(sOver, (size_t)cap * sizeof sOver[0]);
+        if (grown != NULL) {
+            sOver = grown;
+            sOverCap = cap;
+        }
+    }
+    if (copy == NULL || sOverN == sOverCap) {   // out of memory only
+        fprintf(stderr, "acore: no memory for a waiting command list, a list is dropped\n");
+        free(copy);
+        sDropped++;
+        ab_unlock();
+        return;
+    }
+    memcpy(copy, cmd, m * sizeof copy[0]);
+    sOver[sOverN].n = m;
+    sOver[sOverN].cmd = copy;
+    sOverN++;
+    if (sOverN > sOverMax) {
+        sOverMax = sOverN;
+        fprintf(stderr, "acore: the command queue is full, %d lists wait for the next frame's step\n", sOverN);
+    }
+    sLists++;
+    ab_unlock();
 }
 
 void acglue_wake(void) {
@@ -274,6 +321,7 @@ static void CopyBack(void) {
 
 static void Mix(s16 *out, int frames, int vol) {
     ab_lock();
+    Refill();
     ab_render(out, frames, (unsigned)vol);
     CopyBack();
     ab_unlock();
@@ -282,6 +330,7 @@ static void Mix(s16 *out, int frames, int vol) {
 // the frame clock (libntr-soundclock.patch): acore to the cycle a game frame ends at; DS-rate frames back
 static int Run(uint64_t to, s16 *out, int max) {
     ab_lock();
+    Refill();
     int n = ab_run(to, out, max);
     CopyBack();
     ab_unlock();
@@ -329,12 +378,13 @@ static void SetQuality(int enhanced) {
 // come (a list lost on its way): count one finished, so that the game goes on
 static int WaitStuck(char *st, int n) {
     ab_lock();
-    uint32_t q = ab_nqueue(), fin = ab_finish_tag();
+    Refill();
+    uint32_t q = ab_nqueue() + (uint32_t)sOverN, fin = ab_finish_tag();
     uint32_t game = sShared ? sShared->finishCommandTag : 0;
     int release = q == 0 && sShared != NULL;
     if (release) ab_finish_bump();
-    snprintf(st, (size_t)n, "acore: %u lists queued in all, %u dropped, %u waiting, %u finished; the game's finished tag %u%s", sLists,
-             sDropped, q, fin, game, sShared ? "" : ", no shared work");
+    snprintf(st, (size_t)n, "acore: %u lists queued in all, %u dropped, %u waiting (%d beyond the queue), %u finished; the game's finished tag %u%s",
+             sLists, sDropped, q, sOverN, fin, game, sShared ? "" : ", no shared work");
     ab_unlock();
     return release;
 }
@@ -343,9 +393,11 @@ static int WaitStuck(char *st, int n) {
 void acglue_reset(void) {
     if (!sLive) return;
     ab_reset();
+    acapture_reset();   // the new core's memory is empty: the translation's "already written" records go too
     if (sSplit >= 0) ab_split(sSplit);
     if (sQuality >= 0) ab_set_quality(sQuality);
     sShared = NULL;
+    OverFree();
     sLists = 0;
     sDropped = 0;
     sNInfo = 0;

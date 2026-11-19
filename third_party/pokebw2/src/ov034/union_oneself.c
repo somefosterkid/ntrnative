@@ -1565,7 +1565,7 @@ static BOOL UnionOneself_StepCardRun(UnionSystem *unisys, UnionSelf *situ, Field
             GFL_HeapAllocate(HEAPID_UNION, sizeof(TrainerCardData), TRUE, "union_oneself.c", 2596);
         TrainerCardData_Fill(unisys->alloc.my_card, unisys->param->gameData, TRUE, FALSE, HEAPID_UNION);
         TrainerCardData_FillExtras(unisys->alloc.my_card, unisys->param->gameData, HEAPID_UNION);
-        MI_CpuCopy8(unisys->alloc.my_card, unisys->alloc.target_card, 0x678);
+        MI_CpuCopy8(unisys->alloc.my_card, unisys->alloc.target_card, sizeof(TrainerCardData));
         NetHandle_SendTimingPair(NetHandle_GetOwn(), 3, 0x14);
         UnionMsg_CreateAndPrint(unisys, field,
                                 UnionMsg_GetOriginMessage(unisys, situ->mycomm.target->beacon.country,

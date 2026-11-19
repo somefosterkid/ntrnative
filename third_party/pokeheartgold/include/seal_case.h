@@ -1,0 +1,225 @@
+#ifndef POKEHEARTGOLD_SEAL_CASE_H
+#define POKEHEARTGOLD_SEAL_CASE_H
+
+#include "constants/seals.h"
+
+#include "save.h"
+
+/*
+ * Structure for seal in-use
+ */
+typedef struct SEAL {
+    u8 kind; // ID of the seal
+    u8 x;    // X coordinate on the capsule
+    u8 y;    // Y coordinate on the capsule
+} SEAL;
+
+/*
+ * Capsule that you put on your ball
+ */
+typedef struct BallCapsule {
+    SEAL seals[MAX_SEALS_ON_CAPSULE];
+} BallCapsule;
+
+/*
+ * Seals available to put on capsule. Typedeffed for safety
+ */
+typedef struct SealCounts {
+    u8 seals[SEAL_MAX];
+} SealCounts;
+
+/*
+ * Seal case and capsules from the save file
+ */
+typedef struct SealCase {
+    BallCapsule capsules[MAX_CAPSULES]; // Available capsules
+    SealCounts inventory;               // Available seals to put on capsules
+} SealCase;
+
+/*
+ * u32 Save_SealCase_sizeof(void)
+ *
+ * Gives the size of the Seal Case on the save file
+ *
+ * @returns: Size of SealCase
+ */
+u32 Save_SealCase_sizeof(void);
+
+/*
+ * void Save_SealCase_Init(SealCase *sealCase)
+ *
+ * Initializes the Seal Case
+ *
+ * @param sealCase:    Pointer to SealCase
+ */
+void Save_SealCase_Init(void *sealCase);
+
+/*
+ * void CopyCapsule(const BallCapsule *src, BallCapsule *dest)
+ *
+ * Copies capsule from src to dest
+ *
+ * @param src:         Origin BallCapsule
+ * @param dest:        Destination BallCapsule
+ */
+void CopyCapsule(const BallCapsule *src, BallCapsule *dest);
+
+/*
+ * SealCase *Save_SealCase_Get(SaveData *saveData)
+ *
+ * Gets the player's seal case from the save file
+ *
+ * @param saveData:    Pointer to SaveData
+ *
+ * @returns: Pointer to SealCase from the save file
+ */
+SealCase *Save_SealCase_Get(SaveData *saveData);
+
+/*
+ * BallCapsule *SealCase_GetCapsuleI(SealCase *sealCase, int i)
+ *
+ * Returns a pointer to the i-th capsule in storage.
+ * Maximum value of i is MAX_CAPSULES - 1
+ *
+ * @param sealCase:    Pointer to SealCase
+ * @param i:           Index of capsule
+ *
+ * @returns: Pointer to requested BallCapsule.
+ */
+BallCapsule *SealCase_GetCapsuleI(SealCase *sealCase, int i);
+
+/*
+ * void SealCase_SetCapsuleI(SealCase *sealCase, const BallCapsule *src, int i)
+ *
+ * Copies the capsule to slot i in the seal case storage.
+ * Maximum value of i is MAX_CAPSULES - 1
+ *
+ * @param sealCase:    Pointer to SealCase
+ * @param src:         Value to set
+ * @param i:           Index of capsule
+ */
+void SealCase_SetCapsuleI(SealCase *sealCase, const BallCapsule *src, int i);
+
+/*
+ * SEAL *CapsuleGetSealI(BallCapsule *capsule, int i)
+ *
+ * Returns pointer to the i-th seal on the capsule.
+ *
+ * @param capsule:     Pointer to BallCapsule
+ * @param i:           Index of seal
+ *
+ * @returns: Pointer to the requested SEAL
+ */
+SEAL *CapsuleGetSealI(BallCapsule *capsule, int i);
+
+/*
+ * u32 SealOnCapsuleGetID(const SEAL *seal)
+ * u8 SealOnCapsuleGetX(const SEAL *seal)
+ * u8 SealOnCapsuleGetY(const SEAL *seal)
+ *
+ * Gets the seal type, x or y coordinate of the given SEAL.
+ *
+ * @param seal:        Pointer to SEAL
+ *
+ * @returns: The requested attribute
+ */
+u32 SealOnCapsuleGetID(const SEAL *seal);
+u8 SealOnCapsuleGetX(const SEAL *seal);
+u8 SealOnCapsuleGetY(const SEAL *seal);
+
+/*
+ * SealCounts *SealCase_inventory_Get(SealCase *sealCase)
+ *
+ * Returns a pointer to the player's loose seals inventory.
+ *
+ * @param sealCase:    Pointer to SealCase
+ *
+ * @returns: Pointer to SealCounts
+ */
+SealCounts *SealCase_inventory_Get(SealCase *sealCase);
+
+/*
+ * u8 SealCaseInventory_GetSealQuantity(const SealCounts *inventory, int sealId)
+ *
+ * Gets the quantity of the given seal ID in the player's loose seals inventory.
+ *
+ * @param inventory:   Pointer to SealCounts
+ * @param sealId:      ID of the seal to look up
+ *
+ * @returns: Owned quantity of that seal.
+ */
+u8 SealCaseInventory_GetSealQuantity(const SealCounts *inventory, int sealId);
+
+/*
+ * BOOL SealIsOnCapsule(const BallCapsule *capsule, int sealId)
+ *
+ * Checks whether any seal on the capsule has the given ID.
+ *
+ * @param capsule:     Pointer to BallCapsule
+ * @param sealId:      ID of the seal to look up
+ *
+ * @returns: TRUE if that seal is on the capsule, otherwise FALSE
+ */
+BOOL SealIsOnCapsule(const BallCapsule *capsule, int sealId);
+
+/*
+ * void SealCaseInventory_SetSealQuantity(SealCounts *inventory, int sealId, s16 quantity)
+ *
+ * Sets the owned number of seals of that type to the exact quantity.
+ *
+ * @param inventory:   Pointer to SealCounts
+ * @param sealId:      ID of the seal to set quantity
+ * @param quantity:    Quantity to set it to
+ */
+void SealCaseInventory_SetSealQuantity(SealCounts *inventory, int sealId, s16 quantity);
+
+/*
+ * BOOL GiveOrTakeSeal(SealCase *sealCase, int sealId, s16 quantity)
+ * BOOL GiveOrTakeSeal2(SealCase *sealCase, int sealId, s16 quantity)
+ * BOOL SealCase_CheckSealQuantity(const SealCase *sealCase, int sealId, s16 quantity)
+ *
+ * Adds or subtracts the quantity from the owned number of seals of that type.
+ * The sign of quantity determines whether it is add (+) or subtract (-).
+ *
+ * GiveOrTakeSeal will fail if you are adding seals, and the combined number on
+ *   and off capsules would exceed the cap.
+ * GiveOrTakeSeal2 will fail if you are adding seals, and the number on capsules
+ *   would exceed the cap. If it succeeds to add, and the number of loose copies
+ *   in the bag would exceed the cap, it is set to the cap.
+ * SealCase_CheckSealQuantity follows the logic of GiveOrTakeSeal, but does not
+ *   actually perform the action, instead only reports success or failure.
+ *
+ * @param inventory:   Pointer to SealCounts
+ * @param sealId:      ID of the seal to adjust quantity
+ * @param quantity:    Quantity to adjust by
+ *
+ * @returns: TRUE if success, otherwise FALSE
+ */
+BOOL GiveOrTakeSeal(SealCase *sealCase, int sealId, s16 quantity);
+BOOL GiveOrTakeSeal2(SealCase *sealCase, int sealId, s16 quantity);
+BOOL SealCase_CheckSealQuantity(const SealCase *sealCase, int sealId, s16 quantity);
+
+/*
+ * int SealCase_CountUniqueSeals(const SealCase *sealCase)
+ *
+ * Counts the number of types of seals the player owns.
+ *
+ * @param sealCase:    Pointer to SealCase
+ *
+ * @returns: The number of seal variants owned by the player.
+ */
+int SealCase_CountUniqueSeals(const SealCase *sealCase);
+
+/*
+ * int SealCase_CountSealOccurrenceAnywhere(const SealCase *sealCase, int sealId)
+ *
+ * Counts the number of lose and capsule-bound seals of the given type.
+ *
+ * @param capsule:     Pointer to BallCapsule
+ * @param sealId:      ID of the seal to look up
+ *
+ * @returns: Total count of that seal anywhere on capsules or loose in the bag.
+ */
+int SealCase_CountSealOccurrenceAnywhere(const SealCase *sealCase, int sealId);
+
+#endif // POKEHEARTGOLD_SEAL_CASE_H

@@ -17,11 +17,23 @@ no C file owns, the _dsd_gap objects), linker (in no ROM object: the linker scri
 
 It exits 1 (after writing its files, so the build stops) when an undefined function is defined in the game's own C: a
 plain C99 `inline` definition, which emits no symbol (game_definitions; the fix is a port/extern stand-in).
+
+Function or datum (the stub is a trap or a zeroed block, is_data): a symbol some object CALLS (an ELF relocation
+R_X86_64_PLT32, R_AARCH64_CALL26/JUMP26: reloc_uses) is a function; else the ROM objects' kind of it (nm; pokebw2's
+symbols.txt); else its name (DATA_NAME); else, an object that only takes its address (a GOT load, a pointer in a table:
+a table, or a function whose address is taken) makes it a datum; no relocation seen (COFF, Mach-O: only ELF is read), a
+function. Every undefined datum is a real bug (the game reads zeros where a table is missing: hg36's battle hang read a
+trap's code bytes as battler types): undefined.txt lists them in "UNDEFINED DATA", the run prints one loud line, and
+`--fail-on-data --allow-data FILE` exits 1 for one that FILE (the known ones, one per line) does not name.
 """
 import argparse
 import collections
+import json
+import mmap
+import os
 import re
 import shlex
+import struct
 import subprocess
 import sys
 import tempfile
@@ -66,7 +78,8 @@ def link_command(bdir, edge):
 
 
 def undefined(bdir, edge):
-    """{symbol: {referencing source}} from a link with the undefined references as warnings."""
+    """({symbol: {referencing source}}, the object and archive files the link reads from the build or the repo) from a
+    link with the undefined references as warnings."""
     linker, args, out = link_command(bdir, edge)
     with tempfile.NamedTemporaryFile("w", suffix=".rsp", dir=bdir, delete=False) as f:
         f.write(args)
@@ -104,16 +117,24 @@ def undefined(bdir, edge):
             refs[m[1]].add(source_of(src))
     if not refs and r.returncode:
         sys.exit(r.stderr[-3000:])
-    return refs
+    inputs = []
+    for t in args.split():
+        p = (bdir / t).resolve()
+        if t.endswith((".o", ".a")) and p.is_file() and (p.is_relative_to(bdir) or p.is_relative_to(ROOT)) and p not in inputs:
+            inputs.append(p)
+    return refs, inputs
 
 
 def source_of(path):
     """A link message's file (a source path with a line, or an object) as a repo path where it can be one."""
     path = re.sub(r":\d+$", "", path.strip())
-    if re.search(r"\.p/_", path):
+    if path.startswith("subprojects/"):   # lld names objects (not source lines), relative to the build dir: libntr's
+        return "port/" + path
+    m = re.search(r"\.p/(?:_|([0-9a-f]{40})_)", path)   # meson's object name: the path with / as _, or a hash and the path
+    if m:
         mangled = re.sub(r"^.*?\.p/", "", path)
         mangled = re.sub(r"\.c\.o(bj)?$", ".c", mangled)
-        mangled = mangled[len(str(ROOT).replace("/", "_")) + 1:]
+        mangled = mangled[41:] if m[1] else mangled[len(str(ROOT).replace("/", "_")) + 1:]
         return real_path(mangled)
     try:
         return str(Path(path).resolve().relative_to(ROOT))
@@ -136,41 +157,181 @@ def real_path(mangled):
     return str(r.relative_to(ROOT)) if r else mangled
 
 
-def rom_definitions(rom):
+NM_CACHE = ROOT / "build/port/rom_definitions.json"
+
+
+def rom_definitions(rom, cache=NM_CACHE):
     """{symbol: [repo-style path of the defining ROM object]}: build/b_us/<dir>/x.o -> <dir>/x.c, delinks too; and
-    {symbol: (nm type letter, size)}."""
-    objs = sorted(str(p) for p in rom.rglob("*.o"))
-    defs, kinds = collections.defaultdict(list), {}
-    for i in range(0, len(objs), 400):
-        r = subprocess.run(["nm", "-A", "-S", "--defined-only", *objs[i:i + 400]], capture_output=True, text=True,
-                           errors="replace")
+    {symbol: (nm type letter, size)}. nm over the ~3200 objects took 17 s of every relink, so each object's symbols are
+    kept in `cache` (a JSON file) under its mtime and size: only the objects `ninja` rewrote since are read again."""
+    try:
+        kept = json.loads(cache.read_text())
+        kept = kept["objs"] if kept["rom"] == str(rom.resolve()) else {}
+    except (OSError, ValueError, KeyError, TypeError):
+        kept = {}
+    objs = sorted(rom.rglob("*.o"))
+    stamp = {}
+    for p in objs:
+        st = p.stat()
+        stamp[p.relative_to(rom).as_posix()] = [st.st_mtime_ns, st.st_size]
+    fresh = {rel: kept[rel] for rel in stamp if rel in kept and kept[rel][:2] == stamp[rel]}
+    todo = [rel for rel in stamp if rel not in fresh]
+    failed = set()
+    for i in range(0, len(todo), 400):
+        batch = todo[i:i + 400]
+        r = subprocess.run(["nm", "-A", "-S", "--defined-only", *(str(rom / rel) for rel in batch)],
+                           capture_output=True, text=True, errors="replace")
+        found = {rel: [] for rel in batch}
         for line in r.stdout.splitlines():
             m = re.match(r"^(.*?\.o):\s*[0-9a-fA-F]*(?:\s+([0-9a-fA-F]+))?\s+([A-Za-z])\s+(\S+)$", line)
             if m and m[3] not in "aNn" and m[3].isupper():
-                defs[m[4]].append(Path(m[1]).relative_to(rom).as_posix())
-                if m[4] not in kinds or (m[2] and kinds[m[4]][1] == 0):
-                    kinds[m[4]] = (m[3], int(m[2], 16) if m[2] else 0)
+                found[Path(m[1]).relative_to(rom).as_posix()].append([m[4], m[3], int(m[2], 16) if m[2] else 0])
+        for rel in batch:
+            fresh[rel] = stamp[rel] + [found[rel]]
+            if r.returncode:   # a failed nm run is used this time, not kept
+                failed.add(rel)
+    if todo:
+        keep = {rel: v for rel, v in fresh.items() if rel not in failed}
+        try:
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            tmp = cache.with_suffix(f".{os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"rom": str(rom.resolve()), "objs": keep}, separators=(",", ":")))
+            tmp.replace(cache)
+        except OSError:
+            pass
+    defs, kinds = collections.defaultdict(list), {}
+    for rel in sorted(fresh):
+        for sym, letter, size in fresh[rel][2]:
+            defs[sym].append(rel)
+            if sym not in kinds or (size and kinds[sym][1] == 0):
+                kinds[sym] = (letter, size)
     return defs, kinds
 
 
-DATA_NAME = re.compile(r"^(data_|Data|s_|g_)|(List|Table|Tbl|Data|Entries|Buf|Work)$")
+# the relocation types that are calls, by ELF e_machine: EM_X86_64 R_X86_64_PLT32 (clang and gcc: a call, a tail jmp),
+# EM_AARCH64 R_AARCH64_JUMP26, CALL26. Every other relocation against a symbol is an address (a GOT load, a pointer
+# in a table), whether of a datum or of a function whose address is taken
+CALL_RELOCS = {62: {4}, 183: {282, 283}}
 
 
-def write_stubs(path, syms, kinds):
+def elf_uses(buf, base, want, called, addressed):
+    """Adds the symbols of `want` that the ELF64 object buf[base:] calls to `called`, those it references any other way
+    to `addressed`. Anything else (COFF, Mach-O, 32 bit, another machine) is not read."""
+    if bytes(buf[base:base + 6]) != b"\x7fELF\x02\x01" or len(buf) < base + 0x40:
+        return
+    calls = CALL_RELOCS.get(struct.unpack_from("<H", buf, base + 0x12)[0])
+    if not calls:
+        return
+    shoff, = struct.unpack_from("<Q", buf, base + 0x28)
+    shentsize, shnum = struct.unpack_from("<HH", buf, base + 0x3A)
+    secs = [struct.unpack_from("<IIQQQQII", buf, base + shoff + i * shentsize) for i in range(shnum)]
+    # a section: (name, type, flags, addr, offset, size, link, info)
+    symtabs = {}   # symbol table's section index -> {symbol index: name} of its undefined symbols that are in `want`
+    for i, sec in enumerate(secs):
+        if sec[1] != 2:   # SHT_SYMTAB
+            continue
+        strtab = base + secs[sec[6]][4]
+        found = symtabs[i] = {}
+        syms = memoryview(buf)[base + sec[4]:base + sec[4] + sec[5] // 24 * 24]
+        for j, (n, _, _, shndx, _, _) in enumerate(struct.iter_unpack("<IBBHQQ", syms)):
+            if shndx == 0 and n:
+                name = bytes(buf[strtab + n:buf.find(b"\0", strtab + n)]).decode(errors="replace")
+                if name in want:
+                    found[j] = name
+    for sec in secs:
+        wanted = symtabs.get(sec[6]) if sec[1] == 4 else None   # SHT_RELA: its symbol table
+        if not wanted:
+            continue
+        # (offset, info, addend) as 64 bit words: info = symbol index << 32 | type
+        for info in memoryview(buf)[base + sec[4]:base + sec[4] + sec[5] // 24 * 24].cast("Q")[1::3]:
+            name = wanted.get(info >> 32)
+            if name:
+                (called if info & 0xffffffff in calls else addressed).add(name)
+
+
+def archive_files(buf, path):
+    """(buf, offset) of each object of the ar archive in buf: its members, or for a thin archive the files it names"""
+    thin = bytes(buf[:8]) == b"!<thin>\n"
+    pos, names = 8, b""
+    while pos + 60 <= len(buf):
+        head = bytes(buf[pos:pos + 60])
+        name, size = head[:16].decode(errors="replace").strip(), int(head[48:58])
+        pos += 60
+        special = name in ("/", "//")
+        if name == "//":
+            names = bytes(buf[pos:pos + size])
+        elif not special:
+            if name[1:].isdigit() and name[0] == "/":   # a long name: an offset into the "//" member's table
+                name = names[int(name[1:]):].split(b"\n")[0].decode(errors="replace")
+            name = name.removesuffix("/")
+            if not thin:
+                yield buf, pos
+            else:
+                for p in (path.parent / name, path.parent.parent / name):   # beside the archive, or relative to the build dir
+                    if p.is_file():
+                        with open(p, "rb") as f:
+                            yield f.read(), 0
+                        break
+        if special or not thin:
+            pos += size + (size & 1)
+
+
+def reloc_uses(files, syms):
+    """(called, addressed): the symbols of `syms` that the ELF objects and archives `files` call, and those they
+    reference any other way (see CALL_RELOCS). A symbol in neither is not referenced by a relocation we can read."""
+    called, addressed, want = set(), set(), set(syms)
+    for path in files:
+        try:
+            with open(path, "rb") as f:
+                if os.fstat(f.fileno()).st_size < 8:
+                    continue
+                buf = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+                if bytes(buf[:8]) in (b"!<arch>\n", b"!<thin>\n"):
+                    for b, base in archive_files(buf, path):
+                        elf_uses(b, base, want, called, addressed)
+                else:
+                    elf_uses(buf, 0, want, called, addressed)
+        except (OSError, ValueError, IndexError, struct.error) as e:   # a file we can't read: its symbols fall back to kind and name
+            print(f"port_undefined: {path}: not read for relocations ({e})", file=sys.stderr)
+    return called, addressed - called
+
+
+DATA_NAME = re.compile(r"^(data_|Data|s_|g_|[sg][A-Z])|(List|Table|Tbl|Data|Entries|Buf|Work)$")
+
+
+def is_data(sym, kinds, called=(), addressed=()):
+    """True for a datum, False for a function (see the docstring): called, else the ROM's kind, else the name, else
+    only its address taken."""
+    if sym in called:
+        return False
+    kind = kinds.get(sym, ("?", 0))[0]
+    if kind != "?":
+        return kind in "DBRGSC"
+    return bool(DATA_NAME.search(sym)) or sym in addressed
+
+
+def write_stubs(path, syms, kinds, called=(), addressed=()):
     """A C file that defines every undefined symbol: a trap for a function, a zeroed block for data (the ROM's size,
     at least 256 bytes). No game header: the definitions only have to link."""
     out = ["// Written by tools/port_undefined.py --stubs: the symbols the PC link lacks. Not game code: each function",
            "// prints its name and aborts, each datum is a zeroed block. Define the real thing in port/src or the C.",
-           "#include <stdio.h>", "#include <stdlib.h>", "",
-           "static void bwport_undefined(const char *name) {",
+           "// BWPORT_UNDEFINED=return0: a function says its name once and returns 0 instead (a game brought up past",
+           "// the names other jobs own; any return in a register, void or not, gets 0)",
+           "#include <stdio.h>", "#include <stdlib.h>", "#include <string.h>", "",
+           "static long bwport_undefined(const char *name, int *said) {",
+           '    const char *how = getenv("BWPORT_UNDEFINED");', "",
+           '    if (how != NULL && strcmp(how, "return0") == 0) {',
+           "        if (!*said) {",
+           '            fprintf(stderr, "bwport: undefined function %s called: returns 0 (BWPORT_UNDEFINED)\\n", name);',
+           "            *said = 1;", "        }", "        return 0;", "    }",
            '    fprintf(stderr, "bwport: undefined function %s called\\n", name);', "    fflush(stderr);",
            "    abort();", "}", ""]
     for sym in sorted(syms):
-        kind, size = kinds.get(sym, ("?", 0))
-        if kind in "DBRGSC" or (kind == "?" and DATA_NAME.search(sym)):
+        size = kinds.get(sym, ("?", 0))[1]
+        if is_data(sym, kinds, called, addressed):
             out.append(f"char {sym}[{max(size, 0x100):#x}] __attribute__((aligned(32)));")
         else:
-            out.append(f'void {sym}(void) {{ bwport_undefined("{sym}"); }}')
+            out.append(f'long {sym}(void) {{ static int said; return bwport_undefined("{sym}", &said); }}')
     Path(path).write_text("\n".join(out) + "\n")
 
 
@@ -227,10 +388,13 @@ def main():
     ap.add_argument("--rom", type=Path, default=ROOT / "build/b_us")
     ap.add_argument("--edge", default="bwport-nostubs", help="the executable whose link to run (build.ninja)")
     ap.add_argument("--stubs", type=Path, help="write a C file that defines every undefined symbol there")
+    ap.add_argument("--allow-data", type=Path, help="a file of the undefined data symbols that are known (one per line, # comments)")
+    ap.add_argument("--fail-on-data", action="store_true", help="exit 1 for an undefined datum that --allow-data does not name")
     a = ap.parse_args()
     bdir = a.builddir.resolve()
     out = a.out or ROOT / "build/port/undefined.txt"
-    refs = undefined(bdir, a.edge)
+    refs, inputs = undefined(bdir, a.edge)
+    called, addressed = reloc_uses(inputs, refs)
     defs, kinds = rom_definitions(a.rom)
     # Black 2's symbols' kinds from pokebw2's config (tools/pokebw2_fetch.sh's checkout, the maintainers' notes): its C's undefined
     # references are told function from data by its ROM's symbols, not by the name (DWC_IsValidFriendData is code)
@@ -240,7 +404,7 @@ def main():
             if m and m[1] not in kinds:
                 kinds[m[1]] = ("T" if m[2] == "function" else "D", int(m[3], 16) if m[3] else 0)
     if a.stubs:
-        write_stubs(a.stubs, refs, kinds)
+        write_stubs(a.stubs, refs, kinds, called, addressed)
     excluded = {f: cat for f, cat, _ in (l.split("\t") for l in subprocess.run(
         [sys.executable, ROOT / "tools/port_sources.py", "--excluded"], capture_output=True, text=True,
         check=True).stdout.splitlines())}
@@ -256,17 +420,33 @@ def main():
         lines.append(f"\n## {g}: {len(by[g])}")
         for sym, src, users in by[g]:
             lines.append(f"{g}\t{sym}\t{src or '-'}\t{' '.join(users[:6])}{' ...' if len(users) > 6 else ''}")
+    allowed = set()
+    if a.allow_data:
+        allowed = {w for l in a.allow_data.read_text().splitlines() for w in l.split("#")[0].split()}
+    data = [(g, sym, src, users) for g in GROUPS for sym, src, users in by[g] if is_data(sym, kinds, called, addressed)]
+    new = [sym for _, sym, _, _ in data if sym not in allowed]
+    lines.append(f"\n## UNDEFINED DATA: {len(data)} ({len(new)} not in the allow file)")
+    lines.append("# each is a zeroed block the game reads (a table or a struct nothing defines): a bug to fix, not a gap to wait out")
+    for g, sym, src, users in data:
+        lines.append(f"data\t{sym}\t{'known' if sym in allowed else 'NEW'}\t{g}:{src or '-'}\t{' '.join(users[:6])}{' ...' if len(users) > 6 else ''}")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines) + "\n")
     print(f"{sum(len(v) for v in by.values())} undefined symbols -> {out}")
     for g in GROUPS:
         print(f"  {g:9} {len(by[g])}")
+    if data:
+        names = " ".join(sym for _, sym, _, _ in data)
+        print(f"UNDEFINED DATA: {len(data)} symbols are zeroed blocks, the game reads zeros from them ({len(new)} new): "
+              f"{names[:300]}{' ...' if len(names) > 300 else ''} (undefined.txt)")
+        if new and a.fail_on_data:
+            print(f"error: undefined data not in {a.allow_data}: {' '.join(new)}: nothing defines them, so the game reads "
+                  "zeros (define each, or name it in the allow file when it is known)", file=sys.stderr)
     bad = game_definitions(refs)
     for sym, where in sorted(bad.items()):
         print(f"error: {sym} is undefined, but {where} defines it: a plain `inline` definition emits no symbol under C99;"
               " give that file a stand-in under port/extern with an extern declaration (tools/port_sources.py)",
               file=sys.stderr)
-    if bad:
+    if bad or (new and a.fail_on_data):
         sys.exit(1)
 
 

@@ -1,0 +1,33 @@
+#ifndef POKEHEARTGOLD_UNK_02009D48_H
+#define POKEHEARTGOLD_UNK_02009D48_H
+
+#include "g2d_renderer.h"
+#include "sprite_resources_header.h"
+#include "struct_defs/resdat_narc_structs.h"
+
+#include "unk_0200A090.h"
+
+typedef struct SpriteResourceHeaderList {
+    SpriteResourcesHeader *headers;
+    int num;
+} SpriteResourceHeaderList;
+
+typedef struct SpriteList SpriteList;
+
+
+typedef struct SpriteListParam {
+    int num;
+    NNSG2dRendererInstance *rendererInstance;
+    enum HeapID heapID;
+} SpriteListParam;
+
+void CreateSpriteResourcesHeader(SpriteResourcesHeader *hdr, int charId, int plttId, int cellId, int cellAnmId, int multiCellId, int multiCellAnmId, int transfer, int priority, GF_2DGfxResMan *charMan, GF_2DGfxResMan *plttMan, GF_2DGfxResMan *cellMan, GF_2DGfxResMan *cellAnmMan, GF_2DGfxResMan *multiCellMan, GF_2DGfxResMan *multiCellAnmMan);
+SpriteResourceHeaderList *SpriteResourceHeaderList_Create(const struct ResdatNarcEntry *resdatNarcEntry, enum HeapID heapID, GF_2DGfxResMan *charMan, GF_2DGfxResMan *plttMan, GF_2DGfxResMan *cellMan, GF_2DGfxResMan *animMan, GF_2DGfxResMan *mcelMan, GF_2DGfxResMan *manmMan);
+void SpriteResourceHeaderList_Destroy(SpriteResourceHeaderList *list);
+SpriteList *G2dRenderer_Init(int numSprites, G2dRenderer *renderer, enum HeapID heapID);
+void G2dRenderer_SetMainSurfaceCoords(G2dRenderer *renderer, fx32 x, fx32 y);
+void G2dRenderer_SetSubSurfaceCoords(G2dRenderer *renderer, fx32 x, fx32 y);
+void G2dRenderer_SetObjCharTransferReservedRegion(NNS_G2D_VRAM_TYPE vram, GXOBJVRamModeChar mode);
+void G2dRenderer_SetPlttTransferReservedRegion(NNS_G2D_VRAM_TYPE type);
+
+#endif // POKEHEARTGOLD_UNK_02009D48_H

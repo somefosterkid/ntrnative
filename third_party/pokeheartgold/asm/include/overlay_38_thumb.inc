@@ -1,0 +1,23 @@
+
+#pragma once
+.public MATH_CalcSHA1
+.public memcpy
+.public sprintf
+.public strlen
+.public strcat
+.public strncat
+.public strncmp
+.public _u32_div_f
+.public DWC_Alloc
+.public DWC_Free
+.public DWC_InitGHTTP
+.public DWC_ShutdownGHTTP
+.public DWC_ProcessGHTTP
+.public DWC_GetGHTTPData
+.public B64Encode
+.public ov38_0221BE84
+.public ov38_0221BEA8
+.public ov38_0221BF48
+.public ov38_0221BFEC
+.public ov38_0221C014
+.public ov38_0221C020

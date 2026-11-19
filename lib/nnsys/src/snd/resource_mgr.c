@@ -29,6 +29,17 @@ void NNS_SndUnlockChannel(u32 chBitMask) {
     sChannelLock &= ~chBitMask;
 }
 
+BOOL NNS_SndLockCapture(u32 capBitFlag) {
+    if (capBitFlag == 0) {
+        return TRUE;
+    }
+    if (capBitFlag & sCaptureLock) {
+        return FALSE;
+    }
+    sCaptureLock |= capBitFlag;
+    return TRUE;
+}
+
 void NNS_SndUnlockCapture(u32 capBitFlag) {
     sCaptureLock &= ~capBitFlag;
 }

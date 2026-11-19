@@ -1,0 +1,143 @@
+fn	asm_unit	score	status	source	suspect	how
+ov00_021E733C	asm/overlay_00_thumb_021E714C_021E733C.s	0	MATCH	worker		pilot D01
+ov00_021E77F4	asm/overlay_00_thumb_021E77F4.s	0	CLOSE	tweak		refine: reloc rename VoiceChatConferenceCallback->ov00_021E7544, VoiceChatPhoneCallback->ov00_021E756C
+ov01_021F7504	asm/overlay_01_021F72DC_021F7434.s	3	PORTOK	tweak		PORTOK semdiff: allocation-only diff (3 rows); combo: width: width steered pointee s32->u8
+ov01_02205B14	asm/overlay_01_022053EC_022057DC_02205A60_02205B14.s	0	MATCH	staticfit		staticfit: static ov01_022096E0 (from worker 7699a1dc6549d53b) [native: static->real global]
+ov02_0224D488	asm/overlay_02_02248728_0224D424_0224D488.s	28	PORTOK	worker		PORTOK hk39: fixed: best (tool) text passed 2 junk extra args to Field3dObject_SetActiveFlag (permute seed), used Platin
+ov02_0224E828	asm/overlay_02_02248728_0224DF1C_0224E698.s	86	PORTOK	worker		PORTOK hk39: checked all, no change: table bytes [2],[3], out stores, mode 0/1 two-cell z walk (z + off + dz, off += dz)
+ov02_0224EB48	asm/overlay_02_02248728_0224DF1C_0224E698.s	67	PORTOK	worker		PORTOK hk39: checked all, meaning unchanged: offs table bytes, *out stores, both dir groups (y += offs[dir], x - offs[i]
+ov07_0221C01C	asm/overlay_07_0221BEA4_0221C01C.s	0	PORTOK	worker		PORTOK hk39: fixed -> MATCH (score 0): Platinum twin wrote system[1].isContest = 0xFF (out of bounds; asm: baseBgPalette
+ov102_021E8600	asm/overlay_102_021E77F8_021E8294_021E848C.s	0	MATCH	twin		porter cand
+ov108_021E7700	asm/overlay_108_021E6240_021E767C.s	42	PORTOK	worker		PORTOK hk39: fixed (typed rewrite): best text kept the string-table base in a u8 (truncated pointer), tested param_2 < 1
+ov108_021E7CD8	asm/overlay_108_021E6240_021E7C5C.s	14	PORTOK	worker		PORTOK semdiff: allocation-only diff (14 rows); pilot V05
+ov108_021E9D30	asm/overlay_108_021E8850_021E9C3C_021E9D30.s	25	PORTOK	worker		PORTOK hk39: checked all: 2 loops (template +8, Window +0x10, 0x454 base, i%2/i/2 args, baseTile u16 -= 0x1C), YesNoProm
+ov10_0221F7F0	asm/overlay_10_trainer_ai_0221F62C.s	51	PORTOK	worker		PORTOK hk39: checked: the store best (23) differed from the asm only in stack-slot numbers (judge diff: no offset/consta
+ov112_021E5B98	asm/overlay_112_021E5A68_021E5A84_021E5B98.s	71	PORTOK	worker		PORTOK hk42: ov112_021E5A84 gets the CARD_SpiWaitReadRange size (asm r0, def tests arg0==1; was dropped); rest as hk39 c
+ov112_021E6164	asm/overlay_112_021E5A68_021E6164.s	950	PORTOK	worker		PORTOK hk46: full rewrite from the asm (old text had the state switch on wrong values 0/1/2/3 for 0x46/0x48/0x4A/0x4C, a
+ov112_021E74A8	asm/overlay_112_021E5A68_021E74A8.s	2	PORTOK	worker		PORTOK hk40: checked all; REWROTE: best wrote +0x54 twice (2nd is +0x5C), +0x60 = [+22]+0x2900 (asm [0x58]+0x2900), all 
+ov112_021E7594	asm/overlay_112_021E5A68_021E74A8_021E7594.s	3	PORTOK	worker		PORTOK hk40: checked all; REWROTE: best's +0x60 = old[0x60]+0x2900 (asm: [0x58]+0x2900), dropped 4th arg of both ov112_0
+ov112_021E8CB8	asm/overlay_112_021E7670_021E8B74_021E8CB8.s	82	PORTOK	worker		PORTOK hk39: checked all, no change: 15 windows (args, Window +0x10, pixelBuffer +0xC), out[] stores 0..0x88 incl. bitfi
+ov112_021EE7A8	asm/overlay_112_021EE6B0.s	3	PORTOK	permute		PORTOK semdiff: allocation-only diff (3 rows); refine: permuter 4 min
+ov112_021F0EB4	asm/overlay_112_021F0DF4_021F0E60.s	0	MATCH	worker		hk8: diag dg1 text (judge reads initializer loads by value)
+ov112_021F0F90	asm/overlay_112_021F0DF4_021F0F90.s	8	PORTOK	permute		PORTOK semdiff: allocation-only diff (8 rows); refine: permuter 4 min
+ov112_021F2098	asm/overlay_112_021F0DF4_021F2000.s	38	PORTOK	worker		PORTOK hk39: fixed: else-branch stored isLarge = 1 (asm: 0); ov112_021F0E14's 3rd arg was truncated to u8 (callee takes 
+ov115_0225F978	asm/overlay_115_0225F0B4_0225F978.s	61	PORTOK	worker		PORTOK hk46: full rewrite from the asm: HGSS 0x314 work struct (offsets checked by static asserts: res 0x198, banner 0x2
+ov117_0225F524	asm/overlay_117_0225F524.s	25	PORTOK	worker		PORTOK handover evo2-0001 (ntrnative 11-16): EncounterEffect/ExecutiveEncounterEffect members, G2_SetBlendAlpha, return 
+ov12_02238A68	asm/overlay_12_022378C0_02238A64.s	0	CLOSE	worker		pilot hk28 [native: static->real global]
+ov12_0225A07C	asm/overlay_12_battle_controller_opponent_0225A07C.s	62	PORTOK	worker		PORTOK hk39: fixed (typed rewrite): x read at table + pos*12 ((u16*) + pos*6; asm pos*6 bytes); the Pokepic template nev
+ov14_021E6CF8	asm/overlay_14_021E6CF8.s	13	PORTOK	worker		PORTOK hk40: checked all (7x0x20 clear loop, +0xE4/E8/EC, 0x40C4 flag, all 5 branches + 3 loops +4/+8/+C stores); FIXED:
+ov14_021F129C	asm/overlay_14_021F1228.s	0	MATCH	worker		pilot dg4
+ov14_021F5950	asm/overlay_14_021F5718_021F58B8.s	64	PORTOK	worker		PORTOK hk39: checked all, no change: windows at sys+0x30 [idx], colors/offsets 0x180/0, GetCharData args, all 8 BlitBitm
+ov18_021F831C	asm/overlay_18_021F684C_021F7060_021F831C.s	29	PORTOK	worker		PORTOK hk40: fork text (Platinum-style src): all 17 type cases 0x33..0x43, case 17 memcpy(dst,src,n*2)+*count=n, ov18_02
+ov28_0225E1A4	asm/overlay_28_0225DA1C_0225DE88.s	10	PORTOK	tweak		PORTOK hk40: checked all (0x208..0x24c fields, abs thresholds 8/0xC/0x11, both 4x0xC loops, %360 unsigned, +0x168 fixups
+ov28_0225E730	asm/overlay_28_0225DA1C_0225DE88_0225E43C_0225E578.s	50	PORTOK	worker		PORTOK hk39: fixed: old text read 0x209/0x211/0x201 (p=arg0+0x209 s32*) and stored the counter at (u16*)arg0+0x338 (=0x6
+ov38_0221BF48	asm/overlay_38_thumb_0221BB68_0221BEA8.s	0	MATCH	worker		pilot hk35
+ov40_0222C884	asm/overlay_40_0222C4F8_0222C884.s	7	PORTOK	copyfit		PORTOK hk40: checked all (template fields, 6x2 loop, unk_6F8[i] 0x30 stride fields 0x08..0x2C via pool offsets, v6/v7/v8
+ov40_0222D2A0	asm/overlay_40_0222C4F8_0222D2A0.s	6	PORTOK	worker		PORTOK hk42: table Unk_ov62_022488A8[2][5] was declared without initializer (zeros in the port): filled from ov40_02244D
+ov40_0222FF74	asm/overlay_40_0222FCCC_0222FF64.s	0	MATCH	copyfit		hk2: copyfit name ov40_02244E28 -> ov40_02244EE8
+ov40_02237AC0	asm/overlay_40_0222FCCC_02237AC0.s	0	MATCH	worker		pilot LO11; hk8: rejudge
+ov43_0222D0F8	asm/overlay_43_0222CE14_0222D0F8.s	0	MATCH	worker		pilot OS07; hk8: rejudge
+ov43_0222E0E8	asm/overlay_43_0222D508_0222DFB0.s	2	PORTOK	permute		PORTOK semdiff: allocation-only diff (2 rows); refine: permuter 0.5 min; refine: permuter 4 min
+ov49_0226747C	asm/overlay_49_0225CDE8_02266B28_02266EF8_022670D4.s	0	MATCH	worker		pilot M10
+ov49_02267674	asm/overlay_49_0225CDE8_02266B28_02266EF8_022670D4.s	0	MATCH	worker		pilot M10
+ov67_021E6A40	asm/overlay_67_021E6A08_021E6A40.s	0	PORTOK	worker		PORTOK hk39: checked + MATCH (score 0): bitfield struct (isBg:1 id:7 at 0x494, palette0/1 nibbles at 0x495, state/timer/
+GeonetGlobe_Main	asm/overlay_69.s	0	MATCH	tweak		refine: reloc rename GeonetGlobe_Draw->ov69_021E7408, GeonetGlobe_FreeBgs->ov69_021E67B8, Geone [native: static->real global]
+ov70_022381A4	asm/overlay_70_02237F64_022381A4.s	0	MATCH	tweak		reloc rename GTSNetworking_PrepareRequest->ov70_02238360, sGTSNetworkingState->_02246800
+ov70_0223F904	asm/overlay_70_02238F10_0223DDD0_0223F7E4_0223F8A8.s	4	PORTOK	permute		PORTOK semdiff: allocation-only diff (4 rows); seed: pass arg3 through to ov70_0223F8D0
+ov70_02241048	asm/overlay_70_02238F10_0223FFCC_02241048.s	0	MATCH	hdrland		hk31: overlay stale: plain text (overlay stripped) matches with the real header
+ov70_02243598	asm/overlay_70_02241164_02243068_0224342C.s	2	PORTOK	worker		PORTOK semdiff: allocation-only diff (2 rows); pilot OS09
+ov71_0224ADE4	asm/overlay_71_02246B58_0224926C_0224ADE4.s	0	CLOSE	tweak		combo: rename: rename NNS_GfdInitFrmPlttVramManager -> GF_3DVramMan_InitFramePlttVramManager, NNS_GfdI
+ov73_021E7FB8	asm/overlay_73_021E7488_021E7D74_021E7E4C.s	0	MATCH	tweak		refine: reloc rename sScreenFunctions->ov73_021EA83C
+ov73_021E8730	asm/overlay_73_021E7488_021E7D74_021E83F4_021E8730.s	9	PORTOK	worker		PORTOK hk42: inner BlendPalette loop counter var_r7=1 was set once before both loops (asm resets it per pass: only the 1
+ov74_02228D20	asm/overlay_74_thumb_02228D20.s	0	MATCH	staticfit		staticfit: static ov74_0223D080 (from worker 872942b4328df8e0) [native: static->real global]
+ov74_0222AB0C	asm/overlay_74_thumb_02229F90_0222A2A4_0222AB0C.s	2	PORTOK	worker		PORTOK hk42: checked as-is: whole fn vs asm; only diff is the local static's .bss slot (ov74_0223D0A8+8, write-only here
+ov74_0222D690	asm/overlay_74_thumb_0222D11C_0222D690.s	0	PORTOK	worker		PORTOK hk40: MATCH; FIXED: Platinum twin read sWonderCardActions[0..3]; HGSS reads ov74_0223C2D0[6..9] (asm +0x30..+0x4C
+ov74_02233CE4	asm/overlay_74_thumb_02233CE4.s	0	MATCH	worker		notes hp07_overlay_74_thumb_02233CE4.s.md [native: static->real global]
+ov74_02233E8C	asm/overlay_74_thumb_02233CE4_02233E50.s	0	MATCH	worker		pilot OR13 [native: static->real global]
+ov74_0223539C	asm/overlay_74_thumb_02235308_0223539C.s	0	MATCH	worker		pilot OR13 [native: static->real global]
+ov74_02235690	asm/overlay_74_thumb_0223563C_02235690.s	0	MATCH	worker		pilot hk22 [native: static->real global]
+ov74_02235708	asm/overlay_74_thumb_0223563C_02235690.s	0	MATCH	worker		pilot OQ15 [native: static->real global]
+ov74_02235DC4	asm/overlay_74_thumb_022358C8_02235DC4.s	0	MATCH	worker		pilot hk35 [native: static->real global]
+ov74_022360B0	asm/overlay_74_thumb_022360A0.s	0	MATCH	worker		pilot hk22 [native: static->real global]
+ov74_02236128	asm/overlay_74_thumb_022360A0.s	0	MATCH	worker		pilot hk22 [native: static->real global]
+ov74_02236AE0	asm/overlay_74_thumb_02236AE0.s	0	MATCH	constfit		twinconst: string "CPUE" -> "IPGE" (from worker 66f330676787b204)
+ov81_0224276C	asm/overlay_81_02241BD0_0224275C.s	19	PORTOK	worker		PORTOK hk40: checked all (every resource call's member/compressed/id/vram/nPltt args vs asm, store offsets 0x12C..0x18C,
+ov83_0223E14C	asm/overlay_83_0223E008_0223E14C.s	31	PORTOK	worker		PORTOK hk39: checked by the judge diff (1509 asm lines, not read line by line): every instruction row equals the asm exc
+ov83_022421E0	asm/overlay_83_02241368_02241E18_022421E0.s	2	PORTOK	typeshape		PORTOK semdiff: allocation-only diff (2 rows); hk9: bitfield 2 fields of (u8 *)arg0 + 0x80E
+ov92_0225DF58	asm/overlay_92_0225DF58.s	0	MATCH	twin		draft: Platinum twin ov116_02261E58 (src/overlay116/ov116_02261870.c, ratio 1.000)
+ov92_0225DFA4	asm/overlay_92_0225DF58.s	0	MATCH	twin		draft: Platinum twin ov116_02261EA4 (src/overlay116/ov116_02261870.c, ratio 1.000)
+ov92_0225F878	asm/overlay_92_0225EEBC_0225F878.s	0	MATCH	twin		draft: Platinum twin ov116_0226377C (src/overlay116/ov116_02262A8C.c, ratio 1.000); hk8: rejudge
+ov92_0225F8B0	asm/overlay_92_0225EEBC_0225F878.s	0	MATCH	twin		draft: Platinum twin ov116_022637B4 (src/overlay116/ov116_02262A8C.c, ratio 1.000); hk8: rejudge
+ov92_0225FF1C	asm/overlay_92_0225FF1C.s	0	MATCH	worker		pilot hk35
+ov92_02261208	asm/overlay_92_02261208.s	0	MATCH	copyfit		hk2: copyfit name ov92_02263E3C -> ov92_02263E04
+ov96_021E8484	asm/overlay_96_021E8340_021E8484.s	54	PORTOK	worker		PORTOK hk39: fixed (typed rewrite): old text stored the PREVIOUS loop's species (uVar2 written before it was read: first
+ov96_021E93B4	asm/overlay_96_021E93B4.s	15	PORTOK	regfix		PORTOK semdiff: allocation-only diff (15 rows); regfix (hk4): move [remote, rejudged]
+ov96_021EBB64	asm/overlay_96_021EB6A8_021EBB64.s	2	PORTOK	worker		PORTOK hk40: PARTIAL check (776-line state machine): every call's args vs asm, cases 2/3/12/13/15 fully, bitfield reads 
+ov96_021EC5C0	asm/overlay_96_021EC550.s	40	PORTOK	worker		PORTOK hk39: checked all, no change: template zero-init, fields x/y/anim/drawPri/pal/vram/resIdList[0..3]/bgPri at the a
+ov96_021EDA58	asm/overlay_96_021ECA18_021ED954.s	37	PORTOK	worker		PORTOK hk39: fixed: 2nd loop tested mode - 4 != 4 (= mode != 8; asm: mode != 4). Checked all: bitfield masks (f3 3..14, 
+ov96_021EEFAC	asm/overlay_96_021EEFAC.s	2	PORTOK	m2c		PORTOK semdiff: allocation-only diff (2 rows); m2c draft; refine: rewrite dropargs ov96_021EEECC 1-1 -> 2
+ov96_021EF2C0	asm/overlay_96_021EF2C0.s	3	PORTOK	worker		PORTOK hk42: removed an extra GfGfx_SwapDisplay() before Main_SetVBlankIntrCB (asm calls it once); ov96_021EF260 is void
+ov96_021F010C	asm/overlay_96_021EF610_021F008C.s	353	PORTOK	worker		PORTOK hk42: semdiff-checked, not read line by line: all 13 semantic rows are false positives (CSE'd i/3,i%3 div pairs; 
+ov96_021F1170	asm/overlay_96_021F0F04_021F1170.s	13	PORTOK	tweak		PORTOK semdiff: allocation-only diff (13 rows); refine: rewrite dropargs ov96_021F2A00 2-1 -> 13
+ov96_021F1614	asm/overlay_96_021F0F04_021F1170.s	260	PORTOK	worker		PORTOK hk42: 3 fixes: entry ptr e was computed before row/col of this i (prev entry; garbage on [native: static->real global]
+ov96_021F1CC0	asm/overlay_96_021F0F04_021F1170.s	6	PORTOK	worker		PORTOK semdiff: allocation-only diff (6 rows); pilot hk16
+ov96_021F234C	asm/overlay_96_021F0F04_021F21EC_021F234C.s	37	PORTOK	tweak		PORTOK semdiff: allocation-only diff (37 rows); refine: tweak respell plain -> 40, respell same -> 37
+ov96_021F350C	asm/overlay_96_021F30F8_021F350C.s	13	PORTOK	worker		PORTOK semdiff: allocation-only diff (13 rows); pilot hk29 worker text with var_r7++ (old texts advance a void** by 4 el
+ov96_021F3EC0	asm/overlay_96_021F3E60.s	0	CLOSE	worker		hk8: diag dg1 text (judge reads initializer loads by value)
+ov96_021F5018	asm/overlay_96_021F3E60_021F4E9C_021F5018.s	129	PORTOK	worker		PORTOK hk42: 2 dropped args: ov96_021E6108/ov96_021E6138 take the ov96_021E60C0 result (text called them with none); out
+ov96_021F5BA0	asm/overlay_96_021F54D4_021F5BA0.s	0	PORTOK	worker		PORTOK hk40: MATCH; FIXED: both ov96_021F5F34 calls dropped the out-vector (callee writes touch - touchPos into param 4;
+ov96_021F61C8	asm/overlay_96_021F54D4_021F61C8.s	4	PORTOK	permute		PORTOK semdiff: allocation-only diff (4 rows); refine: permuter 4 min
+ov96_021F6524	asm/overlay_96_021F54D4_021F64A0.s	65	PORTOK	tweak		PORTOK semdiff: allocation-only diff (65 rows); refine: rewrite commute > arr[c] -> 65
+ov96_021F8448	asm/overlay_96_021F8378_021F8448.s	0	MATCH	worker		pilot P35; framemap: order countsList,oamManagerParam,oamCharTransferParam [oamManagerParam at sp+24, original sp+20; oa
+ov96_021F8AFC	asm/overlay_96_021F8AFC.s	16	PORTOK	tweak		PORTOK semdiff: allocation-only diff (16 rows); refine: callseq args of ov96_021F8ACC+ov96_021F8ACC+ov96_021F8ACC+ov96_0
+ov96_021F9380	asm/overlay_96_021F8F94_021F9240.s	33	PORTOK	worker		PORTOK hk42: per-row sum sp4 started at 40 (asm 0); rest checked vs asm (0xE2 stride 0x6C sum, 0x240/0x248 max, ceil of 
+ov96_021FA0E8	asm/overlay_96_021FA0E8.s	4	PORTOK	worker		PORTOK hk42: fake stack param unused6 removed (asm reads 4 stack args: s0 heap ctx, s1, s2=idx at sp+0x60, s3=out at sp+
+ov96_021FBBB4	asm/overlay_96_021FA0E8_021FB8FC_021FBBB4.s	2	PORTOK	worker		PORTOK hk42: checked as-is: whole fn vs asm (entry index (u8)(j+(i-count)*3), stride 0x28 at +0x238, stats +15/+10, 10.0
+ov96_021FC768	asm/overlay_96_021FC630_021FC768.s	66	PORTOK	worker		PORTOK hk42: semdiff events all equal except the CSE'd i/3,i%3 div calls; cases 0-4 skimmed vs asm; DISPCNT masks -> GX(
+ov96_021FD4D0	asm/overlay_96_021FD128_021FD46C.s	5	PORTOK	worker		PORTOK hk40: checked all (input copy 0x24, unk380/3B0 strides, elem 0xd4 fields 8B/9D/9E/A9/AA/AC/B0/BC/8C/D0, unk18[idx
+ov96_021FDE7C	asm/overlay_96_021FD128_021FDE7C.s	86	PORTOK	worker		PORTOK hk42: per-player loop never stepped i (infinite loop; asm i++ <4); ov96_021FF5A8 result: fcc store + switch use t
+ov96_021FE550	asm/overlay_96_021FD128_021FDE7C_021FE550.s	170	PORTOK	worker		PORTOK hk42: 7 fixes: loop ptr over the u16 positions read u8 + stepped 2 entries (asm ldrh, +2 bytes); sp70[1] (y) was 
+ov96_021FEECC	asm/overlay_96_021FD128_021FDE7C_021FE550_021FEECC.s	4	PORTOK	worker		PORTOK semdiff: allocation-only diff (4 rows); pilot s3
+ov96_021FF1E0	asm/overlay_96_021FD128_021FDE7C_021FE550_021FEECC_021FF1E0.s	2	PORTOK	worker		PORTOK semdiff: allocation-only diff (2 rows); pilot Q26
+ov96_021FF2A0	asm/overlay_96_021FD128_021FDE7C_021FE550_021FEECC_021FF1E0.s	33	PORTOK	tweak		PORTOK semdiff: allocation-only diff (33 rows); refine: tweak respell same -> 33
+ov96_02200F84	asm/overlay_96_02200E80_02200F84.s	74	PORTOK	worker		PORTOK hk40: PARTIAL+: checked entry guards, vs/ws copies, lane calc, 16-target grid, k/j scoring loops (incl. the origi
+ov96_02201558	asm/overlay_96_02200E80_0220146C.s	127	PORTOK	worker		PORTOK hk40: checked all 6 cases (heap/oam/font args, data offsets 0x44/0x48/0x598/0x5cc..0x5e8, case-3 loops 12x16B/str
+ov96_02202958	asm/overlay_96_02201EF0_022021D4_02202958.s	354	PORTOK	worker		PORTOK hk40: PARTIAL (331 lines, NOT fully checked): only hk38's semdiff rows checked; FIXED: the cfgshape text read the
+ov96_022047EC	asm/overlay_96_022044A0_022047EC.s	70	PORTOK	worker		PORTOK hk40: checked all 7 cases (heap/oam/font args, data[] word offsets 5/8/0xd1/0xd2/0xdb/0xdc/0xdd, case-3 entries/a
+ov96_022055AC	asm/overlay_96_02204F20_02205520.s	11	PORTOK	worker		PORTOK hk40: checked all (twin of ov96_021FD4D0: input copy 0x24, 0x304/0x308/0x334 per-player flags, 0xB8 elem fields 9
+ov96_02206380	asm/overlay_96_02204F20_02205DD4_02206380.s	129	PORTOK	worker		PORTOK semdiff: allocation-only diff (129 rows); pilot OU11
+ov96_02206FA4	asm/overlay_96_02204F20_02205DD4_02206DEC_02206FA4.s	3	PORTOK	worker		PORTOK hk42: last store went to arg2+0 (asm arg2+0x58 = [0x58]-arg0); all 30 stores checked vs asm
+ov96_0220703C	asm/overlay_96_02204F20_02205DD4_02206DEC_02206FA4.s	20	PORTOK	tweak		PORTOK semdiff: allocation-only diff (20 rows); splice: 27 -> 20 (d2@884 20)
+ov96_02208914	asm/overlay_96_02208914.s	0	CLOSE	worker		hk8: diag dg3 text (judge reads initializer loads by value)
+ov96_02208BB8	asm/overlay_96_02208AF0.s	0	MATCH	worker		pilot hk36
+ov96_02209F8C	asm/overlay_96_02209F8C.s	10	PORTOK	worker		PORTOK semdiff: allocation-only diff (10 rows); pilot OS15
+ov96_0220A910	asm/overlay_96_02209F8C_0220A910.s	5	PORTOK	permute		PORTOK semdiff: allocation-only diff (5 rows); refine: permuter 4 min
+ov96_0220AAEC	asm/overlay_96_02209F8C_0220A910.s	10	PORTOK	worker		PORTOK semdiff: allocation-only diff (10 rows); pilot V38
+ov96_0220D910	asm/overlay_96_0220C9CC_0220D910.s	7	PORTOK	worker		PORTOK hk42: 1st arg of ov96_021EB0A4 is *(arg0+4) (best read arg0+row*12); 2nd table value is s16 (ldrsh), was u16; rew
+ov96_0220DAA0	asm/overlay_96_0220C9CC_0220D910_0220DAA0.s	3	PORTOK	tweak		PORTOK semdiff: allocation-only diff (3 rows); refine: tweak move -> 3; regfix (hk4): move
+ov96_0220DC7C	asm/overlay_96_0220C9CC_0220DC38.s	0	MATCH	tweak		combo: hdr: header ManagedSprite_SetPositionXYWithSubscreenOffset param s16 -> u32
+ov96_0220DEAC	asm/overlay_96_0220C9CC_0220DEAC.s	3	PORTOK	worker		PORTOK semdiff: allocation-only diff (3 rows); pilot LO30; refine: callseq args of ov96_021EAA04 -> 3
+ov96_0220F4A0	asm/overlay_96_0220F3FC.s	47	PORTOK	worker		PORTOK hk40: checked all (12-iter loop: entry stores 0x0..0x46, bitfields @0x40, pos/tbl indexing, calls+args, copy[i+4]
+ov96_0220FA18	asm/overlay_96_0220F3FC_0220F8C8.s	41	PORTOK	typeshape		PORTOK hk40: checked all (w1 count bits 30-31, w2 0x7f field from param_1[(w1>>30)*0xe4+0x170] u32, masks, 12-iter loop 
+ov96_0221075C	asm/overlay_96_0221069C.s	15	PORTOK	tweak		PORTOK hk40: checked all (12x2 loop, slot = arg0+0x68+(j+k)*4 with k=7+2i, x=(i+4)*8 signed, ys, call args 0x14/0x40, pr
+ov96_02210C98	asm/overlay_96_02210858_0221090C_02210C98.s	126	PORTOK	worker		PORTOK hk42: PARTIAL: framefit placeholder locals replaced by the real data (u16 angles {0,0x4000,0xC000,0x8000} = ov96_
+ov96_02211DE4	asm/overlay_96_02211AF0.s	41	PORTOK	tweak		PORTOK hk40: checked all (12-entry loop a0+0x5C+q*0x174+r*0x7C, /4096 x/y bytes, u8 fields <<2i sums, 2-entry loop a0+0x
+ov96_02211F38	asm/overlay_96_02211AF0.s	30	PORTOK	worker		PORTOK hk42: fake params arg1..3 removed (asm reads only r0) and ov96_02214418 takes 1 arg (was given 4); body: semdiff 
+ov96_022124F8	asm/overlay_96_02211AF0_022123B0.s	95	PORTOK	worker		PORTOK semdiff: allocation-only diff (95 rows); pilot OM06
+ov96_022127F4	asm/overlay_96_02211AF0_022123B0.s	7	PORTOK	tweak		PORTOK semdiff: allocation-only diff (7 rows); framemap: order iStack_58,uVar4,iStack_60,uVar2,iStack_40 [iStack_58 at s
+ov96_02213728	asm/overlay_96_02213728.s	5	PORTOK	worker		PORTOK semdiff: allocation-only diff (5 rows); pilot SE24
+ov96_02216C38	asm/overlay_96_02216C38.s	278	PORTOK	worker		PORTOK hk42: PARTIAL: midpoint x0 read pbVar21[1] (asm ld1u[a1+0]: x and y both came from y). NOT checked: semdiff still
+ov96_0221A08C	asm/overlay_96_0221A08C.s	12	PORTOK	permute		PORTOK semdiff: allocation-only diff (12 rows); refine: permuter 4 min
+ov99_021E92EC	asm/overlay_99_021E7150_021E9038.s	0	MATCH	worker		pilot hk36
+FadeFunc_02	asm/unk_0201010C_02010148.s	0	MATCH	gen5		black twin func_0202271c src/system/wipe_sub.c ratio 1.000
+sub_0202391C	asm/unk_02023694_0202391C.s	0	MATCH	worker		pilot J27
+sub_02032354	asm/unk_02031B0C_02031BD4_02032354.s	103	PORTOK	worker		PORTOK hk40: checked all (5 rounds of 3-bit codes, order sort tie-break, table _020F68DE+code*5, clamp 0..63, max/sum tr
+sub_02032D4C	asm/unk_02032844_02032C84.s	2	PORTOK	worker		PORTOK hk42: sub_02032858 got the errcode u16 at cb+2 (asm r0; was dropped); sub_02032C84 is void (arity flag noise); vo
+sub_02035DE0	asm/unk_02035900_02035DE0.s	3	PORTOK	worker		PORTOK semdiff: allocation-only diff (3 rows); pilot hk23
+sub_02036BE4	asm/unk_02035900_0203690C_02036AD8.s	19	PORTOK	worker		PORTOK hk40: checked all (fields 0x62C rand/0x65C keys/0x660 state/0x661 timer s8/0x662 key, reverse mapping, Rand32(4)/
+sub_02076E64	asm/unk_020755E8_02075D4C_02076E64.s	14	PORTOK	worker		PORTOK handover evo1-0001 (ntrnative 11-16): HW_*_VRAM for the four DS VRAM literals (on hk42)
+sub_0208AFE8	asm/unk_02088288_0208ADB8_0208AFA0.s	30	PORTOK	tweak		PORTOK semdiff: allocation-only diff (30 rows); refine: tweak respell plain -> 30
+sub_02093630	asm/unk_020932E0_02093630.s	30	PORTOK	worker		PORTOK hk40: checked all (key switch + dx/dy s8, touch branches, 0x46BC/0x46C0/0x46C4/0x4680 flags, 0xD/0xE/0xF/0x13 byt
+sub_02093CE4	asm/unk_020932E0_02093B84.s	238	PORTOK	worker		PORTOK hk40: REWROTE from asm (typed 8-byte HitRect list at +0x46A4, x +0x4698 / y +0x4694, mode +0x469C): best's mode-2
+sub_02093E7C	asm/unk_020932E0_02093B84.s	33	PORTOK	worker		PORTOK hk42: +0x884 got *(u8*)(work+idx*16) (asm ldrb work+0xF); rewritten 64-bit clean (work was s32, entry ptr loaded 
+sub_02095BF0	asm/unk_020957B0_02095A7C_02095B04_02095BF0.s	64	PORTOK	worker		PORTOK hk40: REWROTE from asm (typed cursor {s8 x,y; u8 idx} + dims {cols,rows,count}): all text candidates returned/ind

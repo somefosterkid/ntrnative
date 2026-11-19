@@ -1,0 +1,25 @@
+pokeplatinum-wmbuf.patch (tools/pokeplat_gen.py applies the patches in name order): WM's system buffer sized by the
+SDK's WM_SYSTEM_BUF_SIZE, not the DS's 3840 bytes. libntr's WM keeps 8-byte pointers in it and makes the buffer twice
+the DS's (include/nitro/wm/common/wm.h, the non-ARM sizes: 7680), so WM_Initialize ran 3840 bytes past
+WirelessManager.nitroManagerBuffer and the rest of the communication heap: the main menu with a save (its wireless
+search, CommServerClient_Init) found heap 15's free block zeroed and the next Heap_Alloc failed into an error reset
+(pl10). The same buffer in ov97_02238534.c. On the DS the macro is 3840.
+
+--- a/src/wireless_manager.c
++++ b/src/wireless_manager.c
+@@ -23,5 +23,5 @@
+ typedef struct WirelessManager {
+     WMpparam parentParam ATTRIBUTE_ALIGN(32);
+-    u8 nitroManagerBuffer[3840] ATTRIBUTE_ALIGN(32);
++    u8 nitroManagerBuffer[WM_SYSTEM_BUF_SIZE] ATTRIBUTE_ALIGN(32);
+     u8 sendBuffer[224] ATTRIBUTE_ALIGN(32);
+     u8 recvBuffer[512] ATTRIBUTE_ALIGN(32);
+--- a/src/main_menu/ov97_02238534.c
++++ b/src/main_menu/ov97_02238534.c
+@@ -17,5 +17,5 @@
+ 
+ typedef struct {
+-    u8 unk_00[3840] ATTRIBUTE_ALIGN(32);
++    u8 unk_00[WM_SYSTEM_BUF_SIZE] ATTRIBUTE_ALIGN(32);
+     WMbssDesc unk_F00 ATTRIBUTE_ALIGN(32);
+     WMscanParam unk_1034 ATTRIBUTE_ALIGN(32);

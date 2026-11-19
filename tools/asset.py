@@ -30,6 +30,11 @@ from the player's ROM (tools/rom_modules.py --assets orig --version b2_us).
     python3 tools/asset.py --version b2_us --move third_party/pokebw2/src/system/poke_icon.c sPokeIconPalettes \
         poke_icon_palettes
 
+Platinum (--version plat_us; docs/platinum.md): the C is third_party/pokeplatinum's, which has no symbols.txt or
+delinks.txt; config/plat_us/symbols.tsv (each table's file, name, module, start and end, found by its bytes:
+tools/plat_symbols.py) and modules.tsv (each module's base) stand in. The port's build will write build/plat_us/asset
+from the player's ROM (tools/rom_modules.py --assets orig --version plat_us).
+
 Two fallbacks of a table move: a table without a symbol (a static local) is found by its values, packed as u32, u16 or
 u8, at the one place of each version's module that holds them (several places: not moved); and a file-scope static
 const table without pointers whose layout the inference can not fit (bitfields, packed structs, records of different
@@ -46,6 +51,7 @@ lengths, floats, expressions without a value) becomes a union of its type with t
 import argparse
 import re
 import signal
+import threading
 import struct
 import sys
 from pathlib import Path
@@ -81,6 +87,9 @@ def rom_bytes(version, mod, start, end):
 
 def rom_base(version, mod):
     """The address of a module image's first byte."""
+    if version == PLAT:
+        return next(int(a, 16) for m, a in (l.split("\t") for l in (ROOT / "config" / PLAT / "modules.tsv").read_text()
+                                             .splitlines()[1:]) if m == mod)
     header = (module_dir(version, mod) / "delinks.txt").read_text().split("\n\n")[0]
     return min(int(m[2], 16) for m in re.finditer(r"(\.\w+)\s+start:(0x\w+)", header) if m[1] != ".bss")
 
@@ -120,6 +129,11 @@ def write_asset(version, mod, start, end, kind, out):
 
 def module_of(version, c_file):
     """The module whose delinks.txt lists a C file."""
+    if version == PLAT:
+        mods = sorted({r[2] for r in asset_table.plat_rows() if r[0] == c_file})
+        if len(mods) != 1:
+            sys.exit(f"{c_file} has tables in {mods or 'no module'} of config/plat_us/symbols.tsv (tools/plat_symbols.py)")
+        return mods[0]
     c_file = c_file.removeprefix(asset_table.VENDORED + "/") if version in TWIN else c_file   # (its delinks' name)
     mods = ["main" if p.parent.name == "arm9" else p.parent.name
             for p in asset_table.arm9_dir(version).rglob("delinks.txt") if f"\n{c_file}:\n" in p.read_text()]
@@ -130,6 +144,8 @@ def module_of(version, c_file):
 
 def symbol_addr(version, mod, symbol, c_file=None):
     """The symbol's address; of a name two files' statics share (ov142's sItemNameOrder), the one in c_file's sections."""
+    if version == PLAT:
+        return next((r[3] for r in asset_table.plat_rows() if r[1] == symbol and r[2] == mod and r[0] == (c_file or r[0])), None)
     text = (module_dir(version, mod) / "symbols.txt").read_text()
     addrs = [int(a, 16) for a in re.findall(rf"^{symbol} kind:\S+ addr:(0x\w+)", text, re.M)]
     if len(addrs) > 1 and c_file:
@@ -142,6 +158,8 @@ def symbol_addr(version, mod, symbol, c_file=None):
 
 def section_end(version, mod, c_file, addr):
     """The end of c_file's section (delinks.txt) that holds addr; None when none does."""
+    if version == PLAT:   # (Platinum: the end of the table's bytes)
+        return next((r[4] for r in asset_table.plat_rows() if r[0] == c_file and r[2] == mod and r[3] <= addr < r[4]), None)
     name = c_file.removeprefix(asset_table.VENDORED + "/") if version in TWIN else c_file
     block = (module_dir(version, mod) / "delinks.txt").read_text().partition(f"\n{name}:\n")[2].partition("\n\n")[0]
     return next((int(e, 16) for s, e in re.findall(r"start:(0x\w+) end:(0x\w+)", block) if int(s, 16) <= addr < int(e, 16)), None)
@@ -181,6 +199,8 @@ def find_by_bytes(version, mod, recs, value):
 
 
 TWIN = {"b2_us": "w2_us", "w2_us": "b2_us"}   # Black 2 and White 2: one C, a row in each version's assets.tsv
+PLAT = "plat_us"   # Platinum: config/plat_us/symbols.tsv and modules.tsv (tools/plat_symbols.py) for symbols.txt, delinks.txt
+HOST_ONLY = {*TWIN, PLAT}   # C no MWCC build compiles (no _Static_assert there, and its data order matters)
 
 
 def rows(version, c_file, symbol, mod, start, end, kind, find=None):
@@ -208,11 +228,14 @@ def add_row(version, name, mod, start, end, kind):
     table.write_text(rows + f"{name}\t{mod}\t{start:#010x}\t{end:#010x}\t{kind}\n")
 
 
+ALIGN = r"(?:__attribute__\(\(aligned\(\d+\)\)\)\s*)?"   # pret's ATTRIBUTE_ALIGN(N), vendored before the declaration
+
+
 def body_span(text, symbol):
     """(start, end) of the text between the braces of symbol's initialiser (the first one not moved yet: static locals
     of one name), and the line it is declared on."""
     first = None
-    for m in re.finditer(rf"^(?:\}}\s*)?[^\n;{{}}()]*\b{symbol}\s*(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{{", text, re.M):
+    for m in re.finditer(rf"^(?:\}}\s*)?{ALIGN}[^\n;{{}}()]*\b{symbol}\s*(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{{", text, re.M):
         depth, i = 1, m.end()
         while depth:
             c = text[i]
@@ -224,7 +247,7 @@ def body_span(text, symbol):
     return first
 
 
-RAW_DECL = r"^(static\s+const\s+)([^=;{{}}()]*?)\b{sym}\s*((?:\[[^\]]*\]\s*)+)(ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{{"
+RAW_DECL = r"^" + ALIGN + r"(static\s+const\s+)([^=;{{}}()]*?)\b{sym}\s*((?:\[[^\]]*\]\s*)*)(ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{{"
 
 
 def move_raw(version, c_file, symbol, name, text, span, mod, start, syms, why):
@@ -237,31 +260,34 @@ def move_raw(version, c_file, symbol, name, text, span, mod, start, syms, why):
     if re.search(r"^[ \t]*#", body, re.M):
         sys.exit(f"{why}; #if in the table: split it by hand")
     names = {x for v in syms.values() for x in v}
-    if "*" in m[2] or "&" in body or "*" in asset_table.strip_comments(body) or (names | {"NULL"}) & set(re.findall(r"[A-Za-z_]\w*", asset_table.strip_comments(body))):
+    if "*" in m[2] or "&" in body or re.search(r"(?:^|[,{(=])\s*\*", asset_table.strip_comments(body)) or (names | {"NULL"}) & set(re.findall(r"[A-Za-z_]\w*", asset_table.strip_comments(body))):
         sys.exit(f"{why}; it may hold pointers: by hand")
-    decls = list(re.finditer(rf"^[ \t]*(?:static\s+|extern\s+)?(?:const\s+)?(?!return\b)\w+(?:\s+const)?[\s*]+{symbol}\s*"
-                             rf"(?:\[[^\]]*\]\s*)+(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?[=;]", text, re.M))
+    decls = list(re.finditer(rf"^[ \t]*{ALIGN}(?:static\s+|extern\s+)?(?:const\s+)?(?!return\b)\w+(?:\s+const)?[\s*]+{symbol}\s*"
+                             rf"(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?[=;]", text, re.M))
     fwd = [d for d in decls if d[0].endswith(";")]   # a declaration before the definition: the union goes there
     if re.search(rf"(?:\.|->)\s*{symbol}\b", text) or len(decls) - len(fwd) != 1 or len(fwd) > 1 or \
             fwd and fwd[0].start() > m.start():
         sys.exit(f"{why}; {symbol} is also a field's name or defined twice (an #if?): by hand")
-    if fwd and version not in TWIN:   # MWCC lays out data in the order of the definitions: the union can't move up
+    if fwd and version not in HOST_ONLY:   # MWCC lays out data in the order of the definitions: the union can't move up
         sys.exit(f"{why}; declared before its definition, and MWCC keeps the definitions' order: by hand")
     after = sorted([a for a in syms if a > start] + [e for e in [section_end(version, mod, c_file, start)] if e])
     if not after or after[0] - start > 0x4000:
         sys.exit(f"{why}; no next symbol within 16 KB to end its bytes: by hand")
     end = after[0]
     data = rom_bytes(version, mod, start, end)
-    if any(0x02000000 <= struct.unpack_from("<I", data, i)[0] < 0x02800000 for i in range(-start % 4, len(data) - 3, 4)):
+    if version != PLAT and \
+            any(0x02000000 <= struct.unpack_from("<I", data, i)[0] < 0x02800000 for i in range(-start % 4, len(data) - 3, 4)):
+        # (Platinum's rows are tables whose host object has no relocation: no pointer, whatever the bytes look like)
         sys.exit(f"{why}; its bytes hold values that look like pointers: by hand")
     dims = re.findall(r"\[([^\]]*)\]", m[3])
-    first = dims[0].strip() or str(c_consts.consts(c_file, version).nelems(symbol))
+    if dims:
+        dims[0] = dims[0].strip() or str(c_consts.consts(c_file, version).nelems(symbol))
     todo = rows(version, c_file, symbol, mod, start, end, "u8")
     close = text.index(";", span[1])
     fits = (f"_Static_assert(sizeof({symbol}_raw.t) <= sizeof({symbol}_raw.raw), \"{symbol}: the ROM's bytes are its layout\");"
-            if version in TWIN else   # (MWCC has no _Static_assert: an array of -1 elements fails the same way)
+            if version in HOST_ONLY else   # (MWCC has no _Static_assert: an array of -1 elements fails the same way)
             f"typedef char {symbol}_fits[sizeof({symbol}_raw.t) <= sizeof({symbol}_raw.raw) ? 1 : -1];   // the ROM's bytes are its layout")
-    decl = (f"static const union {{ u8 raw[{end - start}]; {m[2].strip()} t[{first}]{''.join(f'[{d}]' for d in dims[1:])}; }} "
+    decl = (f"{re.match(ALIGN, text[m.start():])[0]}static const union {{ u8 raw[{end - start}]; {m[2].strip()} t{''.join(f'[{d}]' for d in dims)}; }} "
             f"{symbol}_raw {m[4] or ''}= {{ {{\n#include \"asset/{name}.inc\"\n}} }};\n"
             f"{fits}\n"
             f"#define {symbol} ({symbol}_raw.t)")
@@ -319,7 +345,7 @@ def move_table(version, c_file, symbol, name):
 def move(version, c_file, symbol, name):
     """Replaces a C array's values with the #include of a new asset, if they are the ROM's."""
     text = (ROOT / c_file).read_text()
-    m = re.search(rf"^(.*\b(u8|u16|u32|s8|s16|s32|fx16|fx32)\s+{symbol}(?:\s*\[[^\]]*\])+\s*=\s*\{{)(.*?)(^\}};|\}};$)", text, re.M | re.S)
+    m = re.search(rf"^([^\n]*\b(u8|u16|u32|s8|s16|s32|fx16|fx32)\s+{symbol}(?:\s*\[[^\]]*\])+\s*=\s*\{{)(.*?)(^\}};|\}};$)", text, re.M | re.S)
     if m:
         body = m[3]
         flat = re.sub(r"//[^\n]*|/\*.*?\*/", "", body, flags=re.S)
@@ -352,7 +378,11 @@ def _alarm(*_):
     raise TimeoutError
 
 
-signal.signal(signal.SIGALRM, _alarm)
+# Only the main thread may set a signal handler: tools/route.py imports this through atlas.py in worker threads.
+# (Windows has no SIGALRM: no time limit per table there; tools/port_overlays.py imports this in the native win64 build)
+_MAIN = threading.current_thread() is threading.main_thread() and hasattr(signal, 'SIGALRM')
+if _MAIN:
+    signal.signal(signal.SIGALRM, _alarm)
 
 
 def move_all(version, c_file, min_values=12, only=None):
@@ -362,7 +392,7 @@ def move_all(version, c_file, min_values=12, only=None):
     text = (ROOT / c_file).read_text()
     stem = Path(c_file).stem
     done, skipped = 0, {}
-    for m in re.finditer(r"^(?:\}\s*)?[^\n;{}()]*?\b(\w+)\s*(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{",
+    for m in re.finditer(r"^(?:\}\s*)?" + ALIGN + r"[^\n;{}()]*?\b(\w+)\s*(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{",
                          text, re.M):   # (a struct type's closing brace before the name)
         sym = m[1]
         if only is not None and sym not in only:
@@ -372,7 +402,8 @@ def move_all(version, c_file, min_values=12, only=None):
             continue
         if only is None and len(re.findall(r"(?<![\w.])(?:0[xX][0-9a-fA-F]+|\d+)(?![\w.])", text[span[0]:span[1]])) < min_values:
             continue
-        signal.alarm(TABLE_SECONDS)
+        if _MAIN:
+            signal.alarm(TABLE_SECONDS)
         reason = None
         try:
             table = ROOT / "config" / version / "assets.tsv"
@@ -389,7 +420,8 @@ def move_all(version, c_file, min_values=12, only=None):
         except Exception as e:   # a table the tools do not understand is skipped, whatever it is
             reason = f"{type(e).__name__}: {e}"
         finally:
-            signal.alarm(0)
+            if _MAIN:
+                signal.alarm(0)
         if reason is not None:
             reason = re.sub(rf"^{sym}(?: in \S+)?: ", "", " ".join(reason.split()))
             skipped[sym] = reason

@@ -1,0 +1,354 @@
+HGSS on the PC: SoulSilver in the same build as HeartGold (ss1, 2026-11-14). pret picks the version with a define
+(GAME_VERSION, HEARTGOLD / SOULSILVER: include/config.h, 13 `#ifdef HEARTGOLD` sites, the GBA-migrator table in
+asm/overlay_74_thumb.s). The two ROMs have the same file system (soulsilver.us/filesystem.csv differs from heartgold.us' by
+two file names, same ids), so the version is a value the PC build reads when it runs: gGameVersion (pm_version.c, not const),
+set by the table of the game that starts (port/game/game_table.c: hg_bwgame IPKE, ss_bwgame IPGE) before NitroMain.
+GAME_VERSION is gGameVersion for C (config.h), GAME_IS_HEARTGOLD the test; each site that chose with HEARTGOLD or SOULSILVER
+chooses with it. Sorts last, made against the pin + every other patch. DROP when upstream makes the version a value.
+Handover-ID: none (port-only)
+
+--- a/include/config.h
++++ b/include/config.h
+@@ -26,7 +26,14 @@
+ #define HEARTGOLD
+ #endif
+ 
+-#if defined(HEARTGOLD)
++#if !defined(__ASSEMBLER__)
++// PC port (port/subprojects/pokeheartgold-zversion.patch): one build runs both versions. The version is the value
++// gGameVersion (pm_version.c), set from the ROM's game code before the game starts, not a define: every site that pret
++// chooses with HEARTGOLD / SOULSILVER reads it when it runs. (HEARTGOLD stays defined for what the patch leaves alone: asm data.)
++extern unsigned char gGameVersion;
++#define GAME_VERSION     gGameVersion
++#define GAME_IS_HEARTGOLD (gGameVersion == VERSION_HEARTGOLD)
++#elif defined(HEARTGOLD)
+ #define GAME_VERSION VERSION_HEARTGOLD
+ #else
+ #define GAME_VERSION VERSION_SOULSILVER
+--- a/include/pm_version.h
++++ b/include/pm_version.h
+@@ -3,7 +3,7 @@
+ 
+ #include <nitro.h>
+ 
+-extern const u8 gGameVersion;
++extern u8 gGameVersion;   // PC: not const, the host sets it (config.h)
+ extern const u8 gGameLanguage;
+ 
+ #endif // POKEHEARTGOLD_PM_VERSION_H
+--- a/src/pm_version.c
++++ b/src/pm_version.c
+@@ -1,4 +1,4 @@
+ #include "global.h"
+ 
+-const u8 gGameVersion = GAME_VERSION;
++u8 gGameVersion = VERSION_HEARTGOLD;   // PC: HeartGold's until the host sets SoulSilver's (port/game/game_table.c)
+ const u8 gGameLanguage = GAME_LANGUAGE;
+--- a/src/title_screen.c
++++ b/src/title_screen.c
+@@ -32,11 +32,7 @@
+ #include "unk_02005D10.h"
+ #include "unk_02026E30.h"
+ 
+-#ifdef HEARTGOLD
+-#define TITLE_SCREEN_SPECIES SPECIES_HO_OH
+-#else // SOULSILVER
+-#define TITLE_SCREEN_SPECIES SPECIES_LUGIA
+-#endif
++#define TITLE_SCREEN_SPECIES (GAME_IS_HEARTGOLD ? SPECIES_HO_OH : SPECIES_LUGIA)
+ 
+ #define CLEAR_SAVE_KEY_COMBO  (PAD_BUTTON_B | PAD_BUTTON_SELECT | PAD_KEY_UP)
+ #define MIC_TEST_KEY_COMBO    (PAD_BUTTON_X | PAD_BUTTON_Y | PAD_KEY_DOWN)
+--- a/src/intro_movie_scene_5.c
++++ b/src/intro_movie_scene_5.c
+@@ -76,11 +76,7 @@
+     sceneData->needFreeGfx = TRUE;
+ }
+ 
+-#ifdef HEARTGOLD
+-#define BG_SCROLL_SPEED -0x40
+-#else
+-#define BG_SCROLL_SPEED 0x40
+-#endif
++#define BG_SCROLL_SPEED (GAME_IS_HEARTGOLD ? -0x40 : 0x40)
+ 
+ static BOOL IntroMovie_Scene5_Main(IntroMovieOverlayData *data, IntroMovieScene5Data *sceneData, int totalFrames) {
+     BgConfig *bgConfig = IntroMovie_GetBgConfig(data);
+--- a/src/application/pokedex/ov18_021E5C40.c
++++ b/src/application/pokedex/ov18_021E5C40.c
+@@ -810,11 +810,8 @@
+ void ov18_021E62A8(PokedexAppData *pokedexApp) {
+     NARC *narc = NARC_New(NARC_application_zukanlist_zkn_data_zukan_hw_data, HEAP_ID_POKEDEX_APP);
+     pokedexApp->unk_1850 = GfGfxLoader_LoadFromOpenNarc(narc, zukan_hw_data_0_bin, FALSE, HEAP_ID_POKEDEX_APP, FALSE);
+-#ifdef HEARTGOLD
++    // (the gold and silver members are both index 1 of their NARC: zukan_hw_gold.order, zukan_hw_silver.order)
+     pokedexApp->unk_1854 = GfGfxLoader_LoadFromOpenNarc(narc, zukan_hw_data_1_gold_bin, FALSE, HEAP_ID_POKEDEX_APP, FALSE);
+-#else
+-    pokedexApp->unk_1854 = GfGfxLoader_LoadFromOpenNarc(narc, zukan_hw_data_1_silver_bin, FALSE, HEAP_ID_POKEDEX_APP, FALSE);
+-#endif
+     NARC_Delete(narc);
+ }
+ 
+--- a/src/application/pokedex/ov18_021E590C.c
++++ b/src/application/pokedex/ov18_021E590C.c
+@@ -6,13 +6,7 @@
+ #include "msgdata.h"
+ #include "unk_02091278.h"
+ 
+-#if defined(HEARTGOLD)
+-#define ZUKAN_FLAVOR_GMM (msg_0803)
+-#elif defined(SOULSILVER)
+-#define ZUKAN_FLAVOR_GMM (msg_0804)
+-#else
+-#error "Unable to determine game"
+-#endif // HGSS
++#define ZUKAN_FLAVOR_GMM (GAME_IS_HEARTGOLD ? msg_0803 : msg_0804)
+ 
+ static int deadstrip_0(int a0);
+ static String *ov18_021E5A10(int msgBank, int msgNum, enum HeapID heapId);
+--- a/src/credits/credits.c
++++ b/src/credits/credits.c
+@@ -23,11 +23,7 @@
+ #include "unk_0200A090.h"
+ #include "unk_0200B150.h"
+ 
+-#ifdef HEARTGOLD
+-#define GAME_TITLE_MSG_NO 0
+-#else
+-#define GAME_TITLE_MSG_NO 1
+-#endif // HEARTGOLD
++#define GAME_TITLE_MSG_NO (GAME_IS_HEARTGOLD ? 0 : 1)
+ 
+ #define NUM_SCENES 6
+ 
+--- a/src/overlay_74_thumb_02232E3C_022332F4_022332F4.c
++++ b/src/overlay_74_thumb_02232E3C_022332F4_022332F4.c
+@@ -1200,11 +1200,7 @@
+         switch (boxPos) {
+         case 1:
+             YesNoPrompt_Reset(migrator->yesNoTouchMenu);
+-#ifdef HEARTGOLD
+-            migrator->messageEntryID = 34;
+-#else
+-            migrator->messageEntryID = 35;
+-#endif
++            migrator->messageEntryID = GAME_IS_HEARTGOLD ? 34 : 35;
+             *state = GBA_MIGRATOR_STATE_4;
+             break;
+         case 2:
+@@ -1406,7 +1402,11 @@
+ 
+         switch (boxPos) {
+         case 1:
++            // asm data (overlay_74_thumb.s): HeartGold's table, SoulSilver's is the same + 1 for each non-zero entry
+             migrator->unk_490.messageEntryID = ov74_0223C968[migrator->gbaVersion];
++            if (!GAME_IS_HEARTGOLD && migrator->unk_490.messageEntryID != 0) {
++                migrator->unk_490.messageEntryID++;
++            }
+             ov74_02231A1C(migrator, &migrator->unk_490, 0);
+             YesNoPrompt_Reset(migrator->yesNoTouchMenu);
+             migrator->unk_E8F0.unk_00 = 0;
+@@ -1432,11 +1432,7 @@
+             PlaySE(1562);
+ 
+             if (v2 == 11) {
+-#ifdef HEARTGOLD
+-                migrator->unk_490.messageEntryID = 29;
+-#else
+-                migrator->unk_490.messageEntryID = 30;
+-#endif
++                migrator->unk_490.messageEntryID = GAME_IS_HEARTGOLD ? 29 : 30;
+             } else {
+                 migrator->unk_490.messageEntryID = 36;
+             }
+--- a/src/naming_screen.c
++++ b/src/naming_screen.c
+@@ -642,15 +642,9 @@
+     return ret;
+ }
+ 
+-#ifdef HEARTGOLD
+-#define FIRST_DEFAULT_NAME_MALE   msg_0254_00000
+-#define FIRST_DEFAULT_NAME_FEMALE msg_0254_00018
+-#define FIRST_DEFAULT_NAME_RIVAL  msg_0254_00084
+-#else
+-#define FIRST_DEFAULT_NAME_MALE   msg_0254_00042
+-#define FIRST_DEFAULT_NAME_FEMALE msg_0254_00060
+-#define FIRST_DEFAULT_NAME_RIVAL  msg_0254_00085
+-#endif // HEARTGOLD
++#define FIRST_DEFAULT_NAME_MALE   (GAME_IS_HEARTGOLD ? msg_0254_00000 : msg_0254_00042)
++#define FIRST_DEFAULT_NAME_FEMALE (GAME_IS_HEARTGOLD ? msg_0254_00018 : msg_0254_00060)
++#define FIRST_DEFAULT_NAME_RIVAL  (GAME_IS_HEARTGOLD ? msg_0254_00084 : msg_0254_00085)
+ 
+ // Called when the input is empty
+ static void NamingScreen_SetDefaultName(NamingScreenAppData *data, NamingScreenArgs *args) {
+--- a/src/intro_movie_scene_1.c
++++ b/src/intro_movie_scene_1.c
+@@ -255,33 +255,18 @@
+     }
+ }
+ 
+-#ifdef HEARTGOLD
+-#define INTRO_MOVIE_SCENE1_PALDATA_SUB    NARC_gs_opening_gs_opening_00000000_NCLR
+-#define INTRO_MOVIE_SCENE1_PALDATA_MAIN   NARC_gs_opening_gs_opening_00000001_NCLR
+-#define INTRO_MOVIE_SCENE1_CHARDATA_SUB3  NARC_gs_opening_gs_opening_00000006_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_CHARDATA_MAIN3 NARC_gs_opening_gs_opening_00000007_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_SUB3  NARC_gs_opening_gs_opening_00000015_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN1 NARC_gs_opening_gs_opening_00000016_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN2 NARC_gs_opening_gs_opening_00000017_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN3 NARC_gs_opening_gs_opening_00000018_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_PLTTRES   NARC_gs_opening_gs_opening_00000023_NCLR
+-#define INTRO_MOVIE_SCENE1_BIRD_CHARRES   NARC_gs_opening_gs_opening_00000024_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_ANIMRES   NARC_gs_opening_gs_opening_00000025_NANR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_CELLRES   NARC_gs_opening_gs_opening_00000026_NCER_lz
+-#else
+-#define INTRO_MOVIE_SCENE1_PALDATA_SUB    NARC_gs_opening_gs_opening_00000002_NCLR
+-#define INTRO_MOVIE_SCENE1_PALDATA_MAIN   NARC_gs_opening_gs_opening_00000003_NCLR
+-#define INTRO_MOVIE_SCENE1_CHARDATA_SUB3  NARC_gs_opening_gs_opening_00000008_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_CHARDATA_MAIN3 NARC_gs_opening_gs_opening_00000009_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_SUB3  NARC_gs_opening_gs_opening_00000019_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN1 NARC_gs_opening_gs_opening_00000020_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN2 NARC_gs_opening_gs_opening_00000021_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN3 NARC_gs_opening_gs_opening_00000022_NSCR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_PLTTRES   NARC_gs_opening_gs_opening_00000027_NCLR
+-#define INTRO_MOVIE_SCENE1_BIRD_CHARRES   NARC_gs_opening_gs_opening_00000028_NCGR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_ANIMRES   NARC_gs_opening_gs_opening_00000029_NANR_lz
+-#define INTRO_MOVIE_SCENE1_BIRD_CELLRES   NARC_gs_opening_gs_opening_00000030_NCER_lz
+-#endif // HEARTGOLD
++#define INTRO_MOVIE_SCENE1_PALDATA_SUB    (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000000_NCLR : NARC_gs_opening_gs_opening_00000002_NCLR)
++#define INTRO_MOVIE_SCENE1_PALDATA_MAIN   (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000001_NCLR : NARC_gs_opening_gs_opening_00000003_NCLR)
++#define INTRO_MOVIE_SCENE1_CHARDATA_SUB3  (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000006_NCGR_lz : NARC_gs_opening_gs_opening_00000008_NCGR_lz)
++#define INTRO_MOVIE_SCENE1_CHARDATA_MAIN3 (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000007_NCGR_lz : NARC_gs_opening_gs_opening_00000009_NCGR_lz)
++#define INTRO_MOVIE_SCENE1_SCRNDATA_SUB3  (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000015_NSCR_lz : NARC_gs_opening_gs_opening_00000019_NSCR_lz)
++#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN1 (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000016_NSCR_lz : NARC_gs_opening_gs_opening_00000020_NSCR_lz)
++#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN2 (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000017_NSCR_lz : NARC_gs_opening_gs_opening_00000021_NSCR_lz)
++#define INTRO_MOVIE_SCENE1_SCRNDATA_MAIN3 (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000018_NSCR_lz : NARC_gs_opening_gs_opening_00000022_NSCR_lz)
++#define INTRO_MOVIE_SCENE1_BIRD_PLTTRES   (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000023_NCLR : NARC_gs_opening_gs_opening_00000027_NCLR)
++#define INTRO_MOVIE_SCENE1_BIRD_CHARRES   (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000024_NCGR_lz : NARC_gs_opening_gs_opening_00000028_NCGR_lz)
++#define INTRO_MOVIE_SCENE1_BIRD_ANIMRES   (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000025_NANR_lz : NARC_gs_opening_gs_opening_00000029_NANR_lz)
++#define INTRO_MOVIE_SCENE1_BIRD_CELLRES   (GAME_IS_HEARTGOLD ? NARC_gs_opening_gs_opening_00000026_NCER_lz : NARC_gs_opening_gs_opening_00000030_NCER_lz)
+ 
+ static void IntroMovie_Scene1_LoadBgGfx(BgConfig *bgConfig) {
+     GfGfxLoader_LoadCharData(NARC_demo_opening_gs_opening, 4, bgConfig, GF_BG_LYR_SUB_1, 0, 0, TRUE, HEAP_ID_INTRO_MOVIE);
+--- a/src/field/rock_smash_item.c
++++ b/src/field/rock_smash_item.c
+@@ -42,8 +42,7 @@
+     ITEM_STAR_PIECE,
+ };
+ 
+-#ifdef HEARTGOLD
+-static const u16 sRockSmashItems_RuinsOfAlph[] = {
++static const u16 sRockSmashItems_RuinsOfAlph_HG[] = {
+     ITEM_RED_SHARD,
+     ITEM_YELLOW_SHARD,
+     ITEM_HELIX_FOSSIL,
+@@ -53,8 +52,7 @@
+     ITEM_OLD_AMBER,
+     ITEM_MAX_REVIVE,
+ };
+-#else
+-static const u16 sRockSmashItems_RuinsOfAlph[] = {
++static const u16 sRockSmashItems_RuinsOfAlph_SS[] = {
+     ITEM_BLUE_SHARD,
+     ITEM_GREEN_SHARD,
+     ITEM_DOME_FOSSIL,
+@@ -64,10 +62,9 @@
+     ITEM_OLD_AMBER,
+     ITEM_MAX_REVIVE,
+ };
+-#endif // HEARTGOLD
++#define sRockSmashItems_RuinsOfAlph (GAME_IS_HEARTGOLD ? sRockSmashItems_RuinsOfAlph_HG : sRockSmashItems_RuinsOfAlph_SS)
+ 
+-#ifdef HEARTGOLD
+-static const u16 sRockSmashItems_CliffCave[] = {
++static const u16 sRockSmashItems_CliffCave_HG[] = {
+     ITEM_MAX_ETHER,
+     ITEM_PEARL,
+     ITEM_BIG_PEARL,
+@@ -77,8 +74,7 @@
+     ITEM_CLAW_FOSSIL,
+     ITEM_RARE_BONE,
+ };
+-#else
+-static const u16 sRockSmashItems_CliffCave[] = {
++static const u16 sRockSmashItems_CliffCave_SS[] = {
+     ITEM_MAX_ETHER,
+     ITEM_PEARL,
+     ITEM_BIG_PEARL,
+@@ -88,7 +84,7 @@
+     ITEM_ROOT_FOSSIL,
+     ITEM_RARE_BONE,
+ };
+-#endif // HEARTGOLD
++#define sRockSmashItems_CliffCave (GAME_IS_HEARTGOLD ? sRockSmashItems_CliffCave_HG : sRockSmashItems_CliffCave_SS)
+ 
+ static BOOL Task_RockSmashItemCheck(TaskManager *taskman);
+ static BOOL CheckRockSmashItemDrop(FieldSystem *fieldSystem, RockSmashItemCheckWork *a1);
+--- a/src/overlay_02_02248728_02249984_02249EC0_02249EC0.c
++++ b/src/overlay_02_02248728_02249984_02249EC0_02249EC0.c
+@@ -1405,15 +1405,15 @@
+ 
+     GfGfx_EngineATogglePlanes(GX_PLANEMASK_BG3, 0);
+ 
+-#ifdef HEARTGOLD
+-    ov02_0224A570(narc, 2, &cutIn->g2dPaletteData);
+-    ov02_0224A598(cutIn->fieldSystem->bgConfig, narc, 0, &cutIn->g2dCharData);
+-    ov02_0224A5D0(cutIn->fieldSystem->bgConfig, narc, 1, &cutIn->g2dScreenData);
+-#else
+-    ov02_0224A570(narc, 5, &cutIn->g2dPaletteData);
+-    ov02_0224A598(cutIn->fieldSystem->bgConfig, narc, 3, &cutIn->g2dCharData);
+-    ov02_0224A5D0(cutIn->fieldSystem->bgConfig, narc, 4, &cutIn->g2dScreenData);
+-#endif
++    if (GAME_IS_HEARTGOLD) {
++        ov02_0224A570(narc, 2, &cutIn->g2dPaletteData);
++        ov02_0224A598(cutIn->fieldSystem->bgConfig, narc, 0, &cutIn->g2dCharData);
++        ov02_0224A5D0(cutIn->fieldSystem->bgConfig, narc, 1, &cutIn->g2dScreenData);
++    } else {
++        ov02_0224A570(narc, 5, &cutIn->g2dPaletteData);
++        ov02_0224A598(cutIn->fieldSystem->bgConfig, narc, 3, &cutIn->g2dCharData);
++        ov02_0224A5D0(cutIn->fieldSystem->bgConfig, narc, 4, &cutIn->g2dScreenData);
++    }
+     ov02_0224A080(cutIn, narc);
+ 
+     NARC_Delete(narc);
+--- a/src/overlay_25.c
++++ b/src/overlay_25.c
+@@ -77,7 +77,7 @@
+                 .id = 0,
+                 .sprite = SPRITE_MAN3,
+                 .language = GAME_LANGUAGE,
+-                .version = GAME_VERSION,
++                .version = VERSION_HEARTGOLD,   // PC: the runtime version is stored below (TrainerHouse_SetNames)
+                 .gender = PLAYER_GENDER_MALE,
+                 .otName = {
+             CHAR_JP_HIRA_HI,
+@@ -216,6 +216,7 @@
+ 
+ static void TrainerHouse_SetNames(TrainerHouseSet *set) {
+     MI_CpuCopy16(&ov25_02259D9C, set, sizeof(TrainerHouseSet));
++    set->trainer.version = GAME_VERSION;
+     MsgData *messageData = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, msg_0726, HEAP_ID_FIELD2);
+     GF_ASSERT(messageData);
+     if (messageData) {
+--- a/include/encounter_tables_narc.h
++++ b/include/encounter_tables_narc.h
+@@ -5,15 +5,12 @@
+ 
+ #define ENCDATA_NA 255
+ 
+-#ifdef HEARTGOLD
++// PC: both versions' NARCs are in both ROMs (g_enc_data at file 37, s_enc_data at 136); a version reads its own. The members
++// of the two NARCs are the same indexes (g_enc_data.naix and s_enc_data.naix list the same numbers), so ENCDATA(suff) is one.
+ #include "fielddata/encountdata/g_enc_data.naix"
+-#define ENCDATA_NARC  NARC_fielddata_encountdata_g_enc_data
+-#define ENCDATA(suff) NARC_g_enc_data_g_enc_data##suff
+-#else
+ #include "fielddata/encountdata/s_enc_data.naix"
+-#define ENCDATA_NARC  NARC_fielddata_encountdata_s_enc_data
+-#define ENCDATA(suff) NARC_s_enc_data_s_enc_data##suff
+-#endif // HEARTGOLD
++#define ENCDATA_NARC  (GAME_IS_HEARTGOLD ? NARC_fielddata_encountdata_g_enc_data : NARC_fielddata_encountdata_s_enc_data)
++#define ENCDATA(suff) NARC_g_enc_data_g_enc_data##suff
+ 
+ #define ENCDATA_T20        ENCDATA(_00000000)
+ #define ENCDATA_R29        ENCDATA(_00000001)

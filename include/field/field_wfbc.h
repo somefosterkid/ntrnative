@@ -81,7 +81,7 @@ u8 func_ov021_02193920(FieldWFBC *wfbc);
 // Builds one of a chunk's 4x4 blocks into its terrain and props, and returns the chunk's new prop count
 u32 func_ov021_02193924(FieldWFBC *wfbc, void *terrain, FieldPropSystem *propSystem, FieldChunk *chunk, u32 propCount,
                         s32 x, s32 z, HeapID heapId);
-void func_ov021_021939c0(FieldWFBC *wfbc, EventDataSystem *eventData, BOOL isOther, HeapID heapId);
+void func_ov021_021939c0(FieldWFBC *wfbc, EventData *eventData, BOOL isOther, HeapID heapId);
 void func_ov021_02193abc(FieldWFBC *wfbc, FieldCamera *camera, HeapID heapId);
 void func_ov021_02193afc(FieldWFBC *wfbc, MMSys *mmSys);
 void func_ov021_02193b04(FieldWFBC *wfbc, CityState *city, BOOL isOther, HeapID heapId);

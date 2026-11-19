@@ -182,12 +182,6 @@ def add_version(n: Writer, version: str, dsd: Path) -> tuple[list[Path], list[st
     stamp_dir = Path("build") / version / "stamps"
     arm9_config = config_dir / "arm9" / "config.yaml"
     rom = Path("build") / VERSIONS[version]["rom"]
-    if (ROOT / config_dir / "delta.txt").exists():
-        # made from Black's config (tools/version_config.py); a file is written only when it changes
-        result = subprocess.run([sys.executable, str(ROOT / "tools" / "version_config.py"), version],
-                                capture_output=True, text=True, cwd=ROOT)
-        if result.returncode != 0:
-            sys.exit(result.stderr)
     dsd_configs = sorted(str(p) for p in config_dir.rglob("*.txt") if p.name != "delta.txt") + [str(arm9_config)]
 
     # The delink targets are known ahead of time from the configs
@@ -273,6 +267,14 @@ def main():
     versions = [v for v in VERSIONS if (ROOT / "orig" / f"baserom_{v}.nds").exists()]
     if not versions:
         sys.exit("no base ROMs found in orig/, see README.md")
+    # A version with a delta gets its config from Black's (tools/version_config.py; a file is written only when it
+    # changes) whether or not its ROM is in orig/: port/meson.build reads config/w_us/assets.tsv in every build
+    for version in VERSIONS:
+        if (ROOT / "config" / version / "delta.txt").exists():
+            result = subprocess.run([sys.executable, str(ROOT / "tools" / "version_config.py"), version],
+                                    capture_output=True, text=True, cwd=ROOT)
+            if result.returncode != 0:
+                sys.exit(result.stderr)
 
     tools_dir = ROOT / "tools"
     download_tools(tools_dir)

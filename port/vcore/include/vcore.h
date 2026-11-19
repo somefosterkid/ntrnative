@@ -24,6 +24,11 @@ int vcore_load_vcs(VCoreState *s, const char *path, char *err, size_t errlen);
 int vcore_load_vcs_mem(VCoreState *s, const void *data, size_t size, char *err, size_t errlen);
 
 /* renders the frame: both engines, the 3D, capture, the two screens */
+/* H-blank DMA (libntr-hdma.patch): engine e's (0 A, 1 B) 2D register bytes ofs..ofs+len-1 (ofs + len <= 0x70) change
+ * line by line: rows[y * stride + i] is byte ofs + i on line y (0-191). clear: none (a new frame's state starts so). */
+void vcore_hdma_clear(VCoreState *s);
+void vcore_hdma_add(VCoreState *s, int e, unsigned ofs, unsigned len, const uint8_t *rows, unsigned stride);
+void vcore_hdma_copy(VCoreState *dst, const VCoreState *src);
 void vcore_render(VCoreState *s);
 /* the same state rendered again (its p23 blend may differ): only the 3D is redone when the last vcore_render of this state left
  * the 2D reusable; else vcore_render. vcore_forget_2d: the state's inputs changed (a new frame gathered), render in full. */

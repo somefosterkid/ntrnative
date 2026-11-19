@@ -1,0 +1,5 @@
+# game: soulsilver
+# from: ss-room1
+# reaches: (SoulSilver copy of heartgold/room-load, ss1; the same crash as HeartGold's, not SoulSilver's: SIGSEGV at f7864 in sub_02034DF0, the comm statics at DS offsets, when the title's menu starts with a save) meant for: the field in the player's house (1F, by the stairs) from the ss-room1 save: the title, CONTINUE, the save's summary
+# end: f10500
+keys start@f7700 a@f8300 a@f8700 a@f9100

@@ -1,0 +1,33 @@
+	.include "macros.inc"
+	.include "overlay_07.inc"
+	.include "global.inc"
+
+	.public ov07_0221BFD0
+	.public ov07_0221C468
+	.public ov07_0221C470
+	.public ov07_0221C4A0
+	.public ov07_0221C4E8
+	.public ov07_0221C514
+	.public ov07_0221C528
+	.public ov07_0221C530
+	.public ov07_0221FA04
+	.public ov07_0221FA48
+	.public ov07_0221FA78
+	.public ov07_0221FAB0
+	.public ov07_02231958
+	.public ov07_0223197C
+	.public ov07_022319E0
+	.public ov07_02231FA0
+	.public ov07_02231FD8
+	.public ov07_022326C0
+	.public ov07_0223717C
+	.public ov07_02237188
+	.public ov07_02237228
+	.public ov07_0223738C
+	.public ov07_02237390
+	.public ov07_0223746C
+	.public ov07_02237470
+	.public ov07_02237474
+	.public ov07_022375BC
+	.public ov07_02232670
+	.text

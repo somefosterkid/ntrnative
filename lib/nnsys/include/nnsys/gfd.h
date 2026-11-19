@@ -107,11 +107,11 @@ static inline int NNS_GfdFreePlttVram(NNSGfdPlttKey key) {
 }
 
 // Where each region of a frame manager is allocated up to, to go back to later
-typedef struct {
+typedef struct NNSGfdFrmTexVramState {
     u32 address[10];
 } NNSGfdFrmTexVramState;
 
-typedef struct {
+typedef struct NNSGfdFrmPlttVramState {
     u32 address[2];
 } NNSGfdFrmPlttVramState;
 
@@ -128,6 +128,11 @@ void NNS_GfdSetFrmTexVramState(const NNSGfdFrmTexVramState *state);
 NNSGfdPlttKey NNS_GfdAllocFrmPlttVram(u32 szByte, BOOL is4pltt, u32 bAllocFromLo);
 void NNS_GfdGetFrmPlttVramState(NNSGfdFrmPlttVramState *state);
 void NNS_GfdSetFrmPlttVramState(const NNSGfdFrmPlttVramState *state);
+// Sets up the frame palette manager over szByte bytes of palette VRAM (as the default one with useAsDefault), resets
+// it to empty, and frees a key, which it doesn't do (gfd_FramePlttVramMan_gen4.c: the Gen 4 games call them)
+void NNS_GfdInitFrmPlttVramManager(u32 szByte, BOOL useAsDefault);
+void NNS_GfdResetFrmPlttVramState(void);
+int NNS_GfdFreeFrmPlttVram(NNSGfdPlttKey key);
 
 // The linked-list managers, which free what they allocated and need work memory
 u32 NNS_GfdGetLnkTexVramManagerWorkSize(u32 numMemBlk);
@@ -143,7 +148,7 @@ int NNS_GfdFreeLnkPlttVram(NNSGfdPlttKey key);
 void NNS_GfdResetLnkPlttVramState(void);
 
 // Where a transfer goes, which picks the NitroSDK function that does it
-typedef enum {
+typedef enum NNS_GFD_DST_TYPE {
     NNS_GFD_DST_3D_TEX_VRAM,
     NNS_GFD_DST_3D_TEX_PLTT,
     NNS_GFD_DST_3D_CLRIMG_COLOR,
@@ -183,7 +188,7 @@ typedef enum {
     NNS_GFD_DST_MAX
 } NNS_GFD_DST_TYPE;
 
-typedef struct {
+typedef struct NNSGfdVramTransferTask {
     NNS_GFD_DST_TYPE type;
     void *pSrc;
     u32 dstAddr;
@@ -191,7 +196,7 @@ typedef struct {
 } NNSGfdVramTransferTask;
 
 // A ring buffer of transfers in the array given to NNS_GfdInitVramTransferManager
-typedef struct {
+typedef struct NNSGfdVramTransferTaskQueue {
     NNSGfdVramTransferTask *pTaskArray;
     u32 lengthOfArray;
     // The next transfer to do, and where the next one registered goes

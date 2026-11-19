@@ -1,0 +1,8 @@
+#ifndef POKEHEARTGOLD_UNK_02087284_H
+#define POKEHEARTGOLD_UNK_02087284_H
+
+#include "global.h"
+
+s32 sub_02087878(void *arg0, s32 arg1);
+
+#endif // POKEHEARTGOLD_UNK_02087284_H

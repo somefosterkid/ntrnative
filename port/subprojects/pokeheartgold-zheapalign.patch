@@ -1,0 +1,58 @@
+pokeheartgold-zheapalign.patch (tools/pokehg_gen.py applies it late, the z sorts it there; it sits beside heap.c's
+HEAP_HOST_SIZE, upstream's since hk488 (widepointers3's before)): heap blocks 8-aligned where a pointer is 8 bytes (alhg1, 2026-11-14; the same rule as
+pokeplatinum-widepointers7.patch). pret's heap.c asks the NNS expanded heap for an alignment of 4 (-4 from the heap's
+end: Heap_Alloc, Heap_AllocAtEnd, the child heaps, HeapExp_FndInitAllocator's callers), the DS's word; on a 64-bit host
+the blocks hold pointers, and a 4 put half of them at 4 mod 8 (the sanitizer's misaligned-pointer rows). HEAP_HOST_ALIGN
+raises |alignment| below 8 to 8 and keeps the sign (head or tail); sizes are unchanged. MemoryBlock is 16 bytes here
+too (12 + a u32 bitfield word), so the caller's pointer keeps the block's alignment. With libntr-arenaalign.patch (the
+arena's blocks, from which the system heaps come, 8-aligned too).
+Handover-ID: none (port-only)
+
+diff --git a/src/heap.c b/src/heap.c
+index e4092e2e5..e3bbe3521 100644
+--- a/src/heap.c
++++ b/src/heap.c
+@@ -34,6 +34,16 @@ typedef struct MemoryBlock {
+ #define HEAP_HOST_SIZE(size) (size)
+ #endif
+ 
++// A heap block's alignment where a pointer is 8 bytes: the DS's 4 (or -4, from the heap's end) raised to 8, the sign
++// kept, as its blocks hold pointers (MemoryBlock's 16 bytes keep the caller's pointer at the block's alignment). The
++// child heaps, AllocFromHeapInternal's blocks and the NNS allocators of HeapExp_FndInitAllocator; an alignment of 8 or
++// more is as given.
++#if UINTPTR_MAX > 0xFFFFFFFFu
++#define HEAP_HOST_ALIGN(alignment) ((alignment) >= 0 ? ((alignment) < 8 ? 8 : (alignment)) : ((alignment) > -8 ? -8 : (alignment)))
++#else
++#define HEAP_HOST_ALIGN(alignment) (alignment)
++#endif
++
+ static HeapInfo sHeapInfo;
+ 
+ static BOOL CreateHeapInternal(enum HeapID parent, enum HeapID child, u32 size, s32 alignment);
+@@ -133,7 +143,7 @@ static BOOL CreateHeapInternal(enum HeapID parent, enum HeapID child, u32 size,
+     if (sHeapInfo.unallocatedHeapID == ptr[child]) {
+         NNSFndHeapHandle parentHeap = sHeapInfo.heapHandles[ptr[parent]];
+         if (parentHeap != NULL) {
+-            void *newHeapAddr = NNS_FndAllocFromExpHeapEx(parentHeap, HEAP_HOST_SIZE(size), alignment);
++            void *newHeapAddr = NNS_FndAllocFromExpHeapEx(parentHeap, HEAP_HOST_SIZE(size), HEAP_HOST_ALIGN(alignment));
+             if (newHeapAddr != NULL) {
+                 s32 i = FindFirstAvailableHeapHandle();
+                 if (i >= 0) {
+@@ -193,7 +203,7 @@ static void *AllocFromHeapInternal(NNSFndHeapHandle heap, u32 size, s32 alignmen
+ 
+     OSIntrMode intrMode = OS_DisableInterrupts();
+     size += sizeof(MemoryBlock);
+-    void *ptr = NNS_FndAllocFromExpHeapEx(heap, size, alignment);
++    void *ptr = NNS_FndAllocFromExpHeapEx(heap, size, HEAP_HOST_ALIGN(alignment));
+ 
+     OS_RestoreInterrupts(intrMode);
+     if (ptr != NULL) {
+@@ -306,7 +316,7 @@ u32 HeapExp_FndGetTotalFreeSize(enum HeapID heapID) {
+ void HeapExp_FndInitAllocator(NNSFndAllocator *pAllocator, enum HeapID heapID, int alignment) {
+     if ((u32)heapID < sHeapInfo.totalNumHeaps) {
+         u8 index = sHeapInfo.heapIdxs[heapID];
+-        NNS_FndInitAllocatorForExpHeap(pAllocator, sHeapInfo.heapHandles[index], alignment);
++        NNS_FndInitAllocatorForExpHeap(pAllocator, sHeapInfo.heapHandles[index], HEAP_HOST_ALIGN(alignment));
+         return;
+     }
+ 

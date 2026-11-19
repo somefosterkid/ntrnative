@@ -18,7 +18,7 @@
 #include "system/game_system.h"
 
 #define WORK_ID 1
-#define WORK_SIZE 0x30
+#define WORK_SIZE sizeof(SpPokeGimmickWork)   // 0x30 on the DS; 0x40 on 64 bits (two pointers and the union's)
 
 // The center of a grid square, in fx32
 #define GRID_CENTER(n) ((n) * FX32_CONST(16) + FX32_CONST(8))

@@ -53,7 +53,8 @@ def _main_checkout():
 
 def _default_roms():
     """(name, ROM, dsd extract dir or None) of each game this machine has: the checkout's orig/ (the worktree's, else the main
-    one's), White's in $ROMLEAK_WHITE_ROM / $ROMLEAK_WHITE_EXT (default /root/white_rom, /root/white_ext), Black 2 and White 2
+    one's), White's in $ROMLEAK_WHITE_ROM / $ROMLEAK_WHITE_EXT (default /root/white_rom, /root/white_ext), Black 2, White 2 and
+    Platinum (port/include_plat, port/subprojects/pokeplatinum-*.patch), HeartGold and SoulSilver (third_party/pokeheartgold)
     from orig/ (no extract: the raw ROM, its modules BLZ-decompressed and its LZ cache are searched)."""
     roots = [REPO, _main_checkout()]
 
@@ -64,6 +65,13 @@ def _default_roms():
         return None
 
     out = []
+    if sys.platform == "darwin":   # the Mac: no dsd extract (dsd is a Linux program): modules and LZ cache from each ROM
+        for name, f in (("black", "baserom_b_us.nds"), ("white", "baserom_w_us.nds"), ("black2", "baserom_b2_us.nds"),
+                        ("white2", "baserom_w2_us.nds"), ("platinum", "baserom_plat_us.nds"), ("heartgold", "baserom_hg_us.nds"),
+                        ("soulsilver", "baserom_ss_us.nds")):
+            if find("orig", f):
+                out.append((name, find("orig", f), None))
+        return out
     b = find("orig", "baserom_b_us.nds")
     if b:
         out.append(("black", b, find("extract", "b_us")))
@@ -72,7 +80,9 @@ def _default_roms():
         w = find("orig", "baserom_w_us.nds")
     if w:
         out.append(("white", w, os.environ.get("ROMLEAK_WHITE_EXT", "/root/white_ext")))
-    for name, f in (("black2", "baserom_b2_us.nds"), ("white2", "baserom_w2_us.nds")):
+    for name, f in (("black2", "baserom_b2_us.nds"), ("white2", "baserom_w2_us.nds"),
+                    ("platinum", "baserom_plat_us.nds"), ("heartgold", "baserom_hg_us.nds"),
+                    ("soulsilver", "baserom_ss_us.nds")):
         if find("orig", f):
             out.append((name, find("orig", f), None))
     return out
@@ -205,6 +215,13 @@ def derive(item):
             out.append(1)
             walk(u, depth + 1)
 
+    if "@" in path:   # ROM@START:END: a file of the ROM's FAT (the Mac, no extract)
+        rom, span = path.rsplit("@", 1)
+        a, b = (int(x) for x in span.split(":"))
+        with open(rom, "rb") as f:
+            f.seek(a)
+            walk(f.read(b - a), 0)
+        return len(out)
     with open(path, "rb") as f:
         walk(f.read(), 0)
     return len(out)
@@ -213,7 +230,7 @@ def derive(item):
 def build_cache(roms, cache):
     os.makedirs(cache, exist_ok=True)
     stamp = os.path.join(cache, "stamp")
-    key = "v1 " + " ".join(str(os.path.getsize(r)) for _, r, _ in roms)
+    key = ("v1fat " if sys.platform == "darwin" else "v1 ") + " ".join(str(os.path.getsize(r)) for _, r, _ in roms)
     if os.path.exists(stamp) and open(stamp).read() == key:
         return
     for f in os.listdir(cache):
@@ -225,9 +242,41 @@ def build_cache(roms, cache):
             for fn in sorted(fs):
                 items.append((os.path.join(root, fn), cache, f"{name}{k}"))
                 k += 1
+    for name, rom, ext in roms:
+        if ext or sys.platform != "darwin":
+            continue
+        # the Mac (no dsd extract): the ROM's own files from its FAT, as the extract's files/ would give them
+        with open(rom, "rb") as f:
+            head = f.read(0x50)
+            fat, fat_size = struct.unpack_from("<II", head, 0x48)
+            f.seek(fat)
+            table = f.read(fat_size)
+        for k in range(fat_size // 8):
+            a, b = struct.unpack_from("<II", table, 8 * k)
+            if b > a:
+                items.append((f"{rom}@{a}:{b}", cache, f"{name}{k}"))
     with Pool(int(os.environ.get("BW_JOBS", "8"))) as p:
         for _ in p.imap_unordered(derive, items, chunksize=8):
             pass
+    if sys.platform == "darwin":
+        # macOS lets a process hold 10240 files (kern.maxfilesperproc) and each mapped file keeps one: the ~48000
+        # decompressed files go into packs of 64 MB, each file followed by a separator no binary holds
+        names = sorted(f for f in os.listdir(cache) if f.endswith(".bin"))
+        pack, k = None, 0
+        for fn in names:
+            if pack is None or pack.tell() >= 64 << 20:
+                if pack:
+                    pack.close()
+                pack = open(os.path.join(cache, f"pack{k:03d}.pk"), "wb")
+                k += 1
+            with open(os.path.join(cache, fn), "rb") as f:
+                pack.write(f.read() + b"\xa5\x5a" * 32)
+            os.remove(os.path.join(cache, fn))
+        if pack:
+            pack.close()
+        for f in os.listdir(cache):
+            if f.endswith(".pk"):
+                os.rename(os.path.join(cache, f), os.path.join(cache, f[:-3] + ".bin"))
     open(stamp, "w").write(key)
 
 
@@ -243,7 +292,7 @@ def rom_sources(roms, cache):
     for name, rom, ext in roms:
         data = _map(rom)
         yield name + ":rom", data
-        if not ext:  # no dsd extract (Black 2, White 2): main and the overlays BLZ-decompressed from the ROM itself
+        if not ext:  # no dsd extract (Black 2, White 2, Platinum): main and the overlays BLZ-decompressed from the ROM itself
             import rom_modules
             yield name + ":arm9", rom_modules.arm9(data)
             for ov, image in rom_modules.overlays(data):
@@ -361,8 +410,11 @@ def run_len(a, ai, b, bi):
 
 def trivial(run, w):
     """A run that repeats with a short period (padding, fill), or is mostly one step apart (enum values, counters; in
-    raw bytes a ramp of 8-, 16- or 32-bit elements)."""
+    raw bytes a ramp of 8-, 16- or 32-bit elements), or holds fewer than 8 nonzero bytes (zeros around a pointer: the macOS
+    image's filled tables next to a chained fixup matched a ROM file's padding, 2026-11-12)."""
     x = np.frombuffer(run, np.uint8)
+    if np.count_nonzero(x) < 8:
+        return True
     for per in range(1, 17):
         if (x[per:] == x[:-per]).mean() >= 0.95:
             return True
@@ -429,8 +481,113 @@ def initializers(text):
         i = j
 
 
+GAME_CFG = {"black": "b_us", "white": "w_us", "black2": "b2_us", "white2": "w2_us", "platinum": "plat_us"}
+SECTION_RE = re.compile(r"^\s+\.\w+\s+start:(0x[0-9a-fA-F]+)\s+end:(0x[0-9a-fA-F]+)\s+kind:(\w+)", re.M)
+_cfg_cache, _hdr_cache = {}, {}
+
+
+def _cfg_ranges(game):
+    """{module: [(start, end, what)]} of what config/<ver>/ says about a game's address ranges: the named tables of
+    assets.tsv (and Platinum's symbols.tsv), then a dsd module's delinks.txt sections (code / rodata / data / bss)."""
+    if game in _cfg_cache:
+        return _cfg_cache[game]
+    out = {}
+    d = os.path.join(REPO, "config", GAME_CFG.get(game, "-"))
+    for fn, cols in (("assets.tsv", (0, 1, 2, 3)), ("symbols.tsv", (1, 2, 3, 4))):
+        try:
+            rows = open(os.path.join(d, fn)).read().splitlines()[1:]
+        except OSError:
+            continue
+        for row in rows:
+            c = row.split("\t")
+            try:
+                out.setdefault(c[cols[1]], []).append((int(c[cols[2]], 16), int(c[cols[3]], 16), "data " + c[cols[0]]))
+            except (IndexError, ValueError):
+                pass
+    ovs = os.path.join(d, "arm9", "overlays")
+    mods = [("main", os.path.join(d, "arm9", "delinks.txt"))]
+    mods += [(o, os.path.join(ovs, o, "delinks.txt")) for o in (sorted(os.listdir(ovs)) if os.path.isdir(ovs) else [])]
+    for mod, p in mods:
+        try:
+            text = open(p).read()
+        except OSError:
+            continue
+        for a, b, kind in SECTION_RE.findall(text):
+            out.setdefault(mod, []).append((int(a, 16), int(b, 16), kind))
+    _cfg_cache[game] = out
+    return out
+
+
+def _rom_header(game):
+    """(ROM bytes, {module: RAM base}, [(file start, end, module or None, RAM base, compressed)] sorted: the raw ROM's
+    ARM9 and its overlays, then every other file of its FAT)."""
+    if game in _hdr_cache:
+        return _hdr_cache[game]
+    names, bufs = _idx[3], _idx[4]
+    rom = bufs[names.index(game + ":rom")]
+    a9_off, _, a9_load, a9_size = struct.unpack_from("<4I", rom, 0x20)
+    fat, fat_size, ovt, ovt_size = struct.unpack_from("<4I", rom, 0x48)
+    bases = {"main": a9_load}
+    params = rom.find(struct.pack("<II", 0xDEC00621, 0x2106C0DE), a9_off, a9_off + a9_size) - 0x1C
+    packed = params >= a9_off and struct.unpack_from("<I", rom, params + 0x14)[0] != 0   # BLZ-compressed ARM9
+    files = [(a9_off, a9_off + a9_size, "main", a9_load, packed)]
+    ov_files = set()
+    for e in range(ovt, ovt + ovt_size, 32):
+        ov_id, ram = struct.unpack_from("<2I", rom, e)
+        fid, word = struct.unpack_from("<2I", rom, e + 24)
+        start, stop = struct.unpack_from("<2I", rom, fat + 8 * fid)
+        bases[f"ov{ov_id:03d}"] = ram
+        files.append((start, stop, f"ov{ov_id:03d}", ram, bool(word >> 24 & 1)))
+        ov_files.add(fid)
+    for fid in range(fat_size // 8):
+        if fid not in ov_files:
+            start, stop = struct.unpack_from("<2I", rom, fat + 8 * fid)
+            files.append((start, stop, None, fid, False))
+    files.sort(key=lambda f: f[:2])
+    _hdr_cache[game] = (rom, bases, files)
+    return _hdr_cache[game]
+
+
+def place(name, off):
+    """Where a ROM source's offset is: `<game> <module>+0x<offset in the module image> @0x<address> <what>`, `what` being
+    code / rodata / data from the module's delinks.txt, `data <table>` from assets.tsv / symbols.tsv, else `unlisted` (a
+    place the config knows nothing about: code, or a table nobody moved yet). A raw-ROM offset is mapped to the module or
+    FAT file holding it (a compressed module image has no address: its bytes are not the module's)."""
+    game, _, src = name.partition(":")
+    generic = f"{name}+0x{off:x}"
+    m = re.fullmatch(r"ov(\d+)", src) or re.search(r"arm9_overlays/ov(\d+)\.bin$", src)
+    try:
+        if src == "arm9" or src.endswith("arm9/arm9.bin"):
+            mod, mo = "main", off
+        elif m:
+            mod, mo = f"ov{int(m[1]):03d}", off
+        elif src == "rom":
+            _, _, files = _rom_header(game)
+            i = bisect.bisect_right(files, off, key=lambda f: f[0]) - 1
+            while i >= 0 and not files[i][0] <= off < files[i][1]:
+                i -= 1
+            if i < 0:
+                return f"{game} rom+0x{off:x} (outside the files)"
+            start, _, mod, base, comp = files[i]
+            if mod is None:
+                return f"{game} file {base}+0x{off - start:x} data"
+            if comp:
+                return f"{game} {mod}+0x{off - start:x} (raw ROM: compressed image)"
+            mo = off - start
+        else:
+            return generic
+        base = _rom_header(game)[1].get(mod)
+    except (KeyError, ValueError, struct.error, IndexError):
+        return generic
+    if base is None:
+        return f"{game} {mod}+0x{mo:x}"
+    addr = base + mo
+    what = next((w for a, b, w in _cfg_ranges(game).get(mod, ()) if a <= addr < b), "unlisted")
+    return f"{game} {mod}+0x{mo:x} @0x{addr:08x} {what}"
+
+
 def where_data(data, deep=True):
-    """What scan_data found, with the places: [(kind, [(first line, last line, bytes, [table names])])], one entry per
+    """What scan_data found, with the places: [(kind, [(first line, last line, bytes, [table names], where in the ROM)])], one entry per
     stream with runs. A run of a number stream maps back to the literals it came from (the stream is the file's
     numbers, concatenated: it can span several tables and code constants), a run of raw bytes to its offsets."""
     text = data.decode("latin-1")
@@ -454,14 +611,14 @@ def where_data(data, deep=True):
             mask = (1 << 8 * w) - 1
             at = [p for p, v in nums if -(mask >> 1) - 1 <= v <= mask]   # the stream's elements, in the file
         res = []
-        for st, ln, *_ in sorted(runs):
+        for st, ln, src, ro in sorted(runs):
             if w:
                 a, b = at[st // w], at[(st + ln - 1) // w]
             elif kind == "utf16":
                 a, b = st // 2, (st + ln - 1) // 2
             else:
                 a, b = st, st + ln - 1
-            res.append((line(a), line(b), ln, tables(a, b)))
+            res.append((line(a), line(b), ln, tables(a, b), place(src, ro)))
         out.append((kind, res))
     return out
 
@@ -482,11 +639,12 @@ def where_files(paths, roms, cache, jobs):
 
 
 def where_lines(p, found):
-    """One line per finding of a file: `path [kind] bytes: L<first>-<last> <tables> <bytes> B, ...`."""
+    """One line per finding of a file: `path [kind] bytes: L<first>-<last> <tables> <bytes> B <- <where in the ROM>, ...`
+    (see place(): the ROM, module and offset the run matches, and whether that is code, a listed table or unlisted)."""
     out = []
     for kind, runs in found:
-        parts = [f"L{a}" + (f"-{b}" if b != a else "") + (" " + ",".join(dict.fromkeys(t)) if t else " (code)") + f" {n}B"
-                 for a, b, n, t in runs[:8]]
+        parts = [f"L{a}" + (f"-{b}" if b != a else "") + (" " + ",".join(dict.fromkeys(t)) if t else " (code)") + f" {n}B <- {pl}"
+                 for a, b, n, t, pl in runs[:8]]
         more = f", +{len(runs) - 8} more" if len(runs) > 8 else ""
         out.append(f"WHERE {p} [{kind}] {sum(r[2] for r in runs)}B: " + ", ".join(parts) + more)
     return out
@@ -591,6 +749,27 @@ def load_public():
     return runs, files
 
 
+# the launcher's table (port/src/launcher_core.c sGames): a row's game code and the sha1 of its ROM, which a build holds only
+# for the games it plays (White's, Black 2's, ... rows have no sha1 without their C)
+GAME_ROM = {"IRBO": "black", "IRAO": "white", "IREO": "black2", "IRDO": "white2", "CPUE": "platinum", "IPKE": "heartgold",
+            "IPGE": "soulsilver"}
+
+
+def built_games(paths):
+    """The ROM names (DEFAULT_ROMS') of the games the packages play: the launcher table's ROM sha1s found in their files."""
+    text = open(os.path.join(REPO, "port/src/launcher_core.c"), encoding="utf-8").read()
+    sha = {code: s for code, s in re.findall(r'\{"(\w{4})", "[^"]*", "[^"]*", "[^"]*", \{"([0-9a-f]{40})"', text)}
+    missing = sorted(set(GAME_ROM) - set(sha))
+    if missing:
+        sys.exit(f"rom_leak_check: port/src/launcher_core.c's table has no ROM sha1 for {' '.join(missing)}")
+    found = set()
+    for _, d in package_items(paths):
+        for code, s in sha.items():
+            if code not in found and s.encode() + b"\0" in d:   # (a C string: not a README naming the dumps)
+                found.add(code)
+    return sorted(GAME_ROM[c] for c in found)
+
+
 def package_check(paths, detail=None):
     """Exit status 1 if any file of the packages holds a run of ROM bytes that is not a listed public table (a run's
     sha1 in tools/release_allow.tsv: the standard tables and chance matches of third-party code, each named there)."""
@@ -652,14 +831,15 @@ def static_check(paths):
             if p not in STATIC_BINARY_OK:
                 res.append((p, "binary", 1, len(d), len(d), "-", 0))
             continue
-        n, best, prev_end, start = 0, (0, 0), -1, 0
+        n, best, prev_end, start, nz = 0, (0, 0), -1, 0, False
         for m in NUM_RE.finditer(d):
             if prev_end >= 0 and GAP_RE.fullmatch(d, prev_end, m.start()):
                 n += 1
             else:
-                n, start = 1, m.start()
+                n, start, nz = 1, m.start(), False
             prev_end = m.end()
-            if n > best[0]:
+            nz = nz or bool(m[0].lstrip(b"-0xX"))   # (a run of zeros only holds nothing: a blanked table, filled at start)
+            if n > best[0] and nz:
                 best = (n, start)
         if best[0] >= STATIC_MAX_NUMS:
             res.append((p, "numtable", 1, best[0], best[0], "-", best[1]))
@@ -834,6 +1014,12 @@ def main():
         roms = [r for r in DEFAULT_ROMS if os.path.exists(r[1]) and (r[2] is None or os.path.isdir(r[2]))]
         if not roms:
             print("rom_leak_check: --package needs a ROM and its extract (DEFAULT_ROMS)", file=sys.stderr)
+            return 2
+        # a game the package plays whose ROM is not here: its bytes can't be found, so no leak of them can be ruled out
+        lack = [g for g in built_games(a.package) if g not in {r[0] for r in roms}]
+        if lack:
+            print(f"rom_leak_check: --package: the package plays {' '.join(lack)}, whose ROM (and extract) is not here "
+                  "(DEFAULT_ROMS): it can't be checked for that game's bytes", file=sys.stderr)
             return 2
         build_cache(roms, a.cache)
         build_index(roms, a.cache)

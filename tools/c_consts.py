@@ -10,6 +10,10 @@ compiler rounds it, GX_RGB, GX_RGBA, GX_BG_SCRBASE, GX_BG_CHARBASE, NELEMS of an
 be evaluated (another function-like macro, sizeof, a cast to a struct, a plain float) give None.
 
     python3 tools/c_consts.py --version b2_us FILE NAME...        # prints NAME = value
+
+--version plat_us reads Platinum's tree (build/pokeplatinum, tools/pokeplat_gen.py's working copy; port/include_plat,
+port/include_gen4) with
+tools/pokeplat_cc.py's defines.
 """
 import re
 import sys
@@ -26,7 +30,15 @@ FUNCS = re.compile(r"\b(FX32_CONST|FX16_CONST|GX_RGBA|GX_RGB|GX_BG_SCRBASE|GX_BG
 TOKEN = re.compile(r"\s*(0[xX][0-9a-fA-F]+|\d+)[uUlL]*|\s*'(\\?.)'|\s*([A-Za-z_]\w*)|\s*(<<|>>|<=|>=|==|!=|&&|\|\||[-+*/%&|^~!<>()?:])")
 
 
-def include_dirs():
+PLAT = ROOT / "build/pokeplatinum"   # Platinum (plat_us): pret's tree patched, tools/pokeplat_gen.py; with tools/pokeplat_cc.py's include dirs and defines
+PLAT_DEFINES = {"POKEPLATINUM_GENERATED_ENUM": "1", "GAME_VERSION": "VERSION_PLATINUM", "GAME_LANGUAGE": "LANGUAGE_ENGLISH",
+                "POKEPLATINUM_REVISION": "1"}
+
+
+def include_dirs(version=None):
+    if version == "plat_us":
+        return [ROOT / "port/include_plat", ROOT / "port/include_gen4",
+                *(PLAT / d for d in ("include", "gen", ".", "gen/res/text", "gen/generated")), *sorted((PLAT / "lib").glob("*/include"))]
     return [VENDORED / "include", VENDORED / "generated", *sorted((VENDORED / "lib").glob("*/include")),
             ROOT / "include", *sorted((ROOT / "lib").glob("*/include"))]
 
@@ -42,6 +54,8 @@ class Consts:
         self.macros, self.enums, self.code = {}, {}, []
         self.defines = {VERSION_DEFINE.get(version, "BLACK2")}
         self.macros.update({d: "1" for d in self.defines})
+        if version == "plat_us":
+            self.macros.update(PLAT_DEFINES)
         self.seen = set()
         self.cache = {}
         self.version, self.text = version, (ROOT / c_file).read_text(errors="replace") if (ROOT / c_file).exists() else ""
@@ -89,7 +103,7 @@ class Consts:
             elif d == "include":
                 im = re.match(r'["<]([^">]+)[">]', rest)
                 if im and not im[1].startswith("asset/"):
-                    for base in [path.parent, *include_dirs()]:
+                    for base in [path.parent, *include_dirs(self.version)]:
                         if (base / im[1]).exists():
                             self.read(base / im[1])
                             break

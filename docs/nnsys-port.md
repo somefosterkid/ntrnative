@@ -177,3 +177,41 @@ the title's 3D pictures, the acore corpus and a title WAV, restart T1-T2, White,
   (docs/ios-handoff.md "Our NitroSystem on the Mac"). port/tests' libntrsystem modes (res_load_test.py's default,
   run_nmc_test.sh, run_sdk_test.sh, run_sdk_names_test.sh) need the libntrsystem checkout: run them with --nnsys or retire
   them.
+
+## Heap checker (hc1, 2026-11-15: BWPORT_HEAPCHECK)
+
+An exp-heap block written past its end (a DS-literal size, a work with 8-byte pointers in a 4-byte-pointer size, a raw DS
+offset into a struct) cuts the heap's free list or a neighbour's header silently; the game runs out of heap or crashes much
+later (hg38's rival battle: ~1 MB free became 204 bytes). `BWPORT_HEAPCHECK=1` (env, off by default, one int test per heap call
+when off) finds it the frame it happens, for every game in the exe (Platinum, HG/SS, Black/White: all their heaps are NNS exp
+heaps, `NNS_FndAllocFromExpHeapEx` under Heap_Alloc / GFL_HeapAllocate).
+
+- **Where:** port/extern/lib/nnsys/src/fnd/expheap.c (the PC build's wrapper of lib/nnsys's expheap.c, which already wrapped
+  `NNS_FndFreeToExpHeap`) wraps create / destroy / alloc / resize / free: each takes the checker's lock, checks, calls the real
+  function and records. port/src/nnsys_heapcheck.c is the checker (under BWPORT_NNSYS). PORT_HeapCheckFrame is called first in
+  PORT_ExitFrame (every game's V-blank wait). PORT_HeapCheckReset from machine.c's restart.
+- **What it checks:** the heap an alloc / free / resize is about to touch has both lists walked first (a block's signature 'FR' /
+  'UD', size and padding inside the heap, prev / next links, the tail pointers, the free list in address order): what was written
+  since the heap's last operation is found before the heap acts on it. Once per V-blank wait every heap the game made is checked
+  and its blocks sorted by address must tile the heap (no gap, no overlap). A free of a block that is not 'UD' (twice, wild) is
+  said before it corrupts the lists. A SECOND free of a block (ptc2, 11-15: the stale 'UD' header of a freed block sits in the bytes of
+  the free block that took it in, so the 'UD' test passes; the free list then holds a block over the same bytes and the tiling check stops
+  a frame later at an unrelated "last heap call") is `kind=free-of-a-block-freed-before`: a 16K-slot direct-mapped record of the latest free
+  of each pointer (frame, callers), cleared by a new allocation at that pointer; the line's `ip=` are the SECOND free's callers and a detail
+  line has the first's. port_run's verdict: `heap misuse after FUNC ... free-of-a-block-freed-before`. `=2`: every heap at every alloc /
+  free (slow). Not found: a write past a block into the next block's DATA (more than its 24-byte header), or into freed memory.
+- **The report** (stderr, then abort(): under gdb the stop is the detecting call): `heapcheck: kind=K frame=F last_clean_frame=C
+  heap=ID handle=.. list=.. entry=N block=B owner=P owner_asked=S owner_frame=F ip=.. ip=.. anchor=A` and detail lines (the bad
+  header's bytes, the block before it with its asked size and the bytes between, the bad block's own record, the heap's range).
+  The overrunning block is the live recorded block just below the bad one: the one whose writes ran past its end. `ip` are its allocation's
+  callers (glibc backtrace: Linux, macOS; elsewhere only the wrapper's caller); `asked` includes the 16 bytes of HG/SS's
+  MemoryBlock. The heap ID is HG/SS's HeapID (port/subprojects/pokeheartgold-zheapcheck.patch hands heap.c's lookup to
+  PORT_HeapCheckSetNamer); other games print `#N`, the heap's creation order.
+- **tools:** `port_run.py --heapcheck [LEVEL]` (or the env var) turns the lines into the verdict `heapcheck: heap overrun after
+  FUNC (file:line) <- G <- H, frame F (clean at C), heap ID, KIND, block ..` (the ips are anchor + (ip - runtime anchor) through
+  nm / addr2line; the first caller that is not heap.c / expheap.c). route.py reports it as a crash row. hg_sweep.py
+  `--heapcheck`: verdict `heap`, the top column `heap overrun after FUNC`, grouped in crash_groups.tsv like a crash.
+- **Cost:** level 1: the checker's own CPU (the line `heapcheck: clean at frame N: ...; checker cpu X ms of the process's Y ms`, every 4096 V-blanks) is 2-3% of the process (ss legs: 526 of 17368 ms at frame 20480, 366 of 13844, ~210 of ~10000 at 12288), the larger part the glibc backtrace of each alloc; a check walks ~35 list entries on average. The hg chain (20 legs, 304986 game frames, the same with it on and off: it changes nothing the game does) ran 978 frames/s on and 1111 off at a desktop load of ~50 (other agents' runs: wall time is noisy), the ss chain 1086 on; the Platinum chain (32 legs) 32/32 on the laptop. Level 2 is not measured (every heap at every alloc).
+- **BW:** pokebw2-heapreport.patch reads BWPORT_HEAPCHECK as a GFL heap ID, but only under BWPORT_HEAPLOG=2: do not set both.
+- **Platinum:** the same hook (lib/nnsys is the one NitroSystem); no HeapID namer yet (pokeplatinum's heap.c would need the
+  zheapcheck patch's twin).

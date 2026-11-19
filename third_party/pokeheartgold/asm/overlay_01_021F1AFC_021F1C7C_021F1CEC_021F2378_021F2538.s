@@ -1,0 +1,30 @@
+#include "constants/sndseq.h"
+#include "constants/moves.h"
+#include "constants/std_script.h"
+#include "constants/species.h"
+#include "constants/sprites.h"
+#include "constants/maps.h"
+#include "constants/mmodel.h"
+#include "constants/items.h"
+#include "msgdata/msg/msg_0096_D31R0201.h"
+#include "msgdata/msg/msg_0066_D23R0102.h"
+	.include "macros.inc"
+	.include "overlay_01_021F1AFC.inc"
+	.include "global.inc"
+
+	.public ov01_021F3040
+	.public ov01_021F3054
+	.public ov01_021F3068
+	.public ov01_021F3084
+	.public ov01_021F3094
+	.public ov01_021F30D0
+	.public ov01_021F30F4
+	.public ov01_021F3100
+	.public ov01_022069A8
+	.public ov01_022069BC
+	.public ov01_022069D0
+	.public ov01_022069F0
+	.public ov01_02206A14
+	.public ov01_021F28EC
+	.public ov01_021F2628
+	.text

@@ -1,0 +1,280 @@
+--- a/libraries/mi/src/mi_dma.c
++++ b/libraries/mi/src/mi_dma.c
+@@ -824,8 +824,15 @@
+     #endif
+ }
+ 
++#ifdef SDK_PORT
++void MIi_PortHDmaStop(u32 dmaNo); /* mi_dma_hblank.c (libntr-hdma.patch): the channel's H-blank DMA ends */
++#endif
++
+ void MI_StopDma (u32 dmaNo)
+ {
++    #ifdef SDK_PORT
++    MIi_PortHDmaStop(dmaNo);
++    #endif
+     OSIntrMode enabled = OS_DisableInterrupts();
+     vu16 * dmaCntp = &((vu16 *)REG_DMA0SAD_ADDR)[dmaNo * 6 + 5];
+ 
+--- a/libraries/mi/src/mi_dma_hblank.c
++++ b/libraries/mi/src/mi_dma_hblank.c
+@@ -81,23 +81,58 @@
+ #elif defined(SDK_PORT)
+ #include <nitro.h>
+ #include "../include/mi_dma.h"
++/* bw-port (libntr-hdma.patch): an H-blank DMA copies `size` bytes from src to dest in the H-blank after each of the
++ * lines 0-191 (the source advances, the destination reloads), so line y > 0 shows src's entry y - 1 and the register
++ * holds entry 191 after the frame. The PC has no H-blank: the channel is recorded here and the frame renderer reads it
++ * (sim_vcapture.cpp's SIM_VCapHDma: one register value per line; SIM_HDmaFrameDone: entry 191 into the register
++ * after the frame). MI_StopDma ends it. It was one memcpy of size bytes: only entry 0 reached the register. */
++static struct {
++    const void *src;
++    void *dest;
++    u32 size;
++} sHDma[4];
++
++int MIi_PortHDmaGet(u32 dmaNo, const void **src, void **dest, u32 *size)
++{
++    if (dmaNo > 3 || sHDma[dmaNo].dest == NULL) return 0;
++    *src = sHDma[dmaNo].src;
++    *dest = sHDma[dmaNo].dest;
++    *size = sHDma[dmaNo].size;
++    return 1;
++}
++
++void MIi_PortHDmaStop(u32 dmaNo)
++{
++    if (dmaNo <= 3) sHDma[dmaNo].dest = NULL;
++}
++
++static void PortHDmaStart(u32 dmaNo, const void *src, void *dest, u32 size)
++{
++    if (dmaNo > 3) return;
++    sHDma[dmaNo].dest = NULL;
++    if (size == 0 || src == NULL || dest == NULL) return;
++    sHDma[dmaNo].src = src;
++    sHDma[dmaNo].size = size;
++    sHDma[dmaNo].dest = dest;
++}
++
+ void MI_HBlankDmaCopy32(u32 dmaNo, const void *src, void *dest, u32 size)
+ {
+-    memcpy(dest, src, size);
++    PortHDmaStart(dmaNo, src, dest, size);
+ }
+ 
+ void MI_HBlankDmaCopy16(u32 dmaNo, const void *src, void *dest, u32 size)
+ {
+-    memcpy(dest, src, size);
++    PortHDmaStart(dmaNo, src, dest, size);
+ }
+ 
+ void MI_HBlankDmaCopy32If(u32 dmaNo, const void *src, void *dest, u32 size)
+ {
+-    memcpy(dest, src, size);
++    PortHDmaStart(dmaNo, src, dest, size);
+ }
+ 
+ void MI_HBlankDmaCopy16If(u32 dmaNo, const void *src, void *dest, u32 size)
+ {
+-    memcpy(dest, src, size);
++    PortHDmaStart(dmaNo, src, dest, size);
+ }
+ #endif
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -455,6 +455,7 @@
+ // the picture after
+ extern "C" void SIM_VCapFrameBegin(void);
+ extern "C" void SIM_VCapFrameEnd(int vx, int vy, int vw, int vh, unsigned fb3d, int scale3d, int top3d, int vertical, int metal);
++extern "C" void SIM_HDmaFrameDone(void); // sim_vcapture.cpp (libntr-hdma.patch)
+ 
+ // bw-port (libntr-vbridge.patch): an in-process frame renderer that draws the two screens instead of libntr's 2D
+ // engines: port/vcore (bw-port's DS video core), which port/bridge/vcore_bridge.c registers. It gathers the frame's
+@@ -4471,6 +4472,9 @@
+                      (s_reg_GX_POWCNT >> 15) & 1,
+                      s_SIM_config.screenLayout == SIM_CONFIG_SCREEN_LAYOUT_VERTICAL && !s_SIM_config.swapScreens, sMetal);
+ 
++    // libntr-hdma.patch: the frame's H-blank DMAs are done (each leaves its last line's entry in the register)
++    SIM_HDmaFrameDone();
++
+     // Run HBlank Interrupt
+     OS_IRQTable[OS_IE_H_BLANK - 1]();
+ 
+--- a/libraries/sim/src/sim_vcapture.cpp
++++ b/libraries/sim/src/sim_vcapture.cpp
+@@ -27,6 +27,7 @@
+ #include <simulator/sim.h>
+ 
+ extern "C" const u8 *GXi_SimVramBankHome(int bank);
++extern "C" int SIM_VCapHDma(int ch, int *eng, unsigned *ofs, unsigned *len, uint8_t *rows, unsigned stride);
+ 
+ namespace {
+ 
+@@ -523,6 +524,7 @@
+   bool taken = false;
+   u32 frame = 0;
+   std::vector<u8> io9, io9b, vram, pltt, oam;
++  std::vector<u8> hdma; // libntr-hdma.patch: per H-blank DMA channel u8 engine, offset, length, 0, then 192 lines x length bytes
+   std::vector<u32> g3;
+   u32 g3Commands = 0, g3Prologue = 0, g3SwapFrame = 0;
+   std::string notes;
+@@ -745,6 +747,16 @@
+   s.pltt.assign(0x800, 0);
+   s.oam.assign(0x800, 0);
+   FillMem(s.vram.data(), s.pltt.data(), s.oam.data());
++  for (int ch = 0; ch < 4; ch++) {
++    u8 rows[192 * 0x70];
++    int e;
++    unsigned o, n;
++    if (!SIM_VCapHDma(ch, &e, &o, &n, rows, 0x70)) continue;
++    const u8 head[4] = {(u8)e, (u8)o, (u8)n, 0};
++    s.hdma.insert(s.hdma.end(), head, head + 4);
++    for (int y = 0; y < 192; y++) s.hdma.insert(s.hdma.end(), rows + y * 0x70, rows + y * 0x70 + n);
++  }
++  if (!s.hdma.empty()) s.notes += "hblank_dma ";
+   if (!Fill3D(s.g3, s.g3Prologue, s.g3Commands, s.g3SwapFrame)) s.notes += "no_swap_yet ";
+   // notes for the readers
+   if ((s_reg_G2_BG0HOFS | s_reg_G2_BG0VOFS | s_reg_G2_BG1HOFS | s_reg_G2_BG1VOFS | s_reg_G2_BG2HOFS |
+@@ -840,6 +852,7 @@
+   Chunk(f, "GX3D", s.g3.data(), (u32)(s.g3.size() * 4));
+   Chunk(f, "LSHT", shot.data(), (u32)shot.size());
+   Chunk(f, "L3D ", l3d.data(), (u32)l3d.size());
++  if (!s.hdma.empty()) Chunk(f, "HDMA", s.hdma.data(), (u32)s.hdma.size());
+   fclose(f);
+ }
+ 
+@@ -884,3 +897,133 @@
+   if (bank < 0 || bank > 8) return NULL;
+   return (uint8_t *)GXi_SimVramBankHome(bank);
+ }
++
++// ---- libntr-hdma.patch: H-blank DMA into the 2D registers, one value per line ----
++// mi_dma_hblank.c records each channel's MI_HBlankDmaCopy (source, destination, bytes a line). The destination is mapped
++// to the engine's register offset (the io9 / io9b layout above: 0x00-0x6F), the frame renderer gets each line's bytes
++// (SIM_VCapHDma) and the register keeps the last line's entry after the frame (SIM_HDmaFrameDone), as on the DS.
++extern "C" int MIi_PortHDmaGet(u32 dmaNo, const void **src, void **dest, u32 *size);
++
++namespace {
++struct HReg { volatile void *p; u8 size, eng; u16 ofs; };
++// the 32-bit BGxOFS before the 16-bit HOFS / VOFS: a byte by offset goes to the variable FillRegs reads
++static const HReg kHRegs[] = {
++  {&s_reg_GX_DISPCNT, 4, 0, 0x00},
++  {&s_reg_G2_BG0CNT, 2, 0, 0x08}, {&s_reg_G2_BG1CNT, 2, 0, 0x0A}, {&s_reg_G2_BG2CNT, 2, 0, 0x0C}, {&s_reg_G2_BG3CNT, 2, 0, 0x0E},
++  {&s_reg_G2_BG0OFS, 4, 0, 0x10}, {&s_reg_G2_BG1OFS, 4, 0, 0x14}, {&s_reg_G2_BG2OFS, 4, 0, 0x18}, {&s_reg_G2_BG3OFS, 4, 0, 0x1C},
++  {&s_reg_G2_BG0HOFS, 2, 0, 0x10}, {&s_reg_G2_BG0VOFS, 2, 0, 0x12}, {&s_reg_G2_BG1HOFS, 2, 0, 0x14}, {&s_reg_G2_BG1VOFS, 2, 0, 0x16},
++  {&s_reg_G2_BG2HOFS, 2, 0, 0x18}, {&s_reg_G2_BG2VOFS, 2, 0, 0x1A}, {&s_reg_G2_BG3HOFS, 2, 0, 0x1C}, {&s_reg_G2_BG3VOFS, 2, 0, 0x1E},
++  {&s_reg_G2_BG2PA, 2, 0, 0x20}, {&s_reg_G2_BG2PB, 2, 0, 0x22}, {&s_reg_G2_BG2PC, 2, 0, 0x24}, {&s_reg_G2_BG2PD, 2, 0, 0x26},
++  {&s_reg_G2_BG2X, 4, 0, 0x28}, {&s_reg_G2_BG2Y, 4, 0, 0x2C},
++  {&s_reg_G2_BG3PA, 2, 0, 0x30}, {&s_reg_G2_BG3PB, 2, 0, 0x32}, {&s_reg_G2_BG3PC, 2, 0, 0x34}, {&s_reg_G2_BG3PD, 2, 0, 0x36},
++  {&s_reg_G2_BG3X, 4, 0, 0x38}, {&s_reg_G2_BG3Y, 4, 0, 0x3C},
++  {&s_reg_G2_WIN0H, 2, 0, 0x40}, {&s_reg_G2_WIN1H, 2, 0, 0x42}, {&s_reg_G2_WIN0V, 2, 0, 0x44}, {&s_reg_G2_WIN1V, 2, 0, 0x46},
++  {&s_reg_G2_WININ, 2, 0, 0x48}, {&s_reg_G2_WINOUT, 2, 0, 0x4A}, {&s_reg_G2_MOSAIC, 2, 0, 0x4C},
++  {&s_reg_G2_BLDCNT, 2, 0, 0x50}, {&s_reg_G2_BLDALPHA, 2, 0, 0x52}, {&s_reg_G2_BLDY, 2, 0, 0x54},
++  {&s_reg_G3X_DISP3DCNT, 2, 0, 0x60}, {&s_reg_GX_DISPCAPCNT, 4, 0, 0x64}, {&s_reg_GX_MASTER_BRIGHT, 2, 0, 0x6C},
++  {&s_reg_GXS_DB_DISPCNT, 4, 1, 0x00},
++  {&s_reg_G2S_DB_BG0CNT, 2, 1, 0x08}, {&s_reg_G2S_DB_BG1CNT, 2, 1, 0x0A}, {&s_reg_G2S_DB_BG2CNT, 2, 1, 0x0C},
++  {&s_reg_G2S_DB_BG3CNT, 2, 1, 0x0E},
++  {&s_reg_G2S_DB_BG0OFS, 4, 1, 0x10}, {&s_reg_G2S_DB_BG1OFS, 4, 1, 0x14}, {&s_reg_G2S_DB_BG2OFS, 4, 1, 0x18},
++  {&s_reg_G2S_DB_BG3OFS, 4, 1, 0x1C},
++  {&s_reg_G2S_DB_BG0HOFS, 2, 1, 0x10}, {&s_reg_G2S_DB_BG0VOFS, 2, 1, 0x12}, {&s_reg_G2S_DB_BG1HOFS, 2, 1, 0x14},
++  {&s_reg_G2S_DB_BG1VOFS, 2, 1, 0x16}, {&s_reg_G2S_DB_BG2HOFS, 2, 1, 0x18}, {&s_reg_G2S_DB_BG2VOFS, 2, 1, 0x1A},
++  {&s_reg_G2S_DB_BG3HOFS, 2, 1, 0x1C}, {&s_reg_G2S_DB_BG3VOFS, 2, 1, 0x1E},
++  {&s_reg_G2S_DB_BG2PA, 2, 1, 0x20}, {&s_reg_G2S_DB_BG2PB, 2, 1, 0x22}, {&s_reg_G2S_DB_BG2PC, 2, 1, 0x24},
++  {&s_reg_G2S_DB_BG2PD, 2, 1, 0x26}, {&s_reg_G2S_DB_BG2X, 4, 1, 0x28}, {&s_reg_G2S_DB_BG2Y, 4, 1, 0x2C},
++  {&s_reg_G2S_DB_BG3PA, 2, 1, 0x30}, {&s_reg_G2S_DB_BG3PB, 2, 1, 0x32}, {&s_reg_G2S_DB_BG3PC, 2, 1, 0x34},
++  {&s_reg_G2S_DB_BG3PD, 2, 1, 0x36}, {&s_reg_G2S_DB_BG3X, 4, 1, 0x38}, {&s_reg_G2S_DB_BG3Y, 4, 1, 0x3C},
++  {&s_reg_G2S_DB_WIN0H, 2, 1, 0x40}, {&s_reg_G2S_DB_WIN1H, 2, 1, 0x42}, {&s_reg_G2S_DB_WIN0V, 2, 1, 0x44},
++  {&s_reg_G2S_DB_WIN1V, 2, 1, 0x46}, {&s_reg_G2S_DB_WININ, 2, 1, 0x48}, {&s_reg_G2S_DB_WINOUT, 2, 1, 0x4A},
++  {&s_reg_G2S_DB_MOSAIC, 2, 1, 0x4C}, {&s_reg_G2S_DB_BLDCNT, 2, 1, 0x50}, {&s_reg_G2S_DB_BLDALPHA, 2, 1, 0x52},
++  {&s_reg_G2S_DB_BLDY, 2, 1, 0x54}, {&s_reg_GXS_DB_MASTER_BRIGHT, 2, 1, 0x6C},
++};
++static const int kNHRegs = (int)(sizeof kHRegs / sizeof kHRegs[0]);
++
++static bool HMap(const void *dest, int *eng, u32 *ofs) {
++  const volatile u8 *d = (const volatile u8 *)dest;
++  for (int i = 0; i < kNHRegs; i++) {
++    const volatile u8 *p = (const volatile u8 *)kHRegs[i].p;
++    if (d >= p && d < p + kHRegs[i].size) {
++      *eng = kHRegs[i].eng;
++      *ofs = kHRegs[i].ofs + (u32)(d - p);
++      return true;
++    }
++  }
++  return false;
++}
++static const HReg *HAt(int eng, u32 ofs) {
++  for (int i = 0; i < kNHRegs; i++)
++    if (kHRegs[i].eng == eng && ofs >= kHRegs[i].ofs && ofs < (u32)kHRegs[i].ofs + kHRegs[i].size) return &kHRegs[i];
++  return NULL;
++}
++static u8 HRead(int eng, u32 ofs) {
++  const HReg *r = HAt(eng, ofs);
++  return r ? ((const volatile u8 *)r->p)[ofs - r->ofs] : 0;
++}
++static void HWrite(int eng, u32 ofs, u8 v) {
++  const HReg *r = HAt(eng, ofs);
++  if (r) ((volatile u8 *)r->p)[ofs - r->ofs] = v;
++}
++// the channel's destination in registers: false when none runs or it is no 2D register (n: the bytes a line kept)
++static bool HChannel(u32 ch, const u8 **src, u32 *size, int *eng, u32 *ofs, u32 *n, void **dest) {
++  const void *s;
++  if (!MIi_PortHDmaGet(ch, &s, dest, size)) return false;
++  *src = (const u8 *)s;
++  if (!HMap(*dest, eng, ofs)) return false;
++  *n = *size;
++  if (*ofs + *n > 0x70) *n = 0x70 - *ofs;
++  return true;
++}
++}  // namespace
++
++// channel ch's lines for the frame renderer: *eng (0 = engine A's io9, 1 = engine B's io9b), *ofs (the register offset
++// there), *len (the bytes a line, at most stride), rows[y * stride + i]: the register bytes in force on line y (line 0:
++// the register as it is, line y > 0: the source's entry y - 1). 0 when the channel runs no H-blank DMA into the 2D registers.
++extern "C" int SIM_VCapHDma(int ch, int *eng, unsigned *ofs, unsigned *len, uint8_t *rows, unsigned stride) {
++  const u8 *src;
++  void *dest;
++  u32 size, o, n;
++  int e;
++  if (ch < 0 || ch > 3 || !HChannel((u32)ch, &src, &size, &e, &o, &n, &dest)) return 0;
++  if (n > stride) n = stride;
++  for (u32 i = 0; i < n; i++) rows[i] = HRead(e, o + i);
++  for (u32 y = 1; y < 192; y++) memcpy(rows + (size_t)y * stride, src + (size_t)(y - 1) * size, n);
++  *eng = e;
++  *ofs = o;
++  *len = n;
++  return 1;
++}
++
++// after the frame is drawn (every frame, drawn or skipped): each H-blank DMA leaves its line 191 entry in the register; a
++// destination that is no 2D register (palette, OAM, ...) gets it as plain memory. The first few channel set-ups are logged.
++extern "C" void SIM_HDmaFrameDone(void) {
++  static struct { const void *dest; u32 size; } seen[8];
++  static int nseen;
++  for (u32 ch = 0; ch < 4; ch++) {
++    const u8 *src;
++    void *dest;
++    u32 size, o = 0, n = 0;
++    int e = -1;
++    bool reg = HChannel(ch, &src, &size, &e, &o, &n, &dest);
++    if (!reg) {
++      const void *s;
++      if (!MIi_PortHDmaGet(ch, &s, &dest, &size)) continue;
++      src = (const u8 *)s;
++      memcpy(dest, src + (size_t)191 * size, size);
++    } else {
++      for (u32 i = 0; i < n; i++) HWrite(e, o + i, src[(size_t)191 * size + i]);
++    }
++    bool known = false;
++    for (int i = 0; i < nseen; i++) known |= seen[i].dest == dest && seen[i].size == size;
++    if (!known && nseen < 8) {
++      seen[nseen].dest = dest;
++      seen[nseen].size = size;
++      nseen++;
++      if (reg) fprintf(stderr, "bwport: H-blank DMA ch %u into engine %c register 0x%02x, %u bytes a line (V-blank %u)\n", ch,
++                       e ? 'B' : 'A', o, size, *(u32 *)HW_VBLANK_COUNT_BUF);
++      else fprintf(stderr, "bwport: H-blank DMA ch %u into memory %p (no 2D register: the last line only), %u bytes a line (V-blank %u)\n",
++                   ch, dest, size, *(u32 *)HW_VBLANK_COUNT_BUF);
++    }
++  }
++}

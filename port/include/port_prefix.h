@@ -5,6 +5,20 @@
 #ifndef BWPORT_PORT_PREFIX_H
 #define BWPORT_PORT_PREFIX_H
 
+// MATHRandContext32 with the DS's layout: its u64 members aligned to 4, as MWCC aligns them (types.h does the same for
+// the game's own u64 and s64, but only after <nitro.h>, whose rand.h is read first). With x86_64's and arm64's 8 the
+// struct is 8-aligned and every game struct holding one is padded: BattleRecSetup 0x38 bytes where the DS has 0x34, so
+// Black 2's Pokestar Studios movie (ARCID_POKEWOOD_MOVIE file 41, a PokewoodBlock with the DS's layout) was read with
+// every field after it 4 bytes off: dataSize took a word of the data and MI_CpuCopy8 asserted on a 3.7 GB copy. The
+// battle videos' save blocks (BattleRecBody) had the same shift. Its functions are all inline in rand.h (libntr's own
+// code passes none of it across), so the game's view of the layout is the only one.
+#include <nitro/types.h>
+typedef unsigned long long bwport_rand_u64 __attribute__((aligned(4)));
+#define u64 bwport_rand_u64
+#include <nitro/math/rand.h>
+#undef u64
+_Static_assert(sizeof(MATHRandContext32) == 24 && _Alignof(MATHRandContext32) == 4, "MATHRandContext32: the DS's layout");
+
 #include <nitro.h>
 #include <nnsys.h>
 #include "types.h"

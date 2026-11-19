@@ -107,6 +107,12 @@ static void GFL_TCBExMgrInitTasks(TCBExManager *manager) {
 TCBExManager *GFL_TCBExMgrCreate(HeapID heapId, HeapID dataHeapId, u32 count, u32 dataSize) {
     TCBExManager *manager = GFL_HeapAllocate(heapId, sizeof(TCBExManager), FALSE, "tcbl.c", 199);
 
+    // The callers give each task's data slot its DS size: a work that fits in the slot lives in the pool and is never
+    // freed, one that does not is a heap block freed with the task. With pointers twice as wide a work that fit on the
+    // DS outgrew its slot here and went to the heap, and the game's reads of it after its task ended (the hourglass of
+    // the game clear save, WaitIcon_Main after WaitIcon_Free) read a freed block another allocation had taken. The slot
+    // scales by the pointer size, like the heaps: 1 on the DS (the same code)
+    dataSize *= sizeof(void *) / 4;
     manager->count = count;
     manager->dataSize = dataSize;
     manager->dataHeapId = dataHeapId;

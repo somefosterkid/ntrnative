@@ -1,0 +1,39 @@
+#include "constants/easy_chat.h"
+#include "constants/items.h"
+#include "constants/maps.h"
+#include "constants/moves.h"
+#include "constants/pokemon.h"
+#include "constants/species.h"
+	.include "macros.inc"
+	.include "unk_020932E0.inc"
+	.include "global.inc"
+
+	.public sub_0209428C
+	.public sub_020942B0
+	.public sub_020943EC
+	.public sub_02094668
+	.public sub_02094794
+	.public sub_02094860
+	.public sub_020948C4
+	.public sub_020949F4
+	.public sub_02094A70
+	.public sub_02094A90
+	.public sub_02094D1C
+	.public sub_02094D9C
+	.public sub_02094F5C
+	.public sub_0209501C
+	.public sub_020950C0
+	.public sub_020950D4
+	.public sub_020950F8
+	.public sub_0209511C
+	.public sub_0209515C
+	.public sub_02095238
+	.public sub_02095354
+	.public sub_020954CC
+	.public sub_02095540
+	.public sub_020955EC
+	.public sub_0209569C
+	.public sub_020956B8
+	.public sub_02095780
+	.public sub_02095794
+	.text

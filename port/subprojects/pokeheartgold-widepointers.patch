@@ -1,0 +1,635 @@
+pokeheartgold-widepointers.patch (tools/pokehg_gen.py applies it to build/pokeheartgold, after pokeheartgold-compile.patch): the
+pointer pass's first rule for HeartGold/SoulSilver on a 64-bit host (docs/hgss.md, "Pointer rules"). GENERATED, never
+edited by hand: on a working copy with the earlier patches applied, `python3 tools/pokehg_widen.py --tsv`, then
+`git -C build/pokeheartgold diff -U2 -- '*.c' '*.h'` (against the earlier patches) below this header.
+- port/UINTPTR.tsv's BASE-IN-INT rows whose holder is a parameter or a local (the decomp's Ghidra-typed C keeps an
+  address in an s32/u32 and adds DS-layout offsets to it): that parameter, in the definition and in every prototype of
+  the function (by position), and that local become intptr_t (s32, int) or uintptr_t (u32, unsigned): 52 files at the pin a53ce07bc
+  (95d5f7f1d: 1,111; the HGSS side lifted most holders since). A value stored in
+  one is no longer cut to 32 bits; the callers' pointers convert as before.
+- Not rules here: the NUM-HOLDS-PTR rows (an address loaded from memory as a number) and "loaded as s32": their offsets
+  are a DS layout, lifted into struct fields on the HGSS side first (port/OFFSETS.tsv); "root is s32", "int base" and
+  struct fields: no single holder. The pointer casts clang still reports: pokeheartgold-widepointers2.patch.
+
+diff --git a/include/overlay_82.h b/include/overlay_82.h
+index 6c4e38f72a..9b1b7ad123 100644
+--- a/include/overlay_82.h
++++ b/include/overlay_82.h
+@@ -17,5 +17,5 @@ void ov82_0223EB3C(void *arg0);
+ void ov82_0223EB9C(void *arg0);
+ 
+-void ov82_0223EECC(s32 param_1, GFBgLayer param_2);
++void ov82_0223EECC(intptr_t param_1, GFBgLayer param_2);
+ 
+ void ov82_0223F10C(void *arg0, Window *arg1, u32 arg2, u32 arg3, u32 arg4);
+diff --git a/include/overlay_92.h b/include/overlay_92.h
+index c2416f4868..0961b6dd0f 100644
+--- a/include/overlay_92.h
++++ b/include/overlay_92.h
+@@ -10,5 +10,5 @@ void ov92_0225C540(int param0, int param1, void *param2, void *param3);
+ void ov92_0225C558(int param0, int param1, void *param2, void *param3);
+ void ov92_0225C564(int param0, int param1, void *param2, void *param3);
+-void ov92_0225C578(s32 param_1, u32 param_2, u32 *param_3, s32 param_4);
++void ov92_0225C578(s32 param_1, u32 param_2, u32 *param_3, intptr_t param_4);
+ void ov92_0225C584(void);
+ 
+diff --git a/include/pokeathlon/pokeathlon.h b/include/pokeathlon/pokeathlon.h
+index 1287302aae..2ec99f1175 100644
+--- a/include/pokeathlon/pokeathlon.h
++++ b/include/pokeathlon/pokeathlon.h
+@@ -263,5 +263,5 @@ void ov96_021E75BC(void *);
+ void ov96_021E7F98(s32 frameCount, u32 maxValue, Pokeathlon_UnkSubStruct_B00 *result);
+ void *ov96_021E8770(int a0, int a1, PokeathlonCourseData *data, int a3, enum HeapID heapId);
+-BOOL ov96_021E87B4(int a0, void *a1, void *a2, int a3);
++BOOL ov96_021E87B4(int a0, void *a1, void *a2, intptr_t a3);
+ void ov96_021E8810(void *ptr);
+ BOOL ov96_021E8828(void *);
+diff --git a/port/nonmatching/ov01_02205B14.c b/port/nonmatching/ov01_02205B14.c
+index 6d6dca10c5..3b390087ec 100644
+--- a/port/nonmatching/ov01_02205B14.c
++++ b/port/nonmatching/ov01_02205B14.c
+@@ -14,5 +14,5 @@
+ #include "unk_02062108.h"
+ u32 ov01_021F771C(MapObjectManager *);
+-u32 ov01_02205CF0(FieldSystem * param_1, s32 param_2);
++u32 ov01_02205CF0(FieldSystem * param_1, intptr_t param_2);
+ void sub_02023E78(u32, VecFx32 *);
+ #ifdef __MWERKS__
+diff --git a/port/nonmatching/ov96_021E8484.c b/port/nonmatching/ov96_021E8484.c
+index 5b559d88d7..d685df930e 100644
+--- a/port/nonmatching/ov96_021E8484.c
++++ b/port/nonmatching/ov96_021E8484.c
+@@ -18,5 +18,5 @@
+ #include "string_util.h"
+ s32 ov96_021E679C(s32 param_1, s32 param_2);
+-void ov96_021E860C(u32 param_1, s32 param_2, s32 param_3, s32 param_4);
++void ov96_021E860C(u32 param_1, s32 param_2, s32 param_3, intptr_t param_4);
+ typedef struct Ov96AthleteMon {
+     u16 species;      // 0x00
+diff --git a/port/nonmatching/ov96_021F1614.c b/port/nonmatching/ov96_021F1614.c
+index 4ff3cacd23..eab0800fff 100644
+--- a/port/nonmatching/ov96_021F1614.c
++++ b/port/nonmatching/ov96_021F1614.c
+@@ -26,5 +26,5 @@ s32 ov96_021EAC0C(s32, u8);
+ s32 ov96_021EAED4(s32, s32, s16, s32, s32);
+ 
+-s32 ov96_021EAF60(s32, u8, s32, void *);
++s32 ov96_021EAF60(intptr_t, u8, s32, void *);
+ 
+ s32 ov96_021EB01C(s32, s32, s32, s32);
+diff --git a/port/nonmatching/ov96_021FA0E8.c b/port/nonmatching/ov96_021FA0E8.c
+index f1cb1a112b..55099fb30e 100644
+--- a/port/nonmatching/ov96_021FA0E8.c
++++ b/port/nonmatching/ov96_021FA0E8.c
+@@ -22,5 +22,5 @@ s32 ov96_021EB4F4(s32, s32, s32);
+ s32 ov96_021EB52C(s32, s32, s32);
+ Sprite *ov96_021EB5B8(s32);
+-s32 ov96_021FC0D0(s32, s32);
++s32 ov96_021FC0D0(intptr_t, s32);
+ 
+ void ov96_021FA0E8(PokeathlonCourseData *arg0, s32 *arg1, s32 *arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, void *arg7) {
+diff --git a/port/nonmatching/ov96_021FC768.c b/port/nonmatching/ov96_021FC768.c
+index a43042132e..d98b14c041 100644
+--- a/port/nonmatching/ov96_021FC768.c
++++ b/port/nonmatching/ov96_021FC768.c
+@@ -105,5 +105,5 @@ void ov96_022002F8(u32, u16 *);
+ void ov96_022003E8(u32, u16 *);
+ 
+-void ov96_02200454(u32, u32, u32);
++void ov96_02200454(uintptr_t, u32, u32);
+ 
+ void ov96_02200A64(u32, u16);
+@@ -113,5 +113,5 @@ void ov96_02200B04(u32, BOOL);
+ u32 ov96_02200E3C(u32, u32, u32);
+ 
+-void ov96_02200E78(u32, u8, u8 *);
++void ov96_02200E78(uintptr_t, u8, u8 *);
+ 
+ void ov96_02200E80(u32, u32 *);
+diff --git a/port/nonmatching/ov96_021FE550.c b/port/nonmatching/ov96_021FE550.c
+index 6e795538b8..266bcae2d0 100644
+--- a/port/nonmatching/ov96_021FE550.c
++++ b/port/nonmatching/ov96_021FE550.c
+@@ -11,10 +11,10 @@ s32 ov96_021EB570(s32, s32);
+ s32 ov96_021EB588(s32, s32 *);
+ s32 ov96_021FEECC(s32, s32 *, s32 *, u8 *, s32, s32, u8 *, s32, s32, s32);
+-s32 ov96_021FFAEC(s32, s32 *, s32);
++s32 ov96_021FFAEC(intptr_t, s32 *, s32);
+ s32 ov96_021FFB7C(s32 *, u8, s32);
+ s32 ov96_021FFE38(s32, s32, s32);
+-s32 ov96_02200950(s32, u8, s32, s32, s32);
+-s32 ov96_02200A18(s32, u8, u8);
+-s32 ov96_02200BC8(s32, s32);
++s32 ov96_02200950(intptr_t, u8, s32, s32, s32);
++s32 ov96_02200A18(intptr_t, u8, u8);
++s32 ov96_02200BC8(intptr_t, s32);
+ s32 sub_0200606C(s32, s32);
+ s32 sub_02006190(s32);
+diff --git a/port/nonmatching/ov96_02201558.c b/port/nonmatching/ov96_02201558.c
+index c0f174e1d7..33c43e4e5a 100644
+--- a/port/nonmatching/ov96_02201558.c
++++ b/port/nonmatching/ov96_02201558.c
+@@ -49,5 +49,5 @@ s32 ov96_02203B8C(s32, s32, s32 *);
+ s32 ov96_02203D74(s32, s32, s32);
+ s32 ov96_02204364(enum HeapID, s32, u32);
+-s32 ov96_022043AC(s32, u8, void *, void *);
++s32 ov96_022043AC(intptr_t, u8, void *, void *);
+ extern VecFx32 ov96_0221C7B8;
+ extern s32 ov96_0221C7D0;
+diff --git a/port/nonmatching/ov96_02202958.c b/port/nonmatching/ov96_02202958.c
+index 4d9402f95d..c7a0564260 100644
+--- a/port/nonmatching/ov96_02202958.c
++++ b/port/nonmatching/ov96_02202958.c
+@@ -14,9 +14,9 @@ void ov96_021EB5A0(u32, VecFx32 *, u32);
+ void ov96_022038A0(void *, u32);
+ void ov96_02203970(void *, u32);
+-void ov96_02203BC0(u32, u32, u32);
++void ov96_02203BC0(uintptr_t, u32, u32);
+ void ov96_02203BD0(u32, u16);
+-void ov96_02203CA4(u32, u32, u32);
+-s32 ov96_02203CC4(u32, u32);
+-void ov96_02203CD4(u32);
++void ov96_02203CA4(uintptr_t, u32, u32);
++s32 ov96_02203CC4(uintptr_t, u32);
++void ov96_02203CD4(uintptr_t);
+ void ov96_02204134(f32, f32, s32 *, s32 *);
+ extern VecFx32 ov96_0221C7C4;
+diff --git a/port/nonmatching/ov96_022047EC.c b/port/nonmatching/ov96_022047EC.c
+index 0b6f6c01bf..416783d9a0 100644
+--- a/port/nonmatching/ov96_022047EC.c
++++ b/port/nonmatching/ov96_022047EC.c
+@@ -104,5 +104,5 @@ void ov96_022080F4(u32, u16 *);
+ void ov96_02208250(u32, u16 *);
+ 
+-void ov96_022082BC(u32, u32, u32);
++void ov96_022082BC(uintptr_t, u32, u32);
+ 
+ void ov96_02208740(u32, u16);
+diff --git a/port/nonmatching/ov96_0220DAA0.c b/port/nonmatching/ov96_0220DAA0.c
+index 2a0d746519..26c3ae0f35 100644
+--- a/port/nonmatching/ov96_0220DAA0.c
++++ b/port/nonmatching/ov96_0220DAA0.c
+@@ -1,3 +1,3 @@
+-s32 ov96_021EB0CC(s32, s32, s32, s32, s32);
++s32 ov96_021EB0CC(intptr_t, s32, s32, s32, s32);
+ extern VecFx32 ov96_0221CEF4;
+ 
+diff --git a/port/nonmatching/ov96_02211F38.c b/port/nonmatching/ov96_02211F38.c
+index ec11315d3a..922b8563de 100644
+--- a/port/nonmatching/ov96_02211F38.c
++++ b/port/nonmatching/ov96_02211F38.c
+@@ -27,5 +27,5 @@ s32 ov96_02213FF4(void *, u8, s32, u8);
+ s32 ov96_022144C0(void *, void *);
+ s32 ov96_0221457C(void *, u8 *, s32);
+-u8 ov96_02214904(s32);
++u8 ov96_02214904(intptr_t);
+ s32 ov96_0221490C(s32, s32);
+ s32 ov96_0221497C(s32, u8);
+diff --git a/port/nonmatching/ov96_02216C38.c b/port/nonmatching/ov96_02216C38.c
+index 4712194f95..383639920d 100644
+--- a/port/nonmatching/ov96_02216C38.c
++++ b/port/nonmatching/ov96_02216C38.c
+@@ -35,5 +35,5 @@ void ov96_021EAC0C(s32 * param_1, s32 param_2);
+ void ov96_021EAC5C(s32 * param_1, u32 param_2);
+ 
+-void ov96_021EAF60(s32 param_1, s32 param_2, s32 param_3, void * param_4);
++void ov96_021EAF60(intptr_t param_1, s32 param_2, s32 param_3, void * param_4);
+ 
+ void ov96_021EB01C(s32 * param_1, s32 param_2, s32 param_3, s32 param_4);
+@@ -53,9 +53,9 @@ s32 ov96_0221935C(PokeathlonCourseData * param_1, u32 param_2, u32 param_3);
+ void ov96_022193CC(u16 param_1, s32 param_2);
+ 
+-void ov96_02219770(s32 param_1, s32 param_2, s32 param_3);
++void ov96_02219770(intptr_t param_1, s32 param_2, s32 param_3);
+ 
+ u32 ov96_02219794(u32 * param_1, u8 param_2, u8 param_3);
+ 
+-u32 ov96_02219940(s32 param_1, u8 param_2, u8 param_3);
++u32 ov96_02219940(intptr_t param_1, u8 param_2, u8 param_3);
+ 
+ void ov96_0221996C(s32 param_1, u32 param_2, u32 param_3, s32 param_4);
+diff --git a/port/nonmatching/sub_02032354.c b/port/nonmatching/sub_02032354.c
+index e2d365bfe3..f811d7b2a7 100644
+--- a/port/nonmatching/sub_02032354.c
++++ b/port/nonmatching/sub_02032354.c
+@@ -1,3 +1,3 @@
+-void sub_020324F4(s32, s8 *);
++void sub_020324F4(intptr_t, s8 *);
+ extern u32 _020F68DE;
+ 
+diff --git a/src/overlay_01_021FC05C_021FC05C.c b/src/overlay_01_021FC05C_021FC05C.c
+index 636601dcb1..4ca4d11647 100644
+--- a/src/overlay_01_021FC05C_021FC05C.c
++++ b/src/overlay_01_021FC05C_021FC05C.c
+@@ -10,5 +10,5 @@ void ov01_021FC14C(BgConfig *);
+ void ov01_021FC1A4(void *, u32, u32, u32);
+ 
+-void ov01_021FC05C(u32 param_1, s32 param_2, u8 *param_3) {
++void ov01_021FC05C(u32 param_1, intptr_t param_2, u8 *param_3) {
+     ov01_021FC14C(*(void **)(param_2 + 8));
+     ov01_021FC1A4(param_3, 0, 10, 0x13);
+diff --git a/src/overlay_102_021E98C4_021EA05C_021EA128.c b/src/overlay_102_021E98C4_021EA05C_021EA128.c
+index cb0c7808d8..8212038f69 100644
+--- a/src/overlay_102_021E98C4_021EA05C_021EA128.c
++++ b/src/overlay_102_021E98C4_021EA05C_021EA128.c
+@@ -25,5 +25,5 @@ void ov102_021EA144(u32 param_1, s32 *param_2);
+ void ov102_021EA144(u32 param_1, s32 *param_2) {
+     u32 uVar1;
+-    s32 iVar2;
++    intptr_t iVar2;
+ 
+     iVar2 = *param_2;
+diff --git a/src/overlay_112_021E7670_021E8B74_021E8B74.c b/src/overlay_112_021E7670_021E8B74_021E8B74.c
+index f282550ead..c9c7501e03 100644
+--- a/src/overlay_112_021E7670_021E8B74_021E8B74.c
++++ b/src/overlay_112_021E7670_021E8B74_021E8B74.c
+@@ -11,7 +11,7 @@
+ extern s32 ov112_021F4138;
+ 
+-void ov112_021E8B74(void *arg0, u16 *arg1, s32 arg2, s32 arg3, s32 arg4);
++void ov112_021E8B74(void *arg0, u16 *arg1, intptr_t arg2, s32 arg3, intptr_t arg4);
+ 
+-void ov112_021E8B74(void *arg0, u16 *arg1, s32 arg2, s32 arg3, s32 arg4) {
++void ov112_021E8B74(void *arg0, u16 *arg1, intptr_t arg2, s32 arg3, intptr_t arg4) {
+     s32 sp14;
+     int new_var;
+@@ -19,5 +19,5 @@ void ov112_021E8B74(void *arg0, u16 *arg1, s32 arg2, s32 arg3, s32 arg4) {
+     BASE_STATS *spC;
+     s32 sp8;
+-    u32 sp4;
++    uintptr_t sp4;
+     u16 *sp0;
+     s32 temp_r1;
+diff --git a/src/overlay_112_021F0DF4_021F0F90_021F13BC.c b/src/overlay_112_021F0DF4_021F0F90_021F13BC.c
+index 2611dac029..14e4fe940e 100644
+--- a/src/overlay_112_021F0DF4_021F0F90_021F13BC.c
++++ b/src/overlay_112_021F0DF4_021F0F90_021F13BC.c
+@@ -3,5 +3,5 @@
+ #include "font.h"
+ 
+-void ov112_021F135C(s32 param_1, u32 param_2, u32 param_3, u32 param_4, enum Font param_5);
++void ov112_021F135C(intptr_t param_1, u32 param_2, u32 param_3, u32 param_4, enum Font param_5);
+ 
+ void ov112_021F13BC(s32 param_1, u32 param_2, u32 param_3, u32 param_4);
+diff --git a/src/overlay_18_021F3CA8_021F3CA8.c b/src/overlay_18_021F3CA8_021F3CA8.c
+index 273d21eb4e..590f6eba60 100644
+--- a/src/overlay_18_021F3CA8_021F3CA8.c
++++ b/src/overlay_18_021F3CA8_021F3CA8.c
+@@ -9,5 +9,5 @@ void ov18_021F3CA8(void *arg0, s32 arg1, s8 *arg2, s8 *arg3) {
+     u8 *new_var;
+     s32 temp_r1;
+-    s32 temp_r6;
++    intptr_t temp_r6;
+     u8 temp_r0;
+     u8 temp_r3;
+diff --git a/src/overlay_39_thumb_02227FEC_02227FEC.c b/src/overlay_39_thumb_02227FEC_02227FEC.c
+index 1ecd6522ef..ebb1e841c9 100644
+--- a/src/overlay_39_thumb_02227FEC_02227FEC.c
++++ b/src/overlay_39_thumb_02227FEC_02227FEC.c
+@@ -6,5 +6,5 @@ s32 ov39_0222A2B4(void);
+ 
+ u64 ov39_02227FEC(void) {
+-    s32 iVar1;
++    intptr_t iVar1;
+ 
+     iVar1 = ov39_0222A2B4();
+diff --git a/src/overlay_40_0223D544_02241404_022417DC_022417DC.c b/src/overlay_40_0223D544_02241404_022417DC_022417DC.c
+index f837ea68f1..6669755c85 100644
+--- a/src/overlay_40_0223D544_02241404_022417DC_022417DC.c
++++ b/src/overlay_40_0223D544_02241404_022417DC_022417DC.c
+@@ -45,5 +45,5 @@ u32 ov40_022417DC(u8 *param_1) {
+     BOOL BVar3;
+     u8 *iVar4;
+-    s32 iStack_10;
++    intptr_t iStack_10;
+     u8 auStack_14[4];
+ 
+diff --git a/src/overlay_43_0222A520_0222AC18_0222AC28.c b/src/overlay_43_0222A520_0222AC18_0222AC28.c
+index f454a0dfbf..35c35e8e49 100644
+--- a/src/overlay_43_0222A520_0222AC18_0222AC28.c
++++ b/src/overlay_43_0222A520_0222AC18_0222AC28.c
+@@ -43,10 +43,10 @@ extern u8 ov43_0222F160;
+ extern u32 ov43_0222F1AC;
+ 
+-void ov43_0222AC28(u32 param_1, u32 param_2);
++void ov43_0222AC28(uintptr_t param_1, u32 param_2);
+ 
+-void ov43_0222AC28(u32 param_1, u32 param_2) {
++void ov43_0222AC28(uintptr_t param_1, u32 param_2) {
+     Sprite *pSVar1;
+     u32 *puVar2;
+-    s32 iVar3;
++    intptr_t iVar3;
+     s32 seq;
+     SpriteTemplate *template;
+diff --git a/src/overlay_45_thumb_0222DEE0.c b/src/overlay_45_thumb_0222DEE0.c
+index 38890d856b..e4d719ff49 100644
+--- a/src/overlay_45_thumb_0222DEE0.c
++++ b/src/overlay_45_thumb_0222DEE0.c
+@@ -18,5 +18,5 @@ u32 ov45_0222DEE0(const UnkStruct_ov66_02231D38 *param0, u32 param1);
+ 
+ s32 ov45_0222DF14(u8 *arg0, u32 arg1);
+-u16 ov45_0222DF38(s32 arg0, u32 arg1);
++u16 ov45_0222DF38(intptr_t arg0, u32 arg1);
+ u16 ov45_0222DF50(void *arg0);
+ s32 ov45_0222DF58(void *arg0, u32 arg1);
+@@ -57,5 +57,5 @@ s32 ov45_0222DF14(u8 *arg0, u32 arg1) {
+ }
+ 
+-u16 ov45_0222DF38(s32 arg0, u32 arg1) {
++u16 ov45_0222DF38(intptr_t arg0, u32 arg1) {
+     if (arg1 >= 0x14U) {
+         GF_AssertFail();
+diff --git a/src/overlay_56_021E5D44_021E5D44.c b/src/overlay_56_021E5D44_021E5D44.c
+index 643c6beb3d..3ac249d411 100644
+--- a/src/overlay_56_021E5D44_021E5D44.c
++++ b/src/overlay_56_021E5D44_021E5D44.c
+@@ -5,7 +5,7 @@
+ extern u8 gSystem;
+ 
+-u32 ov56_021E5D44(s32 param_1);
++u32 ov56_021E5D44(intptr_t param_1);
+ 
+-u32 ov56_021E5D44(s32 param_1) {
++u32 ov56_021E5D44(intptr_t param_1) {
+     BOOL BVar1;
+ 
+diff --git a/src/overlay_65_0221DF1C_0221E270_0221E600_0221E684.c b/src/overlay_65_0221DF1C_0221E270_0221E600_0221E684.c
+index a103a409f1..5a3ad78b29 100644
+--- a/src/overlay_65_0221DF1C_0221E270_0221E600_0221E684.c
++++ b/src/overlay_65_0221DF1C_0221E270_0221E600_0221E684.c
+@@ -16,7 +16,7 @@ void ov65_0221E600();
+ void ov65_0221E740();
+ 
+-u32 ov65_0221E684(s32 param_1, u32 param_2, u32 param_3, u32 param_4);
++u32 ov65_0221E684(intptr_t param_1, u32 param_2, u32 param_3, u32 param_4);
+ 
+-u32 ov65_0221E684(s32 param_1, u32 param_2, u32 param_3, u32 param_4) {
++u32 ov65_0221E684(intptr_t param_1, u32 param_2, u32 param_3, u32 param_4) {
+     u32 uVar1;
+     s32 iVar2;
+diff --git a/src/overlay_80_02236B78_02237120_022371B0.c b/src/overlay_80_02236B78_02237120_022371B0.c
+index 8c68db5c38..9f19585e1d 100644
+--- a/src/overlay_80_02236B78_02237120_022371B0.c
++++ b/src/overlay_80_02236B78_02237120_022371B0.c
+@@ -17,6 +17,6 @@ void ov80_0222A3BC(void *, Party *, Pokemon *);
+ u32 ov80_02237120(s32);
+ 
+-void ov80_022371B0(s32 param_1) {
+-    s32 iVar1;
++void ov80_022371B0(intptr_t param_1) {
++    intptr_t iVar1;
+     Pokemon *ptr;
+     u32 uVar2;
+diff --git a/src/overlay_82_0223ED94.c b/src/overlay_82_0223ED94.c
+index 64dc9e91e2..af0ae519fb 100644
+--- a/src/overlay_82_0223ED94.c
++++ b/src/overlay_82_0223ED94.c
+@@ -52,5 +52,5 @@ void ov82_0223EE6C(BattleHallApp *arg0, enum GFBgLayer layer) {
+ }
+ 
+-void ov82_0223EECC(s32 param_1, GFBgLayer param_2) {
++void ov82_0223EECC(intptr_t param_1, GFBgLayer param_2) {
+     BG_ClearCharDataRange((u8)param_2, 0x20, 0, HEAP_ID_105);
+     GfGfxLoader_LoadCharDataFromOpenNarc(*(NARC **)(param_1 + 0x220), 0x85, *(BgConfig **)(param_1 + 0x48), param_2, 1, 0, 1, HEAP_ID_105);
+diff --git a/src/overlay_86_021E5ECC_021E7630_021E7B68_021E7B68.c b/src/overlay_86_021E5ECC_021E7630_021E7B68_021E7B68.c
+index edfcdfd0a0..323153fc96 100644
+--- a/src/overlay_86_021E5ECC_021E7630_021E7B68_021E7B68.c
++++ b/src/overlay_86_021E5ECC_021E7630_021E7B68_021E7B68.c
+@@ -16,5 +16,5 @@ void ov86_021E7B68(FrontierRecordsApp *arg0) {
+     u8 flag;
+     int start;
+-    u32 off2;
++    uintptr_t off2;
+     Window *wins;
+     u8 *ent;
+diff --git a/src/overlay_90_022594FC.c b/src/overlay_90_022594FC.c
+index e7aadf4ecf..d30bee7a03 100644
+--- a/src/overlay_90_022594FC.c
++++ b/src/overlay_90_022594FC.c
+@@ -25,5 +25,5 @@ void ov90_022594FC(UnkStruct_ov114_0225D338 *param0, u32 param1) {
+ }
+ 
+-s32 ov90_02259538(s32 arg0, s32 arg1) {
++s32 ov90_02259538(intptr_t arg0, s32 arg1) {
+     if (TextPrinterCheckActive((u8) * (u16 *)((u8 *)(arg0 + (arg1 * 2)) + 0x20)) == 0) {
+         return 1;
+diff --git a/src/overlay_92_0225C540.c b/src/overlay_92_0225C540.c
+index a0c397eb7a..d9b4c38ece 100644
+--- a/src/overlay_92_0225C540.c
++++ b/src/overlay_92_0225C540.c
+@@ -383,5 +383,5 @@ void ov92_0225C564(int param0, int param1, void *param2, void *param3) {
+ }
+ 
+-void ov92_0225C578(s32 param_1, u32 param_2, u32 *param_3, s32 param_4) {
++void ov92_0225C578(s32 param_1, u32 param_2, u32 *param_3, intptr_t param_4) {
+     *(u32 *)(param_4 + param_1 * 8 + 0x24) = *param_3;
+     return;
+diff --git a/src/overlay_96_021E7F98.c b/src/overlay_96_021E7F98.c
+index 872ec97f51..b83cd18b11 100644
+--- a/src/overlay_96_021E7F98.c
++++ b/src/overlay_96_021E7F98.c
+@@ -8,5 +8,5 @@
+ void ov96_021E8028(void *arg0, s32 arg1);
+ void ov96_021E7FA8(PokeathlonCourseData *arg0);
+-s32 ov96_021E8060(s32 arg0);
++s32 ov96_021E8060(intptr_t arg0);
+ 
+ u32 ov96_021E8084(u8 *param_1);
+@@ -74,5 +74,5 @@ void ov96_021E8028(void *arg0, s32 shift) {
+ }
+ 
+-s32 ov96_021E8060(s32 arg0) {
++s32 ov96_021E8060(intptr_t arg0) {
+     u8 v0;
+ 
+diff --git a/src/overlay_96_021E8340_021E8484_021E860C.c b/src/overlay_96_021E8340_021E8484_021E860C.c
+index 293a1c715b..5a5759c94c 100644
+--- a/src/overlay_96_021E8340_021E8484_021E860C.c
++++ b/src/overlay_96_021E8340_021E8484_021E860C.c
+@@ -5,7 +5,7 @@
+ void _s32_div_f(u16, u32);
+ 
+-void ov96_021E860C(u32 param_1, s8 param_2, s32 param_3, s32 param_4);
++void ov96_021E860C(u32 param_1, s8 param_2, s32 param_3, intptr_t param_4);
+ 
+-void ov96_021E860C(u32 param_1, s8 param_2, s32 param_3, s32 param_4) {
++void ov96_021E860C(u32 param_1, s8 param_2, s32 param_3, intptr_t param_4) {
+     u8 cVar1;
+     u16 uVar2;
+diff --git a/src/overlay_96_021E87B0.c b/src/overlay_96_021E87B0.c
+index d55459f2f5..be1db8a257 100644
+--- a/src/overlay_96_021E87B0.c
++++ b/src/overlay_96_021E87B0.c
+@@ -630,7 +630,7 @@ void ov96_021E87B0(ObjectEvent *objectEvent, int graphicsID)
+ s32 ov96_021E8914(s32 *, s32, void *, void *);
+ 
+-BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, s32 a3);
++BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, intptr_t a3);
+ 
+-BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, s32 a3) {
++BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, intptr_t a3) {
+     if ((*(u16 *)((u8 *)a3 + 2) != 0) && ((s32) a2 > 0x26)) {
+         GF_AssertFail();
+diff --git a/src/overlay_96_021E95D8.c b/src/overlay_96_021E95D8.c
+index 5600b6854b..e7aa737511 100644
+--- a/src/overlay_96_021E95D8.c
++++ b/src/overlay_96_021E95D8.c
+@@ -13,7 +13,7 @@
+ #include "string_util.h"
+ 
+-s32 ov96_021E95D8(s32 arg0, s32 arg1, s32 arg2);
++s32 ov96_021E95D8(intptr_t arg0, s32 arg1, s32 arg2);
+ 
+-s32 ov96_021E95D8(s32 arg0, s32 arg1, s32 arg2) {
++s32 ov96_021E95D8(intptr_t arg0, s32 arg1, s32 arg2) {
+     if (arg1 >= 0xA) {
+         GF_AssertFail();
+diff --git a/src/overlay_96_021E9858.c b/src/overlay_96_021E9858.c
+index 938ae97f83..882be5a3fb 100644
+--- a/src/overlay_96_021E9858.c
++++ b/src/overlay_96_021E9858.c
+@@ -6,5 +6,5 @@ void ov96_021E9858(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *arg3);
+ 
+ void ov96_021E98D0(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseData *param_4);
+-void ov96_021E98F4(u32 param_1, u32 param_2, s32 param_3, PokeathlonCourseData *param_4);
++void ov96_021E98F4(u32 param_1, u32 param_2, intptr_t param_3, PokeathlonCourseData *param_4);
+ 
+ void ov96_021E9858(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *data) {
+@@ -44,10 +44,10 @@ void ov96_021E98D0(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseD
+ }
+ 
+-void ov96_021E98F4(u32 param_1, u32 param_2, s32 param_3, PokeathlonCourseData *param_4) {
++void ov96_021E98F4(u32 param_1, u32 param_2, intptr_t param_3, PokeathlonCourseData *param_4) {
+     u8 uVar1;
+     u8 uVar2;
+     BOOL BVar3;
+     PokeathlonFieldData *pPVar4;
+-    s32 iVar5;
++    intptr_t iVar5;
+     s32 iVar6;
+     u32 uVar7;
+diff --git a/src/overlay_96_021ECA18_021ED6E8.c b/src/overlay_96_021ECA18_021ED6E8.c
+index 398888cb0f..9b4f500c17 100644
+--- a/src/overlay_96_021ECA18_021ED6E8.c
++++ b/src/overlay_96_021ECA18_021ED6E8.c
+@@ -122,7 +122,7 @@ void ov96_021ED7C4(PokeathlonCourseData *data) {
+ }
+ 
+-void ov96_021ED7FC(PokeathlonCourseData *param_1, s32 param_2);
++void ov96_021ED7FC(PokeathlonCourseData *param_1, intptr_t param_2);
+ 
+-void ov96_021ED7FC(PokeathlonCourseData *param_1, s32 param_2) {
++void ov96_021ED7FC(PokeathlonCourseData *param_1, intptr_t param_2) {
+     u8 *puVar1;
+     u8 *puVar2;
+diff --git a/src/overlay_96_021F30F8_021F3180.c b/src/overlay_96_021F30F8_021F3180.c
+index 00637cdb24..078e42d3a2 100644
+--- a/src/overlay_96_021F30F8_021F3180.c
++++ b/src/overlay_96_021F30F8_021F3180.c
+@@ -15,5 +15,5 @@ s32 ov96_021F3180(u8 arg0, u16 arg1, u16 arg2, u8 *arg3) {
+     s32 temp_r0;
+     s32 temp_r0_2;
+-    s32 temp_r1;
++    intptr_t temp_r1;
+     u16 *temp_r0_3;
+     u8 var_r5;
+diff --git a/src/overlay_96_021F3E60_021F46BC_021F46BC.c b/src/overlay_96_021F3E60_021F46BC_021F46BC.c
+index 71082e4de4..75a8fea49b 100644
+--- a/src/overlay_96_021F3E60_021F46BC_021F46BC.c
++++ b/src/overlay_96_021F3E60_021F46BC_021F46BC.c
+@@ -1,7 +1,7 @@
+ #include "global.h"
+ 
+-s32 ov96_021F46BC(u8 *arg0, s32 arg1);
++s32 ov96_021F46BC(u8 *arg0, intptr_t arg1);
+ 
+-s32 ov96_021F46BC(u8 *arg0, s32 arg1) {
++s32 ov96_021F46BC(u8 *arg0, intptr_t arg1) {
+     u8 sp0[9];
+     s32 var_r0;
+diff --git a/src/overlay_96_021FA0E8_021FB56C_021FB5C8.c b/src/overlay_96_021FA0E8_021FB56C_021FB5C8.c
+index 88cbdd002e..ee6e0f705f 100644
+--- a/src/overlay_96_021FA0E8_021FB56C_021FB5C8.c
++++ b/src/overlay_96_021FA0E8_021FB56C_021FB5C8.c
+@@ -3,8 +3,8 @@
+ #include "error_handling.h"
+ 
+-void ov96_021FB5C8(s32 arg0, u32 arg1, u32 arg2);
++void ov96_021FB5C8(intptr_t arg0, u32 arg1, u32 arg2);
+ 
+-void ov96_021FB5C8(s32 arg0, u32 arg1, u32 arg2) {
+-    s32 var_r5;
++void ov96_021FB5C8(intptr_t arg0, u32 arg1, u32 arg2) {
++    intptr_t var_r5;
+     u32 temp_r1;
+     s32 var_r4;
+diff --git a/src/overlay_96_021FC0FC_021FC164_021FC164.c b/src/overlay_96_021FC0FC_021FC164_021FC164.c
+index ae4a164746..f84867c5de 100644
+--- a/src/overlay_96_021FC0FC_021FC164_021FC164.c
++++ b/src/overlay_96_021FC0FC_021FC164_021FC164.c
+@@ -1,7 +1,7 @@
+ #include "global.h"
+ 
+-s32 ov96_021FC164(s32 arg0, s32 arg1, s32 arg2);
++s32 ov96_021FC164(intptr_t arg0, s32 arg1, s32 arg2);
+ 
+-s32 ov96_021FC164(s32 arg0, s32 arg1, s32 arg2) {
++s32 ov96_021FC164(intptr_t arg0, s32 arg1, s32 arg2) {
+     s32 var_r2;
+ 
+diff --git a/src/overlay_96_021FC630_021FC698_021FC6EC.c b/src/overlay_96_021FC630_021FC698_021FC6EC.c
+index bfea8b0475..5de1d50833 100644
+--- a/src/overlay_96_021FC630_021FC698_021FC6EC.c
++++ b/src/overlay_96_021FC630_021FC698_021FC6EC.c
+@@ -11,9 +11,9 @@ void *ov96_021EB594(void *);
+ s32 ov96_021FC758(void *);
+ 
+-void ov96_021FC6EC(s32 arg0, u32 arg1, s32 arg2);
++void ov96_021FC6EC(intptr_t arg0, u32 arg1, s32 arg2);
+ 
+-void ov96_021FC6EC(s32 arg0, u32 arg1, s32 arg2) {
++void ov96_021FC6EC(intptr_t arg0, u32 arg1, s32 arg2) {
+     s32 sp4[3];
+-    s32 sp0;
++    intptr_t sp0;
+     s32 temp_r1;
+     u8 var_r4;
+diff --git a/src/overlay_96_02219940.c b/src/overlay_96_02219940.c
+index 9d378fb25a..9ae3bd532f 100644
+--- a/src/overlay_96_02219940.c
++++ b/src/overlay_96_02219940.c
+@@ -3,12 +3,12 @@
+ #include "error_handling.h"
+ 
+-u32 ov96_02219940(s32 param_1, u32 param_2);
++u32 ov96_02219940(intptr_t param_1, u32 param_2);
+ 
+ s32 ov96_02219DD0(s32, u32, u32);
+-s32 ov96_02219F50(s32, u32, s32);
++s32 ov96_02219F50(intptr_t, u32, s32);
+ void ov96_0221996C(s32 arg0, u32 arg1, u32 arg2, s32 arg3);
+ 
+-u32 ov96_02219940(s32 param_1, u32 param_2) {
+-    s32 iVar1;
++u32 ov96_02219940(intptr_t param_1, u32 param_2) {
++    intptr_t iVar1;
+     if ((param_2 == 0) || ((3 + 1) <= param_2)) {
+         GF_AssertFail();
+diff --git a/src/overlay_99_021E5B7C_021E6D34_021E6FA0_021E6FA0.c b/src/overlay_99_021E5B7C_021E6D34_021E6FA0_021E6FA0.c
+index 1bc41c7eb4..0d2eb59cdf 100644
+--- a/src/overlay_99_021E5B7C_021E6D34_021E6FA0_021E6FA0.c
++++ b/src/overlay_99_021E5B7C_021E6D34_021E6FA0_021E6FA0.c
+@@ -3,9 +3,9 @@
+ #include "error_handling.h"
+ 
+-u32 ov99_021E6FA0(s32 arg0);
++u32 ov99_021E6FA0(intptr_t arg0);
+ 
+-u32 ov99_021E6FA0(s32 arg0) {
++u32 ov99_021E6FA0(intptr_t arg0) {
+     s32 var_r4;
+-    s32 var_r6;
++    intptr_t var_r6;
+     s32 var_r7;
+     u32 temp_r0;

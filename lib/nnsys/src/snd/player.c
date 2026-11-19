@@ -87,6 +87,43 @@ void NNS_SndPlayerStopSeq(NNSSndHandle *handle, int fadeFrame) {
     NNSi_SndPlayerStopSeq(handle->player, fadeFrame);
 }
 
+// A stopped sequence player leaves the list it is walked in, so the next one is taken first
+void NNS_SndPlayerStopSeqByPlayerNo(int playerNo, int fadeFrame) {
+    NNSSndPlayer *player = &sPlayer[playerNo];
+    NNSSndSeqPlayer *seqPlayer = NNS_FndGetNextListObject(&player->playerList, NULL);
+    NNSSndSeqPlayer *next;
+
+    while (seqPlayer != NULL) {
+        next = NNS_FndGetNextListObject(&player->playerList, seqPlayer);
+        NNSi_SndPlayerStopSeq(seqPlayer, fadeFrame);
+        seqPlayer = next;
+    }
+}
+
+void NNS_SndPlayerStopSeqBySeqNo(int seqNo, int fadeFrame) {
+    NNSSndSeqPlayer *seqPlayer = NNS_FndGetNextListObject(&sPrioList, NULL);
+    NNSSndSeqPlayer *next;
+
+    while (seqPlayer != NULL) {
+        next = NNS_FndGetNextListObject(&sPrioList, seqPlayer);
+        if (seqPlayer->seqType == NNS_SND_PLAYER_SEQ_TYPE_SEQ && seqPlayer->seqNo == seqNo) {
+            NNSi_SndPlayerStopSeq(seqPlayer, fadeFrame);
+        }
+        seqPlayer = next;
+    }
+}
+
+void NNS_SndPlayerStopSeqAll(int fadeFrame) {
+    NNSSndSeqPlayer *seqPlayer = NNS_FndGetNextListObject(&sPrioList, NULL);
+    NNSSndSeqPlayer *next;
+
+    while (seqPlayer != NULL) {
+        next = NNS_FndGetNextListObject(&sPrioList, seqPlayer);
+        NNSi_SndPlayerStopSeq(seqPlayer, fadeFrame);
+        seqPlayer = next;
+    }
+}
+
 void NNS_SndPlayerPause(NNSSndHandle *handle, BOOL flag) {
     NNSi_SndPlayerPause(handle->player, flag);
 }
@@ -220,6 +257,17 @@ void NNS_SndPlayerSetSeqArcNo(NNSSndHandle *handle, int seqArcNo, int index) {
     handle->player->seqType = NNS_SND_PLAYER_SEQ_TYPE_SEQARC;
     handle->player->seqNo = seqArcNo;
     handle->player->seqArcIndex = index;
+}
+
+// The number of the sequence the handle plays, or -1 when it plays none or one of a sequence archive
+int NNS_SndPlayerGetSeqNo(const NNSSndHandle *handle) {
+    if (!NNS_SndHandleIsValid(handle)) {
+        return -1;
+    }
+    if (handle->player->seqType != NNS_SND_PLAYER_SEQ_TYPE_SEQ) {
+        return -1;
+    }
+    return handle->player->seqNo;
 }
 
 u32 NNS_SndPlayerGetTick(NNSSndHandle *handle) {
@@ -515,3 +563,44 @@ static void SetPlayerPriority(NNSSndSeqPlayer *seqPlayer, int prio) {
     }
     InsertPrioList(seqPlayer);
 }
+
+#ifndef __MWERKS__
+// NitroSystem's player functions the Gen 4 games call and Black doesn't (HeartGold declares them implicitly; not in
+// nnsys/snd.h, which every game's file includes). Not in the DS build, whose player.c is complete without them
+void NNS_SndPlayerSetTrackAllocatableChannel(NNSSndHandle *handle, u32 trackBitMask, u32 chBitFlag);
+void NNS_SndPlayerPauseByPlayerNo(int playerNo, BOOL flag);
+BOOL NNS_SndPlayerReadVariable(NNSSndHandle *handle, int varNo, s16 *var);
+
+void NNS_SndPlayerSetTrackAllocatableChannel(NNSSndHandle *handle, u32 trackBitMask, u32 chBitFlag) {
+    if (!NNS_SndHandleIsValid(handle)) {
+        return;
+    }
+    SND_SetTrackAllocatableChannel(handle->player->playerNo, trackBitMask, chBitFlag);
+}
+
+// Pauses or resumes every sequence of the player (as NNS_SndPlayerStopSeqByPlayerNo stops them)
+void NNS_SndPlayerPauseByPlayerNo(int playerNo, BOOL flag) {
+    NNSSndPlayer *player = &sPlayer[playerNo];
+    NNSSndSeqPlayer *seqPlayer = NNS_FndGetNextListObject(&player->playerList, NULL);
+    NNSSndSeqPlayer *next;
+
+    while (seqPlayer != NULL) {
+        next = NNS_FndGetNextListObject(&player->playerList, seqPlayer);
+        NNSi_SndPlayerPause(seqPlayer, flag);
+        seqPlayer = next;
+    }
+}
+
+// A sequence's local variable; a sequence the driver hasn't started yet reads the default (-1)
+BOOL NNS_SndPlayerReadVariable(NNSSndHandle *handle, int varNo, s16 *var) {
+    if (!NNS_SndHandleIsValid(handle)) {
+        return FALSE;
+    }
+    if (!handle->player->startFlag) {
+        *var = SND_DEFAULT_VARIABLE;
+        return TRUE;
+    }
+    *var = SND_GetPlayerLocalVariable(handle->player->playerNo, varNo);
+    return TRUE;
+}
+#endif

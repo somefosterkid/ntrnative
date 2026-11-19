@@ -1,0 +1,30 @@
+# tools/plat_lint_allow.txt: hits of tools/plat_lint.py that are harmless (or OPEN: not yet known to be), one per line,
+# tab-separated: check, path (relative to build/pokeplatinum, else to the repo; * = any file), the source line (a text
+# starting with ~ is a regex), the reason. No line numbers: a patch that moves the line keeps its row. A row nothing
+# matches any more is reported as stale: delete it. Rows saying OPEN are hits nobody has proved harmless.
+C1	lib/nnsys/include/nnsys/fnd.h	return ((NNSiFndUntHeapHead *)((u8 *)heap + sizeof(NNSiFndHeapHead)))->mBlkSize;	lib/nnsys (shared with Black): the unit heap header is addressed with the host sizeof(NNSiFndHeapHead); host layout throughout
+C1	lib/nnsys/include/nnsys/g2d.h	return (const NNSG2dUserExAnimAttrBank *)(blk + 1);	inline accessors of the NCER/NANR user-extended banks; no Platinum file uses NNSG2dUserEx*Bank
+C1	lib/nnsys/include/nnsys/g2d.h	return (const NNSG2dUserExCellAttrBank *)(blk + 1);	inline accessors of the NCER/NANR user-extended banks; no Platinum file uses NNSG2dUserEx*Bank
+C1	src/overlay005/ov5_021ECE40.c	v2 = (BillboardResources *)((u8 *)v2 + v1);	array of BillboardResources stepped by the host sizeof and allocated by it (sizeof(UnkStruct) * count)
+C1	src/overlay009/ov9_02249960.c	file->cameraAngleSection = (DistWorldMapFileCameraAngleSection *)((u8 *)file->floatingPlatformJumpPointSection + header->floatingPlatformJumpPointSectionSize);	OPEN: Distortion World map file sections cast from file data; if one of these structs holds a pointer its file layout is the DS one
+C1	src/overlay009/ov9_02249960.c	file->floatingPlatformJumpPointSection = (DistWorldMapFileFloatingPlatformJumpPointSection *)((u8 *)file->floatingPlatformSection + header->floatingPlatformSectionSize);	OPEN: Distortion World map file sections cast from file data; if one of these structs holds a pointer its file layout is the DS one
+C1	src/overlay009/ov9_02249960.c	file->floatingPlatformSection = (DistWorldMapFileFloatingPlatformSection *)data;	OPEN: Distortion World map file sections cast from file data; if one of these structs holds a pointer its file layout is the DS one
+C1	src/overlay061/ov61_0222BC4C.c	v0 = (UnkStruct_ov61_0222BCF8 *)(param1->unk_04);	GDS (Wi-Fi) code: the online side is stubbed, not run in the port
+C1	src/overlay061/ov61_0222BC4C.c	v1 = (UnkStruct_ov61_0222BCF8 *)(v0->unk_04);	GDS (Wi-Fi) code: the online side is stubbed, not run in the port
+C1	src/sys_task_manager.c	sysTaskMgr->tasks = (SysTask *)((u8 *)(sysTaskMgr->taskStack) + sizeof(SysTask *) * maxTasks);	one block sized by SysTaskManager_GetRequiredSize with the host sizeof; the task array starts at a multiple of 8
+C1	src/unk_0205A0D8.c	TrainerCase *v2 = (TrainerCase *)FieldCommManager_GetTrainerCase(v1->unk_24, NULL, 0);	Union Room / wireless comm code (FieldCommManager): not run in the port
+C3	src/sys_task_manager.c	sysTaskMgr->taskStack = (SysTask **)((u8 *)(sysTaskMgr) + sizeof(SysTaskManager));	the pointer stack starts at sizeof(SysTaskManager) (a multiple of 8) in a block sized with the host sizeof
+C4	*	~CommTask_|CommManUnderground_	Underground / Wi-Fi comm task tables: callbacks narrowed in u32 fields, the online side is stubbed and never runs
+C4	*	~Menu_Process|ListMenu_|Menu_ProcessInput	the Menu/ListMenu API returns uintptr_t (an index, or a callback pointer for entries that have one); these callers use indexes
+C4	port/subprojects/libntr/include/twl/dsp/ARM9/process.h	return (u8 *)MI_GetWramMapStart(wram) + slot * DSP_WRAM_SLOT_SIZE + mod * 2;	libntr's DSP WRAM helper: no Platinum caller
+C4	src/battle_anim/battle_anim_system.c	BattleAnimScript_JumpTo(system, (u32 *)BattleAnimScript_ReadWord(system->scriptPtr));	OPEN: JumpIfEqual reads its target as a pointer from the script data (a DS absolute address); Platinum battle scripts are not run in the port yet
+C4	src/billboard_vram_transfer.c	return (void *)address;	an offset into texture VRAM (key address + file offset), not a host pointer; revisit if billboard textures show wrong
+C4	src/game_overlay.c	*start = (uintptr_t)FS_GetOverlayAddress(&info);	libntr's HW_ITCM/DTCM bounds are u32 constants; the result only says where the overlay is loaded
+C4	src/game_overlay.c	} else if ((v2 <= HW_DTCM_END) && (v2 >= HW_DTCM)) {	libntr's HW_ITCM/DTCM bounds are u32 constants; the result only says where the overlay is loaded
+C4	src/main_menu/wonder_cards_app.c	*state = input;	a menu index (the Menu API returns uintptr_t)
+C4	src/overlay005/fieldmap.c	DC_FlushRange((void *)v4, 2);	flushes address 0 (a pret quirk); DC_FlushRange is a no-op on the host
+C4	src/overlay005/ov5_021ECE40.c	v5->unk_18 = SysTask_Start(ov5_021EE030, param0, v0 + 1);	v0 is a uintptr_t used for pointer steps and reused for a small task priority
+C4	src/overlay005/ov5_021ECE40.c	v5->unk_1C = SysTask_Start(ov5_021EE2C4, param0, v0 + 2);	v0 is a uintptr_t used for pointer steps and reused for a small task priority
+C4	src/overlay005/texture_resource_manager.c	VramTransfer_Request(NNS_GFD_DST_3D_TEX_VRAM, (uintptr_t)textureSlot->textureData, GetTextureDataVRAMBuffer(textureSlot->textureResource, textureSlot->animationData->animationData[textureSlot->currentFrame][0]), textureSlot->textureSize);	OPEN: destAddr (u32) of a 3D texture transfer is a texture-VRAM address; check when billboard textures are run
+C4	src/scrcmd.c	~\(u8 \*\)ScriptContext_ReadWord	ScrCmd_Unused_006..010: dead script commands (no shipped script uses them) that read a DS address from the script
+C4	src/string_list.c	*outHeapID = list->index;	a menu index (the Menu API returns uintptr_t)

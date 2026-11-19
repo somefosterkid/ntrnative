@@ -122,23 +122,44 @@ static void Sha1Hex(Sha1 *s, char out[41]) {
 // ---------------------------------------------------------------- the table
 
 static const LC_Game sGames[] = {
+    // The last four values of a row are its look (launcher_core.h: accent, deep, glow, dark): Black's blue and White's orange,
+    // Black 2's yellow and White 2's pink, Platinum's steel grey, HeartGold's gold over red, SoulSilver's silver-blue
     {"IRBO", "Pokemon Black", "Black", "Pokemon Black", {"26ad0b9967aa279c4a266ee69f52b9b2332399a5", NULL},
-     "Pokemon - Black Version (USA, Europe) (NDSi Enhanced)", 0x23f9c, 0x24000},
+     "Pokemon - Black Version (USA, Europe) (NDSi Enhanced)", 0x23f9c, 0x24000, 0, 0, 0, 0x3d8bff, 0x0b0f1a, 0x1e5bd8, 1},
     // White plays when its C is in the build (port/meson.build: its ROM was there for its assets; the user's dump)
 #ifdef BWPORT_WHITE
     {"IRAO", "Pokemon White", "White", "Pokemon White", {"bc696a0dfb448c7b3a8a206f0f8214411a039208", NULL},
 #else
     {"IRAO", "Pokemon White", "White", "Pokemon White", {NULL, NULL},
 #endif
-     "Pokemon - White Version (USA, Europe) (NDSi Enhanced)", 0x23f9c, 0x24000},
+     "Pokemon - White Version (USA, Europe) (NDSi Enhanced)", 0x23f9c, 0x24000, 0, 0, 0, 0xe8590c, 0xf4f1ec, 0xffb37a, 0},
     // Black 2 and White 2 play when pokebw2's C is in the build (port/meson.build: its ROM was there; the maintainers' notes)
 #ifdef BWPORT_B2
     {"IREO", "Pokemon Black 2", "Black 2", "Pokemon Black 2", {"e51e6dfb8678a3d19dcd2a10691b96a569ca0abb", NULL},
-     "Pokemon - Black Version 2 (USA, Europe) (NDSi Enhanced)", 0x25fa4, 0x26000},
+     "Pokemon - Black Version 2 (USA, Europe) (NDSi Enhanced)", 0x25fa4, 0x26000, 0, 0, 0, 0xf2b705, 0x10131c, 0x2e6f9e, 1},
 #endif
 #ifdef BWPORT_W2
     {"IRDO", "Pokemon White 2", "White 2", "Pokemon White 2", {"b5d7490be7b415b8f1e672a53e978a9cc667e56a", NULL},
-     "Pokemon - White Version 2 (USA, Europe) (NDSi Enhanced)", 0x25fa4, 0x26000},
+     "Pokemon - White Version 2 (USA, Europe) (NDSi Enhanced)", 0x25fa4, 0x26000, 0, 0, 0, 0xd6336c, 0xeef3f7, 0x8fd3ff, 0},
+#endif
+    // Platinum when pret's C is in the build (port/meson.build's `platinum`, docs/platinum.md). Its save is Gen 4's (pret's
+    // src/savedata.c, save_table.c; sizes from the table's size functions, checked against PKHeX's SAV4Pt): two copies 0x40000
+    // apart, each the general block (0xcf2c bytes) then the boxes (to 0x1f110), a 20-byte footer ending each block (SaveOk)
+#ifdef BWPORT_PLAT
+    {"CPUE", "Pokemon Platinum", "Platinum", "Pokemon Platinum", {"0862ec35b24de5c7e2dcb88c9eea0873110d755c", NULL},
+     "Pokemon - Platinum Version (USA) (Rev 1)", 0x1f110, 0x40000, 0xcf2c, 0xcf2c, 20, 0x74869c, 0x12151a, 0x4d6178, 1},
+#endif
+    // HeartGold when pret's pokeheartgold C is in the build (port/meson.build's `hgss`, docs/hgss.md). Its save is Gen 4's, its
+    // copies 0x40000 apart (pret's src/save.c, SaveData_InitSlotSpecs: the general block from 0 with its 16-byte
+    // SaveChunkFooter, include/save.h, to 0xf628; the boxes' block from there rounded up to 0x100, 0xf700, to 0x21a10, size
+    // 0x12310: the footers of the hg-* and ss-* saves of the route tests hold these sizes). The game's own save does not use these
+#ifdef BWPORT_HG
+    {"IPKE", "Pokemon HeartGold", "HeartGold", "Pokemon HeartGold", {"4fcded0e2713dc03929845de631d0932ea2b5a37", NULL},
+     "Pokemon - HeartGold Version (USA)", 0x21a10, 0x40000, 0xf628, 0xf700, 16, 0xe0891a, 0x1b0f0c, 0xb3382c, 1},
+    // SoulSilver: the same module as HeartGold's (the version is a value the game reads: docs/hgss.md, "SoulSilver"), the same
+    // save layout; its own table row (ss_bwgame in port/game/game_table.c) and ROM
+    {"IPGE", "Pokemon SoulSilver", "SoulSilver", "Pokemon SoulSilver", {"f8dc38ea20c17541a43b58c5e6d18c1732c7e582", NULL},
+     "Pokemon - SoulSilver Version (USA)", 0x21a10, 0x40000, 0xf628, 0xf700, 16, 0x5a6fae, 0xeceef4, 0xaab6d8, 0},
 #endif
 };
 #define GAME_COUNT ((int)(sizeof(sGames) / sizeof(sGames[0])))
@@ -156,6 +177,49 @@ const LC_Game *LC_GameByCode(const char *code) {
         }
     }
     return NULL;
+}
+
+// The first group of the No-Intro name is the region ("USA, Europe": the comma is a slash here), the others its flags and revision
+void LC_Edition(const LC_Game *g, char *out, size_t n) {
+    const char *p = g->noIntro;
+    size_t k = 0;
+    int groups = 0;
+
+    out[0] = 0;
+    while (p != NULL && (p = strchr(p, '(')) != NULL && k + 1 < n) {
+        const char *e = strchr(p, ')');
+        if (e == NULL) {
+            break;
+        }
+        if (groups++ > 0) {
+            k += (size_t)snprintf(out + k, n - k, "  \xc2\xb7  ");
+        }
+        for (p++; p < e && k + 1 < n; p++) {
+            if (p[0] == ',' && p[1] == ' ') {
+                k += (size_t)snprintf(out + k, n - k, " / ");
+                p++;
+            } else {
+                out[k++] = *p;
+            }
+        }
+        out[k < n ? k : n - 1] = 0;
+    }
+}
+
+// "Black, White and Platinum": the games with a dump to check against (sha1 set), by their short names
+void LC_PlayableNames(char *out, size_t n) {
+    int i, left = 0, k = 0;
+
+    out[0] = 0;
+    for (i = 0; i < GAME_COUNT; i++) {
+        left += sGames[i].sha1[0] != NULL;
+    }
+    for (i = 0; i < GAME_COUNT; i++) {
+        if (sGames[i].sha1[0] == NULL || k + 1 >= (int)n) {
+            continue;
+        }
+        k += snprintf(out + k, n - (size_t)k, "%s%s", sGames[i].shortName, --left > 1 ? ", " : left == 1 ? " and " : "");
+    }
 }
 
 // ---------------------------------------------------------------- paths and small file helpers
@@ -436,6 +500,16 @@ int LC_ExtractRom(const char *rom, const char *dir) {
         snprintf(path, sizeof(path), "%s/header.bin", dir);
         CopyOut(&w, path, 0, 0x200);    // libntr's main() reads its first 0x160 bytes; FS takes it as "extracted"
         fclose(w.rom);
+        // the mark, last: every file is out (LC_HasFilesIn). Platinum's file system has no a/ tree, so a/0/0/0 alone never
+        // said so for it, and every start extracted it again
+        if (w.failed == 0) {
+            FILE *m;
+            snprintf(path, sizeof(path), "%s/" LC_EXTRACTED_MARK, dir);
+            if ((m = fopen(path, "w")) != NULL) {
+                fprintf(m, "%d files\n", w.count);
+                fclose(m);
+            }
+        }
     }
     fprintf(stderr, "bwport: %d files extracted\n", w.count);
     return w.count;
@@ -466,6 +540,8 @@ static int RemoveFiles(const char *rom, const char *dir) {
     if (Walk_(&w, rom) != 0) {
         return -1;
     }
+    snprintf(path, sizeof(path), "%s/" LC_EXTRACTED_MARK, dir);
+    remove(path);
     snprintf(path, sizeof(path), "%s/header.bin", dir);
     remove(path);
     snprintf(path, sizeof(path), "%s/DbgLog.txt", dir);
@@ -481,11 +557,18 @@ int LC_HasRom(const LC_Game *g) {
     return IsFile(path);
 }
 
+int LC_HasFilesIn(const char *dir) {
+    char a[LC_PATH * 2 + 32], b[LC_PATH * 2 + 32], m[LC_PATH * 2 + 32];
+    snprintf(a, sizeof(a), "%s/header.bin", dir);
+    snprintf(b, sizeof(b), "%s/a/0/0/0", dir);    // (a Gen 5 game's first file: its extractions before the mark)
+    snprintf(m, sizeof(m), "%s/" LC_EXTRACTED_MARK, dir);
+    return IsFile(a) && (IsFile(m) || IsFile(b));
+}
+
 int LC_HasFiles(const LC_Game *g) {
-    char a[LC_PATH * 2], b[LC_PATH * 2];
-    snprintf(a, sizeof(a), "%s/%s/header.bin", sWork, g->folder);
-    snprintf(b, sizeof(b), "%s/%s/a/0/0/0", sWork, g->folder);
-    return IsFile(a) && IsFile(b);
+    char dir[LC_PATH * 2];
+    snprintf(dir, sizeof(dir), "%s/%s", sWork, g->folder);
+    return LC_HasFilesIn(dir);
 }
 
 int LC_HasSave(const LC_Game *g) {
@@ -720,6 +803,31 @@ static int FooterOk(const LC_Game *g, const u8 *d, size_t copy) {
     return Get32(f + 8) == 0x31053527 && Get32(f + 4) == g->saveEnd;
 }
 
+// Gen 4's footers, ending each block, with the magic 0x20060623. Platinum's (pret's SaveBlockFooter, 20 bytes): the save
+// counter, the block's counter, the block's size (+8), the magic (+12), the block's number (+16) and the CRC-16 of the block
+// before it (+18). HeartGold's (pokeheartgold's SaveChunkFooter, 16 bytes): the save counter, the block's size (+4), the
+// magic (+8), the block's number (u16, +12) and the CRC-16 (+14). The CRC is not read: like Black's, the game itself falls
+// back to the other copy when it fails
+static int Gen4BlockOk(const LC_Game *g, const u8 *d, size_t end, unsigned size, unsigned id) {
+    const u8 *f = d + end - g->saveFooter;
+    if (g->saveFooter == 16) {
+        return Get32(f + 4) == size && Get32(f + 8) == 0x20060623 && (f[12] | f[13] << 8) == id;
+    }
+    return Get32(f + 8) == size && Get32(f + 12) == 0x20060623 && f[16] == id;
+}
+
+// g's save, by its footers. Black, White and the sequels: one footer ends each copy (FooterOk). Gen 4: the general block's
+// and the boxes' footers, each in either copy (a save writes a block to the copy it was not last in, so the two blocks can
+// be newest in different copies)
+static int SaveOk(const LC_Game *g, const u8 *d) {
+    unsigned boxes = g->saveEnd - g->saveBoxes;
+    if (g->saveBlock0 == 0) {
+        return FooterOk(g, d, 0) || FooterOk(g, d, g->saveCopy);
+    }
+    return (Gen4BlockOk(g, d, g->saveBlock0, g->saveBlock0, 0) || Gen4BlockOk(g, d, g->saveCopy + g->saveBlock0, g->saveBlock0, 0))
+        && (Gen4BlockOk(g, d, g->saveEnd, boxes, 1) || Gen4BlockOk(g, d, g->saveCopy + g->saveEnd, boxes, 1));
+}
+
 int LC_CheckSave(const LC_Game *g, const u8 *d, size_t size, char *err, size_t n) {
     size_t i;
     const LC_Game *o;
@@ -733,12 +841,12 @@ int LC_CheckSave(const LC_Game *g, const u8 *d, size_t size, char *err, size_t n
     if (i == size) {
         return LC_SAVE_NEW;
     }
-    if (FooterOk(g, d, 0) || FooterOk(g, d, g->saveCopy)) {
+    if (SaveOk(g, d)) {
         return LC_SAVE_GOOD;
     }
     o = LC_Games(&count);
     for (i = 0; i < (size_t)count; i++) {
-        if (&o[i] != g && (FooterOk(&o[i], d, 0) || FooterOk(&o[i], d, o[i].saveCopy))) {
+        if (&o[i] != g && SaveOk(&o[i], d)) {
             Say(err, n, "This is a %s save, not a %s save.", o[i].title, g->title);
             return -3;
         }
@@ -824,6 +932,9 @@ int LC_SaveFileInfo(const LC_Game *g, const char *path, long *seconds, time_t *s
         }
     }
     if (g == NULL || LC_CheckSave(g, d, LC_SAVE_SIZE, NULL, 0) != LC_SAVE_GOOD) {
+        return -1;
+    }
+    if (g->saveBlock0 != 0) {    // Gen 4: the save holds the play time but no date of the last save, which the callers show with it
         return -1;
     }
     for (copy = 0; copy <= g->saveCopy; copy += g->saveCopy) {

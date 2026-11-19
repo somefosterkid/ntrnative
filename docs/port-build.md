@@ -5,14 +5,18 @@ PC) and libntrsystem (NitroSystem), for Linux x86_64 and win64 (mingw-w64, cross
 how libntr itself builds and what it covers. Measured 2026-10-28 on main ea131eb9a plus this branch: every game file
 the build takes compiles on both targets, both link (with generated stubs for what is still undefined), and both
 start: libntr opens its window, calls the game's NitroMain, and SystemInit runs until its first undefined function.
+That was the start; the sections below are dated. Today every game plays on Linux, Windows and Android (the README), and
+the build needs no ROM ("A build with no ROM" below).
 
 ## Commands
 
 From the repo root, in WSL (meson >= 1.3, ninja, clang, g++, SDL2 and enet: docs/libntr/build.md "Dependencies").
-Run the ROM build's `ninja` first: the C includes `asset/<name>.inc`, which it writes to build/asset from the base ROM.
+No ROM build is needed first (since 2026-11-16: "A build with no ROM" below); with the dumps in orig/ the link also runs the
+ROM-fill step.
 
     meson setup build/port/linux port --native-file port/machine/linux.ini
-    ninja -C build/port/linux bwport                    # 1525 steps, 35 s on the worker slice
+    ninja -C build/port/linux bwport                    # 1525 steps, 35 s on the worker slice; links with lld when installed
+                                                        # (apt install lld; -Dlld=disabled: GNU ld; the Windows build stays on GNU ld)
     ninja -C build/port/linux undefined                 # build/port/undefined.txt
     cd <scratch> && SDL_AUDIODRIVER=dummy timeout -s KILL 60 xvfb-run -a <repo>/build/port/linux/bwport
                                                         # or without xvfb-run for WSLg; libntr writes sim_config.ini,
@@ -27,6 +31,8 @@ To run bwport.exe on Windows: tools/port_win64.sh (below, "win64").
 After adding or removing a C file, `meson setup --reconfigure build/port/<target> port` (meson doesn't watch
 directories; tools/port_run.py does it for Linux).
 `python3 tools/port_errors.py <ninja -k 0 log>` groups a build's compile errors by cause.
+`python3 tools/run_tests.py [-j N] [NAME ...]` runs every tools/*_tests.py from the repo root (a test that needs the
+ROMs, extract/ or a ~/ref checkout skips itself): one line per file, one summary line, exit 1 on any failure.
 
 ## Running
 
@@ -39,9 +45,12 @@ prints, also in `<out>/verdict.txt`):
 
 | verdict | when |
 |---|---|
-| `reached-frame N in T s (F fps)` | still running at the end, frames advancing |
+| `exit-frame N in T s (F fps)` | `--frames N`: the exe ended itself, exit 0, at the game's V-blank N (BWPORT_EXIT_FRAME): a PASS, the same game state on a slow host or a fast one |
+| `watchdog: frame F of N in T s (F fps)` | `--frames N`, but `-t` (then only the watchdog, default 60 + N/10 s) came first: a FAIL, no result |
+| `reached-frame N in T s (F fps)` | still running at the wall cap `-t`, frames advancing (a slow host's result: use `--frames` for a check that must end on a game frame) |
 | `hang in F (file:line) [... G (file:line)], frame N (no frame for S s)` | running, but no frame for `--hang` seconds (5): the main thread's innermost frame with source; `... before the first frame` |
 | `stub X called from F (file:line), frame N` | an abort stub (build/port/undefined.txt) |
+| `heapcheck: heap overrun after F (file:line) <- G, frame N (clean at M), heap H, KIND, ...` | `--heapcheck` / BWPORT_HEAPCHECK: the heap checker stopped the exe (docs/nnsys-port.md "Heap checker"): F allocated the block before the damage |
 | `crash SIGSEGV in F (file:line) <- G <- H [... I (file:line)], frame N` | a signal: the innermost three frames with source (game, port/src, libntr) |
 | `exit N at frame M` | the exe ended by itself |
 | `build failed` | meson's or ninja's error (its tail is printed) |
@@ -99,8 +108,22 @@ Measured 2026-10-28 (a loaded host, load average 25-29):
 
 ## win64: bwport.exe in a Windows folder (tools/port_win64.sh)
 
+The unwind table (`.pdata`) must stay right: mingw's longjmp (the in-process restart, port/src/machine.c) and the crash report's
+frames walk the game's frames by it. GNU ld sorts a `.pdata` output section by its raw bytes even in a `-r` link, which breaks
+the relinked modules (pl.o, b2.o, w2.o: tools/port_relink.py works around it, docs/launcher.md "Platinum, HeartGold and
+SoulSilver in the launcher"). Check a new exe with `x86_64-w64-mingw32-objdump -p bwport.exe | grep -c "same begin"` (0).
+
+The exe holds all seven games (Black, White, Black 2, White 2, Platinum, HeartGold, SoulSilver), as Linux's does, whatever
+is in orig/ at build time: port/meson.build's `white`, `b2w2`, `platinum` and `hgss` default to on, and a missing ROM only
+means no whole-image fill (11-18, w64g: a default build and one with `-Drom_dir=` an empty folder both accept all seven ROMs).
+The launcher's library lists a game only when its ROM or files are in the library (launcher_gui.cpp), so a run that imported
+four ROMs shows four tabs. The table itself: `BWPORT_LCTEST="importrom=B.nds;importrom=W.nds;..."` over the seven ROMs ends
+`0 failed` (each ROM is matched by its sha1 against the exe's table).
+
     tools/port_win64.sh                 # BUILD ONLY (build/port/win64/bwport.exe); nothing is deployed
     tools/port_win64.sh deploy          # build and fill C:\bwport, the deploy folder (--out DIR for another folder)
+    # a build writes bwport.exe.sha (its commit) next to the exe; under BWPORT_WIN64_PREBUILT=1 (a runner shipped the exe)
+    # build and deploy refuse an exe whose stamp is not HEAD
     tools/win_smoke.sh --save room 30   # the exe HIDDEN from a save for 30 s in C:\bwsmoke: window check, shots, killed (below)
     tools/port_win64.sh run 200 --shots 10    # run it from WSL for 200 s, a screenshot every 10 s
     SDL_AUDIODRIVER=dummy BWPORT_KEYS="start@112 a@124" tools/port_win64.sh run 200 --shots 10
@@ -122,6 +145,34 @@ few seconds); runs the exe in run\ (save.bin, sim_config.ini with the keys, DbgL
 non-zero exit shows the code and waits for a key. Keys: A=X B=Z X=S Y=A L=Q R=W, Start=Enter, Select=right Shift, the
 arrows; the mouse on the bottom screen is the touch screen; ` the debug window, Tab Frame rate Unlimited and back.
 
+### win64 on Windows (tools/port_win64.py)
+
+The same exe built on Windows itself, no WSL: any Windows shell with Git and a python.org Python 3. Clone with
+`git -c core.autocrlf=false clone ...` (Git for Windows defaults to CRLF checkouts, which break the wrap patches and sh scripts).
+
+    python tools/port_win64.py fetch                  # once: the toolchain into build/win64-tools (--tools DIR elsewhere)
+    python tools/port_win64.py                        # build/port/win64/bwport.exe (Black and White)
+    python tools/port_win64.py deploy --out DIR       # and the folder: exe, SDL2.dll, enet.dll, libwinpthread-1.dll, mesa\, bwport.bat
+
+The toolchain is WinLibs' MinGW-w64 (GCC 13.2 posix, clang 18.1.3, MinGW-w64 11.0.1, MSVCRT: Ubuntu 24.04's versions, so the
+objects match the cross build's), meson 1.12.1 + ninja in a venv, WinFlexBison (libntr's makelcf is configured even though
+bwport.exe does not use it), SDL2 2.32.10 and enet 1.3.18 as docs/libntr/build.md, Mesa's DLLs (only with 7-Zip installed: the archive uses BCJ2,
+which no pip package reads); every download is pinned
+by sha256. port/machine/win64-native.ini is win64.ini with WinLibs' names and no Windows.h shim (Windows' names ignore case:
+the shim would include itself). What the native build needed changed (Linux and WSL unchanged): port_sources.py prints
+paths with / (meson compares them with its own: src/system/main.c was linked twice), port_assets.py's `#line` names
+use / (a backslash there is an escape), asset.py's per-table SIGALRM limit is skipped where there is none, the linker
+script's -T path uses / (port_undefined.py's response file), port_relink.py splits meson's tool paths without eating
+their backslashes, and meson.build falls back to unprefixed objcopy and nm.
+
+Not yet: (1) Platinum and HeartGold/SoulSilver: pokeplat_gen.py / pokehg_gen.py build pret's host tools with MinGW gcc, and
+they are POSIX code (nitroarc includes fnmatch.h; enumproc's libexpr and nitroarc assume a 64-bit long under -Werror);
+pret's tools/meson.build also wants arm-none-eabi-gcc (Arm's Windows toolchain zip works) and cp/true/sh (Git's usr\bin).
+`fetch --gen4` gets MSYS2's libpng, zlib and pkgconf, which pret's meson setup then finds. (2) Black 2 and White 2
+(-Db2w2=auto) are untested: port_relink.py's `-r` links need GNU ld, which WinLibs has. (3) Meson re-archives a thin
+static library in place on Windows (no rm first): after a source list change GNU ar fails with "libgame.a: No such
+file"; delete that .a and build again.
+
 ### Which OpenGL (port/src/gl_select.c, libntr-glselect.patch)
 
 libntr needs a 4.2 core context for its window and Renderer=gpu runs on it. The exe uses the **system's** GL (the graphics
@@ -135,9 +186,38 @@ driver's opengl32.dll) and loads the bundled Mesa (mesa\opengl32.dll, llvmpipe, 
    search path for libgallium_wgl.dll), GALLIUM_DRIVER=llvmpipe and, for Renderer=vcore, LP_NUM_THREADS=min(4, CPUs) (a user's
    own value stands) set then: the llvmpipe tuning is Mesa's software GL's only. With no mesa\ and no usable GL: a message box
    and exit 1, never a crash or a black window.
+   **On the graphics card (2026-11-13 d3d12, 2026-11-14 zink first)**: the bundled Mesa picks its driver in this order
+   (unless the user's GALLIUM_DRIVER or BWPORT_GL=mesa says otherwise), and a GPU driver that gives no usable context is
+   unloaded (SDL_GL_UnloadLibrary, the pre-loaded DLL freed; libgallium_wgl.dll really leaves the process, so the next load
+   reads GALLIUM_DRIVER and makes its screen afresh: tested, zink with no Vulkan falls to d3d12 or llvmpipe in the same
+   process) and the next one tried; only llvmpipe failing is fatal:
+   1. **zink** (Mesa's GL on Vulkan; MIT; needs only the graphics driver's vulkan-1.dll): when `FindVulkanGpu` finds a
+      physical device that is a real GPU (vkCreateInstance 1.0 with no layers or extensions, vkEnumeratePhysicalDevices,
+      vkGetPhysicalDeviceProperties: deviceType discrete or integrated; CPU / virtual / other are skipped; the Vulkan types are
+      declared in gl_select.c, no SDK). Remote Desktop is the case: the session's GL is GDI Generic 1.1 while Vulkan still
+      sees the card.
+   2. **d3d12** (GL on Direct3D 12): when mesa\dxil.dll is there (Microsoft's DXIL signer, **not in the public zips**:
+      `tools/port_win64.sh --dxil` copies it into a private folder; without it the d3d12 driver dies at its first draw, exit
+      0x80070057) and DXGI has a hardware adapter that makes a D3D12 device. Mesa takes DXGI's first adapter, which in an RDP
+      session is the Basic Render Driver (WARP, software): gl_select.c hands Mesa the first hardware adapter of DXGI's
+      high-performance order through libgallium_wgl.dll's DrvSetCallbackProcs (the ICD callback pfnGetAdapterLuid), before
+      SDL_GL_LoadLibrary (SDL makes a context there, and Mesa's screen keeps the adapter of its first context).
+   3. **llvmpipe**, the software GL.
+   A GPU driver whose renderer string says software (lavapipe, WARP) counts as no usable context. Per process: no policy or
+   registry change; the card's memory is used only while the game runs. Log: `GL: Vulkan device: <card> (discrete GPU)`,
+   `GL: the bundled Mesa on <card> through Vulkan (Zink)`, then `bundled Mesa (Zink, Vulkan): zink Vulkan 1.4(<card> ...): hardware`
+   (Renderer=auto then picks gpu); skipped drivers say why (`no Vulkan (no vulkan-1.dll)`, `d3d12 skipped: no ...\dxil.dll`),
+   a failed one `the bundled Mesa on zink gives no usable OpenGL (...): unloading it, trying the next driver`. The AMD desktop
+   (RX 7900 GRE) in an RDP session, town save, uncapped, Renderer=gpu (machine under load, so a spread): zink 548-775 fps,
+   d3d12 675-807, llvmpipe 79-100 (53 on d3d12's WARP); vcore 244 on any. `BWPORT_GL=mesa` or `GALLIUM_DRIVER=llvmpipe` keeps
+   the software GL.
 3. `BWPORT_GL=system` takes the system's GL whatever it is (a software one too; a GL that can't make a context at all still
-   goes to Mesa), `BWPORT_GL=mesa` the bundled one. Linux: always the system's (Mesa or the vendor driver); only the report
-   and LP_NUM_THREADS apply.
+   goes to Mesa, then the order above), `BWPORT_GL=mesa` the bundled one on the CPU (llvmpipe), `BWPORT_GL=zink` / `d3d12` the
+   bundled one on the card through that driver first (the later ones of the order as the fallback; a forced zink is tried even
+   if no Vulkan GPU was found). GALLIUM_DRIVER=zink / d3d12 / llvmpipe set by the user stands the same way (another value, e.g.
+   softpipe: that driver only). Linux: always the system's (Mesa or the vendor driver); only the report and LP_NUM_THREADS apply.
+   Testing "no Vulkan" on win64: VK_DRIVER_FILES / VK_LOADER_DRIVERS_DISABLE do not hide a card the loader finds through
+   the registry / DXGI; an invalid file named vulkan-1.dll next to the exe does (LoadLibrary fails: remove it afterwards).
 4. `int SIM_GLIsHardware(void)` (1 = a real GPU driver; 0 = software GL or none) and `const char *SIM_GLRendererName(void)`
    (GL_RENDERER) answer for the Renderer=auto choice and the status line; valid from the first call on (they probe when
    asked early), from the live context after the window exists.
@@ -177,6 +257,12 @@ What is win64's own (the rest is the same C and libntr as Linux):
   outside); environment only through WSLENV (`run` passes SDL_AUDIODRIVER, GALLIUM_DRIVER, BWPORT_* with paths
   translated); `timeout` ends WSL's side only (taskkill ends the exe); cmd.exe here doesn't look in the current
   directory for a program (NoDefaultCurrentDirectoryInExePath), so the bat and the exe go by full path.
+- **Windows test traps** (gp3, 2026-11-14): (1) Smart App Control blocks an exe PER HASH: a rebuilt bwport.exe (a new hash) can be
+  refused to start while the build before it ran, with nothing wrong in the code. It is off on the dev desktop now; on any other Windows
+  machine an exe that will not start at all (Windows' block message, or nothing) is checked against it first (Windows Security >
+  App & browser control) before the build is blamed. (2) A PowerShell script (the bench scripts: a `powershell -File .../bench.ps1` call)
+  started from Git Bash needs forward-slash paths, in the command line and in its arguments: Git Bash eats backslashes before PowerShell
+  sees them, and the script then runs on a wrong or empty path without an error.
 - **Hidden** (libntr-hidden-pc.patch): `run` and `gdb` set BWPORT_HIDDEN=1 unless it is set: the SDL window is created
   SDL_WINDOW_HIDDEN (never shown, no taskbar button, no focus; GL and the present run as before), and BWPORT_SHOTS=DIR,S,S,...
   / cfgscript `shot=NAME` read the composed frame back before the swap and write PNGs (same code as the Mac). `run --shots K`
@@ -252,8 +338,20 @@ intro_particle.c:44, which the crash report gave with lines, as Linux did.
   bwport-nostubs, is never built: tools/port_undefined.py runs its link command from build.ninja with the undefined
   references as warnings, groups the symbols (undefined.txt) and writes undefined_stubs.c, a trap for each undefined
   function (prints "bwport: undefined function X called" and aborts) and a zeroed block (the ROM's size, at least
-  256 bytes) for each datum. bwport links with those, so it runs until it reaches one. `-Dallow_undefined=false`
+  256 bytes) for each datum (the ROM objects' nm output is kept in build/port/rom_definitions.json by mtime and size:
+  6 s a relink, 30 s without). bwport links with those, so it runs until it reaches one. `-Dallow_undefined=false`
   links without them. (PE's ld can't leave a symbol unresolved, so the stubs are what makes win64 link.)
+  **Function or datum** (11-15, ud1; the HG battle hung because a trap's code bytes were read as a table): a symbol an
+  object CALLS is a function (ELF relocation R_X86_64_PLT32, aarch64 CALL26/JUMP26: tools/port_undefined.py reloc_uses,
+  which reads the link's objects and archives, thin ones too, in under a second), else the ROM objects' kind of it, else
+  its name (DATA_NAME: `s_ g_ [sg]Upper ...List Table`), else an object that only takes its address (GOT load, a
+  pointer in a table) makes it a datum, else a function. COFF and Mach-O objects aren't read (a call and an address
+  are one relocation type there): those builds use the kind and the name only. A function whose address is only taken
+  and that has no ROM kind would be called a datum: it shows in that list, loudly, which is the point.
+  **Undefined data is a bug**: undefined.txt's "UNDEFINED DATA" section lists every datum (known / NEW), the build
+  prints one `UNDEFINED DATA: N ...` line, port_run.py prints `undefined data: N (see .../undefined.txt)` at the start,
+  and the HGSS build (-Dhgss=true) fails on a datum port/undefined_data_allow.txt does not name (`--fail-on-data
+  --allow-data`); delete a line there when its table gets defined. Black and Platinum only list theirs.
 
 ## Counts (this branch alone, without the other port agents' port/src files)
 
@@ -355,7 +453,7 @@ The PC files are tools/port_sources.py's (src/, lib/gfl, lib/poke_net and lib/sp
 
 The Linux exe, the win64 exe and the APK's libraries hold none of the game's data: every table, string and constant of
 the game's C that the DS build puts into the ROM's .data/.rodata is zero in the shipped image and is copied from the
-player's ROM before the game boots. macOS and iOS do not do it yet (docs/ios-handoff.md "Game data from the ROM").
+player's ROM before the game boots. The macOS binary and the IPA too since 2026-11-12 ("On Apple" below).
 
 - **The design.** A matching decompilation's compiled data IS the ROM's data, however it is spelled in C, so the step works
   on the whole linked image, not table by table, and needs no knowledge of any C type. (1) The link (`bwport-full`, with
@@ -365,7 +463,8 @@ player's ROM before the game boots. macOS and iOS do not do it yet (docs/ios-han
   runs: the two game files both share, libntr's and libntrsystem's SDK libraries but libsim, port/acore's ARM7 tables; plain
   .rodata only). Writable data and const data with pointers stay where they were (.data, .ovldata, .machdata,
   .data.rel.ro); the map says which object each of their input sections is. (2) tools/port_romfill.py (port/meson.build's
-  `bwport` target; about 5 s) reads the image's own relocations (ELF .rela.dyn/.relr.dyn, PE .reloc): those pointer slots
+  `bwport` target; 25 s cold, 3-5 s on a relink: romfill-cache/ in the build dir keeps each ROM's modules and the match
+  answers by the ROM's sha1 and the tool's source; `--cache ''` or BWFILL_NOCACHE=1: none) reads the image's own relocations (ELF .rela.dyn/.relr.dyn, PE .reloc): those pointer slots
   stay as linked. The bytes between them are matched against the game's ROM modules as the DS loads them (ARM9 static
   module and overlays BLZ-decompressed, the ARM7), longest match first through a sorted 8-gram index, preferring the place
   the last match ended (a table's next element) and the DS object of the same C file (config/<version>/**/delinks.txt).
@@ -375,7 +474,7 @@ player's ROM before the game boots. macOS and iOS do not do it yet (docs/ios-han
   reserves 512 KB; 112 KB used), per game with an FNV-1a hash of the bytes they give. The step checks itself: it applies
   its table to the zeroed image and compares with the linked one, for each game.
 - **At start.** asset_load.c's PORT_AssetsLoad (machine.c's SIM_RunGame, after the launcher chose the game; once per game
-  per process) finds the ROM as before (the launcher's copy, BWPORT_ROM, a .nds in the working directory: only with the
+  per process, the rows again after another game's: below) finds the ROM as before (the launcher's copy, BWPORT_ROM, a .nds in the working directory: only with the
   game's code), makes the regions' pages writable (mprotect / VirtualProtect), copies, puts the protection back (RELRO
   included), and copies writable regions into ovl.c's and machine.c's snapshots (PortOvl_Keep, PORT_MachineKeep) so an
   overlay load or an in-process restart puts the ROM's values back. The shared group is copied for the first game that
@@ -383,14 +482,100 @@ player's ROM before the game boots. macOS and iOS do not do it yet (docs/ios-han
   `assets: IRBO: 0 tables, 0 bytes, the image's data 221946 bytes in 9949 copies, from <rom> in 19.1 ms` (Linux; win64
   18.4 ms, the Android emulator 29.9 ms; rt1's 428 rows took 30.4 ms). A link without the step (`ninja bwport-full`)
   runs as before with the data compiled in.
+- **The rows' revision check, the switch between HG and SS, a fill without a game (lcfix1, 2026-11-18).** The assets.tsv
+  rows (every build, the no-ROM ones too) are checked like the image's copies: tools/port_assets.py `rows` writes each
+  version's FNV-1a 64 of the bytes its rows read (from port/asset_rows_fnv.tsv: version, code, a sha1 of the rows' names
+  and ranges, the hash), and PORT_AssetsLoad hashes the same bytes of the ROM before it fills them; another revision with the
+  same game code stops with "the ROM's data is not the data this build was made for (its IRBO rows' bytes hash to ...)". A
+  row added or moved changes the signature: `rows` (the build) stops until `python3 tools/port_assets.py fnv` runs with
+  the ROMs (orig/; a version whose ROM is not there keeps its line). HeartGold and SoulSilver register the same tables (one
+  module), each with its own rows, so the rows fill again whenever the game differs from the one whose rows filled them last
+  (the image's copies and the hash stay once per game; the log line ends "(the rows again: ...)"). An image whose fill table
+  has games but not this one (a fill made without that game's ROM) stops at start: port/meson.build's rom_fill needs every
+  built game's ROM, HeartGold's and SoulSilver's both, and tools/rom_leak_check.py --package refuses (exit 2) a package that
+  plays a game (the launcher table's ROM sha1 as a C string in a file) whose ROM is not on the machine.
 - **What the image holds now** (Linux, both games): Black 221,946 bytes copied (.bwrom_b 175 KB, .data.rel.ro 6.8 KB,
   .ovldata 7.9 KB, .machdata 0.7 KB, shared 31.7 KB), White the same. Code: no run of 16 or more bytes of .text equals
-  either game's modules (what the compiler folds into code is code). tools/port_assets.py's per-table placeholders
-  (rt1's rows) are off (`asset_loader = false`): the whole-image step covers their rows; its loader, ROM reading and hooks
-  are the ones above.
+  either game's modules (what the compiler folds into code is code).
+- **A build with no ROM (2026-11-16, zr1).** Black and White build from a clone with no orig/, build/ or extract/ (no
+  configure.py, no ROM build): `meson setup build/port/linux port --native-file port/machine/linux.ini && ninja -C
+  build/port/linux bwport`. Off Apple `asset_loader` is on: tools/port_assets.py writes each assets.tsv row as a
+  placeholder (zeros in the host's layout; the pointer fields' symbol names from config/b_us/asset_ptrs.tsv, names only,
+  which `python3 tools/port_assets.py ptrs build` rewrites from a ROM build when tools/asset.py --move adds a row with a
+  pointer field), the sources that include one are compiled from rewritten copies (const dropped; an automatic array
+  becomes a static table and a copy; a constructor registers each table), and asset_load.c fills them from the ROM the
+  app imported. version_config.py writes config/w_us at meson time, so White is always built. The whole-image step runs
+  only when every built game's ROM is in orig/ (Black's, and White's: the shared group must match every game); without
+  it bwport is the link itself (the C's own data compiled in: that is the repository's C). With both, asset_load.c
+  applies the step's table first and the rows after it (a placeholder's zeros can be one of the step's copies). The
+  same legs give the same frames from the no-ROM build as from the build with the ROMs. Black 2 / White 2 the same way
+  (zr2): always built off Apple (`-Db2w2=disabled` leaves them out), their rows placeholders (config/b2_us/asset_ptrs.tsv,
+  White 2's pointers named alike), pokebw2's sources rewritten with its include dirs (`port_assets.py list b2w2`; a
+  header of its -idirafter include/ is left as written), the registration a block per version (`#if BLACK2 / WHITE2 /
+  WHITE / else Black`, each its game code), and every overlay file through the rewrite in its order (the B2 overlay
+  layout is the archive's member order between the markers, and meson puts a target's generated objects first). A C
+  table whose plain type is not the row's layout takes SYM_LAYOUT (`n8`: a 4-byte row value in a 1-byte slot,
+  kDriftveilPads); pokebw2's G3DSceneResourceSetup has no union (TYPE_LAYOUT_B2W2). Platinum (zr4) needs no
+  placeholders: no source includes its config/plat_us/assets.tsv rows (docs/platinum.md "Asset rows": retired, pret's
+  tables are its C again; pl_assets writes nothing without the ROM). Its overlays' DS layout: port_overlays.py --plat
+  compiles zeros without the ROM, and ovl.c's PortOvl_SetGame takes the layout from the player's ROM's overlay table
+  (asset_load.c PORT_AssetRomOverlays). The whole-image step needs its ROM too when Platinum is built. From a no-ROM
+  clone (ROMs linked into orig/ after the build): the Platinum chain 218/218 with main's frame total, room-load / room-bag
+  / room-save the same DS screens at fixed V-blanks as the build with the ROM, and the win64 build reaches the title. Still built from
+  their ROM: nothing since 2026-11-17 (Apple too: "On Apple" below).
+  HeartGold / SoulSilver
+  (zr5 2026-11-16): `-Dhgss=true` links with no orig/ (no romfill step; the vendored tree's ROM data are blanks plus rows,
+  docs/hgss.md "ROM data as blanks"), and hg / ss new-look end on the same frame (11664) as the build with the ROMs.
+  Trap: route.py with BWPORT_BUILD set to another checkout's build dir reconfigures that dir against route.py's own
+  checkout; run route.py from inside the no-ROM checkout (BWPORT_ROM / BWPORT_ORIG name the ROMs).
 - **Black 2 / White 2.** port_romfill.GAMES has their rows (IREO, IRDO; archives libgame_b2.a/libentry_b2.a, _w2): a PC
   link of pokebw2's C as archives, as White's, gets the same treatment with `--game IREO:b2:<rom>:<pokebw2>/config/b2_us`.
-  Today they link on macOS/iOS only (b2.o, w2.o), where the step does not run; nothing of it is checked without their ROMs.
+  On macOS and iOS they link as b2.o, w2.o and are filled as their own groups (below).
+- **Platinum (2026-11-14, pas1).** GAMES row `pl` (CPUE, pl.o: pret's C is one relocatable object, as b2.o), so
+  `.bwrom_pl` holds its .rodata and the step fills it and pl.o's .data/.ovldata/.data.rel.ro: `--game CPUE:pl:<plat rom>:config/plat_us`
+  (no delinks.txt there: no same-object preference). Linux, `-Dplatinum`: 301,124 bytes copied in 7,778 copies (.bwrom_pl 251 KB,
+  .data.rel.ro 8.2 KB, .ovldata 10.5 KB, .machdata 0.6 KB, the shared group's 30.7 KB), table 306 KB of 512; package scan
+  (`rom_leak_check.py --package` on the `--strip-debug`'ed exe) 214,850 bytes in 752 runs + ~6.5 KB of Black/B2/W2 runs -> 0
+  (the unstripped build's debug info has one 50-byte chance run). Three traps found: (1) `ovl_ld` now depends on
+  tools/port_romfill.py (its GAMES table makes the script's groups; a new row left the old script, no .bwrom_pl); (2) pret's battle
+  AI script (pl_ai_script.o, 42,428 bytes) is assembled into `.text`, which the step never fills: meson's objcopy step renames it
+  to .rodata (.rdata on win64); (3) the SDK's pitch table (libntr's snd_util.c, port/acore's k_pitch) is in Platinum's ROM but not
+  Black's, and is round(65536*(2^(i/768)-1)) for all 768 entries, so it is listed in tools/release_allow.tsv (with two
+  chance runs of the host's .data.rel.ro). A shared group's bytes must be in every built game's ROM: Platinum's SDK copies are
+  not separate archives (pl.o has them in .bwrom_pl, filled from Platinum's own ROM). asset_load.c needs nothing: it takes the
+  game by its ROM code. Apple: the same since 2026-11-17 (`__DATA,__bwrom_pl`, "On Apple" below).
+- **On Apple (ld64, Mach-O; 2026-11-12).** No linker script, so the groups are compile-time sections: port/machine/
+  macos_rom_section.h (included by macos_machine_section.h and macos_ovl_section.h, which the game's, White's, B2/W2's and
+  lib/nnsys's compiles already get) puts each file's read-only data, const data with pointers too (`relro`), into
+  `__DATA,__bwrom_b|w|b2|w2|s` by its defines (WHITE, BLACK2, WHITE2; BWPORT_ROM_SHARED for lib/nnsys);
+  libntr-ios-romfill.patch does the SDK's (`__bwrom_s`; libsim back to the default). A writable section: iOS's signed
+  __TEXT is never written and no protection changes. The link writes ld64's `-map`; tools/port_romfill.py reads the
+  Mach-O (load commands, sections), its pointer slots from LC_DYLD_CHAINED_FIXUPS (or LC_DYLD_INFO's opcodes), and each
+  atom's object from the map: an atom's group is its object's (port_romfill.group_of; Black's overlay archive
+  libgame_ovl.a, white.o, b2.o, w2.o; port/src's stand-ins in libgame.a are the host's and stay), in those sections and
+  __machdata/__ovldata/__data. The table is `__DATA,__bwfill` (asset_load.c); the step re-signs the binary ad hoc
+  (`codesign -f -s -`). String literals stay in __TEXT,__cstring (ld64 merges them across objects).
+  port/src/ovl.c's PortOvl_Keep now updates the chosen game's Mach-O snapshot too (it was a no-op there).
+  2026-11-17 (gen4): the same build as the PC's. (1) The asset loader is on (port_assets.py's rewrite spells its section
+  `BWASSET_DATA`, "__DATA,__data" on Mach-O, and has no alias there: the storage takes the global's assembler name), so the
+  Mac's rom_assets step is gone and Apple builds Black, White, Black 2 and White 2 with or without their ROMs.
+  `-Drom_dir=DIR` names the ROM folder the fill reads (default orig/, Apple tools/mac_rom.sh's); an empty folder is a build
+  that sees no ROM (build/port/macos-norom: no ROM path in build.ninja). Without the ROMs the binary is the plain link (the
+  C's own data compiled in, as on the PC): the release gate is for the build with the ROMs. (2) Platinum, HeartGold and
+  SoulSilver link in (pl.o, hg.o by tools/port_relink.py --macho, whose `--ovl-tag` marker check reads `nm -m`; b2.o and
+  w2.o now the same way). Mach-O needed: HG's asm data with the underscore names, Mach-O sections and 8-aligned .quad
+  (tools/pokehg_asm.py), HG's blanks' section through BWPORT_DATA_SECTION (hg_assets.py writes the macro itself; pokeheartgold-zzmacho.patch
+  bridged the vendoring until the re-vendor at 766902128), Platinum's AI script with assembler-local labels and its section named in the text, HG's 10,000 overlay files
+  in archives of 2,500 (macOS's 1 MB argument limit), `#include_next` in include_plat/nitroWiFi/soc.h (a case-insensitive
+  file system found the file itself). (3) HeartGold/SoulSilver is a ROM-fill group (GAMES "hg", on every platform: it had
+  none, and 115 KB of its tables stayed in the Mac image, runs up to 13 KB); Mach-O fills __DATA,__const too (HG's asm
+  data). Mac binary with all seven games, all ROMs: Black 140,985 bytes from the ROM, White 140,973, Black 2 190,275,
+  White 2 190,251, Platinum 285,823, HG 148,476, SS 148,476 (table 294 KB of 512); release_check.sh 0 ROM bytes on it
+  and on the IPA (eight host runs the Gen 4 ROMs bring are in release_allow.tsv). The no-ROM build (-Drom_dir=empty, the
+  ROMs imported by route.py's roots): the same frames as the build with the ROMs (Gen 5 --quick 24,291; SoulSilver's first
+  six legs 80,068; Platinum new-look 19,236), and its gate finds 744 KB (the C's own data: no fill without the ROMs). Black,
+  town save, instructions a drawn frame: 12.06 M before (main 9f641177c), 12.07 M after. Pret's Platinum header generators
+  need `brew install libpng arm-none-eabi-gcc` on a new Mac.
 - **The release gate.** `tools/release_check.sh PACKAGE...` runs `tools/rom_leak_check.py --package` (an apk/ipa/zip's
   members, a folder, plain files; every run of >= 48 ROM bytes counts) and exits 1 on any run that is not trivial (a short
   period, or since 11-07 a ramp of 8/16/32-bit elements: code point tables, arm64 jump tables of equal-sized cases) or

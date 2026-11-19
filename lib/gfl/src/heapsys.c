@@ -16,6 +16,16 @@
 // caller's to scale
 #define HEAP_AREA_SIZE(size) WORK_AREA_SIZE(size)
 
+// A block's alignment on a 64-bit PC target: the DS's 4 (-4: from the heap's end) raised to 8, the sign kept, as the
+// blocks hold pointers (HeapBlockHeader's 32 bytes there keep the caller's pointer at the block's alignment). The
+// child heaps, GFL_HeapAllocateCore, GFL_HeapCreateAllocatorCore's allocators and the largest-block query; an
+// alignment of 8 or more is as given
+#if defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8
+#define HEAP_HOST_ALIGN(alignment) ((alignment) >= 0 ? ((alignment) < 8 ? 8 : (alignment)) : ((alignment) > -8 ? -8 : (alignment)))
+#else
+#define HEAP_HOST_ALIGN(alignment) (alignment)
+#endif
+
 typedef struct {
     NNSFndHeapHandle handle;
     // The heap and the memory a child heap is allocated from
@@ -132,7 +142,7 @@ BOOL GFL_HeapAddChild(HeapID parentHeapId, HeapID heapId, u32 size) {
         data_02146954.lastResult = HEAP_RESULT_1;
     } else if ((parent = GFL_HeapGetBase(parentHeapId & (HEAPID_TAIL_BIT - 1))) == NULL) {
         data_02146954.lastResult = HEAP_RESULT_2;
-    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, HEAP_AREA_SIZE(size), alignment)) == NULL) {
+    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, HEAP_AREA_SIZE(size), HEAP_HOST_ALIGN(alignment))) == NULL) {
         data_02146954.lastResult = HEAP_RESULT_3;
     } else if (GFL_HeapAdd(parent, heapId, memory, HEAP_AREA_SIZE(size))) {
         return TRUE;
@@ -225,7 +235,7 @@ void *GFL_HeapAllocateCore(HeapID heapId, u32 size) {
     } else {
         interrupts = OS_DisableInterrupts();
         size += sizeof(HeapBlockHeader);
-        block = NNS_FndAllocFromExpHeapEx(heap, size, alignment);
+        block = NNS_FndAllocFromExpHeapEx(heap, size, HEAP_HOST_ALIGN(alignment));
         if (block == NULL) {
             data_02146954.lastResult = HEAP_RESULT_3;
         } else {
@@ -278,7 +288,7 @@ BOOL GFL_HeapCreateAllocatorCore(NNSFndAllocator *allocator, HeapID heapId, int 
     if (heapId >= data_02146954.maxHeapIds) {
         data_02146954.lastResult = HEAP_RESULT_1;
     } else {
-        NNS_FndInitAllocatorForExpHeap(allocator, GFL_HeapGetBase(heapId), alignment);
+        NNS_FndInitAllocatorForExpHeap(allocator, GFL_HeapGetBase(heapId), HEAP_HOST_ALIGN(alignment));
         data_02146954.lastResult = HEAP_RESULT_OK;
         return TRUE;
     }
@@ -333,7 +343,7 @@ u32 GFL_HeapGetHighestAllocatableSize(HeapID heapId) {
         data_02146954.lastResult = HEAP_RESULT_1;
     } else {
         data_02146954.lastResult = HEAP_RESULT_OK;
-        return NNS_FndGetAllocatableSizeForExpHeapEx(GFL_HeapGetBase(heapId), 4);
+        return NNS_FndGetAllocatableSizeForExpHeapEx(GFL_HeapGetBase(heapId), HEAP_HOST_ALIGN(4));
     }
     return 0;
 }

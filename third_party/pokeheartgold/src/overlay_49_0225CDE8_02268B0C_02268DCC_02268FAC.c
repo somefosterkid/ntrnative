@@ -1,0 +1,116 @@
+#include "global.h"
+
+#include "heap.h"
+#include "overlay_93_unk_struct_ov117_02261280_t.h"
+
+struct UnkStruct_ov66_0222DFF8_t;
+
+struct UnkStruct_ov70_0225C894_t;
+
+struct UnkStruct_ov70_0225DEE8_t;
+
+struct UnkStruct_ov70_02261E10_t;
+
+struct UnkStruct_ov70_0226CF38_t;
+
+typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
+
+typedef struct UnkStruct_ov70_0226CF38_t UnkStruct_ov70_0226CF38;
+
+typedef struct {
+    s16 unk_00;
+    s16 unk_02;
+} UnkStruct_ov63_0222CC3C;
+
+int ov45_0222AD80(const WiFiPlazaSystem *param0, u32 param1);
+
+typedef struct UnkStruct_ov70_0225C894_t UnkStruct_ov70_0225C894;
+
+u16 ov49_022589A8(const UnkStruct_ov70_0225C894 *param0);
+
+BOOL ov49_022589D8(const UnkStruct_ov70_0225C894 *param0, u32 param1, u16 *param2, u16 *param3, u32 param4);
+
+typedef struct UnkStruct_ov70_02261E10_t UnkStruct_ov70_02261E10;
+
+WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
+
+UnkStruct_ov70_02261E10 *ov49_02259FF8(UnkStruct_ov70_0225DEE8 *param0);
+
+UnkStruct_ov70_0225C894 *ov49_0225A000(UnkStruct_ov70_0225DEE8 *param0);
+
+void ov49_0225E3B8(UnkStruct_ov70_02261E10 *param0, u32 param1, fx32 param2);
+
+typedef struct {
+    u16 unk_00;
+    u16 unk_02;
+    union {
+        struct {
+            s16 unk_00;
+            s16 unk_02;
+            u16 unk_04;
+            s16 unk_06;
+            s16 unk_08;
+        } val1;
+    } unk_04;
+} UnkStruct_ov70_0226D2A0;
+
+struct UnkStruct_ov70_0226CF38_t {
+    UnkStruct_ov70_0225DEE8 *unk_00;
+    WiFiPlazaSystem *unk_04;
+    UnkStruct_ov70_02261E10 *unk_08;
+    UnkStruct_ov70_0225C894 *unk_0C;
+    u8 unk_10[9][3];
+    u8 unk_2B;
+    UnkStruct_ov70_0226D2A0 unk_2C[9];
+    UnkStruct_ov63_0222CC3C unk_AA[3];
+    u16 unk_B6;
+    u16 unk_B8;
+    fx32 unk_BC;
+    fx32 unk_C0;
+};
+
+void ov49_02269178(UnkStruct_ov70_0226CF38 *param0, u32 param1);
+
+void ov49_022695C4(UnkStruct_ov70_0226CF38 *param0, u32 param1);
+
+UnkStruct_ov70_0226CF38 *ov49_02268FAC(UnkStruct_ov70_0225DEE8 *param0, enum HeapID heapID);
+
+UnkStruct_ov70_0226CF38 *ov49_02268FAC(UnkStruct_ov70_0225DEE8 *param0, enum HeapID heapID) {
+    UnkStruct_ov70_0226CF38 *v0;
+    int v1;
+    u16 v2, v3;
+    static const u8 v4[3] = {
+        63,
+        62,
+        61,
+    };
+
+    v0 = Heap_Alloc(heapID, sizeof(UnkStruct_ov70_0226CF38));
+    memset(v0, 0, sizeof(UnkStruct_ov70_0226CF38));
+
+    v0->unk_00 = param0;
+    v0->unk_04 = ov49_02259FE8(param0);
+    v0->unk_08 = ov49_02259FF8(param0);
+    v0->unk_0C = ov49_0225A000(param0);
+    v0->unk_BC = ov49_022589A8(v0->unk_0C) + 6;
+    v0->unk_C0 = -8 - v0->unk_BC;
+    v0->unk_BC = (v0->unk_BC) * 16 * (FX32_ONE);
+    v0->unk_C0 = (v0->unk_C0) * 16 * (FX32_ONE);
+
+    for (v1 = 0; v1 < 3; v1++) {
+        ov49_022589D8(v0->unk_0C, v4[v1], &v2, &v3, 0);
+        v0->unk_AA[v1].unk_00 = (v2) * 16;
+        v0->unk_AA[v1].unk_02 = (v3) * 16;
+    }
+
+    for (v1 = 0; v1 < 9; v1++) {
+        ov49_0225E3B8(v0->unk_08, v1, v0->unk_BC);
+
+        if (ov45_0222AD80(v0->unk_04, v1) == 1) {
+            ov49_02269178(v0, v1);
+            ov49_022695C4(v0, v1);
+        }
+    }
+
+    return v0;
+}

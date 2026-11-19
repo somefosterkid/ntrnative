@@ -17,9 +17,21 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import data_order as D  # noqa: E402
 
+MOVER = 201  # a Random seed whose 8-table file has no order of just the definitions out of place (5 of the 8)
+
 
 def obj(name, size, own=False, section=".rodata"):
     return D.Obj(name, size, own, b"", set(), None, section, False)
+
+
+def leg(fn, *args, needs=()):
+    """Runs fn(*args) unless the tree lacks a file it needs (a fresh clone has no compiler, no extract/): that prints a
+    line starting with "skip" and the file's name instead."""
+    gone = [f for f in needs if not os.path.exists(os.path.join(D.ROOT, f))]
+    if gone:
+        print(f"skip {fn.__name__}: no {', '.join(gone)}")
+    else:
+        fn(*args)
 
 
 def main():
@@ -30,7 +42,7 @@ def main():
                       section=rng.choice((".rodata", ".rodata", ".data"))) for i in range(n)]
         # Black's: the same sizes per slot, named objects shuffled among equal sizes and sections
         shuffled = list(listed)
-        for key in {(o.size, o.section) for o in listed}:
+        for key in sorted({(o.size, o.section) for o in listed}):  # not in hash order: it would change what rng gives next
             idx = [i for i, o in enumerate(listed) if (o.size, o.section) == key and not o.name.startswith("@")]
             perm = idx[:]
             rng.shuffle(perm)
@@ -55,18 +67,19 @@ def main():
     assert inv is not None and [o.name for o in D.layout(inv, ".bss")] == swapped, (lay, inv)
     assert D.invert(listed, {".bss": [(n, 4, {n}) for n in [{"t1": "i1", "i1": "t1"}.get(n, n) for n in lay]]}) is None
     D.TENTATIVE.clear()
+    cc = ["tools/wibo", "tools/mwccarm/dsi/1.1p1/mwccarm.exe"]
     permutations(rng)
     cross_kinds(rng)
-    scalars()
-    local_scalars()
-    compilers(rng)
-    link_drops()
-    ltdmain()
-    twins()
-    late_range()
-    after_a_function()
-    declarators()
-    parameter_names()
+    leg(scalars, needs=cc)
+    leg(local_scalars, needs=cc)
+    leg(compilers, rng, needs=cc + [f"tools/mwccarm/{c}/mwccarm.exe" for c in sorted({c for c, _ in MODES})])
+    leg(link_drops, needs=cc)
+    leg(ltdmain, needs=cc)
+    leg(twins, needs=["extract/b_us/arm9_overlays/ov094.bin"])
+    leg(late_range, needs=["extract/b_us/arm9_overlays/ov218.bin"])
+    leg(after_a_function, needs=cc)
+    leg(declarators, needs=cc)
+    leg(parameter_names, needs=cc)
     print("ok")
 
 
@@ -222,25 +235,47 @@ def permutations(rng):
         assert all(D.fits([x for o in f for u in units if u[-1] is o for x in u], targets) for f in found)
     # more than MAX_UNITS (9) definitions: permute() searched only 9 of them and missed an order of all 12 (t37a)
     for trial in range(5):
-        units = []
-        D.POS.clear(), D.TENTATIVE.clear(), D.DEFERRED.clear()
-        k = 0
-        for t in range(12):
-            strings = [obj(f"@{k + j}", 15, True, ".data") for j in range(rng.randint(1, 3))]
-            k += len(strings)
-            table = obj(f"t{t}", 4 * len(strings), False, ".data")
-            for x in strings:
-                D.POS[x.name] = (t * 10, -0.5)
-            D.POS[table.name] = (t * 10, 0)
-            units.append(strings + [table])
-        order = list(range(12))
-        rng.shuffle(order)
-        listed = [x for u in units for x in u]
-        black = [x for k in order for x in units[k]]
-        targets = {".data": [(o.name, o.size, {o.name}) for o in D.layout(black, ".data")]}
+        units, listed, targets = table_files(rng, 12)
         found, (bad, _), names, _ = D.permute(listed, targets)
         assert found and bad == 0 and len(names) > D.MAX_UNITS, (trial, bad, len(names))
-        assert D.fits([x for o in found[0] for u in units if u[-1] is o for x in u], targets)
+        assert D.fits(relist_found(units, found[0], names), targets), trial
+    # a definition that sits where it should can still have to move for the others to land: permute() narrows to the
+    # definitions with an object out of place, and searches all of them when that finds no order
+    units, listed, targets = table_files(random.Random(MOVER), 8)
+    found, (bad, _), names, _ = D.permute(listed, targets, most=5)
+    assert found and bad == 0 and len(names) == 8, (bad, len(names))
+    assert D.fits(relist_found(units, found[0], names), targets)
+
+
+def table_files(rng, n):
+    """(the definitions, each its strings and its table; their list; Black's layout of a shuffle of them) of n tables."""
+    units = []
+    D.POS.clear(), D.TENTATIVE.clear(), D.DEFERRED.clear()
+    k = 0
+    for t in range(n):
+        strings = [obj(f"@{k + j}", 15, True, ".data") for j in range(rng.randint(1, 3))]
+        k += len(strings)
+        table = obj(f"t{t}", 4 * len(strings), False, ".data")
+        for x in strings:
+            D.POS[x.name] = (t * 10, -0.5)
+        D.POS[table.name] = (t * 10, 0)
+        units.append(strings + [table])
+    order = list(range(n))
+    rng.shuffle(order)
+    listed = [x for u in units for x in u]
+    black = [x for k in order for x in units[k]]
+    return units, listed, {".data": [(o.name, o.size, {o.name}) for o in D.layout(black, ".data")]}
+
+
+def relist_found(units, order, names):
+    """The list with permute()'s order: the definitions permuted (names: their last objects) take each other's places,
+    one it left alone stays where it is."""
+    by_last = {id(u[-1]): u for u in units}
+    order = iter(order)
+    out = []
+    for u in units:
+        out += by_last[id(next(order))] if any(u[-1] is o for o in names) else u
+    return out
 
 
 def scalars():

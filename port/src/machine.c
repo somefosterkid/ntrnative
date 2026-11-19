@@ -75,6 +75,7 @@ void SIM_OsMarkSnapshot(void);
 int FS_PortCloseAll(void);
 void WIN_G2dResetUnpacked(void);   // port/src/nnsys_load64.c: the 2D loaders' host copies
 void PORT_NnsReset(void);          // port/src/nnsys_g3stage.c: the geometry commands held back
+void PORT_HeapCheckReset(void);    // port/src/nnsys_heapcheck.c: the heap checker's records (BWPORT_HEAPCHECK)
 void PORT_ThreadsPrestart(void);   // main_threads.c
 void PORT_ThreadsPark(void (*unlocked)(void));
 void PORT_ThreadsReset(void);
@@ -364,6 +365,11 @@ static void Quiesce(void) {
     SIM_OsStopThreads();
 }
 
+// The in-process restarts so far (route_test.c's Wr: a leg that waits for the game's own reset, the end of Platinum's credits)
+int PORT_MachineResets(void) {
+    return sResets;
+}
+
 void PORT_MachineReset(void) {
     printf("machine: reset %d: parking the game's threads\n", sResets + 1);
     fflush(stdout);
@@ -516,6 +522,7 @@ static void ResetMachine(void) {
     closed = FS_PortCloseAll();
     WIN_G2dResetUnpacked();
     PORT_NnsReset();
+    PORT_HeapCheckReset();
     Restore();
     acglue_reset();
     ab_unlock();

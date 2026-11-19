@@ -37,6 +37,12 @@ static void PrintStack(CONTEXT *context) {
     CONTEXT c = *context;
     int i;
 
+    // a call through a null pointer: no frame at 0, but the call's return address is on top of the stack
+    if (c.Rip == 0 && !IsBadReadPtr((void *)(ULONG_PTR)c.Rsp, sizeof(DWORD64))) {
+        fprintf(stderr, "  (a call to 0: the caller's frames)\n");
+        c.Rip = *(DWORD64 *)(ULONG_PTR)c.Rsp;   // (frame 0 prints the return address itself)
+        c.Rsp += 8;
+    }
     for (i = 0; i < PORT_CRASH_FRAMES && c.Rip != 0; i++) {
         DWORD64 imageBase, establisher;
         PVOID handlerData;

@@ -1,0 +1,34 @@
+pokeplatinum-widesprite.patch (tools/pokeplat_gen.py applies the patches in name order; this one after vramenum, which
+also edits include/sprite.h): Sprite's animData sized by the host's types. pret's Sprite keeps its cell animation
+(CellAnimationData / VRamCellAnimationData / MultiCellAnimationData, each holding pointers and an NNSG2dCellAnimation)
+in a raw `u32 animData[SPRITE_ANIM_SIZE]`, 29 words on the DS. On 64 bits a CellAnimationData alone is larger, so
+SpriteList_InitSprite's anim setup ran past animData into the next field, imageProxy, after the proxy was copied:
+every sprite's image location read 0x1000 instead of its tiles' (the X menu's icons and cursor box showed other tiles,
+the bag's list cursor and item icons showed black blobs; pl12, found by printing the proxy at SpriteResourcesHeader_Init,
+at SpriteList_InitSprite and after the menu's sprites were made). The class: a raw word array that stands in for a
+union of structs holding pointers, sized by the DS's count. The array is now the larger of the DS's count and the three
+types' host sizes, pointer-aligned.
+
+--- a/include/sprite.h
++++ b/include/sprite.h
+@@ -47,4 +47,11 @@
+ } MultiCellAnimationData;
+ 
++// bw-port: Sprite's animData in words: the DS's SPRITE_ANIM_SIZE or the largest of the three on the host if larger.
++#define SPRITE_ANIM_MAX_(a, b) ((a) > (b) ? (a) : (b))
++#define SPRITE_ANIM_WORDS_OF_(t) ((sizeof(t) + sizeof(u32) - 1) / sizeof(u32))
++#define SPRITE_ANIM_WORDS SPRITE_ANIM_MAX_(SPRITE_ANIM_SIZE, \
++    SPRITE_ANIM_MAX_(SPRITE_ANIM_WORDS_OF_(CellAnimationData), \
++        SPRITE_ANIM_MAX_(SPRITE_ANIM_WORDS_OF_(VRamCellAnimationData), SPRITE_ANIM_WORDS_OF_(MultiCellAnimationData))))
++
+ typedef struct Sprite {
+     VecFx32 position;
+@@ -66,5 +73,7 @@
+     // This field is supposed to be a union between CellAnimationData, VRamCellAnimationData, and MultiCellAnimationData
+     // but it's actually too small to hold the largest of these types. This should really be u32 animData[31].
+-    u32 animData[SPRITE_ANIM_SIZE];
++    // bw-port: sized by the host's types (they hold pointers: a cell animation alone is past 29 words on 64 bits and
++    // ran into imageProxy, so every sprite drew from the wrong tiles), and pointer-aligned.
++    _Alignas(void *) u32 animData[SPRITE_ANIM_WORDS];
+     NNSG2dImageProxy imageProxy;
+     NNSG2dImagePaletteProxy paletteProxy;

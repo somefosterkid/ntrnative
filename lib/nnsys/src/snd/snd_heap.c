@@ -29,6 +29,27 @@ typedef struct NNSSndHeapSection {
     NNSFndLink link;
 } NNSSndHeapSection;
 
+#ifndef __MWERKS__
+// NitroSystem's, called by HeartGold's sound.c (declared there implicitly; not in nnsys/snd.h, which every game's
+// file includes): the heap's size, its frame heap's without the NNSSndHeap head, and what is left to allocate. Not in
+// the DS build (snd_heap.c is one of Black's matched files: config/b_us/arm9/delinks.txt)
+u32 NNS_SndHeapGetSize(NNSSndHeapHandle heap);
+u32 NNS_SndHeapGetFreeSize(NNSSndHeapHandle heap);
+
+u32 NNS_SndHeapGetSize(NNSSndHeapHandle heap) {
+    NNSiFndHeapHead *head = (NNSiFndHeapHead *)heap->handle;
+    return (u32)((u8 *)head->heapEnd - (u8 *)head->heapStart);
+}
+
+// NitroSystem's NNS_FndGetAllocatableSizeForFrmHeap(handle) at the default alignment of 4: between the two ends
+u32 NNS_SndHeapGetFreeSize(NNSSndHeapHandle heap) {
+    NNSiFndFrmHeapHead *frm = (NNSiFndFrmHeapHead *)((NNSiFndHeapHead *)heap->handle + 1);
+    uintptr_t start = ROUNDUP((uintptr_t)frm->headAllocator, 4);
+    uintptr_t end = (uintptr_t)frm->tailAllocator;
+    return start > end ? 0 : (u32)(end - start);
+}
+#endif
+
 static void InitHeapSection(NNSSndHeapSection *section);
 static BOOL InitHeap(NNSSndHeap *heap, NNSFndHeapHandle handle);
 static BOOL NewSection(NNSSndHeap *heap);

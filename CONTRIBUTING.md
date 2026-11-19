@@ -31,7 +31,7 @@ constants where a named value exists.
 
 ## Port changes
 
-The native port (`port/`) builds with meson on top of the ROM build: see [docs/port-build.md](docs/port-build.md).
+The native port (`port/`) builds with meson, with or without the ROM build: see [docs/port-build.md](docs/port-build.md).
 It must not change the DS ROMs. Renderer and sound changes are checked against the reference outputs described in
 [docs/vcore.md](docs/vcore.md), [docs/gpu.md](docs/gpu.md) and [docs/acore.md](docs/acore.md).
 

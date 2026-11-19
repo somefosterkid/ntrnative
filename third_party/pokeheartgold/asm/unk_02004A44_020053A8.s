@@ -1,0 +1,8 @@
+#include "constants/sndseq.h"
+	.include "macros.inc"
+	.include "unk_02004A44.inc"
+	.include "global.inc"
+
+	.public GF_NNS_SndPlayerGetSeqNo
+	.public sub_02004A60
+	.text

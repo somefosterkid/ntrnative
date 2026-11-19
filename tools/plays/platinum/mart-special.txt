@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-cel24
+# reaches: a Poke Mart's shop menu without walking to one: BWPORT_PT_WARP puts the player in the Jubilife mart (map 4, tile 3:11), BWPORT_PT_SCRIPT=2:1700 starts that map's script 2 (the specialty vendor (Jubilife's list): the map's own script file, 1-based); a press every 45 frames walks the greeting, BUY and the first item, B out (the shop list and the purchase message checked in a picture at the end of the first run)
+# end: f3500
+env BWPORT_PT_WARP=4:3:11 BWPORT_PT_SCRIPT=2:1700
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys a*f4@f1900 a*f4@f1945 a*f4@f1990 a*f4@f2035 a*f4@f2080 a*f4@f2125 a*f4@f2170 a*f4@f2215 a*f4@f2260 a*f4@f2305 a*f4@f2350 a*f4@f2395 a*f4@f2440 a*f4@f2485 a*f4@f2530 a*f4@f2575 a*f4@f2620 a*f4@f2665 a*f4@f2710 a*f4@f2755 a*f4@f2800 b*f4@f2900 b*f4@f2960 b*f4@f3020 b*f4@f3080 b*f4@f3140 b*f4@f3200 b*f4@f3260 b*f4@f3320 b*f4@f3380

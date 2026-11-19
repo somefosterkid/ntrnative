@@ -1,0 +1,39 @@
+# The undefined DATA symbols that are known (tools/port_undefined.py --allow-data; docs/port-build.md "undefined data").
+# Each is a zeroed block in the exe (nothing defines the table or struct the game's extern names), so the game reads
+# zeros from it: a bug waiting, not a gap to live with. The HeartGold/SoulSilver build (-Dhgss=true) fails when an
+# undefined datum is NOT named here; Black's and Platinum's builds only list theirs in undefined.txt ("UNDEFINED DATA").
+# Define one (a port/ file, or its decompiled C) and delete its line; never add a line for a table the game reads in a
+# route you care about.
+
+# Black 2 / White 2 (b2.o w2.o, in every build that has them): the comm TVT proc table, the DWC root certificate
+COMM_TVT_PROC_FUNCTIONS
+DWCi_RootCertNintendoClass2
+
+# HeartGold/SoulSilver (hg.o): the Geonet globe's window and list templates and menu table, in port/nonmatching's C
+# (GeonetGlobe_Main.c and the overlay 69 files), with the file's own labels (ov69_*), and a graphics-modes constant
+sGeonetGlobeListWindowTemplate
+sGeonetMenuEntries
+sGeonetMenuTemplate
+sGeonetPlaceListTemplate
+sGeonetPlaceListWindowTemplate
+sGeonetYesNoWindowTemplate
+ov69_021E764C
+ov69_021E7654
+ov69_021E765C
+ov69_021E766C
+_021083E4
+
+# HeartGold/SoulSilver (hg.o), hgss-port hk594 on: the Pokewalker screen's (overlay 112) hitbox lists and the Wii message
+# settings' (overlay 75) application templates are `static` in the decomp's C, and port/asmdata/LABELS.txt lists them, so
+# the asm copy of each label is local (NAME__ds). What still names them is dead or never indexed, and nothing reads them
+# through a symbol: the asm tables ov112_021FF514 and ov75_02249904 (their C twins, in host layout, have the same labels
+# in LABELS.txt, so the asm copies are local and nothing refers to them), and element 0 of the asm table ov112_021FF528
+# (only a 1-based index reaches it: the 27 entries of the screen's record table hold 1 to 8, checked at cfb59e43a).
+ov112_021F3664
+ov112_021F366C
+ov112_021F3678
+ov112_021F3694
+ov112_021F36A4
+ov112_021F36B8
+ov75_022498E4
+ov75_022498F4

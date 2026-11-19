@@ -16,3 +16,186 @@ starter2 | w2-starter | Pa G:npc:2 Wf S | zone 427 36,710 | w2-starter2
 # T5 (36,716) starts Hugh's battle, then the scene runs on (Bianca, the walk to the Center, the tour, the Poke Balls: work 6) in one
 # event that moves the player: G:trig:5 would keep walking after it, so KD:8 (2 tiles down from T3's tile) steps onto T5.
 hugh | w2-starter2 | Pa G:trig:3 Wf KD:8 Wf S | zone 435 9,16 | w2-balls
+
+# rw14 (catch-up to Black 2, b2 balls-r19 .. ): White 2 has the same zones and uids as Black 2 here. Leaving the Center runs Mom's scene (427 scene table, work 0x40a1 6 -> 7), the gate scene (438), then T0 (51,699) in Route 19 is Bianca's catching demo (work 0x40a1 = 8); G tokens instead of b2's tile walk. End 55,699 (b2: 56,696).
+balls-r19 | w2-balls | Pa G:warp:427 Wf G:warp:438 Wf G:warp:437 Wf G:trig:0 Wf S W30 | zone 437 55,699 | w2-route19
+# rw14: the walk to Floccesy's east end fights the Route 19 trainers and meets Alder's 'You there, Trainer!' scene (as b2).
+r19-floccesy | w2-route19 | 124,696 W100 S W30 | zone 439 124,696 | w2-floccesy
+floccesy-alder | w2-floccesy | G:warp:443 Pa G:npc:4 Pb G:warp:439 G:trig:1 Wf G:113,669 W200 S W30 | zone 439 113,669 | w2-alder
+alder-r20 | w2-alder | 113,663! 158,663 W30 S W30 | zone 446 158,663 | w2-route20
+r20-ranch | w2-route20 | 155,663 155,646 141,646 141,639! W30 S W30 | zone 444 141,639 | w2-ranch
+# rw14: ends at 41,46 (b2's learned end 42,45 was under defaultopts), Hugh's scene done, work 0x40a7 = 1.
+ranch-hugh | w2-ranch | 141,628! 42,50 42,46 41,46 W60 S W30 | zone 445 41,46 | w2-ranch-hugh
+ranch2 | w2-ranch-hugh | 22,45 22,33 W60 S W30 | zone 445 22,33 | w2-ranch2
+ranch3 | w2-ranch2 | 23,33 23,13 W60 S W30 | zone 445 23,13 | w2-ranch3
+ranch4 | w2-ranch3 | 23,12 31,12 31,11 42,11 42,14 W60 S W30 | zone 445 42,14 | w2-ranch4
+# rw14: ends at 50,24 (b2: 51,23); work 0x40a7 = 5, 0x40a5 = 3.
+ranch5 | w2-ranch4 | 42,21 47,21 47,26 50,26 50,24 W200 S W30 | zone 445 50,24 | w2-ranch5
+# rw14 (b2 has no leg for this): G:zone:439 walks the ranch's exit and Route 20 back to Floccesy; the end 127,661 was learned.
+ranch-out | w2-ranch5 | Pa G:zone:439 Wf S W30 | zone 439 127,661 | w2-floccesy2
+alder2 | w2-floccesy2 | 113,663 113,667 W100 S W30 | zone 439 113,667 | w2-alder2
+# Skipped from b2: to-gate / gate-aspc (the trip back to Aspertia and its Center): nothing there sets a story value, Alder's house (zone 440, scene 3: work 0x40a5 = 5) is next in Floccesy.
+# rw14: b2 goes back to Aspertia's Center first (gate-aspc, aspc13) to find the school door blocked; nothing there sets a story value, so w2 goes straight from Floccesy to Alder's house (zone 440, door 107,661).
+aspc-alder | w2-alder2 | Pa G:warp:440 Wf:60 S W30 | zone 440 6,10 | w2-alderhouse
+# rw14: G:warp:439 G:warp:443 G:npc:4 (the nurse): the Medal Rally scene runs at once on the way (work 0x40a5 = 6, 0x40a8 = 1).
+alder-medal | w2-alderhouse | Pa G:warp:439 G:warp:443 G:npc:4 Wf:60 S W30 | zone 443 7,12 | w2-medal
+medal-school | w2-medal | Pa G:zone:436 Wf:60 S W30 | zone 436 9,25 | w2-school
+# rw14: G:warp:489 works from the school's lobby (b2 walks tiles).
+school-gym | w2-school | G:warp:489 Wf:60 S W30 | zone 489 15,23 | w2-gym
+gym-lass | w2-gym | Pa G:npc:2 S | zone 489 16,9 | w2-gym-lass
+gym-youngster | w2-gym-lass | Pa G:npc:1 S | zone 489 14,18 | w2-gym-young
+gym-cheren | w2-gym-young | Wf:30 16,17 16,9 20,9 20,2 16,2 Wf:10 Pa Ka:2 Wb S | zone 489 16,2 | w2-badge1
+# rw14: as b2 (the C-Gear scene: M3000, Down onto No, then Yes to restricted).
+gym-out | w2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 M3000 KD:2 K0:6 Ka:2 K0:60 Pa Wf:60 S | zone 427 39,741 | w2-v1
+# rw14: save bytes vary on some repeats (the C-Gear WM thread, as in b2).
+to-floccesy | w2-v1 | G:zone:439 Wf S W30 | zone 439 96,696 | w2-v2
+floccesy-r20 | w2-v2 | G:zone:446 Wf S W30 | zone 446 128,663 | w2-v3
+r20-virbank | w2-v3 | G:zone:448 Wf S W30 | zone 448 194,650 | w2-v4
+virbank-scenes | w2-v4 | G:trig:2 Wf G:trig:0 Wf S W30 | zone 448 205,650 | w2-v5
+virbank-gym | w2-v5 | G:warp:455 Wf G:warp:502 Wf G:npc:5 G:npc:1 G:npc:2 G:npc:0 Wf S W30 | zone 502 8,2 | w2-badge2
+virbank-scout | w2-badge2 | G:trig:0 Wf G:warp:455 Wf G:warp:448 Wf S W30 | zone 448 228,668 | w2-v6
+# Pokestar Studios: the tour (zone 566's scene, the first movie watched in zone 574), which ends in the studio lobby (zone 568) with work 0x40ac = 4.
+# rw14: --repeat is DIFFERENT as in b2 (the movie's length varies: end V-blank 12314 or 12352, the same tile); one repeat run once hung in the game ('no frame for 20 s', frame 5071, Machine_ProcessExitRequest), not seen again, likely CPU load. Saved anyway so the next leg can start.
+pokestar-tour | w2-v6 | G:warp:453 Wf G:warp:566 Pa Wf S W30 | zone 568 14,18 | w2-v7
+pokestar-movie | w2-v7 | Pa G:npc:0 Wf S W30 | zone 568 14,12 | w2-v8
+pokestar-docks | w2-v8 | Pa G:warp:566 G:warp:453 G:warp:448 G:trig:3 Wf G:npc:9 Wf S W30 | zone 448 238,669 | w2-v9
+route20-grunt | w2-v9 | Pa G:warp:447 G:warp:446 G:161,662 G:npc:22 Wf S W30 | zone 446 155,666 | w2-v10
+docks-return | w2-v10 | Pa G:warp:447 G:warp:448 G:trig:4 Wf S W30 | zone 448 239,669 | w2-v11
+boat | w2-v11 | Pa G:warp:452 G:npc:3 Wf S W30 | zone 38 12,10 | w2-c1
+castelia | w2-c1 | Pa G:warp:28 Wf S W30 | zone 28 44,79 | w2-c2
+c-girl | w2-c2 | G:warp:31 Wf G:npc:0 Wf S W30 | zone 31 23,48 | w2-c3
+c-iris | w2-c3 | G:warp:28 Wf G:trig:1 Wf S W30 | zone 28 69,59 | w2-c4
+c-pier | w2-c4 | G:trig:0 Wf S W30 | zone 28 72,39 | w2-c5
+c-sewer | w2-c5 | Pa G:warp:40 Wf G:warp:495 Wf S W30 | zone 495 88,21 | w2-c6
+c-sewer2 | w2-c6 | Pa G:trig:1 Wf G:trig:0 Wf S W30 | zone 495 52,9 | w2-c7
+c-plaza | w2-c7 | Pa G:zone:30 G:warp:32 Wf S W30 | zone 32 18,62 | w2-c8
+c-gym-in | w2-c8 | Pa G:warp:30 Wf G:5,19 KD:12 G:warp:31 Wf G:warp:29 Wf S W30 | zone 29 16,20 | w2-c9
+c-gym-rides | w2-c9 | Pa Wf G:ride:0 G:ride:10 G:ride:5 G:ride:6 G:ride:12 G:ride:14 Wf S W30 | zone 488 15,19 | w2-c10
+c-burgh | w2-c10 | Pa G:npc:0 Wf S W30 | zone 488 15,11 | w2-badge3
+c-gym-ride-out | w2-badge3 | Pa G:15,19 KD:30 Pa Wf S W30 | zone 29 2,14 | w2-c11
+c-gym-door | w2-c11 | Pa G:ride:13 G:ride:7 G:ride:4 G:ride:11 G:ride:1 Wf G:warp:31 Wf S W30 | zone 31 24,48 | w2-c12
+c-colress | w2-c12 | Pa G:warp:30 Wf G:trig:0 Wf S W30 | zone 30 12,9 | w2-c13
+r4-gate | w2-c13 | Pa G:warp:32 Wf G:warp:51 Wf G:trig:0 Wf S W30 | zone 51 4,10 | w2-r4-1
+# White 2 Route 4 is zone 551 (Black 2: 326): out of the gatehouse (zone 51) by its north door, onto trigger T0 (work 0x40b6 = 3 after it)
+r4-colress | w2-r4-1 | Pa G:warp:551 Wf G:trig:0 Wf S W30 | zone 551 405,578 | w2-r4-2
+r4-gate490 | w2-r4-2 | Pa G:429,546 Wf G:warp:490 Wf G:trig:0 Wf S W30 | zone 490 15,73 | w2-r4-3
+ja-greeter | w2-r4-3 | Pa G:npc:1 Wf S W30 | zone 490 15,71 | w2-r4-4
+nim-in | w2-r4-4 | Pa G:warp:62 Wf S W30 | zone 62 431,478 | w2-nim1
+nim-gym-in | w2-nim1 | Pa G:warp:64 Wf S W30 | zone 64 10,15 | w2-nim2
+nim-clyde | w2-nim2 | Pa G:npc:11 Wf S W30 | zone 64 23,22 | w2-nim3
+nim-coaster1 | w2-nim3 | Pa G:warp:585 Wf G:ride:0 Wf G:trig:0 Wf G:ride:1 Wf S W30 | zone 585 16,27 | w2-nim4
+nim-coaster2 | w2-nim4 | Pa G:trig:1 Wf G:ride:3 Wf S W30 | zone 585 41,40 | w2-nim5
+nim-coaster3 | w2-nim5 | Pa G:trig:2 Wf G:ride:5 Wf S W30 | zone 585 34,8 | w2-nim6
+nim-coaster4 | w2-nim6 | Pa G:npc:2 Wf S W30 | zone 585 28,6 | w2-nim7
+nim-coaster5 | w2-nim7 | Pa G:trig:3 Wf G:ride:7 Wf S W30 | zone 585 5,39 | w2-nim8
+nim-newgym | w2-nim8 | Pa G:warp:64 Wf G:warp:63 Wf S W30 | zone 63 15,60 | w2-nim9
+nim-newgym-clyde | w2-nim9 | Pa G:trig:4 Wf S W30 | zone 63 15,59 | w2-nim10
+nim-newgym-beauties | w2-nim10 | Pa G:trig:0 Wf G:trig:1 Wf G:trig:2 Wf S W30 | zone 63 15,24 | w2-nim11
+nim-elesa | w2-nim11 | Pa G:npc:4 Wf S W30 | zone 63 15,6 | w2-badge4
+nim-gym-exit | w2-badge4 | Pa G:trig:3 Wf S W30 | zone 63 15,53 | w2-nim12
+nim-out | w2-nim12 | Pa G:zone:62 Wf S W30 | zone 62 435,463 | w2-nim13
+nim-subway | w2-nim13 | Pa G:trig:0 Wf S W30 | zone 62 409,440 | w2-nim14
+nim-subway-battle | w2-nim14 | Pa G:npc:0 Wf S W30 | zone 62 407,439 | w2-nim15
+nim-gate | w2-nim15 | Pa G:warp:91 Wf S W30 | zone 91 15,6 | w2-nim16
+r5-in | w2-nim16 | Pa G:warp:329 Wf S W30 | zone 329 376,438 | w2-r5-1
+r5-bianca | w2-r5-1 | Pa G:trig:5 Wf S W30 | zone 518 15,14 | w2-r5-2
+r5-grotto | w2-r5-2 | Pa G:trig:0 Wf S W30 | zone 329 373,425 | w2-r5-3
+r5-hugh | w2-r5-3 | Pa X:mon:504:25 X:mon:506:25 G:352,435 Wf G:npc:8 Wf S W30 | zone 329 342,433 | w2-r5-4
+r5-charles | w2-r5-4 | Pa G:warp:91 Wf:60 G:warp:62 Wf G:411,445 Wf G:npc:5 Wf S W30 | zone 62 421,461 | w2-r5-5
+r5-bridge | w2-r5-5 | Pa G:zone:96 Wf G:245,431 S W30 | zone 96 245,431 | w2-drift1
+drift-grunts | w2-drift1 | Pa G:trig:0 Wf S W30 | zone 96 221,433 | w2-drift2
+drift-oldgrunt | w2-drift2 | Pa G:trig:2 Wf G:npc:4 Wf S W30 | zone 104 1,9 | w2-drift3
+drift-gym-in | w2-drift3 | Pa G:warp:96 Wf:60 G:warp:98 Wf:60 G:bg:2 Wf:120 S W30 | zone 97 12,87 | w2-gym5-1
+gym-clay | w2-gym5-1 | Pa G:npc:7 Wf:600 S W30 | zone 98 6,4 | w2-badge5
+drift-out | w2-badge5 | Pa G:warp:96 Wf:60 Wf S W30 | zone 96 213,403 | w2-drift4
+cave-bianca | w2-drift4 | Pa G:zone:191 Wf:60 G:trig:0 Wf S W30 | zone 192 15,14 | w2-r6-1
+pwt-drift | w2-r6-1 | G:npc:0:nota Ka:2 Pl:1 Pl:1 K0:200 Ka:3 K0:400 Ka:3 K0:40 Ka:3 K0:60 KR:3 K0:20 Ka:3 K0:40 Ka:3 K0:60 KD:3 K0:20 Ka:3 K0:40 Ka:3 K0:60 K0:30 Ka:3 K0:30 Pa Wf:300 S W30 | zone 192 15,9 | w2-r6-2
+pwt-out | w2-r6-2 | Pa G:warp:191 Wf:60 Wf:300 S W30 | zone 191 197,470 | w2-r6-3
+dock-enter | w2-r6-3 | Pa G:warp:552 Wf:60 Wf:300 S W30 | zone 552 12,31 | w2-r6-4
+dock-talk | w2-r6-4 | Pa G:npc:1 Wf:300 S W30 | zone 552 12,28 | w2-r6-5
+dock-friend | w2-r6-5 | Pa G:npc:0 Wf:300 S W30 | zone 191 197,491 | w2-r6-6
+r6-cheren | w2-r6-6 | Pa G:zone:331 Wf:60 G:trig:0 Wf:300 S W30 | zone 332 6,7 | w2-r6-7
+r6-cobalion | w2-r6-7 | Pa G:warp:331 Wf:60 G:trig:1 Wf:300 G:zone:331-195 Wf:60 S W30 | zone 195 7,59 | w2-r6-8b
+charge-1 | w2-r6-8b | Pa G:trig:0 Wf:30 F:stone:15,39:2 F:stone:9,26:3 F:stone:24,16:2 F:stone:24,17:1 G:trig:1 Wf:30 S W30 | zone 195 47,41 | w2-charge1b
+charge-2 | w2-charge1b | Pa F:stone:60,42:1 G:warp:196 Wf:60 F:stone:45,14:2 F:stone:43,12:0 G:warp:195 Wf:60 S W30 | zone 195 56,5 | w2-charge2b
+mist-enter | w2-charge2b | Pa G:warp:107 Wf:60 Wf:300 S W30 | zone 107 103,310 | w2-mist1b
+mist-juniper | w2-mist1b | Pa G:trig:0 Wf:300 S W30 | zone 107 103,301 | w2-mist2b
+gym6-enter | w2-mist2b | Pa G:warp:108 Wf:60 Wf S W30 | zone 108 11,50 | w2-gym6-1b
+gym6-skyla | w2-gym6-1b | Pa G:trig:0 Wf:60 G:npc:3 Wf:900 S W30 | zone 108 11,3 | w2-badge6
+gym6-out | w2-badge6 | Pa G:warp:107 Wf:60 Wf:300 S W30 | zone 107 78,271 | w2-r7-1
+r7-call | w2-r7-1 | Pa G:zone:337 Wf:60 G:trig:0 Wf:300 S W30 | zone 337 136,245 | w2-r7-2
+tower-guide | w2-r7-2 | Pa G:warp:338 Wf:60 G:npc:0 Wf:300 S W30 | zone 338 16,15 | w2-r7-3
+plane | w2-r7-3 | Pa G:zone:338-111 Wf:60 G:npc:4 Wf:900 S W30 | zone 458 617,305 | w2-lent1
+reversal | w2-lent1 | Pa G:zone:458-412 Wf:600 S W30 | zone 412 710,299 | w2-rev1
+undella | w2-rev1 | Pa G:trig:0 Wf:600 S W30 | zone 412 751,299 | w2-und1
+r13 | w2-und1 | Pa G:zone:412-370 Wf:60 G:trig:1 Wf:600 S W30 | zone 370 683,187 | w2-r13-1
+lacunosa | w2-r13-1 | Pa G:zone:370-406 Wf:60 G:trig:0 Wf:600 S W30 | zone 409 6,5 | w2-lac1
+lacunosa-out | w2-lac1 | Pa G:warp:406 Wf:300 S W30 | zone 406 653,170 | w2-lac2
+r12 | w2-lac2 | Pa G:zone:406-255 Wf:60 F:surf G:zone:255-120 Wf:60 S W30 | zone 120 446,175 | w2-r12-1
+opelucid | w2-r12-1 | Pa G:trig:1 Wf:600 S W30 | zone 120 440,175 | w2-opel1
+gym7-drayden | w2-opel1 | Pa G:warp:121 Wf:300 G:15,46 KU:300 Wf:30 G:npc:1 G:trig:32 Wf:60 G:trig:2 Wf:60 G:trig:22 Wf:60 G:npc:3 G:trig:11 Wf:60 G:trig:20 Wf:60 G:trig:26 Wf:60 G:npc:4 G:trig:13 Wf:60 G:trig:24 Wf:60 KU:40 Ka:4 Wb Wf:300 S W30 | zone 121 15,18 | w2-badge7
+gym7-out | w2-badge7 | Pa Wf:300 G:warp:120 Wf:300 S W30 | zone 120 405,147 | w2-opel2
+# White 2: ends at zone 120 417,163, Black 2 at zone 120 415,163 (the same zone, the same story changes)
+opel-plasma | w2-opel2 | Pa G:trig:2 Wf:300 G:trig:4 Wf:300 S W30 | zone 120 417,163 | w2-opel3
+# White 2: ends at zone 120 418,164, Black 2 at zone 120 418,162 (the same zone, the same story changes)
+opel-house | w2-opel3 | Pa G:warp:123 Wf:300 S W30 | zone 120 418,164 | w2-opel4
+opel-grunts | w2-opel4 | Pa G:npc:2 G:npc:3 G:npc:4 Wf S W30 | zone 120 423,145 | w2-opel5
+# White 2: ends at zone 120 405,146, Black 2 at zone 120 406,145 (the same zone, the same story changes)
+opel-lady | w2-opel5 | Pa G:npc:1 Wf S W30 | zone 120 405,146 | w2-opel6
+# White 2: ends at zone 120 440,177, Black 2 at zone 120 440,173 (the same zone, the same story changes)
+opel-marine | w2-opel6 | Pa G:trig:0 Wf:600 S W30 | zone 120 440,177 | w2-opel7
+opel-r12 | w2-opel7 | Pa To:90000 G:zone:120-365 Wf:60 G:486,176 G:490,177 G:500,176 G:zone:365-255 Wf:60 S W30 | zone 255 3,33 | w2-r12b1
+opel-lake | w2-r12b1 | Pa Wf:60 F:surf To:90000 G:zone:255-412 Wf:60 S W30 | zone 412 752,296 | w2-tube1
+tube | w2-tube1 | Pa To:60000 G:zone:412-465 Wf:60 S W30 | zone 465 790,179 | w2-tube2
+humi-scene1 | w2-tube2 | Pa G:trig:3 Wf:600 S W30 | zone 465 789,175 | w2-humi1
+humi-scene2 | w2-humi1 | Pa G:trig:0 Wf:600 S W30 | zone 465 795,157 | w2-humi2
+humi-gym-in | w2-humi2 | Pa G:warp:473 Wf:60 S W30 | zone 473 16,75 | w2-gym8-1
+humi-gym | w2-gym8-1 | Pa Wf:60 To:60000 G:ride:35 G:ride:30 G:ride:25 G:ride:23 G:ride:26 G:ride:15 G:ride:11 G:ride:9 G:ride:2 G:ride:8 G:ride:9 G:ride:36 G:npc:0 Wf:900 S W30 | zone 473 16,6 | w2-badge8
+humi-out | w2-badge8 | Pa Wf:60 G:ride:3 Wf:60 G:warp:465 Wf:600 S W30 | zone 465 783,176 | w2-humi3
+humiw-scene | w2-humi3 | Pa To:60000 G:730,138 Wf:30 G:trig:0 Wf:900 S W30 | zone 474 727,138 | w2-humiw1
+r21-cave-in | w2-humiw1 | Pa To:60000 G:785,190 F:surf:785,190:1 Wf:60 To:60000 G:warp:515 Wf:60 S W30 | zone 515 6,15 | w2-sea1
+seaside-cave | w2-sea1 | Pa To:60000 G:6,29 G:14,40 G:14,47 F:surf:14,48:3 To:60000 G:25,47 G:25,33 G:25,20 G:17,14 G:npc:9 Wf:60 G:door:4 Wf:60 G:trig:0 Wf:900 S W30 | zone 463 797,241 | w2-sea2
+frigate-board | w2-sea2 | Pa To:60000 G:warp:552 Wf:900 S W30 | zone 552 9,30 | w2-frig1
+# Plasma Frigate, White 2: no switches; the terminal (zone 563 BG 0 at 14,8, script 2) wants flag 0x164 (zone 583 uid 1's trainer battle), asks yes/no and opens the naming screen for the password (player ID % 5, a message of the frigate's text bank). R:script:563:2 is the terminal's own script, started while facing it; Pk:pw types the password the game asked for. Work 0x40fb = 1 opens the barrier.
+frigate-switches | w2-frig1 | Pa G:warp:563 Wf:60 G:warp:552 Wf:60 G:warp:558 Wf:60 G:warp:583 Wf:60 G:npc:1 Wf:60 G:warp:558 Wf:60 G:warp:552 Wf:60 G:warp:563 Wf:60 G:14,9 R:script:563:2 Py Pk:pw Wf:60 G:warp:556 Wf:60 S W30 | zone 556 12,20 | w2-frig2
+frigate-end | w2-frig2 | Pa X:heal G:trig:0 Wf:900 S W30 | zone 463 798,242 | w2-frig3
+chasm-cave-back | w2-frig3 | Pa To:60000 G:warp:515 Wf:60 G:23,11 F:surf:23,11:1 Wf:60 G:25,47 G:14,47 G:14,40 G:6,29 G:door:1 Wf:60 S W30 | zone 463 782,241 | w2-chasm1
+chasm-surf-humi | w2-chasm1 | Pa Wf:60 G:794,230 F:surf:794,230:0 Wf:60 G:785,193 Wf:30 G:785,190 Wf:60 S W30 | zone 465 785,190 | w2-chasm2
+chasm-r22 | w2-chasm2 | Pa To:60000 G:warp:231 Wf:60 S W30 | zone 231 61,12 | w2-chasm3
+chasm-scene1 | w2-chasm3 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 231 60,39 | w2-chasm4
+chasm-to233 | w2-chasm4 | Pa To:60000 G:warp:233 Wf:60 S W30 | zone 233 26,78 | w2-chasm5
+chasm-scene2 | w2-chasm5 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 233 26,72 | w2-chasm6
+chasm-frig2 | w2-chasm6 | Pa To:60000 G:warp:562 Wf:60 S W30 | zone 562 23,30 | w2-chasm7
+# White 2's Giant Chasm Frigate is a floor-switch and warp-pad puzzle in zone 564 (Black 2's pad leads to a plain zone 561): the four plates (triggers 8 9 10 11, works 0x40f5..0x40f8) sit in sealed rooms entered by warp pads (trigger scripts 27..40 move the player to a tile; the planner knows them as levers, port_route_map_game.h PortMap_Frigate) and the floor switches (triggers 3..6) are flipped by the planner as the walk needs; the gate trigger 31 at the north end then runs. A G:trig on a pad ends where the pad leaves the player
+chasm-card | w2-chasm7 | Pa To:60000 G:warp:554 Wf:60 G:trig:0 Wf:300 G:trig:23 Wf:120 G:trig:8 Wf:60 G:trig:17 Wf:120 G:trig:21 Wf:120 G:trig:9 Wf:60 G:trig:20 Wf:120 G:trig:30 Wf:120 G:trig:10 Wf:60 G:trig:18 Wf:120 G:trig:29 Wf:120 G:trig:11 Wf:60 G:trig:19 Wf:120 G:trig:31 Wf:600 S W30 | zone 564 13,14 | w2-chasm8
+# the analog of Black 2's chasm-colress: the trigger at the east edge of the hub (T1) warps to zone 555, whose scene needs the gate's work 0x40f3 = 1; then the actor uid 0
+chasm-colress | w2-chasm8 | Pa To:60000 G:trig:1 Wf:300 G:npc:0 Wf:900 S W30 | zone 555 6,9 | w2-chasm9
+# the analog of Black 2's chasm-grunt9: back from zone 555 to the hub; the trigger T16 at 8,12 runs with work 0x4125 = 1 (the previous leg set it); the actor uid 11 there appears
+chasm-grunt9 | w2-chasm9 | Pa To:60000 G:trig:0 Wf:300 G:trig:16 Wf:900 S W30 | zone 564 8,12 | w2-chasm10
+# the analog of Black 2's chasm-557: the trigger T2 at the west edge of the hub warps to zone 557
+chasm-557 | w2-chasm10 | Pa To:60000 G:trig:2 Wf:900 S W30 | zone 557 11,8 | w2-chasm11
+# the analog of Black 2's chasm-triad: both actors of zone 557 (uids 3 and 5) in turn
+chasm-triad | w2-chasm11 | Pa To:60000 G:npc:3 Wf:600 G:npc:5 Wf:900 S W30 | zone 557 11,9 | w2-chasm12
+chasm-233 | w2-chasm12 | Pa To:60000 G:warp:233 Wf:60 S W30 | zone 233 49,65 | w2-chasm15
+chasm-604 | w2-chasm15 | Pa To:30000 G:warp:234 Wf:60 G:warp:604 Wf:60 S W30 | zone 604 15,45 | w2-chasm16
+chasm-kyurem | w2-chasm16 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 604 15,24 | w2-chasm17
+chasm-legend | w2-chasm17 | Pa To:60000 G:npc:1 Wf:900 S W30 | zone 604 17,18 | w2-chasm18
+chasm-out | w2-chasm18 | Pa To:60000 G:zone:604-475 Wf:60 S W30 | zone 475 663,138 | w2-r23-0
+r23 | w2-r23-0 | Pa To:60000 G:zone:475-573 Wf:60 S W30 | zone 573 81,57 | w2-vr0
+# White 2's own Victory Road: zone 573's door goes to zone 594 (587 is Black 2's). The way west to the door at 7,16 (to zone 588) is shut by the 2x2 Strength boulder uid 1 at 19,40: pushed left twice, then up twice into the 2x2 hole at 17-18,37-38 (the dump's O; the filled hole is floor). The planner reaches only zone 573 before that (the way to the north doors has one-way ledges and needs zone 588 first).
+vr-ruins | w2-vr0 | Pa To:60000 G:warp:594 Wf:60 F:strength:1:L:2 F:push:1:U:2 Wf:60 G:warp:588 Wf:60 S W30 | zone 588 21,23 | w2-vr1
+# White 2 Victory Road: zone 588 (second chamber, door 10,3) to zone 595 (its south door at 7,7 leads on to zone 590). Trainers on the way fight by sight.
+vr-595 | w2-vr1 | Pa To:60000 G:warp:595 Wf:60 G:warp:590 Wf:60 S W30 | zone 590 6,26 | w2-vr2
+# Zone 590 is shared with Black 2 but its boulders are not: uids 0 and 1 (flag 0x36a) are Black 2's, White 2's are uids 2 and 3 (flag 0x36b). From the west entrance (6,26) the way north is the 2x2 Strength boulder uid 2 at 27,10: pushed north two tiles it drops into the 2x2 hole at 27-28,7-8 (the dump's O), and the walk goes over it and through the north-west room to the door D1 5,6 into zone 592 (uid 3 and the hole at 31-32,6-7 lead to the north-east door and are not needed).
+vr-590 | w2-vr2 | Pa To:60000 Wf:60 F:strength:2:U:2 Wf:30 G:warp:592 Wf:60 S W30 | zone 592 16,48 | w2-vr3
+# Zone 592 from the west cave door: the north door W5 (33,1) into zone 228 (trainers on the way fight by sight), its trigger 0, the door into zone 214 and its trigger 0: the warp to the League (zone 136). The same walk as Black 2's vr-north from another start tile.
+vr-north | w2-vr3 | Pa G:warp:228 Wf:60 G:trig:0 Wf:300 G:warp:214 Wf:60 G:trig:0 Wf:300 S W30 | zone 136 32,57 | w2-vr4
+lg-gate | w2-vr4 | Pa G:trig:0 Wf:300 Pa Wf:60 S W30 | zone 136 32,48 | w2-lg1
+lg-140 | w2-lg1 | Pa G:warp:137 Wf:200 G:warp:140 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w2-lg2
+lg-142 | w2-lg2 | Pa G:warp:142 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w2-lg3
+lg-141 | w2-lg3 | Pa G:warp:141 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w2-lg4
+lg-143 | w2-lg4 | Pa G:warp:143 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w2-lg5
+lg-lift | w2-lg5 | Pa G:bg:0 Wf:900 S W30 | zone 138 30,83 | w2-lg6
+lg-iris | w2-lg6 | Pa G:warp:144 Wf:300 G:trig:4 Wf:900 To:60000 G:npc:0 Wf:900 | zone 428 13,5 | w2-champ
+# The in-process restart's sound (fx7): the field save's sound effect played, then a soft reset (one: L+R+Start+Select for a frame), then a save again. Before acapture_reset the new core's memory was empty while the translation still took the save effect's data as written: the effect never ended and the save hung at its wait (REPORT_STATE_WAIT_SAVE_SE), as after the credits' own reset (lg-iris then S).
+reset-save | w2-champ | Pa S W30 Krlse:1 Wf:300 S W30 | zone 428 13,5 | -

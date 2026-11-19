@@ -1,0 +1,99 @@
+diff --git a/src/overlay009/ov9_02249960.c b/src/overlay009/ov9_02249960.c
+index caa627532..1bb444795 100644
+--- a/src/overlay009/ov9_02249960.c
++++ b/src/overlay009/ov9_02249960.c
+@@ -13925,3 +13925,94 @@ static const DistWorldMapObjectEvents sMapObjectEvents[] = {
+     { MAP_HEADER_DISTORTION_WORLD_TURNBACK_CAVE_ROOM, sMapObjectEventsTurnbackCaveRoom },
+     { MAP_HEADER_INVALID, NULL }
+ };
++
++// the route pilot's view (port/game/route_gen4.c): the current floor's floating platform jump points (the templates the
++// game finds by the player's tile and facing, FindFloatingPlatformJumpPointAt). Returns the count (0 when the Distortion
++// World's system is not up); for index < count it fills v: the facing, the bounds (start x y z, size x y z: inclusive), the
++// displacement x y z, the platform kind and the handler index
++int DistWorld_PortJumpPoint(FieldSystem *fieldSystem, int index, int v[12])
++{
++    DistWorldSystem *system;
++    const DistWorldFloatingPlatformJumpPointTemplate *t;
++
++    if (PersistedMapFeatures_GetID(MiscSaveBlock_GetPersistedMapFeatures(FieldSystem_GetSaveData(fieldSystem))) != DYNAMIC_MAP_FEATURES_DISTORTION_WORLD
++        || fieldSystem->unk_04 == NULL || fieldSystem->unk_04->dynamicMapFeaturesData == NULL) {
++        return 0;
++    }
++
++    system = fieldSystem->unk_04->dynamicMapFeaturesData;
++
++    if (system->mainArchive.floatingPlatformJumpPoints.templates == NULL) {
++        return 0;
++    }
++
++    if (index >= 0 && index < system->mainArchive.floatingPlatformJumpPoints.count) {
++        t = &system->mainArchive.floatingPlatformJumpPoints.templates[index];
++        v[0] = t->playerDir;
++        v[1] = t->bounds.startTileX;
++        v[2] = t->bounds.startTileY;
++        v[3] = t->bounds.startTileZ;
++        v[4] = t->bounds.sizeX;
++        v[5] = t->bounds.sizeY;
++        v[6] = t->bounds.sizeZ;
++        v[7] = t->xDisplacement;
++        v[8] = t->yDisplacement;
++        v[9] = t->zDisplacement;
++        v[10] = t->floatingPlatformKind;
++        v[11] = t->handlerIndex;
++    }
++
++    return system->mainArchive.floatingPlatformJumpPoints.count;
++}
++
++// the route pilot's view (port/game/route_gen4.c): the current floor's floating platforms (the floating floors, walls and
++// ceilings the player walks on with the gravity turned: GetCurrentFloatingPlatformTileAttributes reads the current one's
++// grid). Returns the count (0 when the Distortion World's system is not up); for index < count it fills v: the kind, the
++// bounds (start x y z, size x y z: a tile is in when start <= t <= start + size), the grid's tile counts (vertical,
++// horizontal), 1 when it is the current platform; with attr != NULL its attribute grid (at most n entries) is read from the
++// archive as LoadFloatingPlatformTerrainAttributes does
++int DistWorld_PortPlatform(FieldSystem *fieldSystem, int index, int v[10], u16 *attr, int n)
++{
++    DistWorldSystem *system;
++    DistWorldFloatingPlatformManager *man;
++    const DistWorldFloatingPlatformTemplate *t;
++    u32 size;
++
++    if (PersistedMapFeatures_GetID(MiscSaveBlock_GetPersistedMapFeatures(FieldSystem_GetSaveData(fieldSystem))) != DYNAMIC_MAP_FEATURES_DISTORTION_WORLD
++        || fieldSystem->unk_04 == NULL || fieldSystem->unk_04->dynamicMapFeaturesData == NULL) {
++        return 0;
++    }
++
++    system = fieldSystem->unk_04->dynamicMapFeaturesData;
++    man = &system->mainArchive.floatingPlatformMan;
++
++    if (man->templates == NULL) {
++        return 0;
++    }
++
++    if (index >= 0 && index < man->platformCount) {
++        t = &man->templates[index];
++        v[0] = t->kind;
++        v[1] = t->bounds.startTileX;
++        v[2] = t->bounds.startTileY;
++        v[3] = t->bounds.startTileZ;
++        v[4] = t->bounds.sizeX;
++        v[5] = t->bounds.sizeY;
++        v[6] = t->bounds.sizeZ;
++        v[7] = t->tileCountVertical;
++        v[8] = t->tileCountHorizontal;
++        v[9] = index == man->currentPlatformIndex;
++
++        if (attr != NULL && n > 0) {
++            size = NARC_GetMemberSize(system->attrNARC, t->distortionWorldAttrID);
++
++            if (size > (u32)n * sizeof(u16)) {
++                size = (u32)n * sizeof(u16);
++            }
++
++            NARC_ReadFromMember(system->attrNARC, t->distortionWorldAttrID, 0, size, attr);
++        }
++    }
++
++    return man->platformCount;
++}

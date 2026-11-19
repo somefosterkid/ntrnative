@@ -1,0 +1,100 @@
+--- a/libraries/sim/src/sim_main.cpp
++++ b/libraries/sim/src/sim_main.cpp
+@@ -4856,19 +4856,88 @@
+ // and the game's own V-blank work starts), then a line every 63.555 us (263 lines at 59.8261 Hz), 0 after 262, and
+ // held at 191 when the frame runs longer than the DS's. Code that does its VRAM loads early in the V-blank (mcss.c's
+ // load tasks, 192 to 200) and code that spreads work over the frame read what the DS would; it was always 0
++// bw-port (libntr-vcountpin.patch): under BWPORT_BENCH_CLOCK (routes, tests) the V-count is a function of the game's frames,
++// not of the host clock: 193 for every read (the line just after the V-blank starts, where the DS's game does its V-blank
++// work), so mcss.c's sprite loads (lines 192..200) always run in the frame they were asked for and field_g3d_mapper.c's
++// chunk budget is always the full 0xf000, whatever the host's load. A loop that reads it more than 4096 times in a frame (none
++// is known) sees it move on, a line a read, so it still ends. BWPORT_VCOUNTLOG=FILE (any mode) appends the reads the clock
++// put in lines 11..192 (the frame ran past the DS's V-blank: a smaller chunk budget, a skipped sprite load) to FILE.PID,
++// rewritten every 300 frames and at exit (a route leg ends with _exit)
++#ifdef _WIN32
++#include <process.h>   // getpid
++#endif
+ static struct timespec s_SIM_vblankStart;
++static int s_SIM_vcountPin = -1;
++static u32 s_SIM_vcountReads;   // reads since the V-blank (pinned mode)
++static const char *s_SIM_vcountLog;
++static u64 s_SIM_vcountTotal, s_SIM_vcountMid, s_SIM_vcountMidFrames;
++static u32 s_SIM_vcountMidFrame = 0xffffffffu, s_SIM_vcountFrame;
+ 
+-static void SIM_StartVBlankLines() { clock_gettime(CLOCK_MONOTONIC, &s_SIM_vblankStart); }
++static void SIM_VCountLogWrite(void) {
++  char path[1024];
++  snprintf(path, sizeof(path), "%s.%d", s_SIM_vcountLog, (int)getpid());
++  FILE *f = fopen(path, "w");
++  if (f != NULL) {
++    fprintf(f, "vcount: %llu reads, %llu in lines 11..192 (on the clock) in %llu frames of %u, pinned %d\n",
++            (unsigned long long)s_SIM_vcountTotal, (unsigned long long)s_SIM_vcountMid,
++            (unsigned long long)s_SIM_vcountMidFrames, s_SIM_vcountFrame, s_SIM_vcountPin);
++    fclose(f);
++  }
++}
++
++static void SIM_StartVBlankLines() {
++  clock_gettime(CLOCK_MONOTONIC, &s_SIM_vblankStart);
++  s_SIM_vcountReads = 0;
++  s_SIM_vcountFrame++;
++  if (s_SIM_vcountLog != NULL && s_SIM_vcountFrame % 300 == 0) {
++    SIM_VCountLogWrite();
++  }
++}
+ 
+ extern "C" REGType16v *SIM_GetVCountReg(void) {
+-  struct timespec now;
+-  clock_gettime(CLOCK_MONOTONIC, &now);
+-  s64 ns = (s64)(now.tv_sec - s_SIM_vblankStart.tv_sec) * 1000000000LL + (now.tv_nsec - s_SIM_vblankStart.tv_nsec);
+-  s64 line = 192 + ns / 63555;
+-  if (line >= 263) {
+-    line -= 263;
+-    if (line > 191) {
+-      line = 191;
++  if (s_SIM_vcountPin < 0) {
++    s_SIM_vcountLog = getenv("BWPORT_VCOUNTLOG");
++    if (s_SIM_vcountLog != NULL && s_SIM_vcountLog[0] != 0) {
++      atexit(SIM_VCountLogWrite);
++    } else {
++      s_SIM_vcountLog = NULL;
++    }
++    s_SIM_vcountPin = getenv("BWPORT_BENCH_CLOCK") != NULL;
++  }
++  s64 line = 192;
++  if (!s_SIM_vcountPin || s_SIM_vcountLog != NULL) {
++    struct timespec now;
++    clock_gettime(CLOCK_MONOTONIC, &now);
++    s64 ns = (s64)(now.tv_sec - s_SIM_vblankStart.tv_sec) * 1000000000LL + (now.tv_nsec - s_SIM_vblankStart.tv_nsec);
++    line = 192 + ns / 63555;
++    if (line >= 263) {
++      line -= 263;
++      if (line > 191) {
++        line = 191;
++      }
++    }
++    if (s_SIM_vcountLog != NULL) {
++      s_SIM_vcountTotal++;
++      if (line > 10 && line <= 192) {
++        s_SIM_vcountMid++;
++        if (s_SIM_vcountMidFrame != s_SIM_vcountFrame) {
++          s_SIM_vcountMidFrame = s_SIM_vcountFrame;
++          s_SIM_vcountMidFrames++;
++        }
++      }
++    }
++  }
++  if (s_SIM_vcountPin) {
++    u32 n = ++s_SIM_vcountReads;
++    line = 193;
++    if (n > 4096) {
++      line = 193 + (s64)(n - 4096);
++      if (line >= 263) {
++        line -= 263;
++        if (line > 191) {
++          line = 191;
++        }
++      }
+     }
+   }
+   s_reg_GX_VCOUNT = (u16)line;

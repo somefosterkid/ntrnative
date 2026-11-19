@@ -1,0 +1,1085 @@
+pokeplatinum-widepointers.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after the others): the pointer
+pass's first rules, what Platinum's boot to the intro needed on a 64-bit host (docs/platinum.md, "Jobs, in order", 5.):
+- every cast of a pointer to u32 or s32 clang reports (-Wpointer-to-int-cast, -Wvoid-pointer-to-int-cast) as a uintptr_t
+  or intptr_t cast, made at the column clang gives (173 casts, 43 files; as pokebw2-pointers.patch did for Black 2).
+  Never worse than before (a result stored in a u32 is cut as it was), right wherever the address is computed on and
+  cast back. Not done: 6 inside macros (battle/healthbox.c's VRAM_TRANSFER_DST, game_overlay.c's DTCM bounds)
+- savedata.c: the save blocks' addresses (bodyAddress, startAddress, footerAddress) as uintptr_t: SaveData_LoadCheck read
+  the footers through a cut address (the first crash of the boot)
+- heap.c: every heap twice its DS size where a pointer is 8 bytes (HEAP_HOST_SIZE: the system's from the arena, each
+  child heap from its parent), as Black's WORK_AREA_SIZE and pokebw2-workareas.patch
+diff --git a/src/applications/pc_boxes/icon_helper.c b/src/applications/pc_boxes/icon_helper.c
+index 07ba5eabb..c9b901423 100644
+--- a/src/applications/pc_boxes/icon_helper.c
++++ b/src/applications/pc_boxes/icon_helper.c
+@@ -233,5 +233,5 @@ void MonIconHelper_UpdateIconForm(MonIconHelper *iconHelper, MonIcon *monIcon, B
+     }
+ 
+-    vramAddr = monIcon->imageProxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN] + (u32)G2_GetOBJCharPtr();
++    vramAddr = monIcon->imageProxy.vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN] + (uintptr_t)G2_GetOBJCharPtr();
+ 
+     NARC_ReadFromMember(iconHelper->iconNarc, monIcon->spriteIndex, 0, MON_ICON_FILE_SIZE, iconHelper->iconCharBuffer);
+diff --git a/src/applications/pokemon_summary_screen/main.c b/src/applications/pokemon_summary_screen/main.c
+index 5119d9c1d..081ed0257 100644
+--- a/src/applications/pokemon_summary_screen/main.c
++++ b/src/applications/pokemon_summary_screen/main.c
+@@ -1545,5 +1545,5 @@ static s8 TryAdvanceMonIndex(PokemonSummaryScreen *summaryScreen, s8 delta)
+         }
+ 
+-        mon = (Pokemon *)((u32)summaryScreen->data->monData + Pokemon_GetStructSize() * monIndex);
++        mon = (Pokemon *)((uintptr_t)summaryScreen->data->monData + Pokemon_GetStructSize() * monIndex);
+ 
+         if (Pokemon_GetValue(mon, MON_DATA_SPECIES, NULL) != SPECIES_NONE) {
+diff --git a/src/applications/trade_room/application.c b/src/applications/trade_room/application.c
+index dc602732b..6703f4889 100644
+--- a/src/applications/trade_room/application.c
++++ b/src/applications/trade_room/application.c
+@@ -1616,5 +1616,5 @@ void TradeRoom_SyncValueToPartner(TradeRoom *tradeRoom, int cmd, int value)
+ static void *TradeRoom_OffsetPartyPtr(Party *party, int index)
+ {
+-    u32 base = (u32)party;
++    u32 base = (uintptr_t)party;
+ 
+     return (void *)(base + index * (236 * MAX_PARTY_SIZE + 4 * 2));
+diff --git a/src/battle/battle_subscreen.c b/src/battle/battle_subscreen.c
+index c6326add9..0411e9f3c 100644
+--- a/src/battle/battle_subscreen.c
++++ b/src/battle/battle_subscreen.c
+@@ -2471,5 +2471,5 @@ static void DrawMoveTypeIcons(BattleSubscreen *btlSubscreen)
+                 imageProxy = Sprite_GetImageProxy(btlSubscreen->moveSelectSprites[i]->sprite);
+ 
+-                MI_CpuCopy16(moveDisplayData->moveIcons[i], (void *)((u32)objCharPtr + imageProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]), sub_0208C098(6));
++                MI_CpuCopy16(moveDisplayData->moveIcons[i], (void *)((uintptr_t)objCharPtr + imageProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DSUB]), sub_0208C098(6));
+             }
+         }
+diff --git a/src/battle/healthbox.c b/src/battle/healthbox.c
+index f9fb0fb27..29abb0703 100644
+--- a/src/battle/healthbox.c
++++ b/src/battle/healthbox.c
+@@ -839,21 +839,21 @@ void Healthbox_ToggleHPDisplayMode(HealthBox *healthbox)
+     if (healthbox->numberMode == 1) {
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_NUMBERS_LEFT);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplayLeftVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplayLeftVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_NUMBERS_RIGHT);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+ 
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_SLASH);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplaySlashVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplaySlashVRAMTransfer[healthbox->type].size);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplaySlashVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplaySlashVRAMTransfer[healthbox->type].size);
+ 
+         HealthBox_DrawInfo(healthbox, healthbox->curHP, HEALTHBOX_INFO_CURRENT_HP | HEALTHBOX_INFO_MAX_HP);
+     } else {
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_HP_H_2);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplayLeftVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplayLeftVRAMTransfer[healthbox->type].size);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplayLeftVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplayLeftVRAMTransfer[healthbox->type].size);
+ 
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_BAR_END);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplayRightVRAMTransfer[healthbox->type].size);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sHPDisplayRightVRAMTransfer[healthbox->type].size);
+ 
+         tileNum = GetHealthBoxPartsTile(HEALTHBOX_PART_STATUS_HEALTHY_0);
+-        MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++        MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sHPDisplayRightVRAMTransfer[healthbox->type].pos + HEALTHBOX_WINDOW_BLOCK_SIZE + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+ 
+         HealthBox_DrawInfo(healthbox, healthbox->curHP, HEALTHBOX_INFO_HP_GAUGE);
+@@ -1192,6 +1192,6 @@ static void HealthBox_DrawLevelText(HealthBox *healthbox)
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16(tileNum2, (void *)((u32)objCharPtr + sLevelIconVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelIconVRAMTransfer[healthbox->type][0].size);
+-    MI_CpuCopy16(tileNum1, (void *)((u32)objCharPtr + sLevelIconVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelIconVRAMTransfer[healthbox->type][1].size);
++    MI_CpuCopy16(tileNum2, (void *)((uintptr_t)objCharPtr + sLevelIconVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelIconVRAMTransfer[healthbox->type][0].size);
++    MI_CpuCopy16(tileNum1, (void *)((uintptr_t)objCharPtr + sLevelIconVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelIconVRAMTransfer[healthbox->type][1].size);
+ }
+ 
+@@ -1213,6 +1213,6 @@ static void HealthBox_DrawLevelNumber(HealthBox *healthbox)
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16((void *)((u32)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), tileWorkBuf, sLevelNumberVRAMTransfer[healthbox->type][0].size);
+-    MI_CpuCopy16((void *)((u32)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), &tileWorkBuf[size], sLevelNumberVRAMTransfer[healthbox->type][1].size);
++    MI_CpuCopy16((void *)((uintptr_t)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), tileWorkBuf, sLevelNumberVRAMTransfer[healthbox->type][0].size);
++    MI_CpuCopy16((void *)((uintptr_t)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), &tileWorkBuf[size], sLevelNumberVRAMTransfer[healthbox->type][1].size);
+ 
+     srcOffset = 0;
+@@ -1230,6 +1230,6 @@ static void HealthBox_DrawLevelNumber(HealthBox *healthbox)
+     bottomBlock = &tileWorkBuf[size];
+ 
+-    MI_CpuCopy16(tileWorkBuf, (void *)((u32)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelNumberVRAMTransfer[healthbox->type][0].size);
+-    MI_CpuCopy16(bottomBlock, (void *)((u32)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelNumberVRAMTransfer[healthbox->type][1].size);
++    MI_CpuCopy16(tileWorkBuf, (void *)((uintptr_t)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelNumberVRAMTransfer[healthbox->type][0].size);
++    MI_CpuCopy16(bottomBlock, (void *)((uintptr_t)objCharPtr + sLevelNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sLevelNumberVRAMTransfer[healthbox->type][1].size);
+ 
+     Heap_Free(levelTextBuf);
+@@ -1248,6 +1248,6 @@ static void HealthBox_DrawCurrentHP(HealthBox *healthbox, u32 hp)
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16(currHPTextBuf, (void *)((u32)objCharPtr + sCurrentHPNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCurrentHPNumberVRAMTransfer[healthbox->type][0].size);
+-    MI_CpuCopy16(&currHPTextBuf[sCurrentHPNumberVRAMTransfer[healthbox->type][0].size], (void *)((u32)objCharPtr + sCurrentHPNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCurrentHPNumberVRAMTransfer[healthbox->type][1].size);
++    MI_CpuCopy16(currHPTextBuf, (void *)((uintptr_t)objCharPtr + sCurrentHPNumberVRAMTransfer[healthbox->type][0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCurrentHPNumberVRAMTransfer[healthbox->type][0].size);
++    MI_CpuCopy16(&currHPTextBuf[sCurrentHPNumberVRAMTransfer[healthbox->type][0].size], (void *)((uintptr_t)objCharPtr + sCurrentHPNumberVRAMTransfer[healthbox->type][1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCurrentHPNumberVRAMTransfer[healthbox->type][1].size);
+ 
+     Heap_Free(currHPTextBuf);
+@@ -1265,5 +1265,5 @@ static void HealthBox_DrawMaxHP(HealthBox *healthbox)
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16(maxHPTextBuf, (void *)((u32)objCharPtr + sMaxHPNumberVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sMaxHPNumberVRAMTransfer[healthbox->type].size);
++    MI_CpuCopy16(maxHPTextBuf, (void *)((uintptr_t)objCharPtr + sMaxHPNumberVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sMaxHPNumberVRAMTransfer[healthbox->type].size);
+ 
+     Heap_Free(maxHPTextBuf);
+@@ -1284,5 +1284,5 @@ static void HealthBox_DrawCaughtIcon(HealthBox *healthbox)
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sCaughtIconVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCaughtIconVRAMTransfer[healthbox->type].size);
++    MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sCaughtIconVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sCaughtIconVRAMTransfer[healthbox->type].size);
+ }
+ 
+@@ -1295,5 +1295,5 @@ static void HealthBox_DrawStatusIcon(HealthBox *healthbox, enum HealthBoxPart pa
+     imgProxy = Sprite_GetImageProxy(healthbox->mainSprite->sprite);
+ 
+-    MI_CpuCopy16(tileNum, (void *)((u32)objCharPtr + sStatusIconVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sStatusIconVRAMTransfer[healthbox->type].size);
++    MI_CpuCopy16(tileNum, (void *)((uintptr_t)objCharPtr + sStatusIconVRAMTransfer[healthbox->type].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sStatusIconVRAMTransfer[healthbox->type].size);
+ }
+ 
+@@ -1322,9 +1322,9 @@ static void HealthBox_DrawBallCount(HealthBox *healthbox, u32 flags)
+     u8 *bottomRow = &topRow[13 * HEALTHBOX_WINDOW_BLOCK_SIZE];
+ 
+-    MI_CpuCopy16(topRow, (void *)((u32)objCharPtr + sBallCountVRAMTransfer[0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[0].size);
+-    MI_CpuCopy16(bottomRow, (void *)((u32)objCharPtr + sBallCountVRAMTransfer[1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[1].size);
++    MI_CpuCopy16(topRow, (void *)((uintptr_t)objCharPtr + sBallCountVRAMTransfer[0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[0].size);
++    MI_CpuCopy16(bottomRow, (void *)((uintptr_t)objCharPtr + sBallCountVRAMTransfer[1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[1].size);
+ 
+-    MI_CpuCopy16(&topRow[sBallCountVRAMTransfer[0].size], (void *)((u32)objCharPtr + sBallCountVRAMTransfer[2].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[2].size);
+-    MI_CpuCopy16(&bottomRow[sBallCountVRAMTransfer[1].size], (void *)((u32)objCharPtr + sBallCountVRAMTransfer[3].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[3].size);
++    MI_CpuCopy16(&topRow[sBallCountVRAMTransfer[0].size], (void *)((uintptr_t)objCharPtr + sBallCountVRAMTransfer[2].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[2].size);
++    MI_CpuCopy16(&bottomRow[sBallCountVRAMTransfer[1].size], (void *)((uintptr_t)objCharPtr + sBallCountVRAMTransfer[3].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallCountVRAMTransfer[3].size);
+ 
+     Window_Remove(&window);
+@@ -1361,8 +1361,8 @@ static void HealthBox_DrawBallsLeftMessage(HealthBox *healthbox, u32 flags)
+     u8 *bottomRow = &topRow[13 * HEALTHBOX_WINDOW_BLOCK_SIZE];
+ 
+-    MI_CpuCopy16(topRow, (void *)((u32)objCharPtr + sBallsLeftVRAMTransfer[0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[0].size);
+-    MI_CpuCopy16(bottomRow, (void *)((u32)objCharPtr + sBallsLeftVRAMTransfer[1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[1].size);
+-    MI_CpuCopy16(&topRow[sBallsLeftVRAMTransfer[0].size], (void *)((u32)objCharPtr + sBallsLeftVRAMTransfer[2].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[2].size);
+-    MI_CpuCopy16(&bottomRow[sBallsLeftVRAMTransfer[1].size], (void *)((u32)objCharPtr + sBallsLeftVRAMTransfer[3].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[3].size);
++    MI_CpuCopy16(topRow, (void *)((uintptr_t)objCharPtr + sBallsLeftVRAMTransfer[0].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[0].size);
++    MI_CpuCopy16(bottomRow, (void *)((uintptr_t)objCharPtr + sBallsLeftVRAMTransfer[1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[1].size);
++    MI_CpuCopy16(&topRow[sBallsLeftVRAMTransfer[0].size], (void *)((uintptr_t)objCharPtr + sBallsLeftVRAMTransfer[2].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[2].size);
++    MI_CpuCopy16(&bottomRow[sBallsLeftVRAMTransfer[1].size], (void *)((uintptr_t)objCharPtr + sBallsLeftVRAMTransfer[3].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), sBallsLeftVRAMTransfer[3].size);
+ 
+     Window_Remove(&window);
+@@ -1440,7 +1440,7 @@ static void DrawGauge(HealthBox *healthbox, u8 gaugeType)
+         for (i = 0; i < HEALTHBOX_HP_CELL_COUNT; i++) {
+             if (i < numBlocks) {
+-                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((u32)objCharPtr + sHPGaugeVRAMTransfer[healthbox->type][0].pos + (i * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((uintptr_t)objCharPtr + sHPGaugeVRAMTransfer[healthbox->type][0].pos + (i * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+             } else {
+-                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((u32)objCharPtr + sHPGaugeVRAMTransfer[healthbox->type][1].pos + ((i - numBlocks) * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((uintptr_t)objCharPtr + sHPGaugeVRAMTransfer[healthbox->type][1].pos + ((i - numBlocks) * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+             }
+         }
+@@ -1460,7 +1460,7 @@ static void DrawGauge(HealthBox *healthbox, u8 gaugeType)
+         for (i = 0; i < HEALTHBOX_EXP_CELL_COUNT; i++) {
+             if (i < 5) {
+-                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((u32)objCharPtr + 1632 + (i * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((uintptr_t)objCharPtr + 1632 + (i * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+             } else {
+-                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((u32)objCharPtr + 3584 + ((i - 5) * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
++                MI_CpuCopy16(tileNum + (cells[i] << 5), (void *)((uintptr_t)objCharPtr + 3584 + ((i - 5) * HEALTHBOX_WINDOW_BLOCK_SIZE) + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), HEALTHBOX_WINDOW_BLOCK_SIZE);
+             }
+         }
+diff --git a/src/bg_window.c b/src/bg_window.c
+index bd3dd8ff8..e01cb1e76 100644
+--- a/src/bg_window.c
++++ b/src/bg_window.c
+@@ -761,5 +761,5 @@ static void CopyOrDecompressData(const void *src, void *dest, u32 size)
+     }
+ 
+-    if ((((u32)src % 4) == 0) && (((u32)dest % 4) == 0) && (((u16)size % 4) == 0)) {
++    if ((((uintptr_t)src % 4) == 0) && (((uintptr_t)dest % 4) == 0) && (((u16)size % 4) == 0)) {
+         MI_CpuCopy32(src, dest, size);
+         return;
+diff --git a/src/comm_manager.c b/src/comm_manager.c
+index 3182e588e..0aae6280d 100644
+--- a/src/comm_manager.c
++++ b/src/comm_manager.c
+@@ -292,7 +292,7 @@ BOOL CommManager_IsConnectingUnderground(void)
+     int i;
+     u32 connectFunctions[] = {
+-        (u32)CommTask_ConnectUndergroundClient, (u32)CommTask_ConnectUndergroundServer, 0
++        (uintptr_t)CommTask_ConnectUndergroundClient, (uintptr_t)CommTask_ConnectUndergroundServer, 0
+     };
+-    u32 task = (u32)sCommMan->task;
++    u32 task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -433,9 +433,9 @@ BOOL CommManager_IsWaitingBattle(void)
+     int i;
+     u32 waitFunctions[] = {
+-        (u32)CommTask_WaitBattleServer,
+-        (u32)CommTask_WaitBattleClient,
++        (uintptr_t)CommTask_WaitBattleServer,
++        (uintptr_t)CommTask_WaitBattleClient,
+         0,
+     };
+-    u32 task = (u32)sCommMan->task;
++    u32 task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -503,11 +503,11 @@ int CommManager_IsConnectedUnionClientSuccess(void)
+     }
+ 
+-    task = (u32)sCommMan->task;
++    task = (uintptr_t)sCommMan->task;
+ 
+-    if (task == (u32)CommTask_SucceededConnectUnionClient) {
++    if (task == (uintptr_t)CommTask_SucceededConnectUnionClient) {
+         return TRUE;
+     }
+ 
+-    if (task == (u32)CommTask_FailedConnectUnionClient) {
++    if (task == (uintptr_t)CommTask_FailedConnectUnionClient) {
+         return -1;
+     }
+@@ -529,7 +529,7 @@ BOOL CommManager_IsConnectUnionServer(void)
+     }
+ 
+-    task = (u32)sCommMan->task;
++    task = (uintptr_t)sCommMan->task;
+ 
+-    if (task == (u32)CommTask_ConnectUnionServer) {
++    if (task == (uintptr_t)CommTask_ConnectUnionServer) {
+         return TRUE;
+     }
+@@ -577,7 +577,7 @@ BOOL CommManager_UnionRestartSuccess(void)
+     }
+ 
+-    task = (u32)sCommMan->task;
++    task = (uintptr_t)sCommMan->task;
+ 
+-    if (task == (u32)CommTask_EndUnionClient) {
++    if (task == (uintptr_t)CommTask_EndUnionClient) {
+         return FALSE;
+     }
+@@ -1918,7 +1918,7 @@ BOOL CommManager_IsPoketchSearching(void)
+     int i;
+     u32 tasks[] = {
+-        (u32)CommTask_ScanPoketch, 0
++        (uintptr_t)CommTask_ScanPoketch, 0
+     };
+-    u32 task = (u32)sCommMan->task;
++    u32 task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -2395,11 +2395,11 @@ BOOL CommManager_GetDisconnectedWifi(void)
+ BOOL CommManager_IsLoginBattleWifi(void)
+ {
+-    u32 task = (u32)sCommMan->task;
++    u32 task = (uintptr_t)sCommMan->task;
+ 
+-    if (task == (u32)CommTask_WifiBattleLogin) {
++    if (task == (uintptr_t)CommTask_WifiBattleLogin) {
+         return 1;
+     }
+ 
+-    if (task == (u32)CommTask_ConnectWifiPlaza) {
++    if (task == (uintptr_t)CommTask_ConnectWifiPlaza) {
+         return 1;
+     }
+@@ -2415,15 +2415,15 @@ BOOL CommManager_IsLoginBattleWifi(void)
+ BOOL CommManager_IsLoginBattleMatchWifi(void)
+ {
+-    u32 task = (u32)sCommMan->task;
++    u32 task = (uintptr_t)sCommMan->task;
+ 
+-    if (task == (u32)CommTask_WifiBattleMatchmaking) {
++    if (task == (uintptr_t)CommTask_WifiBattleMatchmaking) {
+         return 1;
+     }
+ 
+-    if (task == (u32)CommTask_WifiBattleLogin) {
++    if (task == (uintptr_t)CommTask_WifiBattleLogin) {
+         return 1;
+     }
+ 
+-    if (task == (u32)CommTask_ConnectWifiPlaza) {
++    if (task == (uintptr_t)CommTask_ConnectWifiPlaza) {
+         return 1;
+     }
+@@ -2529,15 +2529,15 @@ BOOL CommManager_CheckWifiError(void)
+ {
+     if (sCommMan) {
+-        u32 task = (u32)sCommMan->task;
++        u32 task = (uintptr_t)sCommMan->task;
+ 
+-        if (task == (u32)CommTask_WifiBattleError) {
++        if (task == (uintptr_t)CommTask_WifiBattleError) {
+             return TRUE;
+         }
+ 
+-        if ((task == (u32)CommTask_WifiBattleTimeout) && sCommMan->errorDisconnect) {
++        if ((task == (uintptr_t)CommTask_WifiBattleTimeout) && sCommMan->errorDisconnect) {
+             return TRUE;
+         }
+ 
+-        if ((task == (u32)CommTask_WifiPlazaTimeout) && sCommMan->errorDisconnect) {
++        if ((task == (uintptr_t)CommTask_WifiPlazaTimeout) && sCommMan->errorDisconnect) {
+             return TRUE;
+         }
+@@ -2822,7 +2822,7 @@ BOOL CommManager_IsWifiPlazaError(void)
+ {
+     if (sCommMan) {
+-        u32 task = (u32)sCommMan->task;
++        u32 task = (uintptr_t)sCommMan->task;
+ 
+-        if (task == (u32)CommTask_WifiPlazaError) {
++        if (task == (uintptr_t)CommTask_WifiPlazaError) {
+             return TRUE;
+         }
+@@ -2870,11 +2870,11 @@ u32 CommManager_GetWifiP2PConnectState(void)
+ {
+     if (sCommMan) {
+-        u32 task = (u32)sCommMan->task;
++        u32 task = (uintptr_t)sCommMan->task;
+ 
+-        if (task == (u32)CommTask_ConnectWifiPlazaP2P) {
++        if (task == (uintptr_t)CommTask_ConnectWifiPlazaP2P) {
+             return 2;
+-        } else if (task == (u32)CommTask_WaitWifiPlazaMatchServerP2P) {
++        } else if (task == (uintptr_t)CommTask_WaitWifiPlazaMatchServerP2P) {
+             return 1;
+-        } else if (task == (u32)CommTask_DisconnectWifiPlazaP2P) {
++        } else if (task == (uintptr_t)CommTask_DisconnectWifiPlazaP2P) {
+             return 3;
+         }
+diff --git a/src/communication_system.c b/src/communication_system.c
+index 1cd68ea25..b324694c1 100644
+--- a/src/communication_system.c
++++ b/src/communication_system.c
+@@ -162,5 +162,5 @@ static BOOL CommSys_Init(BOOL shouldAlloc, int maxPacketSize)
+         CommTool_Init(HEAP_ID_COMMUNICATION);
+ 
+-        Unk_021C07C8 = (u32)Heap_Alloc(HEAP_ID_COMMUNICATION, sizeof(CommunicationSystem) + 32);
++        Unk_021C07C8 = (uintptr_t)Heap_Alloc(HEAP_ID_COMMUNICATION, sizeof(CommunicationSystem) + 32);
+         sCommunicationSystem = (CommunicationSystem *)(32 - (Unk_021C07C8 % 32) + Unk_021C07C8);
+ 
+diff --git a/src/cutscenes/end_credits/common.c b/src/cutscenes/end_credits/common.c
+index f94165c07..79b950882 100644
+--- a/src/cutscenes/end_credits/common.c
++++ b/src/cutscenes/end_credits/common.c
+@@ -215,13 +215,13 @@ void EndCreditsCommon_AnimatePlayerSprite(EndCreditsApp *endCreditsApp, ManagedS
+ 
+             if (endCreditsApp->clearGamePlayerInfo->gender == GENDER_MALE) {
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2)], (void *)((u32)charPtr + 0x1d * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 32], (void *)((u32)charPtr + 0x1e * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 64], (void *)((u32)charPtr + 0x25 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 96], (void *)((u32)charPtr + 0x26 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2)], (void *)((uintptr_t)charPtr + 0x1d * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 32], (void *)((uintptr_t)charPtr + 0x1e * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 64], (void *)((uintptr_t)charPtr + 0x25 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 96], (void *)((uintptr_t)charPtr + 0x26 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+             } else {
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2)], (void *)((u32)charPtr + 0x45 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 32], (void *)((u32)charPtr + 0x46 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 64], (void *)((u32)charPtr + 0x4d * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+-                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 96], (void *)((u32)charPtr + 0x4e * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2)], (void *)((uintptr_t)charPtr + 0x45 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 32], (void *)((uintptr_t)charPtr + 0x46 * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 64], (void *)((uintptr_t)charPtr + 0x4d * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
++                MI_CpuCopy32(&endCreditsApp->eyeCharData[endCreditsApp->playerAnimManager.blinkState * ((32 * 8) / 2) + 96], (void *)((uintptr_t)charPtr + 0x4e * 32 + image->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]), 32);
+             }
+ 
+diff --git a/src/game_overlay.c b/src/game_overlay.c
+index f9140c5d4..46738cb35 100644
+--- a/src/game_overlay.c
++++ b/src/game_overlay.c
+@@ -103,5 +103,5 @@ int Overlay_GetLoadDestination(const FSOverlayID overlayID)
+ 
+     GF_ASSERT(FS_LoadOverlayInfo(&info, MI_PROCESSOR_ARM9, overlayID) == TRUE);
+-    v2 = (u32)FS_GetOverlayAddress(&info);
++    v2 = (uintptr_t)FS_GetOverlayAddress(&info);
+ 
+     if ((v2 <= HW_ITCM_END) && (v2 >= HW_ITCM_IMAGE)) {
+@@ -227,5 +227,5 @@ static BOOL GetOverlayRamBounds(const FSOverlayID overlayID, u32 *start, u32 *en
+     }
+ 
+-    *start = (u32)FS_GetOverlayAddress(&info);
++    *start = (uintptr_t)FS_GetOverlayAddress(&info);
+     *end = *start + FS_GetOverlayTotalSize(&info);
+ 
+diff --git a/src/graphics.c b/src/graphics.c
+index 18e444f9c..43dbea3e4 100644
+--- a/src/graphics.c
++++ b/src/graphics.c
+@@ -363,5 +363,5 @@ static void LoadPaletteWithSrcOffset(void *nclrBuffer, enum PaletteLoadLocation
+ 
+         if (NNS_G2dGetUnpackedPaletteData(nclrBuffer, &palette)) {
+-            palette->pRawData = (void *)((u32)palette->pRawData + srcOffset);
++            palette->pRawData = (void *)((uintptr_t)palette->pRawData + srcOffset);
+ 
+             if (size == 0) {
+diff --git a/src/gts_application/application.c b/src/gts_application/application.c
+index e5d0e0b28..a47f75781 100644
+--- a/src/gts_application/application.c
++++ b/src/gts_application/application.c
+@@ -129,5 +129,5 @@ BOOL GTSApplication_Init(ApplicationManager *appMan, int *loopState)
+ 
+         appState->dwcHeapPointer = Heap_Alloc(HEAP_ID_62, 0x20000 + 32);
+-        appState->dwcHeapHandle = NNS_FndCreateExpHeap((void *)(((u32)appState->dwcHeapPointer + 31) / 32 * 32), 0x20000);
++        appState->dwcHeapHandle = NNS_FndCreateExpHeap((void *)(((uintptr_t)appState->dwcHeapPointer + 31) / 32 * 32), 0x20000);
+         *loopState = GTS_LOOP_STATE_INIT;
+         break;
+diff --git a/src/heap.c b/src/heap.c
+index c4cacfd8f..e6bdf1c71 100644
+--- a/src/heap.c
++++ b/src/heap.c
+@@ -3,4 +3,5 @@
+ #include <nitro.h>
+ #include <string.h>
++#include <stdint.h>
+ 
+ #include "comm_manager.h"
+@@ -29,4 +30,12 @@ static HeapInfo sHeapInfo;
+ static BOOL CreateHeapInternal(enum HeapID parent, enum HeapID child, u32 size, s32 alignment);
+ 
++// A heap holds structs with pointers: twice its DS size where a pointer is 8 bytes (Black's WORK_AREA_SIZE, Black 2's
++// pokebw2-workareas.patch). Every heap: the system's from the arena and each child heap from its parent.
++#if UINTPTR_MAX > 0xFFFFFFFFu
++#define HEAP_HOST_SIZE(size) ((size) * 2)
++#else
++#define HEAP_HOST_SIZE(size) (size)
++#endif
++
+ void Heap_InitSystem(const HeapParam *templates, u32 nTemplates, u32 totalNumHeaps, u32 preSize)
+ {
+@@ -67,13 +76,13 @@ void Heap_InitSystem(const HeapParam *templates, u32 nTemplates, u32 totalNumHea
+         case OS_ARENA_MAIN:
+         default:
+-            ptr = OS_AllocFromMainArenaLo(templates[i].size, 4);
++            ptr = OS_AllocFromMainArenaLo(HEAP_HOST_SIZE(templates[i].size), 4);
+             break;
+         case OS_ARENA_MAINEX:
+-            ptr = OS_AllocFromMainExArenaHi(templates[i].size, 4);
++            ptr = OS_AllocFromMainExArenaHi(HEAP_HOST_SIZE(templates[i].size), 4);
+             break;
+         }
+ 
+         if (ptr != NULL) {
+-            sHeapInfo.heapHandles[i] = NNS_FndCreateExpHeap(ptr, templates[i].size);
++            sHeapInfo.heapHandles[i] = NNS_FndCreateExpHeap(ptr, HEAP_HOST_SIZE(templates[i].size));
+             sHeapInfo.heapIdxs[i] = (u8)i;
+         } else {
+@@ -122,4 +131,5 @@ static BOOL CreateHeapInternal(enum HeapID parent, enum HeapID child, u32 size,
+ {
+     GF_ASSERT(OS_GetProcMode() != OS_PROCMODE_IRQ);
++    size = HEAP_HOST_SIZE(size);
+ 
+     u8 *ptr = sHeapInfo.heapIdxs;
+diff --git a/src/item_use_functions.c b/src/item_use_functions.c
+index a3d90523f..705485dc2 100644
+--- a/src/item_use_functions.c
++++ b/src/item_use_functions.c
+@@ -170,10 +170,10 @@ u32 ItemUseFunction_Get(u16 funcType, u16 functionIdx)
+ {
+     if (funcType == ITEM_FUNC_USE_FROM_MENU) {
+-        return (u32)sItemUseFuncs[functionIdx].useItemFromMenuFunc;
++        return (uintptr_t)sItemUseFuncs[functionIdx].useItemFromMenuFunc;
+     } else if (funcType == ITEM_FUNC_USE_IN_FIELD) {
+-        return (u32)sItemUseFuncs[functionIdx].useItemInFieldFunc;
++        return (uintptr_t)sItemUseFuncs[functionIdx].useItemInFieldFunc;
+     }
+ 
+-    return (u32)sItemUseFuncs[functionIdx].canUseItemFunc;
++    return (uintptr_t)sItemUseFuncs[functionIdx].canUseItemFunc;
+ }
+ 
+diff --git a/src/list_menu.c b/src/list_menu.c
+index f601e2098..e8af3f46e 100644
+--- a/src/list_menu.c
++++ b/src/list_menu.c
+@@ -220,9 +220,9 @@ u32 ListMenu_GetAttribute(ListMenu *menu, u8 attribute)
+     switch (attribute) {
+     case LIST_MENU_CURSOR_CALLBACK:
+-        result = (u32)menu->template.cursorCallback;
++        result = (uintptr_t)menu->template.cursorCallback;
+         break;
+ 
+     case LIST_MENU_PRINT_CALLBACK:
+-        result = (u32)menu->template.printCallback;
++        result = (uintptr_t)menu->template.printCallback;
+         break;
+ 
+@@ -288,9 +288,9 @@ u32 ListMenu_GetAttribute(ListMenu *menu, u8 attribute)
+ 
+     case LIST_MENU_WINDOW:
+-        result = (u32)menu->template.window;
++        result = (uintptr_t)menu->template.window;
+         break;
+ 
+     case LIST_MENU_PARENT:
+-        result = (u32)menu->template.parent;
++        result = (uintptr_t)menu->template.parent;
+         break;
+ 
+diff --git a/src/main_menu/mystery_gift_app.c b/src/main_menu/mystery_gift_app.c
+index c2ffa614d..c770ee0f0 100644
+--- a/src/main_menu/mystery_gift_app.c
++++ b/src/main_menu/mystery_gift_app.c
+@@ -886,5 +886,5 @@ static void MakeStateChangeListMenuFromEntryTemplates(ApplicationManager *appMan
+ 
+     for (int i = 0; i < numEntries; i++) {
+-        StringList_AddFromMessageBank(appData->listMenuOptions, appData->msgLoader, entries[i].textEntryId, (u32)entries[i].stateTransitionFuncPtr);
++        StringList_AddFromMessageBank(appData->listMenuOptions, appData->msgLoader, entries[i].textEntryId, (uintptr_t)entries[i].stateTransitionFuncPtr);
+     }
+ 
+diff --git a/src/main_menu/ov97_02232DC8.c b/src/main_menu/ov97_02232DC8.c
+index ac5b8e257..75d883118 100644
+--- a/src/main_menu/ov97_02232DC8.c
++++ b/src/main_menu/ov97_02232DC8.c
+@@ -87,9 +87,9 @@ void ov97_02232E38(UnkStruct_ov97_02232E38 *param0, void *param1)
+     UnkStruct_ov97_0223222C *v1 = ov97_02233410();
+     void *v2 = param1;
+-    u32 v3 = (u32)param1 & 0x1F;
++    u32 v3 = (uintptr_t)param1 & 0x1F;
+ 
+     if (v3) {
+-        v3 = 0x20 - ((u32)param1 & 0x1F);
+-        param1 = (void *)((u32)param1 + v3);
++        v3 = 0x20 - ((uintptr_t)param1 & 0x1F);
++        param1 = (void *)((uintptr_t)param1 + v3);
+     }
+ 
+diff --git a/src/main_menu/ov97_02233408.c b/src/main_menu/ov97_02233408.c
+index e86da4733..f0e008be6 100644
+--- a/src/main_menu/ov97_02233408.c
++++ b/src/main_menu/ov97_02233408.c
+@@ -314,5 +314,5 @@ void ov97_022337A4(void *param0)
+ 
+         v2 = ov97_02233630(v0->unk_00.unk_00_16, sizeof(UnkStruct_ov97_02233674_sub2) + sizeof(UnkStruct_ov97_02233674_sub3) + sizeof(UnkStruct_ov97_02233674_sub4), &v0->unk_04);
+-        ov97_02233630(v2, v0->unk_0C.unk_00_0 + v0->unk_0C.unk_00_8 - sizeof(UnkStruct_ov97_02233674), (void *)((u32)param0 + sizeof(UnkStruct_ov97_02233674)));
++        ov97_02233630(v2, v0->unk_0C.unk_00_0 + v0->unk_0C.unk_00_8 - sizeof(UnkStruct_ov97_02233674), (void *)((uintptr_t)param0 + sizeof(UnkStruct_ov97_02233674)));
+     }
+ }
+diff --git a/src/main_menu/ov97_02238534.c b/src/main_menu/ov97_02238534.c
+index c06d69655..ed87235db 100644
+--- a/src/main_menu/ov97_02238534.c
++++ b/src/main_menu/ov97_02238534.c
+@@ -461,5 +461,5 @@ static void ov97_02238A10(void *param0)
+ BOOL ov97_02238A4C(void *param0, UnkFuncPtr_ov97_02238A4C param1, void *param2)
+ {
+-    Unk_ov97_022403F8 = (UnkStruct_ov97_022403F8 *)(((u32)param2 + 31) / 32 * 32);
++    Unk_ov97_022403F8 = (UnkStruct_ov97_022403F8 *)(((uintptr_t)param2 + 31) / 32 * 32);
+     (*Unk_ov97_022403F8).unk_11C4 = 0;
+     (*Unk_ov97_022403F8).unk_11CC = 1;
+diff --git a/src/main_menu/ov97_02238D74.c b/src/main_menu/ov97_02238D74.c
+index 6d94c9ed5..65c6df501 100644
+--- a/src/main_menu/ov97_02238D74.c
++++ b/src/main_menu/ov97_02238D74.c
+@@ -35,8 +35,8 @@ static void *ov97_02238D74(DWCAllocType param0, u32 param1, int param2)
+ 
+     v0 = Heap_Alloc(HEAP_ID_MYSTERY_GIFT_APP, param1);
+-    v1 = (u32 *)(((u32)v0 + 32) & ~31);
++    v1 = (u32 *)(((uintptr_t)v0 + 32) & ~31);
+ 
+     v1--;
+-    *v1 = (u32)v0;
++    *v1 = (uintptr_t)v0;
+     v1++;
+ 
+@@ -53,5 +53,5 @@ static void ov97_02238D94(DWCAllocType param0, void *param1, u32 param2)
+     }
+ 
+-    v0 = (u32 *)((u32)param1 - 4);
++    v0 = (u32 *)((uintptr_t)param1 - 4);
+     Heap_Free((void *)*v0);
+ }
+diff --git a/src/nintendo_wfc/main.c b/src/nintendo_wfc/main.c
+index f9d23b3cd..f70b40ce8 100644
+--- a/src/nintendo_wfc/main.c
++++ b/src/nintendo_wfc/main.c
+@@ -1209,5 +1209,5 @@ static void GetNextFriendStatus(void)
+ 
+     if (DWC_IsBuddyFriendData(&(sNintendoWFCManager->friends[currentFriendIdx]))) {
+-        sNintendoWFCManager->friendConnStatus[currentFriendIdx] = DWC_GetFriendStatusData(&sNintendoWFCManager->friends[currentFriendIdx], (void *)(((u32)sNintendoWFCManager->friendStatusesBuffer) + sNintendoWFCManager->friendStatusSize * currentFriendIdx), &dummy);
++        sNintendoWFCManager->friendConnStatus[currentFriendIdx] = DWC_GetFriendStatusData(&sNintendoWFCManager->friends[currentFriendIdx], (void *)(((uintptr_t)sNintendoWFCManager->friendStatusesBuffer) + sNintendoWFCManager->friendStatusSize * currentFriendIdx), &dummy);
+     }
+ 
+diff --git a/src/overlay005/ov5_021D5EB8.c b/src/overlay005/ov5_021D5EB8.c
+index 60ea5e71a..b9ca54d78 100644
+--- a/src/overlay005/ov5_021D5EB8.c
++++ b/src/overlay005/ov5_021D5EB8.c
+@@ -2434,6 +2434,6 @@ static void ov5_021D7C40(UnkStruct_ov5_021DB4B8 *param0, int param1)
+         v4[2] = 4 + (MTRNG_Next() % 2);
+         v4[3] = 1 + (MTRNG_Next() % 2);
+-        v4[0] = (s32)&v3->unk_B4[1];
+-        v4[7] = (s32)&v3->unk_B4[2];
++        v4[0] = (intptr_t)&v3->unk_B4[1];
++        v4[7] = (intptr_t)&v3->unk_B4[2];
+ 
+         v6.x = (-32 + (MTRNG_Next() % 414)) << FX32_SHIFT;
+@@ -4501,6 +4501,6 @@ static void ov5_021DA5A0(UnkStruct_ov5_021DB4B8 *param0, int param1)
+ 
+         v5[3] = 1 + (MTRNG_Next() % 1);
+-        v5[0] = (s32)&v3->unk_B4[1];
+-        v5[6] = (s32)&v3->unk_B4[5];
++        v5[0] = (intptr_t)&v3->unk_B4[1];
++        v5[6] = (intptr_t)&v3->unk_B4[5];
+         v5[7] = 10 + (MTRNG_Next() % 20);
+ 
+diff --git a/src/overlay005/ov5_021ECE40.c b/src/overlay005/ov5_021ECE40.c
+index b1048593a..9e9775eb1 100644
+--- a/src/overlay005/ov5_021ECE40.c
++++ b/src/overlay005/ov5_021ECE40.c
+@@ -1807,5 +1807,5 @@ static void ov5_021EE320(UnkStruct_ov5_021ED0A4 *param0, int param1, int param2)
+     v5->unk_02 = param2;
+ 
+-    v0 = (u32)v5 + (sizeof(UnkStruct_ov5_021EDF3C));
++    v0 = (uintptr_t)v5 + (sizeof(UnkStruct_ov5_021EDF3C));
+     v5->unk_08 = (void *)v0;
+ 
+diff --git a/src/overlay005/resource_heap.c b/src/overlay005/resource_heap.c
+index 6f45d3c60..bd51d5bed 100644
+--- a/src/overlay005/resource_heap.c
++++ b/src/overlay005/resource_heap.c
+@@ -37,5 +37,5 @@ ResourceHeap *ResourceHeap_New(enum HeapID parentHeapID, enum HeapID heapID, u32
+     resHeap->heapSize = heapSize;
+     resHeap->itemHeadersSize = itemHeadersSize;
+-    resHeap->items = (void *)((u32)resHeap + sizeof(ResourceHeap));
++    resHeap->items = (void *)((uintptr_t)resHeap + sizeof(ResourceHeap));
+ 
+     return resHeap;
+diff --git a/src/overlay005/texture_resource_manager.c b/src/overlay005/texture_resource_manager.c
+index 3a02b79f2..d404984c3 100644
+--- a/src/overlay005/texture_resource_manager.c
++++ b/src/overlay005/texture_resource_manager.c
+@@ -130,5 +130,5 @@ void TextureResourceManager_Free(FieldTextureManager *textureManager)
+             }
+ 
+-            VramTransfer_Request(NNS_GFD_DST_3D_TEX_VRAM, (u32)textureSlot->textureData, GetTextureDataVRAMBuffer(textureSlot->textureResource, textureSlot->animationData->animationData[textureSlot->currentFrame][0]), textureSlot->textureSize);
++            VramTransfer_Request(NNS_GFD_DST_3D_TEX_VRAM, (uintptr_t)textureSlot->textureData, GetTextureDataVRAMBuffer(textureSlot->textureResource, textureSlot->animationData->animationData[textureSlot->currentFrame][0]), textureSlot->textureSize);
+         } else {
+             textureSlot->frameCounter++;
+diff --git a/src/overlay061/ov61_0222B008.c b/src/overlay061/ov61_0222B008.c
+index fc112b5f1..dff756a40 100644
+--- a/src/overlay061/ov61_0222B008.c
++++ b/src/overlay061/ov61_0222B008.c
+@@ -787,11 +787,11 @@ static void *ov61_0222BBF0(enum HeapID heapID)
+     v0 = Heap_Alloc(heapID, v3);
+     v2 = v0;
+-    v1 = (void *)((u32)v0 + v3);
++    v1 = (void *)((uintptr_t)v0 + v3);
+     v0 = OS_InitAlloc(OS_ARENA_MAIN, v0, v1, 1);
+ 
+     OS_SetArenaLo(OS_ARENA_MAIN, v0);
+ 
+-    v0 = (void *)(((u32)(v0) + 32 - 1) & ~(32 - 1));
+-    v1 = (void *)(((u32)(v1) + 32 - 1) & ~(32 - 1));
++    v0 = (void *)(((uintptr_t)(v0) + 32 - 1) & ~(32 - 1));
++    v1 = (void *)(((uintptr_t)(v1) + 32 - 1) & ~(32 - 1));
+ 
+     Unk_ov61_0222E760 = OS_CreateHeap(OS_ARENA_MAIN, v0, v1);
+diff --git a/src/overlay065/ov65_02235060.c b/src/overlay065/ov65_02235060.c
+index 63a788c01..38aed667a 100644
+--- a/src/overlay065/ov65_02235060.c
++++ b/src/overlay065/ov65_02235060.c
+@@ -1124,5 +1124,5 @@ static void ov65_02236250(UnkStruct_ov65_02235130 *param0, s32 param1, const Unk
+ static BOOL ov65_02236278(const UnkStruct_ov65_022354D8 *param0)
+ {
+-    if ((u32)param0->unk_18 == (u32)ov65_02235EF8) {
++    if ((uintptr_t)param0->unk_18 == (uintptr_t)ov65_02235EF8) {
+         return 0;
+     }
+diff --git a/src/overlay098/ov98_02246C20.c b/src/overlay098/ov98_02246C20.c
+index 0172054e0..d2c1a8e52 100644
+--- a/src/overlay098/ov98_02246C20.c
++++ b/src/overlay098/ov98_02246C20.c
+@@ -192,5 +192,5 @@ static void ov98_02246E08(UnkStruct_ov98_02246E88 *param0)
+ 
+         param0->unk_0C = Heap_Alloc(HEAP_ID_108, 0x20000 + 32);
+-        param0->unk_10 = NNS_FndCreateExpHeap((void *)(((u32)param0->unk_0C + 31) / 32 * 32), 0x20000);
++        param0->unk_10 = NNS_FndCreateExpHeap((void *)(((uintptr_t)param0->unk_0C + 31) / 32 * 32), 0x20000);
+ 
+         Overlay_LoadWFCOverlay();
+diff --git a/src/overlay104/frscrcmd.c b/src/overlay104/frscrcmd.c
+index a9cf90394..d5957d2d4 100644
+--- a/src/overlay104/frscrcmd.c
++++ b/src/overlay104/frscrcmd.c
+@@ -1912,5 +1912,5 @@ static void ov104_022313FC(SysTask *param0, void *param1)
+                 }
+ 
+-                G2x_SetBGyAffine_((u32)&v2[v1].unk_00, &v5, 0, 0, v12, v13);
++                G2x_SetBGyAffine_((uintptr_t)&v2[v1].unk_00, &v5, 0, 0, v12, v13);
+ 
+                 v12 = v8 + v4->unk_00[v0].unk_08;
+@@ -1932,5 +1932,5 @@ static void ov104_022313FC(SysTask *param0, void *param1)
+                 }
+ 
+-                G2x_SetBGyAffine_((u32)&v2[v1].unk_10, &v5, 0, 0, v12, v13);
++                G2x_SetBGyAffine_((uintptr_t)&v2[v1].unk_10, &v5, 0, 0, v12, v13);
+             }
+         }
+@@ -1977,5 +1977,5 @@ static void ov104_022313FC(SysTask *param0, void *param1)
+             }
+ 
+-            G2x_SetBGyAffine_((u32)&v2[v1].unk_00, &v5, 0, 0, v16, v17);
++            G2x_SetBGyAffine_((uintptr_t)&v2[v1].unk_00, &v5, 0, 0, v16, v17);
+ 
+             v16 = v8 + v4->unk_00[v0].unk_08;
+@@ -1997,5 +1997,5 @@ static void ov104_022313FC(SysTask *param0, void *param1)
+             }
+ 
+-            G2x_SetBGyAffine_((u32)&v2[v1].unk_10, &v5, 0, 0, v16, v17);
++            G2x_SetBGyAffine_((uintptr_t)&v2[v1].unk_10, &v5, 0, 0, v16, v17);
+         }
+     }
+@@ -2021,5 +2021,5 @@ static BOOL ov104_02231720(UnkStruct_ov104_02231148 *param0)
+         param0->unk_24 = Heap_Alloc(HEAP_ID_94, sizeof(UnkStruct_ov104_022313FC));
+         param0->unk_24->unk_604 = 1;
+-        param0->unk_24->unk_600 = ov104_0223F1B4((u32)&reg_G2_BG2PA, &v0, HEAP_ID_94);
++        param0->unk_24->unk_600 = ov104_0223F1B4((uintptr_t)&reg_G2_BG2PA, &v0, HEAP_ID_94);
+ 
+         int v1;
+@@ -2079,5 +2079,5 @@ static BOOL ov104_02231864(UnkStruct_ov104_02231148 *param0)
+         param0->unk_24 = Heap_Alloc(HEAP_ID_94, sizeof(UnkStruct_ov104_022313FC));
+         param0->unk_24->unk_604 = 2;
+-        param0->unk_24->unk_600 = ov104_0223F1B4((u32)&reg_G2_BG2PA, &v0, HEAP_ID_94);
++        param0->unk_24->unk_600 = ov104_0223F1B4((uintptr_t)&reg_G2_BG2PA, &v0, HEAP_ID_94);
+ 
+         int v1;
+diff --git a/src/overlay109/ov109_021D0D80.c b/src/overlay109/ov109_021D0D80.c
+index 97b5d1037..7198296b9 100644
+--- a/src/overlay109/ov109_021D0D80.c
++++ b/src/overlay109/ov109_021D0D80.c
+@@ -724,5 +724,5 @@ static int ov109_021D11A0(UnkStruct_ov109_021D0F70 *param0)
+ {
+     int v0;
+-    u32 v1 = (u32)param0->unk_24;
++    u32 v1 = (uintptr_t)param0->unk_24;
+     v0 = CommSys_SendDataHuge(131, (void *)v1, 236 * 6 + 4 * 2);
+ 
+diff --git a/src/overlay113/ov113_0225C700.c b/src/overlay113/ov113_0225C700.c
+index b9f6299f9..c53b56cef 100644
+--- a/src/overlay113/ov113_0225C700.c
++++ b/src/overlay113/ov113_0225C700.c
+@@ -1130,6 +1130,6 @@ static BOOL ov113_0225D938(int param0, int param1, ManagedSprite *param2, NARC *
+     v1 = Sprite_GetImageProxy(param2->sprite);
+ 
+-    MI_CpuCopy16(v4, (void *)((u32)v0 + v1->vramLocation.baseAddrOfVram[param5]), 0x20 * 2);
+-    MI_CpuCopy16(v5, (void *)((u32)v0 + 0x20 * 2 + v1->vramLocation.baseAddrOfVram[param5]), 0x20 * 2);
++    MI_CpuCopy16(v4, (void *)((uintptr_t)v0 + v1->vramLocation.baseAddrOfVram[param5]), 0x20 * 2);
++    MI_CpuCopy16(v5, (void *)((uintptr_t)v0 + 0x20 * 2 + v1->vramLocation.baseAddrOfVram[param5]), 0x20 * 2);
+ 
+     Heap_Free(v2);
+diff --git a/src/particle_system.c b/src/particle_system.c
+index 1283b1b38..17d8794be 100644
+--- a/src/particle_system.c
++++ b/src/particle_system.c
+@@ -119,5 +119,5 @@ ParticleSystem *ParticleSystem_New(SPLTexVRAMAllocFunc texAllocFunc, SPLPalVRAMA
+     particleSystem->heapStart = heap;
+     particleSystem->heap = heap;
+-    particleSystem->heapEnd = (void *)((u32)heap + heapSize);
++    particleSystem->heapEnd = (void *)((uintptr_t)heap + heapSize);
+     particleSystem->id = id;
+     sParticleSystems[id] = particleSystem;
+@@ -215,5 +215,5 @@ static inline void *ParticleSystem_AllocMemory(ParticleSystem *particleSystem, u
+     void *allocated = particleSystem->heap;
+ 
+-    u32 newHeapPos = (u32)particleSystem->heap + size;
++    u32 newHeapPos = (uintptr_t)particleSystem->heap + size;
+     u32 offset = newHeapPos % 4;
+     if (offset > 0) {
+diff --git a/src/savedata.c b/src/savedata.c
+index ddbdda4fb..be66252a2 100644
+--- a/src/savedata.c
++++ b/src/savedata.c
+@@ -311,7 +311,7 @@ static u32 SaveData_SaveOffset(int sectorID, const SaveBlockInfo *blockInfo)
+ }
+ 
+-static SaveBlockFooter *SaveBlockFooter_Ptr(SaveData *saveData, u32 bodyAddress, int blockID)
++static SaveBlockFooter *SaveBlockFooter_Ptr(SaveData *saveData, uintptr_t bodyAddress, int blockID)
+ {
+-    u32 footerAddress;
++    uintptr_t footerAddress;
+     const SaveBlockInfo *blockInfo = &saveData->blockInfo[blockID];
+ 
+@@ -325,9 +325,9 @@ static SaveBlockFooter *SaveBlockFooter_Ptr(SaveData *saveData, u32 bodyAddress,
+ }
+ 
+-static BOOL SaveBlockFooter_Validate(SaveData *saveData, u32 bodyAddress, int blockID)
++static BOOL SaveBlockFooter_Validate(SaveData *saveData, uintptr_t bodyAddress, int blockID)
+ {
+     const SaveBlockInfo *blockInfo = &saveData->blockInfo[blockID];
+     SaveBlockFooter *footer = SaveBlockFooter_Ptr(saveData, bodyAddress, blockID);
+-    u32 startAddress = bodyAddress + blockInfo->offset;
++    uintptr_t startAddress = bodyAddress + blockInfo->offset;
+ 
+     if (footer->size != blockInfo->size) {
+@@ -350,5 +350,5 @@ static BOOL SaveBlockFooter_Validate(SaveData *saveData, u32 bodyAddress, int bl
+ }
+ 
+-static void SaveBlockFooter_CheckInfo(SaveCheckInfo *checkInfo, SaveData *saveData, u32 bodyAddress, int blockID)
++static void SaveBlockFooter_CheckInfo(SaveCheckInfo *checkInfo, SaveData *saveData, uintptr_t bodyAddress, int blockID)
+ {
+     SaveBlockFooter *footer = SaveBlockFooter_Ptr(saveData, bodyAddress, blockID);
+@@ -359,9 +359,9 @@ static void SaveBlockFooter_CheckInfo(SaveCheckInfo *checkInfo, SaveData *saveDa
+ }
+ 
+-static void SaveBlockFooter_Set(SaveData *saveData, u32 bodyAddress, int blockID)
++static void SaveBlockFooter_Set(SaveData *saveData, uintptr_t bodyAddress, int blockID)
+ {
+     const SaveBlockInfo *blockInfo = &saveData->blockInfo[blockID];
+     SaveBlockFooter *footer = SaveBlockFooter_Ptr(saveData, bodyAddress, blockID);
+-    u32 startAddress = bodyAddress + blockInfo->offset;
++    uintptr_t startAddress = bodyAddress + blockInfo->offset;
+ 
+     footer->saveCounter = saveData->globalCounter;
+@@ -448,6 +448,6 @@ static int SaveData_LoadCheck(SaveData *saveData)
+ 
+     if (SaveData_CardLoad(PRIMARY_SECTOR_START * SAVE_SECTOR_SIZE, primaryBuffer, SAVE_SECTOR_SIZE * SAVE_PAGE_MAX)) {
+-        SaveBlockFooter_CheckInfo(&normalInfo[SECTOR_ID_PRIMARY], saveData, (u32)primaryBuffer, SAVE_BLOCK_ID_NORMAL);
+-        SaveBlockFooter_CheckInfo(&boxInfo[SECTOR_ID_PRIMARY], saveData, (u32)primaryBuffer, SAVE_BLOCK_ID_BOXES);
++        SaveBlockFooter_CheckInfo(&normalInfo[SECTOR_ID_PRIMARY], saveData, (uintptr_t)primaryBuffer, SAVE_BLOCK_ID_NORMAL);
++        SaveBlockFooter_CheckInfo(&boxInfo[SECTOR_ID_PRIMARY], saveData, (uintptr_t)primaryBuffer, SAVE_BLOCK_ID_BOXES);
+     } else {
+         SaveData_CheckInfoInit(&normalInfo[SECTOR_ID_PRIMARY]);
+@@ -456,6 +456,6 @@ static int SaveData_LoadCheck(SaveData *saveData)
+ 
+     if (SaveData_CardLoad(BACKUP_SECTOR_START * SAVE_SECTOR_SIZE, backupBuffer, SAVE_SECTOR_SIZE * SAVE_PAGE_MAX)) {
+-        SaveBlockFooter_CheckInfo(&normalInfo[SECTOR_ID_BACKUP], saveData, (u32)backupBuffer, SAVE_BLOCK_ID_NORMAL);
+-        SaveBlockFooter_CheckInfo(&boxInfo[SECTOR_ID_BACKUP], saveData, (u32)backupBuffer, SAVE_BLOCK_ID_BOXES);
++        SaveBlockFooter_CheckInfo(&normalInfo[SECTOR_ID_BACKUP], saveData, (uintptr_t)backupBuffer, SAVE_BLOCK_ID_NORMAL);
++        SaveBlockFooter_CheckInfo(&boxInfo[SECTOR_ID_BACKUP], saveData, (uintptr_t)backupBuffer, SAVE_BLOCK_ID_BOXES);
+     } else {
+         SaveData_CheckInfoInit(&normalInfo[SECTOR_ID_BACKUP]);
+@@ -588,5 +588,5 @@ static BOOL SaveDataState_Load(SaveData *saveData)
+         }
+ 
+-        if (SaveBlockFooter_Validate(saveData, (u32)saveData->body.data, i) == FALSE) {
++        if (SaveBlockFooter_Validate(saveData, (uintptr_t)saveData->body.data, i) == FALSE) {
+             return FALSE;
+         }
+@@ -604,5 +604,5 @@ static s32 SaveDataState_InitBlock(SaveData *saveData, int blockID, u8 sectorID)
+     const SaveBlockInfo *blockInfo = &saveData->blockInfo[blockID];
+ 
+-    SaveBlockFooter_Set(saveData, (u32)saveData->body.data, blockID);
++    SaveBlockFooter_Set(saveData, (uintptr_t)saveData->body.data, blockID);
+ 
+     u32 saveOffset = SaveData_SaveOffset(sectorID, blockInfo);
+@@ -1341,5 +1341,5 @@ BOOL SaveData_Checksum(int saveTableID)
+     }
+ 
+-    u32 address = (u32)&halfTable[halfSize];
++    u32 address = (uintptr_t)&halfTable[halfSize];
+     GF_ASSERT(FALSE);
+ 
+@@ -1360,4 +1360,4 @@ void SaveData_SetChecksum(int saveTableID)
+     halfTable[halfSize] = checksum;
+ 
+-    u32 address = (u32)&halfTable[halfSize];
++    u32 address = (uintptr_t)&halfTable[halfSize];
+ }
+diff --git a/src/start_menu.c b/src/start_menu.c
+index e0a368083..b84442f77 100644
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -706,7 +706,7 @@ static BOOL StartMenu_Select(FieldTask *fieldTask)
+         break;
+     default:
+-        if ((u32)sStartMenuActions[menu->input].callback == MENU_CANCEL) {
++        if ((uintptr_t)sStartMenuActions[menu->input].callback == MENU_CANCEL) {
+             menu->state = START_MENU_STATE_END;
+-        } else if ((u32)sStartMenuActions[menu->input].callback != MENU_NOTHING_CHOSEN) {
++        } else if ((uintptr_t)sStartMenuActions[menu->input].callback != MENU_NOTHING_CHOSEN) {
+             FieldTaskFunc actionTask = sStartMenuActions[menu->input].callback;
+             return actionTask(fieldTask);
+diff --git a/src/timer.c b/src/timer.c
+index 03bc0d2ce..a9171b52d 100644
+--- a/src/timer.c
++++ b/src/timer.c
+@@ -44,5 +44,5 @@ static u64 CalculateCurrentTimestamp(void)
+     OSIntrMode irqState = OS_DisableInterrupts();
+ 
+-    timerLow = *(REGType16 *)((u32)REG_TM0CNT_L_ADDR + (OS_TIMER_3) * 4);
++    timerLow = *(REGType16 *)((uintptr_t)REG_TM0CNT_L_ADDR + (OS_TIMER_3) * 4);
+     timerHigh = sTimerValue & 0xffffffffffffULL;
+ 
+diff --git a/src/underground/comm_manager.c b/src/underground/comm_manager.c
+index 3553f718d..bdb239d6d 100644
+--- a/src/underground/comm_manager.c
++++ b/src/underground/comm_manager.c
+@@ -131,14 +131,14 @@ BOOL CommManUnderground_TryEnterBaseTransitionState(void)
+     FieldCommunicationManager *fieldCommMan = FieldCommManager_Get();
+ 
+-    u32 currentTask = (u32)fieldCommMan->task;
+-    u32 mainTaskServer = (u32)CommManUnderground_MainTaskServer;
+-    u32 mainTaskClient = (u32)CommManUnderground_MainTaskClient;
+-    u32 mainTaskAlone = (u32)CommManUnderground_CheckForConnectionsTask;
+-    u32 mainTaskClosedBase = (u32)CommManUnderground_ClosedBaseTask;
++    u32 currentTask = (uintptr_t)fieldCommMan->task;
++    u32 mainTaskServer = (uintptr_t)CommManUnderground_MainTaskServer;
++    u32 mainTaskClient = (uintptr_t)CommManUnderground_MainTaskClient;
++    u32 mainTaskAlone = (uintptr_t)CommManUnderground_CheckForConnectionsTask;
++    u32 mainTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTask;
+     u32 baseTransitionTasks[] = {
+-        (u32)CommManUnderground_BaseTransitionStartTaskServer,
+-        (u32)CommManUnderground_BaseTransitionStartTaskClient,
+-        (u32)CommManUnderground_BaseTransitionStartTaskAlone,
+-        (u32)CommManUnderground_ClosedBaseTransitionStartTask
++        (uintptr_t)CommManUnderground_BaseTransitionStartTaskServer,
++        (uintptr_t)CommManUnderground_BaseTransitionStartTaskClient,
++        (uintptr_t)CommManUnderground_BaseTransitionStartTaskAlone,
++        (uintptr_t)CommManUnderground_ClosedBaseTransitionStartTask
+     };
+ 
+@@ -169,9 +169,9 @@ BOOL CommManUnderground_TryExitBaseTransitionState(void)
+ {
+     FieldCommunicationManager *fieldCommMan = FieldCommManager_Get();
+-    u32 currentTask = (u32)fieldCommMan->task;
+-    u32 moveTaskServer = (u32)CommManUnderground_BaseTransitionTaskServer;
+-    u32 moveTaskClient = (u32)CommManUnderground_BaseTransitionTaskClient;
+-    u32 moveTaskAlone = (u32)CommManUnderground_BaseTransitionTaskAlone;
+-    u32 moveTaskClosedBase = (u32)CommManUnderground_ClosedBaseTransitionTask;
++    u32 currentTask = (uintptr_t)fieldCommMan->task;
++    u32 moveTaskServer = (uintptr_t)CommManUnderground_BaseTransitionTaskServer;
++    u32 moveTaskClient = (uintptr_t)CommManUnderground_BaseTransitionTaskClient;
++    u32 moveTaskAlone = (uintptr_t)CommManUnderground_BaseTransitionTaskAlone;
++    u32 moveTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTransitionTask;
+ 
+     if (currentTask == moveTaskServer) {
+@@ -197,19 +197,19 @@ BOOL CommManUnderground_IsInputAllowed(void)
+ 
+     u32 inputAllowedTasks[] = {
+-        (u32)CommManUnderground_MainTaskClient,
+-        (u32)CommManUnderground_MainTaskServer,
+-        (u32)CommManUnderground_WaitForDataReadTaskClient,
+-        (u32)CommManUnderground_WaitForFlagDataReceiptTaskClient,
+-        (u32)CommManUnderground_WaitForTrapDataReceiptTaskClient,
+-        (u32)CommManUnderground_WaitForBaseDataReceiptTaskClient,
+-        (u32)CommManUnderground_BaseTransitionStartTaskClient,
+-        (u32)CommManUnderground_BaseTransitionTaskClient,
+-        (u32)CommManUnderground_BaseTransitionEndTaskClient,
+-        (u32)CommManUnderground_BaseTransitionStartTaskServer,
+-        (u32)CommManUnderground_BaseTransitionTaskServer,
+-        (u32)CommManUnderground_BaseTransitionEndTaskServer,
++        (uintptr_t)CommManUnderground_MainTaskClient,
++        (uintptr_t)CommManUnderground_MainTaskServer,
++        (uintptr_t)CommManUnderground_WaitForDataReadTaskClient,
++        (uintptr_t)CommManUnderground_WaitForFlagDataReceiptTaskClient,
++        (uintptr_t)CommManUnderground_WaitForTrapDataReceiptTaskClient,
++        (uintptr_t)CommManUnderground_WaitForBaseDataReceiptTaskClient,
++        (uintptr_t)CommManUnderground_BaseTransitionStartTaskClient,
++        (uintptr_t)CommManUnderground_BaseTransitionTaskClient,
++        (uintptr_t)CommManUnderground_BaseTransitionEndTaskClient,
++        (uintptr_t)CommManUnderground_BaseTransitionStartTaskServer,
++        (uintptr_t)CommManUnderground_BaseTransitionTaskServer,
++        (uintptr_t)CommManUnderground_BaseTransitionEndTaskServer,
+         0
+     };
+-    u32 currentTask = (u32)fieldCommMan->task;
++    u32 currentTask = (uintptr_t)fieldCommMan->task;
+ 
+     if (fieldCommMan == NULL) {
+diff --git a/src/underground/menus.c b/src/underground/menus.c
+index d6b1354de..fe1c2328b 100644
+--- a/src/underground/menus.c
++++ b/src/underground/menus.c
+@@ -651,5 +651,5 @@ static BOOL UndergroundMenu_HandleStartMenu(SysTask *sysTask, void *data)
+         break;
+     default:
+-        if (menu->startMenuInput == (u32)UndergroundMenu_OpenTrapsMenu || menu->startMenuInput == (u32)UndergroundMenu_OpenSpheresMenu || menu->startMenuInput == (u32)UndergroundMenu_OpenGoodsMenu || menu->startMenuInput == (u32)UndergroundMenu_OpenTreasuresMenu) {
++        if (menu->startMenuInput == (uintptr_t)UndergroundMenu_OpenTrapsMenu || menu->startMenuInput == (uintptr_t)UndergroundMenu_OpenSpheresMenu || menu->startMenuInput == (uintptr_t)UndergroundMenu_OpenGoodsMenu || menu->startMenuInput == (uintptr_t)UndergroundMenu_OpenTreasuresMenu) {
+             menu->scrollPrompts = ScrollPrompts_New(HEAP_ID_FIELD1);
+             ScrollPrompts_SetPosition(menu->scrollPrompts, 200, 20, 122);
+diff --git a/src/underground/traps.c b/src/underground/traps.c
+index f00b18d39..a6ccd254e 100644
+--- a/src/underground/traps.c
++++ b/src/underground/traps.c
+@@ -1119,6 +1119,6 @@ static int Traps_FindEmptyBuriedTrapIndex(BuriedTrap *trapPtr)
+ static void Traps_RemoveBuriedTrap(BuriedTrap *trap)
+ {
+-    u32 start = (u32)&trapsEnv->buriedTraps[0];
+-    u32 index = ((u32)trap - start) / sizeof(BuriedTrap);
++    u32 start = (uintptr_t)&trapsEnv->buriedTraps[0];
++    u32 index = ((uintptr_t)trap - start) / sizeof(BuriedTrap);
+     u32 netID = index / MAX_PLACED_TRAPS;
+     u32 nextPlayerTrapsStart = (netID + 1) * MAX_PLACED_TRAPS;
+diff --git a/src/unk_02017498.c b/src/unk_02017498.c
+index b31b7958f..6ca6d9de1 100644
+--- a/src/unk_02017498.c
++++ b/src/unk_02017498.c
+@@ -147,5 +147,5 @@ static void sub_0201767C(UnkStruct_02017498 *param0)
+     if (param0->unk_88 == 0) {
+         param0->unk_18 = Heap_Alloc(HEAP_ID_116, 0x20000 + 32);
+-        param0->unk_1C = NNS_FndCreateExpHeap((void *)(((u32)param0->unk_18 + 31) / 32 * 32), 0x20000);
++        param0->unk_1C = NNS_FndCreateExpHeap((void *)(((uintptr_t)param0->unk_18 + 31) / 32 * 32), 0x20000);
+ 
+         Overlay_LoadWFCOverlay();
+diff --git a/src/unk_02033200.c b/src/unk_02033200.c
+index 7d6defcf9..2c8385f1c 100644
+--- a/src/unk_02033200.c
++++ b/src/unk_02033200.c
+@@ -82,5 +82,5 @@ void CommServerClient_Init(TrainerInfo *trainerInfo, BOOL param1)
+     MI_CpuClear8(sCommServerClient->unk_1500, BattleRegulation_Size());
+ 
+-    sCommServerClient->unk_1508 = (u32)Heap_Alloc(HEAP_ID_COMMUNICATION, WM_SIZE_USER_GAMEINFO + 32);
++    sCommServerClient->unk_1508 = (uintptr_t)Heap_Alloc(HEAP_ID_COMMUNICATION, WM_SIZE_USER_GAMEINFO + 32);
+     sCommServerClient->unk_150C = (u16 *)(32 - (sCommServerClient->unk_1508 % 32) + sCommServerClient->unk_1508);
+ 
+@@ -230,5 +230,5 @@ static void sub_020334DC(BOOL param0)
+ {
+     sCommServerClient->unk_14F4 = 0;
+-    u32 v0 = (u32)sCommServerClient->unk_14E8;
++    u32 v0 = (uintptr_t)sCommServerClient->unk_14E8;
+ 
+     v0 = 32 - (v0 % 32) + v0;
+diff --git a/src/unk_02038FFC.c b/src/unk_02038FFC.c
+index 7c9dc4ba4..0671dc832 100644
+--- a/src/unk_02038FFC.c
++++ b/src/unk_02038FFC.c
+@@ -18,5 +18,5 @@ int sub_02038FFC(enum HeapID heapID)
+ 
+     u8 *v1 = Heap_Alloc(heapID, DWC_INIT_WORK_SIZE + 32);
+-    u8 *v2 = (u8 *)(((u32)v1 + 31) / 32 * 32);
++    u8 *v2 = (u8 *)(((uintptr_t)v1 + 31) / 32 * 32);
+     int v0 = DWC_Init(v2);
+ 
+diff --git a/src/unk_0209BDF8.c b/src/unk_0209BDF8.c
+index 8452a3ef3..8709c3f33 100644
+--- a/src/unk_0209BDF8.c
++++ b/src/unk_0209BDF8.c
+@@ -332,5 +332,5 @@ static u8 *sub_0209C160(int param0, void *param1, int param2)
+     UnkStruct_0209BDF8 *v1 = param1;
+ 
+-    v0 = (u32)(v1->unk_4C);
++    v0 = (uintptr_t)(v1->unk_4C);
+     v0 += param0 * (236 * 6 + 4 * 2);
+     return (u8 *)v0;
+@@ -352,5 +352,5 @@ int sub_0209C16C(void)
+ void *sub_0209C188(UnkStruct_0209BDF8 *param0, int param1)
+ {
+-    u32 v0 = (u32)(param0->unk_50);
++    u32 v0 = (uintptr_t)(param0->unk_50);
+     v0 += param1 * (236 * 6 + 4 * 2);
+ 
+diff --git a/src/wifi_battle_tower/application.c b/src/wifi_battle_tower/application.c
+index bfe62c7f2..5d21127fa 100644
+--- a/src/wifi_battle_tower/application.c
++++ b/src/wifi_battle_tower/application.c
+@@ -97,5 +97,5 @@ BOOL WifiBattleTower_AppInit(ApplicationManager *appMan, int *state)
+ 
+         appState->dwcHeapBuffer = Heap_Alloc(HEAP_ID_68, 0x20000 + 32);
+-        appState->dwcHeap = NNS_FndCreateExpHeap((void *)(((u32)appState->dwcHeapBuffer + 31) / 32 * 32), 0x20000);
++        appState->dwcHeap = NNS_FndCreateExpHeap((void *)(((uintptr_t)appState->dwcHeapBuffer + 31) / 32 * 32), 0x20000);
+ 
+         Sound_SetSceneAndPlayBGM(SOUND_SCENE_11, SEQ_WIFILOBBY_sseq, 1);
+diff --git a/src/wireless_manager.c b/src/wireless_manager.c
+index 8be3910a8..6374f0162 100644
+--- a/src/wireless_manager.c
++++ b/src/wireless_manager.c
+@@ -1228,5 +1228,5 @@ static s16 WirelessManager_GetRandomChannel(u16 bitmap)
+ BOOL WirelessManager_Initialize(void *heap, BOOL isNotListening)
+ {
+-    u32 heapAddress = (u32)heap;
++    u32 heapAddress = (uintptr_t)heap;
+ 
+     if (heapAddress % 32) {

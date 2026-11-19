@@ -1,0 +1,33 @@
+	.include "macros.inc"
+	.include "overlay_115.inc"
+	.include "global.inc"
+
+	.public _02260374
+	.public ov115_0225F020
+	.public ov115_0225F09C
+	.public ov115_02260388
+	.public ov115_02260390
+	.public ov115_02260398
+	.public ov115_022603A0
+	.public ov115_022603A8
+	.public ov115_022603B0
+	.public ov115_022603C4
+	.public ov115_022603D8
+	.public ov115_022603EC
+	.public ov115_02260400
+	.public ov115_02260414
+	.public ov115_02260428
+	.public ov115_0226043C
+	.public ov115_02260450
+	.public ov115_02260464
+	.public ov115_02260478
+	.public ov115_0226048C
+	.public ov115_022604A0
+	.public ov115_022604B4
+	.public ov115_022604C8
+	.public ov115_022604DC
+	.public ov115_0225F0B4
+	.public ov115_0225F158
+	.public ov115_0225F1BC
+	.public ov115_02260254
+	.text

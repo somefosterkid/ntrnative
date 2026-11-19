@@ -1050,15 +1050,27 @@ def permute(listed, targets, best=None, most=MAX_UNITS):
     that hold an object out of place or one that should be there. Returns (the orders that give Black's, each the
     definitions' last objects in order; (fewest misplaced, its order); the definitions permuted; stopped by the time
     limit). More than `most` of those (it took the first 9 and missed the orders of more) are searched (search_orders()), not tried
-    one by one: the orders found are those that give Black's, without the guarantee that none does."""
+    one by one: the orders found are those that give Black's, without the guarantee that none does. When those
+    without an order found leave definitions out, all of them are searched then: one that sits where it should can
+    still have to move for the others to land."""
     units = definitions(listed)
-    if len(units) > most:
-        wrong = set()
-        for section, target in targets.items():
-            for o, (_, _, names) in zip(linked(listed, section), target):
-                if o.name not in names:
-                    wrong |= {o.name} | set(names)
-        units = [u for u in units if any(x.name in wrong for x in u)]
+    if len(units) <= most:
+        return permute_units(listed, targets, units, best, most)
+    wrong = set()
+    for section, target in targets.items():
+        for o, (_, _, names) in zip(linked(listed, section), target):
+            if o.name not in names:
+                wrong |= {o.name} | set(names)
+    narrow = [u for u in units if any(x.name in wrong for x in u)]
+    out = permute_units(listed, targets, narrow, best, most)
+    if out[0] or out[3] or len(narrow) == len(units):
+        return out
+    every = permute_units(listed, targets, units, best, most)
+    return every if every[0] or every[1][0] < out[1][0] else out
+
+
+def permute_units(listed, targets, units, best, most):
+    """permute()'s search of the orders of these definitions."""
     member = {id(x) for u in units for x in u}
     first = {id(u[0]): k for k, u in enumerate(units)}
 

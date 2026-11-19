@@ -13,6 +13,8 @@
 int vc_2d_same(const VCoreState *a, const VCoreState *b, int e) {
   const u8 *ra = e ? a->io9b : a->io9, *rb = e ? b->io9b : b->io9;
   if (memcmp(ra, rb, VC_IO9B_SIZE) != 0) return 0;
+  if (a->hd_on[e] != b->hd_on[e]) return 0; /* H-blank DMA: the registers line by line */
+  if (a->hd_on[e] && memcmp(a->hd[e], b->hd[e], sizeof a->hd[e]) != 0) return 0;
   if (memcmp(a->io9 + VC_REG_POWCNT1, b->io9 + VC_REG_POWCNT1, 2) != 0) return 0;
   if (memcmp(a->io9 + VC_REG_VRAMCNT_A, b->io9 + VC_REG_VRAMCNT_A, 10) != 0) return 0; /* A-G, WRAMCNT, H, I */
   if (memcmp(a->oam + e * 0x400, b->oam + e * 0x400, 0x400) != 0) return 0;

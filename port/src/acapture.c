@@ -29,14 +29,19 @@
 
 extern void (*SIM_sndCaptureHook)(const SNDCommand *list);
 #include "port_game.h"
-#define g_GFLSndHeap (PORT_Game->sndHeap) // src/system/snd_sys.c: the NNS sound heap's memory, the running game's
+// the NNS sound heap's memory, the running game's: Black's g_GFLSndHeap (src/system/snd_sys.c), or what the game's getter
+// finds (Platinum keeps it inside its SoundSystem, pret's src/sound_system.c)
+static unsigned char *SndHeap(void) {
+    return PORT_Game->sndHeapFn != NULL ? PORT_Game->sndHeapFn() : PORT_Game->sndHeap;
+}
+#define g_GFLSndHeap SndHeap()
 
 // SNDPlayer's and SNDTrack's fields before the first pointer sit at the DS's offsets (PLAYER_PARAM / TRACK_PARAM take
 // offsets into them as they are)
 _Static_assert(offsetof(SNDPlayer, extFader) == 6 && offsetof(SNDPlayer, tempo_ratio) == 0x1A, "SNDPlayer layout");
 _Static_assert(offsetof(SNDTrack, mod) == 24, "SNDTrack layout");
 
-#define HEAP_LEN (PORT_Game->sndHeapLen) // the running game's (Black's WORK_AREA_SIZE(0x95ad0), Black 2's 0x9d000)
+#define HEAP_LEN (PORT_Game->sndHeapLen) // the running game's (Black's WORK_AREA_SIZE(0x95ad0), Black 2's 0x9d000, Platinum's 0xBBC00)
 #define DS_HEAP 0x02100000u
 #define DS_RING_LO 0x02230000u
 #define DS_RING_HI 0x0237D000u
@@ -301,6 +306,18 @@ static void Close(void) {
 }
 
 void acapture_close(void) { Close(); }
+
+// the in-process restart (acore_glue.c's acglue_reset, after ab_reset made a new core with zeroed memory): what the
+// translation remembers of the old core's memory is forgotten, or Mem() would skip the new boot's sound data as "there
+// already" (the same files land at the same heap addresses) and the new core would play zeros: sequences that never end,
+// so a wait for a sound effect (the field save's) hangs. Capture-file state (sNow, the counts) is kept.
+void acapture_reset(void) {
+    sNRec = 0;
+    sNRing = 0;
+    sRingNext = DS_RING_LO;
+    sNBanks = 0;
+    sInRefresh = 0;
+}
 
 // frames before FROM: the commands that set global state (no sound: a clip starts quiet)
 static int Keep(const SNDCommand *c, u32 frame) {

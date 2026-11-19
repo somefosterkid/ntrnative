@@ -1,0 +1,18 @@
+pokeplatinum-narcclose.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): NARC_GetMemberSizeByIndexPair opens the NARC's file, reads
+the member's offsets and returns the size without ever closing the file (upstream's own comment: "Bug: file is never closed!"). On the DS
+that is harmless; on the PC every call keeps a host file open: ~33 per 1000 frames in HeartGold (the same code, fixed in the decomp as
+hw12), so a long play ends at the process's file limit (ulimit -n 1024: the save fails; win64's CRT: 512) and the game stops loading
+files. The file is closed before the return. (libntr's FS_PortOpenFiles counts the open host files; port/src/run_frames.c prints the peak.)
+diff --git a/src/narc.c b/src/narc.c
+index 83a3d7932..ebbe07d01 100644
+--- a/src/narc.c
++++ b/src/narc.c
+@@ -380,7 +380,7 @@ u32 NARC_GetMemberSizeByIndexPair(enum NarcID narcID, int memberIndex)
+     chunkSize = fileEnd - fileStart;
+ 
+     GF_ASSERT(chunkSize != 0);
+-    // Bug: file is never closed!
++    FS_CloseFile(&file);
+ 
+     return chunkSize;
+ }

@@ -89,14 +89,14 @@ def main():
     if a.nnsys or a.nnsys_port:
         out = nnsys_files() if a.nnsys else sorted(p.relative_to(ROOT).as_posix()
                                                    for p in (ROOT / "port/src").glob("nnsys_*.c"))
-        print("\n".join(f if a.relative else str(ROOT / f) for f in out))
+        print("\n".join(f if a.relative else (ROOT / f).as_posix() for f in out))
         return 0
     if a.b2w2:
         global EXCLUDE
         EXCLUDE = ROOT / "port/exclude_b2w2.txt"
         tree, ext = Path(a.b2w2).resolve(), ROOT / "port/extern_b2w2"
         ex = excludes()
-        out = [str(ext / f) if (ext / f).is_file() else str(tree / f)
+        out = [(ext / f).as_posix() if (ext / f).is_file() else (tree / f).as_posix()
                for f in game_files(tree, ("src", "lib/poke_net", "lib/spl")) if not matching(f, ex)]
         print("\n".join(out))
         return 0
@@ -114,7 +114,7 @@ def main():
                 print(f"{f}\t{m[1]}\t{m[2]}")
         return 0
     out = [EXTERN + f if (ROOT / EXTERN / f).is_file() else f for f in files if not matching(f, ex)] + port_files()
-    print("\n".join(f if a.relative else str(ROOT / f) for f in out))
+    print("\n".join(f if a.relative else (ROOT / f).as_posix() for f in out))
     return 0
 
 

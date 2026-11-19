@@ -1,0 +1,2179 @@
+#include "global.h"
+#include "sprite_resources_header.h"
+
+#include "constants/heap.h"
+
+#include "wild_encounter.h"
+#include "pm_string.h"
+#include "filesystem.h"
+#include "palette.h"
+#include "sprite.h"
+#include "overlay_41_sprite_resource_collection.h"
+#include "sprite_system.h"
+#include "sys_task.h"
+#include "touch_hitbox_controller.h"
+#include "save.h"
+#include "overlay_74_main_menu_util.h"
+#include "overlay_39_unk_struct_ov62_022349_a8.h"
+#include "bg_window.h"
+#include "overlay_40_unk_struct_ov62_02233310.h"
+#include "overlay_40_unk_struct_ov62_0223118c.h"
+#include "overlay_40_unk_struct_0208_c06_c.h"
+#include "overlay_40_unk_struct_ov62_022312b0.h"
+#include "pokedex.h"
+
+typedef enum HeapID HeapID;
+
+struct Background;
+
+struct BgConfig;
+
+struct CharTransferAllocation;
+
+struct DressUpPhoto;
+
+struct EasyChatSentence;
+
+struct FontOAM;
+
+struct G2dRenderer;
+
+struct G3DPipelineBuffers;
+
+struct ManagedSprite;
+
+struct MessageBank;
+
+struct MessageBankEntry;
+
+struct MessageLoader;
+
+struct NARC;
+
+struct PaletteBuffer;
+
+struct PaletteData;
+
+struct PaletteFadeControl;
+
+struct PhotoAccessory;
+
+struct PhotoPokemon;
+
+struct Pokedex;
+
+struct PokemonSprite;
+
+struct PokemonSpriteManager;
+
+struct PokemonSpriteShadow;
+
+struct PokemonSpriteTemplate;
+
+struct PokemonSpriteTransforms;
+
+struct Resource;
+
+struct ResourceCollection;
+
+struct SaveBlockInfo;
+
+struct SaveData;
+
+struct SaveDataBody;
+
+struct SaveDataState;
+
+struct SavePageInfo;
+
+struct Sprite;
+
+struct SpriteAnimFrame;
+
+struct SpriteList;
+
+struct SpriteManager;
+
+struct SpriteResource;
+
+struct SpriteResourceCollection;
+
+struct SpriteResourceList;
+
+struct SpriteResourceTable;
+
+struct SpriteResourcesHeader;
+
+struct SpriteResourcesHeaderList;
+
+struct SpriteSystem;
+
+struct String;
+
+struct StringTemplate;
+
+struct StringTemplateArg;
+
+struct StringTemplateArgHeader;
+
+struct SysTask;
+
+struct SysTaskManager;
+
+struct TouchScreenActions;
+
+struct TouchScreenHitTableActionStateInternal;
+
+struct UnkStruct_02012744_t;
+
+struct UnkStruct_02012B20_t;
+
+struct UnkStruct_0202F41C_t;
+
+struct UnkStruct_02030A80_t;
+
+struct UnkStruct_020F3DCC_t;
+
+struct UnkStruct_ov22_0225B1BC_t;
+
+struct Window;
+
+typedef struct {
+    BOOL unk_00;
+    int unk_04;
+    int unk_08;
+    int unk_0C;
+} UnkStruct_ov62_0223CAA4;
+
+typedef struct PhotoAccessory {
+    u8 unk_00;
+    u8 xPos;
+    u8 yPos;
+    s8 priority;
+} PhotoAccessory;
+
+typedef struct PhotoPokemon {
+    u32 personality;
+    u32 otID;
+    u16 species;
+    u16 nickname[10 + 1];
+    u16 trainerName[7 + 1];
+    s8 priority;
+    u8 xPos;
+    u8 yPos;
+    u8 form;
+    u8 trainerGender;
+} PhotoPokemon;
+
+typedef u16 charcode_t;
+
+typedef struct EasyChatSentence {
+    u16 type;
+    u16 id;
+    u16 words[2];
+} EasyChatSentence;
+
+typedef struct DressUpPhoto {
+    u32 integrity;
+    PhotoPokemon photoMon;
+    u32 unk_3C;
+    EasyChatSentence title;
+    PhotoAccessory accessories[10];
+    u8 unk_70;
+    u8 language;
+} DressUpPhoto;
+
+typedef struct {
+    u16 unk_00;
+    u16 unk_02;
+} UnkStruct_0202F298_sub1;
+
+typedef struct UnkStruct_02030A80_t {
+    u16 unk_00[8];
+    u32 id;
+    u8 gender;
+    u8 month;
+    u8 appearance;
+    u8 country;
+    u8 region;
+    u8 version;
+    u8 language;
+    u8 isEgg : 1;
+    u8 form : 7;
+    u16 species;
+    u8 unk_1E;
+    u8 unk_1F;
+    union {
+        EasyChatSentence unk_20_val1;
+        u16 unk_20_val2[40];
+    };
+    u8 unk_70[12];
+    UnkStruct_0202F298_sub1 unk_7C;
+} UnkStruct_02030A80;
+
+typedef struct UnkStruct_0202F41C_t UnkStruct_0202F41C;
+
+typedef struct {
+    int unk_00;
+    enum HeapID heapID;
+    int unk_08;
+    int unk_0C;
+    fx32 unk_10;
+} UnkStruct_0208B284;
+
+enum NarcID {
+    NARC_INDEX_BATTLE__SKILL__WAZA_SEQ = 0,
+    NARC_INDEX_BATTLE__SKILL__SUB_SEQ,
+    NARC_INDEX_POKETOOL__PERSONAL__PL_PERSONAL,
+    NARC_INDEX_POKETOOL__PERSONAL__PL_GROWTBL,
+    NARC_INDEX_POKETOOL__POKEGRA__PL_POKEGRA,
+    NARC_INDEX_POKETOOL__POKEGRA__HEIGHT,
+    NARC_INDEX_POKETOOL__TRGRA__TRBGRA,
+    NARC_INDEX_BATTLE__GRAPHIC__PL_BATT_BG,
+    NARC_INDEX_WAZAEFFECT__WE,
+    NARC_INDEX_POKETOOL__WAZA__PL_WAZA_TBL,
+    NARC_INDEX_FIELDDATA__SCRIPT__SCR_SEQ,
+    NARC_INDEX_MSGDATA__SCENARIO__SCR_MSG,
+    NARC_INDEX_GRAPHIC__POKETCH,
+    NARC_INDEX_GRAPHIC__PL_BAG_GRA,
+    NARC_INDEX_GRAPHIC__PL_FONT,
+    NARC_INDEX_ITEMTOOL__ITEMDATA__PL_ITEM_DATA,
+    NARC_INDEX_ITEMTOOL__ITEMDATA__ITEM_ICON,
+    NARC_INDEX_GRAPHIC__TMAP_GRA,
+    NARC_INDEX_GRAPHIC__BOX,
+    NARC_INDEX_POKETOOL__ICONGRA__PL_POKE_ICON,
+    NARC_INDEX_GRAPHIC__PL_PLIST_GRA,
+    NARC_INDEX_WAZAEFFECT__EFFECTCLACT__WECHAR,
+    NARC_INDEX_WAZAEFFECT__EFFECTCLACT__WEPLTT,
+    NARC_INDEX_WAZAEFFECT__EFFECTCLACT__WECELL,
+    NARC_INDEX_WAZAEFFECT__EFFECTCLACT__WECELLANM,
+    NARC_INDEX_GRAPHIC__IMAGECLIP,
+    NARC_INDEX_MSGDATA__PL_MSG,
+    NARC_INDEX_BATTLE__GRAPHIC__PL_BATT_OBJ,
+    NARC_INDEX_DATA__UNDERG_RADAR,
+    NARC_INDEX_WAZAEFFECT__EFFECTDATA__WAZA_PARTICLE,
+    NARC_INDEX_BATTLE__SKILL__BE_SEQ,
+    NARC_INDEX_DATA__NAMEIN,
+    NARC_INDEX_FIELDDATA__EVENTDATA__ZONE_EVENT,
+    NARC_INDEX_POKETOOL__PERSONAL__WOTBL,
+    NARC_INDEX_POKETOOL__PERSONAL__EVO,
+    NARC_INDEX_GRAPHIC__FONTOAM,
+    NARC_INDEX_GRAPHIC__FIELD_BOARD,
+    NARC_INDEX_FIELDDATA__ENCOUNTDATA__D_ENC_DATA,
+    NARC_INDEX_GRAPHIC__PL_WINFRAME,
+    NARC_INDEX_GRAPHIC__PL_PST_GRA,
+    NARC_INDEX_FIELDDATA__BUILD_MODEL__BUILD_MODEL,
+    NARC_INDEX_FIELDDATA__MAPMATRIX__MAP_MATRIX,
+    NARC_INDEX_FIELDDATA__AREADATA__AREA_DATA,
+    NARC_INDEX_FIELDDATA__AREADATA__AREA_BUILD_MODEL__AREA_BUILD,
+    NARC_INDEX_FIELDDATA__AREADATA__AREA_MAP_TEX__MAP_TEX_SET,
+    NARC_INDEX_CONTEST__GRAPHIC__CONTEST_BG,
+    NARC_INDEX_CONTEST__GRAPHIC__CONTEST_OBJ,
+    NARC_INDEX_DATA__UGEFFECT_OBJ_GRAPHIC,
+    NARC_INDEX_DEMO__TITLE__TITLEDEMO,
+    NARC_INDEX_FIELDDATA__AREADATA__AREA_MOVE_MODEL__MOVE_MODEL_LIST,
+    NARC_INDEX_DATA__UG_TRAP,
+    NARC_INDEX_GRAPHIC__TRAINER_CASE,
+    NARC_INDEX_DATA__UG_FOSSIL,
+    NARC_INDEX_GRAPHIC__NTAG_GRA,
+    NARC_INDEX_DATA__TRADELIST,
+    NARC_INDEX_DATA__UG_PARTS,
+    NARC_INDEX_GRAPHIC__OPENING,
+    NARC_INDEX_POKETOOL__TRAINER__TRDATA,
+    NARC_INDEX_POKETOOL__TRAINER__TRPOKE,
+    NARC_INDEX_POKETOOL__TRMSG__TRTBL,
+    NARC_INDEX_POKETOOL__TRGRA__TRFGRA,
+    NARC_INDEX_PARTICLEDATA__PARTICLEDATA,
+    NARC_INDEX_GRAPHIC__SHOP_GRA,
+    NARC_INDEX_WAZAEFFECT__WE_SUB,
+    NARC_INDEX_DATA__UG_ANIM,
+    NARC_INDEX_DATA__WEATHER_SYS,
+    NARC_INDEX_GRAPHIC__MENU_GRA,
+    NARC_INDEX_FIELDDATA__LAND_DATA__LAND_DATA,
+    NARC_INDEX_ITEMTOOL__ITEMDATA__NUTS_DATA,
+    NARC_INDEX_RESOURCE__ENG__ZUKAN__ZUKAN,
+    NARC_INDEX_POKETOOL__POKEFOOT__POKEFOOT,
+    NARC_INDEX_FIELDDATA__AREADATA__AREA_BUILD_MODEL__AREABM_TEXSET,
+    NARC_INDEX_BATTLE__GRAPHIC__PL_B_PLIST_GRA,
+    NARC_INDEX_GRAPHIC__CONFIG_GRA,
+    NARC_INDEX_GRAPHIC__UNIONROOM,
+    NARC_INDEX_APPLICATION__ZUKANLIST__ZKN_DATA__ZUKAN_DATA,
+    NARC_INDEX_GRAPHIC__PMSI,
+    NARC_INDEX_BATTLE__GRAPHIC__B_BAG_GRA,
+    NARC_INDEX_GRAPHIC__OEKAKI,
+    NARC_INDEX_GRAPHIC__MAIL_GRA,
+    NARC_INDEX_GRAPHIC__F_NOTE_GRA,
+    NARC_INDEX_DATA__MMODEL__MMODEL,
+    NARC_INDEX_GRAPHIC__EV_POKESELECT,
+    NARC_INDEX_GRAPHIC__PORU_GRA,
+    NARC_INDEX_GRAPHIC__TOUCH_SUBWINDOW,
+    NARC_INDEX_GRAPHIC__FLD_COMACT,
+    NARC_INDEX_GRAPHIC__RECORD,
+    NARC_INDEX_GRAPHIC__PORUDEMO,
+    NARC_INDEX_GRAPHIC__PORUACT,
+    NARC_INDEX_GRAPHIC__PL_WIFINOTE,
+    NARC_INDEX_CONTEST__DATA__CONTEST_DATA,
+    NARC_INDEX_APPLICATION__CUSTOM_BALL__DATA__CB_DATA,
+    NARC_INDEX_DATA__WIFIP2PMATCH,
+    NARC_INDEX_GRAPHIC__DEMO_TRADE,
+    NARC_INDEX_POKEANIME__PL_POKE_ANM,
+    NARC_INDEX_GRAPHIC__MYSIGN,
+    NARC_INDEX_FIELDDATA__MM_LIST__MOVE_MODEL_LIST,
+    NARC_INDEX_DATA__FIELD_CUTIN,
+    NARC_INDEX_DATA__DEMO_CLIMAX,
+    NARC_INDEX_WAZAEFFECT__EFFECTDATA__BALL_PARTICLE,
+    NARC_INDEX_WAZAEFFECT__PT_DEBUG__DEBUG_PARTICLE,
+    NARC_INDEX_GRAPHIC__DENDOU_PC,
+    NARC_INDEX_APPLICATION__WIFI_EARTH__WIFI_EARTH_PLACE,
+    NARC_INDEX_BATTLE__TR_AI__TR_AI_SEQ,
+    NARC_INDEX_GRAPHIC__WORLDTRADE,
+    NARC_INDEX_GRAPHIC__DENDOU_DEMO,
+    NARC_INDEX_ARC__ENCDATA_EX,
+    NARC_INDEX_DATA__MMODEL__FLDEFF,
+    NARC_INDEX_BATTLE__GRAPHIC__VS_DEMO_GRA,
+    NARC_INDEX_POKETOOL__PL_POKEZUKAN,
+    NARC_INDEX_ARC__BM_ANIME,
+    NARC_INDEX_ARC__BM_ANIME_LIST,
+    NARC_INDEX_GRAPHIC__FIELD_ENCOUNTEFFECT,
+    NARC_INDEX_GRAPHIC__WAZA_OSHIE_GRA,
+    NARC_INDEX_POKETOOL__POKEANM__PL_POKEANM,
+    NARC_INDEX_FIELDDATA__POKEMON_TRADE__FLD_TRADE,
+    NARC_INDEX_GRAPHIC__MYSTERY,
+    NARC_INDEX_POKETOOL__POKEGRA__PL_OTHERPOKE,
+    NARC_INDEX_DEMO__EGG__DATA__EGG_DATA,
+    NARC_INDEX_DEMO__EGG__DATA__PARTICLE__EGG_DEMO_PARTICLE,
+    NARC_INDEX_ARC__SHIP_DEMO,
+    NARC_INDEX_POKETOOL__POKEGRA__HEIGHT_O,
+    NARC_INDEX_GRAPHIC__NUTMIXER,
+    NARC_INDEX_GRAPHIC__BTOWER,
+    NARC_INDEX_DEMO__SHINKA__DATA__PARTICLE__SHINKA_DEMO_PARTICLE,
+    NARC_INDEX_DEMO__INTRO__INTRO,
+    NARC_INDEX_ARC__TV,
+    NARC_INDEX_GRAPHIC__ENDING,
+    NARC_INDEX_DEMO__TITLE__OP_DEMO,
+    NARC_INDEX_APPLICATION__WIFI_EARTH__WIFI_EARTH,
+    NARC_INDEX_GRAPHIC__RANKING,
+    NARC_INDEX_ARC__PPARK,
+    NARC_INDEX_DEMO__SYOUJYOU__SYOUJYOU,
+    NARC_INDEX_DATA__SLOT,
+    NARC_INDEX_BATTLE__B_TOWER__BTDTR,
+    NARC_INDEX_BATTLE__B_TOWER__BTDPM,
+    NARC_INDEX_DEMO__INTRO__INTRO_TV,
+    NARC_INDEX_POKETOOL__TRMSG__TRTBLOFS,
+    NARC_INDEX_POKETOOL__POKEGRA__POKE_YOFS,
+    NARC_INDEX_APPLICATION__ZUKANLIST__ZKN_DATA__ZUKAN_ENC_DIAMOND,
+    NARC_INDEX_APPLICATION__ZUKANLIST__ZKN_DATA__ZUKAN_ENC_PEARL,
+    NARC_INDEX_GRAPHIC__HIDEN_EFFECT,
+    NARC_INDEX_POKETOOL__POKEGRA__POKE_SHADOW,
+    NARC_INDEX_FIELDDATA__ENCOUNTDATA__P_ENC_DATA,
+    NARC_INDEX_POKETOOL__POKEGRA__POKE_SHADOW_OFX,
+    NARC_INDEX_POKETOOL__SHINZUKAN,
+    NARC_INDEX_GRAPHIC__WIFI2DCHAR,
+    NARC_INDEX_POKETOOL__POKE_EDIT__PL_POKE_DATA,
+    NARC_INDEX_DEBUG__CB_EDIT__D_TEST,
+    NARC_INDEX_FRONTIER__SCRIPT__FR_SCRIPT,
+    NARC_INDEX_FRONTIER_BACKGROUNDS,
+    NARC_INDEX_RESOURCE__ENG__FRONTIER_GRAPHIC__FRONTIER_OBJ,
+    NARC_INDEX_APPLICATION__CUSTOM_BALL__EDIT__PL_CB_DATA,
+    NARC_INDEX_GRAPHIC__WIFI_UNIONOBJ,
+    NARC_INDEX_DATA__GURU2,
+    NARC_INDEX_DATA__FLDTANIME,
+    NARC_INDEX_ARC__SHIP_DEMO_PL,
+    NARC_INDEX_PARTICLEDATA__PL_FRONTIER__FRONTIER_PARTICLE,
+    NARC_INDEX_GRAPHIC__BUCKET,
+    NARC_INDEX_ARC__CODEIN_GRA,
+    NARC_INDEX_ARC__AREA_WIN_GRA,
+    NARC_INDEX_FIELDDATA__ENCOUNTDATA__PL_ENC_DATA,
+    NARC_INDEX_RESOURCE__ENG__BATT_REC__BATT_REC_GRA,
+    NARC_INDEX_GRAPHIC__WORLDTIMER,
+    NARC_INDEX_ARC__MANENE,
+    NARC_INDEX_POKETOOL__POKEGRA__POKEGRA,
+    NARC_INDEX_POKETOOL__POKEGRA__OTHERPOKE,
+    NARC_INDEX_POKETOOL__POKEGRA__DP_HEIGHT,
+    NARC_INDEX_POKETOOL__POKEGRA__DP_HEIGHT_O,
+    NARC_INDEX_GRAPHIC__LOBBY_NEWS,
+    NARC_INDEX_ARC__EMAIL_GRA,
+    NARC_INDEX_RESOURCE__ENG__WIFI_LOBBY_MINIGAME__WLMNGM_TOOL,
+    NARC_INDEX_ARC__DEMO_TENGAN_GRA,
+    NARC_INDEX_APPLICATION__BALLOON__GRAPHIC__BALLOON_GRA,
+    NARC_INDEX_APPLICATION__WIFI_LOBBY__MAP_CONV__WFLBY_MAP,
+    NARC_INDEX_GRAPHIC__WIFI_LOBBY,
+    NARC_INDEX_DATA__AREALIGHT,
+    NARC_INDEX_DATA__UGROUNDEFFECT,
+    NARC_INDEX_BATTLE__B_PL_TOWER__PL_BTDTR,
+    NARC_INDEX_BATTLE__B_PL_TOWER__PL_BTDPM,
+    NARC_INDEX_BATTLE__B_PL_STAGE__PL_BSDPM,
+    NARC_INDEX_FIELDDATA__TORNWORLD__TW_ARC,
+    NARC_INDEX_FIELDDATA__TORNWORLD__TW_ARC_ATTR,
+    NARC_INDEX_DATA__TW_ARC_ETC,
+    NARC_INDEX_SCRATCH_OFF_CARDS,
+    NARC_INDEX_PARTICLEDATA__PL_POKELIST__POKELIST_PARTICLE,
+    NARC_INDEX_GRAPHIC__WIFI_LOBBY_OTHER,
+    NARC_INDEX_GRAPHIC__FOOTPRINT_BOARD,
+    NARC_INDEX_APPLICATION__ZUKANLIST__ZKN_DATA__ZUKAN_ENC_PLATINUM,
+    NARC_INDEX_APPLICATION__BUCKET__BALLSLOW_DATA,
+    NARC_INDEX_PARTICLEDATA__PL_ETC__PL_ETC_PARTICLE,
+    NARC_INDEX_RESOURCE__ENG__PMS_AIKOTOBA__PMS_AIKOTOBA,
+    NARC_INDEX_GRAPHIC__UNIONOBJ2D_ONLYFRONT,
+    NARC_INDEX_GRAPHIC__LIBRARY_TV,
+    NARC_INDEX_APPLICATION__ZUKANLIST__ZKN_DATA__ZUKAN_DATA_GIRA,
+};
+
+typedef struct PaletteFadeControl {
+    u16 unfadedMask;
+    u16 wait : 6;
+    u16 cur : 5;
+    u16 end : 5;
+    u16 target : 15;
+    u16 sign : 1;
+    u16 step : 4;
+    u16 waitStep : 6;
+    u16 unused : 6;
+} PaletteFadeControl;
+
+typedef struct CharTransferAllocation {
+    u32 size;
+    u32 offset;
+    u16 vramType;
+    u16 atEnd;
+} CharTransferAllocation;
+
+typedef struct SpriteResourcesHeaderList {
+    SpriteResourcesHeader *headers;
+    int length;
+} SpriteResourcesHeaderList;
+
+typedef struct Resource {
+    int id;
+    void *data;
+} Resource;
+
+typedef struct ResourceCollection {
+    Resource *resources;
+    int capacity;
+    int count;
+} ResourceCollection;
+
+enum SpriteResourceType {
+    SPRITE_RESOURCE_CHAR = 0,
+    SPRITE_RESOURCE_PLTT,
+    SPRITE_RESOURCE_CELL,
+    SPRITE_RESOURCE_ANIM,
+    SPRITE_RESOURCE_MULTI_CELL,
+    SPRITE_RESOURCE_MULTI_ANIM,
+    SPRITE_RESOURCE_MAX,
+};
+
+typedef struct SpriteResourceTable {
+    void *entries;
+    int count;
+    enum SpriteResourceType type;
+    u8 loadFromNARC;
+} SpriteResourceTable;
+
+typedef struct SpriteResourceList {
+    SpriteResource **resources;
+    int capacity;
+    int count;
+} SpriteResourceList;
+
+typedef struct {
+    NARC *unk_00;
+    SpriteSystem *unk_04;
+    SpriteManager *unk_08;
+    PaletteData *unk_0C;
+} UnkStruct_0208B878_sub1;
+
+typedef struct {
+    ManagedSprite *unk_00;
+    s16 unk_04;
+    s16 unk_06;
+    int unk_08;
+    int unk_0C;
+} UnkStruct_0208B878_sub2;
+
+typedef struct SysTaskManager SysTaskManager;
+
+enum TaskState {
+    TASK_STATE_ACTIVE = 0,
+    TASK_STATE_INACTIVE,
+};
+
+struct SysTaskManager {
+    u16 maxTasks;
+    u16 stackPointer;
+    SysTask sentinelTask;
+    SysTask **taskStack;
+    SysTask *tasks;
+    BOOL locked;
+    SysTask *currentTask;
+    SysTask *nextTask;
+};
+
+typedef struct {
+    UnkStruct_0208B878_sub1 unk_00;
+    UnkStruct_0208B284 unk_10;
+    UnkStruct_0208B878_sub2 unk_24[12];
+    int unk_E4;
+    int unk_E8;
+    int unk_EC;
+    BOOL unk_F0;
+    SysTask *unk_F4;
+    int unk_F8;
+    int unk_FC;
+    int unk_100;
+    int unk_104;
+} UnkStruct_0208B878;
+
+typedef struct {
+    BOOL unk_00;
+    int unk_04;
+    u8 padding_08[8];
+} UnkStruct_0208BA84;
+
+typedef struct {
+    BOOL unk_00;
+    int unk_04;
+    int unk_08[8];
+} UnkStruct_0208C06C_sub1;
+
+typedef struct {
+    BOOL unk_00;
+    int unk_04;
+    UnkStruct_0208B878 *unk_08;
+    SysTask *unk_0C;
+} UnkStruct_0208C06C_sub2;
+
+typedef struct UnkStruct_020F3DCC_t UnkStruct_020F3DCC;
+
+struct UnkStruct_020F3DCC_t {
+    BOOL unk_00;
+    BOOL unk_04;
+    int unk_08;
+    int unk_0C;
+    int unk_10;
+    int unk_14;
+    int unk_18;
+    int unk_1C;
+    const UnkStruct_020F3DCC *unk_20;
+};
+
+typedef struct FontOAM FontOAM;
+
+typedef struct UnkStruct_02012B20_t UnkStruct_02012B20;
+
+typedef union {
+    struct {
+        u8 top;
+        u8 bottom;
+        u8 left;
+        u8 right;
+    } rect;
+
+    struct {
+        u8 code;
+        u8 x;
+        u8 y;
+        u8 r;
+    } circle;
+} TouchScreenRect, TouchScreenHitTable;
+
+typedef struct {
+    ManagedSprite *unk_00;
+    u8 padding_04[8];
+    BOOL unk_0C;
+    TouchScreenRect *unk_10;
+    FontOAM *unk_14;
+    UnkStruct_02012B20 *unk_18;
+    CharTransferAllocation unk_1C;
+} UnkStruct_ov62_022307C0_sub1;
+
+typedef struct {
+    UnkStruct_ov62_022307C0_sub1 unk_00[5];
+    UnkStruct_ov62_022307C0_sub1 unk_C8[5];
+    const UnkStruct_020F3DCC *unk_190[5];
+    int unk_1A4;
+    u8 padding_1A8[4];
+    int unk_1AC;
+    int unk_1B0;
+    u8 padding_1B4[8];
+} UnkStruct_ov62_022307C0;
+
+typedef struct {
+    ManagedSprite *unk_00[2];
+    SysTask *unk_08;
+    fx32 unk_0C;
+    f32 unk_10;
+    s16 unk_14;
+    s16 unk_16;
+    s8 unk_18;
+    u8 unk_19;
+    u8 padding_1A[2];
+    int unk_1C;
+    int unk_20;
+    int unk_24;
+    int unk_28;
+    int unk_2C;
+} UnkStruct_ov62_02230C28;
+
+typedef struct UnkStruct_02012744_t UnkStruct_02012744;
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    int unk_08;
+} UnkStruct_ov61_0222B138;
+
+typedef struct {
+    u8 unk_00;
+    u8 unk_01[3];
+    u32 unk_04;
+} UnkStruct_ov61_0222B2D8;
+
+typedef void (*UnkFuncPtr_ov61_0222B920)(void *, const UnkStruct_ov62_0223CAA4 *);
+
+typedef BOOL (*UnkFuncPtr_ov61_0222B920_1)(void *, void *);
+
+typedef struct {
+    UnkFuncPtr_ov61_0222B920 unk_00;
+    u16 unk_04;
+    u16 unk_06;
+    u8 unk_08;
+    UnkFuncPtr_ov61_0222B920_1 unk_0C;
+} UnkStruct_ov61_0222B920;
+
+typedef void (*UnkFuncPtr_ov62_022349A8)(void *, String *);
+
+typedef struct {
+    void *unk_00;
+    UnkFuncPtr_ov61_0222B920 unk_04;
+    UnkFuncPtr_ov61_0222B920 unk_08;
+    UnkFuncPtr_ov61_0222B920 unk_0C;
+    UnkFuncPtr_ov61_0222B920 unk_10;
+    UnkFuncPtr_ov61_0222B920 unk_14;
+    UnkFuncPtr_ov61_0222B920 unk_18;
+    UnkFuncPtr_ov61_0222B920 unk_1C;
+    UnkFuncPtr_ov61_0222B920 unk_20;
+    UnkFuncPtr_ov61_0222B920 unk_24;
+    UnkFuncPtr_ov61_0222B920 unk_28;
+} UnkStruct_ov62_022349A8_sub2;
+
+typedef struct {
+    u32 personality;
+    u32 otID;
+    u16 species;
+    u16 trainerName[7 + 1];
+    s8 priority;
+    u8 xPos;
+    u8 yPos;
+    u8 form;
+} UnkStruct_ov61_0222AE80_sub1;
+
+typedef struct {
+    u8 unk_00;
+    u8 unk_01;
+    u8 unk_02;
+    s8 unk_03;
+} UnkStruct_ov61_0222AE80_sub2;
+
+typedef struct {
+    u16 unk_00;
+    u16 unk_02;
+} UnkStruct_ov62_02239DA4_sub1;
+
+typedef struct {
+    u32 integrity;
+    UnkStruct_ov61_0222AE80_sub1 unk_04;
+    u32 unk_24;
+    EasyChatSentence title;
+    UnkStruct_ov61_0222AE80_sub2 unk_30[10];
+    u8 unk_58;
+    u8 language;
+    u8 unk_5A[2];
+    UnkStruct_ov62_02239DA4_sub1 unk_5C;
+} UnkStruct_ov61_0222AE80;
+
+typedef struct {
+    u16 unk_00[8];
+    u32 unk_10;
+    u8 unk_14;
+    u8 unk_15;
+    u8 unk_16;
+    u8 unk_17;
+    u8 unk_18;
+    u8 unk_19;
+    u8 unk_1A;
+    u8 unk_1B_0 : 1;
+    u8 unk_1B_1 : 7;
+    u16 unk_1C;
+    u8 unk_1E;
+    u8 unk_1F;
+    union {
+        EasyChatSentence unk_20_val1;
+        u16 unk_20_val2[40];
+    };
+    u8 unk_70[12];
+    UnkStruct_ov62_02239DA4_sub1 unk_7C;
+} UnkStruct_ov61_0222AFC0;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov61_0222AE80 unk_80;
+} UnkStruct_ov62_022349A8_sub3_sub1;
+
+typedef struct {
+    u16 unk_00[20];
+    u16 unk_28[30];
+    u32 unk_64[30];
+    u32 unk_DC[30];
+    u32 unk_154;
+    u8 unk_158[30];
+    u8 unk_176;
+    u8 unk_177;
+    u8 unk_178[32];
+    UnkStruct_ov62_02239DA4_sub1 unk_198;
+} UnkStruct_ov62_02239DA4;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov62_02239DA4 unk_80;
+} UnkStruct_ov62_022349A8_sub3_sub2;
+
+typedef struct {
+    u16 unk_00[12];
+    u16 unk_18;
+    u8 unk_1A;
+    u8 unk_1B;
+    s8 unk_1C;
+    s8 unk_1D;
+    u8 unk_1E_0 : 1;
+    u8 unk_1E_1 : 1;
+    u8 unk_1E_2 : 1;
+    u8 unk_1E_3 : 1;
+    u8 unk_1E_4 : 1;
+    u8 : 3;
+    u8 unk_1F;
+} UnkStruct_ov61_0222BED8_sub1_sub1;
+
+typedef struct {
+    u16 unk_00[12];
+    u8 unk_18[12];
+    u16 unk_24;
+    u8 unk_26;
+    u8 unk_27;
+    UnkStruct_ov61_0222BED8_sub1_sub1 unk_28;
+    u16 unk_48;
+    u8 unk_4A[14];
+    u64 unk_58;
+    UnkStruct_ov62_02239DA4_sub1 unk_60;
+} UnkStruct_ov61_0222BED8_sub1;
+
+typedef struct {
+    u8 unk_00;
+    u8 unk_01;
+    u8 unk_02;
+    u8 unk_03;
+    u16 unk_04[4];
+    u32 unk_0C;
+    u32 unk_10;
+    u16 unk_14[8];
+    EasyChatSentence unk_24;
+    EasyChatSentence unk_2C;
+} UnkStruct_ov61_0222BED8_sub2_sub1_sub1;
+
+typedef struct {
+    u32 unk_00;
+    int unk_04;
+    int unk_08[4];
+    UnkStruct_ov61_0222BED8_sub2_sub1_sub1 unk_18[4];
+    int unk_E8;
+    int unk_EC;
+    int unk_F0;
+    int unk_F4;
+    int unk_F8;
+    int unk_FC;
+    int unk_100;
+    int unk_104;
+    int unk_108;
+    int unk_10C;
+    int unk_110;
+    u32 unk_114[4];
+    u32 unk_124;
+    int unk_128;
+    u32 unk_12C;
+    u32 unk_130;
+    int unk_134[4];
+    u16 unk_144;
+    u16 unk_146;
+    int unk_148;
+    u8 unk_14C[4];
+} UnkStruct_ov61_0222BED8_sub2_sub1;
+
+typedef struct {
+    u8 unk_00[4][1024];
+} UnkStruct_ov61_0222BED8_sub2_sub2;
+
+typedef struct {
+    u32 unk_00;
+    u16 unk_04_0 : 1;
+    u16 unk_04_1 : 1;
+    u16 unk_04_2 : 1;
+    u16 unk_04_3 : 13;
+    u16 unk_06;
+    u16 unk_08;
+    u32 unk_0C;
+    u32 unk_10;
+    u8 unk_14;
+    u8 unk_15;
+    u8 unk_16;
+    u8 unk_17;
+    u8 unk_18;
+    u8 unk_19;
+    u8 unk_1A;
+    u8 unk_1B;
+    u16 unk_1C[4];
+    u8 unk_24[4];
+    u8 unk_28[4];
+    u32 unk_2C_0 : 5;
+    u32 unk_2C_5 : 5;
+    u32 unk_2C_10 : 5;
+    u32 unk_2C_15 : 5;
+    u32 unk_2C_20 : 5;
+    u32 unk_2C_25 : 5;
+    u32 unk_2C_30 : 1;
+    u32 unk_2C_31 : 1;
+    u8 unk_30_0 : 1;
+    u8 unk_30_1 : 2;
+    u8 unk_30_3 : 5;
+    u16 unk_32[11];
+    u16 unk_48[8];
+    u8 unk_58;
+    u8 unk_59;
+    u32 unk_5C;
+    u8 unk_60;
+    u8 unk_61;
+    u16 unk_62;
+    u16 unk_64;
+    u16 unk_66;
+    u16 unk_68;
+    u16 unk_6A;
+    u16 unk_6C;
+    u16 unk_6E;
+} UnkStruct_ov61_0222BED8_sub2_sub3_sub1;
+
+typedef struct {
+    u16 unk_00;
+    u16 unk_02;
+    UnkStruct_ov61_0222BED8_sub2_sub3_sub1 unk_04[6];
+} UnkStruct_ov61_0222BED8_sub2_sub3;
+
+typedef struct {
+    u16 unk_00[8];
+    u32 unk_10;
+    u32 unk_14;
+    u8 unk_18;
+    u8 unk_19;
+    u8 unk_1A;
+    u8 unk_1B;
+    u8 unk_1C;
+    u8 unk_1D_0 : 1;
+    u8 unk_1D_1 : 1;
+    u8 unk_1D_2 : 6;
+    u8 unk_1E;
+    u8 unk_1F;
+} UnkStruct_ov61_0222BED8_sub2_sub4;
+
+typedef struct {
+    u16 unk_00_0 : 4;
+    u16 unk_00_4 : 2;
+    u16 unk_00_6 : 1;
+    u16 unk_00_7 : 1;
+    u16 unk_00_8 : 2;
+    u16 unk_00_10 : 5;
+    u16 unk_00_15 : 1;
+} UnkStruct_ov61_0222BED8_sub2_sub5;
+
+typedef struct {
+    UnkStruct_ov61_0222BED8_sub2_sub1 unk_00;
+    UnkStruct_ov61_0222BED8_sub2_sub2 unk_150;
+    UnkStruct_ov61_0222BED8_sub2_sub3 unk_1150[4];
+    UnkStruct_ov61_0222BED8_sub2_sub4 unk_1B68[4];
+    UnkStruct_ov61_0222BED8_sub2_sub5 unk_1BE8;
+    u16 unk_1BEA;
+    UnkStruct_ov62_02239DA4_sub1 unk_1BEC;
+} UnkStruct_ov61_0222BED8_sub2;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov61_0222BED8_sub1 unk_80;
+    UnkStruct_ov61_0222BED8_sub2 unk_E4;
+} UnkStruct_ov62_022349A8_sub3_sub3;
+
+typedef struct {
+    u16 unk_00;
+    u8 unk_02;
+    u8 unk_03;
+    u8 unk_04;
+    u8 unk_05[3];
+    u32 unk_08;
+    u8 unk_0C[4];
+} UnkStruct_ov62_022349A8_sub3_sub4;
+
+typedef struct {
+    u32 unk_00;
+} UnkStruct_ov62_022349A8_sub3_sub5;
+
+typedef struct {
+    u8 version;
+    u8 language;
+    u8 month;
+    u8 appearance;
+    u16 species;
+    u8 isEgg : 1;
+    u8 form : 7;
+    u8 unk_07;
+} UnkStruct_ov61_0222AFCC;
+
+typedef struct {
+    u16 unk_00;
+    u8 unk_02;
+    u8 unk_03;
+} UnkStruct_ov62_0223D518_sub1_sub1;
+
+typedef struct {
+    UnkStruct_ov61_0222AFCC unk_00;
+    UnkStruct_ov62_0223D518_sub1_sub1 unk_08;
+    UnkStruct_ov61_0222B2D8 unk_0C[3];
+} UnkStruct_ov62_0223D518_sub1;
+
+typedef struct {
+    union {
+        UnkStruct_ov62_022349A8_sub3_sub1 unk_00_val1;
+        UnkStruct_ov62_022349A8_sub3_sub2 unk_00_val2;
+        UnkStruct_ov62_0223D518_sub1 unk_00_val3;
+        UnkStruct_ov62_022349A8_sub3_sub3 *unk_00_val4;
+        UnkStruct_ov62_022349A8_sub3_sub4 unk_00_val5;
+        UnkStruct_ov62_022349A8_sub3_sub5 unk_00_val6;
+    };
+    union {
+        struct {
+            u8 unk_00;
+            u8 unk_01;
+            u8 unk_02[2];
+        } val1;
+        struct {
+            u16 unk_00;
+            u16 unk_02;
+        } val2;
+        struct {
+            u64 unk_00;
+        } val3;
+    } unk_21C;
+} UnkStruct_ov62_022349A8_sub3;
+
+enum SaveBlockID {
+    SAVE_BLOCK_ID_NORMAL = 0,
+    SAVE_BLOCK_ID_BOXES,
+
+    SAVE_BLOCK_ID_MAX
+};
+
+enum SaveTableEntryID {
+    SAVE_TABLE_ENTRY_SYSTEM = 0,
+    SAVE_TABLE_ENTRY_PLAYER,
+    SAVE_TABLE_ENTRY_PARTY,
+    SAVE_TABLE_ENTRY_BAG,
+    SAVE_TABLE_ENTRY_VARS_FLAGS,
+    SAVE_TABLE_ENTRY_POKETCH,
+    SAVE_TABLE_ENTRY_FIELD_PLAYER_STATE,
+    SAVE_TABLE_ENTRY_POKEDEX,
+    SAVE_TABLE_ENTRY_DAYCARE,
+    SAVE_TABLE_ENTRY_PAL_PAD,
+    SAVE_TABLE_ENTRY_MISC,
+    SAVE_TABLE_ENTRY_FIELD_OVERWORLD_STATE,
+    SAVE_TABLE_ENTRY_UNDERGROUND,
+    SAVE_TABLE_ENTRY_REGULATION_BATTLES,
+    SAVE_TABLE_ENTRY_IMAGE_CLIPS,
+    SAVE_TABLE_ENTRY_MAILBOX,
+    SAVE_TABLE_ENTRY_POFFINS,
+    SAVE_TABLE_ENTRY_RECORD_MIXED_RNG,
+    SAVE_TABLE_ENTRY_JOURNAL,
+    SAVE_TABLE_ENTRY_TRAINER_CASE,
+    SAVE_TABLE_ENTRY_GAME_RECORDS,
+    SAVE_TABLE_ENTRY_SEAL_CASE,
+    SAVE_TABLE_ENTRY_CHATOT,
+    SAVE_TABLE_ENTRY_FRONTIER,
+    SAVE_TABLE_ENTRY_RIBBONS,
+    SAVE_TABLE_ENTRY_ENCOUNTERS,
+    SAVE_TABLE_ENTRY_GLOBAL_TRADE,
+    SAVE_TABLE_ENTRY_TV_BROADCAST,
+    SAVE_TABLE_ENTRY_RANKINGS,
+    SAVE_TABLE_ENTRY_WIFI_LIST,
+    SAVE_TABLE_ENTRY_WIFI_HISTORY,
+    SAVE_TABLE_ENTRY_MYSTERY_GIFT,
+    SAVE_TABLE_ENTRY_PAL_PARK_TRANSFER,
+    SAVE_TABLE_ENTRY_LINK_CONTEST_RECORDS,
+    SAVE_TABLE_ENTRY_UNLOCKED_EASY_CHAT_WORDS,
+    SAVE_TABLE_ENTRY_EMAIL,
+    SAVE_TABLE_ENTRY_WIFI_PLAZA_QUESTIONS,
+    SAVE_TABLE_ENTRY_PC_BOXES,
+
+    SAVE_TABLE_ENTRY_MAX
+};
+
+typedef struct SaveBlockInfo {
+    u8 saveBlockID;
+    u8 sectorStartPos;
+    u8 sectorsInUse;
+    u32 offset;
+    u32 size;
+} SaveBlockInfo;
+
+typedef struct SavePageInfo {
+    int pageID;
+    u32 size;
+    u32 location;
+    u16 checksum;
+    u16 blockID;
+} SavePageInfo;
+
+typedef struct SaveDataBody {
+    u8 data[(0x1000) * 32];
+} SaveDataBody;
+
+typedef struct SaveDataState {
+    BOOL fullSaveMode;
+    int startBlock;
+    int currentBlock;
+    int endBlock;
+    s32 lockID;
+    int mainSequence;
+    u32 globalCounterBackup;
+    u32 blockCounterBackup[SAVE_BLOCK_ID_MAX];
+    volatile BOOL locked;
+} SaveDataState;
+
+typedef struct {
+    s32 unk_00;
+    u8 unk_04;
+    u8 language;
+    char unk_06[301];
+    u8 padding[5];
+} UnkStruct_ov62_022349A8_sub1;
+
+enum TextBank {
+    TEXT_BANK_MOVES_USED_IN_BATTLE = 0,
+    TEXT_BANK_DIPLOMA = 1,
+    TEXT_BANK_BATTLE_BAG = 2,
+    TEXT_BANK_BATTLE_PARTY = 3,
+    TEXT_BANK_UNK_0004 = 4,
+    TEXT_BANK_UNK_0005 = 5,
+    TEXT_BANK_UNK_0006 = 6,
+    TEXT_BANK_BAG = 7,
+    TEXT_BANK_UNK_0008 = 8,
+    TEXT_BANK_UNK_0009 = 9,
+    TEXT_BANK_UNK_0010 = 10,
+    TEXT_BANK_COMMUNICATION_CLUB = 11,
+    TEXT_BANK_BALL_SEAL_NAMES = 12,
+    TEXT_BANK_BALL_SEAL_NAMES_PLURAL = 13,
+    TEXT_BANK_MAIN_MENU_ALERTS = 14,
+    TEXT_BANK_WFC_FACILITY_SELECTOR = 15,
+    TEXT_BANK_BATTLE_FRONTIER_RECORDS = 16,
+    TEXT_BANK_BG_EVENTS = 17,
+    TEXT_BANK_POKEMON_STORAGE_SYSTEM = 18,
+    TEXT_BANK_BOX_MESSAGES = 19,
+    TEXT_BANK_UNK_0020 = 20,
+    TEXT_BANK_FRONTIER_TRAINER_NAMES = 21,
+    TEXT_BANK_BATTLE_TOWER_RECORDS_APP = 22,
+    TEXT_BANK_JUBILIFE_CITY = 23,
+    TEXT_BANK_JUBILIFE_CITY_MART = 24,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_HOUSE_1 = 25,
+    TEXT_BANK_JUBILIFE_CITY_POKECENTER_1F = 26,
+    TEXT_BANK_POKETCH_CO_1F = 27,
+    TEXT_BANK_POKETCH_CO_2F = 28,
+    TEXT_BANK_POKETCH_CO_3F = 29,
+    TEXT_BANK_JUBILIFE_TV_1F = 30,
+    TEXT_BANK_JUBILIFE_TV_2F = 31,
+    TEXT_BANK_JUBILIFE_TV_3F = 32,
+    TEXT_BANK_JUBILIFE_TV_4F = 33,
+    TEXT_BANK_JUBILIFE_TV_2F_GALLERY = 34,
+    TEXT_BANK_JUBILIFE_TV_3F_GLOBAL_RANKING_ROOM = 35,
+    TEXT_BANK_JUBILIFE_TV_3F_GROUP_RANKING_ROOM = 36,
+    TEXT_BANK_JUBILIFE_TV_ELEVATOR = 37,
+    TEXT_BANK_JUBILIFE_CITY_SOUTH_HOUSE_1F = 38,
+    TEXT_BANK_JUBILIFE_CITY_SOUTH_HOUSE_2F = 39,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_SOUTH_HOUSE_3F = 40,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_HOUSE_2 = 41,
+    TEXT_BANK_JUBILIFE_CITY_CONDOMINIUMS_1F = 42,
+    TEXT_BANK_JUBILIFE_CITY_CONDOMINIUMS_2F = 43,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_CONDOMINIUMS_3F = 44,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_CONDOMINIUMS_4F = 45,
+    TEXT_BANK_GLOBAL_TERMINAL_1F = 46,
+    TEXT_BANK_GLOBAL_TERMINAL_2F = 47,
+    TEXT_BANK_GLOBAL_TERMINAL_3F = 48,
+    TEXT_BANK_TRAINERS_SCHOOL = 49,
+    TEXT_BANK_JUBILIFE_CITY_SOUTHWEST_HOUSE_1F = 50,
+    TEXT_BANK_JUBILIFE_CITY_SOUTHWEST_HOUSE_2F = 51,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_HOUSE_3 = 52,
+    TEXT_BANK_UNUSED_JUBILIFE_CITY_HOUSE_4 = 53,
+    TEXT_BANK_CANALAVE_CITY = 54,
+    TEXT_BANK_CANALAVE_CITY_MART = 55,
+    TEXT_BANK_CANALAVE_CITY_GYM = 56,
+    TEXT_BANK_CANALAVE_CITY_POKECENTER_1F = 57,
+    TEXT_BANK_CANALAVE_LIBRARY_1F = 58,
+    TEXT_BANK_CANALAVE_LIBRARY_2F = 59,
+    TEXT_BANK_CANALAVE_LIBRARY_3F = 60,
+    TEXT_BANK_CANALAVE_CITY_SOUTHEAST_HOUSE = 61,
+    TEXT_BANK_CANALAVE_CITY_EAST_HOUSE = 62,
+    TEXT_BANK_CANALAVE_CITY_HARBOR_INN = 63,
+    TEXT_BANK_CANALAVE_CITY_SAILOR_ELDRITCH_HOUSE = 64,
+    TEXT_BANK_OREBURGH_CITY = 65,
+    TEXT_BANK_OREBURGH_CITY_MART = 66,
+    TEXT_BANK_OREBURGH_CITY_GYM = 67,
+    TEXT_BANK_OREBURGH_CITY_POKECENTER_1F = 68,
+    TEXT_BANK_OREBURGH_CITY_POKECENTER_B1F = 69,
+    TEXT_BANK_OREBURGH_CITY_NORTHWEST_HOUSE_1F = 70,
+    TEXT_BANK_OREBURGH_CITY_NORTHWEST_HOUSE_2F = 71,
+    TEXT_BANK_UNUSED_OREBURGH_CITY_NORTHWEST_HOUSE_3F = 72,
+    TEXT_BANK_UNUSED_OREBURGH_CITY_NORTHWEST_HOUSE_4F = 73,
+    TEXT_BANK_OREBURGH_CITY_NORTH_HOUSE_1F = 74,
+    TEXT_BANK_OREBURGH_CITY_NORTH_HOUSE_2F = 75,
+    TEXT_BANK_UNUSED_OREBURGH_CITY_NORTH_HOUSE_3F = 76,
+    TEXT_BANK_UNUSED_OREBURGH_CITY_NORTH_HOUSE_4F = 77,
+    TEXT_BANK_OREBURGH_CITY_MIDDLE_HOUSE = 78,
+    TEXT_BANK_MINING_MUSEUM = 79,
+    TEXT_BANK_OREBURGH_CITY_WEST_HOUSE = 80,
+    TEXT_BANK_OREBURGH_CITY_EAST_HOUSE_1F = 81,
+    TEXT_BANK_OREBURGH_CITY_EAST_HOUSE_2F = 82,
+    TEXT_BANK_UNUSED_OREBURGH_CITY_EAST_HOUSE_3F = 83,
+    TEXT_BANK_OREBURGH_CITY_SOUTH_HOUSE = 84,
+    TEXT_BANK_ETERNA_CITY = 85,
+    TEXT_BANK_ETERNA_CITY_MART = 86,
+    TEXT_BANK_ETERNA_CITY_GYM = 87,
+    TEXT_BANK_ETERNA_CITY_DP_GYM = 88,
+    TEXT_BANK_ETERNA_CITY_POKECENTER_1F = 89,
+    TEXT_BANK_ETERNA_CITY_POKECENTER_2F = 90,
+    TEXT_BANK_CYCLE_SHOP = 91,
+    TEXT_BANK_TEAM_GALACTIC_ETERNA_BUILDING_1F = 92,
+    TEXT_BANK_TEAM_GALACTIC_ETERNA_BUILDING_2F = 93,
+    TEXT_BANK_TEAM_GALACTIC_ETERNA_BUILDING_3F = 94,
+    TEXT_BANK_TEAM_GALACTIC_ETERNA_BUILDING_4F = 95,
+    TEXT_BANK_ROTOMS_ROOM = 96,
+    TEXT_BANK_ETERNA_CITY_CONDOMINIUMS_1F = 97,
+    TEXT_BANK_ETERNA_CITY_CONDOMINIUMS_2F = 98,
+    TEXT_BANK_ETERNA_CITY_CONDOMINIUMS_3F = 99,
+    TEXT_BANK_UNUSED_ETERNA_CITY_CONDOMINIUMS_4F = 100,
+    TEXT_BANK_ROUTE_206_CYCLING_ROAD_NORTH_GATE = 101,
+    TEXT_BANK_ETERNA_CITY_HERB_SHOP = 102,
+    TEXT_BANK_ETERNA_CITY_SOUTH_HOUSE = 103,
+    TEXT_BANK_ETERNA_CITY_EAST_HOUSE = 104,
+    TEXT_BANK_ETERNA_CITY_UNDERGROUND_MAN_HOUSE = 105,
+    TEXT_BANK_HEARTHOME_CITY = 106,
+    TEXT_BANK_HEARTHOME_CITY_MART = 107,
+    TEXT_BANK_HEARTHOME_CITY_GYM_ENTRANCE_ROOM = 108,
+    TEXT_BANK_HEARTHOME_CITY_GYM_LEADER_ROOM = 109,
+    TEXT_BANK_HEARTHOME_CITY_DP_GYM_ELEVATOR_ROOM_1 = 110,
+    TEXT_BANK_HEARTHOME_CITY_DP_GYM_ELEVATOR_ROOM_2 = 111,
+    TEXT_BANK_HEARTHOME_CITY_DP_GYM_LEADER_ROOM = 112,
+    TEXT_BANK_HEARTHOME_CITY_POKECENTER_1F = 113,
+    TEXT_BANK_HEARTHOME_CITY_SOUTHEAST_HOUSE_1F = 114,
+    TEXT_BANK_HEARTHOME_CITY_SOUTHEAST_HOUSE_2F = 115,
+    TEXT_BANK_HEARTHOME_CITY_SOUTHEAST_HOUSE_ELEVATOR = 116,
+    TEXT_BANK_HEARTHOME_CITY_POKEMON_FAN_CLUB = 117,
+    TEXT_BANK_HEARTHOME_CITY_WEST_GATE_TO_AMITY_SQUARE = 118,
+    TEXT_BANK_HEARTHOME_CITY_EAST_GATE_TO_AMITY_SQUARE = 119,
+    TEXT_BANK_ROUTE_208_GATE_TO_HEARTHOME_CITY = 120,
+    TEXT_BANK_ROUTE_209_GATE_TO_HEARTHOME_CITY = 121,
+    TEXT_BANK_ROUTE_212_GATE_TO_HEARTHOME_CITY = 122,
+    TEXT_BANK_HEARTHOME_CITY_NORTHEAST_HOUSE_1F = 123,
+    TEXT_BANK_HEARTHOME_CITY_NORTHEAST_HOUSE_2F = 124,
+    TEXT_BANK_HEARTHOME_CITY_NORTHEAST_HOUSE_ELEVATOR = 125,
+    TEXT_BANK_HEARTHOME_CITY_NORTHWEST_HOUSE = 126,
+    TEXT_BANK_POFFIN_HOUSE = 127,
+    TEXT_BANK_CONTEST_HALL_LOBBY = 128,
+    TEXT_BANK_CONTEST_HALL_STAGE_NO_CONTEST = 129,
+    TEXT_BANK_FOREIGN_BUILDING = 130,
+    TEXT_BANK_PASTORIA_CITY = 131,
+    TEXT_BANK_PASTORIA_CITY_MART = 132,
+    TEXT_BANK_PASTORIA_CITY_GYM = 133,
+    TEXT_BANK_PASTORIA_CITY_POKECENTER_1F = 134,
+    TEXT_BANK_PASTORIA_CITY_POKECENTER_2F = 135,
+    TEXT_BANK_PASTORIA_CITY_OBSERVATORY_GATE_1F = 136,
+    TEXT_BANK_PASTORIA_CITY_OBSERVATORY_GATE_2F = 137,
+    TEXT_BANK_PASTORIA_CITY_SOUTHWEST_HOUSE = 138,
+    TEXT_BANK_PASTORIA_CITY_MIDDLE_HOUSE = 139,
+    TEXT_BANK_PASTORIA_CITY_EAST_HOUSE = 140,
+    TEXT_BANK_PASTORIA_CITY_NORTH_HOUSE = 141,
+    TEXT_BANK_PASTORIA_CITY_NORTHEAST_HOUSE = 142,
+    TEXT_BANK_VEILSTONE_CITY = 143,
+    TEXT_BANK_VEILSTONE_CITY_GYM = 144,
+    TEXT_BANK_VEILSTONE_CITY_POKECENTER_1F = 145,
+    TEXT_BANK_VEILSTONE_CITY_POKECENTER_B1F = 146,
+    TEXT_BANK_GAME_CORNER = 147,
+    TEXT_BANK_VEILSTONE_STORE_1F = 148,
+    TEXT_BANK_VEILSTONE_STORE_2F = 149,
+    TEXT_BANK_VEILSTONE_STORE_3F = 150,
+    TEXT_BANK_VEILSTONE_STORE_4F = 151,
+    TEXT_BANK_VEILSTONE_STORE_5F = 152,
+    TEXT_BANK_VEILSTONE_STORE_ELEVATOR = 153,
+    TEXT_BANK_VEILSTONE_STORE_B1F = 154,
+    TEXT_BANK_VEILSTONE_CITY_GALACTIC_WAREHOUSE = 155,
+    TEXT_BANK_VEILSTONE_CITY_PRIZE_EXCHANGE = 156,
+    TEXT_BANK_VEILSTONE_CITY_SOUTHEAST_HOUSE = 157,
+    TEXT_BANK_VEILSTONE_CITY_NORTHWEST_HOUSE = 158,
+    TEXT_BANK_VEILSTONE_CITY_NORTHEAST_HOUSE = 159,
+    TEXT_BANK_VEILSTONE_CITY_SOUTHWEST_HOUSE = 160,
+    TEXT_BANK_ROUTE_215_GATE_TO_VEILSTONE_CITY = 161,
+    TEXT_BANK_SUNYSHORE_CITY = 162,
+    TEXT_BANK_SUNYSHORE_CITY_MART = 163,
+    TEXT_BANK_SUNYSHORE_CITY_GYM_ROOM_1 = 164,
+    TEXT_BANK_SUNYSHORE_CITY_GYM_ROOM_3 = 165,
+    TEXT_BANK_SUNYSHORE_CITY_POKECENTER_1F = 166,
+    TEXT_BANK_SUNYSHORE_MARKET = 167,
+    TEXT_BANK_SUNYSHORE_CITY_NORTHEAST_HOUSE = 168,
+    TEXT_BANK_SUNYSHORE_CITY_WEST_HOUSE = 169,
+    TEXT_BANK_SUNYSHORE_CITY_NORTHWEST_HOUSE = 170,
+    TEXT_BANK_UNUSED_SUNYSHORE_CITY_HOUSE_1 = 171,
+    TEXT_BANK_UNUSED_SUNYSHORE_CITY_HOUSE_2 = 172,
+    TEXT_BANK_SUNYSHORE_CITY_EAST_HOUSE = 173,
+    TEXT_BANK_VISTA_LIGHTHOUSE = 174,
+    TEXT_BANK_SUNYSHORE_CITY_EAST_HOUSE_UNUSED = 175,
+    TEXT_BANK_SNOWPOINT_CITY = 176,
+    TEXT_BANK_SNOWPOINT_CITY_MART = 177,
+    TEXT_BANK_SNOWPOINT_CITY_GYM = 178,
+    TEXT_BANK_SNOWPOINT_CITY_POKECENTER_1F = 179,
+    TEXT_BANK_SNOWPOINT_CITY_WEST_HOUSE = 180,
+    TEXT_BANK_SNOWPOINT_CITY_EAST_HOUSE = 181,
+    TEXT_BANK_POKEMON_LEAGUE = 182,
+    TEXT_BANK_POKEMON_LEAGUE_SOUTH_POKECENTER_1F = 183,
+    TEXT_BANK_POKEMON_LEAGUE_NORTH_POKECENTER_1F = 184,
+    TEXT_BANK_POKEMON_LEAGUE_AARON_ROOM = 185,
+    TEXT_BANK_POKEMON_LEAGUE_BERTHA_ROOM = 186,
+    TEXT_BANK_POKEMON_LEAGUE_FLINT_ROOM = 187,
+    TEXT_BANK_POKEMON_LEAGUE_LUCIAN_ROOM = 188,
+    TEXT_BANK_POKEMON_LEAGUE_CHAMPION_ROOM = 189,
+    TEXT_BANK_POKEMON_LEAGUE_HALLWAY_TO_HALL_OF_FAME = 190,
+    TEXT_BANK_POKEMON_LEAGUE_HALL_OF_FAME = 191,
+    TEXT_BANK_FIGHT_AREA = 192,
+    TEXT_BANK_FIGHT_AREA_MART = 193,
+    TEXT_BANK_FIGHT_AREA_POKECENTER_1F = 194,
+    TEXT_BANK_UNUSED_BATTLE_PARK_GATE_TO_FIGHT_AREA = 195,
+    TEXT_BANK_ROUTE_225_GATE_TO_FIGHT_AREA = 196,
+    TEXT_BANK_FIGHT_AREA_MIDDLE_HOUSE = 197,
+    TEXT_BANK_FIGHT_AREA_SOUTH_HOUSE = 198,
+    TEXT_BANK_BATTLE_CASTLE_SELF_APP = 199,
+    TEXT_BANK_BATTLE_CASTLE_SCENE = 200,
+    TEXT_BANK_BATTLE_CASTLE_OPPONENT_APP = 201,
+    TEXT_BANK_NATURE_NAMES = 202,
+    TEXT_BANK_POKEMON_CENTER_DAILY_TRAINERS = 203,
+    TEXT_BANK_CONTEST_TEXT = 204,
+    TEXT_BANK_CONTEST_OPPONENT_NAMES = 205,
+    TEXT_BANK_CONTEST_DANCE_COMPETITION = 206,
+    TEXT_BANK_CONTEST_JUDGE_NAMES = 207,
+    TEXT_BANK_LINK_CONTEST_RECORDS = 208,
+    TEXT_BANK_CONTEST_VISUAL_COMPETITION = 209,
+    TEXT_BANK_CONTEST_EFFECTS = 210,
+    TEXT_BANK_CONTEST_ACTING_COMPETITION = 211,
+    TEXT_BANK_UNK_0212 = 212,
+    TEXT_BANK_COMMON_STRINGS = 213,
+    TEXT_BANK_NETWORK_ERRORS = 214,
+    TEXT_BANK_DUMMY_0215 = 215,
+    TEXT_BANK_DUMMY_0216 = 216,
+    TEXT_BANK_CONTEST_COMMON = 217,
+    TEXT_BANK_CONTEST_RESULTS = 218,
+    TEXT_BANK_STATUS_CONDITION_NAMES = 219,
+    TEXT_BANK_OPTIONS_MENU = 220,
+    TEXT_BANK_POKEMON_CENTER_2F_COMMON = 221,
+    TEXT_BANK_OREBURGH_MINE_B1F = 222,
+    TEXT_BANK_OREBURGH_MINE_B2F = 223,
+    TEXT_BANK_VALLEY_WINDWORKS_OUTSIDE = 224,
+    TEXT_BANK_VALLEY_WINDWORKS_BUILDING = 225,
+    TEXT_BANK_ETERNA_FOREST_OUTSIDE = 226,
+    TEXT_BANK_ETERNA_FOREST = 227,
+    TEXT_BANK_FUEGO_IRONWORKS_OUTSIDE = 228,
+    TEXT_BANK_FUEGO_IRONWORKS_BUILDING = 229,
+    TEXT_BANK_MT_CORONET_1F_SOUTH = 230,
+    TEXT_BANK_MT_CORONET_2F = 231,
+    TEXT_BANK_MT_CORONET_1F_TUNNEL_ROOM = 232,
+    TEXT_BANK_MT_CORONET_1F_NORTH_ROOM_1 = 233,
+    TEXT_BANK_SPEAR_PILLAR = 234,
+    TEXT_BANK_SPEAR_PILLAR_DISTORTED = 235,
+    TEXT_BANK_HALL_OF_ORIGIN = 236,
+    TEXT_BANK_SPEAR_PILLAR_DIALGA = 237,
+    TEXT_BANK_SPEAR_PILLAR_PALKIA = 238,
+    TEXT_BANK_GREAT_MARSH_1_UNUSED = 239,
+    TEXT_BANK_GREAT_MARSH_1 = 240,
+    TEXT_BANK_GREAT_MARSH_2 = 241,
+    TEXT_BANK_GREAT_MARSH_3 = 242,
+    TEXT_BANK_GREAT_MARSH_4 = 243,
+    TEXT_BANK_GREAT_MARSH_5 = 244,
+    TEXT_BANK_GREAT_MARSH_6 = 245,
+    TEXT_BANK_SOLACEON_RUINS_MANIAC_TUNNEL_ROOM = 246,
+    TEXT_BANK_SOLACEON_RUINS_ROOM_1 = 247,
+    TEXT_BANK_SOLACEON_RUINS_ROOM_2 = 248,
+    TEXT_BANK_SOLACEON_RUINS_ROOM_7 = 249,
+    TEXT_BANK_VICTORY_ROAD_1F = 250,
+    TEXT_BANK_VICTORY_ROAD_1F_ROOM_2 = 251,
+    TEXT_BANK_PAL_PARK = 252,
+    TEXT_BANK_AMITY_SQUARE = 253,
+    TEXT_BANK_UNK_0254 = 254,
+    TEXT_BANK_FLOAROMA_MEADOW = 255,
+    TEXT_BANK_FLOAROMA_MEADOW_HOUSE = 256,
+    TEXT_BANK_OREBURGH_GATE_1F = 257,
+    TEXT_BANK_OREBURGH_GATE_B1F = 258,
+    TEXT_BANK_FULLMOON_ISLAND = 259,
+    TEXT_BANK_FULLMOON_ISLAND_FOREST = 260,
+    TEXT_BANK_STARK_MOUNTAIN_OUTSIDE = 261,
+    TEXT_BANK_STARK_MOUNTAIN_ROOM_1 = 262,
+    TEXT_BANK_STARK_MOUNTAIN_ROOM_2 = 263,
+    TEXT_BANK_STARK_MOUNTAIN_ROOM_3 = 264,
+    TEXT_BANK_SENDOFF_SPRING = 265,
+    TEXT_BANK_TURNBACK_CAVE_ENTRANCE = 266,
+    TEXT_BANK_TURNBACK_CAVE_PILLAR_ROOM = 267,
+    TEXT_BANK_TURNBACK_CAVE_GIRATINA_ROOM = 268,
+    TEXT_BANK_FLOWER_PARADISE = 269,
+    TEXT_BANK_SNOWPOINT_TEMPLE_1F = 270,
+    TEXT_BANK_SNOWPOINT_TEMPLE_B5F = 271,
+    TEXT_BANK_WAYWARD_CAVE_1F = 272,
+    TEXT_BANK_RUIN_MANIAC_CAVE_SHORT = 273,
+    TEXT_BANK_RUIN_MANIAC_CAVE_LONG = 274,
+    TEXT_BANK_MANIAC_TUNNEL = 275,
+    TEXT_BANK_IRON_ISLAND = 276,
+    TEXT_BANK_IRON_ISLAND_B2F_LEFT_ROOM = 277,
+    TEXT_BANK_IRON_ISLAND_HOUSE = 278,
+    TEXT_BANK_OLD_CHATEAU = 279,
+    TEXT_BANK_OLD_CHATEAU_SIDE_ROOMS = 280,
+    TEXT_BANK_OLD_CHATEAU_BACK_MIDDLE_WEST_ROOM = 281,
+    TEXT_BANK_GALACTIC_HQ_1F = 282,
+    TEXT_BANK_GALACTIC_HQ_2F = 283,
+    TEXT_BANK_GALACTIC_HQ_3F = 284,
+    TEXT_BANK_GALACTIC_HQ_4F = 285,
+    TEXT_BANK_GALACTIC_HQ_B1F = 286,
+    TEXT_BANK_GALACTIC_HQ_B2F = 287,
+    TEXT_BANK_GALACTIC_HQ_CONTROL_ROOM = 288,
+    TEXT_BANK_GALACTIC_HQ_LABORATORY = 289,
+    TEXT_BANK_GALACTIC_HQ_HALL = 290,
+    TEXT_BANK_LAKE_VERITY_LOW_WATER = 291,
+    TEXT_BANK_LAKE_VERITY = 292,
+    TEXT_BANK_VERITY_CAVERN = 293,
+    TEXT_BANK_LAKE_VALOR_DRAINED = 294,
+    TEXT_BANK_LAKE_VALOR = 295,
+    TEXT_BANK_VALOR_CAVERN = 296,
+    TEXT_BANK_LAKE_ACUITY_LOW_WATER = 297,
+    TEXT_BANK_LAKE_ACUITY = 298,
+    TEXT_BANK_ACUITY_CAVERN = 299,
+    TEXT_BANK_NEWMOON_ISLAND = 300,
+    TEXT_BANK_NEWMOON_ISLAND_FOREST = 301,
+    TEXT_BANK_UNUSED_BATTLE_PARK = 302,
+    TEXT_BANK_UNUSED_BATTLE_PARK_EXCHANGE_SERVICE_CORNER = 303,
+    TEXT_BANK_BATTLE_TOWER = 304,
+    TEXT_BANK_BATTLE_TOWER_BATTLE_ROOM = 305,
+    TEXT_BANK_BATTLE_TOWER_MULTI_BATTLE_ROOM = 306,
+    TEXT_BANK_BATTLE_TOWER_BATTLE_SALON = 307,
+    TEXT_BANK_BATTLE_FRONTIER = 308,
+    TEXT_BANK_BATTLE_FRONTIER_GATE_TO_FIGHT_AREA = 309,
+    TEXT_BANK_BATTLE_FACTORY = 310,
+    TEXT_BANK_BATTLE_HALL = 311,
+    TEXT_BANK_BATTLE_CASTLE = 312,
+    TEXT_BANK_BATTLE_ARCADE = 313,
+    TEXT_BANK_DISTORTION_WORLD_1F = 314,
+    TEXT_BANK_DISTORTION_WORLD_B1F = 315,
+    TEXT_BANK_DISTORTION_WORLD_B2F = 316,
+    TEXT_BANK_DISTORTION_WORLD_B3F = 317,
+    TEXT_BANK_DISTORTION_WORLD_B6F = 318,
+    TEXT_BANK_DISTORTION_WORLD_B7F = 319,
+    TEXT_BANK_DISTORTION_WORLD_GIRATINA_ROOM = 320,
+    TEXT_BANK_DISTORTION_WORLD_TURNBACK_CAVE_ROOM = 321,
+    TEXT_BANK_IRON_RUINS = 322,
+    TEXT_BANK_ICEBERG_RUINS = 323,
+    TEXT_BANK_ROCK_PEAK_RUINS = 324,
+    TEXT_BANK_UNK_0325 = 325,
+    TEXT_BANK_UNK_0326 = 326,
+    TEXT_BANK_UNK_0327 = 327,
+    TEXT_BANK_UNK_0328 = 328,
+    TEXT_BANK_UNK_0329 = 329,
+    TEXT_BANK_UNK_0330 = 330,
+    TEXT_BANK_UNK_0331 = 331,
+    TEXT_BANK_UNK_0332 = 332,
+    TEXT_BANK_UNK_0333 = 333,
+    TEXT_BANK_UNK_0334 = 334,
+    TEXT_BANK_UNK_0335 = 335,
+    TEXT_BANK_UNK_0336 = 336,
+    TEXT_BANK_UNK_0337 = 337,
+    TEXT_BANK_UNK_0338 = 338,
+    TEXT_BANK_UNK_0339 = 339,
+    TEXT_BANK_UNK_0340 = 340,
+    TEXT_BANK_UNK_0341 = 341,
+    TEXT_BANK_UNK_0342 = 342,
+    TEXT_BANK_UNK_0343 = 343,
+    TEXT_BANK_UNK_0344 = 344,
+    TEXT_BANK_UNK_0345 = 345,
+    TEXT_BANK_UNK_0346 = 346,
+    TEXT_BANK_UNK_0347 = 347,
+    TEXT_BANK_UNK_0348 = 348,
+    TEXT_BANK_DUMMY_0349 = 349,
+    TEXT_BANK_TRADE = 350,
+    TEXT_BANK_HALL_OF_FAME = 351,
+    TEXT_BANK_PC_HALL_OF_FAME = 352,
+    TEXT_BANK_UNK_0353 = 353,
+    TEXT_BANK_TRADE_ROOM = 354,
+    TEXT_BANK_DUMMY_0355 = 355,
+    TEXT_BANK_WIFI_EARTH = 356,
+    TEXT_BANK_EGG_HATCH = 357,
+    TEXT_BANK_UNK_0358 = 358,
+    TEXT_BANK_UNK_0359 = 359,
+    TEXT_BANK_UNK_0360 = 360,
+    TEXT_BANK_MENU_ENTRIES = 361,
+    TEXT_BANK_DUMMY_0362 = 362,
+    TEXT_BANK_BATTLE_FACTORY_OT_NAME = 363,
+    TEXT_BANK_BATTLE_FACTORY_APP = 364,
+    TEXT_BANK_BATTLE_FACTORY_SCENE = 365,
+    TEXT_BANK_JOURNAL_ENTRIES = 366,
+    TEXT_BANK_START_MENU = 367,
+    TEXT_BANK_BATTLE_STRINGS = 368,
+    TEXT_BANK_VISIBLE_ITEMS = 369,
+    TEXT_BANK_NPC_TRADE_NAMES = 370,
+    TEXT_BANK_FURNITURE_NAMES = 371,
+    TEXT_BANK_MYSTERY_GIFT_PHRASE = 372,
+    TEXT_BANK_BLACK_OUT_SCENE = 373,
+    TEXT_BANK_GROUP_CONNECTION = 374,
+    TEXT_BANK_UNK_0375 = 375,
+    TEXT_BANK_SPIN_TRADE = 376,
+    TEXT_BANK_UNK_0377 = 377,
+    TEXT_BANK_GYM_NAMES = 378,
+    TEXT_BANK_MYSTERY_GIFT_DELIVERYMAN = 379,
+    TEXT_BANK_HIDDEN_ITEMS = 380,
+    TEXT_BANK_FIELD_MOVES = 381,
+    TEXT_BANK_WIFI_PLAZA_ENTRANCE = 382,
+    TEXT_BANK_POKEDEX_RATINGS = 383,
+    TEXT_BANK_UNK_0384 = 384,
+    TEXT_BANK_UNK_0385 = 385,
+    TEXT_BANK_CONTEST_ACCESSORY_NAMES = 386,
+    TEXT_BANK_CONTEST_ACCESSORY_NAMES_WITH_ARTICLES = 387,
+    TEXT_BANK_CONTEST_BACKDROP_NAMES = 388,
+    TEXT_BANK_ROWAN_INTRO = 389,
+    TEXT_BANK_DUMMY_0390 = 390,
+    TEXT_BANK_ITEM_DESCRIPTIONS = 391,
+    TEXT_BANK_ITEM_NAMES = 392,
+    TEXT_BANK_ITEM_NAMES_WITH_ARTICLES = 393,
+    TEXT_BANK_ITEM_NAMES_PLURAL = 394,
+    TEXT_BANK_BAG_POCKET_NAMES = 395,
+    TEXT_BANK_BAG_POCKET_NAMES_WITH_ICONS = 396,
+    TEXT_BANK_BERRY_TREES = 397,
+    TEXT_BANK_BERRY_TAGS = 398,
+    TEXT_BANK_VERITY_LAKEFRONT = 399,
+    TEXT_BANK_UNUSED_VERITY_LAKEFRONT_HOUSE = 400,
+    TEXT_BANK_VALOR_LAKEFRONT = 401,
+    TEXT_BANK_RESTAURANT = 402,
+    TEXT_BANK_GRAND_LAKE_VALOR_LAKEFRONT_EAST_HOUSE = 403,
+    TEXT_BANK_GRAND_LAKE_VALOR_LAKEFRONT_WEST_HOUSE = 404,
+    TEXT_BANK_ACUITY_LAKEFRONT = 405,
+    TEXT_BANK_SAVE_CORRUPTED = 406,
+    TEXT_BANK_UNK_0407 = 407,
+    TEXT_BANK_MAILBOX = 408,
+    TEXT_BANK_MAIL = 409,
+    TEXT_BANK_UNK_0410 = 410,
+    TEXT_BANK_UNK_0411 = 411,
+    TEXT_BANK_SPECIES_NAME = 412,
+    TEXT_BANK_SPECIES_NAME_WITH_ARTICLES = 413,
+    TEXT_BANK_MONTH_NAMES = 414,
+    TEXT_BANK_TV_PROGRAMS_INTERVIEWS = 415,
+    TEXT_BANK_TV_PROGRAMS_TRAINER_SIGHTINGS = 416,
+    TEXT_BANK_TV_PROGRAMS_RECORDS = 417,
+    TEXT_BANK_TV_PROGRAMS_SINNOH_NOW = 418,
+    TEXT_BANK_TV_PROGRAMS_VARIETY_HOUR = 419,
+    TEXT_BANK_UNK_0420 = 420,
+    TEXT_BANK_MYSTERY_GIFT_MENU = 421,
+    TEXT_BANK_NAMING_SCREEN = 422,
+    TEXT_BANK_BERRY_DESCRIPTIONS = 423,
+    TEXT_BANK_BERRY_NAMES = 424,
+    TEXT_BANK_DRAWING = 425,
+    TEXT_BANK_DUMMY_0426 = 426,
+    TEXT_BANK_GENERIC_NAMES = 427,
+    TEXT_BANK_UNK_0428 = 428,
+    TEXT_BANK_FOLLOWER_PARTNERS = 429,
+    TEXT_BANK_POKEMON_CENTER_B1F_COMMON = 430,
+    TEXT_BANK_RECORD_CHATOT_CRY = 431,
+    TEXT_BANK_POFFIN_COMMON = 432,
+    TEXT_BANK_LOCATION_NAMES = 433,
+    TEXT_BANK_MYSTERY_GIFT_EVENT_NAMES = 434,
+    TEXT_BANK_SPECIAL_MET_LOCATION_NAMES = 435,
+    TEXT_BANK_EASY_CHAT_GROUPS = 436,
+    TEXT_BANK_EASY_CHAT = 437,
+    TEXT_BANK_UNK_0438 = 438,
+    TEXT_BANK_TRAINER_WORDS = 439,
+    TEXT_BANK_PEOPLE_WORDS = 440,
+    TEXT_BANK_GREETINGS = 441,
+    TEXT_BANK_LIFESTYLE_WORDS = 442,
+    TEXT_BANK_FEELINGS = 443,
+    TEXT_BANK_TOUGH_WORDS = 444,
+    TEXT_BANK_UNION_WORDS = 445,
+    TEXT_BANK_LOSS_SENTENCES = 446,
+    TEXT_BANK_GENERAL_SENTENCES = 447,
+    TEXT_BANK_PRE_BATTLE_SENTENCES = 448,
+    TEXT_BANK_UNION_ROOM_SENTENCES = 449,
+    TEXT_BANK_WIN_SENTENCES = 450,
+    TEXT_BANK_UNK_0451 = 451,
+    TEXT_BANK_UNK_0452 = 452,
+    TEXT_BANK_PARTY_MENU = 453,
+    TEXT_BANK_MIGRATE_FROM_GBA = 454,
+    TEXT_BANK_POKEMON_SUMMARY_SCREEN = 455,
+    TEXT_BANK_POKETCH_MOVE_TESTER = 456,
+    TEXT_BANK_POKETCH_APP_NAMES = 457,
+    TEXT_BANK_POKETCH_POKEMON_HISTORY = 458,
+    TEXT_BANK_POKETCH_BERRY_SEARCHER = 459,
+    TEXT_BANK_DUMMY_0460 = 460,
+    TEXT_BANK_POKETCH_LINK_SEARCHER = 461,
+    TEXT_BANK_POFFIN_CUTSCENE = 462,
+    TEXT_BANK_POFFIN_CASE = 463,
+    TEXT_BANK_POFFIN_MAKING = 464,
+    TEXT_BANK_POFFIN_TYPES = 465,
+    TEXT_BANK_ROUTE_201 = 466,
+    TEXT_BANK_ROUTE_202 = 467,
+    TEXT_BANK_ROUTE_203 = 468,
+    TEXT_BANK_ROUTE_204_SOUTH = 469,
+    TEXT_BANK_ROUTE_204_NORTH = 470,
+    TEXT_BANK_ROUTE_205_SOUTH = 471,
+    TEXT_BANK_ROUTE_205_HOUSE = 472,
+    TEXT_BANK_ROUTE_205_NORTH = 473,
+    TEXT_BANK_ROUTE_206 = 474,
+    TEXT_BANK_ROUTE_206_CYCLING_ROAD_SOUTH_GATE = 475,
+    TEXT_BANK_UNUSED_GATE_BETWEEN_ETERNA_CITY_ROUTE_206 = 476,
+    TEXT_BANK_ROUTE_207 = 477,
+    TEXT_BANK_ROUTE_208 = 478,
+    TEXT_BANK_ROUTE_208_HOUSE = 479,
+    TEXT_BANK_ROUTE_209 = 480,
+    TEXT_BANK_ROUTE_209_LOST_TOWER_1F = 481,
+    TEXT_BANK_ROUTE_209_LOST_TOWER_5F = 482,
+    TEXT_BANK_ROUTE_210_SOUTH = 483,
+    TEXT_BANK_CAFE = 484,
+    TEXT_BANK_ROUTE_210_NORTH = 485,
+    TEXT_BANK_ROUTE_210_GRANDMA_WILMA_HOUSE = 486,
+    TEXT_BANK_ROUTE_211_WEST = 487,
+    TEXT_BANK_ROUTE_211_EAST = 488,
+    TEXT_BANK_ROUTE_212_NORTH = 489,
+    TEXT_BANK_POKEMON_MANSION = 490,
+    TEXT_BANK_POKEMON_MANSION_MAIDS_ROOM = 491,
+    TEXT_BANK_POKEMON_MANSION_OFFICE = 492,
+    TEXT_BANK_ROUTE_212_SOUTH = 493,
+    TEXT_BANK_ROUTE_212_HOUSE = 494,
+    TEXT_BANK_ROUTE_213 = 495,
+    TEXT_BANK_ROUTE_213_GATE_TO_PASTORIA_CITY = 496,
+    TEXT_BANK_FOOTSTEP_HOUSE = 497,
+    TEXT_BANK_GRAND_LAKE_ROUTE_213_LOBBY = 498,
+    TEXT_BANK_GRAND_LAKE_ROUTE_213_EAST_HOUSE = 499,
+    TEXT_BANK_GRAND_LAKE_ROUTE_213_NORTHWEST_HOUSE = 500,
+    TEXT_BANK_GRAND_LAKE_ROUTE_213_NORTHEAST_HOUSE = 501,
+    TEXT_BANK_ROUTE_214 = 502,
+    TEXT_BANK_ROUTE_214_GATE_TO_VEILSTONE_CITY = 503,
+    TEXT_BANK_ROUTE_215 = 504,
+    TEXT_BANK_ROUTE_216 = 505,
+    TEXT_BANK_ROUTE_216_HOUSE = 506,
+    TEXT_BANK_ROUTE_217 = 507,
+    TEXT_BANK_ROUTE_217_WEST_HOUSE = 508,
+    TEXT_BANK_ROUTE_217_NORTHEAST_HOUSE = 509,
+    TEXT_BANK_ROUTE_218 = 510,
+    TEXT_BANK_ROUTE_218_GATE_TO_JUBILIFE_CITY = 511,
+    TEXT_BANK_ROUTE_218_GATE_TO_CANALAVE_CITY = 512,
+    TEXT_BANK_ROUTE_219 = 513,
+    TEXT_BANK_ROUTE_221 = 514,
+    TEXT_BANK_PAL_PARK_LOBBY = 515,
+    TEXT_BANK_ROUTE_221_HOUSE = 516,
+    TEXT_BANK_ROUTE_222 = 517,
+    TEXT_BANK_ROUTE_222_WEST_HOUSE = 518,
+    TEXT_BANK_ROUTE_222_EAST_HOUSE = 519,
+    TEXT_BANK_ROUTE_222_GATE_TO_SUNYSHORE_CITY = 520,
+    TEXT_BANK_ROUTE_224 = 521,
+    TEXT_BANK_ROUTE_225 = 522,
+    TEXT_BANK_ROUTE_225_HOUSE = 523,
+    TEXT_BANK_UNK_0524 = 524,
+    TEXT_BANK_ROUTE_227 = 525,
+    TEXT_BANK_ROUTE_227_HOUSE = 526,
+    TEXT_BANK_ROUTE_228 = 527,
+    TEXT_BANK_ROUTE_228_GATE_TO_ROUTE_226 = 528,
+    TEXT_BANK_ROUTE_228_NORTH_HOUSE = 529,
+    TEXT_BANK_ROUTE_228_SOUTH_HOUSE = 530,
+    TEXT_BANK_ROUTE_229 = 531,
+    TEXT_BANK_RANKINGS_MACHINE = 532,
+    TEXT_BANK_UNK_0533 = 533,
+    TEXT_BANK_SAVE_INFO_WINDOW = 534,
+    TEXT_BANK_RIBBON_NAMES = 535,
+    TEXT_BANK_DUMMY_0536 = 536,
+    TEXT_BANK_BATTLE_ARCADE_SCENE = 537,
+    TEXT_BANK_SAFARI_GAME = 538,
+    TEXT_BANK_VS_SEEKER = 539,
+    TEXT_BANK_SCRATCH_OFF_CARDS_APP = 540,
+    TEXT_BANK_SCRATCH_OFF_CARDS = 541,
+    TEXT_BANK_UNK_0542 = 542,
+    TEXT_BANK_UNK_0543 = 543,
+    TEXT_BANK_UNK_0544 = 544,
+    TEXT_BANK_SEQ_NAMES = 545,
+    TEXT_BANK_UNK_0546 = 546,
+    TEXT_BANK_DAY_CARE_COMMON = 547,
+    TEXT_BANK_END_CREDITS = 548,
+    TEXT_BANK_BATTLE_HALL_SCENE = 549,
+    TEXT_BANK_MAIN_MENU_OPTIONS = 550,
+    TEXT_BANK_POKEMON_STAT_NAMES = 551,
+    TEXT_BANK_COUNTERPART_TALK = 552,
+    TEXT_BANK_COUNTERPART_NAMES = 553,
+    TEXT_BANK_TWINLEAF_TOWN = 554,
+    TEXT_BANK_TWINLEAF_TOWN_RIVAL_HOUSE_1F = 555,
+    TEXT_BANK_TWINLEAF_TOWN_RIVAL_HOUSE_2F = 556,
+    TEXT_BANK_TWINLEAF_TOWN_PLAYER_HOUSE_1F = 557,
+    TEXT_BANK_TWINLEAF_TOWN_PLAYER_HOUSE_2F = 558,
+    TEXT_BANK_TWINLEAF_TOWN_NORTHEAST_HOUSE = 559,
+    TEXT_BANK_TWINLEAF_TOWN_SOUTHWEST_HOUSE = 560,
+    TEXT_BANK_SANDGEM_TOWN = 561,
+    TEXT_BANK_SANDGEM_TOWN_MART = 562,
+    TEXT_BANK_SANDGEM_TOWN_POKECENTER_1F = 563,
+    TEXT_BANK_SANDGEM_TOWN_POKECENTER_2F = 564,
+    TEXT_BANK_SANDGEM_TOWN_POKEMON_RESEARCH_LAB = 565,
+    TEXT_BANK_SANDGEM_TOWN_COUNTERPART_HOUSE_1F = 566,
+    TEXT_BANK_SANDGEM_TOWN_COUNTERPART_HOUSE_2F = 567,
+    TEXT_BANK_SANDGEM_TOWN_HOUSE = 568,
+    TEXT_BANK_FLOAROMA_TOWN = 569,
+    TEXT_BANK_FLOAROMA_TOWN_MART = 570,
+    TEXT_BANK_FLOAROMA_TOWN_POKECENTER_1F = 571,
+    TEXT_BANK_FLOWER_SHOP = 572,
+    TEXT_BANK_FLOAROMA_TOWN_SOUTHEAST_HOUSE = 573,
+    TEXT_BANK_FLOAROMA_TOWN_MIDDLE_HOUSE = 574,
+    TEXT_BANK_SOLACEON_TOWN = 575,
+    TEXT_BANK_SOLACEON_TOWN_MART = 576,
+    TEXT_BANK_SOLACEON_TOWN_POKECENTER_1F = 577,
+    TEXT_BANK_POKEMON_DAY_CARE = 578,
+    TEXT_BANK_SOLACEON_TOWN_NORTHEAST_HOUSE = 579,
+    TEXT_BANK_SOLACEON_TOWN_POKEMON_NEWS_PRESS = 580,
+    TEXT_BANK_SOLACEON_TOWN_NORTH_HOUSE = 581,
+    TEXT_BANK_SOLACEON_TOWN_EAST_HOUSE = 582,
+    TEXT_BANK_CELESTIC_TOWN = 583,
+    TEXT_BANK_CELESTIC_TOWN_POKECENTER_1F = 584,
+    TEXT_BANK_CELESTIC_TOWN_NORTH_HOUSE = 585,
+    TEXT_BANK_CELESTIC_TOWN_NORTHWEST_HOUSE = 586,
+    TEXT_BANK_CELESTIC_TOWN_NORTHEAST_HOUSE = 587,
+    TEXT_BANK_CELESTIC_TOWN_SOUTHWEST_HOUSE = 588,
+    TEXT_BANK_CELESTIC_TOWN_CAVE = 589,
+    TEXT_BANK_SURVIVAL_AREA = 590,
+    TEXT_BANK_SURVIVAL_AREA_MART = 591,
+    TEXT_BANK_SURVIVAL_AREA_POKECENTER_1F = 592,
+    TEXT_BANK_BATTLEGROUND = 593,
+    TEXT_BANK_SURVIVAL_AREA_SOUTH_HOUSE = 594,
+    TEXT_BANK_SURVIVAL_AREA_NORTH_HOUSE = 595,
+    TEXT_BANK_RESORT_AREA = 596,
+    TEXT_BANK_UNUSED_RESORT_AREA_MART = 597,
+    TEXT_BANK_RESORT_AREA_POKECENTER_1F = 598,
+    TEXT_BANK_RESORT_AREA_RIBBON_SYNDICATE_1F = 599,
+    TEXT_BANK_RESORT_AREA_RIBBON_SYNDICATE_2F = 600,
+    TEXT_BANK_RESORT_AREA_RIBBON_SYNDICATE_ELEVATOR = 601,
+    TEXT_BANK_VILLA = 602,
+    TEXT_BANK_VILLA_FURNITURE_NAMES = 603,
+    TEXT_BANK_RESORT_AREA_HOUSE = 604,
+    TEXT_BANK_BATTLE_VIDEO = 605,
+    TEXT_BANK_FLAVOR_NAMES = 606,
+    TEXT_BANK_ROWAN_INTRO_TV_APP = 607,
+    TEXT_BANK_TIMES_OF_DAY = 608,
+    TEXT_BANK_TITLE_SCREEN = 609,
+    TEXT_BANK_ABILITY_NAMES = 610,
+    TEXT_BANK_ABILITY_NAMES_UPPERCASE = 611,
+    TEXT_BANK_ABILITY_DESCRIPTIONS = 612,
+    TEXT_BANK_UNK_0613 = 613,
+    TEXT_BANK_FRONTIER_TRAINER_MESSAGES = 614,
+    TEXT_BANK_TOWN_MAP = 615,
+    TEXT_BANK_TRAINER_CARD = 616,
+    TEXT_BANK_NPC_TRAINER_MESSAGES = 617,
+    TEXT_BANK_NPC_TRAINER_NAMES = 618,
+    TEXT_BANK_TRAINER_CLASS_NAMES = 619,
+    TEXT_BANK_TRAINER_CLASS_NAMES_WITH_ARTICLES = 620,
+    TEXT_BANK_TV_REPORTER_INTERVIEWS = 621,
+    TEXT_BANK_TV_PROGRAMS = 622,
+    TEXT_BANK_TV_COMMERCIALS = 623,
+    TEXT_BANK_POKEMON_TYPE_NAMES = 624,
+    TEXT_BANK_UNDERGROUND = 625,
+    TEXT_BANK_UNDERGROUND_GOODS = 626,
+    TEXT_BANK_UNDERGROUND_GOODS_WITH_ARTICLES = 627,
+    TEXT_BANK_UNDERGROUND_ITEMS = 628,
+    TEXT_BANK_UNDERGROUND_ITEM_NAMES_WITH_ARTICLES = 629,
+    TEXT_BANK_UNDERGROUND_TRAPS = 630,
+    TEXT_BANK_UNDERGROUND_TRAP_NAMES_WITH_ARTICLES = 631,
+    TEXT_BANK_UNDERGROUND_ANSWERS = 632,
+    TEXT_BANK_UNDERGROUND_QUESTIONS = 633,
+    TEXT_BANK_UNDERGROUND_COMMON = 634,
+    TEXT_BANK_UNION_ROOM = 635,
+    TEXT_BANK_UNDERGROUND_NPCS = 636,
+    TEXT_BANK_UNDERGROUND_BASE_DECORATION = 637,
+    TEXT_BANK_UNDERGROUND_CAPTURE_FLAG = 638,
+    TEXT_BANK_UNDERGROUND_PC = 639,
+    TEXT_BANK_UNDERGROUND_RECORDS = 640,
+    TEXT_BANK_DUMMY_0641 = 641,
+    TEXT_BANK_ROUTE_226 = 642,
+    TEXT_BANK_ROUTE_226_HOUSE = 643,
+    TEXT_BANK_ROUTE_230 = 644,
+    TEXT_BANK_MOVE_REMINDER = 645,
+    TEXT_BANK_MOVE_DESCRIPTIONS = 646,
+    TEXT_BANK_MOVE_NAMES = 647,
+    TEXT_BANK_MOVE_NAMES_UPPERCASE = 648,
+    TEXT_BANK_PLAZA_EVENT_NAMES = 649,
+    TEXT_BANK_UNK_0650 = 650,
+    TEXT_BANK_PLAZA_MINIGAME_NAMES = 651,
+    TEXT_BANK_PLAZA_ITEM_NAMES = 652,
+    TEXT_BANK_UNK_0653 = 653,
+    TEXT_BANK_UNK_0654 = 654,
+    TEXT_BANK_UNK_0655 = 655,
+    TEXT_BANK_UNK_0656 = 656,
+    TEXT_BANK_UNK_0657 = 657,
+    TEXT_BANK_UNK_0658 = 658,
+    TEXT_BANK_UNK_0659 = 659,
+    TEXT_BANK_UNK_0660 = 660,
+    TEXT_BANK_UNK_0661 = 661,
+    TEXT_BANK_UNK_0662 = 662,
+    TEXT_BANK_GREETINGS_EN = 663,
+    TEXT_BANK_GREETINGS_FR = 664,
+    TEXT_BANK_GREETINGS_DE = 665,
+    TEXT_BANK_GREETINGS_IT = 666,
+    TEXT_BANK_GREETINGS_JP = 667,
+    TEXT_BANK_GREETINGS_ES = 668,
+    TEXT_BANK_DUMMY_0669 = 669,
+    TEXT_BANK_UNK_0670 = 670,
+    TEXT_BANK_GTS = 671,
+    TEXT_BANK_UNK_0672 = 672,
+    TEXT_BANK_UNK_0673 = 673,
+    TEXT_BANK_UNK_0674 = 674,
+    TEXT_BANK_PAL_PAD = 675,
+    TEXT_BANK_COUNTRY_REGION_NAMES_ARGENTINA = 676,
+    TEXT_BANK_COUNTRY_REGION_NAMES_AUSTRALIA = 677,
+    TEXT_BANK_COUNTRY_REGION_NAMES_BRAZIL = 678,
+    TEXT_BANK_COUNTRY_REGION_NAMES_CANADA = 679,
+    TEXT_BANK_COUNTRY_REGION_NAMES_CHINA = 680,
+    TEXT_BANK_COUNTRY_REGION_NAMES_GERMANY = 681,
+    TEXT_BANK_COUNTRY_REGION_NAMES_SPAIN = 682,
+    TEXT_BANK_COUNTRY_REGION_NAMES_FINLAND = 683,
+    TEXT_BANK_COUNTRY_REGION_NAMES_FRANCE = 684,
+    TEXT_BANK_COUNTRY_REGION_NAMES_UNITED_KINGDOM = 685,
+    TEXT_BANK_COUNTRY_REGION_NAMES_INDIA = 686,
+    TEXT_BANK_COUNTRY_REGION_NAMES_ITALY = 687,
+    TEXT_BANK_COUNTRY_REGION_NAMES_JAPAN = 688,
+    TEXT_BANK_COUNTRY_REGION_NAMES_NORWAY = 689,
+    TEXT_BANK_COUNTRY_REGION_NAMES_POLAND = 690,
+    TEXT_BANK_COUNTRY_REGION_NAMES_RUSSIA = 691,
+    TEXT_BANK_COUNTRY_REGION_NAMES_SWEDEN = 692,
+    TEXT_BANK_COUNTRY_REGION_NAMES_UNITED_STATES = 693,
+    TEXT_BANK_COUNTRY_NAMES = 694,
+    TEXT_BANK_UNK_0695 = 695,
+    TEXT_BANK_UNK_0696 = 696,
+    TEXT_BANK_POKEDEX = 697,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_DIAMOND = 698,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_PEARL = 699,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_UNUSED = 700,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_FR = 701,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_DE = 702,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_IT = 703,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_ES = 704,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_JP = 705,
+    TEXT_BANK_SPECIES_POKEDEX_ENTRY_EN = 706,
+    TEXT_BANK_SPECIES_WEIGHT = 707,
+    TEXT_BANK_SPECIES_WEIGHT_GIRA = 708,
+    TEXT_BANK_SPECIES_HEIGHT = 709,
+    TEXT_BANK_SPECIES_HEIGHT_GIRA = 710,
+    TEXT_BANK_SPECIES_CATEGORY = 711,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_EN = 712,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_FR = 713,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_DE = 714,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_IT = 715,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_ES = 716,
+    TEXT_BANK_SPECIES_NAME_WITH_NATDEX_NUMBER_JP = 717,
+    TEXT_BANK_SPECIES_CATEGORY_EN = 718,
+    TEXT_BANK_SPECIES_CATEGORY_FR = 719,
+    TEXT_BANK_SPECIES_CATEGORY_DE = 720,
+    TEXT_BANK_SPECIES_CATEGORY_IT = 721,
+    TEXT_BANK_SPECIES_CATEGORY_ES = 722,
+    TEXT_BANK_SPECIES_CATEGORY_JP = 723,
+};
+
+typedef struct MessageBankEntry {
+    u32 offset;
+    u32 length;
+} MessageBankEntry;
+
+typedef struct MessageBank {
+    u16 count;
+    u16 seed;
+
+    MessageBankEntry entries[];
+} MessageBank;
+
+typedef struct MessageLoader {
+    u16 mode;
+    u16 heapID;
+    u16 narcID;
+    u16 bankID;
+
+    union {
+        MessageBank *bank;
+        NARC *narc;
+    };
+} MessageLoader;
+
+enum MessageLoaderMode {
+    MSG_LOADER_PRELOAD_ENTIRE_BANK,
+    MSG_LOADER_LOAD_ON_DEMAND,
+};
+
+MessageLoader *NewMsgDataFromNarc(enum MessageLoaderMode mode, enum NarcID narcID, u32 bankID, u32 heapID);
+
+
+typedef struct SpriteAnimFrame {
+    s8 spriteFrame;
+    u8 frameDelay;
+    s8 xOffset;
+    s8 yOffset;
+} SpriteAnimFrame;
+
+typedef struct PokemonSprite PokemonSprite;
+
+typedef struct PokemonSpriteTransforms PokemonSpriteTransforms;
+
+typedef void(PokemonSpriteCallback)(PokemonSprite *, PokemonSpriteTransforms *);
+
+struct PokemonSpriteTransforms {
+    s16 xCenter;
+    s16 yCenter;
+    int zCenter;
+    s16 xOffset;
+    s16 yOffset;
+    int zOffset;
+    s16 scaleX;
+    s16 scaleY;
+    u16 rotationX;
+    u16 rotationY;
+    u16 rotationZ;
+    u16 padding_1A;
+    s16 xPivot;
+    s16 yPivot;
+    u8 drawXOffset;
+    u8 drawYOffset;
+    u8 drawWidth;
+    u8 drawHeight;
+    u8 fadeInitAlpha;
+    u8 fadeTargetAlpha;
+    u8 fadeDelayCounter;
+    u8 fadeDelayLength;
+    u32 fadeTargetColor;
+    u32 diffuseR : 5;
+    u32 diffuseG : 5;
+    u32 diffuseB : 5;
+    u32 ambientR : 5;
+    u32 ambientG : 5;
+    u32 ambientB : 5;
+    u32 padding_2C_30 : 2;
+    u32 hide : 1;
+    u32 partialDraw : 1;
+    u32 alpha : 5;
+    u32 padding_30_07 : 2;
+    u32 flipH : 1;
+    u32 flipV : 1;
+    u32 hide2 : 1;
+    u32 fadeActive : 1;
+    u32 mosaicIntensity : 4;
+    u32 padding_30_17 : 15;
+};
+
+typedef struct PokemonSpriteShadow {
+    u16 plttSlot : 2;
+    u16 shouldFollowX : 1;
+    u16 shouldFollowY : 1;
+    u16 isAffine : 1;
+    u16 size : 2;
+    u16 padding_00 : 9;
+    s8 height;
+    u8 padding_03;
+    s16 x;
+    s16 y;
+    s16 xOffset;
+    s16 yOffset;
+} PokemonSpriteShadow;
+
+struct PokemonSprite {
+    u32 active : 1;
+    u32 polygonID : 6;
+    u32 needReloadChar : 1;
+    u32 needReloadPltt : 1;
+    u32 padding_00_9 : 23;
+    PokemonSpriteTemplate template;
+    PokemonSpriteTemplate templateBackup;
+    PokemonSpriteTransforms transforms;
+    u8 animActive;
+    u8 currAnimFrame;
+    u8 animFrameDelay;
+    u8 currSpriteFrame;
+    u8 animLoopTimers[10];
+    u8 padding_66[2];
+    PokemonSpriteCallback *callback;
+    PokemonSpriteShadow shadow;
+    PokemonSpriteShadow shadowBackup;
+    SpriteAnimFrame animFrames[10];
+};
+
+typedef struct PokemonSpriteManager {
+    PokemonSprite sprites[4];
+    NNSG2dImageProxy imageProxy;
+    NNSG2dImagePaletteProxy plttProxy;
+    enum HeapID heapID;
+    u32 charBaseAddr;
+    u32 charSize;
+    u32 plttBaseAddr;
+    u32 plttSize;
+    u8 *charRawData;
+    u16 *plttRawData;
+    u16 *plttRawDataUnfaded;
+    NNSG2dCharacterData charData;
+    NNSG2dPaletteData plttData;
+    u8 dummy330;
+    u8 needLoadChar;
+    u8 needLoadPltt;
+    u8 excludeIdentity;
+    u32 hideShadows;
+} PokemonSpriteManager;
+
+typedef struct StringTemplateArgHeader {
+    u8 unused_00;
+    u8 unused_01;
+    u8 unused_02;
+    u8 unused_03;
+} StringTemplateArgHeader;
+
+typedef struct StringTemplateArg {
+    StringTemplateArgHeader header;
+    String *string;
+} StringTemplateArg;
+
+typedef struct StringTemplate {
+    u32 maxArgs;
+    enum HeapID heapID;
+    StringTemplateArg *args;
+    String *templateBuf;
+} StringTemplate;
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    int unk_08;
+    int unk_0C;
+    int unk_10;
+    int unk_14;
+    BOOL unk_18;
+    u8 padding_1C[4];
+} UnkStruct_ov62_0223118C_sub1;
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    int unk_08;
+    int unk_0C;
+} UnkStruct_ov62_02233310_sub1;
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    u64 unk_08;
+} UnkStruct_ov62_02249380;
+
+typedef struct {
+    const UnkStruct_ov62_02249380 *unk_00;
+    int unk_04;
+    int unk_08;
+    int unk_0C;
+    int unk_10;
+    int unk_14;
+    int unk_18;
+    int unk_1C;
+    int unk_20;
+    u32 unk_24;
+    const TouchScreenRect *unk_28;
+} UnkStruct_ov62_02248CDC;
+
+typedef struct {
+    int unk_00;
+    BOOL unk_04;
+    u32 unk_08;
+    u32 unk_0C;
+    s16 unk_10;
+    u8 padding_12[2];
+    BOOL unk_14;
+    ManagedSprite *unk_18[2];
+} UnkStruct_ov62_0223359C;
+
+typedef struct G3DPipelineBuffers {
+    enum HeapID heapID;
+    void *paletteBuffer;
+    void *textureBuffer;
+} G3DPipelineBuffers;
+
+typedef void (*TouchScreenHitTableAction)(u32, enum TouchScreenButtonState, void *);
+
+typedef struct TouchScreenHitTableActionStateInternal TouchScreenHitTableActionStateInternal;
+
+typedef struct TouchScreenActions {
+    const TouchScreenHitTable *hitTables;
+    u32 hitTablesLength;
+    TouchScreenHitTableAction action;
+    void *hitTableContext;
+    TouchScreenHitTableActionStateInternal *actionStates;
+} TouchScreenActions;
+
+typedef struct {
+    int unk_00;
+    BOOL unk_04;
+} UnkStruct_ov62_02233750;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov61_0222BED8_sub1 unk_80;
+} UnkStruct_ov61_0222BE20;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov61_0222BED8_sub1 unk_80;
+    UnkStruct_ov61_0222BED8_sub2 unk_E4;
+} UnkStruct_ov61_0222BED8;
+
+typedef struct {
+    UnkStruct_ov61_0222BED8 *unk_00;
+    UnkStruct_ov61_0222BED8 unk_04;
+    u8 unk_1D54;
+    u8 padding_1D55[3];
+    UnkStruct_ov61_0222BE20 *unk_1D58[30];
+    UnkStruct_ov61_0222BE20 unk_1DD0[30];
+    int unk_3900;
+    u8 unk_3904[32];
+} UnkStruct_ov62_02233828;
+
+typedef struct {
+    BgConfig *unk_00;
+    int unk_04;
+    int unk_08;
+    enum HeapID heapID;
+} UnkStruct_ov22_0225AF8C;
+
+typedef struct UnkStruct_ov22_0225B1BC_t UnkStruct_ov22_0225B1BC;
+
+typedef struct {
+    UnkStruct_ov61_0222AFC0 unk_00;
+    UnkStruct_ov61_0222AE80 unk_80;
+} UnkStruct_ov61_0222BC90;
+
+typedef struct {
+    UnkStruct_02030A80 *unk_00;
+    ManagedSprite *unk_04;
+    ManagedSprite *unk_08;
+    Window unk_0C[8];
+} UnkStruct_ov62_022323B8;
+
+u16 *ov62_Pokedex_Alphabetical(enum HeapID heapID, int unused, int *pokedexLength);
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    u16 *unk_08;
+    MessageLoader *unk_0C;
+    BOOL unk_10;
+} UnkStruct_ov62_0223E01C_sub1;
+
+
+void Heap_Free(void *ptr);
+
+BOOL Pokedex_CheckMonSeenFlag(const Pokedex *pokedex, u16 species);
+
+Pokedex *sub_02061308(SaveData *saveData);
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    DressUpPhoto *photo;
+    UnkStruct_ov61_0222BC90 *unk_0C[5];
+} UnkStruct_ov62_02237D24_sub1;
+
+typedef struct {
+    int unk_00;
+    int unk_04;
+    int unk_08;
+    int unk_0C;
+    Window unk_10[12];
+    Window unk_D0[12];
+    int unk_190;
+    int unk_194;
+    UnkStruct_ov62_022312B0 unk_198[2];
+    TouchScreenActions *unk_1D0[1];
+    UnkStruct_ov62_0223E01C_sub1 unk_1D4;
+    UnkStruct_ov62_02249380 *unk_1E8;
+    UnkStruct_ov62_02248CDC unk_1EC;
+    UnkStruct_ov22_0225AF8C unk_218;
+    UnkStruct_ov22_0225B1BC *unk_228;
+    DressUpPhoto *photo;
+    UnkStruct_ov62_02237D24_sub1 unk_230;
+    UnkStruct_ov62_022323B8 unk_250;
+    UnkStruct_02030A80 *unk_2DC;
+    int unk_2E0;
+    int unk_2E4;
+} UnkStruct_ov62_02237D24;
+
+extern u16 ov40_02245CD4[10];
+
+void ov62_02239BAC(u32 param0, enum TouchScreenButtonState param1, void *param2);
+
+void ov40_02235E34(UnkStruct_0208C06C *param0, int param1);
+
+u16 *ov40_0222DD68(enum HeapID heapID, int unused, int *pokedexLength);
+
+Pokedex *Save_Pokedex_Get(SaveData *saveData);
+
+void ov40_02235E34(UnkStruct_0208C06C *param0, int param1) {
+    unsigned char new_var;
+    u16 *v0;
+    int v1;
+    int v2;
+    int v3;
+    UnkStruct_ov62_02237D24 *v4 = param0->unk_860;
+    v3 = ov40_02245CD4[param1 + 1];
+    v2 = ov40_02245CD4[param1];
+    v1 = v3 - v2;
+    v4->unk_1D4.unk_08 = (unsigned short *)(ov40_0222DD68((HeapID)109, 0, &v4->unk_1D4.unk_04));
+    new_var = 237;
+    v0 = (unsigned short *)(ov40_0222DD68((HeapID)109, 0, &v4->unk_1D4.unk_04));
+    {
+        int v5;
+        int v6 = 0;
+        BOOL v7;
+        Pokedex *v8 = Save_Pokedex_Get(param0->saveData);
+        v4->unk_1D4.unk_00 = 0;
+        for (v5 = v2; v5 < v3; v5++) {
+            v7 = Pokedex_CheckMonSeenFlag(v8, v0[v5]);
+            if (v7 == 0) {
+                v0[v5] = 0xFFFF;
+            } else {
+                v4->unk_1D4.unk_00++;
+            }
+        }
+
+        v6 = 0;
+        for (v5 = v2; v5 < v3; v5++) {
+            if (v0[v5] == 0xFFFF) {
+                continue;
+            }
+            v4->unk_1D4.unk_08[v6] = v0[v5];
+            v6++;
+        }
+
+        for (v5 = v6; v5 < v4->unk_1D4.unk_04; v5++) {
+            v4->unk_1D4.unk_08[v5] = v0[v5];
+        }
+
+        Heap_Free(v0);
+        v4->unk_1E8 = Heap_Alloc(HEAP_ID_109, (sizeof(UnkStruct_ov62_02249380)) * v4->unk_1D4.unk_00);
+        MI_CpuFill8(v4->unk_1E8, 0, (sizeof(UnkStruct_ov62_02249380)) * v4->unk_1D4.unk_00);
+        for (v5 = 0; v5 < v4->unk_1D4.unk_00; v5++) {
+            v4->unk_1E8[v5].unk_00 = v4->unk_1D4.unk_08[v5];
+            v4->unk_1E8[v5].unk_04 = v4->unk_1D4.unk_08[v5];
+        }
+    }
+    v4->unk_1D4.unk_0C = NewMsgDataFromNarc(MSG_LOADER_PRELOAD_ENTIRE_BANK, (enum NarcID)27, new_var, HEAP_ID_109);
+    v4->unk_1D4.unk_10 = 1;
+}

@@ -21,11 +21,15 @@ PIE a const table of pointers is .data.rel.ro (read-only once relocated), on PE 
     python3 tools/port_overlays.py --check                # the DS layout against extract/'s overlay table (the ROM's)
     python3 tools/port_overlays.py --check-map MAP        # a link map (-Wl,-Map=MAP): every overlay object's .data
                                                           # and .bss in .ovldata/.ovlbss, and no other object's
+    python3 tools/port_overlays.py --plat [ROM] --list    # Platinum's: pret's main.lsf.in and the ROM's overlay table
+    python3 tools/port_overlays.py --plat --sources       # the C Platinum links (main's, then the overlays')
+    python3 tools/port_overlays.py --hgss [ROM] --list    # HeartGold's (pret's pokeheartgold main.lsf.in), the same way
 
 port/meson.build passes the script to the link and -DBWPORT_OVL_SCRIPT to the C (without them ovl.c resets nothing).
 """
 import argparse
 import re
+import struct
 import sys
 from collections import Counter
 from pathlib import Path
@@ -80,6 +84,84 @@ def overlays(version="b_us", root=ROOT):
     return out
 
 
+# Platinum (docs/platinum.md): pret's pokeplatinum has no per-overlay config, only its linker spec platinum.us/main.lsf.in
+# (makelcf's input: each overlay's objects and the module it follows); the DS layout is the player's ROM's overlay table.
+# The port compiles the working copy (tools/pokeplat_gen.py), which has the spec too.
+PLAT_ROOT = ROOT / "build/pokeplatinum"
+PLAT_ROM = ROOT / "orig/baserom_plat_us.nds"
+# pret's own libraries the spec links (lib/*/meson.build): their C. The SDK's, NitroSystem's, MSL's and the online ones are
+# the port's (libntr, lib/nnsys, the stubs); libcrypto's RC4 assembly is online's
+PLAT_LIBS = {"libspl.a": "lib/spl/src/*.c", "libgds.a": "lib/gds/src/*.c",
+             "libcrypto_static.a": "lib/crypto/src/rc4_init.c", "libcrypto_ov97.a": "lib/crypto/src/[bsu]*.c"}
+
+
+# HeartGold/SoulSilver (docs/hgss.md): our decompilation on pret's pokeheartgold, the same kind of spec at the top of
+# the tree (tools/pokehg_gen.py's working copy); of pret's libraries only libspl is C the port compiles (lib/dsprot: stubs)
+HG_ROOT = ROOT / "build/pokeheartgold"
+HG_ROM = ROOT / "orig/baserom_hg_us.nds"
+HG_LIBS = {"libspl.a": "lib/spl/src/*.c"}
+
+
+def lsf(text, root, libs=PLAT_LIBS):
+    """[[kind, name, after, [C file]]] of a makelcf spec's sections (Static, Autoload, Overlay) in order. An Object that
+    isn't C has no row (trainer_ai_script.o: the AI script, assembled from src/battle/trainer_ai/script.s)."""
+    out = []
+    for line in text.splitlines():
+        w = line.split()
+        if len(w) < 2:
+            continue
+        if w[0] in ("Static", "Autoload", "Overlay"):
+            out.append([w[0], w[1], None, []])
+        elif w[0] == "After":
+            out[-1][2] = w[1]
+        elif w[0] == "Object" and w[1].endswith(".c"):
+            out[-1][3].append(w[1])
+        elif w[0] == "Library" and w[1] in libs:
+            out[-1][3] += sorted(p.relative_to(root).as_posix() for p in Path(root).glob(libs[w[1]]))
+    return out
+
+
+def rom_table(f):
+    """The ROM's ARM9 overlay table, [(id, DS address, image size, bss size)], and main's end (the module params' static
+    bss end), from a ROM file opened for reading: numbers only."""
+    def at(off, n):
+        f.seek(off)
+        return f.read(n)
+    arm9, _, _, arm9_size = struct.unpack("<4I", at(0x20, 16))
+    ovt, ovt_size = struct.unpack("<2I", at(0x50, 8))
+    image = at(arm9, arm9_size)
+    params = image.find(struct.pack("<II", 0xDEC00621, 0x2106C0DE)) - 0x1C
+    if params < 0:
+        sys.exit("port_overlays.py: no module params in the ROM's ARM9")
+    main_end = struct.unpack_from("<I", image, params + 0x10)[0]
+    t = at(ovt, ovt_size)
+    return [struct.unpack_from("<4I", t, e) for e in range(0, ovt_size, 32)], main_end
+
+
+def plat_overlays(rom_path=PLAT_ROM, root=PLAT_ROOT, spec="platinum.us/main.lsf.in", libs=PLAT_LIBS):
+    """overlays()' rows for Platinum (HGSS: its spec and libraries), and main's C files: the files by pret's spec, the
+    layout by the ROM's overlay table, each checked against the other: as many overlays, ids 0..n-1, each where its spec's
+    After puts it (the end of the overlay it follows, image and bss; main's static bss end). With no ROM (rom_path None:
+    HGSS before its ROM is in orig/) the DS layout is zeros: the build links, and a run needs the ROM anyway."""
+    secs = lsf((Path(root) / spec).read_text(), root, libs)
+    ovs = [s for s in secs if s[0] == "Overlay"]
+    if rom_path is None:
+        return [(i, 0, 0, 0, s[3]) for i, s in enumerate(ovs)], [f for s in secs if s[0] == "Static" for f in s[3]]
+    with open(rom_path, "rb") as f:
+        table, main_end = rom_table(f)
+    if len(table) != len(ovs) or [t[0] for t in table] != list(range(len(table))):
+        sys.exit(f"port_overlays.py: main.lsf.in has {len(ovs)} overlays, the ROM's table {len(table)} (ids "
+                 f"{[t[0] for t in table][:8]}...)")
+    ends = {s[1]: t[1] + t[2] + t[3] for s, t in zip(ovs, table)}
+    ends["main"] = main_end
+    bad = [f"ov{t[0]:03d} {s[1]} at {t[1]:#x}, after {s[2]} ({ends[s[2]]:#x})"
+           for s, t in zip(ovs, table) if s[2] in ends and t[1] != ends[s[2]]]   # (After ITCM: dummy4, empty)
+    if bad:
+        sys.exit("port_overlays.py: main.lsf.in and the ROM's overlay table disagree:\n  " + "\n  ".join(bad))
+    main = [f for s in secs if s[0] == "Static" for f in s[3]]
+    return [(t[0], t[1], t[2], t[3], s[3]) for s, t in zip(ovs, table)], main
+
+
 def mangled(c_file):
     """The C file's object name as meson writes it: the source path with '/' made '_', then '.o' (or '.obj')."""
     return c_file.replace("/", "_") + ".o"
@@ -94,7 +176,7 @@ def pattern(c_file):
 # the overlay files' in .<tag>ovldata and .<tag>ovlbss (inside .ovldata and .ovlbss, after Black's range: the DS table covers only
 # Black's, theirs is built at start-up from the game's own markers), the rest in .<tag>machdata and .<tag>machbss (the machine's
 # range). (NOBITS for the bss ones, from the pragma.)
-GAME_TAGS = ["b2", "w2"]
+GAME_TAGS = ["b2", "w2", "pl", "hg"]   # (pl: Platinum, hg: HeartGold; once they link)
 OVL_GAME_SECTIONS = {"data": [(f".{t}ovldata",) for t in GAME_TAGS], "bss": [(f".{t}ovlbss",) for t in GAME_TAGS]}
 MACH_GAME_SECTIONS = {"data": [f".{t}machdata" for t in GAME_TAGS], "bss": [f".{t}machbss" for t in GAME_TAGS]}
 
@@ -217,6 +299,21 @@ def macho_layout(ovs, sources, root=ROOT):
     return out
 
 
+def plat_id_symbols(root, outdir):
+    """port_ovids.h: PORT_OVID_<name> for each of Platinum's overlays, the overlay's id as a constant. pret's
+    FS_OVERLAY_ID(name) is `(u32)&SDK_OVERLAY_name_ID` (the DS linker script gives that symbol the id as its address);
+    libntr's SDK_PORT makes it (0), which sent every Overlay_LoadByID to overlay 0 (no overlay was reset or started: a
+    Poketch app's NitroStaticInit never ran). The port's FS_OVERLAY_ID (port/include_plat/port_plat.h) pastes the name
+    onto PORT_OVID_ instead: a constant, which a static table's initializer needs (clang refuses (u32)&sym there)."""
+    names = [s[1] for s in lsf((Path(root) / "platinum.us/main.lsf.in").read_text(), root) if s[0] == "Overlay"]
+    w = ["/* Generated by tools/port_overlays.py. Don't edit. */"]
+    w += [f"#define PORT_OVID_{n} {i}" for i, n in enumerate(names)]
+    out = Path(outdir) / "port_ovids.h"
+    text = "\n".join(w) + "\n"
+    if not out.exists() or out.read_text() != text:
+        out.write_text(text)
+
+
 def macho_files(ovs, outdir, gnu_tag=None):
     """ovlmarkNNN.c (NNN = 0..n: the last is the end) and ovltab.c: the DS layout and the marker addresses, which
     port/src/ovl.c turns into its table at startup (BWPORT_OVL_MACHO)."""
@@ -230,16 +327,23 @@ def macho_files(ovs, outdir, gnu_tag=None):
         if not f.exists() or f.read_text() != text:
             f.write_text(text)
 
+    # PE: only the MS pragmas, as the overlay files get them (port/machine/gnu_ovl_section.h). With `#pragma clang section`
+    # too, clang 21 (COFF) put the bss marker in the data section (clang 18 took bss_seg): every overlay's bss range then
+    # covered its data, and each load zeroed it (check_markers). (A section attribute instead: clang 21 calls it a conflict
+    # with the bss_seg the overlay archive's -include sets.)
+    if gnu_tag:
+        pragma = (f'#ifdef _WIN32\n#pragma data_seg(".{gnu_tag}ovldata")\n#pragma bss_seg(".{gnu_tag}ovlbss")\n#else\n'
+                  f'#pragma clang section bss=".{gnu_tag}ovlbss" data=".{gnu_tag}ovldata"\n#endif\n')
+    else:
+        pragma = '#pragma clang section bss="__DATA,__ovlbss" data="__DATA,__ovldata"\n'
     for i in range(n + 1):
-        pragma = (f'#pragma clang section bss=".{gnu_tag}ovlbss" data=".{gnu_tag}ovldata"\n' if gnu_tag
-                  else '#pragma clang section bss="__DATA,__ovlbss" data="__DATA,__ovldata"\n')
         put(f"ovlmark{i:03d}.c", head + pragma +
             f"__attribute__((aligned(16), used)) unsigned char bwovl_d{i:03d}[16] = {{1}};\n"
             f"__attribute__((aligned(16), used)) unsigned char bwovl_b{i:03d}[16];\n")
     # The count and the DS layout are the host's, read before the ROM fill (port/src/ovl.c's PortOvl_SetGame builds a game's
-    # table at start-up): in a section of their own (.bwhro: tools/port_romfill.py fills data and rodata only, by the sections it
+    # table at start-up): in a section of their own (.bwhro, Apple __DATA,__bwhro: tools/port_romfill.py fills data and rodata only, by the sections it
     # knows), not in .rodata, where their bytes match the ROM's (a count of 0 left Black 2 with no overlay resets)
-    w = [head, "#ifdef __APPLE__", "#define BWHRO", "#else", '#define BWHRO __attribute__((section(".bwhro")))', "#endif",
+    w = [head, "#ifdef __APPLE__", '#define BWHRO __attribute__((section("__DATA,__bwhro")))', "#else", '#define BWHRO __attribute__((section(".bwhro")))', "#endif",
          "extern unsigned char"]
     w.append(",\n".join(f"    bwovl_d{i:03d}[], bwovl_b{i:03d}[]" for i in range(n + 1)) + ";")
     w.append(f"BWHRO const unsigned bwovl_count = {n};")
@@ -317,6 +421,40 @@ def check_map(ovs, path):
     return len(bad)
 
 
+MARKER = re.compile(r"^(?:\w+_)?bwovl_([db])(\d{3})$")   # (PE: port_relink.py tags it, hg_bwovl_d060)
+
+
+def check_markers(nm_sysv, tag):
+    """A relinked game module's overlay markers (macho_files' ovlmarkNNN.c), from `nm -f sysv` of it (GNU or LLVM, ELF or
+    COFF): each data marker in .<tag>ovldata and each bss marker in .<tag>ovlbss, numbered 0..n, in overlay order.
+    port/src/ovl.c's ranges are the gaps between them: a marker in the wrong section or order makes a load reset or zero
+    the wrong bytes (a call through a zeroed table). Returns the problems, empty when there are none."""
+    found = {"d": {}, "b": {}}
+    for line in nm_sysv.splitlines():
+        f = [x.strip() for x in line.split("|")]
+        m = MARKER.match(f[0]) if len(f) >= 7 else None
+        if m:
+            found[m[1]][int(m[2])] = (int(f[1] or "0", 16), f[6])
+    bad = []
+    for k, want in (("d", f".{tag}ovldata"), ("b", f".{tag}ovlbss")):
+        got = found[k]
+        if not got:
+            bad.append(f"no bwovl_{k}NNN markers")
+            continue
+        ids = sorted(got)
+        if ids != list(range(len(ids))):
+            bad.append(f"the bwovl_{k} markers are not numbered 0..{len(ids) - 1}")
+        wrong = [i for i in ids if got[i][1] != want]
+        if wrong:
+            bad.append(f"{len(wrong)} of {len(ids)} bwovl_{k}NNN markers are not in {want}"
+                       f" (bwovl_{k}{wrong[0]:03d} is in {got[wrong[0]][1]})")
+        elif any(got[b][0] <= got[a][0] for a, b in zip(ids, ids[1:])):
+            bad.append(f"the bwovl_{k} markers are not in overlay order in {want}")
+    if len(found["d"]) != len(found["b"]):
+        bad.append(f"{len(found['d'])} data markers but {len(found['b'])} bss markers")
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--target", choices=sorted(DATA), default="linux")   # (android: the linux script, for lld)   # (android: the linux script, for lld)
@@ -328,14 +466,36 @@ def main():
     ap.add_argument("--macho-files", metavar="DIR", help="ld64: write ovlmarkNNN.c and ovltab.c into DIR")
     ap.add_argument("--gnu-tag", help="with --macho-files: GNU ld/lld/PE: the markers go in .<TAG>ovldata / .<TAG>ovlbss (b2, w2)")
     ap.add_argument("--version", default="b_us", help="with --macho-layout/--macho-files: the game (w_us: White's layout)")
-    ap.add_argument("--root", default=ROOT, help="with --version: the tree whose config/ and sources these are (pokebw2's)")
+    ap.add_argument("--root", help="with --version: the tree whose config/ and sources these are (pokebw2's); with --plat:"
+                    " pret's (default build/pokeplatinum)")
+    ap.add_argument("--plat", nargs="?", const=PLAT_ROM, metavar="ROM", help="Platinum's overlays (main.lsf.in, the ROM's table)")
+    ap.add_argument("--hgss", nargs="?", const=HG_ROM, metavar="ROM", help="HeartGold's overlays (its main.lsf.in, the ROM's"
+                    " table; no ROM file: a DS layout of zeros)")
+    ap.add_argument("--sources", action="store_true", help="with --plat/--hgss: main's C files, then the overlays', absolute")
     a = ap.parse_args()
-    ovs = overlays(a.version, a.root)
+    if a.plat or a.hgss:
+        a.root = a.root or (PLAT_ROOT if a.plat else HG_ROOT)
+        if a.plat:   # (no ROM: zeros, which port/src/ovl.c fills from the player's ROM at start)
+            ovs, main_files = plat_overlays(a.plat if Path(a.plat).exists() else None, a.root)
+        else:
+            rom = a.hgss if Path(a.hgss).exists() else None
+            ovs, main_files = plat_overlays(rom, a.root, "main.lsf.in", HG_LIBS)
+        if a.sources:
+            print("\n".join(str(Path(a.root) / f) for f in main_files + [f for *_, files in ovs for f in files]))
+            return
+        if a.check:
+            print(f"{len(ovs)} overlays: main.lsf.in and the ROM's table agree")
+            return
+    else:
+        a.root = a.root or ROOT
+        ovs = overlays(a.version, a.root)
     if a.macho_layout:
         print("\n".join(macho_layout(ovs, a.macho_layout, a.root)))
         return
     if a.macho_files:
         macho_files(ovs, a.macho_files, a.gnu_tag)
+        if a.plat:
+            plat_id_symbols(a.root, a.macho_files)
         return
     if a.check:
         sys.exit(1 if check(ovs) else 0)

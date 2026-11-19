@@ -1,0 +1,9 @@
+# game: heartgold
+# from: hg-room1
+# reaches: out of the player's house (out-door's keys), then the X menu (cursor on the bag: right, up = SAVE), A three times: the save in the town (hg34: hg33's pin daf432b8a hid the cursor on a d-pad press, ov27_0225B360's DS-stride icon walk; hg-out1 is a copy of hg-room1)
+# store: hg-out2
+# end: f15400
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+walk 10800 40 down8 w600
+keys x@f12800 right@f13100 up@f13300 a@f13500 a@f13800 a@f14100 b@f15000

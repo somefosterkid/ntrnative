@@ -8,12 +8,17 @@ One run: `ninja -C build/port/linux bwport` (first meson setup when there is no 
 --reset` + --reconfigure when a wrap or packagefiles patch changed, --reconfigure when port/src or port/exclude.txt
 did), an Xvfb display of its own, the exe under gdb in the run dir (default build/port/run, kept between runs: the
 extracted ROM, save.bin, sim_config.ini) with BWPORT_ROM and SDL_AUDIODRIVER=dummy, for -t seconds or until it
-stops (at the end gdb stops it with SIGINT). Into --out (default <run dir>/out, emptied first): log.txt (the exe's
+stops (at the end gdb stops it with SIGINT). --no-gdb runs the exe itself instead (tools/route.py's legs: gdb's
+polling costs CPU): the same behaviour (ASLR off and gdb's COLUMNS/LINES in the environment: the end V-blank of a
+leg depends on both), but a crash or a hang has no backtrace (`crash SIGSEGV in ?`, `hang in ?`): run again with gdb for
+it. Into --out (default <run dir>/out, emptied first): log.txt (the exe's
 output, the keys sent, gdb's stop, `bt` and every thread's `bt`), shots/<seconds>s_f<frame>.png (the window: both
 DS screens as libntr draws them), final.png (the window when it stopped), verdict.txt. The last line printed is the
 verdict:
 
-    reached-frame N in T s (F fps)   still running at the end, frames advancing
+    exit-frame N in T s (F fps)      --frames N: the exe ended itself, exit 0, at V-blank N (BWPORT_EXIT_FRAME): PASS
+    reached-frame N in T s (F fps)   still running at the end, frames advancing (the -t wall cap: a slow host's result)
+    watchdog: frame F of N ...       --frames N, but -t (the watchdog) came first: FAIL (a stuck or very slow run)
     hang in F (file:line) ...        running, but no frame for --hang seconds: the main thread's innermost frame
                                      with source
     stub X called from F, frame N    an undefined function's abort stub (build/port/undefined.txt)
@@ -25,13 +30,21 @@ A hang's and a crash's place end with `... G (file:line)`, the innermost game fr
 of those (whose call it was).
 
 The frame is the V-blank count (port/src/run_frames.c gives its address; read through /proc/<pid>/mem).
---keys presses DS buttons with xdotool: KEY[*HOLD]@WHEN, WHEN in seconds after the start or fN for frame N (better:
-it doesn't depend on how fast the start was); KEY a b x y l r start select up down left right, mapped through the
+--frames N ends the run at the game's own V-blank N, whatever the host's speed (the exe does: BWPORT_EXIT_FRAME=N,
+port/src/run_frames.c PORT_ExitFrame; no final.png: the window is gone): two runs of the same keys end at the same game
+state, so their traces compare to the frame. -t stays as the watchdog only (default 60 + N/10 s with --frames).
+--keys presses DS buttons: KEY[*HOLD]@WHEN, WHEN in seconds after the start or fN for frame N (better: it doesn't
+depend on how fast the start was); KEY a b x y l r start select up down left right. An item at a frame (a DS key) goes
+to the exe's own key script (BWPORT_KEYS, port/src/keys_script.c): pressed at the game's V-blank wait of frame N, the
+same frame every run (HOLD as BWPORT_KEYS': seconds, fN frames, none = 4 frames). Until 11-13 those went through
+xdotool too, pressed when this script's poll saw the frame: 0-8 frames late, another number each run (HeartGold's
+pinned runs parted at the first START). Items in seconds and x_NAME keys still go through xdotool, mapped through the
 run dir's sim_config.ini [PAD] (main_start.c's defaults: A X, B Z, X S, Y A, L Q, R W, Start Enter, Select right
 Shift). HOLD in seconds (default 0.1: the game reads the keys once a frame).
 --skip N draws one frame in N (frame skip: tools/port_run.py --fast --skip 4 is the quickest way to run the game's logic;
 screen checks need the default).
---save NAME starts from /root/saves/NAME.bin (the in-game saves library, /root/saves/README); --store NAME keeps the run's
+--save NAME starts from $BWPORT_SAVES/NAME.bin (the in-game saves library; default ~/saves, whose README is the index,
+as tools/route.py); --store NAME keeps the run's
 save.bin there afterwards. Both use the save where the running game reads it: <run dir>/<game folder>/save.bin once the
 launcher made that folder ("Pokemon Black"), else <run dir>/save.bin; a run that loaded another save is an error. A run
 from --save skips the title and menu (BWPORT_SKIPMENU=1, as tools/mac_run.sh: the field is up at ~f220, key frames are
@@ -46,6 +59,7 @@ still running at the end (or exited 0), else 1.
 """
 import argparse
 import glob
+import json
 import os
 import re
 import shutil
@@ -62,7 +76,39 @@ import play_script
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(REPO, os.environ.get('BWPORT_BUILD', 'build/port/linux'))
 EXE = os.path.join(BUILD, 'bwport')
+# Gen 4 games: the default build has every game (port/meson.options' `platinum` and `hgss` are on), so they run from it too.
+# A module build of their own still works: BWPORT_PLAT_BUILD (Platinum) and BWPORT_HG_BUILD (HeartGold and SoulSilver) name
+# its dir (e.g. the older build/port/linux-plat, build/port/linux-hgss); BWPORT_BUILD wins over both
+GAME_BUILD = {'platinum': os.environ.get('BWPORT_PLAT_BUILD', 'build/port/linux'),
+              'heartgold': os.environ.get('BWPORT_HG_BUILD', 'build/port/linux'),
+              'soulsilver': os.environ.get('BWPORT_HG_BUILD', 'build/port/linux')}
+GAME_OPTION = {'platinum': 'platinum', 'heartgold': 'hgss', 'soulsilver': 'hgss'}   # the meson option that builds the module in
+WANT_OPTION = None   # use_game_build's: build() turns it on in a build dir made before the modules were on by default
 TRACE = os.environ.get('ROUTE_TRACE') == '1'
+
+
+def use_game_build(game):
+    """BUILD and EXE for GAME's build (BWPORT_BUILD still wins): the dir, relative"""
+    global BUILD, EXE, WANT_OPTION
+    if game in GAME_BUILD and not os.environ.get('BWPORT_BUILD'):
+        BUILD = os.path.join(REPO, GAME_BUILD[game])
+        EXE = os.path.join(BUILD, 'bwport')
+    WANT_OPTION = GAME_OPTION.get(game)
+    return os.path.relpath(BUILD, REPO)
+
+
+def module_option_off():
+    """WANT_OPTION when BUILD exists with it false (meson keeps a build dir's options: a dir made before the Gen 4 modules
+    were on by default has them off); else None"""
+    p = os.path.join(BUILD, 'meson-info', 'intro-buildoptions.json')
+    if not WANT_OPTION or not os.path.exists(p):
+        return None
+    try:
+        with open(p) as f:
+            opts = {o['name']: o['value'] for o in json.load(f)}
+    except (OSError, ValueError, KeyError):
+        return None
+    return WANT_OPTION if opts.get(WANT_OPTION) is False else None
 
 
 def trace(what):
@@ -86,6 +132,7 @@ def sh(cmd, **kw):
 
 
 SLICE = shutil.which('systemd-run') and os.path.isdir('/run/systemd/system')
+SETARCH = shutil.which('setarch') or '/usr/bin/setarch'   # --no-gdb: the exe with ASLR off, as gdb runs it
 
 
 def slice_cmd(cmd):
@@ -101,6 +148,10 @@ def setup_args():
     args = ['--native-file', 'port/machine/linux.ini']
     if shutil.which('ccache'):
         args += ['--native-file', 'port/machine/linux-ccache.ini']
+    if os.path.basename(BUILD) == 'linux-plat':
+        args += ['-Dplatinum=true']        # Platinum's module (port/meson.build's `platinum`, docs/platinum.md)
+    if os.path.basename(BUILD) == 'linux-hgss':
+        args += ['-Dhgss=true']            # HeartGold's module (port/meson.build's `hgss`, docs/hgss.md)
     return args
 
 
@@ -109,8 +160,40 @@ def build():
     err = port_wraps.refresh(BUILD, setup_args())
     if err:
         return err
+    opt = module_option_off()
+    if opt:
+        print(f'port_run: {os.path.relpath(BUILD, REPO)} was made with -D{opt}=false: meson configure -D{opt}=true '
+              '(the module builds once: minutes with a warm ccache)', flush=True)
+        r = sh(slice_cmd(['meson', 'configure', BUILD, f'-D{opt}=true']), cwd=REPO)
+        if r.returncode:
+            return r.stdout
     r = sh(slice_cmd(['ninja', '-C', BUILD, 'bwport']), cwd=REPO)
     return r.stdout if r.returncode != 0 else None
+
+
+def read_log(path, start=0, tries=5):
+    """The log's bytes from `start`. On a Windows drive mounted in WSL a read of the file gdb is writing now and then fails with
+    ENODATA (errno 61); that killed port_run with a traceback and no verdict.txt (11-16: 26 battle-sweep rows that were no hang
+    at all). Tried again; after `tries` b'' (the caller's next pass reads on)."""
+    for i in range(tries):
+        try:
+            with open(path, 'rb') as f:
+                f.seek(start)
+                return f.read()
+        except OSError:
+            time.sleep(0.2)
+    return b''
+
+
+def undefined_data_note():
+    """The line `undefined data: N (see build/port/.../undefined.txt)` when the exe's build has undefined DATA symbols
+    (zeroed blocks the game reads zeros from: tools/port_undefined.py's "UNDEFINED DATA" section); '' when none"""
+    try:
+        with open(os.path.join(BUILD, 'undefined.txt')) as f:
+            m = re.search(r'^## UNDEFINED DATA: (\d+)', f.read(), re.M)
+    except OSError:
+        return ''
+    return f'undefined data: {m[1]} (see {os.path.relpath(os.path.join(BUILD, "undefined.txt"), REPO)})' if m and m[1] != '0' else ''
 
 
 def find_rom():
@@ -135,6 +218,18 @@ def parse_keys(script, hold=0.1):
         events.append((None if m.group(3) else when, int(when) if m.group(3) else None, float(m.group(2) or hold),
                        PAD_NAMES.get(m.group(1).lower()) or '=' + m.group(1)[2:]))
     return events
+
+
+def exe_keys(script):
+    """'start@f600 a*0.5@12' -> (the frame-timed DS keys for BWPORT_KEYS, the rest for xdotool)"""
+    exe, rest = [], []
+    for item in re.split(r'[\s,]+', script.strip()) if script.strip() else []:
+        m = re.fullmatch(r'(\w+)(?:\*(f?[\d.]+))?@f([\d.]+)', item)
+        if m and m.group(1).lower() in PAD_NAMES:
+            exe.append(item.lower())
+        else:
+            rest.append(item)
+    return ' '.join(exe), ' '.join(rest)
 
 
 def read_pad(run_dir):
@@ -303,7 +398,65 @@ def place(bt, n):
     return text + (f' ... {where(game[0])}' if game and game[0] not in mine[:n] else '')
 
 
-def verdict(log, timed_out, frame, stall, hang_secs, fps, last_t):
+HEAPCHECK_RE = re.compile(r'^heapcheck: (kind=\S+ .*)$', re.M)
+OPENFILES_RE = re.compile(r'^openfiles: leak: (.*?): a game opens files', re.M)   # port/src/run_frames.c (more than its bound open at once)
+# admin-79's hk498 list (2026-11-15): raw heap blocks sized as literals that hold pointers, still unfixed upstream. A heap overrun
+# whose allocator chain holds one of these functions is tagged `[hk498 suspect ...]` in the verdict: the literal (the checker's
+# `owner_asked` is that + 16, HG/SS's MemoryBlock), where the pointer sits, and the overlay / app to point the sweep at (hg_sweep
+# --maps apps, or the app's own play). The overlay's app by its OverlayManagerTemplates: 41 holds AccessoryPortrait and the sprite
+# resource helpers, 96 the Pokeathlon course (PokeathlonCourse_Init), 92 has no template of its own (HEAP_ID_113; its structs are ov116's).
+HEAP_SUSPECTS = {
+    'ov41_02245EA0': 'two raw 8-byte blocks, pointer at 0; overlay 41 (AccessoryPortrait / sprite resource helpers)',
+    'ov92_0225EDB4': 'raw 0x30 block, pointer at 0; overlay 92 (HEAP_ID_113, ov116 structs)',
+    'ov92_022610E8': 'raw 0x764 block, pointer at 0; overlay 92 (HEAP_ID_113, ov116 structs)',
+    'ov96_021EB180': 'raw 0x158 block, pointer at 0x150; overlay 96 (Pokeathlon course)',
+    'ov96_02203A00': 'raw 0x74 block, pointer at 4; overlay 96 (Pokeathlon course)',
+    'ov96_0221464C': 'raw 0x50 block, pointer at 0x10; overlay 96 (Pokeathlon course)',
+}
+HEAP_CODE = re.compile(r'(^|/)(heap\.c|expheap\.c|allocator\.c|nnsys_heapcheck\.c)$|^(PORT_HeapCheck|NNS_Fnd|Heap_|AllocFromHeapInternal|\?\?)')
+
+
+def heapcheck_verdict(log):
+    """The exe's heap checker (BWPORT_HEAPCHECK, port/src/nnsys_heapcheck.c) stopped it: one `heapcheck: kind=K frame=F ... owner=P
+    ip=A ip=B ... anchor=X` line. The ips are runtime addresses; the exe's nm gives the anchor's own address, so each ip is
+    nm's anchor + (ip - X), resolved with addr2line. The verdict names the first caller that is not the heap's own code:
+    `heapcheck: heap overrun after FUNC (file:line) <- G <- H, frame F ...`. None when the log has no such line"""
+    m = HEAPCHECK_RE.search(log)
+    if not m:
+        return None
+    line = m.group(1)
+    kv = dict(re.findall(r'\b(\w+)=(\S+)', line))
+    ips = [int(x, 16) for x in re.findall(r'\bip=(0x[0-9a-f]+)', line)]
+    callers, fns = [], []
+    anchor = re.search(r'^([0-9a-f]+) \w PORT_HeapCheckAnchor$', sh(['nm', '--defined-only', EXE]).stdout, re.M)
+    if anchor and ips and kv.get('anchor', '').startswith('0x'):
+        base = int(anchor.group(1), 16) - int(kv['anchor'], 16)
+        out = sh(['addr2line', '-f', '-C', '-e', EXE] + [hex(base + ip - 1) for ip in ips]).stdout.split('\n')
+        for fn, loc in zip(out[0::2], out[1::2]):
+            f = loc.rsplit(':', 1)[0]
+            fns.append(fn)
+            if not HEAP_CODE.search(fn) and not HEAP_CODE.search(f):
+                callers.append(f'{fn} ({os.path.basename(loc)})' if not loc.startswith('?') else fn)
+    kind = kv.get('kind', '?')
+    what = 'heap misuse (double free)' if kind == 'free-of-a-block-freed-before' else 'heap misuse' if kind.startswith('free-of') else 'heap overrun'
+    owner = (' after ' + ' <- '.join(callers[:3])) if callers else (' (owner not recorded)' if 'owner' not in kv else ' (owner unresolved)')
+    suspect = [f'{fn}: {HEAP_SUSPECTS[fn]}' for fn in dict.fromkeys(fns) if fn in HEAP_SUSPECTS]
+    return (f'heapcheck: {what}{owner}, frame {kv.get("frame", "?")} (clean at {kv.get("last_clean_frame", "?")}), '
+            f'heap {kv.get("heap", "?")}, {kind}, block {kv.get("block", "?")}' +
+            (f', owner block {kv["owner"]} asked {kv.get("owner_asked", "?")} allocated frame {kv.get("owner_frame", "?")}'
+             if 'owner' in kv else '') +
+            (' [hk498 suspect site: ' + '; '.join(suspect) + ']' if suspect else ''))
+
+
+def verdict(log, timed_out, frame, stall, hang_secs, fps, last_t, rc=None, want_frames=None):
+    """rc: the exit status of an exe that ended by itself under --no-gdb (negative: the signal); None under gdb, or when
+    port_run ended the run. want_frames: --frames N (a timed-out run is then the watchdog's, not a result)"""
+    hc = heapcheck_verdict(log)
+    if hc:
+        return hc
+    leak = OPENFILES_RE.search(log)
+    if leak and os.environ.get('BWPORT_HEAPCHECK', '0') not in ('', '0'):   # run_frames.c's open-file guard: the checker's stop (abort)
+        return 'openfiles: ' + leak.group(1)
     stop = log.split('\n== port_run: stop\n', 1)
     gdb_text = stop[1] if len(stop) > 1 else ''
     bt = frames_of(gdb_text.split('== port_run: threads')[0])
@@ -312,24 +465,40 @@ def verdict(log, timed_out, frame, stall, hang_secs, fps, last_t):
     sig = re.search(r'(?:Program|Thread \d+ "[^"]*") received signal (\w+)|Program terminated with signal (\w+)',
                     stop[0])
     exited = re.search(r'\[Inferior \d+ \(process \d+\) exited (?:normally|with code (\d+))\]', stop[0])
+    sig_name = (sig.group(1) or sig.group(2)) if sig else None
+    code = int(exited.group(1) or 0) if exited else None
+    if rc is not None:   # no gdb: the wait status says how it ended
+        sig_name = signal.Signals(-rc).name if rc < 0 else None
+        code = rc if rc >= 0 else None
     if stub and not timed_out:
         callers = [fr for i, fr in enumerate(bt) if i > 0 and bt[i - 1][0] == stub.group(1) and ours(fr)]
         return f'stub {stub.group(1)} called' + (f' from {where(callers[0])}' if callers else '') + f', {at}'
-    if exited:
-        return f'exit {int(exited.group(1) or 0)} at {at}'
-    if sig and not timed_out:
-        return f'crash {sig.group(1) or sig.group(2)} in {place(bt, 3)}, {at}'
+    if code is not None:
+        ended = re.search(r'^bwport: exit-frame (\d+)$', log, re.M)   # PORT_ExitFrame's line: the exe ended itself at N
+        if code == 0 and ended:
+            return f'exit-frame {ended.group(1)} in {last_t:.0f} s ({fps:.0f} fps)'
+        return f'exit {code} at {at}'
+    if sig_name and not timed_out:
+        return f'crash {sig_name} in {place(bt, 3)}, {at}'
     if not timed_out:
-        return f'stopped ({(sig.group(1) or sig.group(2)) if sig else "?"}), {at}'
+        return f'stopped ({sig_name or "?"}), {at}'
     if stall >= hang_secs or not frame:
         main = re.search(r'^Thread 1 .*?\n(.*?)(?=^Thread |\Z)', gdb_text, re.M | re.S)
         where_ = place(frames_of(main.group(1) if main else ''), 1)
         return f'hang in {where_}, {at} (no frame for {stall:.0f} s)' if frame else             f'hang in {where_} before the first frame'
+    if want_frames:
+        return f'watchdog: frame {frame} of {want_frames} in {last_t:.0f} s ({fps:.0f} fps)'
     return f'reached-frame {frame} in {last_t:.0f} s ({fps:.0f} fps' + (f'; none for the last {stall:.0f} s)' if
                                                                          stall >= 1 else ')')
 
 
-SAVES = '/root/saves'   # the in-game saves library: --save NAME, --store NAME
+def saves_dir():
+    """The in-game saves library (--save NAME, --store NAME): $BWPORT_SAVES, else ~/saves (the rule of tools/route.py's
+    SAVES on Linux; Mac/iOS tools use ~/bw-saves)."""
+    return os.environ.get('BWPORT_SAVES') or os.path.join(os.path.expanduser('~'), 'saves')
+
+
+SAVES = saves_dir()
 PLAYS = os.path.join(REPO, 'tools/plays')   # the play scripts: --play NAME
 
 
@@ -346,9 +515,12 @@ def load_play(name):
 
 
 def game_of(save_name):
-    """the game a library save belongs to, by the README's naming: b2-*, w2-*, white-*, else Black"""
+    """the game a library save belongs to, by the README's naming: b2-*, w2-*, white-*, pt-*, hg-*, ss-*, else Black"""
     name = os.path.basename(save_name)
-    return 'b2' if name.startswith('b2-') else 'w2' if name.startswith('w2-') else 'white' if name.startswith('white-') else 'black'
+    for prefix, game in (('b2-', 'b2'), ('w2-', 'w2'), ('white-', 'white'), ('pt-', 'platinum'), ('hg-', 'heartgold'), ('ss-', 'soulsilver')):
+        if name.startswith(prefix):
+            return game
+    return 'black'
 
 
 def save_paths(run_dir, game):
@@ -362,8 +534,10 @@ def save_path(run_dir, game):
     return folder if os.path.isdir(os.path.dirname(folder)) else root
 
 
-ROMS = {'white': 'baserom_w_us.nds', 'b2': 'baserom_b2_us.nds', 'w2': 'baserom_w2_us.nds'}
-CODES = {'black': 'IRBO', 'white': 'IRAO', 'b2': 'IREO', 'w2': 'IRDO'}   # BWPORT_GAME: the game the exe starts
+ROMS = {'white': 'baserom_w_us.nds', 'b2': 'baserom_b2_us.nds', 'w2': 'baserom_w2_us.nds', 'platinum': 'baserom_plat_us.nds',
+        'heartgold': 'baserom_hg_us.nds', 'soulsilver': 'baserom_ss_us.nds'}
+CODES = {'black': 'IRBO', 'white': 'IRAO', 'b2': 'IREO', 'w2': 'IRDO', 'platinum': 'CPUE', 'heartgold': 'IPKE',
+         'soulsilver': 'IPGE'}   # BWPORT_GAME: the game the exe starts
 
 
 def import_game(run_dir, game):
@@ -398,30 +572,39 @@ def check_save(log, run_dir, game, want_sha):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('-t', '--time', type=float, default=30, help='seconds to run (default 30)')
+    ap.add_argument('-t', '--time', type=float, default=None, help='seconds to run (default 30; with --frames: the '
+                    'watchdog, 60 + N/10; 0: no wall watchdog, only --hang ends a stuck run)')
+    ap.add_argument('--frames', type=int, metavar='N', default=0,
+                    help="end the run at the game's V-blank N (BWPORT_EXIT_FRAME): verdict `exit-frame N`; -t is the watchdog")
     ap.add_argument('--shots', type=float, default=5, help='a screenshot every SHOTS seconds (default 5; 0: none)')
-    ap.add_argument('--mouse', default='', help="mouse clicks: 'X,Y@SECONDS[*HOLD] ...', X,Y in window pixels "
-                    "(the touch screen is where the mouse is: a touch on the lower screen)")
+    ap.add_argument('--mouse', default='', help="mouse clicks: 'X,Y@SECONDS[*HOLD] X,Y@fFRAME ...', X,Y in window "
+                    "pixels (the touch screen is where the mouse is: a touch on the lower screen), HOLD in seconds")
     ap.add_argument('--keys', default='', help="key script: 'start@f600 a@12 a*0.5@14' (KEY[*HOLD]@SECONDS|fFRAME)")
     ap.add_argument('--dir', default=os.path.join(REPO, 'build/port/run'), help='run dir (default build/port/run)')
     ap.add_argument('--out', help='output dir (default <run dir>/out, emptied first)')
     ap.add_argument('--fresh', action='store_true',
                     help='remove save.bin, sim_config.ini (kept with --fast), imgui.ini first')
     ap.add_argument('--save', metavar='NAME',
-                    help='start from the saves library: /root/saves/NAME.bin (or a path) copied to save.bin first '
-                         '(/root/saves/README lists them)')
+                    help='start from the saves library: $BWPORT_SAVES/NAME.bin (default ~/saves; or a path) copied to '
+                         'save.bin first ($BWPORT_SAVES/README lists them)')
     ap.add_argument('--store', metavar='NAME',
-                    help="after the run, copy save.bin to /root/saves/NAME.bin (a milestone others can start from; "
-                         "add a line to /root/saves/README)")
+                    help="after the run, copy save.bin to $BWPORT_SAVES/NAME.bin (default ~/saves; a milestone others "
+                         "can start from; add a line to its README)")
     ap.add_argument('--skip', type=int, metavar='N', default=0,
                     help="frame skip: the game runs every frame, the picture is drawn one frame in N (BWPORT_FRAMESKIP=N; "
                          "capture frames always; a screenshot or the end of the run draws the frames before it). Faster "
                          "with --fast; screen checks need N=1")
     ap.add_argument('--realtime', action='store_true', help='the 60 fps cap (default: uncapped; timing runs, battle speed)')
+    ap.add_argument('--no-pin', action='store_true',
+                    help="Gen 4 (Platinum, HeartGold, SoulSilver): don't pin the clock and the seed (by default its runs are pinned as route.py's legs are: "
+                         "BWPORT_BENCH_CLOCK, BWPORT_BENCH_SEED and BWPORT_MUSICNORMAL=off, so the same keys play the same frames)")
     ap.add_argument('--play', metavar='NAME',
                     help='run the play script tools/plays/<game>/NAME.txt at maximum speed (tools/play_script.py); '
                          '--store NAME keeps the save at its end')
-    ap.add_argument('--game', help="black|white|b2|w2 (default: the play script's, else the save name's: white-*)")
+    ap.add_argument('--game', help="black|white|b2|w2|platinum|heartgold|soulsilver (every game runs from the default build dir; "
+                                         "BWPORT_PLAT_BUILD / BWPORT_HG_BUILD name another for Platinum / HeartGold and SoulSilver, BWPORT_BUILD for all; "
+                                         "a dir with -Dplatinum or -Dhgss off is configured on; default: "
+                                         "the play script's, else the save name's: white-*, pt-*, hg-*, ss-*)")
     ap.add_argument('--hang', type=float, default=5, help='no frame for this many seconds at the end: a hang')
     ap.add_argument('--hang-stop', action='store_true',
                     help='end the run as soon as no frame came for --hang seconds (verdict: hang in F), not at -t')
@@ -430,10 +613,21 @@ def main():
                          'on by default with --play, --no-cheat turns it off')
     ap.add_argument('--no-build', action='store_true', help="run the exe as it is (no ninja)")
     ap.add_argument('--fast', action='store_true', help="the default now (uncapped); kept for old command lines")
+    ap.add_argument('--heapcheck', nargs='?', const='1', default=None, metavar='LEVEL',
+                    help='BWPORT_HEAPCHECK=LEVEL (default 1): the expanded heaps are walked before each alloc / free and every V-blank '
+                         'wait; the first damaged one stops the exe: `heapcheck: heap overrun after FUNC (file:line), frame F ...` '
+                         '(docs/nnsys-port.md "Heap checker")')
+    ap.add_argument('--no-gdb', action='store_true',
+                    help="run the exe itself (setarch -R, gdb's COLUMNS/LINES: the same run as under gdb, the same V-blanks), "
+                         "ending it with SIGKILL: a crash or a hang has no backtrace (`crash SIGSEGV in ?`; not with --gdb)")
     ap.add_argument('--gdb', action='append', default=[], metavar='CMD',
                     help="a gdb command before `run` (repeatable): 'break exit', 'source FILE' (dprintf, breakpoints"
                          " with commands ... continue); its output goes to log.txt")
     args = ap.parse_args()
+    if args.heapcheck is not None:
+        os.environ['BWPORT_HEAPCHECK'] = args.heapcheck
+    if args.no_gdb and args.gdb:
+        sys.exit('port_run: --no-gdb and --gdb CMD exclude each other')
     cheat_asked = args.cheat
     if args.cheat is None:
         args.cheat = bool(args.play)   # play scripts run with the cheat by default
@@ -442,6 +636,12 @@ def main():
     elif cheat_asked is False:
         os.environ.pop('BWPORT_TESTCHEAT', None)
     args.fast = not args.realtime
+    if args.frames < 0:
+        sys.exit('port_run: --frames N: N is a V-blank count (> 0)')
+    if args.time is None:
+        args.time = 60 + args.frames / 10 if args.frames else 30
+    if args.time == 0:
+        args.time = float('inf')   # -t 0: no wall watchdog; only --hang's stall rule (no new frame for N s) ends a stuck run
     play = None
     if args.play:
         play = load_play(args.play)
@@ -451,27 +651,35 @@ def main():
         if play['from'] == 'boot':
             args.fresh = True
         args.skip = args.skip or 4             # functional runs: logic every frame, the picture 1 in 4
-        if args.time == 30:
+        if args.time == 30 and not args.frames:
             args.time = 900
         if args.shots == 5:
             args.shots = 0
         os.environ['BWPORT_KEYS'] = ' '.join(play['keys'])
+        for k, v in play.get('env', {}).items():
+            os.environ.setdefault(k, v)
         if not os.environ.get('BWPORT_CFGSCRIPT'):
             os.environ['BWPORT_CFGSCRIPT'] = "f1:ff=1"
-    keys = parse_keys(args.keys, 0.03 if args.fast else 0.1)
+    keys = parse_keys(exe_keys(args.keys)[1], 0.03 if args.fast else 0.1)   # frame items go to the exe (below)
     clicks = []
     for item in args.mouse.split():
-        m = re.fullmatch(r'(\d+),(\d+)@([\d.]+)(?:\*([\d.]+))?', item)
+        m = re.fullmatch(r'(\d+),(\d+)@(f\d+|[\d.]+)(?:\*([\d.]+))?', item)
         if not m:
-            sys.exit(f'port_run: bad mouse click {item!r} (X,Y@SECONDS[*HOLD])')
-        clicks.append((float(m.group(3)), int(m.group(1)), int(m.group(2)), float(m.group(4) or 0.3)))
+            sys.exit(f'port_run: bad mouse click {item!r} (X,Y@SECONDS|fFRAME[*HOLD])')
+        w = m.group(3)   # [seconds or None, x, y, hold, frame or None], as parse_keys' (seconds, frame) pair
+        clicks.append((None if w[0] == 'f' else float(w), int(m.group(1)), int(m.group(2)), float(m.group(4) or 0.3),
+                       int(w[1:]) if w[0] == 'f' else None))
 
+    use_game_build(args.game or game_of(args.save or args.store or ''))   # Platinum's, HeartGold's, SoulSilver's module build; Black's build dir stays without pret's C
     if not args.no_build:
         err = build()
         if err:
             print('\n'.join(err.splitlines()[-30:]))
             print('build failed')
             return 1
+    note = undefined_data_note()
+    if note:
+        print(note, flush=True)
     game = args.game or game_of(args.save or args.store or '')
     if game not in play_script.GAMES:
         sys.exit(f'port_run: --game {game}: one of {" ".join(play_script.GAMES)}')
@@ -503,7 +711,7 @@ def main():
         if os.environ.get('BWPORT_CONTINUE_KEYS'):
             os.environ['BWPORT_SKIPMENU'] = os.environ.get('BWPORT_SKIPMENU', '0')
             args.keys = os.environ['BWPORT_CONTINUE_KEYS'] + ' ' + args.keys
-            keys = parse_keys(args.keys, 0.03 if args.fast else 0.1)
+            keys = parse_keys(exe_keys(args.keys)[1], 0.03 if args.fast else 0.1)
         elif 'BWPORT_SKIPMENU' not in os.environ:
             # port/src/skip_menu.c: straight into CONTINUE; unless the keys press the title themselves (an old script's
             # start@f600 ...: that START in the field would open the menu)
@@ -534,13 +742,28 @@ def main():
                BWPORT_ROM=find_rom())
     if game != 'black':
         env.setdefault('BWPORT_GAME', CODES[game])
+    if game in ('platinum', 'heartgold', 'soulsilver') and not args.no_pin:
+        # the RTC and the boot seed pinned, the music on the frame clock (route.py's legs, Gen 5): frame-exact play scripts
+        # (docs/platinum.md "Driving the new game")
+        env.setdefault('BWPORT_BENCH_CLOCK', '2026-10-29T12:00:00')
+        env.setdefault('BWPORT_BENCH_SEED', '100')
+        env.setdefault('BWPORT_MUSICNORMAL', 'off')
     if args.skip > 1:
         env['BWPORT_FRAMESKIP'] = str(args.skip)
+    if args.frames:
+        env['BWPORT_EXIT_FRAME'] = str(args.frames)
+    if args.no_gdb:   # what gdb adds to the exe's environment (its length moves the stack, and the game's end V-blank with it)
+        env.update(COLUMNS='80', LINES='24')
+    # --keys' frame items: the exe presses them at the V-blank wait (exe_keys; game frames, not this script's poll)
+    frame_keys, xdo_keys = exe_keys(args.keys)
+    if frame_keys:
+        env['BWPORT_KEYS'] = (env.get('BWPORT_KEYS', '') + ' ' + frame_keys).strip()
+        keys = parse_keys(xdo_keys, 0.03 if args.fast else 0.1)
     win_file = os.path.join(out, '.window')
     final = (f'shell [ -s {win_file} ] && xwd -silent -id $(cat {win_file}) -out {out}/final.xwd')
-    gdb = ['gdb', '-q', '-nx', '-batch', '-ex', 'set pagination off', '-ex', 'set confirm off',
+    gdb = [SETARCH, '-R', EXE] if args.no_gdb else ['gdb', '-q', '-nx', '-batch', '-ex', 'set pagination off', '-ex', 'set confirm off',
            '-ex', 'set print thread-events off', '-ex', 'set startup-with-shell off',
-           '-ex', 'handle SIGPIPE SIGUSR1 SIGUSR2 nostop noprint pass',
+           '-ex', 'handle SIGPIPE SIGUSR1 SIGUSR2 SIGFPE nostop noprint pass',
            '-ex', 'set breakpoint pending on'] + [a for c in args.gdb for a in ('-ex', c)] + ['-ex', 'run',
            '-ex', 'echo \\n== port_run: stop\\n', '-ex', final, '-ex', 'bt 40',
            '-ex', 'echo \\n== port_run: threads\\n', '-ex', 'thread apply all bt 40', '-ex', 'kill', '--args', EXE]
@@ -548,8 +771,9 @@ def main():
     log = open(log_path, 'w')
     proc = subprocess.Popen(slice_cmd(gdb), cwd=run_dir, env=env, stdin=subprocess.DEVNULL, stdout=log,
                             stderr=subprocess.STDOUT, start_new_session=True)
-    trace('gdb started')
+    trace('exe started' if args.no_gdb else 'gdb started')
     exe = Exe(proc.pid)
+    rc = None                                           # --no-gdb: the exe's exit status, when it ended by itself
     launched, t0, window, pad, next_shot = time.monotonic(), None, None, None, 0.0
     samples, timed_out, scanned = [], False, 0          # (seconds, frame); the log read up to scanned
     last_frame, frame_t = None, 0.0                     # --hang-stop: the last frame count and when it changed
@@ -575,16 +799,14 @@ def main():
             if args.hang_stop and frame and t - frame_t >= args.hang:
                 timed_out = True               # no game frame for --hang seconds: stop now (gdb's backtrace: hang in F)
                 break
-            with open(log_path, 'rb') as f:
-                f.seek(max(0, scanned - 32))
-                new = f.read()
-                scanned = max(0, scanned - 32) + len(new)
-                for mark in (b'bwport: field: up', b'pilot: script done', b'pilot: end token') if TRACE else ():
-                    if mark in new:
-                        trace(f'game log: {mark.decode()} (frame {frame})')
-                if b'\n== port_run: stop' in new:
-                    trace(f'gdb stop seen (frame {frame})')
-                    break                      # stopped by itself: gdb has it
+            new = read_log(log_path, max(0, scanned - 32), 1)
+            scanned = max(0, scanned - 32) + len(new)
+            for mark in (b'bwport: field: up', b'pilot: script done', b'pilot: end token') if TRACE else ():
+                if mark in new:
+                    trace(f'game log: {mark.decode()} (frame {frame})')
+            if b'\n== port_run: stop' in new:
+                trace(f'gdb stop seen (frame {frame})')
+                break                      # stopped by itself: gdb has it
             if window is None:
                 window = find_window(env)
                 if window:
@@ -599,11 +821,11 @@ def main():
                     subprocess.Popen(['xdotool', 'keydown', sym, 'sleep', str(ev[2]), 'keyup', sym], env=env)
                     print(f'port_run: {t:.1f} s, frame {frame}: {ev[3]} ({sym}) for {ev[2]} s', file=log, flush=True)
             for ck in list(clicks if window else []):
-                if t >= ck[0]:
+                if (ck[0] is not None and t >= ck[0]) or (ck[4] is not None and frame is not None and frame >= ck[4]):
                     clicks.remove(ck)
                     subprocess.Popen(['xdotool', 'mousemove', '--window', window, str(ck[1]), str(ck[2]), 'sleep', '0.2',
                                       'mousedown', '1', 'sleep', str(ck[3]), 'mouseup', '1'], env=env)
-                    print(f'port_run: {t:.1f} s: click at {ck[1]},{ck[2]} for {ck[3]} s', file=log, flush=True)
+                    print(f'port_run: {t:.1f} s, frame {frame}: click at {ck[1]},{ck[2]} for {ck[3]} s', file=log, flush=True)
             if window and args.shots and t >= next_shot:
                 next_shot += args.shots
                 xwd = os.path.join(out, 'shot.xwd')
@@ -624,17 +846,26 @@ def main():
                 time.sleep(0.4)
             except OSError:
                 pass
-        for sig in (signal.SIGINT, signal.SIGSTOP) if timed_out else ():   # gdb stops it: the backtraces
+        if timed_out and args.no_gdb and exe.pid:   # nothing to stop it: the window's last picture, then the end
+            if os.path.exists(win_file) and os.path.getsize(win_file):
+                sh(['xwd', '-silent', '-id', open(win_file).read().strip(), '-out', os.path.join(out, 'final.xwd')], env=env)
+            try:
+                os.kill(exe.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            proc.wait(timeout=30)
+        for sig in (signal.SIGINT, signal.SIGSTOP) if timed_out and not args.no_gdb else ():   # gdb stops it: the backtraces
             os.kill(exe.pid, sig)
             try:
                 proc.wait(timeout=5 if sig == signal.SIGINT else 30)
                 break
             except subprocess.TimeoutExpired:
-                if b'\n== port_run: stop' in open(log_path, 'rb').read():
+                if b'\n== port_run: stop' in read_log(log_path):
                     proc.wait(timeout=30)
                     break
         if not timed_out:
             proc.wait(timeout=30)
+            rc = proc.returncode if args.no_gdb else None
     except subprocess.TimeoutExpired:
         pass
     finally:
@@ -659,8 +890,8 @@ def main():
     stall = last_t - min((t for t, f in frames if f == frame), default=last_t)
     moving = [s for s in frames if s[1]]
     fps = (frame - moving[0][1]) / (last_t - moving[0][0]) if len(moving) > 1 and last_t > moving[0][0] else 0
-    text = open(log_path, errors='replace').read()
-    line = verdict(text, timed_out, frame, stall, args.hang, fps, last_t)
+    text = read_log(log_path).decode(errors='replace')
+    line = verdict(text, timed_out, frame, stall, args.hang, fps, last_t, rc, args.frames)
     bad_save = check_save(text, run_dir, game, want_sha) if want_sha else None
     if bad_save:
         print(f'port_run: WRONG SAVE: {bad_save}')
@@ -674,7 +905,7 @@ def main():
         os.makedirs(SAVES, exist_ok=True)
         shutil.copyfile(save_path(run_dir, game), os.path.join(SAVES, args.store + '.bin'))
         print(f'port_run: save.bin stored as {SAVES}/{args.store}.bin: add its line to {SAVES}/README')
-    return 0 if line.startswith(('reached-frame', 'exit 0')) else 1
+    return 0 if line.startswith(('reached-frame', 'exit 0', 'exit-frame')) else 1
 
 
 if __name__ == '__main__':

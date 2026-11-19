@@ -1,0 +1,52 @@
+	.include "macros.inc"
+	.include "overlay_97.inc"
+	.include "global.inc"
+
+	.public ov97_0221E88C
+	.public ov97_0221E91C
+	.public ov97_0221E97C
+	.public ov97_0221E98C
+	.public ov97_0221EC14
+	.public ov97_0221EE84
+	.public ov97_0221EEA4
+	.public ov97_0221F010
+	.public ov97_0221F020
+	.data
+
+	.data
+
+	.global _0221FC98
+_0221FC98:
+	.global hgasset_asm_overlay_97_s__0221FC98
+	.set hgasset_asm_overlay_97_s__0221FC98, _0221FC98
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00
+	.byte 0x00, 0, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov97_0221FCA8
+ov97_0221FCA8:
+	.global hgasset_asm_overlay_97_s_ov97_0221FCA8
+	.set hgasset_asm_overlay_97_s_ov97_0221FCA8, ov97_0221FCA8 ; 0x0221FCA8
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov97_0221FCB8
+ov97_0221FCB8:
+	.global hgasset_asm_overlay_97_s_ov97_0221FCB8
+	.set hgasset_asm_overlay_97_s_ov97_0221FCB8, ov97_0221FCB8 ; 0x0221FCB8
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov97_0221FCCC
+ov97_0221FCCC:
+	.global hgasset_asm_overlay_97_s_ov97_0221FCCC
+	.set hgasset_asm_overlay_97_s_ov97_0221FCCC, ov97_0221FCCC ; 0x0221FCCC
+	.byte 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00
+
+	.global ov97_0221FCF4
+ov97_0221FCF4:
+	.global hgasset_asm_overlay_97_s_ov97_0221FCF4
+	.set hgasset_asm_overlay_97_s_ov97_0221FCF4, ov97_0221FCF4 ; 0x0221FCF4
+	.byte 0, 0, 0, 0, 0x00, 0x00, 0x00, 0x00

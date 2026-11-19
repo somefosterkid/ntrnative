@@ -19,8 +19,26 @@ import org.libsdl.app.SDLActivity;
  * Test runs (tools/android_run.sh): the start intent's string extras named BWPORT_* or SDL_* become environment variables of the
  * process before the game starts (the iOS Simulator's SIMCTL_CHILD_ variables), e.g.
  * {@code adb shell am start -n com.bwport.app/.BwportActivity --es BWPORT_KEYS start@f600}.
+ * Every BWPORT_* / SDL_* variable is set once more through libSDL2's setenv just before libmain.so loads (loadLibraries): an
+ * arm64-v8a app run by the x86_64 emulator's ARM translation (libndk_translation) has a libc of its own, which never sees what
+ * Os.setenv wrote, and libmain's constructors (the key script, the hang watch ...) read their variables at load time.
  */
 public class BwportActivity extends SDLActivity {
+    @Override
+    public void loadLibraries() {
+        for (String lib : getLibraries()) {
+            if (lib.equals("main")) {
+                for (String e : Os.environ()) {
+                    int eq = e.indexOf('=');
+                    if (eq > 0 && (e.startsWith("BWPORT_") || e.startsWith("SDL_"))) {
+                        nativeSetenv(e.substring(0, eq), e.substring(eq + 1));
+                    }
+                }
+            }
+            org.libsdl.app.SDL.loadLibrary(lib, this);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if (getIntent() != null && TEST_LOOP.equals(getIntent().getAction())) {

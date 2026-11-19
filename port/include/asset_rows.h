@@ -15,6 +15,9 @@ typedef struct {
     const char *code;   // the ROM header's game code: IRBO Black, IRAO White
     const BwAssetRow *rows;
     int count;
+    // FNV-1a 64 of the bytes every row reads from the ROM, the rows in order (port/asset_rows_fnv.tsv, tools/port_assets.py
+    // fnv): the loader refuses a ROM of another revision with the same game code by it
+    unsigned long long fnv;
 } BwAssetGame;
 
 extern const BwAssetGame bwasset_games[];   // ends with a NULL code

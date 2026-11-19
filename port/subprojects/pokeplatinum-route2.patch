@@ -1,0 +1,33 @@
+diff --git a/src/overlay008/gym_features.c b/src/overlay008/gym_features.c
+index 74f8e40e2..2de62e9d8 100644
+--- a/src/overlay008/gym_features.c
++++ b/src/overlay008/gym_features.c
+@@ -1627,6 +1627,28 @@ BOOL CanalaveGym_CheckIfPlayerOnPlatform(FieldSystem *fieldSystem)
+     return FALSE;
+ }
+ 
++// the route pilot's view (port/game/route_gen4.c): the tile (x, height in tiles, z) platform index stands on now, FALSE when the
++// gym's data is not up. A platform's position is set when its ride starts (to where it ends)
++BOOL CanalaveGym_PortPlatformAt(FieldSystem *fieldSystem, int index, int *x, int *y, int *z)
++{
++    CanalaveGymSystem *gymSystem;
++
++    if (index < 0 || index >= CANALAVE_GYM_NUM_PLATFORMS || fieldSystem == NULL || fieldSystem->unk_04 == NULL) {
++        return FALSE;
++    }
++
++    gymSystem = fieldSystem->unk_04->dynamicMapFeaturesData;
++
++    if (gymSystem == NULL) {
++        return FALSE;
++    }
++
++    *x = gymSystem->platformPositions[index].x;
++    *y = gymSystem->platformPositions[index].y;
++    *z = gymSystem->platformPositions[index].z;
++    return TRUE;
++}
++
+ void CanalaveGym_DynamicMapFeaturesFree(FieldSystem *fieldSystem)
+ {
+     CanalaveGymSystem *gymSystem = fieldSystem->unk_04->dynamicMapFeaturesData;

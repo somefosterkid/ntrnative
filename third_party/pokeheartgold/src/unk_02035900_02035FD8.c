@@ -1,0 +1,15 @@
+#include "global.h"
+
+#include "unk_02035900.h"
+
+enum TransmissionType {
+    TRANSMISSION_TYPE_SERVER_CLIENT,
+    TRANSMISSION_TYPE_PARALLEL,
+    TRANSMISSION_TYPE_SWITCH_TO_SERVER_CLIENT,
+    TRANSMISSION_TYPE_SWITCH_TO_PARALLEL
+};
+void sub_02035FA8(int type);
+
+void sub_02035FD8(void) {
+    sub_02035FA8(TRANSMISSION_TYPE_PARALLEL);
+}

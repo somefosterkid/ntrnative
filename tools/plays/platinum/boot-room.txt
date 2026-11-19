@@ -1,0 +1,13 @@
+# game: platinum
+# from: boot
+# reaches: the player's room in Twinleaf (~f18800): title, new game, the third info option, the poke ball by stylus, the gender (default), the default name, the rival's first listed name, the TV intro. Frame-exact (port_run pins Platinum runs)
+# end: f21500
+keys start@f6300
+walk 6700 120 a*7/120
+keys a@f7720 a@f8420 down@f8600 down@f8640 a@f8680
+keys a@f8900 stylus:128,100@f8960-f8970 a@f9020 stylus:128,100@f9080-f9090 a@f9140 stylus:128,100@f9200-f9210 a@f9260 stylus:128,100@f9320-f9330 a@f9380 stylus:128,100@f9440-f9450 a@f9500 stylus:128,100@f9560-f9570 a@f9620 stylus:128,100@f9680-f9690 a@f9740 stylus:128,100@f9800-f9810 a@f9860 stylus:128,100@f9920-f9930 a@f9980 stylus:128,100@f10040-f10050 a@f10100 stylus:128,100@f10160-f10170 a@f10220 stylus:128,100@f10280-f10290 a@f10340 stylus:128,100@f10400-f10410 a@f10460 stylus:128,100@f10520-f10530 a@f10580 stylus:128,100@f10640-f10650 a@f10700 stylus:128,100@f10760-f10770 a@f10820 stylus:128,100@f10880-f10890 a@f10940 stylus:128,100@f11000-f11010 a@f11060 stylus:128,100@f11120-f11130 a@f11180 stylus:128,100@f11240-f11250 a@f11300 stylus:128,100@f11360-f11370 a@f11420 stylus:128,100@f11480-f11490 a@f11540 stylus:128,100@f11600-f11610 a@f11660 stylus:128,100@f11720-f11730 a@f11780 stylus:128,100@f11840-f11850 a@f11900 stylus:128,100@f11960-f11970
+walk 12120 120 a*3/120
+keys start@f12700 a@f12760
+walk 13100 120 a*8/120
+keys a@f14300 down@f14500 a@f14560
+walk 15000 120 a*40/120

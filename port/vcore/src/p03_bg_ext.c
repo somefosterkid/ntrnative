@@ -10,14 +10,11 @@
 static void p03_pos(const VCoreState *s, int e, int n, int y, s32 *x0, s32 *y0, s32 *pa, s32 *pc) {
   u32 base = VC_REG_BG2PA + 0x10u * (u32)(n - 2);
   u32 rx = VC_REG_BG2X + 0x10u * (u32)(n - 2);
-  s32 refx = (s32)(vc_eng32(s, e, rx) << 4) >> 4; /* 28-bit signed 19.8 */
-  s32 refy = (s32)(vc_eng32(s, e, rx + 4) << 4) >> 4;
-  s32 pb = (s16)vc_eng16(s, e, base + 2);
-  s32 pd = (s16)vc_eng16(s, e, base + 6);
-  *pa = (s16)vc_eng16(s, e, base);
-  *pc = (s16)vc_eng16(s, e, base + 4);
-  *x0 = refx + y * pb;
-  *y0 = refy + y * pd;
+  /* 28-bit signed 19.8 reference + y * PB / PD (H-blank DMA: the line's values, vc_aff_ref) */
+  *pa = (s16)vc_ln16(s, e, y, base);
+  *pc = (s16)vc_ln16(s, e, y, base + 4);
+  *x0 = vc_aff_ref(s, e, y, rx, base + 2);
+  *y0 = vc_aff_ref(s, e, y, rx + 4, base + 6);
 }
 
 void vc_bg_ext_line(VCoreState *s, int e, int n, int y, VC_Line *ln) {

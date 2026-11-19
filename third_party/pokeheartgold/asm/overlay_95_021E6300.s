@@ -1,0 +1,32 @@
+	.include "macros.inc"
+	.include "overlay_95.inc"
+	.include "global.inc"
+
+	.public ov95_021E5B7C
+	.public ov95_021E5B9C
+	.public ov95_021E5BBC
+	.public ov95_021E5C44
+	.public ov95_021E5CAC
+	.public ov95_021E5D34
+	.public ov95_021E5D44
+	.public ov95_021E5E40
+	.public ov95_021E5E90
+	.public ov95_021E5EF0
+	.public ov95_021E5EF8
+	.public ov95_021E6000
+	.public ov95_021E6184
+	.public ov95_021E623C
+	.public ov95_021E62A4
+	.public ov95_021E62E4
+	.public ov95_021E62F0
+	.public ov95_021E67F0
+	.public ov95_021E6838
+	.public ov95_021E68A8
+	.public ov95_021E6900
+	.public ov95_021E6964
+	.public ov95_021E6B74
+	.public ov95_021E70BC
+	.public ov95_021E7208
+	.public ov95_021E7258
+	.public ov95_021E7810
+	.text

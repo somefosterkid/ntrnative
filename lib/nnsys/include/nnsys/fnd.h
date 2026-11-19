@@ -11,12 +11,12 @@
 
 // Lists (list.c), which link any struct through an NNSFndLink at offset in it
 
-typedef struct {
+typedef struct NNSFndLink {
     void *prevObject;
     void *nextObject;
 } NNSFndLink;
 
-typedef struct {
+typedef struct NNSFndList {
     void *headObject;
     void *tailObject;
     u16 numObjects;
@@ -71,13 +71,13 @@ struct NNSiFndExpHeapMBlockHead {
     NNSiFndExpHeapMBlockHead *pMBHeadNext;
 };
 
-typedef struct {
+typedef struct NNSiFndExpMBlockList {
     NNSiFndExpHeapMBlockHead *head;
     NNSiFndExpHeapMBlockHead *tail;
 } NNSiFndExpMBlockList;
 
 // Follows the NNSiFndHeapHead of an expanded heap
-typedef struct {
+typedef struct NNSiFndExpHeapHead {
     NNSiFndExpMBlockList mbFreeList;
     NNSiFndExpMBlockList mbUsedList;
     u16 groupID;
@@ -116,7 +116,7 @@ struct NNSiFndFrmHeapState {
 };
 
 // Follows the NNSiFndHeapHead of a frame heap
-typedef struct {
+typedef struct NNSiFndFrmHeapHead {
     void *headAllocator;
     void *tailAllocator;
     NNSiFndFrmHeapState *pState;
@@ -137,12 +137,12 @@ struct NNSiFndUntHeapMBlockHead {
     NNSiFndUntHeapMBlockHead *pMBlkHdNext;
 };
 
-typedef struct {
+typedef struct NNSiFndUntMBlockList {
     NNSiFndUntHeapMBlockHead *head;
 } NNSiFndUntMBlockList;
 
 // Follows the NNSiFndHeapHead of a unit heap
-typedef struct {
+typedef struct NNSiFndUntHeapHead {
     NNSiFndUntMBlockList mbFreeList;
     u32 mBlkSize;
 } NNSiFndUntHeapHead;
@@ -161,7 +161,7 @@ typedef struct NNSFndAllocator NNSFndAllocator;
 typedef void *(*NNSFndFuncAllocatorAlloc)(NNSFndAllocator *allocator, u32 size);
 typedef void (*NNSFndFuncAllocatorFree)(NNSFndAllocator *allocator, void *memBlock);
 
-typedef struct {
+typedef struct NNSFndAllocatorFunc {
     NNSFndFuncAllocatorAlloc pfAlloc;
     NNSFndFuncAllocatorFree pfFree;
 } NNSFndAllocatorFunc;

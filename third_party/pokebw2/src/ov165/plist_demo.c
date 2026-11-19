@@ -119,8 +119,8 @@ static void PokeListDemo_CreateParticles(PokeListWork *wk, int slot, int type, i
     u8 i;
     u8 count;
 
-    wk->particleHeaps[slot] = allocConfigDSSoftwareFeature(wk->heapId, 0x5000, "plist_demo.c", 196);
-    wk->particles[slot] = Particle_CreateSystem(wk->particleHeaps[slot], 0x5000, FALSE, wk->heapId);
+    wk->particleHeaps[slot] = allocConfigDSSoftwareFeature(wk->heapId, WORK_AREA_SIZE(0x5000), "plist_demo.c", 196);
+    wk->particles[slot] = Particle_CreateSystem(wk->particleHeaps[slot], WORK_AREA_SIZE(0x5000), FALSE, wk->heapId);
     Particle_SetResource(wk->particles[slot], resource, FALSE, GFL_VBlankGetTCBMgr());
     PokeListPlate_GetCursorPos(wk, wk->plates[plate], &pos);
     pos.x -= 40;

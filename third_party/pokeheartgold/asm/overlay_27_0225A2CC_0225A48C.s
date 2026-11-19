@@ -1,0 +1,31 @@
+	.include "macros.inc"
+	.include "overlay_27.inc"
+	.include "global.inc"
+
+	.public ov27_0225C434
+	.public ov27_0225C4AC
+	.public ov27_0225C72C
+	.public ov27_0225C80C
+	.public ov27_0225C914
+	.public ov27_0225C930
+	.public ov27_0225CEC4
+	.public ov27_0225CECC
+	.public ov27_0225CED8
+	.public ov27_0225CEEC
+	.public ov27_0225CEF0
+	.public ov27_0225CEF4
+	.public ov27_0225CF10
+	.public ov27_0225CF3C
+	.public ov27_0225CF68
+	.public ov27_0225CF94
+	.public ov27_0225CFC8
+	.public ov27_0225D038
+	.public ov27_0225D05C
+	.public ov27_0225D074
+	.public ov27_0225D0B4
+	.public ov27_0225D108
+	.public ov27_0225D370
+	.public ov27_0225D38C
+	.public ov27_0225D3A8
+	.public ov27_0225A468
+	.text

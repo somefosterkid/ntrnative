@@ -1,0 +1,75 @@
+#include "constants/items.h"
+#include "constants/moves.h"
+	.include "macros.inc"
+	.include "unk_02074E5C.inc"
+	.include "global.inc"
+
+	.public sub_02074F94
+	.public sub_02075028
+	.public sub_020750B4
+	.public sub_0207513C
+	.public sub_020751A8
+	.public sub_02075210
+	.public sub_0207530C
+	.public sub_02075398
+	.public sub_02075424
+	.public sub_02075434
+	.public sub_020754C0
+	.public sub_02075534
+	.public sub_020755B4
+	.public sub_020755E4
+	.public sub_02074ED8
+	.public sub_02074EDC
+	.public sub_02074EE4
+	.public sub_02074EEC
+	.public sub_02074EF4
+	.public sub_02074EF8
+	.public sub_02074F18
+	.public sub_02074F38
+	.public sub_02074F54
+	.public sub_02074F74
+	.public sub_02074F7C
+	.public sub_02074F84
+	.public sub_02074F8C
+	.text
+
+	.rodata
+
+	.global _020FFE30
+_020FFE30:
+	.word sub_02075534
+	.word sub_020342B8
+	.word 0
+	.word sub_02075028
+	.word sub_020342B8
+	.word 0
+	.word sub_020750B4
+	.word sub_02074ED8
+	.word 0
+	.word sub_0207513C
+	.word sub_02074EDC
+	.word sub_02074EF8
+	.word sub_020751A8
+	.word sub_02074EF4
+	.word sub_02074F18
+	.word sub_02075210
+	.word sub_02074EE4
+	.word sub_02074F38
+	.word sub_0207530C
+	.word sub_02074EEC
+	.word sub_02074F54
+	.word sub_02075398
+	.word sub_02074EF4
+	.word sub_02074F74
+	.word sub_02075398
+	.word sub_02074EF4
+	.word sub_02074F7C
+	.word sub_02075424
+	.word sub_02074EE4
+	.word sub_02074F84
+	.word sub_02075424
+	.word sub_02074EE4
+	.word sub_02074F8C
+	.word sub_020755B4
+	.word sub_020755E4
+	.word sub_02074F94

@@ -1,0 +1,277 @@
+#include "global.h"
+#include "sprite_resources_header.h"
+
+#include "field/overlay_01_021FB878.h"
+
+#include "bg_window.h"
+#include "camera.h"
+#include "obj_char_transfer.h"
+#include "pm_string.h"
+#include "unk_0200A090.h"
+#include "overlay_91.h"
+#include "overlay_91_unk_struct_ov115_02261_adc.h"
+#include "overlay_93_unk_struct_ov117_02261280_t.h"
+#include "overlay_41_sprite_resource_collection.h"
+
+struct TextOBJ;
+
+struct G3DPipelineBuffers;
+
+struct MsgData;
+
+struct SpriteList;
+
+struct SpriteResourceCollection;
+
+struct MessageFormat;
+
+struct UnkStruct_02012744_t;
+
+struct UnkStruct_02012B20_t;
+
+struct UnkStruct_ov114_02025CAD4_t;
+
+typedef struct UnkStruct_02012B20_t UnkStruct_02012B20;
+
+enum RotationAxis {
+    ROTATION_AXIS_X = 0,
+    ROTATION_AXIS_Y,
+    ROTATION_AXIS_Z,
+    ROTATION_AXIS_COUNT
+};
+
+typedef struct G3DPipelineBuffers G3DPipelineBuffers;
+
+typedef struct {
+    fx32 unk_00;
+    fx32 unk_04;
+    fx32 unk_08;
+    fx32 unk_0C;
+    int unk_10;
+    int unk_14;
+} UnkStruct_ov115_02261304;
+
+typedef struct {
+    u32 unk_00;
+    s32 unk_04;
+    s32 unk_08;
+    Window unk_0C;
+} UnkStruct_ov115_022617E8;
+
+typedef struct {
+    Field3dObject unk_00[3];
+    Field3dModel unk_168[3];
+    Field3DModelAnimation unk_198[6];
+    u16 unk_210;
+    u16 unk_212;
+    Field3DModelAnimation unk_214[1];
+    fx32 unk_228;
+    u16 unk_22C;
+    u16 unk_22E;
+} UnkStruct_ov115_02263DF8;
+
+typedef struct {
+    u16 unk_00;
+    u16 unk_02;
+    VecFx32 unk_04;
+    fx32 unk_10;
+    VecFx32 unk_14;
+    s32 unk_20;
+    BOOL unk_24;
+} UnkStruct_ov115_02262134;
+
+typedef struct {
+    u8 unk_00;
+    u8 unk_01;
+    u16 unk_02;
+    UnkStruct_ov115_02262134 unk_04;
+    VecFx32 unk_2C;
+    s16 unk_38;
+    u16 unk_3A;
+    BOOL unk_3C;
+    fx32 unk_40;
+} UnkStruct_ov115_022622F8;
+
+typedef struct {
+    Field3dModel unk_00[5];
+    Field3dModel unk_50;
+    SpriteResource *unk_60[4];
+    SpriteResourcesHeader unk_70;
+} UnkStruct_ov115_02264A40;
+
+typedef struct {
+    Sprite *unk_00;
+    Field3dObject unk_04;
+    Field3dObject unk_7C;
+    BOOL unk_F4;
+    const UnkStruct_ov115_022622F8 *unk_F8;
+    u16 unk_FC;
+    u16 unk_FE;
+    u16 unk_100;
+    u16 unk_102;
+    s16 unk_104;
+} UnkStruct_ov115_022647A0;
+
+typedef struct {
+    BOOL unk_00;
+    Sprite *unk_04;
+} UnkStruct_ov115_02264BA0;
+
+typedef struct {
+    BOOL unk_00;
+    Sprite *unk_04;
+    VecFx32 unk_08;
+    s32 unk_14;
+    BOOL unk_18;
+} UnkStruct_ov115_02264D80;
+
+typedef struct {
+    UnkStruct_ov115_02264D80 unk_00[8];
+} UnkStruct_ov115_02264C90;
+
+typedef struct {
+    Sprite *unk_00[3];
+    u32 unk_0C[3];
+    VecFx32 unk_18[3];
+    BOOL unk_3C;
+} UnkStruct_ov115_022615B0;
+
+typedef struct {
+    UnkStruct_ov115_022615B0 unk_00[4];
+} UnkStruct_ov115_02261574;
+
+typedef struct {
+    u32 unk_00;
+    u32 unk_04;
+    UnkStruct_ov115_02261304 unk_08;
+} UnkStruct_ov115_02261ADC_sub1;
+
+typedef struct {
+    Field3dObject unk_00[3];
+    Field3dModel unk_168[3];
+    Field3DModelAnimation unk_198[3];
+    fx32 unk_1D4;
+    u8 unk_1D8;
+    u8 unk_1D9;
+    s16 unk_1DA;
+    fx32 unk_1DC;
+    fx32 unk_1E0;
+} UnkStruct_ov115_02264FA0;
+
+typedef struct {
+    u16 unk_00;
+    s16 unk_02;
+    s16 unk_04;
+    u8 unk_06;
+    u8 unk_07;
+} UnkStruct_ov115_022653CC;
+
+typedef struct {
+    SpriteResource *unk_00[4];
+    SpriteResourcesHeader unk_10;
+    Sprite *unk_34;
+    Window unk_38;
+    FontOAM *unk_48;
+    UnkStruct_02012B20 *unk_4C;
+    UnkStruct_02021AC8 unk_50;
+    String *unk_5C;
+    SpriteResource *unk_60;
+    UnkStruct_ov115_02261304 unk_64;
+    UnkStruct_ov115_02261304 unk_7C;
+    s16 unk_94;
+    s16 unk_96;
+    u16 unk_98;
+    s16 unk_9A;
+    enum HeapID heapID;
+} UnkStruct_ov115_02265788;
+
+void ov91_02261384(UnkStruct_ov115_02261ADC *param0, u16 param1);
+
+void ov91_02261384(UnkStruct_ov115_02261ADC *param0, u16 param1) {
+    CameraAngle v0;
+
+    v0 = Camera_GetAngle(param0->camera);
+    v0.x = param1;
+
+    Camera_SetAnglePos(&v0, param0->camera);
+}
+
+void ov91_022613AC(UnkStruct_ov115_022653CC *param0, u8 param1);
+
+void ov91_022613AC(UnkStruct_ov115_022653CC *param0, u8 param1) {
+    memset(param0, 0, sizeof(UnkStruct_ov115_022653CC));
+    param0->unk_04 = 2;
+    param0->unk_06 = param1;
+}
+
+void ov91_022614FC(UnkStruct_ov115_02261ADC *param0, s16 param1, u16 param2);
+
+void ov91_022613C8(UnkStruct_ov115_022653CC *param0, UnkStruct_ov115_02261ADC *param1);
+
+void ov91_022613C8(UnkStruct_ov115_022653CC *param0, UnkStruct_ov115_02261ADC *param1) {
+    switch (param0->unk_00) {
+    case 0:
+        break;
+    case 1:
+        ov91_022614FC(param1, param0->unk_04 - 1, param0->unk_06);
+        param0->unk_00++;
+        param0->unk_02 = 0;
+    case 2:
+        if (param0->unk_02 >= 16) {
+            param0->unk_00 = 3;
+            param0->unk_02 = 0;
+            ov91_022614FC(param1, param0->unk_04, param0->unk_06);
+            G2S_SetBlendAlpha(1 << param0->unk_04, GX_BLEND_PLANEMASK_BG3, 0, 16);
+        } else {
+            param0->unk_02++;
+
+            {
+                s32 v0, v1, v2;
+                s32 v3;
+
+                v0 = param0->unk_04;
+                v1 = param0->unk_04 - 2;
+                v2 = param0->unk_04 - 1;
+
+                if (v0 < 0) {
+                    v0 += 3;
+                }
+
+                if (v1 < 0) {
+                    v1 += 3;
+                }
+
+                if (v2 < 0) {
+                    v2 += 3;
+                }
+
+                v3 = 16 - ((param0->unk_02 * 16) / 16);
+                G2S_SetBlendAlpha(1 << v0, (1 << v1) | (1 << v2) | GX_BLEND_PLANEMASK_BG3, v3, 16 - v3);
+            }
+        }
+        break;
+    case 3:
+        if (param0->unk_02 >= 8) {
+            param0->unk_00 = 0;
+            G2S_BlendNone();
+        } else {
+            param0->unk_02++;
+            {
+                s32 v4;
+
+                v4 = (param0->unk_02 * 16) / 8;
+                G2S_SetBlendAlpha(1 << param0->unk_04, GX_BLEND_PLANEMASK_BG3, v4, 16 - v4);
+            }
+        }
+        break;
+    }
+}
+
+void ov91_022614D4(void *arg0) {
+    *(u8 *)((u8 *)arg0 + 7) = (u8)(*(u8 *)((u8 *)arg0 + 7) + 1);
+    if ((u32) * (u8 *)((u8 *)arg0 + 7) >= 0xAU) {
+        *(s16 *)arg0 = 1;
+        *(s16 *)((u8 *)arg0 + 4) = (s16)((s32)(*(s16 *)((u8 *)arg0 + 4) + 1) % 3);
+        *(u8 *)((u8 *)arg0 + 7) = 0U;
+    }
+}

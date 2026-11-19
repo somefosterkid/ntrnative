@@ -1,0 +1,21 @@
+pokeplatinum-route4.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): the interaction sweep's script log. script_manager.c
+ScriptContext_LoadAndStart (every script a context loads: a talk, a sign, a hidden item, a trigger tile, a trainer's sight, a map's arrival
+script, a script a script starts) calls PortRoute4_ScriptStart(scriptID) (port/game/route_gen4.c), which logs the id while the sweep's
+BWPORT_PT_INT is set (tools/pt_int_sweep.py); it does nothing else. No game behaviour changes; the DS build never sees the patch.
+Handover-ID: none (port-only)
+
+diff --git a/src/script_manager.c b/src/script_manager.c
+index 0973db7c6..72dfc6775 100644
+--- a/src/script_manager.c
++++ b/src/script_manager.c
+@@ -216,7 +216,10 @@ ScriptContext *ScriptContext_CreateAndStart(FieldSystem *fieldSystem, u16 script
+ }
+ 
++void PortRoute4_ScriptStart(u16 scriptID); // the port's interaction sweep (port/game/route_gen4.c)
++
+ static void ScriptContext_LoadAndStart(FieldSystem *fieldSystem, ScriptContext *ctx, u16 scriptID, u8 dummy)
+ {
+     ctx->fieldSystem = fieldSystem;
++    PortRoute4_ScriptStart(scriptID);
+     u16 offsetID = ScriptContext_LoadAndOffsetID(fieldSystem, ctx, scriptID);
+ 

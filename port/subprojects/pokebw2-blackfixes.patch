@@ -1,0 +1,106 @@
+pokebw2-blackfixes.patch (tools/pokebw2_fetch.sh, the maintainers' notes): five places where Black's port already
+had a 64-bit fix in the same code (src/, lib/) and Black 2's copy still had the DS number or a 32-bit cast.
+field_ground_anime.c's FIELD_TERRAIN_SRT_ANMOBJ_SIZE: each map chunk's SRT animation object is a fixed 0x80 block, the
+NNSG3dAnmObj record (0x1c on the DS, 0x30 here: four pointers) and its material map after it, room for 50 materials on
+the DS and 43 here; a chunk model with more wrote its map over the next block's heap header in the field heap (Black 2's
+Opelucid east plaza, after the trainer at 492,173: SIGSEGV in InsertMBlock at the next map unload). Now
+WORK_AREA_SIZE(0x80), as Black's src/ov021/field_ground_anime.c. plist_demo.c: the party list's form change particles'
+work, 0x5000, WORK_AREA_SIZE as Black's (the SPL manager's emitters hold pointers). scrcmd_network.c: a 4-byte block that
+holds a pointer, sizeof(u16 *). union_oneself.c: the trainer card copy, sizeof(TrainerCardData) (0x680 here), not 0x678.
+mystery_gift_data.h: the gift Pokemon's names passed to PokeParty_SetParam as uintptr_t, not u32 (a truncated pointer).
+Found with pokebw2-heapreport.patch's BWPORT_HEAPLOG=2 and a scan of Black's 64-bit commits for each removed literal or
+(u32) cast still in pokebw2.
+
+diff --git a/include/app/mystery/mystery_gift_data.h b/include/app/mystery/mystery_gift_data.h
+index 1c0fc453b..0c4c52a06 100644
+--- a/include/app/mystery/mystery_gift_data.h
++++ b/include/app/mystery/mystery_gift_data.h
+@@ -177,7 +177,7 @@ static inline PartyPkm *Mystery_CreateGiftPokemon(const MysteryGift *gift, HeapI
+         return NULL;
+     }
+     if (poke->nickname[0] != GFL_StrBufGetTerminator()) {
+-        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME_RAW, (u32)poke->nickname);
++        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME_RAW, (uintptr_t)poke->nickname);
+     }
+     value = poke->nature;
+     if (value == 0xff) {
+@@ -191,9 +191,9 @@ static inline PartyPkm *Mystery_CreateGiftPokemon(const MysteryGift *gift, HeapI
+         return NULL;
+     }
+     if (poke->otName[0] == GFL_StrBufGetTerminator()) {
+-        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)GetPlayerName(GetGameDataPlayerInfo(gameData)));
++        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)GetPlayerName(GetGameDataPlayerInfo(gameData)));
+     } else {
+-        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (u32)poke->otName);
++        PokeParty_SetParam(pkm, PKM_PARAM_OT_NAME_RAW, (uintptr_t)poke->otName);
+     }
+     if (poke->otGender <= 2) {
+         PokeParty_SetParam(pkm, PKM_PARAM_OT_GENDER, poke->otGender);
+@@ -203,7 +203,7 @@ static inline PartyPkm *Mystery_CreateGiftPokemon(const MysteryGift *gift, HeapI
+     if (poke->isEgg) {
+         PokeParty_SetParam(pkm, PKM_PARAM_IS_EGG, TRUE);
+         name = GFL_MsgDataLoadStrbufNew(g_PMLSpeciesNamesResident, SPECIES_EGG);
+-        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (u32)name);
++        PokeParty_SetParam(pkm, PKM_PARAM_NICKNAME, (uintptr_t)name);
+         GFL_StrBufFree(name);
+         PokeParty_SetParam(pkm, PKM_PARAM_HAPPINESS, 10);
+     }
+diff --git a/src/ov012/scrcmd_network.c b/src/ov012/scrcmd_network.c
+index 9b0bad82f..c104f5a69 100644
+--- a/src/ov012/scrcmd_network.c
++++ b/src/ov012/scrcmd_network.c
+@@ -44,7 +44,7 @@ BOOL Scrcmd_Network_GameCommDisconnect(VM *vm, FieldScriptEnv *env) {
+     work = FieldScriptEnv_GetScriptWork(env);
+     slot = ScriptWork_GetUserHeapPtr(work);
+     result = ScriptReadVar(vm, env);
+-    memory = GFL_HeapAllocate(4, 4, TRUE, "scrcmd_network.c", 0x63);
++    memory = GFL_HeapAllocate(4, sizeof(u16 *), TRUE, "scrcmd_network.c", 0x63);
+     *slot = memory;
+     *(u16 **)memory = result;
+     *result = 0;
+diff --git a/src/ov034/union_oneself.c b/src/ov034/union_oneself.c
+index 774093544..9034c06e4 100644
+--- a/src/ov034/union_oneself.c
++++ b/src/ov034/union_oneself.c
+@@ -1565,7 +1565,7 @@ static BOOL UnionOneself_StepCardRun(UnionSystem *unisys, UnionSelf *situ, Field
+             GFL_HeapAllocate(HEAPID_UNION, sizeof(TrainerCardData), TRUE, "union_oneself.c", 2596);
+         TrainerCardData_Fill(unisys->alloc.my_card, unisys->param->gameData, TRUE, FALSE, HEAPID_UNION);
+         TrainerCardData_FillExtras(unisys->alloc.my_card, unisys->param->gameData, HEAPID_UNION);
+-        MI_CpuCopy8(unisys->alloc.my_card, unisys->alloc.target_card, 0x678);
++        MI_CpuCopy8(unisys->alloc.my_card, unisys->alloc.target_card, sizeof(TrainerCardData));
+         NetHandle_SendTimingPair(NetHandle_GetOwn(), 3, 0x14);
+         UnionMsg_CreateAndPrint(unisys, field,
+                                 UnionMsg_GetOriginMessage(unisys, situ->mycomm.target->beacon.country,
+diff --git a/src/ov036/field_ground_anime.c b/src/ov036/field_ground_anime.c
+index 17be19853..57bcbeedb 100644
+--- a/src/ov036/field_ground_anime.c
++++ b/src/ov036/field_ground_anime.c
+@@ -15,8 +15,11 @@
+ 
+ // The texture pattern animations a map can have
+ #define FIELD_TERRAIN_TEXPAT_ANIMATION_MAX 16
+-// The size of each chunk's SRT animation object, fixed whatever the animation
+-#define FIELD_TERRAIN_SRT_ANMOBJ_SIZE 0x80
++// The size of each chunk's SRT animation object, fixed whatever the animation: the NNSG3dAnmObj and its material map
++// after it, 0x80 where pointers are 4 bytes (a 0x1c record and room for 50 materials). The record holds four pointers,
++// so on a 64-bit host 0x80 leaves room for 43: a chunk model with more materials wrote its map over the
++// next block's heap header (the field heap, Opelucid's east plaza; Black's src/ov021/field_ground_anime.c has the same)
++#define FIELD_TERRAIN_SRT_ANMOBJ_SIZE WORK_AREA_SIZE(0x80)
+ 
+ // A texture pattern animation's value at a frame
+ typedef struct {
+diff --git a/src/ov165/plist_demo.c b/src/ov165/plist_demo.c
+index 78d3accbb..ff0b9ec70 100644
+--- a/src/ov165/plist_demo.c
++++ b/src/ov165/plist_demo.c
+@@ -119,8 +119,8 @@ static void PokeListDemo_CreateParticles(PokeListWork *wk, int slot, int type, i
+     u8 i;
+     u8 count;
+ 
+-    wk->particleHeaps[slot] = allocConfigDSSoftwareFeature(wk->heapId, 0x5000, "plist_demo.c", 196);
+-    wk->particles[slot] = Particle_CreateSystem(wk->particleHeaps[slot], 0x5000, FALSE, wk->heapId);
++    wk->particleHeaps[slot] = allocConfigDSSoftwareFeature(wk->heapId, WORK_AREA_SIZE(0x5000), "plist_demo.c", 196);
++    wk->particles[slot] = Particle_CreateSystem(wk->particleHeaps[slot], WORK_AREA_SIZE(0x5000), FALSE, wk->heapId);
+     Particle_SetResource(wk->particles[slot], resource, FALSE, GFL_VBlankGetTCBMgr());
+     PokeListPlate_GetCursorPos(wk, wk->plates[plate], &pos);
+     pos.x -= 40;

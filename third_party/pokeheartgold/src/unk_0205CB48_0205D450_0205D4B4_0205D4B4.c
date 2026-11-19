@@ -1,0 +1,263 @@
+#include "global.h"
+
+#include "field_system.h"
+#include "field_types_def.h"
+#include "gymmick_init.h"
+#include "map_object.h"
+#include "overlay_01_022053EC.h"
+#include "overlay_04.h"
+#include "player_avatar.h"
+#include "unk_02005D10.h"
+#include "unk_0205FD20.h"
+
+enum MovementAction {
+    MOVEMENT_ACTION_FACE_NORTH = 0,
+    MOVEMENT_ACTION_FACE_SOUTH = 1,
+    MOVEMENT_ACTION_FACE_WEST = 2,
+    MOVEMENT_ACTION_FACE_EAST = 3,
+    MOVEMENT_ACTION_WALK_SLOWER_NORTH = 4,
+    MOVEMENT_ACTION_WALK_SLOWER_SOUTH = 5,
+    MOVEMENT_ACTION_WALK_SLOWER_WEST = 6,
+    MOVEMENT_ACTION_WALK_SLOWER_EAST = 7,
+    MOVEMENT_ACTION_WALK_SLOW_NORTH = 8,
+    MOVEMENT_ACTION_WALK_SLOW_SOUTH = 9,
+    MOVEMENT_ACTION_WALK_SLOW_WEST = 10,
+    MOVEMENT_ACTION_WALK_SLOW_EAST = 11,
+    MOVEMENT_ACTION_WALK_NORMAL_NORTH = 12,
+    MOVEMENT_ACTION_WALK_NORMAL_SOUTH = 13,
+    MOVEMENT_ACTION_WALK_NORMAL_WEST = 14,
+    MOVEMENT_ACTION_WALK_NORMAL_EAST = 15,
+    MOVEMENT_ACTION_WALK_FAST_NORTH = 16,
+    MOVEMENT_ACTION_WALK_FAST_SOUTH = 17,
+    MOVEMENT_ACTION_WALK_FAST_WEST = 18,
+    MOVEMENT_ACTION_WALK_FAST_EAST = 19,
+    MOVEMENT_ACTION_WALK_FASTER_NORTH = 20,
+    MOVEMENT_ACTION_WALK_FASTER_SOUTH = 21,
+    MOVEMENT_ACTION_WALK_FASTER_WEST = 22,
+    MOVEMENT_ACTION_WALK_FASTER_EAST = 23,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_NORTH = 24,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_SOUTH = 25,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_WEST = 26,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOWER_EAST = 27,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_NORTH = 28,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_SOUTH = 29,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_WEST = 30,
+    MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_EAST = 31,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_NORTH = 32,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_SOUTH = 33,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_WEST = 34,
+    MOVEMENT_ACTION_WALK_ON_SPOT_NORMAL_EAST = 35,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_NORTH = 36,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_SOUTH = 37,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_WEST = 38,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FAST_EAST = 39,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_NORTH = 40,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_SOUTH = 41,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_WEST = 42,
+    MOVEMENT_ACTION_WALK_ON_SPOT_FASTER_EAST = 43,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_NORTH = 44,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_SOUTH = 45,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_WEST = 46,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_SLOW_EAST = 47,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_NORTH = 48,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_SOUTH = 49,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_WEST = 50,
+    MOVEMENT_ACTION_JUMP_ON_SPOT_FAST_EAST = 51,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_NORTH = 52,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_SOUTH = 53,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_WEST = 54,
+    MOVEMENT_ACTION_JUMP_NEAR_FAST_EAST = 55,
+    MOVEMENT_ACTION_JUMP_FAR_NORTH = 56,
+    MOVEMENT_ACTION_JUMP_FAR_SOUTH = 57,
+    MOVEMENT_ACTION_JUMP_FAR_WEST = 58,
+    MOVEMENT_ACTION_JUMP_FAR_EAST = 59,
+    MOVEMENT_ACTION_DELAY_1 = 60,
+    MOVEMENT_ACTION_DELAY_2 = 61,
+    MOVEMENT_ACTION_DELAY_4 = 62,
+    MOVEMENT_ACTION_DELAY_8 = 63,
+    MOVEMENT_ACTION_DELAY_15 = 64,
+    MOVEMENT_ACTION_DELAY_16 = 65,
+    MOVEMENT_ACTION_DELAY_32 = 66,
+    MOVEMENT_ACTION_WARP_OUT = 67,
+    MOVEMENT_ACTION_WARP_IN = 68,
+    MOVEMENT_ACTION_SET_INVISIBLE = 69,
+    MOVEMENT_ACTION_SET_VISIBLE = 70,
+    MOVEMENT_ACTION_LOCK_DIR = 71,
+    MOVEMENT_ACTION_UNLOCK_DIR = 72,
+    MOVEMENT_ACTION_PAUSE_ANIMATION = 73,
+    MOVEMENT_ACTION_RESUME_ANIMATION = 74,
+    MOVEMENT_ACTION_EMOTE_EXCLAMATION_MARK = 75,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_NORTH = 76,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_SOUTH = 77,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_WEST = 78,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FAST_EAST = 79,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_NORTH = 80,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_SOUTH = 81,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_WEST = 82,
+    MOVEMENT_ACTION_WALK_SLIGHTLY_FASTER_EAST = 83,
+    MOVEMENT_ACTION_WALK_FASTEST_NORTH = 84,
+    MOVEMENT_ACTION_WALK_FASTEST_SOUTH = 85,
+    MOVEMENT_ACTION_WALK_FASTEST_WEST = 86,
+    MOVEMENT_ACTION_WALK_FASTEST_EAST = 87,
+    MOVEMENT_ACTION_RUN_NORTH = 88,
+    MOVEMENT_ACTION_RUN_SOUTH = 89,
+    MOVEMENT_ACTION_RUN_WEST = 90,
+    MOVEMENT_ACTION_RUN_EAST = 91,
+    MOVEMENT_ACTION_JUMP_NEAR_SLOW_WEST = 92,
+    MOVEMENT_ACTION_JUMP_NEAR_SLOW_EAST = 93,
+    MOVEMENT_ACTION_JUMP_FARTHER_WEST = 94,
+    MOVEMENT_ACTION_JUMP_FARTHER_EAST = 95,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_NORTH = 96,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_SOUTH = 97,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_WEST = 98,
+    MOVEMENT_ACTION_WALK_EVER_SO_SLIGHTLY_FAST_EAST = 99,
+    MOVEMENT_ACTION_POKECENTER_NURSE_BOW = 100,
+    MOVEMENT_ACTION_REVEAL_TRAINER = 101,
+    MOVEMENT_ACTION_PLAYER_GIVE = 102,
+    MOVEMENT_ACTION_EMOTE_DOUBLE_EXCLAMATION_MARK = 103,
+    MOVEMENT_ACTION_PLAYER_RECEIVE = 104,
+    MOVEMENT_ACTION_105 = 105,
+    MOVEMENT_ACTION_106 = 106,
+    MOVEMENT_ACTION_107 = 107,
+    MOVEMENT_ACTION_108 = 108,
+    MOVEMENT_ACTION_109 = 109,
+    MOVEMENT_ACTION_110 = 110,
+    MOVEMENT_ACTION_111 = 111,
+    MOVEMENT_ACTION_112 = 112,
+    MOVEMENT_ACTION_113 = 113,
+    MOVEMENT_ACTION_114 = 114,
+    MOVEMENT_ACTION_115 = 115,
+    MOVEMENT_ACTION_116 = 116,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_NORTH = 117,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_SOUTH = 118,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_WEST = 119,
+    MOVEMENT_ACTION_JUMP_DISTORTION_WORLD_EAST = 120,
+    MOVEMENT_ACTION_121 = 121,
+    MOVEMENT_ACTION_122 = 122,
+    MOVEMENT_ACTION_123 = 123,
+    MOVEMENT_ACTION_124 = 124,
+    MOVEMENT_ACTION_125 = 125,
+    MOVEMENT_ACTION_126 = 126,
+    MOVEMENT_ACTION_127 = 127,
+    MOVEMENT_ACTION_128 = 128,
+    MOVEMENT_ACTION_129 = 129,
+    MOVEMENT_ACTION_130 = 130,
+    MOVEMENT_ACTION_131 = 131,
+    MOVEMENT_ACTION_132 = 132,
+    MOVEMENT_ACTION_133 = 133,
+    MOVEMENT_ACTION_134 = 134,
+    MOVEMENT_ACTION_135 = 135,
+    MOVEMENT_ACTION_136 = 136,
+    MOVEMENT_ACTION_137 = 137,
+    MOVEMENT_ACTION_138 = 138,
+    MOVEMENT_ACTION_139 = 139,
+    MOVEMENT_ACTION_140 = 140,
+    MOVEMENT_ACTION_141 = 141,
+    MOVEMENT_ACTION_142 = 142,
+    MOVEMENT_ACTION_143 = 143,
+    MOVEMENT_ACTION_144 = 144,
+    MOVEMENT_ACTION_145 = 145,
+    MOVEMENT_ACTION_146 = 146,
+    MOVEMENT_ACTION_147 = 147,
+    MOVEMENT_ACTION_148 = 148,
+    MOVEMENT_ACTION_149 = 149,
+    MOVEMENT_ACTION_150 = 150,
+    MOVEMENT_ACTION_151 = 151,
+    MOVEMENT_ACTION_152 = 152,
+    MOVEMENT_ACTION_153 = 153,
+    MAX_MOVEMENT_ACTION = 154,
+    MOVEMENT_ACTION_END = 254,
+    MOVEMENT_ACTION_NONE = 255,
+};
+
+void sub_0205E048(PlayerAvatar *arg0);
+
+enum MovementAction sub_0206234C(int targetDir, enum MovementAction movementAction);
+
+enum MovementAction sub_0205D44C(LocalMapObject *, u8, u32);
+
+void sub_0205DA1C(PlayerAvatar *, LocalMapObject *, enum MovementAction);
+
+u32 sub_0205DA34(PlayerAvatar *, LocalMapObject *, u32);
+
+s32 sub_0205DE88(PlayerAvatar *, u32);
+
+void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u32 param_4, u16 param_5);
+
+void sub_0205D4B4(PlayerAvatar *param_1, LocalMapObject *param_2, u32 param_3, u32 param_4, u16 param_5) {
+    BOOL bVar1;
+    u16 uVar2;
+    u32 uVar3;
+    s32 sVar4;
+    BOOL BVar5;
+    s32 iVar6;
+    s32 iVar7;
+    PlayerSaveData *playerSaveData;
+    enum MovementAction a0;
+    FieldSystem *pFVar8;
+    u32 uVar9;
+    u32 uVar10;
+    u32 uVar11;
+    enum MovementAction MStack_28;
+
+    bVar1 = FALSE;
+    uVar3 = sub_0205DA34(param_1, param_2, param_3);
+    sVar4 = PlayerAvatar_GetState(param_1);
+    if (sVar4 != 2) {
+        if ((uVar3 & 4) != 0) {
+            MStack_28 = MOVEMENT_ACTION_JUMP_FAR_NORTH;
+        } else {
+            if (uVar3 != 0) {
+                MStack_28 = MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_NORTH;
+                if ((uVar3 & 8) == 0) {
+                    pFVar8 = MapObject_GetFieldSystem(param_2);
+                    BVar5 = FieldSystem_IsSaveGymmickTypeEqualTo(pFVar8, 7);
+                    if (BVar5 != 0) {
+                        uVar9 = MapObject_GetXCoord(param_2);
+                        iVar6 = GetDeltaXByFacingDirection(param_3);
+                        uVar10 = MapObject_GetZCoord(param_2);
+                        iVar7 = GetDeltaYByFacingDirection(param_3);
+                        FuchsiaGymmick_CheckCollision(pFVar8, uVar9 + iVar6, uVar10 + iVar7);
+                    } else {
+                        PlaySE(0x600);
+                    }
+                }
+                MapObject_SetNextFacingDirection(param_2, param_3);
+                bVar1 = TRUE;
+            } else {
+                uVar11 = 0xc;
+                playerSaveData = PlayerAvatar_GetPlayerSaveData(param_1);
+                BVar5 = PlayerSaveData_CheckRunningShoes(playerSaveData);
+                if ((BVar5 == 1) && (iVar6 = sub_0205DE88(param_1, param_5), iVar6 == 1)) {
+                    uVar11 = 0x58;
+                }
+                uVar2 = sub_0205F504(param_2);
+                MStack_28 = sub_0205D44C(param_2, (u8)uVar2, uVar11);
+                sub_0205E048(param_1);
+                PlayerAvatar_SetFlag6(param_1);
+            }
+        }
+    } else {
+        if ((uVar3 == 0) || (uVar3 == 0x20)) {
+            uVar2 = sub_0205F504(param_2);
+            MStack_28 = sub_0205D44C(param_2, (u8)uVar2, 0x10);
+            sub_0205E048(param_1);
+            PlayerAvatar_SetFlag6(param_1);
+        } else {
+            MStack_28 = MOVEMENT_ACTION_WALK_ON_SPOT_SLOW_NORTH;
+            if ((uVar3 & 8) == 0) {
+                PlaySE(0x600);
+            }
+            MapObject_SetNextFacingDirection(param_2, param_3);
+        }
+    }
+    a0 = sub_0206234C(param_3, MStack_28);
+    sub_0205DA1C(param_1, param_2, a0);
+    if (!bVar1) {
+        pFVar8 = MapObject_GetFieldSystem(param_2);
+        uVar9 = MapObject_GetPreviousXCoord(param_2);
+        uVar10 = MapObject_GetPreviousZCoord(param_2);
+        ov01_02205990(a0, uVar9, uVar10, (FollowMon *)&pFVar8->followMon);
+    }
+    return;
+}

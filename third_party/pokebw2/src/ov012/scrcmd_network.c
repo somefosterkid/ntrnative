@@ -44,7 +44,7 @@ BOOL Scrcmd_Network_GameCommDisconnect(VM *vm, FieldScriptEnv *env) {
     work = FieldScriptEnv_GetScriptWork(env);
     slot = ScriptWork_GetUserHeapPtr(work);
     result = ScriptReadVar(vm, env);
-    memory = GFL_HeapAllocate(4, 4, TRUE, "scrcmd_network.c", 0x63);
+    memory = GFL_HeapAllocate(4, sizeof(u16 *), TRUE, "scrcmd_network.c", 0x63);
     *slot = memory;
     *(u16 **)memory = result;
     *result = 0;

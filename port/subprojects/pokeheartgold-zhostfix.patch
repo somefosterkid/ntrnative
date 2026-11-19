@@ -1,0 +1,628 @@
+pokeheartgold-zhostfix.patch (tools/pokehg_gen.py applies the patches in name order): the decomp's own mistakes the HGSS
+runs found on the PC, one block per bug, most of them a struct read at its DS offsets or allocated with its DS size where
+the host layout (8-byte pointers) differs. Made against the pin + every patch before it: when wideprotos.patch is remade,
+leave this one out of the fresh tree, then check it still applies. Each block has its paragraph right above its
+`diff --git`, ending in a `Handover-ID:` line (the decomp-side handover, or `none yet` with the bug when it is not handed
+over); tools/hgss_repin.py drops a block with its paragraph when the pin has the fix. The dropped blocks (crashes 23-83,
+hg17..hg38, hbs2, cut1): this file's git log and docs/hgss.md.
+
+hg25: port/nonmatching/ov01_021F7504.c (the follower's map object) declares ov01_021F9510 / ov01_021F9630 with the old
+s32 * slot (conflicting types with the typed header) and reaches its work block as s32 * at DS offsets (billboard +0,
+anim state +4, flags byte +0x17): MapObjectBillboardWorkB's fields. Drop when upstream types the file.
+Handover-ID: none yet (decomp bug: the file reads MapObjectBillboardWorkB as s32 at DS offsets)
+diff --git a/port/nonmatching/ov01_021F7504.c b/port/nonmatching/ov01_021F7504.c
+--- a/port/nonmatching/ov01_021F7504.c
++++ b/port/nonmatching/ov01_021F7504.c
+@@ -23,11 +23,9 @@
+ s32 ov01_02205564(LocalMapObject *arg0);
+ void ov01_021F8E70(LocalMapObject *, u32, VecFx32 *);
+-void ov01_021F9510(LocalMapObject *, s32 *);
+-void ov01_021F9630(uintptr_t, s32 *);
+ void ov01_02205808(u32, LocalMapObject *, uintptr_t);
+ void ov01_0220589C(u32, LocalMapObject *, uintptr_t);
+ void ov01_021F7504(LocalMapObject *param_1) {
+   FieldSystem *fieldSystem;
+-  s32 *piVar3;
++  MapObjectBillboardWorkB *piVar3; /* HGSS PC: was s32 * at DS offsets */
+   u32 uVar4;
+   MapObjectManager *manager;
+@@ -44,6 +42,6 @@
+   u8 form;
+   
+-  piVar3 = (s32 *)sub_0205F40C(param_1);
+-  if (((((u32)*(u8 *)((uintptr_t)piVar3 + 0x17) << 0x1e) >> 0x1f) == 0) &&
++  piVar3 = (MapObjectBillboardWorkB *)sub_0205F40C(param_1);
++  if (((((u32)piVar3->flags << 0x1e) >> 0x1f) == 0) &&
+      (uVar4 = MapObject_GetID(param_1), uVar4 == 0xfd)) {
+     manager = MapObject_GetManager(param_1);
+@@ -57,5 +55,5 @@
+     shiny = MonIsShiny(mon);
+     form = uVar5;
+-    *(u8 *)((intptr_t)piVar3 + 0x17) |= 2;
++    piVar3->flags |= 2;
+     FollowMon_SetObjectParams(param_1,uVar4,form,shiny);
+     MapObject_SetSpriteID(param_1,uVar6);
+@@ -85,9 +83,9 @@
+   BVar7 = ov01_021FA2D4(param_1);
+   if (BVar7 != 1) {
+-    if (*piVar3 == 0) {
+-      ov01_021F9510(param_1,piVar3);
++    if (piVar3->billboard == NULL) {
++      ov01_021F9510(param_1,&piVar3->billboard);
+     }
+-    if (*piVar3 != 0) {
+-      *(u8 *)((intptr_t)piVar3 + 0x17) = *(u8 *)((intptr_t)piVar3 + 0x17) & ~1 | 1;
++    if (piVar3->billboard != NULL) {
++      piVar3->flags = piVar3->flags & ~1 | 1;
+       VecFx32 afStack_38 = {0, 0, 0};
+       MapObject_CopyFacingVector(param_1,&VStack_2c);
+@@ -100,13 +98,13 @@
+       sVar8 = ov01_02205564(param_1);
+       if (sVar8 != 0) {
+-        ov01_0220589C(1,param_1,*piVar3);
++        ov01_0220589C(1,param_1,(uintptr_t)piVar3->billboard);
+       } else {
+         BVar7 = ov01_0220553C(param_1);
+         if (BVar7 != 0) {
+-          ov01_02205808(1,param_1,*piVar3);
++          ov01_02205808(1,param_1,(uintptr_t)piVar3->billboard);
+         }
+       }
+-      ov01_021F9630(*piVar3,piVar3 + 1);
+-      ov01_021FA3E8(param_1,(Sprite *)*piVar3);
++      ov01_021F9630(piVar3->billboard,&piVar3->animState);
++      ov01_021FA3E8(param_1,(Sprite *)piVar3->billboard);
+       MapObject_ClearFlagsBits(param_1,MAPOBJECTFLAG_UNK21);
+       sub_0205F484(param_1);
+hg30 (crash 73, the comm layer): sub_02033DF0 sets bit 1 of its record's DS byte 0xF through a raw offset; on the host
+the pointers before it move the byte. The bit field unk_0F_1. Drop when upstream names it.
+Handover-ID: none yet (decomp bug: a raw DS byte offset for the unk_0F_1 bit)
+diff --git a/src/unk_02033AE0_02033DF0_02033DF0.c b/src/unk_02033AE0_02033DF0_02033DF0.c
+--- a/src/unk_02033AE0_02033DF0_02033DF0.c
++++ b/src/unk_02033AE0_02033DF0_02033DF0.c
+@@ -82,5 +82,5 @@ s32 sub_02033DF0(CommQueueMan *param0, s32 cmd, u8 *data, s32 size, s32 param4,
+         sub_02033AF0(var_r5->unk_14, sp4, var_r6, 0x109);
+         sub_02033C28(var_r5->unk_14);
+-        *(u8 *)((u8 *)var_r4 + 0xF) = (u8)(2 | *(u8 *)((u8 *)var_r4 + 0xF));
++        var_r4->unk_0F_1 = 1; // Port (hg30): DS byte 0xF |= 2 (the host struct has 8-byte pointers before it)
+         goto block_10;
+     }
+hg30 (crash 74): port/nonmatching/sub_02032D4C.c (the wireless scan callback) has its own prototypes and externs of the
+wireless manager and reads it at DS offsets: onto wireless_manager.h's types. Drop when upstream moves the file onto it.
+Handover-ID: none yet (decomp bug: a local copy of the wireless manager at DS offsets)
+diff --git a/port/nonmatching/sub_02032D4C.c b/port/nonmatching/sub_02032D4C.c
+--- a/port/nonmatching/sub_02032D4C.c
++++ b/port/nonmatching/sub_02032D4C.c
+@@ -1,9 +1,10 @@
+ /* PORTOK hk42 */
++#include "global.h"
++
++#include "wireless_manager.h"
++
+ BOOL sub_02032C84(void);
+ s32 sub_02032E48(void);
+-s32 sub_02032844(s32);
+-s32 sub_02032858();
+-extern s32 _021D4124;
+ 
+ void sub_02032D4C(void *wm_startscancallback) {
+     s32 (*temp_r2)(s32, u8);
+@@ -15,8 +16,8 @@
+         sub_02032844(9);
+         return;
+     }
+-    if (*(s32 *)((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 0x1310) != 2) {
+-        *(u16 *)((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 0x130E) = 0U;
++    if (_021D4124.sWirelessManager->state != 2) {
++        _021D4124.sWirelessManager->autoConnect = 0U;
+         if (sub_02032E48() == 0) {
+             sub_02032844(9);
+         }
+@@ -24,17 +25,17 @@
+         temp_r1 = *(u16 *)((u8 *)wm_startscancallback + 8);
+         switch (temp_r1) {
+         case 5:
+-            DC_InvalidateRange(*(u8 **)((u8 *)(&_021D4124) + 4) + 0x1220, 0xC0U);
+-            temp_r2 = *(s32 (**)(s32, u8))((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 0x1320);
++            DC_InvalidateRange((u8 *)&_021D4124.sWirelessManager->bssDesc, 0xC0U);
++            temp_r2 = (s32 (*)(s32, u8))_021D4124.sWirelessManager->ggidScanCallback;
+             if ((temp_r2 != NULL) && ((u32) *(u16 *)((u8 *)wm_startscancallback + 0x36) >= 8U)) {
+                 temp_r2(*(s32 *)((u8 *)wm_startscancallback + 0x3C), *((u8 *)wm_startscancallback + 0x48 + 4));
+             }
+-            if (((u32) *(u16 *)((u8 *)wm_startscancallback + 0x36) >= 8U) && (*(s32 *)((u8 *)wm_startscancallback + 0x3C) == *(s32 *)((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 8)) && ((3 & *(u8 *)((u8 *)wm_startscancallback + 0x43)) == 1)) {
+-                temp_r2_2 = *(s32 (**)(void *))((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 0x1300);
++            if (((u32) *(u16 *)((u8 *)wm_startscancallback + 0x36) >= 8U) && (*(s32 *)((u8 *)wm_startscancallback + 0x3C) == (s32)_021D4124.sWirelessManager->parentParam.ggid) && ((3 & *(u8 *)((u8 *)wm_startscancallback + 0x43)) == 1)) {
++                temp_r2_2 = (s32 (*)(void *))_021D4124.sWirelessManager->scanCallback;
+                 if (temp_r2_2 != NULL) {
+-                    temp_r2_2(*(u8 **)((u8 *)(&_021D4124) + 4) + 0x1220);
++                    temp_r2_2((u8 *)&_021D4124.sWirelessManager->bssDesc);
+                 }
+-                if (*(u16 *)((u8 *)(*(void **)((u8 *)(&_021D4124) + 4)) + 0x130E) != 0) {
++                if (_021D4124.sWirelessManager->autoConnect != 0) {
+                     if (sub_02032E48() == 0) {
+                         sub_02032844(9);
+                         return;
+hg30 (crash 73): port/nonmatching/sub_02035DE0.c keeps its own copy of the CommunicationSystem layout (DS offsets): onto
+unk_02035900_work.h's sCommunicationSystem. Drop when upstream moves the file onto it.
+Handover-ID: none yet (decomp bug: a local CommunicationSystem copy at DS offsets)
+diff --git a/port/nonmatching/sub_02035DE0.c b/port/nonmatching/sub_02035DE0.c
+--- a/port/nonmatching/sub_02035DE0.c
++++ b/port/nonmatching/sub_02035DE0.c
+@@ -1,4 +1,6 @@
+ #include "global.h"
+ 
++#include "unk_02035900_work.h"
++
+ struct CommQueueMan;
+ struct SysTask;
+@@ -10,20 +12,5 @@ typedef struct {
+     UnkStruct_020322D8 *unk_04;
+ } UnkStruct_02032318;
+-typedef struct {
+-    u8 *buffer;
+-    s16 startIndex;
+-    volatile s16 endIndex;
+-    volatile s16 backupEndIndex;
+-    s16 size;
+-} CommRing;
+ void CommRing_Init(CommRing *ring, u8 *buffer, int size);
+-typedef struct CommQueueMan {
+-    UnkStruct_02032318 unk_00;
+-    UnkStruct_02032318 unk_08;
+-    UnkStruct_020322D8 *unk_10;
+-    CommRing *unk_14;
+-    void *unk_18;
+-    int unk_1C;
+-} CommQueueMan;
+ int sub_0203993C(void);
+ typedef struct SysTask SysTask;
+@@ -54,73 +41,4 @@ struct SysTaskManager {
+ };
+ u16 CommLocal_MaxMachines(u16 param0);
+-typedef struct {
+-    int unk_00;
+-    u8 *unk_04;
+-    u16 unk_08;
+-    u8 unk_0A;
+-} CommRecvPackage;
+-typedef struct {
+-    u8 sendBuffer[2][64];
+-    u8 sendBufferServer[2][192];
+-    u8 sendBufferCommRing[264 ];
+-    u8 sendBufferCommRingServer[384];
+-    u8 *unk_488;
+-    u8 *recvBufferRingServer;
+-    u8 *recvBufferRing;
+-    u8 *tempBuffer;
+-    CommRing sendRing;
+-    CommRing recvRing;
+-    CommRing unk_4B0[8];
+-    CommRing sendRingServer;
+-    CommRing sendRingClient[8];
+-    SysTask *unk_57C;
+-    CommQueueMan commQueueManSend;
+-    CommQueueMan commQueueManSendServer;
+-    CommRecvPackage commRecvServer[8];
+-    CommRecvPackage commRecvClient;
+-    MATHRandContext32 rand;
+-    u16 unk_63C[8];
+-    u8 recvSpeed[8];
+-    u16 sendHeldKeys;
+-    u8 unk_656;
+-    u8 sendSpeed;
+-    u8 playerMovementState;
+-    s8 randomPadKeyTimer;
+-    u16 randomPadKey;
+-    BOOL unk_65C;
+-    volatile int unk_660;
+-    volatile int unk_664[8];
+-    int allocSize;
+-    int maxPacketSize;
+-    u16 unk_68C;
+-    u8 unk_68E[8]; /* HGSS layout: the 8-byte array starts at 0x68E (Platinum: u8 unk_68E; u8 unk_68F[8]); one pad byte after unk_69F */
+-    u8 unk_697[8];
+-    u8 unk_69F[4];
+-    u8 padding_6A3;
+-    u8 transmissionState;
+-    u8 unk_6A4;
+-    u8 transmissionType;
+-    u8 unk_6A6;
+-    u8 unk_6A7;
+-    u8 unk_6A8;
+-    u8 unk_6A9;
+-    u8 unk_6AA;
+-    u8 unk_6AB;
+-    u8 unk_6AC;
+-    u8 unk_6AD;
+-    u8 unk_6AE;
+-    u8 wifiConnected;
+-    u8 unk_6B0;
+-    u8 unk_6B1;
+-    u8 shuttingDown;
+-    u8 unk_6B3;
+-    u8 unk_6B4;
+-    u8 unk_6B5;
+-} CommunicationSystem;
+-typedef struct CommSysStatics {
+-    u8 unk_00[8];
+-    CommunicationSystem *sCommunicationSystem;
+-} CommSysStatics;
+-extern CommSysStatics _021D4140;
+ 
+ void sub_02035DE0(int netId);
+@@ -131,16 +49,16 @@ void sub_02035DE0(int netId)
+ {
+   CommunicationSystem *new_var;
+-  _021D4140.sCommunicationSystem->unk_68E[netId] = 0;
+-  _021D4140.sCommunicationSystem->unk_697[netId] = 1;
+-  _021D4140.sCommunicationSystem->unk_664[netId] = 0;
++  _021D4140.sCommunicationSystem->unk_696[netId] = 0;
++  _021D4140.sCommunicationSystem->unk_69E[netId] = 1;
++  _021D4140.sCommunicationSystem->unk_66C[netId] = 0;
+   int v0 = sub_02033FC4(sub_0203993C()) + 1;
+-  int v1 = _021D4140.sCommunicationSystem->allocSize / v0;
+-  new_var = _021D4140.sCommunicationSystem;
+-  sub_02033AE0(&_021D4140.sCommunicationSystem->unk_4B0[netId], &_021D4140.sCommunicationSystem->unk_488[netId * v1], v1);
+-  sub_02033AE0(&new_var->sendRingClient[netId], &_021D4140.sCommunicationSystem->recvBufferRingServer[netId * v1], v1);
+-  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_0A = 0xee;
+-  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_08 = 0xffff;
+-  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_04 = 0L;
+-  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_00 = 0;
++  int v1 = _021D4140.sCommunicationSystem->allocSize / v0;
++  new_var = _021D4140.sCommunicationSystem;
++  sub_02033AE0(&_021D4140.sCommunicationSystem->unk_4B0[netId], &_021D4140.sCommunicationSystem->unk_488[netId * v1], v1);
++  sub_02033AE0(&new_var->sendRingClient[netId], &_021D4140.sCommunicationSystem->recvBufferRingServer[netId * v1], v1);
++  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_0A = 0xee;
++  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_08 = 0xffff;
++  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_04 = 0L;
++  _021D4140.sCommunicationSystem->commRecvServer[netId].unk_00 = 0;
+ }
+ 
+hg30 (crash 73): port/nonmatching/sub_02036BE4.c, the same local CommunicationSystem copy as sub_02035DE0.c: onto
+unk_02035900_work.h's sCommunicationSystem. Drop when upstream moves the file onto it.
+Handover-ID: none yet (decomp bug: a local CommunicationSystem copy at DS offsets)
+diff --git a/port/nonmatching/sub_02036BE4.c b/port/nonmatching/sub_02036BE4.c
+--- a/port/nonmatching/sub_02036BE4.c
++++ b/port/nonmatching/sub_02036BE4.c
+@@ -1,3 +1,5 @@
+ #include "global.h"
++
++#include "unk_02035900_work.h"
+ struct CommQueueMan;
+ struct SysTask;
+@@ -9,19 +11,4 @@ typedef struct {
+     UnkStruct_020322D8 *unk_04;
+ } UnkStruct_02032318;
+-typedef struct {
+-    u8 *buffer;
+-    s16 startIndex;
+-    volatile s16 endIndex;
+-    volatile s16 backupEndIndex;
+-    s16 size;
+-} CommRing;
+-typedef struct CommQueueMan {
+-    UnkStruct_02032318 unk_00;
+-    UnkStruct_02032318 unk_08;
+-    UnkStruct_020322D8 *unk_10;
+-    CommRing *unk_14;
+-    void *unk_18;
+-    int unk_1C;
+-} CommQueueMan;
+ typedef struct SysTask SysTask;
+ typedef struct SysTaskManager SysTaskManager;
+@@ -55,69 +42,4 @@ enum MovementState {
+     MOVEMENT_STATE_REVERSE,
+ };
+-typedef struct {
+-    int unk_00;
+-    u8 *unk_04;
+-    u16 unk_08;
+-    u8 unk_0A;
+-} CommRecvPackage;
+-typedef struct {
+-    u8 sendBuffer[2][64];
+-    u8 sendBufferServer[2][192];
+-    u8 sendBufferCommRing[264 ];
+-    u8 sendBufferCommRingServer[384];
+-    u8 *unk_488;
+-    u8 *recvBufferRingServer;
+-    u8 *recvBufferRing;
+-    u8 *tempBuffer;
+-    CommRing sendRing;
+-    CommRing recvRing;
+-    CommRing unk_4B0[8];
+-    CommRing sendRingServer;
+-    CommRing sendRingClient[8];
+-    SysTask *unk_57C;
+-    CommQueueMan commQueueManSend;
+-    CommQueueMan commQueueManSendServer;
+-    CommRecvPackage commRecvServer[8];
+-    CommRecvPackage commRecvClient;
+-    MATHRandContext32 rand;
+-    u16 unk_63C[8];
+-    u8 recvSpeed[8];
+-    u16 sendHeldKeys;
+-    u8 unk_656;
+-    u8 sendSpeed;
+-    u8 playerMovementState;
+-    s8 randomPadKeyTimer;
+-    u16 randomPadKey;
+-    BOOL unk_65C;
+-    volatile int unk_660;
+-    volatile int unk_664[8];
+-    int allocSize;
+-    int maxPacketSize;
+-    u16 unk_68C;
+-    u8 unk_68E;
+-    u8 unk_68F[8];
+-    u8 unk_697[8];
+-    u8 unk_69F[4];
+-    u8 transmissionState;
+-    u8 unk_6A4;
+-    u8 transmissionType;
+-    u8 unk_6A6;
+-    u8 unk_6A7;
+-    u8 unk_6A8;
+-    u8 unk_6A9;
+-    u8 unk_6AA;
+-    u8 unk_6AB;
+-    u8 unk_6AC;
+-    u8 unk_6AD;
+-    u8 unk_6AE;
+-    u8 wifiConnected;
+-    u8 unk_6B0;
+-    u8 unk_6B1;
+-    u8 shuttingDown;
+-    u8 unk_6B3;
+-    u8 unk_6B4;
+-    u8 unk_6B5;
+-} CommunicationSystem;
+-extern u8 _021D4140[]; /* HGSS: the comm system pointer is word 2 of this .bss block (Platinum: sCommunicationSystem) */
+ 
+ void sub_02036BE4(void);
+@@ -126,38 +48,38 @@ void sub_02036BE4(void)
+     u16 newHeldKeys = 0;
+ 
+-    if ((((CommunicationSystem **)_021D4140)[2])->playerMovementState == MOVEMENT_STATE_NORMAL) {
++    if (_021D4140.sCommunicationSystem->playerMovementState == MOVEMENT_STATE_NORMAL) {
+         return;
+     }
+ 
+-    if (!((((CommunicationSystem **)_021D4140)[2])->sendHeldKeys & (PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_KEY_UP | PAD_KEY_DOWN))) {
++    if (!(_021D4140.sCommunicationSystem->sendHeldKeys & (PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_KEY_UP | PAD_KEY_DOWN))) {
+         return;
+     }
+ 
+-    if ((((CommunicationSystem **)_021D4140)[2])->playerMovementState == MOVEMENT_STATE_REVERSE) {
+-        if ((((CommunicationSystem **)_021D4140)[2])->sendHeldKeys & PAD_KEY_LEFT) {
++    if (_021D4140.sCommunicationSystem->playerMovementState == MOVEMENT_STATE_REVERSE) {
++        if (_021D4140.sCommunicationSystem->sendHeldKeys & PAD_KEY_LEFT) {
+             newHeldKeys |= PAD_KEY_RIGHT;
+         }
+ 
+-        if ((((CommunicationSystem **)_021D4140)[2])->sendHeldKeys & PAD_KEY_RIGHT) {
++        if (_021D4140.sCommunicationSystem->sendHeldKeys & PAD_KEY_RIGHT) {
+             newHeldKeys |= PAD_KEY_LEFT;
+         }
+ 
+-        if ((((CommunicationSystem **)_021D4140)[2])->sendHeldKeys & PAD_KEY_UP) {
++        if (_021D4140.sCommunicationSystem->sendHeldKeys & PAD_KEY_UP) {
+             newHeldKeys |= PAD_KEY_DOWN;
+         }
+ 
+-        if ((((CommunicationSystem **)_021D4140)[2])->sendHeldKeys & PAD_KEY_DOWN) {
++        if (_021D4140.sCommunicationSystem->sendHeldKeys & PAD_KEY_DOWN) {
+             newHeldKeys |= PAD_KEY_UP;
+         }
+     } else {
+-        if ((((CommunicationSystem **)_021D4140)[2])->randomPadKey) {
+-            newHeldKeys = (((CommunicationSystem **)_021D4140)[2])->randomPadKey;
+-            (((CommunicationSystem **)_021D4140)[2])->randomPadKeyTimer--;
++        if (_021D4140.sCommunicationSystem->randomPadKey) {
++            newHeldKeys = _021D4140.sCommunicationSystem->randomPadKey;
++            _021D4140.sCommunicationSystem->randomPadKeyTimer--;
+ 
+-            if ((((CommunicationSystem **)_021D4140)[2])->randomPadKeyTimer < 0) {
+-                (((CommunicationSystem **)_021D4140)[2])->randomPadKey = 0;
++            if (_021D4140.sCommunicationSystem->randomPadKeyTimer < 0) {
++                _021D4140.sCommunicationSystem->randomPadKey = 0;
+             }
+         } else {
+-            switch (MATH_Rand32(&(((CommunicationSystem **)_021D4140)[2])->rand, 4)) {
++            switch (MATH_Rand32(&_021D4140.sCommunicationSystem->rand, 4)) {
+             case 0:
+                 newHeldKeys = PAD_KEY_LEFT;
+@@ -174,10 +96,10 @@ void sub_02036BE4(void)
+             }
+ 
+-            (((CommunicationSystem **)_021D4140)[2])->randomPadKeyTimer = MATH_Rand32(&(((CommunicationSystem **)_021D4140)[2])->rand, 16);
+-            (((CommunicationSystem **)_021D4140)[2])->randomPadKey = newHeldKeys;
++            _021D4140.sCommunicationSystem->randomPadKeyTimer = MATH_Rand32(&_021D4140.sCommunicationSystem->rand, 16);
++            _021D4140.sCommunicationSystem->randomPadKey = newHeldKeys;
+         }
+     }
+ 
+-    (((CommunicationSystem **)_021D4140)[2])->sendHeldKeys &= ~(PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_KEY_UP | PAD_KEY_DOWN);
+-    (((CommunicationSystem **)_021D4140)[2])->sendHeldKeys += newHeldKeys;
++    _021D4140.sCommunicationSystem->sendHeldKeys &= ~(PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_KEY_UP | PAD_KEY_DOWN);
++    _021D4140.sCommunicationSystem->sendHeldKeys += newHeldKeys;
+ }
+hg33 (crash 80, out of the front door into the town): sub_02062F48 (the emote movement's first step) sets up the map
+object's movement data with the DS size 8 for {int; OverworldAnimManager *} (16 bytes on the host) and stores the
+pointer at DS offset 4, where MapObjectMovementCmd075_Step1 reads it at host offset 8: EmoteMovementData, sizeof.
+Drop when upstream types it.
+Handover-ID: hg33-0001
+diff --git a/src/unk_02062108_02062F48_02062F48.c b/src/unk_02062108_02062F48_02062F48.c
+index 6dfecabcf..b8aafc7c3 100644
+--- a/src/unk_02062108_02062F48_02062F48.c
++++ b/src/unk_02062108_02062F48_02062F48.c
+@@ -3,13 +3,19 @@
+ #include "map_object.h"
+ #include "overlay_01_022001E4.h"
+ 
++// the emote movement's data: the same record MapObjectMovementCmd075_Step1 reads (unk_02062108_02062F6C.c)
++typedef struct EmoteMovementData {
++    int unk_00;
++    OverworldAnimManager *unk_04;
++} EmoteMovementData;
++
+ void sub_02062F48(LocalMapObject *arg0, s32 arg1);
+ 
+ void sub_02062F48(LocalMapObject *object, s32 a0) {
+-    u8 *v0;
++    EmoteMovementData *v0;
+ 
+-    v0 = sub_0205F3C0(object, 8);
+-    *(s32 *)v0 = a0;
+-    *(OverworldAnimManager **)((u8 *)v0 + 4) = ov01_02200540(object, a0, 1);
++    v0 = (EmoteMovementData *)sub_0205F3C0(object, sizeof(EmoteMovementData));
++    v0->unk_00 = a0;
++    v0->unk_04 = ov01_02200540(object, a0, 1);
+     MapObject_IncrementMovementStep(object);
+ }
+hbs1 (the test battle's start: SIGSEGV in BattleInput_CreateTextObject): sub_02013FA8 / sub_02013FC0 walk
+UnkStruct_02013034's list links (unk_0C / unk_10) at the DS offsets 0xC / 0x10 (host 0x10 / 0x18): the fields.
+Drop when upstream types them.
+Handover-ID: hbs1-0003
+diff --git a/src/unk_02013534_02013FA8.c b/src/unk_02013534_02013FA8.c
+--- a/src/unk_02013534_02013FA8.c
++++ b/src/unk_02013534_02013FA8.c
+@@ -10,14 +10,15 @@
+ s32 sub_02013728();
+ void sub_02013FD0(void *arg0, s32 arg1);
+ 
++// the list links are UnkStruct_02013034's unk_0C / unk_10 (DS offsets 0xC / 0x10; 0x10 / 0x18 on the host)
+ void sub_02013FA8(void *arg0) {
+     void *v0;
+     void *v1;
+ 
+-    v1 = *(void **)((u8 *)arg0 + 0xC);
++    v1 = ((UnkStruct_02013034 *)arg0)->unk_0C;
+     if (v1 != arg0) {
+         do {
+-            v0 = *(void **)((u8 *)v1 + 0xC);
++            v0 = ((UnkStruct_02013034 *)v1)->unk_0C;
+             sub_02013F94(v1);
+             v1 = v0;
+         } while (v0 != arg0);
+@@ -25,10 +26,10 @@
+ }
+ 
+ void sub_02013FC0(UnkStruct_02013034 *arg0, void *arg1) {
+-    *((void * *)&arg0->unk_0C) = (void *)*(void **)((u8 *)arg1 + 0xC);
++    *((void * *)&arg0->unk_0C) = (void *)((UnkStruct_02013034 *)arg1)->unk_0C;
+     *((void * *)&arg0->unk_10) = arg1;
+-    *(void **)((u8 *)(*(void **)((u8 *)arg1 + 0xC)) + 0x10) = arg0;
+-    *(void **)((u8 *)arg1 + 0xC) = arg0;
++    *((void * *)&((UnkStruct_02013034 *)((UnkStruct_02013034 *)arg1)->unk_0C)->unk_10) = arg0;
++    *((void * *)&((UnkStruct_02013034 *)arg1)->unk_0C) = arg0;
+ }
+ 
+ void sub_02013FD0(void *arg0, s32 arg1) {
+rv5 (2026-11-18, 766902128): the pin's include/pokeathlon/pokeathlon.h declares ov96_021E60D8 as returning PokeathlonMonKinds * (the
+Pokeathlon pass), and three port/nonmatching files the decomp does not build (ov96_021F1614, ov96_021FA0E8, ov96_021FBBB4) kept a
+prototype of their own with another return type: "conflicting types". Their prototypes are dropped (the header's applies; the one
+that stored the result in a u8 * casts it). Drop when upstream updates the files.
+Handover-ID: none (port-only)
+diff --git a/port/nonmatching/ov96_021F1614.c b/port/nonmatching/ov96_021F1614.c
+--- a/port/nonmatching/ov96_021F1614.c
++++ b/port/nonmatching/ov96_021F1614.c
+@@ -8,3 +8,2 @@
+ 
+-void *ov96_021E60D8(PokeathlonCourseData *, s32, s32);
+ 
+diff --git a/port/nonmatching/ov96_021FA0E8.c b/port/nonmatching/ov96_021FA0E8.c
+--- a/port/nonmatching/ov96_021FA0E8.c
++++ b/port/nonmatching/ov96_021FA0E8.c
+@@ -9,3 +9,2 @@
+ void *ov96_021E60C0(PokeathlonCourseData *, s32, s32);
+-void *ov96_021E60D8(PokeathlonCourseData *, s32, s32);
+ void *ov96_021E8BB0(uintptr_t);
+diff --git a/port/nonmatching/ov96_021FBBB4.c b/port/nonmatching/ov96_021FBBB4.c
+--- a/port/nonmatching/ov96_021FBBB4.c
++++ b/port/nonmatching/ov96_021FBBB4.c
+@@ -5,3 +5,2 @@
+ 
+-u8 *ov96_021E60D8(PokeathlonCourseData *data, int participant, int slot);
+ 
+@@ -34,3 +33,3 @@
+       entry = &((UnkStruct_ov96_021FBBB4_Entry *) (work + 0x238))[(u8) (j + base)];
+-      mon = ov96_021E60D8(data, i, j);
++      mon = (u8 *) ov96_021E60D8(data, i, j);
+       entry->unk10 = ((f32) stats[mon[1] + 15]) / 10.0f;
+rv5 (2026-11-18, 766902128; the sweep's pc-* and x-dex plays, SIGSEGV at frames 2698 / 3108): two more raw DS offsets, both found by the
+crashes. ov14_021F2EA0 read the character data's pixel pointer at DS +0x14 of NNSG2dCharacterData (it is at +0x18 on the host: the PC
+box's first icon load, GX_LoadOBJ from a bad source); ov18_021F4A6C read the Pokedex app's PlayerProfile at DS +4 of its PokedexArgs
+(+8 on the host: PlayerProfile_GetTrainerGender on a wild pointer, the screen's first frame). Typed. Drop when upstream types them.
+Handover-ID: none (port-only)
+diff --git a/src/overlay_14_021F2E78.c b/src/overlay_14_021F2E78.c
+--- a/src/overlay_14_021F2E78.c
++++ b/src/overlay_14_021F2E78.c
+@@ -22,3 +22,3 @@
+     ptr = ov14_021F2DC4(*((void **)&arg0->sys), boxMon, &v0);
+-    ov14_021F2E78(arg0->sys, *(u8 **)((u8 *)v0 + 0x14), arg2, Boxmon_GetIconPalette(boxMon));
++    ov14_021F2E78(arg0->sys, ((NNSG2dCharacterData *)v0)->pRawData, arg2, Boxmon_GetIconPalette(boxMon));
+     Heap_Free(ptr);
+diff --git a/src/overlay_18_021F3FDC_021F4A6C.c b/src/overlay_18_021F3FDC_021F4A6C.c
+--- a/src/overlay_18_021F3FDC_021F4A6C.c
++++ b/src/overlay_18_021F3FDC_021F4A6C.c
+@@ -20,3 +20,3 @@
+     SpriteSystem_LoadAnimResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x71, 1, 0xC55B);
+-    if (PlayerProfile_GetTrainerGender(*(PlayerProfile **)((u8 *)(*(void **)arg0) + 4)) == 0) {
++    if (PlayerProfile_GetTrainerGender(((PokedexAppData *)arg0)->args->playerProfile) == 0) {
+         SpriteSystem_LoadCharResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x69, 1, 1, 0xC59B);
+hgfly1 (F:fly on HG, after hgfly1-0001: SIGSEGV in sub_02023FB0 <- ov01_02203654 <- sub_02068D18, the follower's Fly effect):
+ov01_021F771C returned the follower's billboard as the first u32 of its work block (half a pointer on 64 bits) and
+ov01_021F7704 wrote unk_15 at the DS offset 0x15; both typed on MapObjectBillboardWorkB (the follower's work, ov01_021F7504).
+Handover-ID: hgfly1-0002
+diff --git a/src/overlay_01_021F72DC_021F7704.c b/src/overlay_01_021F72DC_021F7704.c
+--- a/src/overlay_01_021F72DC_021F7704.c
++++ b/src/overlay_01_021F72DC_021F7704.c
+@@ -3,20 +3,21 @@
+ #include "map_object.h"
+ #include "overlay_01.h"
+ #include "field_types_def.h"
++#include "overlay_01_021F944C.h"
+ 
+ 
+ uintptr_t ov01_021F771C(MapObjectManager *param_1);
+ 
+ void ov01_021F7704(LocalMapObject *object) {
+-    *(s8 *)((u8 *)(sub_0205F40C(object)) + 0x15) = 0;
++    ((MapObjectBillboardWorkB *)sub_0205F40C(object))->unk_15 = 0;
+     MapObject_GetFacingVector(object)->y = 0;
+ }
+ 
+ uintptr_t ov01_021F771C(MapObjectManager *param_1) {
+     LocalMapObject *object;
+-    u8 *puVar1;
++    MapObjectBillboardWorkB *work;
+ 
+     object = MapObjectManager_GetFirstActiveObjectByID(param_1, 0xfd);
+-    puVar1 = sub_0205F40C(object);
+-    return *(u32 *)puVar1;
++    work = (MapObjectBillboardWorkB *)sub_0205F40C(object);
++    return (uintptr_t)work->billboard;
+ }
+hgfly1 (F:waterfall on HG: SIGSEGV in NNS_FndAllocFromAllocator <- NNS_G3dAllocAnmObj <- ov02_0224D0C8 <- ov02_0224D488, the
+waterfall's 3D effect): its task init ov02_0224D43C cleared 0x1CC bytes and set up the allocator at the DS offset 0x1B8 of
+UnkStruct_ov6_02248498 (larger on 64 bits: the allocator ov02_0224D488 passes was never set up); typed on the struct.
+Handover-ID: hgfly1-0003
+diff --git a/src/overlay_02_02248728_0224D43C.c b/src/overlay_02_02248728_0224D43C.c
+--- a/src/overlay_02_02248728_0224D43C.c
++++ b/src/overlay_02_02248728_0224D43C.c
+@@ -863,9 +863,11 @@
+ void ov02_0224D468(UnkStruct_ov5_021D1BEC *param0, FieldSystem *fieldSystem, void *param2);
+ 
+ void ov02_0224D43C(uintptr_t param_1, uintptr_t param_2, void *param_3) {
+-    memset(param_3, 0, 0x1cc);
+-    HeapExp_FndInitAllocator((NNSFndAllocator *)((u8 *)param_3 + 0x1b8), HEAP_ID_FIELD1, 0x20);
+-    *(u16 *)((u8 *)param_3 + 0x1ca) = 0;
++    UnkStruct_ov6_02248498 *work = param_3;
++
++    memset(work, 0, sizeof(*work));
++    HeapExp_FndInitAllocator(&work->unk_1B8, HEAP_ID_FIELD1, 0x20);
++    work->unk_1C8 = 0;   // the DS cleared its high half (ov02_0224D488's state); the memset did all of it
+     return;
+ }
+ 

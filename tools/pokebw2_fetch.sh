@@ -46,6 +46,12 @@ PATCHES=(
     pokebw2-vmjump.patch
     pokebw2-eventsizes.patch
     pokebw2-allocsizes.patch
+    pokebw2-worksizes.patch
+    pokebw2-cullstate.patch
+    pokebw2-tcbslot.patch
+    pokebw2-heapreport.patch
+    pokebw2-blackfixes.patch
+    pokebw2-heapalign.patch
 )
 SPARSE='/src/
 /lib/

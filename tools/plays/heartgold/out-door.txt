@@ -1,0 +1,10 @@
+# game: heartgold
+# from: hg-room1
+# reaches: out of the player's house: the reload (room-load's keys), B closes the X menu, down to the door mat and out
+# end: f12600
+# reaches (hg30): crash 77 at f11080 after the warp (sub_02061E00(NULL), map object movement)
+# reaches (hg31): outside the house (crashes 77/78 fixed); crash 79 at f11600: SIGSEGV ov01_0220035C <- ov01_0220059C <- ov01_02200540, the exclamation emote's field effect (ov01_022001E4 unit: a u32[4] work at DS offsets holding pointers)
+# reaches (hg33, pin daf432b8a): crash 79 fixed upstream; crash 80 at f11602 (sub_02062F48 stored the emote anim manager at raw +4) fixed: the town at f12722, south of the house
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+walk 10800 40 down8 w600

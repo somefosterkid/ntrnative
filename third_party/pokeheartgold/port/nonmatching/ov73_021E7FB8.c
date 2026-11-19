@@ -1,0 +1,550 @@
+#include "global.h"
+
+struct ApplicationManager;
+struct ApplicationManagerTemplate;
+struct BgConfig;
+struct BoxPokemon;
+struct DWCstAccLoginId;
+struct DWCstAccUserData;
+struct DWCstInetControl;
+struct FrontierPokemon;
+struct G2dRenderer;
+struct Menu;
+struct MessageLoader;
+struct Options;
+struct SaveData;
+struct Sprite;
+struct SpriteList;
+struct SpriteResource;
+struct SpriteResourceCollection;
+struct SpriteResourcesHeader;
+struct String;
+struct StringTemplate;
+struct SysTask;
+struct SysTaskManager;
+struct SystemData;
+struct WifiBattleTowerAppState;
+struct WifiBattleTowerDownloadBuffer;
+struct WifiBattleTowerDownloadData;
+struct WifiBattleTowerMatchCandidate;
+struct WifiBattleTowerRecord;
+struct WifiPlayerProfile;
+struct Window;
+struct WorldExchangeTrainer;
+struct WorldExchangeTrainerError;
+struct tagDWCWDSData;
+typedef enum {
+    DWC_WDS_STATE_IDLE         = 0,
+    DWC_WDS_STATE_PROCESS      = 1,
+    DWC_WDS_STATE_COMPLETED    = 2,
+    DWC_WDS_STATE_FAILED       = 3,
+    DWC_WDS_STATE_ERROR        = 4
+} DWCWDSState;
+typedef struct tagDWCWDSData {
+    u8 ssid[32 ];
+    u8 wep[32 ];
+    int wepMode;
+    char apnum[10];
+} DWCWDSData;
+typedef struct DWCstInetControl {
+    volatile int ac_state;
+    u16 state;
+    u16 online;
+    u16 dmaNo;
+    u16 powerMode;
+    u8 wontExecuteWDS;
+    DWCWDSState processWDSstate;
+    DWCWDSData nspotInfo;
+
+
+
+} DWCInetControl;
+extern BOOL DWC_UpdateConnection(void);
+typedef enum {
+    DWC_ALLOCTYPE_AUTH,
+    DWC_ALLOCTYPE_AC,
+    DWC_ALLOCTYPE_BM,
+    DWC_ALLOCTYPE_UTIL,
+    DWC_ALLOCTYPE_BASE,
+    DWC_ALLOCTYPE_GS,
+    DWC_ALLOCTYPE_ND,
+
+    DWC_ALLOCTYPE_ENC,
+    DWC_ALLOCTYPE_MAIL,
+
+    DWC_ALLOCTYPE_LAST
+} DWCAllocType;
+typedef void *(*DWCAllocEx)(DWCAllocType name, u32 size, int align);
+typedef void (*DWCFreeEx )(DWCAllocType name, void * ptr, u32 size);
+void DWC_SetMemFunc(DWCAllocEx alloc, DWCFreeEx free);
+typedef struct DWCstAccLoginId {
+    u32 id_data;
+    u32 userid_lo32;
+    u32 playerid;
+} DWCAccLoginId;
+typedef struct DWCstAccUserData {
+    int size;
+    DWCAccLoginId pseudo;
+    DWCAccLoginId authentic;
+    int gs_profile_id;
+    int flag;
+    u32 gamecode;
+    int reserved[5];
+    u32 crc32;
+} DWCAccUserData;
+typedef DWCAccUserData DWCUserData;
+enum PokemonStat {
+    STAT_HP              = 0,
+    STAT_ATTACK          = 1,
+    STAT_DEFENSE         = 2,
+    STAT_SPEED           = 3,
+    STAT_SPECIAL_ATTACK  = 4,
+    STAT_SPECIAL_DEFENSE = 5,
+    STAT_MAX             = 6,
+};
+typedef u16 charcode_t;
+typedef struct String String;
+typedef struct SaveData SaveData;
+typedef struct Options Options;
+typedef struct BoxPokemon BoxPokemon;
+typedef struct SysTask SysTask;
+typedef struct SysTaskManager SysTaskManager;
+typedef void (*SysTaskFunc)(SysTask *, void *);
+enum TaskState {
+    TASK_STATE_ACTIVE = 0,
+    TASK_STATE_INACTIVE,
+};
+struct SysTask {
+    SysTaskManager *manager;
+    SysTask *prevTask;
+    SysTask *nextTask;
+    u32 priority;
+    void *param;
+    SysTaskFunc callback;
+    enum TaskState state;
+};
+struct SysTaskManager {
+    u16 maxTasks;
+    u16 stackPointer;
+    SysTask sentinelTask;
+    SysTask **taskStack;
+    SysTask *tasks;
+    BOOL locked;
+    SysTask *currentTask;
+    SysTask *nextTask;
+};
+typedef struct SpriteList SpriteList;
+typedef struct Sprite {
+    VecFx32 position;
+    VecFx32 affineTranslation;
+    VecFx32 affineScale;
+    u16 affineZRotation;
+    u8 affineOverwriteMode;
+    u8 flip;
+    u8 overwriteFlags;
+    u8 explicitPalette;
+    u8 explicitPaletteOffset;
+    BOOL explicitMosaic;
+    GXOamMode explicitOamMode;
+    u8 draw;
+    u8 animate;
+    fx32 animSpeed;
+    SpriteList *list;
+
+
+
+    u32 animData[29 ];
+    NNSG2dImageProxy imageProxy;
+    NNSG2dImagePaletteProxy paletteProxy;
+    u32 type;
+    u16 activeAnimID;
+    u8 explicitPriority;
+    u16 priority;
+    enum NNS_G2D_VRAM_TYPE vramType;
+    struct Sprite *prev;
+    struct Sprite *next;
+} Sprite;
+struct SpriteList {
+    Sprite *sprites;
+    int capacity;
+    Sprite **freeSprites;
+    int freeSpriteHead;
+    Sprite sentinelData;
+    NNSG2dRendererInstance *renderer;
+    void *rawAnimData;
+    NNSG2dCellAnimBankData *defaultAnimBank;
+    BOOL active;
+};
+typedef struct SpriteResourcesHeader {
+    const NNSG2dImageProxy *imageProxy;
+    const NNSG2dCharacterData *charData;
+    const NNSG2dImagePaletteProxy *paletteProxy;
+    NNSG2dCellDataBank *cellBank;
+    const NNSG2dCellAnimBankData *cellAnimBank;
+    const NNSG2dMultiCellDataBank *multiCellBank;
+    const NNSG2dMultiCellAnimBankData *multiCellAnimBank;
+    BOOL isVRamTransfer;
+    u8 priority;
+    u8 padding_21[3];
+} SpriteResourcesHeader;
+void SpriteList_RenderAndAnimateSprites(const SpriteList *collection);
+typedef struct SpriteResource SpriteResource;
+typedef struct SpriteResourceCollection SpriteResourceCollection;
+typedef struct G2dRenderer {
+    NNSG2dRendererInstance renderer;
+    NNSG2dRenderSurface mainScreen;
+    NNSG2dRenderSurface subScreen;
+} G2dRenderer;
+typedef struct StringTemplate StringTemplate;
+typedef struct FrontierPokemon {
+    struct {
+        u16 species : 11;
+        u16 form : 5;
+    };
+    u16 item;
+    u16 moves[4 ];
+    u32 otID;
+    u32 personality;
+    union {
+        struct {
+            u32 hpIV : 5;
+            u32 atkIV : 5;
+            u32 defIV : 5;
+            u32 speedIV : 5;
+            u32 spAtkIV : 5;
+            u32 spDefIV : 5;
+            u32 setSpeciesAsNickname : 1;
+            u32 : 1;
+        };
+        u32 combinedIVs;
+    };
+    union {
+        struct {
+            u8 hpEV;
+            u8 atkEV;
+            u8 defEV;
+            u8 speedEV;
+            u8 spAtkEV;
+            u8 spDefEV;
+        };
+        u8 evList[STAT_MAX];
+    };
+    union {
+        struct {
+            u8 move0PPUps : 2;
+            u8 move1PPUps : 2;
+            u8 move2PPUps : 2;
+            u8 move3PPUps : 2;
+        };
+        u8 combinedPPUps;
+    };
+    u8 language;
+    u8 ability;
+    u8 friendship;
+    u16 nickname[10 + 1];
+} FrontierPokemon;
+typedef struct WifiPlayerProfile {
+    FrontierPokemon mons[3];
+    charcode_t name[7 + 1];
+    u8 version;
+    u8 language;
+    u8 country;
+    u8 region;
+    u8 trainerInfoId[4];
+    s8 no1Sentence[8];
+    union {
+        struct {
+            u8 sLotoId : 1;
+            u8 gender : 1;
+            u8 : 6;
+        };
+        u8 unused2;
+    };
+    u8 appearance;
+    s8 battleSentences[24];
+    u16 ratingScore;
+} WifiPlayerProfile;
+typedef struct WifiBattleTowerMatchCandidate {
+    u16 trainerName[8];
+    u8 padding_10[2];
+    u8 country;
+    u8 region;
+    u8 padding_14[4];
+    u16 trainerKey[4];
+    u8 isAnonymous : 1;
+    u8 anonymousNameIdx : 1;
+} WifiBattleTowerMatchCandidate;
+typedef struct WifiBattleTowerDownloadBuffer {
+    WifiPlayerProfile wifiPlayerProfile[7];
+    WifiBattleTowerMatchCandidate matchCandidates[30];
+} WifiBattleTowerDownloadBuffer;
+typedef struct WifiBattleTowerDownloadData WifiBattleTowerDownloadData;
+typedef struct WifiBattleTowerRecord WifiBattleTowerRecord;
+typedef struct SystemData SystemData;
+typedef struct {
+    WifiBattleTowerRecord *record;
+    WifiBattleTowerDownloadData *downloadData;
+    SystemData *systemData;
+    SaveData *saveData;
+    Options *options;
+    DWCUserData *userData;
+    int mode;
+    int profileId;
+    int unk_20;
+    int unk_24;
+} UnkStruct_0206BC70;
+typedef struct WorldExchangeTrainer {
+    u8 gameCode;
+    u8 language;
+    u8 country;
+    u8 unk_03;
+    u32 trainerId;
+    u16 trainerName[7 + 1];
+    u32 unk_10;
+    u8 macAddress[6];
+    u8 unk_1A[2];
+    char email[56];
+    u32 emailInitialised;
+    u16 rngValue;
+    u16 unk_5A;
+} WorldExchangeTrainer;
+typedef struct WorldExchangeTrainerError {
+    u32 validationError;
+    u32 systemError;
+} WorldExchangeTrainerError;
+typedef struct {
+    SysTask *unk_00;
+    BOOL unk_04;
+    u16 unk_08[4][16];
+    u16 unk_88[21][16];
+    s16 unk_328;
+    s8 unk_32A;
+    u8 unk_32B;
+} UnkStruct_ov61_0222C3B0;
+typedef struct BgConfig BgConfig;
+typedef struct Window {
+    BgConfig *bgConfig;
+    u8 bgLayer;
+    u8 tilemapLeft;
+    u8 tilemapTop;
+    u8 width;
+    u8 height;
+    u8 palette;
+    u16 baseTile : 15;
+    u16 colorMode : 1;
+    void *pixels;
+} Window;
+typedef struct MessageLoader MessageLoader;
+typedef struct Menu Menu;
+enum WifiBattleTowerState {
+    BT_STATE_INITIAL_PROMPT = 0,
+    BT_STATE_INITIAL_YES_NO_MENU,
+    BT_STATE_INIT_INET,
+    BT_STATE_WAIT_INET_CONNECT,
+    BT_STATE_INIT_NAS_LOGIN,
+    BT_STATE_WAIT_NAS_LOGIN,
+    BT_STATE_INIT_HTTP,
+    BT_STATE_REQUEST_INFO,
+    BT_STATE_WAIT_INFO,
+    BT_STATE_SET_PROFILE,
+    BT_STATE_WAIT_SET_PROFILE,
+    BT_STATE_REQUEST_ROOM_COUNT,
+    BT_STATE_WAIT_ROOM_COUNT,
+    BT_STATE_SELECT_OPPONENT_PROMPT,
+    BT_STATE_DRAW_OPPONENT_SELECT,
+    BT_STATE_SELECT_OPPONENT,
+    BT_STATE_DOWNLOAD_PROMPT,
+    BT_STATE_REQUEST_DOWNLOAD,
+    BT_STATE_WAIT_DOWNLOAD,
+    BT_STATE_DOWNLOAD_COMPLETE_PROMPT,
+    BT_STATE_ALREADY_CHALLENGED_PROMPT,
+    BT_STATE_EXIT_PROMPT,
+    BT_STATE_EXIT_YES_NO,
+    BT_STATE_EXIT_MATCH_LIST_PROMPT,
+    BT_STATE_EXIT_MATCH_LIST_YES_NO,
+    BT_STATE_UPLOAD_PROMPT,
+    BT_STATE_REQUEST_UPLOAD,
+    BT_STATE_WAIT_UPLOAD,
+    BT_STATE_UPLOAD_COMPLETE_PROMPT,
+    BT_STATE_SELECT_RANK_PROMPT,
+    BT_STATE_DRAW_RANK_SELECT,
+    BT_STATE_SELECT_RANK,
+    BT_STATE_MATCH_LIST_SELECT_PROMPT,
+    BT_STATE_DRAW_MATCH_LIST_SELECT,
+    BT_STATE_SELECT_MATCH_LIST,
+    BT_STATE_DOWNLOAD_MATCH_LIST_PROMPT,
+    BT_STATE_REQUEST_MATCH_LIST,
+    BT_STATE_WAIT_MATCH_LIST,
+    BT_STATE_MATCH_LIST_COMPLETE_PROMPT,
+    BT_STATE_INIT_SAVE,
+    BT_STATE_WAIT_SAVE,
+    BT_STATE_GOODBYE_PROMPT,
+    BT_STATE_CLEANUP_INET,
+    BT_STATE_DISCONNECTING_PROMPT,
+    BT_STATE_IDLE,
+    BT_STATE_DISCONNECT_ENTRY,
+    BT_STATE_END_SESSION,
+    BT_STATE_WAIT_TEXT,
+    BT_STATE_WAIT_TEXT_YES_NO,
+    BT_STATE_WAIT_TEXT_TIMED,
+    BT_STATE_DISCONNECT_YES_NO,
+    BT_STATE_CONNECTED_PROMPT,
+    BT_STATE_CONNECTED_YES_NO_MENU,
+    BT_STATE_SHOW_ERROR,
+    BT_STATE_ERROR_CLEANUP,
+    BT_STATE_SHOW_DWC_ERROR,
+    BT_STATE_DWC_ERROR_ACK,
+};
+typedef struct WifiBattleTowerAppState {
+    UnkStruct_0206BC70 *args;
+    BgConfig *bgConfig;
+    int unk_08;
+    int unk_0C;
+    int screenMode;
+    int exitMode;
+    int unused_18;
+    enum WifiBattleTowerState state;
+    enum WifiBattleTowerState nextState;
+    void *dwcHeapBuffer;
+    NNSFndHeapHandle dwcHeap;
+    DWCInetControl inetControl;
+    int playerRank;
+    int selectedRank;
+    int matchCount;
+    int selectedOpponentIdx;
+    WifiBattleTowerDownloadBuffer downloadBuffer;
+    WifiPlayerProfile wifiPlayerProfile;
+    u16 unk_BB8;
+    u16 unk_BBA;
+    u16 unk_BBC;
+    u16 unk_BBE;
+    BoxPokemon *unk_BC0;
+    int unk_BC4;
+    int unk_BC8;
+    StringTemplate *stringTemplate;
+    MessageLoader *msgLoader1;
+    MessageLoader *msgLoader2;
+    MessageLoader *msgLoader3;
+    String *msgString;
+    String *titleString;
+    String *opponentIdxString;
+    String *rankString;
+    String *errorString;
+    int textPrinterID;
+    SpriteList *spriteList;
+    G2dRenderer renderer;
+    SpriteResourceCollection *resourceCollection[4];
+    SpriteResource *spriteResource[3][4];
+    SpriteResourcesHeader arrowSpriteHeader;
+    SpriteResourcesHeader unk_DE8;
+    SpriteResourcesHeader unk_E0C;
+    Sprite *selectionArrows[2];
+    Window msgWindow;
+    Window rankWindow;
+    Window opponentWindow;
+    Window titleWindow;
+    Window popupWindow;
+    Window unk_E88[3];
+    Window unk_EB8[11];
+    Menu *yesNoMenu;
+    void *waitDial;
+    int dwcError;
+    int dwcErrorDetail;
+    int dwcErrorType;
+    int asyncResult;
+    int waitTimer;
+    WorldExchangeTrainer weTrainer;
+    WorldExchangeTrainerError weTrainerErr;
+    s16 subStep;
+    s16 subTimer;
+    int timeoutCounter;
+    UnkStruct_ov61_0222C3B0 unk_FF8;
+} WifiBattleTowerAppState;
+typedef struct ApplicationManager ApplicationManager;
+typedef BOOL (*OverlayFunc)(ApplicationManager *appMan, int *state);
+typedef struct ApplicationManagerTemplate {
+    OverlayFunc init;
+    OverlayFunc main;
+    OverlayFunc exit;
+    const FSOverlayID overlayID;
+} ApplicationManagerTemplate;
+struct ApplicationManager {
+    ApplicationManagerTemplate template;
+    int execState;
+    int procState;
+    void *args;
+    void *data;
+    ApplicationManager *parent;
+    ApplicationManager *child;
+};
+void *OverlayManager_GetData(ApplicationManager *appMan, int *);
+enum WifiBattleTowerLoopState {
+    BT_LOOP_STATE_WAIT_FOR_WIRELESS_DRIVER,
+    BT_LOOP_STATE_INIT,
+    BT_LOOP_STATE_WAIT_FADE,
+    BT_LOOP_STATE_MAIN,
+    BT_LOOP_STATE_FINISH,
+    BT_LOOP_STATE_EXIT,
+};
+void ov72_022378DC(void);
+int ov73_021E84D0(WifiBattleTowerAppState *appState, int unused);
+int WifiBattleTower_ScreenMain(WifiBattleTowerAppState *appState, int unused);
+int WifiBattleTower_ScreenExit(WifiBattleTowerAppState *appState, int unused);
+BOOL IsPaletteFadeFinished(void);
+BOOL sub_02034DB8(void);
+void ov73_021E841C(DWCAllocType sLotoId, void *ptr, u32 unused2);
+void *ov73_021E83F4(DWCAllocType unused, u32 size, int alignment);
+/* invented: pooled block _021EA940 (sDwcHeap at +4; unk_00 unknown) */
+typedef struct { u32 unk_00; NNSFndHeapHandle sDwcHeap; } OvStatics73;
+extern OvStatics73 _021EA940;
+extern int (*ov73_021EA83C[1][3])(WifiBattleTowerAppState *, int);
+void WifiBattleTower_SetState(WifiBattleTowerAppState *appState, enum WifiBattleTowerState state, enum WifiBattleTowerState nextState);
+
+
+
+
+
+BOOL ov73_021E7FB8(ApplicationManager *appMan, int *state);
+BOOL ov73_021E7FB8(ApplicationManager *appMan, int *state)
+{
+    WifiBattleTowerAppState *appState = OverlayManager_GetData(appMan, state);
+
+    DWC_UpdateConnection();
+    ov72_022378DC();
+    DWC_UpdateConnection();
+
+    switch (*state) {
+    case BT_LOOP_STATE_WAIT_FOR_WIRELESS_DRIVER:
+        if (sub_02034DB8()) {
+            _021EA940.sDwcHeap = appState->dwcHeap;
+            DWC_SetMemFunc(ov73_021E83F4, ov73_021E841C);
+            *state = BT_LOOP_STATE_INIT;
+        }
+        break;
+    case BT_LOOP_STATE_INIT:
+        *state = (*ov73_021EA83C[appState->screenMode][0])(appState, *state);
+        break;
+    case BT_LOOP_STATE_WAIT_FADE:
+        if (IsPaletteFadeFinished()) {
+            *state = BT_LOOP_STATE_MAIN;
+        }
+        break;
+    case BT_LOOP_STATE_MAIN:
+        *state = (*ov73_021EA83C[appState->screenMode][1])(appState, *state);
+        break;
+    case BT_LOOP_STATE_FINISH:
+        if (IsPaletteFadeFinished()) {
+            *state = (*ov73_021EA83C[appState->screenMode][2])(appState, *state);
+        }
+        break;
+    case BT_LOOP_STATE_EXIT:
+        return TRUE;
+        break;
+    }
+
+    if (appState->spriteList != NULL) {
+        SpriteList_RenderAndAnimateSprites(appState->spriteList);
+    }
+
+    return FALSE;
+}

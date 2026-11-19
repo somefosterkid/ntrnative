@@ -1,0 +1,440 @@
+# Platinum (tools/route.py pt). name | start | pilot tokens | end | save | flags
+# The field adapter and frame hook: port/game/route_gen4.c (pokeplatinum-route.patch calls PortRoute4_Frame each field frame).
+# A leg from a save starts in the field: route.py's SAVE_START passes the title first (K0:6300 Ks:10 K0:390 Ka:10 Wf: CONTINUE,
+# as tools/plays/platinum/room-load), so no leg here writes it. S saves through the X menu (route_gen4.c): a leg's save chains.
+# new-look: NEWGAME through the title, Rowan's intro and the naming to the player's room (as tools/plays/platinum/boot-room,
+# frame-timed K / T tokens; a K token runs N+1 frames). The intro: the title (start), A through the text, the 3-option box's
+# third row (down, down, A), then the poke ball, which wants a stylus press while its prompt waits (rowan_intro_app.c
+# RI_STATE_PKBL_WAIT_INPUT): a key there starts the wrong-button reprimand, and a touch while any text still prints is
+# ignored. The intro runs at 30 fps, so a message takes ~200 V-blanks: each cycle is A, 200 frames, an 11-frame touch (the
+# 4th opens it at V-blank 9864). Then start + A cycles: A through the text and the gender (the default), start + A on the
+# naming keyboards (the default names), into the room (zone 415 at V-blank ~18660), Wf through its scene.
+new-look | NEWGAME | K0:6300 Ks:6 K0:394 (Ka:6 K0:114)*6 Ka:6 K0:294 Ka:6 K0:694 Ka:6 K0:174 KD:6 K0:34 KD:6 K0:34 Ka:6 K0:214 (Ka:6 K0:200 T:128,100:11 K0:20)*5 (Ks:4 K0:30 Ka:4 K0:120)*50 Wf | zone 415 4,6
+room-look | pt-room | Md C | zone 415 4,6
+down | pt-room | G:warp:414 Wf | zone 414 10,3
+mom | pt-room | G:warp:414 Wf G:npc:0 Wf | zone 414 8,8
+out | pt-room | G:warp:414 Wf G:npc:0 Wf G:warp:411 Wf S | zone 411 116,886 | pt-out
+# barry: Twinleaf's coord event 1 at the rival's door (RivalThud: he runs out, bumps the player, goes back in), into his house
+# (412), upstairs (413): its frame script sends him off (FLAG_RIVAL_LEFT_HOME; the guitarist at the north exit, trigger 0, then
+# lets the player by: its trigger, work 0x4070, is dead then). Next legs: north (Route 201), scene (the rival and the professor), starter.
+barry | pt-out | G:trig:1 Wf:60 G:warp:412 Wf G:warp:413 Wf:200 S | zone 413 3,5 | pt-barry
+# north: down out of the rival's house, across Twinleaf (its north exit's guitarist trigger is dead once the rival has left home) and onto Route 201's south end; the scene's trigger is six tiles on.
+north | pt-barry | G:warp:412 Wf G:warp:411 Wf G:warp:342 Wf:60 S | zone 342 110,863 | pt-r201
+# scene: the rival's coordinate event on Route 201 (script 2, work 0x4086 = 0): he runs at the player, the professor steps in, two yes/no questions (Py Py: the second one loops on No), the counterpart brings the briefcase; ends free with the briefcase actor on the ground, before choosing.
+scene | pt-r201 | G:trig:0 Py Py Wf S | zone 342 114,854 | pt-briefcase
+# starter: open the briefcase (G:npc:12:nota, Wf:20 settles the player, Ka:5 is the A that talks), the choice app's A presses take the default left ball, the professor and the counterpart leave, the rival challenges (Py: yes), the first battle (the test cheat: one hit; --no-cheat plays it in full), the story warps home (zone 414) and the mother's scene gives the running shoes; S once the field is free
+starter | pt-briefcase | Pa G:npc:12:nota Wf:20 Ka:5 Py Wf:60 S W30 | zone 414 6,8 | pt-starter
+# follow: out of the house, up Route 201 to its trigger 5 (work 0x4086 = 2: the rival notices the player and becomes the follower, state 3). Needs pokeplatinum-widepointers8.patch: that scene's movement list lies BEFORE its script (a negative offset), which crashed ApplyMovement on the 64-bit host
+follow | pt-starter | G:warp:411 Wf G:warp:342 Wf:60 G:trig:5 Wf S | zone 342 113,857 | pt-follow
+# lake: Route 201 to the lakefront (zone 334), its trigger 0 walks into the lake's low-water map (311; the normal lake, 312, is used only after the Valor Cavern commander is beaten: the lakefront's OnLoad swaps the warps), whose OnFrame scene runs: the rival leaves, state 4. Free again at 46,53
+lake | pt-follow | G:warp:334 Wf:60 G:trig:0 Wf S | zone 311 46,53 | pt-lake
+# lab: back out of the lake and across Route 201 to Sandgem's trigger column x 164 (z 842-847; the goal tile 164,845: its top tile is a wall), whose script leads into the lab (zone 422) and plays the scene: the nickname question No (Pn), the second question Yes (Py: No loops), the Pokedex flag set. Free at 7,6
+lab | pt-lake | G:warp:334 Wf:60 G:164,845 Pn Py Wf S | zone 422 7,6 | pt-lab
+# tour: out of the lab (zone 418): its OnFrame_ExitLab scene (script 3, VAR_SANDGEM_TOWN_STATE 1 -> 2) plays by itself, ends free at the Mart door's tile
+tour | pt-lab | G:warp:418 Wf S | zone 418 187,844 | pt-tour
+# parcel: back from Sandgem to the house (Route 201 and Twinleaf by G:warp), talk to the mother (uid 0; the Pokedex flag makes her give the journal, then the rival's mother comes in with the parcel; no question in it). Route 202's catching scene refuses (tell your family) until this flag is set
+parcel | pt-tour | G:warp:411 Wf:60 G:warp:414 Wf G:npc:0 Wf S | zone 414 6,8 | pt-parcel
+# catch: Twinleaf -> Route 201 -> Sandgem -> Route 202 by G:warp, then the coordinate event (trigger 0, x 180, z 825-829, VAR_ROUTE_202_STATE 0 -> 1): the counterpart runs up, the catching demonstration (a scripted tutorial battle, no input needed), five balls, the counterpart leaves. Free at 178,829
+catch | pt-parcel | G:warp:411 Wf:60 G:warp:342 Wf:60 G:warp:343 Wf:60 G:trig:0 Wf S | zone 343 178,829 | pt-catch
+# r202: Route 202 north to Jubilife (zone 3) by G:warp. Three trainers (uid 0-2 of zone 343) see the player on the way: the walk presses through each battle itself (the pilot's event 2: A in the action menu; no Pa). Arrives east of the city's first-arrival trigger (z 796, x 173-176)
+r202 | pt-catch | G:warp:3 Wf S | zone 3 177,799 | pt-r202
+# jubilife: the city's first-arrival trigger (script 2, x 173-176, z 796): the counterpart runs up, the detective Looker appears and gives the VS Recorder, one yes/no (Py; both answers lead on), the walk north to the school; Pa presses through the text. The next trigger (T4, script 17, VAR_POKETCH_CAMPAIGN_STATE) is at the school door
+jubilife | pt-r202 | Pa G:trig:0 Py Wf S | zone 3 175,775 | pt-jubilife
+# school: the school (zone 29) and the rival's talk (uid 1, no question). Its flags unhide the Poketch company's people in the city, whose campaign trigger (zone 3 T4, x 172-176, z 776) is the next step. Needed before the Looker lets the player east to Route 203 (the Poketch is given at the end of that campaign)
+school | pt-jubilife | Pa G:warp:29 Wf G:npc:1 Wf S | zone 29 7,3 | pt-school
+# campaign: out of the school into the city; the campaign trigger T4 (x 172-176, z 776, script 17): the president asks the player to find three clowns (state 2). Pa presses through the text.
+campaign | pt-school | Pa G:warp:3 Wf G:trig:4 Wf S | zone 3 172,776 | pt-campaign
+# clowns: the three clowns of zone 3 (uids 24, 25, 27) each ask one yes/no question whose right answer is Yes and give a coupon. They wander: the talk is Ka:5 right after the walk's settle (clown 2 walks off if the settle is long: Wf:6). Pa presses the text; Py answers.
+clowns | pt-campaign | Pa G:npc:24:nota Wf:20 Ka:5 Py Wf:60 G:npc:25:nota Wf:6 Ka:5 Py Wf:60 G:npc:27:nota Wf:20 Ka:5 Py Wf:60 S | zone 3 163,752 | pt-clowns
+# poketch: with all three coupons the president (uid 23, at 174,771; the plan talks from the tile north of him, 174,770: the planner sees actors where they stand) gives the Pokétch in the city itself: the apps are registered by the script, no touch screen step. Needs ovl.c's NitroStaticInit (port/include_plat/nitro/sinit.h) and port_plat.h's real FS_OVERLAY_ID: the Pokétch app overlay's init hands the system its New/Exit.
+poketch | pt-clowns | Pa G:npc:23:nota Wf:20 Ka:5 Wf:300 S | zone 3 174,770 | pt-poketch
+# r203: Jubilife's east exit is open once the Pokétch is given (VAR_JUBILIFE_CITY_STATE 2). Route 203's coordinate event 0 starts the rival's second battle (the pilot presses through the text and the battle's menus; the test cheat wins it in a hit).
+r203 | pt-poketch | G:warp:344 Wf:60 G:trig:0 Wf:60 S | zone 344 196,760 | pt-r203
+# gate: Route 203 east to Oreburgh Gate 1F (G:warp:258; the trainers on the way are fought by the walk), its coordinate event 0 at 7,22: the hiker's scene (FLAG_RECEIVED_HM06).
+gate | pt-r203 | G:warp:258 Wf:60 G:trig:0 Wf:60 S | zone 258 7,22 | pt-gate
+# oreburgh: out of the gate into the city (G:warp:45), east through trigger 0 (x 266, z 748-751): the youngster walks the player to the gym; the city's state becomes 1.
+oreburgh | pt-gate | G:warp:45 Wf:60 G:trig:0 Wf:60 S | zone 45 279,759 | pt-oreburgh
+# mine: the city's mine door (G:warp:198), down to B2F (G:warp:199), the leader's script (uid 0 at 18,28: the scene, no question). The trainers on the way are fought by the walk; the settle Wf:20 and Ka:5 start the talk.
+mine | pt-oreburgh | G:warp:198 Wf:60 G:warp:199 Wf:60 G:npc:0:nota Wf:20 Ka:5 Wf:400 S | zone 199 18,29 | pt-mine
+# gym: up out of the mine, across the city into the gym (G:warp:47); the gym's trainers fight on the way (the walk), the leader's talk (uid 0 at 5,3: Ka:5 after the settle) and battle (test cheat: a hit), the badge and the TM.
+gym | pt-mine | G:warp:198 Wf:60 G:warp:45 Wf:60 G:warp:47 Wf:60 G:npc:0:nota Wf:20 Ka:5 Wf:900 S | zone 47 5,4 | pt-gym
+oreburgh | pt-gate | Pa G:warp:45 Wf:60 G:trig:0 Wf:60 S | zone 45 279,759 | pt-oreburgh
+# mine: the city's mine door (G:warp:198), down to B2F (G:warp:199), the leader's script (uid 0 at 18,28: the scene, no question). Pa for the trainers on the way; the settle Wf:20 and Ka:5 start the talk.
+mine | pt-oreburgh | Pa G:warp:198 Wf:60 G:warp:199 Wf:60 G:npc:0:nota Wf:20 Ka:5 Wf:400 S | zone 199 18,29 | pt-mine
+# gym: up out of the mine, across the city into the gym (G:warp:47); the gym's trainers fight on the way (Pa), the leader's talk (uid 0 at 5,3: Ka:5 after the settle) and battle (test cheat: a hit), the badge and the TM.
+gym | pt-mine | Pa G:warp:198 Wf:60 G:warp:45 Wf:60 G:warp:47 Wf:60 G:npc:0:nota Wf:20 Ka:5 Wf:900 S | zone 47 5,4 | pt-gym
+# orerival: out of the gym, west to trigger 1 (x 262, z 748-751): the rival runs into the player and says Eterna is the next gym; VAR_OREBURGH_CITY_STATE 3; Route 207 needs a bicycle
+orerival | pt-gym | Pa G:warp:45 Wf:60 G:trig:1 Wf:60 S | zone 45 261,751 | pt-orerival
+# galactic: back east to Jubilife (Oreburgh gate, Route 203) and its north trigger 1 (x 173, z 743, state 3 -> 4): two grunts, a tag battle with the counterpart as partner (test cheat; the target menu's pilot hook PortRoute4_TargetCursorKeep puts the cursor on a present grunt in turn 2), the professor talks after
+galactic | pt-orerival | Pa G:warp:258 Wf:60 G:warp:344 Wf:60 G:warp:3 Wf:60 G:trig:1 Wf:60 S | zone 3 174,741 | pt-galactic
+# r204s: Jubilife's south exit onto Route 204 south (zone 345); its door D0 leads into the cave (zone 254)
+r204s | pt-galactic | Pa G:warp:345 Wf:60 S | zone 345 174,735 | pt-r204s
+# ravaged: Route 204 south door to the cave (G:warp:254), the three rocks across its corridor smashed one by one (F:smash:UID: A on the rock, Yes; the party knows Rock Smash by the test cheat PortRoute4_CheatFieldMove, the badge check is the story own), out of the far door onto Route 204 north (G:warp:346)
+ravaged | pt-r204s | Pa G:warp:254 Wf:60 F:smash:2 F:smash:1 F:smash:0 G:warp:346 Wf:60 S | zone 346 180,699 | pt-ravaged
+# floaroma: out of the cave's far door, Route 204 north's trainers are fought by the walk; G:warp:426 walks to Floaroma Town. The two grunts stand on the town's west doors to the meadow (hidden only after the girl on Route 205 south), so the town is a stop, not a scene.
+floaroma | pt-ravaged | Pa G:warp:426 Wf:60 S | zone 426 172,671 | pt-floaroma
+# r205s: east out of Floaroma Town onto Route 205 south (G:warp:347), trigger 0 (x 211, z 659-664): the little girl asks for her papa; FLAG_HIDE_FLOAROMA_TOWN_GRUNTS set, VAR_VALLEY_WINDWORKS_STATE 1.
+r205s | pt-floaroma | Pa G:warp:347 Wf:60 G:trig:0 Wf:60 S | zone 347 211,662 | pt-r205s
+# meadow: back through Floaroma Town (the grunts are gone from its west doors) into the meadow (G:warp:256), trigger 0 (x 12-13, z 48): two grunts, two battles (test cheat), they leave; the works key (FLAG_OBTAINED_FLOAROMA_MEADOW_WORKS_KEY) and the honey are given, VAR_FLOAROMA_MEADOW_STATE 1.
+meadow | pt-r205s | Pa G:warp:256 Wf:60 G:trig:0 Wf:60 S | zone 256 13,48 | pt-meadow
+# windworks: back out through Floaroma Town and Route 205 south to the Valley Windworks (G:warp:426, 347, 200): the grunt in front of the building's door (uid 0: one battle, the test cheat; he goes in), then the door (BG 1) with the works key: Pa answers its question Yes (FLAG_UNLOCKED_VALLEY_WINDWORKS_DOOR set).
+windworks | pt-meadow | Pa G:warp:426 Wf:60 G:warp:347 Wf:60 G:warp:200 Wf:60 G:npc:0 Wf:60 G:bg:1 Wf:60 S | zone 200 243,655 | pt-windworks
+# mars: G:warp:201 into the building (entry scene by itself), G:trig:0 walks to the trigger (19,6): the scene plays itself with the battles (Pa through the text); VAR_VALLEY_WINDWORKS_STATE 2, then the little girl and her papa scene; VAR_VALLEY_WINDWORKS_LOOKER_STATE 1 (the Looker scene is outside)
+mars | pt-windworks | Pa G:warp:201 Wf:60 G:trig:0 Wf:60 S | zone 201 19,7 | pt-mars
+# looker: G:warp:200 out of the building: scene 3 (OnFrame_Looker) plays itself; VAR_VALLEY_WINDWORKS_LOOKER_STATE 2
+looker | pt-mars | Pa G:warp:200 Wf:300 S | zone 200 243,656 | pt-looker
+# forest: out of the Valley Windworks onto Route 205 south (G:warp:347), then north by coordinates (G:warp:203 straight from the south end plans a loop past the signpost at 215,659: the field of grass x 206-212 is the way), G:warp:203 from 209,632 is the forest door, two tiles wide (D0 at 206,581, D1 at 207,581): the plan now takes D1 (arrive 29,86), before the planner saw the actors where they stand it took D0 (28,86); either is the way in
+forest | pt-looker | Pa G:warp:347 Wf:60 G:217,656 G:210,652 Wf:10 G:209,632 Wf:10 G:warp:203 Wf:60 S | zone 203 29,86 | pt-forest
+# cheryl: trigger 0 (28,85, two tiles wide: 28-29): G:28,86 first, so the leg ends at 28,85 from either door tile of the forest leg (28,86 in the library save, 29,86 in the chain); the follower walks up to the player, asks to come along, joins (SetHasPartner, VAR_PARTNER_TRAINER_ID): the next trainer fights are double battles
+cheryl | pt-forest | Pa G:28,86 G:trig:0 Wf:60 S | zone 203 28,85 | pt-cheryl
+# exitforest: G:warp:349 walks the forest north exit (D2/D3 at 86,36-37); trainers are fought by the walk (double battles with the follower), trigger 2 (82,34): the follower leaves, VAR_ETERNA_FOREST_FOLLOWER_CHERYL_STATE 2, FLAG_TRAVELED_WITH_CHERYL
+exitforest | pt-cheryl | Pa G:warp:349 Wf:60 S | zone 349 259,525 | pt-exitforest
+# eterna: G:warp:65 from the forest exit walks Route 205 north into Eterna City (the zone change is by walking, not a door)
+eterna | pt-exitforest | Pa G:warp:65 Wf:60 S | zone 65 288,533 | pt-eterna
+# etrival: trigger 0 (303,523): the rival scene (no battle) and the Galactic leader after it; VAR_ETERNA_CITY_STATE 1
+etrival | pt-eterna | Pa G:trig:0 Wf:60 S | zone 65 323,526 | pt-etrival
+# cutget: trigger 6 (304,523-525, VAR_ETERNA_CITY_STATE 1): Cynthia walks up, gives HM01 (Common_GiveItemQuantity under Pa), VAR_ETERNA_CITY_STATE 2
+cutget | pt-etrival | Pa G:trig:6 Wf:60 S | zone 65 304,525 | pt-cutget
+# gymdoor: the city is two halves joined by the passage x 301-307; G:warp:67 from the north half loops (the south half is not loaded yet), so G:304,549 first, a street below the passage. The person at the gym door (uid 31, 312,563) is the gym leader, not a tree: the talk sends her in, which frees the door for the next leg.
+gymdoor | pt-cutget | Pa G:304,549 Wf:10 G:npc:31 Wf:30 S | zone 65 311,563 | pt-gymdoor
+# gymin: G:warp:67 into the gym. This crashed (SIGSEGV in OverworldAnimManager_CallTickFunc) before port/subprojects/pokeplatinum-animctx.patch: the fountain animation context of the gym is 224 bytes on the host and overran the manager 160-byte funcsCtx over its tick pointer
+gymin | pt-gymdoor | Pa G:warp:67 Wf:60 S | zone 67 11,27 | pt-gymin
+# gymtr: the maze of the Eterna gym opens by its trainers (VAR_ETERNA_GYM_TRAINERS_BEATEN 1..3); G:npc:2, 3, 4 in that order each walk up and fight (test cheat)
+gymtr | pt-gymin | Pa G:npc:2 Wf:30 G:npc:3 Wf:30 G:npc:4 Wf:30 S | zone 67 3,7 | pt-gymtr
+# gardenia: G:npc:1 walks up the opened maze to the leader (11,3): the battle, the badge (BADGE_ID_FOREST) and the TM scene; FLAG_HIDE_ETERNA_FOREST_GARDENIA cleared
+gardenia | pt-gymtr | Pa G:npc:1 Wf:60 S | zone 67 11,4 | pt-gardenia
+# galin: out of the gym, the south half needs G:304,549; the door of the Galactic building has three cut trees in front of it (uids 14-16, row 521): F:cut:15 (the middle one, the first test of the Gen 4 Cut token) opens 305,520; G:warp:72 then plays the investigator scene (OnFrame, VAR_TEAM_GALACTIC_ETERNA_BUILDING_1F_STATE 1) under the pulse key
+galin | pt-gardenia | Pa G:warp:65 Wf:60 G:304,549 F:cut:15 Wf:30 G:warp:72 Wf:400 S | zone 72 11,15 | pt-galin
+# galtop: the building is a warp maze: 1F has two stairs (D1 14,6 leads to a dead-end room on 2F, D2 20,6 to the rooms that join by the corridor at z 12): G:20,8 first so that G:warp:73 picks D2 (the nearest), then 74 and 75 are one walk each; the grunts on 2F and 3F only talk
+galtop | pt-galin | G:20,8 G:warp:73 Wf:60 G:warp:74 Wf:60 G:warp:75 Wf:60 S | zone 75 3,3 | pt-galtop
+# jupiter: G:npc:0 (the commander at 14,6) walks up and fights (test cheat); after the battle the building empties (FLAG_TEAM_GALACTIC_LEFT_ETERNA_BUILDING, VAR_ETERNA_CITY_STATE 3)
+jupiter | pt-galtop | Pa G:npc:0 Wf:120 S | zone 75 13,6 | pt-jupiter
+# egg: down the emptied building (G:warp:74, 73, 72; each floor one walk), the 1F exit tile 11,15 is a plain warp tile with a wall below: G:11,15 then KD:30 (the planner enters it from the side and the warp needs the press into the wall); the cut trees grow back with the map reload (F:cut:15 again from the north side); trigger 4 (VAR_ETERNA_CITY_STATE 3): the champion gives the egg, Pa answers Yes
+egg | pt-jupiter | Pa G:warp:74 Wf:60 G:warp:73 Wf:60 G:warp:72 Wf:60 G:11,15 KD:30 Wf:60 F:cut:15 Wf:30 G:trig:4 Wf:60 S | zone 65 308,541 | pt-egg
+# bike: G:warp:71 is the shop door at 310,539 right of the trigger column; G:npc:0 = the shopkeeper, the item is given under the pulse key
+bike | pt-egg | Pa G:warp:71 Wf:60 G:npc:0 Wf:60 S | zone 71 3,6 | pt-bike
+# explorer: the city blocks its south and west exits (triggers 1, 2: VAR_ETERNA_CITY_BLOCK_EXITS_STATE) until the bicycle AND the explorer kit are held, and clears the var on the next map transition; the house at D11 310,530 gives the kit under the first talk, the following offer is a question (Pn); the exit mats of Gen 4 buildings need the key held on them (route_map.c type 7)
+explorer | pt-bike | Pa G:warp:65 Wf:60 G:warp:84 Wf:60 G:npc:2:nota Wf:20 Ka:5 Pn Wf:60 S | zone 84 5,5 | pt-explorer
+# cycle: Bk puts the bicycle on the Y button (the bag holds it from the cycle shop), Ky:4 mounts it; the cycling road gate (zone 80) lets only a rider walk through its middle lane (trigger 0: only bicycles); G:warp:80 then G:warp:350 are the north gate and the start of the road (the south half of the city: G:304,549 first)
+cycle | pt-explorer | Pa G:warp:65 Wf:60 Bk Ky:4 Wf:60 G:304,549 G:warp:80 Wf:60 G:warp:350 Wf:60 S | zone 350 304,577 | pt-cycle
+# the bridge slides the bike south when no key is held, and a tap of a key only turns it back: WalkTo holds its key there (adapter hook pushed); the planner then sidesteps the cyclists by itself
+road | pt-cycle | Pa G:warp:351 Wf:60 S | zone 351 8,3 | pt-road
+# G:door:5 = the gate south door (D0-D3 lead back north: G:warp:350 would take the nearest); the Route 207 trainers are fought on the way to trigger 0; Pa picks the first hand
+r207 | pt-road | Pa G:door:5 Wf:30 G:warp:353 Wf:30 G:trig:0 Wf:60 S | zone 353 340,712 | pt-r207
+# Route 207 D0 into the cave, trigger 0 at 14,23 walks the scene
+cyrus | pt-r207 | Pa G:warp:207 Wf:30 G:trig:0 Wf:60 S | zone 207 14,24 | pt-cyrus
+# Mt. Coronet 1F South D1 to Route 208; the planner crosses the east-west bridge over water at x 398-401 (route_gen4.c: a bridge over water is walkable, its flag says surfable); G:warp:355 would be the Berry master house
+r208 | pt-cyrus | Pa G:warp:354 Wf:30 G:warp:109 Wf:30 S | zone 109 1,7 | pt-gate208
+# the gate out to the city (zone 109 D0); trigger 0 is the column at x 461, the girl and her Buneary run past
+hearth | pt-gate208 | Pa G:warp:86 Wf:60 G:trig:0 Wf:60 S | zone 86 461,726 | pt-hearth
+# hall: the city's door D2 into the contest hall lobby (G:warp:117); the lobby's first-entry scene plays under the pulse key (the idol girl, the mother, the outfit and the accessory: VAR_CONTEST_HALL_LOBBY_STATE 1, FLAG_CONTEST_HALL_VISITED)
+hall | pt-hearth | Pa G:warp:117 Wf:60 S | zone 117 16,11 | pt-hall
+# lobbyfan: the gym leader stands in the lobby (uid 10 at 22,9); the talk ends with her leaving by the door; the player is left beside her tile
+lobbyfan | pt-hall | Pa G:npc:10 Wf:60 S | zone 117 22,10 | pt-lobbyfan
+# hgym: out of the contest hall lobby (G:warp:86) and in at the gym door (G:warp:88: the entrance room, zone 88); its first-visit scene plays under the pulse key
+hgym | pt-lobbyfan | Pa G:warp:86 Wf:60 G:warp:88 Wf:60 S | zone 88 4,8 | pt-hgym
+# hgym1: the gym puzzle (Gym_features: a trainer room's doors but one are re-pointed to the entrance room, a wrong door sends the player back): the pilot's G:warp:N reads the live warp events, so G:warp:90 in the first room (zone 89) walks to the one door that leads on. The entrance room has no warp to zone 90 it can reach (a pocket door), hence G:warp:89 first
+hgym1 | pt-hgym | Pa G:warp:89 Wf:60 G:warp:90 Wf:60 S | zone 90 14,22 | pt-hgym1
+# fantina: the second trainer room's live door (G:warp:91) arrives in the leader room at 4,13, three tiles south of the leader (uid 0 at 4,10); her talk, the battle (test cheat), the badge and the TM play under the pulse key
+fantina | pt-hgym1 | Pa G:warp:91 Wf:60 G:npc:0 Wf:60 S | zone 91 4,11 | pt-fantina
+# gate209: out of the leader room by its door (zone 88 at the north door, then G:warp:86 out of the gym), G:warp:110 = the city's east gate to Route 209, G:trig:0 = the column at x 5 (z 5-9): the rival walks up, the battle (test cheat) and his leaving play under the pulse key
+gate209 | pt-fantina | Pa G:warp:88 Wf:60 G:warp:86 Wf:60 G:warp:110 Wf:60 G:trig:0 Wf:60 S | zone 110 5,7 | pt-gate209
+# r209: east out of the gate onto Route 209 (G:warp:356), one long walk to the town (G:warp:433: no warp joins them, the planner walks to the nearest town tile on the matrix); the route's trainers fight on the way. Route 209's steep muddy hill is a bike slope (player_move.c: only a bicycle at full speed climbs it, a walker slides back): route_gen4.c draws those tiles blocked, so the planner takes the grass pocket round it
+r209 | pt-gate209 | Pa G:warp:356 Wf:60 To:60000 G:warp:433 Wf:60 S | zone 433 560,671 | pt-r209
+# solaceon: G:trig:0 = the row at z 669 (x 557-563) just north of where Route 209 enters the town; the rival's scene plays under the pulse key
+solaceon | pt-r209 | Pa G:trig:0 Wf:60 S | zone 433 560,669 | pt-solaceon
+# r210: no warp joins Solaceon and Route 210 south, nor Route 210 and Route 215: G:warp:N walks to the nearest tile of the zone on the matrix; the trainers on the way fight under the pulse key
+r210 | pt-solaceon | Pa To:60000 G:warp:362 Wf:60 To:60000 G:warp:382 Wf:60 S | zone 382 576,603 | pt-r210
+# r215a: the way east is not the road under the bridge's west end (a pocket closed by one-way ledges): G:592,597 = onto the bridge's ramp, 592,589 = its north end, 587,588 then 587,591 = down into the pocket, 605,593 = the road east (the planner takes the bridge deck's height for the road beneath it: one hop at a time), 606,599 = the first tile of the next stretch (a target past the loaded window or on a wall tile makes G: walk away: 'walled off' names the last reachable tile)
+r215a | pt-r210 | Pa To:6000 G:592,597 Wf:5 To:6000 G:592,589 Wf:5 To:6000 G:587,588 Wf:5 To:6000 G:587,591 Wf:5 To:9000 G:605,593 Wf:30 To:9000 G:606,599 Wf:30 S | zone 382 606,599 | pt-r215a
+# r215b: from the pocket at 606,599 the way east is a second bridge (deck 64: x 613-615, rows 582-597): the planner reads heights against the player's own level, so hop onto the deck first (G:614,599 then 614,583). The deck ends in a plateau walk (rows 582-583) whose west ramp (600-601) goes down to the north lowland (row 578-579); a cut tree (uid 10, 611,578) shuts that lane: F:cut:10 from the west side. G:619,579/584 (not 620,580: an item ball) jumps the south ledge at row 582 into the basin; 620,590 is the lower road
+r215b | pt-r215a | Pa To:6000 G:614,599 Wf:5 To:6000 G:614,583 Wf:5 To:6000 G:602,579 Wf:5 To:6000 F:cut:10 Wf:30 To:6000 G:619,579 Wf:5 To:6000 G:619,584 Wf:5 To:6000 G:620,590 Wf:5 S | zone 382 620,590 | pt-r215b
+# r215c: east over the NE meadow (rows 582-587), the south ledge at 650-653 row 588 down to the grass (G:652,591), then 644,596 (the loaded window must hold the gate warps 671,598/599 before G:warp:149 walks there); the two trainers at x 648 (rows 596 and 599) fight under the pulse key
+r215c | pt-r215b | Pa To:9000 G:639,583 Wf:5 To:9000 G:652,587 Wf:5 To:9000 G:652,591 Wf:5 To:9000 G:644,596 Wf:5 To:20000 G:warp:149 Wf:60 S | zone 149 1,7 | pt-r215c
+# veil: out of the Route 215 gate house (G:warp:132 = its east door, the city's west edge 678,598), then G:trig:1 = the west road's coordinate event at row 616 (x 681-684): the counterpart walks up, the gym door opens and the leader from Pastoria comes out; the scene plays under the pulse key (VAR_VEILSTONE_CITY_CRASHER_WAKE_STATE 1)
+veil | pt-r215c | Pa G:warp:132 Wf:60 To:9000 G:trig:1 Wf:60 S | zone 132 684,616 | pt-veil
+# vgym1: the gym is a rail puzzle (overlay008/gym_features.c, VeilstoneGym_*): 9 punching bags slide along lanes (sVeilstoneTileBehaviors) when the player faces one and presses A, and topple the tire stack at the lane's end; the 11 stacks block the way up to the leader. A search over the real rules (12 hits, bags and stacks as map objects, uid 253 in the dump) gave the order; each hit = G: to the standing tile, a held direction key to turn toward the bag (it is an obstacle: no step), A, Wf for the animation (bag at 15,26 east, 3,10 south, 3,14 east, 8,20 north, 8,17 west, 3,17 south)
+# vgym1 (ptleg18): the second hop (G:3,9) passes the room at 14-17,12-15 whose only door is 18,14; its trainer (uid 3, 16,14, sight 2) turns at random. Seen at the door tile he walks to 17,14, fights (the cheat wins) and then stands in the way: "blocked by uid 3". The pilot now stops at the edge of a trainer's line of sight (the adapter's watched hook: route_test.c WatchWait) and waits, in frames and bounded, for a turn and for him to look away, so the arrival time is no dice any more (the earlier extra Wf of 80 was one: 1 and 200 failed); it also waits at uid 5's line only when he can turn.
+vgym1 | pt-veil | Pa G:warp:133 Wf:60 To:9000 G:14,26 Wf:5 KR:8 Wf:10 Ka:4 Wf:60 To:9000 G:3,9 Wf:5 KD:8 Wf:10 Ka:4 Wf:60 To:9000 G:2,14 Wf:5 KR:8 Wf:10 Ka:4 Wf:60 To:9000 G:8,21 Wf:5 KU:8 Wf:10 Ka:4 Wf:60 To:9000 G:9,17 Wf:5 KL:8 Wf:10 Ka:4 Wf:60 To:9000 G:3,16 Wf:5 KD:8 Wf:10 Ka:4 Wf:60 S | zone 133 3,16 | pt-vgym1
+# vgym2: hits 7-12 of the search (bag 4,22 north, 4,12 east, 20,17 north, 16,10 west, 13,10 west, 8,7 east): the last topples the stack in the leader room door lane (12,7)
+vgym2 | pt-vgym1 | Pa To:9000 G:4,23 Wf:5 KU:8 Wf:10 Ka:4 Wf:60 To:9000 G:3,12 Wf:5 KR:8 Wf:10 Ka:4 Wf:60 To:9000 G:20,18 Wf:5 KU:8 Wf:10 Ka:4 Wf:60 To:9000 G:17,10 Wf:5 KL:8 Wf:10 Ka:4 Wf:60 To:9000 G:14,10 Wf:5 KL:8 Wf:10 Ka:4 Wf:60 To:9000 G:7,7 Wf:5 KR:8 Wf:10 Ka:4 Wf:60 S | zone 133 7,7 | pt-vgym2
+# vleader: the leader stands at 12,4 (G:npc:0): the battle plays under the pulse key (the test cheat wins), the badge, the move machine; VAR_VEILSTONE_CITY_COUNTERPART_NEEDS_HELP_STATE 1 waits for the way out
+vleader | pt-vgym2 | Pa To:20000 G:npc:0 Wf:60 S | zone 133 12,5 | pt-vleader
+# vout: out of the gym by its warp; the city OnFrame scene (VeilstoneCity_OnFrame_CounterpartNeedsHelp) runs under the pulse key
+vout | pt-vleader | Pa G:warp:132 Wf:120 S | zone 132 684,612 | pt-vout
+# vwh: G:npc:6 = the counterpart by the gym (the question: Py = help; the team battle with the two guards at the warehouse door plays under the pulse key, the cheat wins it, then the counterpart walks in)
+vwh | pt-vout | Pa To:9000 G:npc:6:nota Wf:20 Ka:5 Py To:30000 Wf:200 S | zone 143 8,11 | pt-vwh
+# r214a: out of the warehouse (G:warp:132), through the Route 214 gate house (zone 381) and down Route 214 (zone 380) in hops: the planner walks inside the loaded window, so each hop is at most ~30 rows; the trainers fight under Pa. A floating foe (a Levitate ability) made the A's Ground move do nothing: the pilot's move rule (route_gen4.c PortRoute4_AbilityNoDamage) now treats a move the ability nullifies as no-damage and takes another move
+r214a | pt-vwh | Pa G:warp:132 Wf:60 G:warp:381 Wf:60 G:warp:380 Wf:60 To:9000 G:718,665 Wf:30 To:9000 G:718,684 Wf:30 To:9000 G:712,702 Wf:30 To:9000 G:729,731 Wf:30 To:9000 G:720,762 Wf:30 S | zone 336 720,762 | pt-r214a
+# r213a: the Valor Lakefront's east side stays shut (the coordinate event at 724,789-791 pushes the player back until the Sunyshore blackout is over), but the way to Route 213 is the south edge (row 799) into the hotel's front yard; the lobby (zone 376) has a door each side: G:warp:376 enters by the north one, G:8,11 walks to the south one's mat and KD steps through (G:warp:373 would take the nearer north door)
+r213a | pt-r214a | Pa To:9000 G:705,792 Wf:30 To:9000 G:700,799 Wf:30 To:9000 G:warp:376 Wf:60 To:3000 G:8,11 KD:20 Wf:60 To:9000 G:708,831 Wf:30 S | zone 373 708,831 | pt-r213a
+# r213b: from the hotel's lane the shore strip (row 832) leads west to Route 213's grass and the gate house (G:warp:374, zone 374) whose other door opens on Pastoria City; the trainers fight under Pa
+r213b | pt-r213a | Pa To:9000 G:679,833 Wf:30 To:30000 G:warp:374 Wf:60 To:9000 G:warp:120 Wf:60 S | zone 120 639,812 | pt-r213b
+# pgym0: G:warp:122 walks the town west to the gym door; the coordinate event on the tile south of the door (VAR_PASTORIA_CITY_STATE 1) plays the rival's scene and battle under the pulse key (the cheat wins it), then the walk goes on through the door
+pgym0 | pt-r213b | Pa To:30000 G:warp:122 Wf:60 S | zone 122 13,42 | pt-pgym0
+# pgym1..: the Pastoria gym (overlay008/gym_features.c PastoriaGym_*) is a pool whose water floor (a dynamic terrain plate) sits at one of three heights, set by three colors of floor buttons (coordinate events; a button only fires when its color is not the current one: blue = high 64, green = middle 32, orange = low 0; the water starts at the middle). A tile of the pool (behavior 0x59) can be walked only when the terrain under the water, not the water, is the surface nearer the player's own height (terrain_collision_manager.c GetHeight / WillPlayerCollide), and the door tiles in the walls (behaviors 0x56 / 0x57 / 0x58) only at the height 0 / 32 / 64. A breadth-first search over those rules (the worker's scratch gsolve.py, 942 states, the tile data dumped by the port's BWPORT_GYMDUMP) found a 265-step way to the leader with six button presses: orange (3,34), green (17,9), blue (9,24), green (19,13), orange (23,31), blue (3,6)
+pgym1 | pt-pgym0 | Pa To:9000 G:13,26 Wf:10 To:9000 G:5,26 Wf:10 To:9000 G:5,34 Wf:10 To:9000 G:3,34 Wf:200 S | zone 122 3,34 | pt-pgym1
+# pgym2: from the lowest water the hall's doors at height 0 open: up the middle column (13, rows 22 to 9), then east to the green button at 17,9
+pgym2 | pt-pgym1 | Pa To:9000 G:7,33 Wf:10 To:9000 G:7,28 Wf:10 To:9000 G:16,28 Wf:10 To:9000 G:16,22 Wf:10 To:9000 G:13,22 Wf:10 To:30000 G:13,9 Wf:10 To:9000 G:17,9 Wf:200 S | zone 122 17,9 | pt-pgym2
+# pgym3: back down the east side of the upper hall to the west lane and the blue button at 9,24; the trainer at 7,22 sees the player on the way and fights under the pulse key
+pgym3 | pt-pgym2 | Pa To:9000 G:16,20 Wf:10 To:9000 G:5,20 Wf:10 To:9000 G:5,24 Wf:10 To:30000 G:9,24 Wf:200 S | zone 122 9,24 | pt-pgym3
+# pgym4: with the water high the east lane is the way: along the lower hall, up the east side (three trainers see the player at 19,33 and fight under the pulse key), to the green button at 19,13
+pgym4 | pt-pgym3 | Pa To:9000 G:6,24 Wf:10 To:9000 G:6,34 Wf:10 To:9000 G:14,33 Wf:10 To:9000 G:19,33 Wf:10 To:30000 G:19,26 Wf:10 To:9000 G:20,26 Wf:10 To:30000 G:20,13 Wf:10 To:9000 G:19,13 Wf:200 S | zone 122 19,13 | pt-pgym4
+# pgym5: down the east lane to the orange button at 23,31 (the water goes from the middle to the lowest height)
+pgym5 | pt-pgym4 | Pa To:9000 G:19,16 Wf:10 To:9000 G:21,16 Wf:10 To:9000 G:21,31 Wf:10 To:9000 G:23,31 Wf:200 S | zone 122 23,31 | pt-pgym5
+# pgym6: with the water at its lowest the north hall's row 7 is the way west, then up the west ramp (three trainers fight on the way, under the pulse key), to the blue button at 3,6 (the water to its highest: the leader's doors open)
+pgym6 | pt-pgym5 | Pa To:9000 G:23,7 Wf:10 To:30000 G:7,7 Wf:10 To:9000 G:7,16 Wf:10 To:30000 G:5,9 Wf:10 To:30000 G:4,6 Wf:10 To:9000 G:3,6 Wf:200 S | zone 122 3,6 | pt-pgym6
+# pleader: the water high, the door tiles at 13,6 and 13,8 let the player through the middle (G:13,9 then G:13,5); G:npc:0 = the leader: the battle plays under the pulse key (the test cheat wins it), the badge, the move machine
+pleader | pt-pgym6 | Pa To:30000 G:13,9 Wf:10 To:9000 G:13,5 Wf:10 To:30000 G:npc:0 Wf:60 S | zone 122 13,5 | pt-pleader
+# pout: the way out with the water high is the west rim corridor (x 1, rows 3 to 37; its dips at rows 34-36 are walked on the water's surface, door tiles that want height 64), then the lower hall's west end and the entrance; the planner alone finds no way back from the leader's room, so the corners are G:X,Z waypoints (gsolve2.py in the worker's scratch); the city's OnFrame scene (VAR_PASTORIA_CITY_STATE 3 -> 4) plays under the pulse key
+pout | pt-pleader | Pa To:9000 G:12,3 Wf:10 To:9000 G:1,3 Wf:10 To:9000 G:1,37 Wf:10 To:9000 G:9,37 Wf:10 To:9000 G:9,41 Wf:10 To:9000 G:warp:120 Wf:300 S | zone 120 589,829 | pt-pout
+# pbomb: G:trig:2 = the coordinate event on 610,810 (VAR_PASTORIA_CITY_STATE 4): the explosion, the grunt's talk, the leader goes after him; the state becomes 5
+pbomb | pt-pout | Pa To:30000 G:trig:2 Wf:60 S | zone 120 611,811 | pt-pbomb
+# pgrunt: after the explosion the grunt stands by the east gate (637,812: G:npc:21; G:637,811 first: the wanderer uid 19 stands at 623,811 in the chain's save (623,812 in the library's), the plan then walks round it along row 812 and talks from the west tile 636,812, not the north one); the talk (FLAG_TALKED_TO_PASTORIA_CITY_GRUNT_M, the Route 213 grunt appears) plays under the pulse key, he leaves
+pgrunt | pt-pbomb | Pa To:9000 G:637,811 G:npc:21:nota Wf:20 Ka:5 Wf:200 S | zone 120 637,811 | pt-pgrunt
+# r213c: through the east gate house to Route 213 (zone 373); the grunt at 654,812 (npc 30, there once the Fen badge is in and the Pastoria grunt was talked to) is talked to under the pulse key; he runs off to 683,833
+r213c | pt-pgrunt | Pa To:9000 G:warp:374 Wf:30 To:9000 G:warp:373 Wf:30 To:9000 G:npc:30:nota Wf:20 Ka:5 Wf:300 S | zone 373 653,812 | pt-r213c
+# r213d: the grunt again at 683,833 (npc 30: waypoint 672,824 inside the loaded window first); the second talk ends in the investigator scene (FLAG_ROUTE_213_GRUNT_M_LEFT, the Valor Lakefront grunt appears, the lobby investigator appears)
+r213d | pt-r213c | Pa To:9000 G:672,824 Wf:10 To:9000 G:npc:30:nota Wf:20 Ka:5 Wf:400 S | zone 373 683,834 | pt-r213d
+# vlk1: back through the hotel lobby (in by the south door, out by the north one: G:8,3 then KU) to the lakefront; the grunt (npc 5, at 719,790 once the Route 213 scene is over) is talked to under the pulse key and runs to 723,769
+vlk1 | pt-r213d | Pa To:9000 G:708,831 Wf:30 To:9000 G:warp:376 Wf:60 To:9000 G:8,3 KU:20 Wf:60 To:9000 G:700,799 Wf:30 To:9000 G:npc:5:nota Wf:20 Ka:5 Wf:300 S | zone 336 719,791 | pt-vlk1
+# vlk2: the second talk with the grunt (npc 5, now at 723,769) is a battle (the test cheat wins) and then the lakefront scene with the rival and the champion who hands out the potion for the Psyduck; G:npc waits the whole event out under the pulse key
+vlk2 | pt-vlk1 | Pa To:30000 G:npc:5 Wf:300 S | zone 336 722,769 | pt-vlk2
+# pr1: the way back from the Valor Lakefront to Pastoria (the lobby in by its north door, out by the south one, the shore strip, the gate house); the way on to Route 210 is west by Route 212, Hearthome, Route 209 and Solaceon (the Route 214 cave warp is the short Maniac cave until 10 Unown forms are seen, a dead end)
+pr1 | pt-vlk2 | Pa To:30000 G:720,791 Wf:10 To:30000 G:700,799 Wf:30 To:9000 G:warp:376 Wf:60 To:3000 G:8,11 KD:20 Wf:60 To:9000 G:708,831 Wf:30 To:30000 G:679,833 Wf:30 To:30000 G:warp:374 Wf:60 To:9000 G:warp:120 Wf:60 S | zone 120 639,812 | pt-pr1
+# r212a: Pastoria west by the city lanes onto Route 212 south; the mud patches (x 524-543) hold the player until five turns are made (FieldTask_StuckInDeepMud: the pilot presses turns, route_gen4.c PortRoute4_DeepMud)
+r212a | pt-pr1 | Pa To:30000 G:606,833 Wf:10 To:30000 G:590,846 Wf:10 To:30000 G:578,847 Wf:10 To:30000 G:550,847 Wf:10 To:6000 G:522,847 Wf:60 S | zone 371 522,847 | pt-r212a
+# r212b: Route 212 south from the mud to its north-west corner; three trainers see the player on the way (each battle runs to its end under the pulse key; the lead cannot hurt one of them at first)
+r212b | pt-r212a | Pa To:9000 G:500,849 Wf:10 To:12000 G:460,836 Wf:60 S | zone 371 460,836 | pt-r212b
+# r212c: Route 212 north (a trainer pair at 457,796 is fought on the way), the gate house at 458,736 and out into Hearthome City
+r212c | pt-r212b | Pa To:12000 G:459,800 Wf:10 To:12000 G:459,770 Wf:10 To:9000 G:warp:111 Wf:60 To:9000 G:warp:86 Wf:60 S | zone 86 458,729 | pt-r212c
+# hh1: Hearthome City east across to its gate house (505,727, zone 110) and out onto Route 209 (zone 356)
+hh1 | pt-r212c | Pa To:9000 G:warp:110 Wf:60 To:9000 G:warp:356 Wf:60 S | zone 356 512,726 | pt-hh1
+# r209a: along Route 209 to its north-east end; a trainer at 560,682 sees the player and is fought (the cheat wins)
+r209a | pt-hh1 | Pa To:12000 G:560,676 Wf:60 S | zone 356 560,676 | pt-r209a
+# r210a: through Solaceon Town (no scene: its rival trigger is spent) and north onto Route 210 south; a trainer sees the player on the way
+r210a | pt-r209a | Pa To:12000 G:560,650 Wf:10 To:12000 G:561,600 Wf:60 S | zone 362 561,600 | pt-r210a
+# r210b: the potion for the Psyduck (npc 19 at 561,587 under the pulse key); the scene brings Cynthia in and she leaves
+r210b | pt-r210a | Pa To:9000 G:npc:19:nota Wf:20 Ka:5 Wf:300 S | zone 362 561,588 | pt-r210b
+# r210c: north past the Psyduck onto Route 210 north; a trainer at the bridge fights
+r210c | pt-r210b | Pa To:12000 G:561,560 Wf:10 To:12000 G:560,540 Wf:60 S | zone 363 560,540 | pt-r210c
+# r210d: from the first grass west along 533, then north by the stair at x 538-539 (the loaded grid only reaches the next hop: the cliff heights need short hops); the Cut tree at 559,531 leads only to a dead end and is left alone
+r210d | pt-r210c | Pa To:12000 G:545,533 Wf:10 To:12000 G:540,528 Wf:10 To:12000 G:538,524 Wf:10 To:12000 G:538,522 Wf:60 S | zone 363 538,522 | pt-r210d
+# r210e: the cliff top path ends at 521,521 (the plank to its west does not go on); the stair at x 521-522 leads down to the lower road, west along row 530
+r210e | pt-r210d | Pa To:12000 G:521,528 Wf:5 To:12000 G:505,530 Wf:60 S | zone 363 505,530 | pt-r210e
+# cel1: west along the lower road to the town edge (Celestic Town is the matrix chunk x 448-479; the loaded grid needs the hop at 476,538)
+cel1 | pt-r210e | Pa To:12000 G:485,530 Wf:5 To:12000 G:476,538 Wf:5 To:12000 G:466,540 Wf:60 S | zone 442 466,540 | pt-cel1
+# cel2: the coord event at 463..465,538 (script 3, the elder): the scene starts one tile before the trigger tile and the walk goes on to it
+cel2 | pt-cel1 | Pa To:12000 G:trig:0 Wf:30 To:3000 Wf:60 S | zone 442 465,538 | pt-cel2
+# cel3: the grunt (npc 2 at 463,522) asks first (Py = the battle); after it the grunt leaves, the elder walks in and takes the Old Charm from the Psyduck scene (FLAG_DELIVERED_OLD_CHARM)
+cel3 | pt-cel2 | Pa To:12000 G:npc:2:nota Wf:20 Ka:5 Py Wf:1500 S | zone 442 463,523 | pt-cel3
+# cel4: into the cave (D0 at 10,20) and up to the painting (BG event 0, facing north); the elder walks in, the boss comes in and asks (Py = the battle)
+cel4 | pt-cel3 | Pa To:12000 G:warp:449 Wf:60 To:12000 G:bg:0:nota Wf:20 Ka:5 Py Wf:1500 S | zone 449 9,3 | pt-cel4
+# cel5: out of the cave; the town runs its OnFrame scene (Cynthia) as the map loads, pressed through by the pulse key
+cel5 | pt-cel4 | Pa To:12000 G:warp:442 Wf:600 S | zone 442 463,522 | pt-cel5
+# cel6 (a probe, not on the way): out of Celestic Town by the south-west road (rows 527-528: the town wall closes the north side) to Route 211 east, then the cave door (zone 218): the room that joins Route 211 east to Route 211 west is blocked by a Strength boulder (uid 9 at 18,39) and a smashable rock; the boulder script wants the Mine badge (Canalave gym), so this way west opens only later; route trainers fight under Pa
+cel6 | pt-cel5 | Pa To:12000 G:436,528 Wf:10 To:12000 G:warp:218 Wf:60 S | zone 218 29,35 | pt-cel6
+# cel7: back out of Celestic Town (the cave way west needs Strength) by the south road and row 530 in hops of 10 (a long hop plans round the trainer on the road); the trainer at 494,530 sees the player and fights (the cheat wins)
+cel7 | pt-cel5 | Pa To:12000 G:466,540 Wf:5 To:12000 G:485,530 Wf:5 To:12000 G:495,530 Wf:5 To:12000 G:505,530 Wf:60 S | zone 363 505,530 | pt-cel7
+# cel8: Route 210 north back to its east end, the cliff maze the other way in short hops: the lower road's south loop to 521,528, the stair up and the cliff top to 538,522, the stair down along x 538 to row 527 (the beaten trainer pair stands in row 528: pass in row 527), east to the stair at x 542-543 and on to 545,533 and 560,540
+cel8 | pt-cel7 | Pa To:12000 G:510,531 Wf:5 To:12000 G:510,535 Wf:5 To:12000 G:517,535 Wf:5 To:12000 G:517,541 Wf:5 To:12000 G:521,541 Wf:5 To:12000 G:521,528 Wf:5 To:12000 G:538,522 Wf:5 To:12000 G:538,524 Wf:5 To:12000 G:538,527 Wf:5 To:12000 G:542,527 Wf:5 To:12000 G:542,531 Wf:5 To:12000 G:545,533 Wf:5 To:12000 G:560,540 Wf:60 S | zone 363 560,540 | pt-cel8
+# cel9: the way back to Hearthome (Route 211's cave needs Strength): Route 210 south, Solaceon Town and Route 209 in the hops the forward legs took (r209a's waypoints reversed: the lanes round the water), then the Route 209 gate house (G:warp:110) and the city (G:warp:86)
+cel9 | pt-cel8 | Pa To:12000 G:561,560 Wf:5 To:12000 G:561,588 Wf:5 To:12000 G:561,600 Wf:5 To:12000 G:560,650 Wf:5 To:12000 G:560,676 Wf:5 To:12000 G:558,689 Wf:5 To:12000 G:558,699 Wf:5 To:12000 G:560,707 Wf:5 To:12000 G:555,708 Wf:5 To:12000 G:555,712 Wf:5 To:12000 G:554,716 Wf:5 To:12000 G:549,716 Wf:5 To:12000 G:549,722 Wf:5 To:12000 G:545,722 Wf:5 To:12000 G:535,722 Wf:5 To:12000 G:527,724 Wf:5 To:12000 G:523,726 Wf:5 To:12000 G:512,726 Wf:5 To:12000 G:warp:110 Wf:60 To:12000 G:warp:86 Wf:60 S | zone 86 505,726 | pt-cel9
+# cel10: west out of Hearthome City: the gate house (G:warp:109), Route 208 in the forward legs' waypoints reversed (a long hop is not found: the lane north of the grass and the field of grass in the middle go round by 426,715 and 422,715), the Mt. Coronet room (zone 207) and out to Route 207 by its door; route trainers fight under Pa
+cel10 | pt-cel9 | Pa To:12000 G:warp:109 Wf:60 To:12000 G:warp:354 Wf:60 To:12000 G:426,719 Wf:5 To:12000 G:426,715 Wf:5 To:12000 G:422,715 Wf:5 To:12000 G:422,722 Wf:5 To:12000 G:421,724 Wf:5 To:12000 G:405,724 Wf:5 To:12000 G:warp:207 Wf:60 To:12000 G:warp:353 Wf:60 S | zone 353 341,712 | pt-cel10
+# cel11: Route 207's west way into Oreburgh: the planner draws the muddy slope (x 306, rows 718-719, tile behaviors 0xd9 and 0xda) as a wall because a walker cannot climb it, but down is free: G to the top (306,717), then KD:40 holds south over both slope tiles and down the pocket to 306,724; then the road south in two hops
+cel11 | pt-cel10 | Pa To:12000 G:310,716 Wf:5 To:12000 G:306,717 Wf:5 KD:40 Wf:30 To:12000 G:300,735 Wf:5 To:12000 G:300,750 Wf:5 S | zone 45 300,750 | pt-cel11
+# cel12: Oreburgh City west through the gate house (G:warp:258) and Route 203 (G:warp:344) to Jubilife City (G:warp:3); the Route 203 trainers fight under Pa
+# cel12 (ptleg17): Route 203 enters Jubilife across a matrix edge (rows 757-760 at x 191), so the first tile over the edge follows the walk (the chain after the vgym1 shift ended one row south): the closing G:191,757 fixes the end tile
+cel12 | pt-cel11 | Pa To:12000 G:warp:258 Wf:60 To:12000 G:warp:344 Wf:60 To:12000 G:warp:3 Wf:60 To:12000 G:191,757 Wf:5 S | zone 3 191,757 | pt-cel12
+# cel13: Jubilife City west by the gate house (G:warp:389: the city's doors D12 and D13) onto Route 218 (G:warp:388); the Route 218 blockade is gone since the Celestic Town scene
+cel13 | pt-cel12 | Pa To:12000 G:warp:389 Wf:60 To:12000 G:warp:388 Wf:60 S | zone 388 121,758 | pt-cel13
+# cel14: Route 218's way west is a lake (x 96-117, rows 744-766): walk the peninsula north (x 103-105, rows 747-754), F:surf from its shore (the first Surf of the chain, the cheat plays the move, the Fen badge is real), cross the lake to the west shore (a swimmer fights on the way), G:78,745 lands, then G:warp:390 walks the last stretch to the gate house of Canalave City
+cel14 | pt-cel13 | Pa To:12000 G:104,750 Wf:5 F:surf Wf:60 To:12000 G:78,745 Wf:5 To:12000 G:warp:390 Wf:60 S | zone 390 10,7 | pt-cel14
+# cel15: the gate house of Canalave City: its coordinate event (the scientist walks up and talks about the Pokedex: Pa presses through) sits on the way to the west door (G:warp:33), the city's east side
+cel15 | pt-cel14 | Pa To:12000 G:warp:33 Wf:60 S | zone 33 63,754 | pt-cel15
+# cel16: the bridge's coordinate event (x 47, z 723-726, VAR_CANALAVE_CITY_STATE 0): the rival runs up, asks and fights (the cheat wins); G:trig:0 walks to it and Pa presses through the scene
+cel16 | pt-cel15 | Pa To:12000 G:trig:0 Wf:60 S | zone 33 47,726 | pt-cel16
+# cel17: the Canalave gym (dynamic collision: the planner asks the gym's hook per tile, route_gen4.c Pr4_DynTile; a platform standing at the player's height is a PORT_MAP_STEPON cell, crossed only as a goal): each hop is a G: onto a platform tile (a step that ends on it rides the player), then Wf:40 waits the ride out (a field task counts as an event); the order is a search over the platforms' states (docs/platinum.md, the Canalave gym)
+cel17 | pt-cel16 | Pa To:12000 G:warp:35 Wf:60 To:12000 G:24,13 Wf:40 To:12000 G:29,22 Wf:40 To:12000 G:21,22 Wf:40 To:12000 G:18,22 Wf:40 To:12000 G:5,26 Wf:40 To:12000 G:2,22 Wf:40 S | zone 35 2,19 | pt-cel17
+# cel18: the other seven platform rides of the Canalave gym (the same search as cel17): the east-west ones of the third floor, the north-south ones, down a floor, down to the ground and up on the red one to the top floor
+cel18 | pt-cel17 | Pa To:12000 G:10,4 Wf:40 To:12000 G:19,4 Wf:40 To:12000 G:26,16 Wf:40 To:12000 G:29,22 Wf:40 To:12000 G:29,9 Wf:40 To:12000 G:25,9 Wf:40 To:12000 G:16,9 Wf:40 S | zone 35 16,9 | pt-cel18
+# cel19: Byron (uid 4 at 16,3), straight north of the red platform's landing: the battle plays under the pulse key (the test cheat wins), the badge (VAR_CANALAVE_CITY_STATE 2), the machine
+cel19 | pt-cel18 | Pa To:30000 G:npc:4 Wf:60 S | zone 35 16,4 | pt-cel19
+# cel20: the way back out of the Canalave gym (a search over the platforms' states from the state cel18 left): the east-west one of the top floor, the north-south one, the long east-west one, the north-south one of the west side, the red one down to the ground; then the door; the rival's scene outside plays under the pulse key
+cel20 | pt-cel19 | Pa To:12000 G:19,4 Wf:40 To:12000 G:29,7 Wf:40 To:12000 G:26,26 Wf:40 To:12000 G:2,23 Wf:40 To:12000 G:7,9 Wf:40 To:12000 G:warp:33 Wf:60 S | zone 33 39,732 | pt-cel20
+# cel21: the rival (uid 18 at 37,719) stands before the library door (37,718); talking to him (the script wants the Strength HM or a party member that knows it: the test cheat answers) sends him in; the pulse key presses through
+cel21 | pt-cel20 | Pa To:12000 G:npc:18 Wf:60 S | zone 33 36,719 | pt-cel21
+# cel22: up through the library (zones 38, 39, 40; each a stairs warp: the planner walks onto it); the third floor's frame scene (the rival takes the player to a table, a long talk, the explosion news) starts on arrival and plays under the pulse key; it is one long event with the player standing, longer than the hang check's 3000 frames, so the Wf has To:15000 (the hang limit follows a To:N)
+cel22 | pt-cel21 | Pa To:12000 G:warp:38 Wf:60 To:12000 G:warp:39 Wf:60 To:12000 G:warp:40 To:15000 Wf:60 S | zone 40 7,7 | pt-cel22
+# cel23: down the library (zones 39, 38) and out to the city (zone 33): the city frame scene after the explosion plays on arrival under the pulse key (the professor, a sailor, the rival leaving, the counterpart): the state 5 and the lake scenes spawn
+cel23 | pt-cel22 | Pa To:12000 G:warp:39 Wf:60 To:12000 G:warp:38 Wf:60 To:12000 G:warp:33 Wf:600 S | zone 33 37,719 | pt-cel23
+# cel24: the way east again: the gate (zone 390), Route 218 (388): onto the west shore, Surf across the lake to the east shore, the east gate (389), Jubilife (3). The next story step is the lakes: Valor first (Saturn in the cavern), so the walk goes back to Hearthome and Pastoria
+cel24 | pt-cel23 | Pa To:12000 G:warp:390 Wf:60 To:12000 G:warp:388 Wf:60 To:12000 G:78,745 Wf:5 F:surf Wf:60 To:12000 G:104,750 Wf:5 To:12000 G:warp:389 Wf:60 To:12000 G:warp:3 Wf:60 S | zone 3 128,758 | pt-cel24
+# cor1 (ptleg18): Jubilife to Oreburgh as before, then the bicycle (Bk Ky:4 mounts it): the planner climbs Route 207 slope in one edge (it presses B for the fast gear once, runs up three tiles in a line); G:warp:207 ends in the cave
+cor1 | pt-cel24 | Pa To:12000 G:warp:344 Wf:60 To:12000 G:warp:258 Wf:60 To:12000 G:warp:45 Wf:60 Bk Ky:4 Wf:60 To:20000 G:warp:207 Wf:60 S | zone 207 4,8 | pt-cor1
+# cor2 (ptleg18): Mt. Coronet, Route 208 east, the gate house, Hearthome: G:warp hops, nothing scripted on the way
+cor2 | pt-cor1 | Pa To:30000 G:warp:354 Wf:60 To:30000 G:warp:109 Wf:60 To:30000 G:warp:86 Wf:60 S | zone 86 454,726 | pt-cor2
+# pas1 (ptleg19): Hearthome's gate house and Route 212 north by hops of 10 to 20 rows (the first hop of ptleg18 to row 800 waited on the lane's walking actors: smaller hops pass). The bicycle is put down first (Ky:4): the mud of Route 212 south stops a rider (a step into it never happens), and a walker is what the later legs plan for
+pas1 | pt-cor2 | Pa To:30000 Ky:4 Wf:60 G:warp:111 Wf:60 To:30000 G:warp:367 Wf:60 To:3000 G:458,752 To:3000 G:460,770 To:6000 G:458,788 To:6000 G:459,798 To:6000 G:464,809 To:6000 G:460,823 To:6000 G:459,830 To:6000 G:460,838 Wf:30 S | zone 371 460,838 | pt-pas1
+# pas2 (ptleg19): Route 212 south west to east: the planner's own way (the long one round the south, a one-way ledge, the pocket by the house door, the mud rows 852-853 east to the lane at row 856) in hops that stay inside the loaded window (a target beyond x+36 wanders); the raised walk at row 845 (x 487 on) is a step of 32 up: not a way
+pas2 | pt-pas1 | Pa To:9000 G:500,849 Wf:10 To:9000 G:522,847 Wf:10 To:9000 G:540,849 Wf:10 To:9000 G:568,856 Wf:10 To:9000 G:578,847 Wf:30 S | zone 120 578,847 | pt-pas2
+# pas3 (ptleg19): Pastoria's lanes east to the gate house (r213b's reverse) and Route 213 to the hotel's yard; the hops stay inside the loaded window
+pas3 | pt-pas2 | Pa To:9000 G:590,846 Wf:10 To:9000 G:606,833 Wf:10 To:9000 G:638,812 Wf:30 To:9000 G:warp:374 Wf:60 To:9000 G:warp:373 Wf:30 To:9000 G:672,824 Wf:10 To:9000 G:708,831 Wf:30 S | zone 373 708,831 | pt-pas3
+# pas4 (ptleg19): through the hotel lobby (vlk1's way) onto the Valor Lakefront, to the shore where the lake's door is: the tile (717,761) is a west-facing warp, and its destination is the DRAINED lake map (zone 314: the lake is low until the Galactic leave it, long after this stretch; the full lake, zone 315, is the other pair of warps that the map's own script moves behind the cliff); a step west from 718,761 enters it
+pas4 | pt-pas3 | Pa To:9000 G:warp:376 Wf:60 To:9000 G:8,3 KU:20 Wf:60 To:9000 G:700,799 Wf:30 To:9000 G:720,762 Wf:30 To:9000 G:718,761 KL:30 Wf:60 S | zone 314 52,11 | pt-pas4
+# pas5 (ptleg19): across the drained lake bed to the cavern door at 32,32 (one planner hop: the bed's trainers who see the player fight under the pulse key; the cheat wins), into the Valor Cavern
+pas5 | pt-pas4 | Pa To:20000 G:warp:316 Wf:60 S | zone 316 14,29 | pt-pas5
+# pas6 (ptleg19): the third Galactic commander stands in the cavern (the talk is the script: a message, the battle, the commander leaves; FLAG_DEFEATED_COMMANDER_SATURN_VALOR_CAVERN, which also lowers Lake Verity)
+pas6 | pt-pas5 | Pa To:20000 G:npc:1 Wf:300 S | zone 316 14,20 | pt-pas6
+# the bed crossing reversed: the beaten trainers do not fight again
+wst1 | pt-pas6 | Pa To:20000 G:warp:314 Wf:60 To:20000 G:warp:336 Wf:60 S | zone 336 717,761 | pt-wst1
+# the hotel is a pass-through (door 1 is the south one); the gate house leads on to the city
+wst2 | pt-wst1 | Pa To:9000 G:warp:376 Wf:60 To:9000 G:door:1 Wf:60 To:9000 G:672,824 Wf:10 To:9000 G:warp:374 Wf:60 To:9000 G:warp:120 Wf:30 S | zone 120 639,812 | pt-wst2
+# ptleg19 hops reversed
+wst3 | pt-wst2 | Pa To:9000 G:606,833 Wf:10 To:9000 G:590,846 Wf:10 To:9000 G:568,856 Wf:10 To:9000 G:540,849 Wf:10 To:9000 G:522,847 Wf:10 To:9000 G:500,849 Wf:10 To:9000 G:460,838 Wf:30 S | zone 371 460,838 | pt-wst3
+# ptleg19 hops reversed; the gate house to the city
+wst4 | pt-wst3 | Pa To:3000 G:459,830 To:6000 G:460,823 To:6000 G:464,809 To:6000 G:459,798 To:6000 G:458,788 To:6000 G:460,770 To:6000 G:458,752 To:9000 G:warp:111 Wf:60 To:9000 G:warp:86 Wf:30 S | zone 86 458,729 | pt-wst4
+# cel10's road: the pilot goes west the way it came back from Celestic Town
+wst5 | pt-wst4 | Pa To:12000 G:warp:109 Wf:60 To:12000 G:warp:354 Wf:60 To:12000 G:426,719 Wf:5 To:12000 G:426,715 Wf:5 To:12000 G:422,715 Wf:5 To:12000 G:422,722 Wf:5 To:12000 G:421,724 Wf:5 To:12000 G:405,724 Wf:5 To:12000 G:warp:207 Wf:60 To:12000 G:warp:353 Wf:60 S | zone 353 341,712 | pt-wst5
+# cel11's road
+wst6 | pt-wst5 | Pa To:12000 G:310,716 Wf:5 To:12000 G:306,717 Wf:5 KD:40 Wf:30 To:12000 G:300,735 Wf:5 To:12000 G:300,750 Wf:5 S | zone 45 300,750 | pt-wst6
+# cel12's road
+wst7 | pt-wst6 | Pa To:12000 G:warp:258 Wf:60 To:12000 G:warp:344 Wf:60 To:12000 G:warp:3 Wf:60 To:12000 G:191,757 Wf:5 S | zone 3 191,757 | pt-wst7
+# the early game roads reversed
+wst8 | pt-wst7 | Pa To:12000 G:warp:343 Wf:60 To:12000 G:warp:342 Wf:60 S | zone 342 159,845 | pt-wst8
+# the lakefront pair that leads to the full lake is the open one now (the commander beaten); the lake has the grunts and Mars, uid 0 to 3 the grunts
+wst9 | pt-wst8 | Pa To:12000 G:warp:334 Wf:60 To:12000 G:warp:312 Wf:200 S | zone 312 47,54 | pt-wst9
+# the commander (uid 7, script LakeVerity_Mars): a grunt fights on sight on the way, then her double battle; two fights ~6000 frames each, so To:30000
+ver1 | pt-wst9 | Pa To:30000 G:npc:7 Wf:60 S | zone 312 55,39 | pt-ver1
+# the way to Lake Acuity: back out of Lake Verity, the early game's road east (Jubilife, Route 203, Oreburgh), up the Cycling Road on the bicycle, Eterna, Route 211 west and the Mt. Coronet cave
+ver2 | pt-ver1 | Pa To:12000 G:warp:334 Wf:60 To:12000 G:warp:342 Wf:60 To:12000 G:warp:343 Wf:60 To:12000 G:warp:3 Wf:60 S | zone 3 177,799 | pt-ver2
+# the bicycle is mounted at Oreburgh (Bk Ky:4 Wf:60): Route 207's slope north of the city is a bike slope the planner climbs in the fast gear
+ver3 | pt-ver2 | Pa To:12000 G:warp:344 Wf:60 To:12000 G:warp:258 Wf:60 To:12000 G:warp:45 Wf:60 Bk Ky:4 Wf:60 To:12000 G:warp:353 Wf:30 To:12000 G:warp:350 Wf:30 S | zone 350 306,701 | pt-ver3
+# going UP the Cycling Road: its bridge pushes a rider south in any frame with no key held (player_move.c PlayerAvatar_IsOnCyclingRoadBridge), so the walk keeps a key down at the corners
+ver4 | pt-ver3 | Pa To:12000 G:warp:351 Wf:60 To:12000 G:door:2 Wf:60 To:12000 G:warp:80 Wf:60 To:12000 G:warp:65 Wf:60 S | zone 65 304,569 | pt-ver4
+ver5 | pt-ver4 | Pa To:12000 G:warp:365 Wf:60 To:12000 G:warp:218 Wf:60 S | zone 218 2,41 | pt-ver5
+# the cave: Rock Smash on the rock across the west corridor (uid 5), Strength on the boulder in the east corridor (uid 9, two tiles east) and the boulder in the north-east corridor (uid 7, three tiles north)
+ver6 | pt-ver5 | Pa To:12000 F:smash:5 Wf:30 To:12000 F:strength:9:R:2 Wf:30 To:12000 F:strength:7:U:3 Wf:30 To:12000 G:warp:219 Wf:60 S | zone 219 8,60 | pt-ver6
+# Mt. Coronet B1F is a lake: its west corridor (x 2-3) runs north to the door, in hops (a G: to a target outside the loaded grid wanders); room 2 and Route 216's door follow
+ver7 | pt-ver6 | Pa To:3000 G:3,50 Wf:5 To:3000 G:3,30 Wf:5 To:3000 G:3,14 Wf:5 To:3000 G:3,5 Wf:5 To:3000 G:warp:217 Wf:60 To:6000 G:warp:383 Wf:60 S | zone 383 375,403 | pt-ver7
+# Route 216's trainers fight on sight on the way west (the bicycle is put down by the pilot at the first snow)
+ver8 | pt-ver7 | Pa To:12000 G:warp:385 Wf:60 S | zone 385 304,383 | pt-ver8
+# Route 217 north in hops inside the loaded grid: the west corridor x 288-293 to row 272, the pass at 304,268, then the lakefront
+ver9 | pt-ver8 | Pa To:12000 G:290,287 Wf:5 S | zone 385 290,287 | pt-ver9
+ver10 | pt-ver9 | Pa To:12000 G:290,272 Wf:5 To:12000 G:304,268 Wf:5 S | zone 385 304,268 | pt-ver10
+ver11 | pt-ver10 | Pa To:12000 G:warp:340 Wf:60 S | zone 340 310,255 | pt-ver11
+# the lakefront's scene (the rival leaves ahead; the Rock Climb wall in front of the lake needs the Icicle badge, so Snowpoint's gym comes first)
+ver12 | pt-ver11 | Pa To:12000 G:trig:0 Wf:60 S | zone 340 310,244 | pt-ver12
+ver13 | pt-ver12 | Pa To:12000 G:warp:165 Wf:60 S | zone 165 352,238 | pt-ver13
+ver14 | pt-ver13 | Pa To:12000 G:warp:167 Wf:60 S | zone 167 11,28 | pt-ver14
+# ver15: Snowpoint's ice bowl: a slide with speed smashes a snowball and goes on (ov5_021E06A8); one G: hop per slide of a breadth-first search over (tile, snowballs broken) from the door: snowballs 13, 12, 11, then 14-17 and 25 in one slide east along row 8; then up column 11 terrace by terrace
+ver15 | pt-ver14 | Pa To:30000 G:1,3 Wf:10 G:5,3 Wf:10 G:5,11 Wf:10 G:16,11 Wf:10 G:7,11 Wf:10 G:7,14 Wf:10 G:13,14 Wf:10 G:15,14 Wf:10 G:15,16 Wf:10 G:9,16 Wf:10 G:1,22 Wf:10 G:1,8 Wf:10 G:19,8 Wf:10 G:4,8 Wf:10 G:4,22 Wf:10 G:11,5 Wf:20 S | zone 167 11,5 | pt-ver15
+# ver16: Candice (uid 0 at 11,3) one step north of the ramp: the battle under the pulse key (the test cheat wins), the badge, the machine
+ver16 | pt-ver15 | Pa To:30000 G:npc:0 Wf:60 S | zone 167 11,4 | pt-ver16
+# ver17: out of the gym (the planner slides straight down column 12, smashing the snowballs there), the city, the lakefront, Route 217 south by ver10/ver9's hops reversed, the item ball with HM08 (uid 10 at 296,305)
+ver17 | pt-ver16 | Pa To:20000 G:warp:165 Wf:60 To:12000 G:warp:340 Wf:60 To:12000 G:warp:385 Wf:60 To:12000 G:304,268 Wf:5 To:12000 G:290,272 Wf:5 To:12000 G:290,287 Wf:5 To:12000 G:npc:10 Wf:30 S | zone 385 296,304 | pt-ver17
+# ver18: Route 217 north again by ver9/ver10's hops, the lakefront, F:climb up its Rock Climb wall (the climb's foot 310,242 facing up: the test cheat knows the move, the Icicle badge is real), Lake Acuity's entrance scene (LakeAcuity_CoordEvent_JupiterRival) plays on the way in
+ver18 | pt-ver17 | Pa To:12000 G:290,287 Wf:5 To:12000 G:290,272 Wf:5 To:12000 G:304,268 Wf:5 To:12000 G:warp:340 Wf:60 To:12000 F:climb Wf:30 To:12000 G:warp:318 Wf:60 S | zone 318 16,45 | pt-ver18
+# ver19: F:fly:132 (route_fly.h on Gen 4): X, the Pokemon entry, the lead, its Fly entry (the test cheat gives slot 0 the entry: nobody knows the move), the Town Map's cursor to Veilstone, A; the flight ends on Veilstone's fly spot by the Center door.
+ver19 | pt-ver18 | F:fly:132 Wf:60 S | zone 132 717,612 | pt-ver19
+# ver20: G:npc:23 (the grunt at 721,593, script 13): he drops the key's flag and walks off, the detective walks in, the hideout question is answered Yes by the pulse key (the detective agrees to meet inside).
+ver20 | pt-ver19 | Pa To:12000 G:npc:23 Wf:60 S | zone 132 722,593 | pt-ver20
+# ver21: G:warp:143 (the warehouse door in Veilstone), G:trig:0 (the two-tile trigger at 8,8: the detective walks to the player, opens the headquarters door with the key and goes in).
+ver21 | pt-ver20 | Pa To:12000 G:warp:143 Wf:60 G:trig:0 Wf:60 S | zone 143 8,8 | pt-ver21
+# ver22: the headquarters is a loop: B2F east (a grunt in the corridor), the door to B1F, 1F, three warp panels (G:door:I: a panel of the zone itself, done on its destination tile), 2F, back to 1F and the door down to B2F (its east end), then the floor item (G:item:5: the Galactic Key).
+ver22 | pt-ver21 | G:warp:310 Wf:30 G:38,17 Wf:10 To:12000 G:37,12 Wf:20 G:60,12 Wf:10 G:75,8 Wf:10 To:12000 G:warp:309 Wf:60 G:warp:305 Wf:60 G:door:10 Wf:30 G:door:12 Wf:30 G:door:3 Wf:30 G:door:5 Wf:30 G:door:1 Wf:30 G:warp:310 Wf:60 G:item:5 Pa Wf:60 S | zone 310 21,5 | pt-ver22
+# ver23: G:npc:6 (a card-key door on B2F: A, then Yes with the key in the bag opens both), out by the warehouse (G:warp:143, G:warp:132), back in by the west front door of 1F (G:door:14: the front doors lead into three different parts), then G:npc:5, the 1F card-key doors.
+ver23 | pt-ver22 | G:npc:6:nota Wf:20 Ka:5 Py Pa Wf:60 G:warp:143 Wf:40 G:warp:132 Wf:40 G:door:14 Wf:60 G:npc:5:nota Wf:20 Ka:5 Py Pa Wf:60 Wf:20 S | zone 305 22,19 | pt-ver23
+# ver24: through the opened doors to the 2F panel room (G:door:4), the 2F panel into the hall (G:door:10: there are two panels to the hall, so the warp index), then the trigger at 20,12: the leader speaks to the crowd, the detective joins (a long scene, ~6000 frames).
+ver24 | pt-ver23 | G:door:4 Wf:40 G:door:10 Wf:60 Pa To:12000 G:trig:0 Wf:60 S | zone 569 19,13 | pt-ver24
+# ver25: the hall balcony is no way on (its wall at 17,7 is solid): the hall west panel (G:door:1) to 2F, the 2F panel room door to 3F (G:door:4), the 3F panel (G:door:4) and the door up (G:door:2) to the 4F south room, then G:npc:1: its card-key doors.
+ver25 | pt-ver24 | G:door:1 Wf:40 G:door:4 Wf:40 Pa To:20000 G:door:4 Wf:40 G:door:2 Wf:60 G:npc:1:nota Wf:20 Ka:5 Py Pa Wf:60 Wf:20 S | zone 308 8,15 | pt-ver25
+# ver26: the trigger at 8,11 on 4F: the leader battle (the test cheat wins), the gift ball, the leader walks off (VAR_GALACTIC_HQ_4F_STATE 1).
+ver26 | pt-ver25 | Pa To:20000 G:trig:0 Wf:60 S | zone 308 8,11 | pt-ver26
+# ver27: 4F to the laboratory (G:warp:497) and the control room (G:warp:494); G:npc:0, the commander there: the battle (the test cheat wins), his scene.
+ver27 | pt-ver26 | G:warp:497 Wf:60 To:12000 G:warp:494 Wf:60 Pa To:20000 G:npc:0 Wf:60 S | zone 494 8,7 | pt-ver27
+# ver28: the button is a BG event at 8,5 read from 8,6 (G:bg:3): the commander stepped off 8,6 by his scene, and the planner reads the actors live positions, so the tile is free; A, Yes: the three lake guardians are freed.
+ver28 | pt-ver27 | G:bg:3:nota Wf:20 Ka:5 Py Pa Pa Wf:60 S | zone 494 8,6 | pt-ver28
+# ver29: out of the headquarters (the laboratory, 4F, its door D2 to 1F D14, the front door to Veilstone) and F:fly:86 to Hearthome: the way to Mt. Coronet from the Route 208 side.
+ver29 | pt-ver28 | G:warp:497 Wf:60 G:warp:308 Wf:60 G:warp:305 Wf:60 To:12000 G:warp:132 Wf:60 F:fly:86 Wf:60 S | zone 86 465,698 | pt-ver29
+# ver30: Hearthome's east gate (G:warp:109), Route 208 (the hop 421,716 round the grass; G:warp:354 to the cave), Mt. Coronet 1F south (zone 207): the door to 2F is above a ledge, so west bank 6,5 -> F:surf east across the water (the bank 18,5), the foot of the Rock Climb wall (27,10), F:climb, G:warp:208.
+ver30 | pt-ver29 | To:12000 G:warp:109 Wf:60 To:12000 G:warp:354 Wf:60 To:12000 G:421,716 Wf:5 To:12000 G:warp:207 Wf:60 To:12000 G:5,5 Wf:5 To:12000 G:6,5 Wf:5 F:surf Wf:60 To:12000 G:18,5 Wf:5 To:12000 G:27,10 Wf:5 F:climb Wf:30 To:12000 G:warp:208 Wf:60 S | zone 208 27,48 | pt-ver30
+# ver31: 2F from the east end: the boulder (uid 8, 14,45) pushed down the one-wide corridor five times (F:strength:8:D:5) so the room below opens round it; 12,49 then 12,40 up the west side; the hop 8,41 is the trench under the bridge (the grid reads a bridge's top at the player's level: step down into the lower layer first, then 8,33 is reachable); the plateau (10,30) to the chute (26,33), the ramp 22,33 -> 22,31, west under the bridge (16,31, 16,26), the room of the painting; G:trig:0 is the detective's scene.
+ver31 | pt-ver30 | To:12000 G:14,44 Wf:5 F:strength:8:D:5 Wf:30 To:12000 G:12,49 Wf:5 To:12000 G:12,40 Wf:5 To:12000 G:8,41 Wf:5 To:12000 G:8,33 Wf:5 To:12000 G:10,30 Wf:5 To:12000 G:26,30 Wf:5 To:12000 G:26,33 Wf:5 To:12000 G:22,33 Wf:5 To:12000 G:22,31 Wf:5 To:12000 G:16,31 Wf:5 To:12000 G:16,26 Wf:5 To:12000 G:12,25 Wf:5 Pa To:20000 G:trig:0 Wf:60 S | zone 208 11,25 | pt-ver31
+# ver32: 2F's painting-room door (G:door:2, the passage north to 3F, G:warp:209), 3F's trainers (Pa) to the door out (G:warp:211): Mt. Coronet outside south; the Rock Climb wall at x 31 (foot 31,23, F:climb) puts the player on the corridor of row 19, which is the way round to the west door (G:door:1) of the 4F rooms; there the second wall (foot 7,17), the north-west room and its east door to the outside north side (G:door:4).
+ver32 | pt-ver31 | To:12000 G:door:2 Wf:60 To:12000 G:warp:209 Wf:60 Pa To:12000 G:warp:211 Wf:60 Pa To:12000 G:31,23 Wf:5 F:climb Wf:30 To:12000 G:door:1 Wf:60 Pa To:12000 G:7,17 Wf:5 F:climb Wf:30 To:12000 G:door:4 Wf:60 S | zone 210 42,40 | pt-ver32
+# ver33: the north side arrival room: the corridor of x 45 up to its foot (45,22), the wall west along row 22 (F:climb:45,22:L; north is a pocket with an item), then door 1 (13,19) to 4F room 3, 5F, 6F (a trainer plays under To) and the Spear Pillar door
+ver33 | pt-ver32 | To:12000 G:45,22 Wf:5 F:climb:45,22:L Wf:30 To:12000 G:door:1 Wf:60 To:12000 G:warp:214 Wf:60 To:12000 G:warp:215 Wf:60 To:12000 G:warp:220 Wf:60 Pa Wf:30 S | zone 220 31,53 | pt-ver33
+# ver34: the south end trigger: the grunts of the pillar, a double battle (two live Pokemon needed)
+ver34 | pt-ver33 | To:30000 G:trig:0 Wf:60 Pa Wf:30 S | zone 220 31,48 | pt-ver34
+# ver35: trigger 1 (30,32): the tag battle with the rival against the two commanders, the scene of the leader, the warp to the distorted Spear Pillar: the pilot pulse key (B by default) answers the question about the Distortion World with No, the next leg talks to the champion and answers Yes
+ver35 | pt-ver34 | To:30000 G:trig:1 Wf:60 S | zone 221 30,30 | pt-ver35
+# ver36: talk to the champion in the distorted pillar (Yes): the warp into the Distortion World and its first-entry scene
+ver36 | pt-ver35 | G:npc:0:nota Wf:20 Ka:5 Py Mz:573 Wf:30 S | zone 573 54,40 | pt-ver36
+# ver37: 1F: the start platform to the walkway (G: to 40,49; its last tiles are not in the planner grid: KD:30 walks them and the game jumps onto the elevator platform), then the tile 40,54 starts the ride down
+ver37 | pt-ver36 | To:12000 G:40,49 Wf:5 KD:30 Wf:300 To:12000 G:40,54 Mz:574 Wf:30 S | zone 574 40,54 | pt-ver37
+# ver38: B1F: the far-jump walkways west and south to the lake spirit tile 15,58 (its scene), the west wall: a step west from 12,58 jumps onto it, right walks it north, down jumps back onto the floor at 12,49; then the elevator platform 33,45 rides down to B2F
+ver38 | pt-ver37 | To:12000 G:15,58 Wf:400 G:12,58 Wf:5 KL:6 Wf:60 KR:80 Wf:10 KD:8 Wf:60 To:12000 G:33,45 Mz:575 Wf:60 S | zone 575 33,45 | pt-ver38
+# ver39: B2F: the platform 2 rides north (its north edge tile), the west wall from 31,23 (a step west jumps onto it; up climbs it, right walks it north), A talks to the champion; left, down back onto the floor
+ver39 | pt-ver38 | To:6000 G:33,36 Wf:200 G:31,23 Wf:5 KL:6 Wf:60 KU:48 Wf:10 KR:16 Wf:10 Ka:5 Wf:300 KL:8 Wf:10 KD:64 Wf:60 S | zone 575 31,23 | pt-ver39
+# ver40: B2F to B3F: a step west from 31,23 jumps onto the west wall; G plans on the wall in its own axes (X = 512 - z, Z = 512 - y: route_gen4.c Pr4_DwFill) to z 15 y 233, down jumps onto the upper floating floor at 31,15; the moving platforms ride east (35,15, 51,15), south (65,17), west (63,45), platform 18 down to y 225 (49,36), platform 7 east (51,31); the elevator platform 8 (65,31) goes down
+ver40 | pt-ver39 | KL:6 Wf:60 G:497,279 Wf:10 KD:8 Wf:60 G:35,15 Wf:40 G:51,15 Wf:40 G:65,17 Wf:40 G:63,45 Wf:40 G:49,36 Wf:40 G:51,31 Wf:40 To:6000 G:65,31 Mz:576 Wf:60 S | zone 576 65,31 | pt-ver40
+# ver41: B3F: the tile 65,41 starts the leader scene (a Distortion World event: progress 6; his yes/no question either way), then the large elevator platform 96,43 goes down to B4F (zone 579)
+ver41 | pt-ver40 | To:12000 G:65,41 Wf:60 To:12000 G:96,43 Mz:579 Wf:60 S | zone 579 96,43 | pt-ver41
+# ver42: B5F: the boulders 130 (86,56) and 128 (75,68) are each one Strength push from a floor hole (ov9 sBoulderFallLocations: 86,57 and 76,68); a boulder on a hole falls to B6F. The third (129 at 98,67, its hole 97,67) is pushed from 99,67, a pocket by the east water: not reached yet
+ver42 | pt-ver41 | To:12000 F:strength:130:1 Wf:200 To:12000 F:strength:128:3 Wf:200 S | zone 579 74,68 | pt-ver42
+# ver43: B5F's third boulder (129 at 98,67) is pushed left from 99,67, a pocket on the east water: the elevator 78,77 up to B4F, 79,62 up to B3F, 95,70 down to B4F's east part, Surf north over the water to the walkway 105,56; a step east jumps onto the east wall (X = 512 + z, Z = 512 - y), up the wall to z 61 y 169, a step up jumps onto the ceiling (X = x, Z = 512 - z) at y 170; Surf on the ceiling's water (route_gen4.c Pr4_DwFill marks it), Right at x 104 z 76..79 cascades down to B5F's water (ov9 WATERFALL_B4F_*), land in the pocket
+ver43 | pt-ver42 | To:12000 G:78,77 Mz:577 Wf:60 To:12000 G:79,62 Mz:576 Wf:60 To:12000 G:95,70 Mz:577 Wf:60 To:12000 G:90,60 Wf:5 F:surf Wf:20 To:6000 G:105,56 Wf:10 KR:6 Wf:60 G:573,343 Wf:10 KU:6 Wf:60 F:surf Wf:20 G:104,435 Wf:10 KR:4 Mz:579 Wf:60 To:6000 G:99,67 Wf:10 To:12000 F:strength:129:2 Wf:200 S | zone 579 99,67 | pt-ver43
+# ver44: with the third boulder gone, the pocket by B5F's east water walks west to the elevator 87,67 (the far jumps 91 and 88) down to B6F (zone 580); the boulders that fell lie next to their pits (ov9 sBoulderFallLocations): 130 down 4 from 86,55 then left from 87,60 into 85,60; 128 left 7 to 68,68 then up from 68,69 into 68,67; 129 left from 98,67 then down from 96,66 into 96,68. A push into a pit is a held key (F:push waits for a free field, but the pit's scene waits on A: Pa). The hops keep the walks off the elevator 87,67 (a G: through it rides back up). The champion (uid 134) sets progress 7, the elevator 85,86 goes down to B7F (zone 581)
+ver44 | pt-ver43 | To:6000 G:87,67 Mz:580 Wf:60 To:12000 F:strength:130:1:4 Wf:200 G:87,60 Wf:10 KL:20 Wf:30 Pa Wf:200 G:81,64 Wf:5 G:77,69 Wf:5 To:12000 F:push:128:2:7 Wf:100 G:68,69 Wf:10 KU:20 Wf:30 Pa Wf:200 G:81,62 Wf:5 G:92,64 Wf:5 G:98,66 Wf:5 To:12000 F:push:129:2 Wf:100 G:96,66 Wf:10 KD:20 Wf:30 Pa Wf:200 To:12000 G:npc:134 Wf:60 To:12000 G:85,86 Mz:581 Wf:400 S | zone 581 85,86 | pt-ver44
+# ver45: B7F: the tiles 84..86,76 start the champion and leader scene (it waits on a button: Pa), the leader (uid 129) battles (progress 10), the player follows the champion to 89,68; a step up onto 89,57 teleports into the giant's room (zone 582, 15,25); north along x 15 its three scenes (z 24, 17, 14: Pa each), the giant (uid 128 at 15,13) battles. A win is enough for the story (scripts.s: the defeated and the caught branches meet), the test cheat wins it
+ver45 | pt-ver44 | To:12000 G:85,76 Wf:60 Pa Wf:60 To:20000 G:npc:129 Wf:60 G:89,58 Wf:5 KU:8 Mz:582 Wf:100 To:12000 G:15,24 Wf:30 Pa Wf:100 To:12000 G:15,17 Wf:30 Pa Wf:100 To:12000 G:15,14 Wf:30 Pa Wf:100 To:30000 G:npc:128 Wf:100 S | zone 582 15,14 | pt-ver45
+# ver46: the giant's room loads with progress 14 (its OnLoad: the giant gone) and the portal (uid 131 at 15,13); a talk and Yes leaps through it to Sendoff Spring (zone 267, 32,17), whose scene plays by itself
+ver46 | pt-ver45 | G:npc:131:nota Wf:20 Ka:5 Py Wf:300 S | zone 267 32,17 | pt-ver46
+# ver47: Sendoff Spring: F:fly:418 (Sandgem) and the lab door; its OnFrame scene (VAR_SANDGEM_TOWN_LAB_STATE 2 -> 3, VAR_EXITED_DISTORTION_WORLD_STATE 3) plays by itself, Pa answers its text; it sets VAR_VALOR_LAKEFRONT_BLOCK_SUNYSHORE_STATE, the gate of the Valor Lakefront trigger on the way to Sunyshore
+ver47 | pt-ver46 | F:fly:418 Wf:60 To:12000 G:warp:422 Wf:60 Pa Wf:60 S | zone 422 7,15 | pt-ver47
+# ver48: out of the lab, F:fly:132 (Veilstone), the south gate and Valor Lakefront (G:zone), Route 222 east (its trainers play under To), the gate house 398 to Sunyshore (the atlas edge at z 799 is a wall: the gate is the way); the arrival scene (OnFrame_Flint, VAR_SUNYSHORE_CITY_STATE 0 -> 1) plays by itself
+ver48 | pt-ver47 | To:6000 G:warp:418 Wf:60 F:fly:132 Wf:60 To:30000 G:zone:132-395 Wf:30 To:60000 G:warp:398 Wf:60 To:12000 G:warp:150 Wf:60 Pa Wf:60 S | zone 150 832,790 | pt-ver48
+# ver49: Sunyshore is a net of bridges: the avenues are ground (height 16), the bridges and the east pier a deck 5 tiles up (80), joined by ramps whose start tile (behavior 0x70, a step of 16 each) is the deck end; a G: plans on the layer the player stands on (the planner reads each tile at the player height), so each layer is a hop of its own: the ramp x 843-844 z 780-783 from the plaza (to 843,779), the deck round to x 851 and south to the pier row z 791, east to the lighthouse door 516 (the elevator rides up by itself); the leader at the top (uid 2) says his piece and walks to the door: FLAG_VOLKNER_RETURNED_TO_GYM
+ver49 | pt-ver48 | To:12000 G:843,784 Wf:5 G:843,779 Wf:30 G:850,776 Wf:5 G:851,790 Wf:5 G:870,791 Wf:5 To:12000 G:warp:516 Wf:300 Pa To:12000 G:npc:2 Wf:60 S | zone 164 6,5 | pt-ver49
+# ver50: the lighthouse elevator down, the deck back west (the pier column x 871-872, the cross bridge z 771-772, the column x 875-876 north, the long bridge z 750-751 west to its ramp start at 848): hops, each a layer-wide plan; the gym terrace is deck height too; the man at the gym door (uid 18) gives way after his talk (FLAG_VOLKNER_RETURNED_TO_GYM), the door to room 1 (zone 154)
+ver50 | pt-ver49 | To:12000 G:warp:516 Wf:300 To:12000 G:872,780 Wf:5 G:872,772 Wf:5 G:876,771 Wf:5 G:876,753 Wf:5 G:852,751 Wf:5 G:846,749 Wf:5 Pa To:12000 G:npc:18 Wf:100 To:12000 G:warp:154 Wf:60 S | zone 154 8,14 | pt-ver50
+# ver51: Sunyshore gym room 1: three gears (plus-shaped, centres 3,8 8,8 13,8), each button (3,8 and 13,8: the trigger on the centre tile) turns every gear a quarter (state + 1, the collision regions of gym_features.c per state: the planner reads them); a search over (tile, state) gives: up to 8,8, east to the button 13,8 (state 1), down and round by row 11 back to 8,8, west to the button 3,8 (state 2), back to 8,8 and north through the opened arm to the trainer and the door; each button hop waits the turn out (Wf:60)
+ver51 | pt-ver50 | To:12000 G:8,8 Wf:5 G:13,8 Wf:60 G:13,11 Wf:5 G:8,11 Wf:5 G:8,8 Wf:5 G:3,8 Wf:60 G:8,8 Wf:5 G:8,5 Wf:5 Pa To:30000 G:warp:155 Wf:60 S | zone 155 9,21 | pt-ver51
+# ver52: Sunyshore gym room 2: the floor has two levels (the planner reads them: a step of 20+ is a wall; the raised top row x 7-16 is reached only by the east ramp x 15): a search over (tile, gear state, height) with the buttons 6,13 (+1), 6,8 and 11,8 (-1) gives: three presses of the bottom button (6,13: the step west and back, the step north and back) to state 3, round by the lower rows and the west ramp and walkway to the top left, down the arm to the button 6,8 (state 2), east to 11,8 (state 1), south and east to the east ramp and north up to the top row, west to the door; the trainers on the way fight under Pa
+ver52 | pt-ver51 | Pa To:30000 G:9,16 Wf:5 G:6,16 Wf:5 G:6,13 Wf:60 G:5,13 Wf:5 G:6,13 Wf:60 G:6,12 Wf:5 G:6,13 Wf:60 G:11,13 Wf:5 G:11,20 Wf:5 G:3,20 Wf:5 G:3,16 Wf:5 G:2,16 Wf:5 G:2,4 Wf:5 G:5,4 Wf:5 G:5,5 Wf:5 G:6,5 Wf:5 G:6,8 Wf:60 G:11,8 Wf:60 G:11,13 Wf:5 G:14,13 Wf:5 G:14,14 Wf:5 G:15,14 Wf:5 G:15,3 Wf:5 G:9,3 Wf:5 To:30000 G:warp:156 Wf:60 S | zone 156 11,25 | pt-ver52
+# ver53: Sunyshore gym room 3: nine gears in three rows, four buttons (6,8 and 16,13: +1; 6,18 and 16,18: +2), three levels (the rows z 3-13 are at 112, the bottom row at 16, the side columns and corner ramps 64: the planner reads the heights); tools-side search over (tile, state, height) in the notes of platinum.md gives the 40 hops: the presses in order: 16,18 (state 2), 6,18 (0), 6,8 twice (2), 16,13 (3), 16,18 (1); the four trainers on the way fight under Pa; the one at 16,23 (look north and south) may see the player at 16,21 and step to 16,22 to fight: no waypoint on 16,22, the hop after the press goes to 17,22
+ver53 | pt-ver52 | Pa To:30000 G:11,18 Wf:5 G:16,18 Wf:60 G:16,21 Wf:5 G:11,21 Wf:5 G:11,18 Wf:5 G:6,18 Wf:60 G:6,24 Wf:5 G:3,24 Wf:5 G:3,21 Wf:5 G:2,21 Wf:5 G:2,5 Wf:5 G:6,5 Wf:5 G:6,8 Wf:60 G:6,9 Wf:5 G:6,8 Wf:60 G:6,13 Wf:5 G:11,13 Wf:5 G:11,8 Wf:5 G:16,8 Wf:5 G:16,13 Wf:60 G:16,5 Wf:5 G:19,5 Wf:5 G:19,10 Wf:5 G:20,10 Wf:5 G:20,24 Wf:5 G:18,24 Wf:5 G:18,21 Wf:5 G:16,21 Wf:5 G:16,18 Wf:60 G:17,22 Wf:5 G:17,24 Wf:5 G:19,24 Wf:5 G:19,21 Wf:5 G:20,21 Wf:5 G:20,5 Wf:5 G:16,5 Wf:5 G:16,8 Wf:5 G:11,8 Wf:5 G:11,4 Wf:5 S | zone 156 11,4 | pt-ver53
+# ver54: the leader (uid 0) in front of the player: talk, battle (test cheat), the badge and the TM he gives (VAR_SUNYSHORE_CITY_STATE 2), the gym trainers flagged beaten
+ver54 | pt-ver53 | Pa To:30000 G:npc:0 Wf:100 S | zone 156 11,4 | pt-ver54
+# ver55: the way back out of the gym, solved the same way (the rotation state of a room entered from its far door is preset by PersistedMapFeatures_InitForSunyshoreGym: room 3 stays at 1, room 2 starts at 1, room 1 at 2): room 3 by its east column, room 2 by the east ramp and the lower rows (no press), room 1 by three presses of the west button
+ver55 | pt-ver54 | Pa To:30000 G:11,8 Wf:5 G:16,8 Wf:5 G:16,5 Wf:5 G:19,5 Wf:5 G:19,10 Wf:5 G:20,10 Wf:5 G:20,24 Wf:5 G:warp:155 Wf:60 G:9,5 Wf:5 G:15,5 Wf:5 G:15,14 Wf:5 G:14,14 Wf:5 G:14,13 Wf:5 G:11,13 Wf:5 G:11,20 Wf:5 G:warp:154 Wf:60 G:8,8 Wf:5 G:3,8 Wf:60 G:3,7 Wf:5 G:3,8 Wf:60 G:3,9 Wf:5 G:3,8 Wf:60 G:8,8 Wf:5 G:8,13 Wf:5 G:warp:150 Wf:60 S | zone 150 845,748 | pt-ver55
+# ver56: from the gym terrace by the deck east, the bridge down and the ramp z 759-762 to the ground row z 763, west to the avenue and north to the trigger row z 743 (x 853-857): the rival speaks, Jasmine gives HM07 (Waterfall); VAR_SUNYSHORE_CITY_STATE 3
+ver56 | pt-ver55 | To:12000 G:868,751 Wf:5 G:869,757 Wf:5 G:869,763 Wf:5 G:857,763 Wf:5 G:855,746 Wf:5 Pa To:12000 G:trig:0 Wf:100 S | zone 150 855,743 | pt-ver56
+# ver57: the avenue top of Sunyshore (857,739) is the shore; F:surf and the hop north puts the player on Route 223 (zone 468, 857,715), a water route to the league: the atlas edge up at z 608 leads to zone 172
+ver57 | pt-ver56 | To:12000 G:857,739 Wf:5 F:surf Wf:20 To:12000 G:857,715 Wf:5 S | zone 468 857,715 | pt-ver57
+# ver58: Route 223's way north is three swims: land on the island's south shore (845,657), surf the landlocked strait west of it and land on the west strip (837,657), walk it north to the band at z 648 and surf again (841,648); the planner now keeps a surfing plan on water (a land patch in the strait ended surfing under the old plan). The League's cascade at z 604 is climbed by F:waterfall (the Gen 4 adapter now marks the waterfall tiles F). The ground behind it is the front of the Pokemon League
+ver58 | pt-ver57 | Pa To:12000 G:855,682 Wf:5 G:845,657 Wf:5 G:842,657 Wf:5 F:surf Wf:20 G:837,657 Wf:5 G:841,648 Wf:5 F:surf Wf:20 G:warp:172 Wf:5 F:waterfall Wf:20 G:846,599 Wf:5 S | zone 172 846,599 | pt-ver58
+# ver59: Victory Road 1F is layered (the plateau of the entrance, a corridor 4 tiles below it, a middle floor): the dump reads the layer nearest the player. From the entrance: east on the plateau row z 62, the corridor x 33 north to the pocket (36,48), F:climb down the wall x 36 to the lower floor (36,53), west under the plateau bridge to 25,54, down to the row z 56, west to 13,56 and north by the x 12-13 corridor (the trainer at 10,42 sees the crossing: To:12000) to the room with the door to 2F (4,37)
+ver59 | pt-ver58 | Pa To:30000 G:warp:244 Wf:60 G:31,62 Wf:5 G:33,61 Wf:5 G:33,48 Wf:5 G:36,48 Wf:5 F:climb:36,48:D Wf:30 G:25,54 Wf:5 G:25,56 Wf:5 G:13,56 Wf:5 G:13,44 Wf:5 To:12000 G:9,43 Wf:5 G:9,37 Wf:5 G:warp:245 Wf:60 S | zone 245 20,16 | pt-ver59
+# ver60: Victory Road 2F from its arrival (20,16): smash the rock in the south corridor, push the two boulders of the 3-wide gap (one south, one west, then the third three tiles south), the trainer in the west corridor, the boulder and rock of the west rooms (the boulder is pushed down, the rock smashed, the boulder pushed back), the rock at 9,36, the long row 37 east with a trainer to the boulder at 23,37 (pushed east) and the corridor x 21-23 north to the door (23,26) back to 1F's bridge corridor
+ver60 | pt-ver59 | To:12000 F:smash:27 Wf:30 G:17,27 Wf:5 F:strength:16:D:1 Wf:20 F:push:15:L:1 Wf:10 F:push:17:D:3 Wf:10 Pa To:12000 G:5,31 Wf:30 F:push:19:D:1 Wf:10 G:4,34 Wf:5 F:smash:29 Wf:30 G:5,34 Wf:5 F:push:19:U:1 Wf:10 G:9,35 Wf:5 F:smash:14 Wf:30 Pa To:12000 G:22,37 Wf:30 F:strength:21:R:1 Wf:10 G:23,27 Wf:30 G:warp:244 Wf:60 S | zone 244 7,47 | pt-ver60
+# ver61: from the bridge corridor of 1F (arrival 7,47) east along row 48 to the top of the wall at x 22, F:climb down it to the lower floor, west to the x 17 corridor and G:warp:246 (the corridor north, then the row z 41-42 east to the door 42,41; the nearest of the warps to B1F that the planner reaches)
+ver61 | pt-ver60 | Pa To:12000 G:7,48 Wf:5 G:22,48 Wf:5 F:climb:22,48:D Wf:30 G:17,53 Wf:5 G:warp:246 Wf:60 S | zone 246 4,39 | pt-ver61
+# ver62: B1F is the way north: its lower pool (height -56) and the north water (height 8) are joined by two cascades at z 10 (x 12-14, x 24-26; behavior 0x13). From the arrival (4,39): the ramp east, the row z 35, F:surf north, land on the row z 29 (19,29) and surf again north, the east cascade (25,11) by F:waterfall, the north water west (a land strip x 10-11 cuts it: land, the trainer at 10,6, surf again), south by x 3-5 to the door D2 (3,22) -> 1F D4 (41,24)
+ver62 | pt-ver61 | Pa To:12000 G:13,35 Wf:5 F:surf Wf:20 G:19,29 Wf:5 F:surf:19,29:U Wf:20 G:25,11 Wf:5 F:waterfall Wf:20 G:25,4 Wf:5 G:11,4 Wf:5 To:12000 G:10,4 Wf:30 F:surf:10,4:L Wf:20 G:4,4 Wf:5 G:4,16 Wf:5 G:warp:244 Wf:60 S | zone 244 41,24 | pt-ver62
+# ver63: 1F north from D4 (41,24, the low floor -48): west on the row z 24 to x 29, south by the x 29 corridor to the pit (row z 37), east to the foot of the Rock Climb wall x 38, F:climb up it onto the N-S bridge x 37-39 (height 16, two trainers see it), north over the row z 23-25 into the exit room, the mat D8 (34,5) to the north side of the League (G:warp:172 from 35,5: the nearest of the six exits to zone 172)
+ver63 | pt-ver62 | Pa To:12000 G:29,24 Wf:5 G:29,37 Wf:5 G:38,37 Wf:5 F:climb:38,37:U Wf:30 G:38,17 Wf:5 G:35,5 Wf:5 G:warp:172 Wf:60 S | zone 172 853,582 | pt-ver63
+# ver64: from the Victory Road exit (853,582): the pond south of the north Pokemon Center has its own cascade (row z 569): F:surf from 846,574, F:waterfall, land at 846,563, the center (G:warp:175), the rival trigger (G:trig:0, row z 4: a battle), the door guard (G:npc:0: he steps aside), the mat 11,2 to the elevator room of the first of the Elite Four (zone 176)
+ver64 | pt-ver63 | Pa To:12000 G:846,574 Wf:5 F:surf Wf:20 F:waterfall Wf:20 G:846,563 Wf:5 G:warp:175 Wf:60 To:30000 G:trig:0 Wf:30 Pa To:12000 G:npc:0 Wf:30 Pa G:warp:176 Wf:60 S | zone 176 4,15 | pt-ver64
+# ver65: the first of the Elite Four: the lift of the elevator room (G:trig:0, the platform rises: Wf:300), the room's door (G:warp:177), the talk (G:npc:0: the battle), the door behind him to the next elevator room (G:warp:178)
+ver65 | pt-ver64 | To:12000 G:trig:0 Wf:300 G:warp:177 Wf:60 To:40000 G:npc:0 Wf:30 Pa To:12000 G:warp:178 Wf:60 S | zone 178 4,15 | pt-ver65
+# ver66: the second of the Elite Four, the same way (lift, door, talk, door)
+ver66 | pt-ver65 | To:12000 G:trig:0 Wf:300 G:warp:179 Wf:60 To:40000 G:npc:0 Wf:30 Pa To:12000 G:warp:180 Wf:60 S | zone 180 4,15 | pt-ver66
+# ver67: the third of the Elite Four, the same way
+ver67 | pt-ver66 | To:12000 G:trig:0 Wf:300 G:warp:181 Wf:60 To:40000 G:npc:0 Wf:30 Pa To:12000 G:warp:182 Wf:60 S | zone 182 4,15 | pt-ver67
+# ver68: the fourth of the Elite Four, the same way, to the elevator room of the champion
+ver68 | pt-ver67 | To:12000 G:trig:0 Wf:300 G:warp:183 Wf:60 To:40000 G:npc:0 Wf:30 Pa To:12000 G:warp:184 Wf:60 S | zone 184 4,23 | pt-ver68
+# ver69: the lift to the champion, the door (G:warp:185): the room scene, the battle, the hallway, the Hall of Fame (an auto-save) and the credits are one event; the credits end in the game resetting itself (FieldTask_DoClearGameSequence: OS_ResetSystem, now the port in-process restart on Platinum too, port_plat.h), Wr waits for that reset, Mz:415 passes the title and CONTINUE of the new boot into the room of the house
+ver69 | pt-ver68 | Pa To:12000 G:trig:0 Wf:300 To:60000 G:warp:185 To:100000 Wr To:30000 Mz:415 Wf:30 S | zone 415 4,6 | pt-ver69

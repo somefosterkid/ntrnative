@@ -1,0 +1,46 @@
+#include "config.h"
+#include "msgdata/msg/msg_0247.h"
+#include "msgdata/msg/msg_0442.h"
+#include "constants/sndseq.h"
+	.include "macros.inc"
+	.include "overlay_74_thumb.inc"
+	.include "global.inc"
+	.public gApplication_TitleScreen
+	.public sub_020342C0
+
+	.public MainMenuApp_Init
+	.public MainMenuApp_Main
+	.public MainMenuApp_Exit
+	.public ov74_0223B2C0
+	.public ov74_0223B2CC
+	.public ov74_0223B2D8
+	.public ov74_0223B2E8
+	.public gApp_MainMenu_SelectOption_ConnectToRanger
+	.public gApp_MainMenu_SelectOption_MigrateFromAgb
+	.public gApp_MainMenu_SelectOption_MysteryGift
+
+	.public ov74_0222FE4C
+	.public ov74_0222FE5C
+	.public ov74_0222FE68
+	.public ov74_0222FE78
+	.public ov74_0222FEA0
+	.public ov74_0222FEC8
+	.public ov74_0222FF68
+	.public ov74_02231070
+	.public ov74_0223107C
+	.public ov74_0223110C
+	.public ov74_0223113C
+	.public ov74_0223115C
+	.public ov74_022311AC
+	.public ov74_022311BC
+	.public ov74_022311CC
+	.public ov74_02231448
+	.public ov74_0223144C
+	.public ov74_02231458
+	.public ov74_022314BC
+	.public ov74_022314DC
+	.public ov74_02231508
+	.public ov74_02231544
+	.public ov74_02231670
+	.public ov74_022316E8
+	.text

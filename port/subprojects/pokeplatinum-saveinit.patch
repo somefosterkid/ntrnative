@@ -1,0 +1,21 @@
+pokeplatinum-saveinit.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after pokeplatinum-route.patch): the
+berry patches of a new game. BerryPatches_Init loops to MAX_BERRY_PATCHES (128) but its table (sBerryInitTable, game_start.c)
+has 118 entries, so patches 118..127 were filled from the memory after the table: on the DS the 8 padding bytes and then
+THUMB code (deterministic garbage in unused patches), on the PC whatever the linker put next in .rodata, and the stage
+minutes were then read from growthData[berryID - 1] past the end of the 65-entry heap block. Those 10 patches
+(140 bytes) went into the save, differing per platform: Platinum's save.bin differed between Windows and Linux
+(Misc block, offsets 0x2754.., stride 14). The patches past the table are now plain zero patches (no berry).
+diff --git a/src/berry_patches.c b/src/berry_patches.c
+--- a/src/berry_patches.c
++++ b/src/berry_patches.c
+@@ -38,6 +38,10 @@
+     for (int i = 0; i < MAX_BERRY_PATCHES || i < initSize; i++) {
+         ZeroBerryPatch(&patches[i]);
+ 
++        if (i >= initSize) {
++            continue;
++        }
++
+         patches[i].berryID = initPatches[i * 2] - FIRST_BERRY_IDX + 1;
+         patches[i].growthStage = BERRY_GROWTH_STAGE_FRUIT;
+         patches[i].stageMinutesRemaining = CalcMinutesRemainingInStage(growthData, patches[i].berryID, patches[i].mulchType) * 4;

@@ -1,0 +1,31 @@
+#include "config.h"
+	.include "macros.inc"
+	.include "overlay_45_thumb.inc"
+	.include "global.inc"
+
+	.public _022577C0
+	.public ov45_0222E9E0
+	.public ov45_0222EB94
+	.public ov45_0222F154
+	.public ov45_0222F74C
+	.public ov45_0222F7A8
+	.public ov45_0222F7B0
+	.public ov45_0222F88C
+	.public ov45_0222F898
+	.public ov45_0222F8D8
+	.public ov45_0222F8FC
+	.public ov45_0222F928
+	.public ov45_0222F954
+	.public ov45_0222F978
+	.public ov45_0222FA40
+	.public ov45_0222FA74
+	.public ov45_0222FAF8
+	.public ov45_0222FB24
+	.public ov45_0222FB5C
+	.public ov45_02230164
+	.public ov45_022301E0
+	.public ov45_02230384
+	.public ov45_0223040C
+	.public ov45_0223048C
+	.public ov45_02254EF0
+	.text

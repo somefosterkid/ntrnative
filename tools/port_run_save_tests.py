@@ -37,6 +37,45 @@ def test_check_save():
         assert 'never said' in R.check_save('nothing', d, 'black', want)
 
 
+def test_saves_dir():
+    """--save/--store use $BWPORT_SAVES, else ~/saves (tools/route.py's rule on Linux)"""
+    old = os.environ.pop('BWPORT_SAVES', None)
+    try:
+        assert R.saves_dir() == os.path.join(os.path.expanduser('~'), 'saves')
+        os.environ['BWPORT_SAVES'] = '/tmp/x'
+        assert R.saves_dir() == '/tmp/x'
+        os.environ['BWPORT_SAVES'] = ''                                         # empty = unset
+        assert R.saves_dir() == os.path.join(os.path.expanduser('~'), 'saves')
+    finally:
+        os.environ.pop('BWPORT_SAVES', None)
+        if old is not None:
+            os.environ['BWPORT_SAVES'] = old
+
+
+def test_verdict_without_gdb():
+    """--no-gdb: the exit status says what gdb's stop text says (the place is `?`: no backtrace)"""
+    v = lambda timed_out=False, rc=None, log='', frame=9: R.verdict(log, timed_out, frame, 0, 5, 60, 3, rc)  # noqa: E731
+    assert v(rc=-11) == 'crash SIGSEGV in ?, frame 9'
+    assert v(rc=-6) == 'crash SIGABRT in ?, frame 9'
+    assert v(rc=0) == 'exit 0 at frame 9' and v(rc=3) == 'exit 3 at frame 9'
+    assert v(rc=-6, log='bwport: undefined function foo called\n') == 'stub foo called, frame 9'
+    assert v(timed_out=True).startswith('reached-frame 9')                  # port_run killed it at the end
+    assert v(timed_out=True, frame=0).startswith('hang in ? before the first frame')
+    assert R.verdict('', False, 9, 0, 5, 60, 3) == 'stopped (?), frame 9'    # under gdb, with no stop text: as before
+
+
+def test_verdict_frames():
+    """--frames N: the exe's own end at V-blank N is the result; the wall cap is only the watchdog"""
+    ended = 'x\nbwport: exit-frame 3000\n'
+    assert R.verdict(ended, False, 2990, 0, 5, 60, 3, 0, 3000) == 'exit-frame 3000 in 3 s (60 fps)'
+    gdb = ended + '[Inferior 1 (process 7) exited normally]\n\n== port_run: stop\n'
+    assert R.verdict(gdb, False, 2990, 0, 5, 60, 3, None, 3000) == 'exit-frame 3000 in 3 s (60 fps)'
+    assert R.verdict(ended, False, 9, 0, 5, 60, 3, 3, 3000) == 'exit 3 at frame 9'   # a failure status is no pass
+    assert R.verdict('', True, 900, 0, 5, 60, 3, None, 3000) == 'watchdog: frame 900 of 3000 in 3 s (60 fps)'
+    assert R.verdict('', True, 900, 0, 5, 60, 3).startswith('reached-frame 900')     # no --frames: the wall cap as before
+    assert R.verdict('', True, 900, 9, 5, 60, 3, None, 3000).startswith('hang in ')   # a stuck run is still a hang
+
+
 if __name__ == '__main__':
     bad = 0
     for name, fn in sorted(globals().items()):

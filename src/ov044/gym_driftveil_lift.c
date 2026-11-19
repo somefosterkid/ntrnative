@@ -1,5 +1,6 @@
 // From pokebw2 (GPL-3.0, https://github.com/fuddlesworth/pokebw2), src/ov097/gym_driftveil_lift.c, ported by tools/port_file.py.
 // The names are Black's; pokebw2's own guesses are in the comments.
+#include <stddef.h>
 #include "types.h"
 #include "constants/sound.h"
 #include "field/field.h"
@@ -68,7 +69,8 @@ void func_ov044_021f36c0(Field *field) {
     int i;
 
     system = Field_GetExpObjSystem(field);
-    Field_AllocGimmickWorkBlock(field, 1, Field_GetHeapID(field), 0x14);
+    // the fields up to down (0x14 on the DS; cameraBind is 8 bytes on 64 bits, so down ends past 0x14 there)
+    Field_AllocGimmickWorkBlock(field, 1, Field_GetHeapID(field), offsetof(LiftWork, unk_14));
     LoadFieldExpandObjData(system, &data_ov044_021f39e8, 0);
     FieldExpObj_GetActorMatrixPtr(system, 0, 0)->translation = lift0Position;
     func_ov021_021be4a4(system, 0, 0, TRUE);

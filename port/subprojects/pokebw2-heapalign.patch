@@ -1,0 +1,80 @@
+pokebw2-heapalign.patch (tools/pokebw2_fetch.sh, the maintainers' notes): GFL heap blocks 8-aligned on a 64-bit PC
+target, as Black's lib/gfl/src/heapsys.c. heapsys.c asks the NNS expanded heap for the DS's alignment of 4 (-4: from
+the heap's end) for the child heaps, GFL_HeapAllocateCore, GFL_HeapCreateAllocatorCore's allocators and the
+largest-block query; the blocks hold pointers on the host, and with a 28-byte HeapBlockHeader the caller's pointer sat
+at 4 mod 8 (the sanitizer's misaligned-pointer rows). HEAP_HOST_ALIGN raises |alignment| below 8 to 8, keeping the
+sign, and HeapBlockHeader is 32 bytes where a pointer is 8 bytes. Sizes are unchanged; the DS build compiles none of it.
+
+diff --git a/include/gfl/heapsys.h b/include/gfl/heapsys.h
+index 3b7057b1b..03824fa4b 100644
+--- a/include/gfl/heapsys.h
++++ b/include/gfl/heapsys.h
+@@ -31,6 +31,11 @@ typedef struct {
+     u16 magic;
+     HeapDebugInfo debug;
+     u8 unk18[4];
++#if defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8
++    // A 64-bit PC target: 32 bytes, not the DS's 28, so the caller's pointer after the header keeps the block's 8-byte
++    // alignment (heapsys.c's HEAP_HOST_ALIGN; the blocks hold pointers)
++    u8 hostPad[4];
++#endif
+ } HeapBlockHeader;
+ 
+ NNSFndHeapHandle GFL_HeapGetBase(HeapID heapId);
+diff --git a/src/gfl/heapsys.c b/src/gfl/heapsys.c
+index 4ec1c46a6..1910f24e6 100644
+--- a/src/gfl/heapsys.c
++++ b/src/gfl/heapsys.c
+@@ -7,6 +7,16 @@
+ // are scaled alike, so each child still fits its parent; a root heap of the caller's memory (GFL_HeapAddRoot) is the
+ // caller's to scale
+ #define HEAP_AREA_SIZE(size) WORK_AREA_SIZE(size)
++
++// A block's alignment on a 64-bit PC target: the DS's 4 (-4: from the heap's end) raised to 8, the sign kept, as the
++// blocks hold pointers (HeapBlockHeader's 32 bytes there keep the caller's pointer at the block's alignment). The
++// child heaps, GFL_HeapAllocateCore, GFL_HeapCreateAllocatorCore's allocators and the largest-block query; an
++// alignment of 8 or more is as given
++#if defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8
++#define HEAP_HOST_ALIGN(alignment) ((alignment) >= 0 ? ((alignment) < 8 ? 8 : (alignment)) : ((alignment) > -8 ? -8 : (alignment)))
++#else
++#define HEAP_HOST_ALIGN(alignment) (alignment)
++#endif
+ #include "nitro/os.h"
+ #include "nnsys/fnd.h"
+ 
+@@ -130,7 +140,7 @@ BOOL GFL_HeapAddChild(HeapID parentHeapId, HeapID heapId, u32 size) {
+         sHeapMgr.lastResult = HEAP_RESULT_1;
+     } else if ((parent = GFL_HeapGetBase(parentHeapId & (HEAPID_TAIL_BIT - 1))) == NULL) {
+         sHeapMgr.lastResult = HEAP_RESULT_2;
+-    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, HEAP_AREA_SIZE(size), alignment)) == NULL) {
++    } else if ((memory = NNS_FndAllocFromExpHeapEx(parent, HEAP_AREA_SIZE(size), HEAP_HOST_ALIGN(alignment))) == NULL) {
+         sHeapMgr.lastResult = HEAP_RESULT_3;
+     } else if (GFL_HeapAdd(parent, heapId, memory, HEAP_AREA_SIZE(size))) {
+         return TRUE;
+@@ -223,7 +233,7 @@ void *GFL_HeapAllocateCore(HeapID heapId, u32 size) {
+     } else {
+         interrupts = OS_DisableInterrupts();
+         size += sizeof(HeapBlockHeader);
+-        block = NNS_FndAllocFromExpHeapEx(heap, size, alignment);
++        block = NNS_FndAllocFromExpHeapEx(heap, size, HEAP_HOST_ALIGN(alignment));
+         if (block == NULL) {
+             sHeapMgr.lastResult = HEAP_RESULT_3;
+         } else {
+@@ -276,7 +286,7 @@ BOOL GFL_HeapCreateAllocatorCore(NNSFndAllocator *allocator, HeapID heapId, int
+     if (heapId >= sHeapMgr.maxHeapIds) {
+         sHeapMgr.lastResult = HEAP_RESULT_1;
+     } else {
+-        NNS_FndInitAllocatorForExpHeap(allocator, GFL_HeapGetBase(heapId), alignment);
++        NNS_FndInitAllocatorForExpHeap(allocator, GFL_HeapGetBase(heapId), HEAP_HOST_ALIGN(alignment));
+         sHeapMgr.lastResult = HEAP_RESULT_OK;
+         return TRUE;
+     }
+@@ -331,7 +341,7 @@ u32 GFL_HeapGetHighestAllocatableSize(HeapID heapId) {
+         sHeapMgr.lastResult = HEAP_RESULT_1;
+     } else {
+         sHeapMgr.lastResult = HEAP_RESULT_OK;
+-        return NNS_FndGetAllocatableSizeForExpHeapEx(GFL_HeapGetBase(heapId), 4);
++        return NNS_FndGetAllocatableSizeForExpHeapEx(GFL_HeapGetBase(heapId), HEAP_HOST_ALIGN(4));
+     }
+     return 0;
+ }

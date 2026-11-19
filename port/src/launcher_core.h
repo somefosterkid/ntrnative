@@ -20,8 +20,16 @@ typedef struct {
     const char *folder;       // the game's folder under the root, and its ROM copy's name with .nds
     const char *sha1[2];      // the supported dumps, hashed padded with 0xFF to the chip size; NULL ends; none = not playable yet
     const char *noIntro;      // the No-Intro name: libretro-thumbnails' file name for its cover (NULL: none)
-    unsigned saveEnd;         // where the save's footer ends in a copy: the size the footer states (Black, White 0x23f9c; Black 2, White 2 0x25fa4)
+    unsigned saveEnd;         // where the save's footer ends in a copy: the size the footer states (Black, White 0x23f9c; Black 2, White 2 0x25fa4; Platinum: the last footer's end, 0x1f110)
     unsigned saveCopy;        // the backup copy's offset on the card (0x24000; 0x26000)
+    unsigned saveBlock0;      // Gen 4: the first block's size (its footer's end), the boxes' block from saveBoxes to saveEnd, a footer ends each; 0: one footer ends the copy
+    unsigned saveBoxes;       // Gen 4: where the boxes' block starts (Platinum: at saveBlock0; HeartGold, SoulSilver: 0xf700, 0x100-aligned)
+    unsigned saveFooter;      // Gen 4: a block footer's size: 20 (Platinum's SaveBlockFooter) or 16 (HeartGold's SaveChunkFooter)
+    // the launcher's look for the game, the same on every front-end (the desktop's window, iOS, Android): 0xRRGGBB
+    unsigned accent;          // buttons, the tab, the icon's tile when the ROM has no banner
+    unsigned deep;            // the showcase's base colour
+    unsigned glow;            // the showcase's light
+    int dark;                 // 1: light text on the deep colour (Black, Black 2, Platinum, HeartGold); 0: dark text on a light one
 } LC_Game;
 
 typedef struct {
@@ -36,6 +44,9 @@ enum { LC_START_LAST, LC_START_LAUNCHER };
 enum { LC_LAYOUT_LIBRARY, LC_LAYOUT_TABS };    // the iOS launcher's two looks
 
 // --- the table and the folders
+#define LC_MAX_GAMES 16    // room for every row of the table and more (a front-end's LC_Scan array; the table has 7 rows now)
+// the file LC_ExtractRom writes last, into the folder it extracted to: the extraction finished (LC_HasFilesIn)
+#define LC_EXTRACTED_MARK ".bwport-extracted"
 const LC_Game *LC_Games(int *count);                 // every game the table knows (playable or not)
 const LC_Game *LC_GameByCode(const char *code);      // NULL when not in the table
 // root: the folder the user sees (iOS Documents, Android's files dir, Windows run\, the working directory elsewhere);
@@ -45,8 +56,13 @@ int LC_Scan(const LC_Game **out, int max);           // the games that have a fo
 void LC_GameDir(const LC_Game *g, char *out, size_t n);     // root/<folder>: the ROM copy, save.bin, backups/
 void LC_GameWorkDir(const LC_Game *g, char *out, size_t n); // work/<folder>: the extracted files; the game's working directory
 int LC_HasRom(const LC_Game *g);                     // the ROM copy is there
-int LC_HasFiles(const LC_Game *g);                   // the extracted files are there (header.bin, a/0/0/0)
+int LC_HasFiles(const LC_Game *g);                   // the extracted files are there (LC_HasFilesIn on its work folder)
+int LC_HasFilesIn(const char *dir);                  // header.bin and LC_EXTRACTED_MARK (or a/0/0/0: a Gen 5 extraction older than the mark)
 int LC_HasSave(const LC_Game *g);
+// the edition line a game's page shows ("USA / Europe  ·  NDSi Enhanced", "USA  ·  Rev 1"): the groups of its No-Intro name
+void LC_Edition(const LC_Game *g, char *out, size_t n);
+// the short names of the games this build plays, in table order, for a prompt: "Black, White, Platinum and SoulSilver"
+void LC_PlayableNames(char *out, size_t n);
 
 // --- ROMs
 // Check the header, copy into the game's folder while hashing, refuse a wrong sha1 (the copy deleted), extract (progress:

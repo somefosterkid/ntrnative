@@ -1,0 +1,22 @@
+#include "constants/sndseq.h"
+#include "constants/moves.h"
+#include "constants/std_script.h"
+#include "constants/species.h"
+#include "constants/sprites.h"
+#include "constants/maps.h"
+#include "constants/mmodel.h"
+#include "constants/items.h"
+#include "msgdata/msg/msg_0096_D31R0201.h"
+#include "msgdata/msg/msg_0066_D23R0102.h"
+	.include "macros.inc"
+	.include "overlay_01_021EDAFC.inc"
+	.include "global.inc"
+
+	.public MoveTutorMenu_SetListItem_Internal
+	.public ov01_021EDC28
+	.public ov01_021EE01C
+	.public ov01_021EE2E4
+	.public ov01_021EDDD8
+	.public ov01_021EDE18
+	.public ov01_021EDE8C
+	.text

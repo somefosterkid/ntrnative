@@ -1,0 +1,48 @@
+#include "constants/mmodel.h"
+#include "constants/species.h"
+	.include "macros.inc"
+	.include "overlay_106.inc"
+	.include "global.inc"
+
+	.public ov106_021E5900
+	.public ov106_021E594C
+	.public ov106_021E5954
+	.public ov106_021E597C
+	.public ov106_021E59A4
+	.public ov106_021E59D0
+	.public ov106_021E59FC
+	.public ov106_021E5A44
+	.public ov106_021E5A74
+	.public ov106_021E5AA8
+	.public ov106_021E5BBC
+	.public ov106_021E5C30
+	.public ov106_021E5D08
+	.public ov106_021E5E0C
+	.public ov106_021E5E5C
+	.public ov106_021E6DD8
+	.public ov106_021E6E04
+	.public ov106_021E6E2C
+	.public ov106_021E6E50
+	.public ov106_021E6E74
+	.public ov106_021E6E9C
+	.public ov106_021E6EC4
+	.public ov106_021E6EE4
+	.public ov106_021E6EFC
+	.public ov106_021E6F24
+	.public ov106_021E6F48
+	.public ov106_021E6F5C
+	.public ov106_021E6F74
+	.public ov106_021E6F90
+	.public ov106_021E6FAC
+	.public ov106_021E6FC8
+	.public ov106_021E6FE8
+	.public ov106_021E7010
+	.public ov106_021E7044
+	.public ov106_021E7090
+	.public ov106_021E70E0
+	.public sScriptCinematicSubs_Arceus
+	.public sScriptCinematicSubs_HoOh
+	.public sScriptCinematicSubs_Lugia
+	.public ov106_021E6678
+	.public ov106_021E6694
+	.text

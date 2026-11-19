@@ -1,0 +1,132 @@
+pokeplatinum-widepointers5.patch (tools/pokeplat_gen.py applies it after widepointers4): the rest of pl8's scan for an
+address held in a u32 (tools: `u32/int X = (uintptr_t)...` over build/pokeplatinum/src), each checked to hold a pointer
+(pl9). comm_manager.c's three `task` locals (a SysTask callback compared with the CommTask_* functions: only the low
+halves were compared), Overlay_GetLoadDestination's overlay address (compared with the TCM ranges), sub_0209C160's
+buffer address (returned as a pointer: the top half lost), ListMenu_GetAttribute's result (callbacks, the window and
+the parent are read through it: the function and its declaration return uintptr_t), and ov97_02238D74.c's DWC
+allocator, which kept the block's start in a u32 slot before the aligned pointer (a void * slot now, read back
+sizeof(void *) before it). Two more found by the main menu with a save (pl10: its wireless
+search crashed in sub_02033B88): CommServerClient's unk_1508 and communication_system.c's Unk_021C07C8 held a
+Heap_Alloc result in a u32 and aligned it to 32 from there (both uintptr_t now). The rule: a local or a slot that holds an address is uintptr_t or a pointer.
+
+--- a/src/comm_manager.c
++++ b/src/comm_manager.c
+@@ -497,5 +497,5 @@
+ int CommManager_IsConnectedUnionClientSuccess(void)
+ {
+-    u32 task;
++    uintptr_t task;
+ 
+     if (sCommMan == NULL) {
+@@ -523,5 +523,5 @@
+ BOOL CommManager_IsConnectUnionServer(void)
+ {
+-    u32 task;
++    uintptr_t task;
+ 
+     if (sCommMan == NULL) {
+@@ -571,5 +571,5 @@
+ BOOL CommManager_UnionRestartSuccess(void)
+ {
+-    u32 task;
++    uintptr_t task;
+ 
+     if (sCommMan == NULL) {
+--- a/src/game_overlay.c
++++ b/src/game_overlay.c
+@@ -100,5 +100,5 @@
+ {
+     FSOverlayInfo info;
+-    u32 v2;
++    uintptr_t v2;
+ 
+     GF_ASSERT(FS_LoadOverlayInfo(&info, MI_PROCESSOR_ARM9, overlayID) == TRUE);
+--- a/src/unk_0209BDF8.c
++++ b/src/unk_0209BDF8.c
+@@ -329,5 +329,5 @@
+ static u8 *sub_0209C160(int param0, void *param1, int param2)
+ {
+-    u32 v0;
++    uintptr_t v0;
+     UnkStruct_0209BDF8 *v1 = param1;
+ 
+--- a/src/list_menu.c
++++ b/src/list_menu.c
+@@ -214,7 +214,7 @@
+ }
+ 
+-u32 ListMenu_GetAttribute(ListMenu *menu, u8 attribute)
++uintptr_t ListMenu_GetAttribute(ListMenu *menu, u8 attribute)
+ {
+-    u32 result;
++    uintptr_t result;
+ 
+     switch (attribute) {
+--- a/include/list_menu.h
++++ b/include/list_menu.h
+@@ -2,4 +2,5 @@
+ #define POKEPLATINUM_LIST_MENU_H
+ 
++#include <stdint.h>
+ #include "constants/menu.h"
+ 
+@@ -106,5 +107,5 @@
+ u8 ListMenu_GetLastAction(ListMenu *menu);
+ u32 ListMenu_GetIndexOfChoice(ListMenu *menu, u16 choice);
+-u32 ListMenu_GetAttribute(ListMenu *menu, u8 attribute);
++uintptr_t ListMenu_GetAttribute(ListMenu *menu, u8 attribute);
+ void ListMenu_SetChoices(ListMenu *menu, StringList *choices);
+ 
+--- a/src/main_menu/ov97_02238D74.c
++++ b/src/main_menu/ov97_02238D74.c
+@@ -30,13 +30,13 @@
+ #pragma unused(param0, param2)
+     void *v0;
+-    u32 *v1;
++    void **v1;
+ 
+     param1 = (((param1 + sizeof(void *)) + 32) & ~31) + 32;
+ 
+     v0 = Heap_Alloc(HEAP_ID_MYSTERY_GIFT_APP, param1);
+-    v1 = (u32 *)(((uintptr_t)v0 + 32) & ~31);
++    v1 = (void **)(((uintptr_t)v0 + 32) & ~31);
+ 
+     v1--;
+-    *v1 = (uintptr_t)v0;
++    *v1 = v0;
+     v1++;
+ 
+@@ -47,5 +47,5 @@
+ {
+ #pragma unused(param0, param2)
+-    u32 *v0;
++    void **v0;
+ 
+     if (!param1) {
+@@ -53,6 +53,6 @@
+     }
+ 
+-    v0 = (u32 *)((uintptr_t)param1 - 4);
+-    Heap_Free((void *)*v0);
++    v0 = (void **)((uintptr_t)param1 - sizeof(void *));
++    Heap_Free(*v0);
+ }
+ 
+--- a/src/unk_02033200.c
++++ b/src/unk_02033200.c
+@@ -34,5 +34,5 @@
+     BattleRegulation *unk_1500;
+     u32 unk_1504;
+-    u32 unk_1508;
++    uintptr_t unk_1508;
+     u16 *unk_150C;
+     u16 unk_1510;
+--- a/src/communication_system.c
++++ b/src/communication_system.c
+@@ -139,5 +139,5 @@
+ static BOOL sub_0203594C(void);
+ 
+-static u32 Unk_021C07C8 = 0;
++static uintptr_t Unk_021C07C8 = 0;
+ static CommunicationSystem *sCommunicationSystem = NULL;
+ static volatile u8 Unk_021C07C5 = 0;

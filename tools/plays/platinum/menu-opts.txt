@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-cel24
+# reaches: the options screen (X menu, sixth entry): down through the rows, right and left on a row, B out to the field
+# end: f2900
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys x*f4@f1800 down*f4@f1850 down*f4@f1890 down*f4@f1930 down*f4@f1970 down*f4@f2010 a*f4@f2060 down*f4@f2250 right*f4@f2300 down*f4@f2350 left*f4@f2400 down*f4@f2450 b*f4@f2550 b*f4@f2650 b*f4@f2750

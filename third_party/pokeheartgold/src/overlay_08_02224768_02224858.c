@@ -1,0 +1,157 @@
+#include "global.h"
+
+#include "bg_window.h"
+#include "overlay_08_battle_bag.h"
+#include "palette.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "overlay_08_battle_sub_menu_cursor.h"
+#include "pm_string.h"
+#include "overlay_08_battle_party.h"
+#include "message_printer.h"
+#include "msgdata.h"
+#include "battle/battle_bag_context.h"
+
+struct BagItem;
+
+struct BattleBag;
+
+struct BattleBagContext;
+
+struct BattleSubMenuCursor;
+
+struct BgConfig;
+
+struct MessagePrinter;
+
+struct Indicator;
+
+struct ManagedSprite;
+
+struct MsgData;
+
+struct PaletteData;
+
+struct SpriteManager;
+
+struct String;
+
+struct MessageFormat;
+
+struct Window;
+
+typedef struct Indicator Indicator;
+
+typedef struct BagItem {
+    u16 item;
+    u16 quantity;
+} BagItem;
+
+enum ScrollDirection {
+    SCROLL_DIRECTION_UP = 0,
+    SCROLL_DIRECTION_DOWN,
+    SCROLL_DIRECTION_LEFT,
+    SCROLL_DIRECTION_RIGHT,
+};
+
+enum BattleBagMenuScreenButton {
+    BATTLE_BAG_MENU_SCREEN_BUTTON_RECOVER_HP_POCKET = 0,
+    BATTLE_BAG_MENU_SCREEN_BUTTON_RECOVER_STATUS_POCKET,
+    BATTLE_BAG_MENU_SCREEN_BUTTON_POKE_BALLS_POCKET,
+    BATTLE_BAG_MENU_SCREEN_BUTTON_BATTLE_ITEMS_POCKET,
+    BATTLE_BAG_MENU_SCREEN_BUTTON_LAST_USED_ITEM,
+    BATTLE_BAG_MENU_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleBagPocketMenuScreenButton {
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_1 = 0,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_2,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_3,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_4,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_5,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_6,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_PREV_PAGE,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_NEXT_PAGE,
+    BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleBagUseItemScreenButton {
+    BATTLE_BAG_USE_ITEM_SCREEN_BUTTON_USE = 0,
+    BATTLE_BAG_USE_ITEM_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleBagMenuWindow {
+    BATTLE_BAG_MENU_WINDOW_HP_PP_RESTORE = 0,
+    BATTLE_BAG_MENU_WINDOW_STATUS_HEALERS,
+    BATTLE_BAG_MENU_WINDOW_POKE_BALLS,
+    BATTLE_BAG_MENU_WINDOW_BATTLE_ITEMS,
+    BATTLE_BAG_MENU_WINDOW_LAST_USED_ITEM,
+};
+
+enum Button {
+    BUTTON_MENU_SCREEN_RECOVER_HP_POCKET = BATTLE_BAG_MENU_SCREEN_BUTTON_RECOVER_HP_POCKET,
+    BUTTON_MENU_SCREEN_RECOVER_STATUS_POCKET = BATTLE_BAG_MENU_SCREEN_BUTTON_RECOVER_STATUS_POCKET,
+    BUTTON_MENU_SCREEN_POKE_BALLS_POCKET = BATTLE_BAG_MENU_SCREEN_BUTTON_POKE_BALLS_POCKET,
+    BUTTON_MENU_SCREEN_BATTLE_ITEMS_POCKET = BATTLE_BAG_MENU_SCREEN_BUTTON_BATTLE_ITEMS_POCKET,
+    BUTTON_MENU_SCREEN_LAST_USED_ITEM = BATTLE_BAG_MENU_SCREEN_BUTTON_LAST_USED_ITEM,
+    BUTTON_MENU_SCREEN_CANCEL = BATTLE_BAG_MENU_SCREEN_BUTTON_CANCEL,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_1 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_1,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_2 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_2,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_3 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_3,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_4 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_4,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_5 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_5,
+    BUTTON_POCKET_MENU_SCREEN_ITEM_6 = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_6,
+    BUTTON_POCKET_MENU_SCREEN_PREV_PAGE = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_PREV_PAGE,
+    BUTTON_POCKET_MENU_SCREEN_NEXT_PAGE = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_NEXT_PAGE,
+    BUTTON_POCKET_MENU_SCREEN_CANCEL = 6 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_CANCEL,
+    BUTTON_USE_ITEM_SCREEN_USE = 15 + BATTLE_BAG_USE_ITEM_SCREEN_BUTTON_USE,
+    BUTTON_USE_ITEM_SCREEN_CANCEL = 15 + BATTLE_BAG_USE_ITEM_SCREEN_BUTTON_CANCEL,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_1 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_1,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_2 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_2,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_3 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_3,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_4 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_4,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_5 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_5,
+    BUTTON_POCKET_MENU_SCREEN_ALT_ITEM_6 = 17 + BATTLE_BAG_POCKET_MENU_SCREEN_BUTTON_ITEM_6,
+};
+
+extern const u8 *const ov08_02225EE0[23];
+
+void UpdateSpritePositions(BattleBag *battleBag, u8 button, enum BattleSubMenuButtonState buttonState);
+
+void ov08_02224858(BattleBag *battleBag, u8 button, enum BattleSubMenuButtonState buttonState);
+
+void ov08_02224858(BattleBag *battleBag, u8 button, enum BattleSubMenuButtonState buttonState) {
+    const u8 *windowsToScroll;
+    u8 scrollDirection, scrollDistance;
+
+    if (button >= BUTTON_POCKET_MENU_SCREEN_ITEM_1 && button <= BUTTON_POCKET_MENU_SCREEN_ITEM_6 && battleBag->useAltPocketMenuWindows == 0) {
+        windowsToScroll = ov08_02225EE0[17 + button - 6];
+    } else {
+        windowsToScroll = ov08_02225EE0[button];
+    }
+
+    if (windowsToScroll == 0L) {
+        return;
+    }
+
+    switch (buttonState) {
+    case BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED:
+    case BATTLE_SUB_MENU_BUTTON_STATE_PRESSED:
+        scrollDirection = SCROLL_DIRECTION_DOWN;
+        scrollDistance = 2;
+        break;
+    case BATTLE_SUB_MENU_BUTTON_STATE_PRESSING:
+        scrollDirection = SCROLL_DIRECTION_UP;
+        scrollDistance = 4;
+        break;
+    }
+
+    for (u16 i = 0; i < 8; i++) {
+        if (windowsToScroll[i] == 255) {
+            break;
+        }
+
+        ScrollWindow(&battleBag->windows[windowsToScroll[i]], scrollDirection, scrollDistance, 0);
+        ScheduleWindowCopyToVram(&battleBag->windows[windowsToScroll[i]]);
+    }
+}

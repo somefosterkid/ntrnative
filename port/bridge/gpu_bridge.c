@@ -24,6 +24,7 @@
  * so that the constructor below registers the renderer before main.
  */
 #define _POSIX_C_SOURCE 200809L
+#include "g07_capture.h"
 #include "g07_compose.h"
 #include "gpu.h"
 #include "vc_shared.h"
@@ -54,6 +55,19 @@ int SIM_GLRendererOption(int which); /* libntr-gpuopt.patch: 0 dot, 1 line, 2 ed
 uint32_t SIM_VCapGather(uint8_t *io9, uint8_t *io9b, uint8_t *vram, uint8_t *pltt, uint8_t *oam, uint32_t **gx,
                         uint32_t *cap);
 uint8_t *SIM_VCapBankHome(int bank);
+/* libntr-hdma.patch: channel ch's H-blank DMA into the 2D registers, line by line (sim_vcapture.cpp) */
+int SIM_VCapHDma(int ch, int *eng, unsigned *ofs, unsigned *len, uint8_t *rows, unsigned stride);
+
+/* the frame's H-blank DMAs into s (after SIM_VCapGather: line 0 is the registers as gathered); vcore_bridge.c has the same */
+static void GatherHDma(VCoreState *s) {
+  uint8_t rows[VC_H * VC_IO9B_SIZE];
+  vcore_hdma_clear(s);
+  for (int ch = 0; ch < 4; ch++) {
+    int e;
+    unsigned ofs, len;
+    if (SIM_VCapHDma(ch, &e, &ofs, &len, rows, VC_IO9B_SIZE)) vcore_hdma_add(s, e, ofs, len, rows, VC_IO9B_SIZE);
+  }
+}
 /* libntr-ib78.patch / libntr-ib79.patch: in-between pictures (docs/interp.md) */
 int SIM_InterpWanted(void);
 int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next);
@@ -209,6 +223,12 @@ typedef struct Slot {
   int geo;         /* M_GPU: gpu_geometry found a frame to draw */
   int uses3d;      /* M_GPU: engine A shows the 3D layer */
   uint32_t cap;    /* DISPCAPCNT */
+  int capHi;       /* M_GPU: the frame captures and the capture is drawn at N x too (CapHiStage2); its 1x bytes came from vcore
+                      on sCapRef (CapHi) */
+  unsigned capSer; /* capHi: that capture's number (sCapCount) */
+  unsigned rowSer[4][256]; /* banks A-D: the capture number each bank row holds as gathered (0: none, or the CPU changed its
+                              bytes since): Gather's compare with sCapShadow */
+  unsigned fno;    /* the frame's number (CapLog's count of gathered frames) */
   VC_Line *stage;  /* M_GPU: engine A's 2D layers at 1x (g07_stage_build, on the worker) */
   G07Pack *pack;   /* M_GPU: them and the 1x lines as pass C uploads them (g07_pack, on the worker; the mids reuse the upload):
                       one of sPack, shared with the frame before when neither engine changed (Build2D) */
@@ -270,8 +290,27 @@ static GLuint sTex1;                        /* 256 x 384 RGBA8: the 1x screens *
 static const u16 kCapW[4] = {128, 256, 256, 256};
 static const u16 kCapH[4] = {128, 64, 128, 192};
 
-/* vcore wrote a capture into its copy of the bank (as vcore_bridge.c's StoreCapture): the same bytes into libntr's bank */
-static void StoreCapture(VCoreState *s, u32 cnt) {
+/* hi-res display capture (docs/gpu.md "Display capture"), N > 1 (GL and Metal): each bank's bytes as its last capture left them
+ * (StoreCapture) and that capture's number per bank row (0: none, or vcore's 1x capture); the GL thread's bank textures
+ * (sCap) and the capture number each of their rows holds (sGlSer). A row is drawn from its texture only while the
+ * gathered bytes equal the shadow (the game did not change them) and the GL thread drew that same capture. */
+static uint8_t sCapShadow[4][0x20000];
+static unsigned sCapNo[4][256];
+static unsigned sCapCount;     /* the captures numbered so far */
+static VCoreState *sCapRef;    /* a capHi frame's inputs again: vcore writes the 1x capture the game reads from it */
+static uint32_t sCapRefGxCap;
+static G07Cap *sCap;           /* the bank textures (GL thread) */
+static int sCapFailed;         /* g07cap_create failed at this scale: not again until Setup */
+static unsigned sGlSer[4][256];
+
+static int BankLcdc(const VCoreState *s, int bank) {
+  u8 c = s->io9[VC_REG_VRAMCNT_A + bank];
+  return (c & 0x80) && (c & 7) == 0;
+}
+
+/* vcore wrote a capture into its copy of the bank (as vcore_bridge.c's StoreCapture): the same bytes into libntr's bank;
+ * ser: the capture's number when it is also drawn at N x (the rows' bytes kept in sCapShadow), 0 for a 1x capture */
+static void StoreCapture(VCoreState *s, u32 cnt, unsigned ser) {
   int bank = (cnt >> 16) & 3;
   u8 vramcnt = s->io9[VC_REG_VRAMCNT_A + bank];
   if (!(vramcnt & 0x80) || (vramcnt & 7) != 0) return; /* not LCDC: vcore captured nothing */
@@ -280,12 +319,111 @@ static void StoreCapture(VCoreState *s, u32 cnt) {
   const u8 *src = vc_bank(s, bank);
   u32 at = ((cnt >> 18) & 3) * 0x8000u;
   u32 n = (u32)kCapW[(cnt >> 20) & 3] * kCapH[(cnt >> 20) & 3] * 2;
+  for (u32 i = 0, r0 = at / 512; i < n / 512; i++) {
+    u32 r = (r0 + i) & 255;
+    sCapNo[bank][r] = ser;
+    if (ser != 0) memcpy(&sCapShadow[bank][r * 512], src + r * 512, 512);
+  }
   while (n > 0) {
     u32 run = 0x20000 - at < n ? 0x20000 - at : n;
     memcpy(home + at, src + at, run);
     n -= run;
     at = (at + run) & 0x1FFFF;
   }
+}
+
+/* a capture frame drawn by the GPU at N x: the bank bytes the game reads come from vcore on a copy of the frame's inputs
+ * (CheckFrame's pattern), with a new capture number. After the worker join (vcore's static buffers, docs/gpu.md). */
+static int CapHi(Slot *sl) {
+  VCoreState *s = sl->s;
+  u32 cnt = sl->cap;
+  if (sOut < 2 || sCapFailed || ((cnt >> 20) & 3) == 0 || !BankLcdc(s, (cnt >> 16) & 3)) return 0;
+  if (sCapRef == NULL && (sCapRef = vcore_create()) == NULL) return 0;
+  if (sCapRefGxCap < s->gx_words) {
+    free(sCapRef->gx);
+    sCapRef->gx = malloc((size_t)s->gx_words * 4 + 16);
+    sCapRefGxCap = sCapRef->gx ? s->gx_words : 0;
+    if (sCapRef->gx == NULL) return 0;
+  }
+  memcpy(sCapRef->io9, s->io9, sizeof s->io9);
+  memcpy(sCapRef->io9b, s->io9b, sizeof s->io9b);
+  vcore_hdma_copy(sCapRef, s);
+  memcpy(sCapRef->vram, s->vram, sizeof s->vram);
+  memcpy(sCapRef->pltt, s->pltt, sizeof s->pltt);
+  memcpy(sCapRef->oam, s->oam, sizeof s->oam);
+  memcpy(sCapRef->gx, s->gx, (size_t)s->gx_words * 4);
+  sCapRef->gx_words = s->gx_words;
+  vcore_render(sCapRef);
+  if (++sCapCount == 0) sCapCount = 1;
+  StoreCapture(sCapRef, cnt, sCapCount);
+  sl->capSer = sCapCount;
+  return 1;
+}
+
+/* BWPORT_CAPLOG=1: a log line for each frame whose display state differs from the frame before's (DISPCAPCNT, engine A's DISPCNT
+ * and BG0-3CNT, engine B's DISPCNT, VRAMCNT A-D, BLDCNT): which scenes capture, and what shows the capture */
+static unsigned sCapFirst; /* the number of the first frame with DISPCAPCNT's enable bit (BWPORT_GPU_SHOTS' +K) */
+static unsigned CapLog(VCoreState *s) {
+  static int on = -1;
+  static unsigned n, last[11];
+  if (on < 0) on = getenv("BWPORT_CAPLOG") != NULL;
+  n++;
+  if (sCapFirst == 0 && ((unsigned)vc_io32(s, VC_REG_DISPCAPCNT) >> 31) != 0) sCapFirst = n;
+  if (!on) return n;
+  unsigned v[11] = {(unsigned)vc_io32(s, VC_REG_DISPCAPCNT), (unsigned)vc_eng32(s, VC_ENG_A, VC_REG_DISPCNT),
+                    (unsigned)vc_eng32(s, VC_ENG_B, VC_REG_DISPCNT), 0, 0, 0, 0, 0, 0, 0, 0};
+  for (int i = 0; i < 4; i++) v[3 + i] = s->io9[VC_REG_BG0CNT + 2 * i] | s->io9[VC_REG_BG0CNT + 2 * i + 1] << 8;
+  v[7] = s->io9[VC_REG_VRAMCNT_A] | s->io9[VC_REG_VRAMCNT_A + 1] << 8 | s->io9[VC_REG_VRAMCNT_A + 2] << 16 |
+         (unsigned)s->io9[VC_REG_VRAMCNT_A + 3] << 24;
+  v[8] = s->io9[VC_REG_BLDCNT] | s->io9[VC_REG_BLDCNT + 1] << 8;
+  if (n > 1 && memcmp(v, last, sizeof v) == 0) return n;
+  memcpy(last, v, sizeof v);
+  Log("bwport: caplog f%u cap %08x dispA %08x dispB %08x bgcnt %04x %04x %04x %04x vramcnt %08x bldcnt %04x\n", n, v[0], v[1], v[2],
+      v[3], v[4], v[5], v[6], v[7], v[8]);
+  return n;
+}
+
+/* BWPORT_GPU_SHOTS=DIR:F1,F2,...: the picture the bridge hands to libntr for those frames (CapLog's numbers) as
+ * DIR/gpu_fF.png at its own size (a 1x picture, vcore's, written N x by nearest neighbour so that shots compare).
+ * +K is the Kth frame after the first one with display capture on (a title's frame numbers move with the run's speed; its
+ * picture is written as gpu_f<number>.png all the same) */
+static void ShotMaybe(unsigned fno, const uint8_t *rgba1x) {
+  static int on = -1;
+  static char dir[512];
+  static unsigned want[64];
+  static char rel[64];
+  static int nwant;
+  if (on < 0) {
+    const char *e = getenv("BWPORT_GPU_SHOTS");
+    const char *c = e != NULL ? strchr(e, ':') : NULL;
+    on = c != NULL;
+    if (on) {
+      snprintf(dir, sizeof dir, "%.*s", (int)(c - e), e);
+      for (const char *q = c + 1; *q && nwant < 64;) {
+        rel[nwant] = *q == '+';
+        if (rel[nwant]) q++;
+        want[nwant++] = (unsigned)strtoul(q, (char **)&q, 10);
+        while (*q == ',' || *q == ' ') q++;
+      }
+    }
+  }
+  if (!on) return;
+  int hit = 0;
+  for (int i = 0; i < nwant; i++) hit |= rel[i] ? sCapFirst != 0 && sCapFirst + want[i] == fno : want[i] == fno;
+  if (!hit) return;
+  int n = sOut, w = VC_W * n, h = VC_H * 2 * n;
+  uint8_t *buf = malloc((size_t)w * h * 4);
+  if (buf == NULL) return;
+  if (rgba1x != NULL) {
+    for (int y = 0; y < h; y++)
+      for (int x = 0; x < w; x++) memcpy(&buf[((size_t)y * w + x) * 4], &rgba1x[((size_t)(y / n) * VC_W + x / n) * 4], 4);
+  } else {
+    g07_read_frame(sC7, buf);
+  }
+  char path[600];
+  snprintf(path, sizeof path, "%s/gpu_f%u%s.png", dir, fno, rgba1x != NULL ? "_1x" : "");
+  vcore_write_png(path, buf, w, h);
+  free(buf);
 }
 
 /* the state of the frame being gathered, as vcore_bridge.c's BridgeFrame */
@@ -302,11 +440,20 @@ static int Gather(Slot *sl) {
   sl->tdOk = 0;
   sl->ok2d = 0;
   s->gx_words = SIM_VCapGather(s->io9, s->io9b, s->vram, s->pltt, s->oam, &s->gx, &sl->gxcap);
+  GatherHDma(s);
   u16 pow = (u16)(s->io9[VC_REG_POWCNT1] | s->io9[VC_REG_POWCNT1 + 1] << 8);
   pow = pow == 0 ? 0x820F : (u16)(pow | 1);
   s->io9[VC_REG_POWCNT1] = (u8)pow;
   s->io9[VC_REG_POWCNT1 + 1] = (u8)(pow >> 8);
   sl->cap = vc_io32(s, VC_REG_DISPCAPCNT);
+  sl->fno = CapLog(s);
+  sl->capHi = 0;
+  sl->capSer = 0;
+  for (int b = 0; b < 4; b++)
+    for (int r = 0; r < 256; r++) {
+      unsigned no = sCapNo[b][r];
+      sl->rowSer[b][r] = no != 0 && memcmp(vc_bank(s, b) + r * 512, &sCapShadow[b][r * 512], 512) == 0 ? no : 0;
+    }
   return 0;
 }
 
@@ -680,8 +827,16 @@ static void GlInfo(void) {
   BGL(GetIntegerv)(0x8CDF /* GL_MAX_COLOR_ATTACHMENTS */, &mca);
   BGL(GetIntegerv)(0x8C8A /* GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS */, &mtf);
   DrainGLErrors();
+  const char *rn = (const char *)BGL(GetString)(GL_RENDERER);
   Log("bwport: Renderer=gpu: %s, %s (draw buffers %d, colour attachments %d, transform feedback components %d)\n",
-      (const char *)BGL(GetString)(GL_RENDERER), (const char *)BGL(GetString)(GL_VERSION), (int)mdb, (int)mca, (int)mtf);
+      rn, (const char *)BGL(GetString)(GL_VERSION), (int)mdb, (int)mca, (int)mtf);
+  /* 2026-11-13: the GPU renderer on a software GL runs its fragment passes on the CPU and is slower than vcore there
+     (uncapped, Nuvema Town: WSL llvmpipe 65 fps against vcore's 181; Windows over Remote Desktop, where the system's GL is
+     GDI Generic and the bundled Mesa's llvmpipe draws: 150 against 300). Renderer=auto picks vcore on it; say why it is slow */
+  if (rn != NULL && (strstr(rn, "llvmpipe") != NULL || strstr(rn, "softpipe") != NULL || strstr(rn, "SwiftShader") != NULL ||
+                     strstr(rn, "Basic Render") != NULL))
+    Log("bwport: Renderer=gpu on a software GL (%s): its passes run on the CPU, slower than vcore here (Renderer=auto picks vcore)\n",
+        rn);
 }
 static double GlFinish(void) {
   BGL(Finish)();
@@ -779,6 +934,7 @@ static void CheckFrame(Slot *sl, const uint8_t *rgba) {
   if (sRef == NULL && (sRef = vcore_create()) == NULL) return;
   memcpy(sRef->io9, s->io9, sizeof s->io9);
   memcpy(sRef->io9b, s->io9b, sizeof s->io9b);
+  vcore_hdma_copy(sRef, s);
   memcpy(sRef->vram, s->vram, sizeof s->vram);
   memcpy(sRef->pltt, s->pltt, sizeof s->pltt);
   memcpy(sRef->oam, s->oam, sizeof s->oam);
@@ -868,6 +1024,49 @@ static const uint8_t *CheckPicture(Slot *sl) {
  * while the Mac, llvmpipe and the Simulator drew it right). */
 static int sSpanChecks, sSpanFrames;
 
+/* the rows of bank's texture that hold what sl's frame gathered (bit r: bank row r) */
+static int CapRows(const Slot *sl, int bank, uint32_t rows[8]) {
+  int any = 0;
+  memset(rows, 0, 8 * sizeof rows[0]);
+  for (int r = 0; r < 256; r++)
+    if (sl->rowSer[bank][r] != 0 && sl->rowSer[bank][r] == sGlSer[bank][r]) rows[r >> 5] |= 1u << (r & 31), any = 1;
+  return any;
+}
+
+/* N > 1 (GL or Metal), pass C done: engine A showing a bank (display mode 2) drawn again from its texture where it is valid,
+ * then this frame's capture at N x into its bank's texture (docs/gpu.md "Display capture") */
+static void CapHiStage2(Slot *sl, unsigned t3, int sc) {
+  VCoreState *s = sl->s;
+  u32 dispcnt = vc_eng32(s, VC_ENG_A, VC_REG_DISPCNT);
+  int bankD = (dispcnt >> 18) & 3;
+  int show = ((dispcnt >> 16) & 3) == 2 && BankLcdc(s, bankD);
+  if (!show && !sl->capHi) return;
+  if (sCap != NULL && g07cap_scale(sCap) != sOut) g07cap_destroy(sCap), sCap = NULL;
+  if (sCap == NULL) {
+    if (sCapFailed) return;
+    char err[512];
+    memset(sGlSer, 0, sizeof sGlSer);
+    sCap = sHalf->api == GPU_API_METAL ? g07cap_create_metal(sOut, err, sizeof err) : g07cap_create(sOut, err, sizeof err);
+    if (sCap == NULL) {
+      sCapFailed = 1;
+      Log("bwport: Renderer=gpu: display capture at %dx: %s; captures stay 1x\n", sOut, err);
+      return;
+    }
+  }
+  unsigned texA = 0;
+  if (sl->capHi) texA = g07_compose_capsrc(sC7, s, sl->pack, t3, sc, sc == sOut ? gpu_smaa_weights(sCore) : 0);
+  uint32_t rows[8];
+  if (show && CapRows(sl, bankD, rows))
+    g07cap_show(sCap, g07_frame_tex(sC7), (vc_io16(s, VC_REG_POWCNT1) >> 15) & 1, bankD, vc_eng16(s, VC_ENG_A, VC_REG_MASTER_BRIGHT),
+                rows);
+  if (!sl->capHi) return;
+  const uint8_t *b1 = !(sl->cap & (1u << 25)) && BankLcdc(s, bankD) ? vc_bank(s, bankD) : NULL;
+  CapRows(sl, bankD, rows);
+  int rc = texA != 0 ? g07cap_capture(sCap, sl->cap, dispcnt, texA, t3, t3 != 0 ? sc : 0, b1, rows) : -1;
+  int bank = (sl->cap >> 16) & 3, r0 = (int)((sl->cap >> 18) & 3) * 64, h = kCapH[(sl->cap >> 20) & 3];
+  for (int i = 0; i < h; i++) sGlSer[bank][(r0 + i) & 255] = rc == 0 ? sl->capSer : 0;
+}
+
 /* stage 2 (the calling thread, the GL context current, the GL state saved by the caller): the frame's picture in sPic */
 static void Stage2(Slot *sl) {
   VCoreState *s = sl->s;
@@ -880,6 +1079,7 @@ static void Stage2(Slot *sl) {
   sHalf->drain();
   if (sl->mode == M_VCORE) {
     sHalf->upload1x(sl->rgba);
+    ShotMaybe(sl->fno, sl->rgba);
     return;
   }
   if (sFastOk < 0 && sFastWant) { /* (the next gathered frame draws fast); the settings row says how, or why not */
@@ -940,9 +1140,11 @@ static void Stage2(Slot *sl) {
     sHalf->upload1x(sl->rgba);
     return;
   }
+  if (sOut > 1) CapHiStage2(sl, t3, sc);
   sPic.tex = sHalf->picture(g07_frame_tex(sC7));
   sPic.w = VC_W * sOut;
   sPic.h = VC_H * 2 * sOut;
+  ShotMaybe(sl->fno, NULL);
   if (sCheckDir != NULL) {
     const uint8_t *pic = CheckPicture(sl);
     if (pic != NULL) CheckFrame(sl, pic);
@@ -1027,6 +1229,10 @@ static void Destroy(void) {
   sCore = NULL;
   if (sTex1) BGL(DeleteTextures)(1, &sTex1);
   sTex1 = 0;
+  if (sCap) g07cap_destroy(sCap);
+  sCap = NULL;
+  sCapFailed = 0;
+  memset(sGlSer, 0, sizeof sGlSer);
   sPic.tex = 0; /* it was the core's (or sTex1): libntr must not be handed a deleted texture */
   sPic.w = sPic.h = 0;
   free(sChkBuf);
@@ -1226,10 +1432,15 @@ static unsigned GpuFrame(int *w, int *h) {
     SIM_PerfStage("gather", 1, (double)(tB - tA) / 1e6);
     SIM_PerfStage("wait for the worker", 1, (double)(NowNs() - tB) / 1e6);
   }
+  /* a capture frame at N x: drawn by the GPU, the 1x bytes the game reads from vcore on a copy (CapHi) */
+  if (sl->mode == M_VCORE && CapHi(sl)) sl->mode = M_GPU, sl->capHi = 1;
   Skip2D(sl, prev); /* (prev's stage 1 is done: its state and pack stay as they are until the next call's Gather) */
   int first = !prev->has; /* nothing earlier to show: this frame is drawn now (and shown twice) */
   sl->ipN = 0;
-  if (!first && sPipe && sl->mode == M_GPU && SIM_InterpWanted() && (vc_eng32(sl->s, VC_ENG_A, VC_REG_DISPCNT) & 8)) {
+  /* (none for a hi-res capture frame, nor for a bank shown at N x: InterpTexture draws neither) */
+  const int showsBank = sOut > 1 && ((vc_eng32(sl->s, VC_ENG_A, VC_REG_DISPCNT) >> 16) & 3) == 2;
+  if (!first && sPipe && sl->mode == M_GPU && !sl->capHi && !showsBank && SIM_InterpWanted() &&
+      (vc_eng32(sl->s, VC_ENG_A, VC_REG_DISPCNT) & 8)) {
     long long off[IP_MAXSLOT];
     int n = SIM_InterpPace(&sl->ipSerial, &sl->ipNominal, &sl->ipTick, IP_MAXSLOT, off, &sl->ipNext);
     if (n > 0) {
@@ -1252,7 +1463,7 @@ static unsigned GpuFrame(int *w, int *h) {
     Stage1Timed(sl);
     if (t1 != 0) SIM_PerfStage("stage 1 (in the call)", 1, (double)(NowNs() - t1) / 1e6);
     PerfReport1(sl);
-    if (sl->mode == M_VCORE) StoreCapture(sl->s, sl->cap);
+    if (sl->mode == M_VCORE) StoreCapture(sl->s, sl->cap, 0);
     if (first) Stage2(sl), sl->done2 = 1;
   }
   sCur ^= 1;

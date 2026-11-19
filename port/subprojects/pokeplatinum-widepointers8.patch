@@ -1,0 +1,15 @@
+pokeplatinum-widepointers8.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after widepointers7.patch): the movement
+offset of ApplyMovement is a signed distance from the script pointer (a label before the command is a negative one: Route 201's
+rival-follows scene, whose movement lists sit above its script). pret reads it as u32, which on the DS wraps modulo 2^32 to the
+right address; on a 64-bit host `scriptPtr + u32` added 4 GiB and the movement task read unmapped memory (SIGSEGV in
+MovementAnimation_Set). The jump commands already read s32; this one reads s32 too.
+diff --git a/src/scrcmd.c b/src/scrcmd.c
+--- a/src/scrcmd.c
++++ b/src/scrcmd.c
+@@ -2039,5 +2039,5 @@
+ {
+     u16 localID = ScriptContext_GetVar(ctx);
+-    u32 movementOffset = ScriptContext_ReadWord(ctx);
++    s32 movementOffset = (s32)ScriptContext_ReadWord(ctx);
+     MapObject *object = GetLocalMapObjByIndex(ctx->fieldSystem, localID);
+     if (object == NULL) {

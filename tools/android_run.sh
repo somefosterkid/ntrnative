@@ -9,13 +9,22 @@
 #            (default build/android/run)  --renderer vcore|gpu (BWPORT_RENDERER)  --save NAME (<saves>/NAME.bin as save.bin, and
 #            the CONTINUE keys before KEYS)  --fresh (the app's files deleted first: the ROM is pushed again and extracted at start)
 #            --env "K=V K=V" (more BWPORT_*/SDL_* variables; they reach the game as start-intent extras: BwportActivity.java)
+#            --pilot "TOKENS" (BWPORT_PILOT: the route pilot's tokens as tools/routes/*.txt and tools/route.py write them, a save's
+#            SAVE_START first; with --env "BWPORT_POSLOG=1 BWPORT_NOENCOUNTER=1 BWPORT_CFGSCRIPT=f0:ff=1": the log gets the pilot's
+#            `pilot:` lines, a leg's verdict is read from it as route.py does)
+#            --abi arm64-v8a|x86_64 (adb install --abi: the library the app runs; arm64-v8a in the x86_64 emulator runs the phone
+#            build through the image's ARM translation, libndk_translation: slower, but the arm64 code and ABI)
+#            --game black|b2|w2|plat|hg|ss (default black); plat, hg, ss (Generation IV): --save NAME adds the route chain's pins
+#            (RTC, seed, music on the frame clock) and its START / A keys through the title and the save's summary (tools/route.py
+#            SAVE_START: ~6700 V-blanks for Platinum, ~9100 for HeartGold / SoulSilver, before the field)
 # The emulator must be up: tools/android_emu.sh run (in the background) + wait. The ROM comes from BWPORT_ROM or the main checkout's
 # orig/baserom_b_us.nds; it is pushed into the app's files only when none is there. Results in OUT: log.txt (the game's stdout and
 # stderr), logcat.txt (the whole device log of the run), sNNN.png; the game is stopped at the end (am force-stop).
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 A=${ANDROID_ROOT:-/opt/android}
-GAME=black SERIAL=emulator-5554 APK=$ROOT/build/android/bwport.apk OUT=$ROOT/build/android/run RENDERER= SAVE= FRESH=0 ENVS=
+GAME=black GEN4_KEYS= PILOT= SERIAL=emulator-5554 APK=$ROOT/build/android/bwport.apk OUT=$ROOT/build/android/run RENDERER= SAVE= FRESH=0 ENVS=
+ABI=()
 while [ $# -gt 0 ]; do
     case $1 in
     --serial) SERIAL=$2; shift 2 ;;
@@ -26,6 +35,8 @@ while [ $# -gt 0 ]; do
     --fresh) FRESH=1; shift ;;
     --env) ENVS=$2; shift 2 ;;
     --game) GAME=$2; shift 2 ;;
+    --pilot) PILOT=$2; shift 2 ;;
+    --abi) ABI=(--abi "$2"); shift 2 ;;
     *) break ;;
     esac
 done
@@ -42,7 +53,10 @@ case $GAME in
     black) ROMFILE=baserom_b_us.nds; FOLDER="Pokemon Black"; CODE= ;;
     b2) ROMFILE=baserom_b2_us.nds; FOLDER="Pokemon Black 2"; CODE=IREO ;;
     w2) ROMFILE=baserom_w2_us.nds; FOLDER="Pokemon White 2"; CODE=IRDO ;;
-    *) echo "--game black|b2|w2"; exit 1 ;;
+    plat) ROMFILE=baserom_plat_us.nds; FOLDER="Pokemon Platinum"; CODE=CPUE; GEN4_KEYS="start@f6300 a@f6700" ;;
+    hg) ROMFILE=baserom_hg_us.nds; FOLDER="Pokemon HeartGold"; CODE=IPKE; GEN4_KEYS="start@f7700 a@f8300 a@f8700 a@f9100" ;;
+    ss) ROMFILE=baserom_ss_us.nds; FOLDER="Pokemon SoulSilver"; CODE=IPGE; GEN4_KEYS="start@f7700 a@f8300 a@f8700 a@f9100" ;;
+    *) echo "--game black|b2|w2|plat|hg|ss"; exit 1 ;;
 esac
 ROM=${BWPORT_ROM:-$ROOT/orig/$ROMFILE}; [ -f "$ROM" ] || ROM=/root/bw-port/orig/$ROMFILE
 mkdir -p "$OUT"
@@ -50,10 +64,10 @@ rm -f "$OUT"/s*.png "$OUT/log.txt" "$OUT/logcat.txt"
 
 $ADB get-state > /dev/null 2>&1 || { echo "no device $SERIAL: tools/android_emu.sh run + wait first"; exit 1; }
 $ADB shell settings put secure immersive_mode_confirmations confirmed > /dev/null 2>&1 || true
-if ! R=$($ADB install -r "$APK" 2>&1); then
+if ! R=$($ADB install -r "${ABI[@]}" "$APK" 2>&1); then
     # signed with another key (a debug build, then a release one): in the emulator the app and its files may go
     case "$R/$SERIAL" in
-    *UPDATE_INCOMPATIBLE*/emulator-*) $ADB uninstall $PKG > /dev/null; $ADB install "$APK" > /dev/null ;;
+    *UPDATE_INCOMPATIBLE*/emulator-*) $ADB uninstall $PKG > /dev/null; $ADB install "${ABI[@]}" "$APK" > /dev/null ;;
     *) echo "install failed: $R"; exit 1 ;;
     esac
 fi
@@ -75,11 +89,14 @@ if [ -n "$SAVE" ]; then
     SD=$D; [ -n "$CODE" ] && SD="$D/$FOLDER"
     $ADB push "/root/saves/$SAVE.bin" "$SD/save.bin" > /dev/null
     $ADB shell chmod 666 "\"$SD/save.bin\"" > /dev/null 2>&1 || true   # (pushed as the shell user, 0644: the game could not write it, and showed its save error)
-    if [ -n "$CODE" ]; then ENVS="BWPORT_SKIPMENU=1 $ENVS"; else KEYS="${BWPORT_CONTINUE_KEYS:-start@f600 start@f750 start@f900 a@f1000} $KEYS"; fi
+    if [ -n "$GEN4_KEYS" ]; then
+        ENVS="BWPORT_BENCH_CLOCK=2026-10-29T12:00:00 BWPORT_BENCH_SEED=100 BWPORT_MUSICNORMAL=off $ENVS"; KEYS="$GEN4_KEYS $KEYS"
+    elif [ -n "$CODE" ]; then ENVS="BWPORT_SKIPMENU=1 $ENVS"; else KEYS="${BWPORT_CONTINUE_KEYS:-start@f600 start@f750 start@f900 a@f1000} $KEYS"; fi
 fi
 EXTRAS=()
 [ -n "$KEYS" ] && EXTRAS+=(--es BWPORT_KEYS "'$KEYS'")
 [ -n "$RENDERER" ] && EXTRAS+=(--es BWPORT_RENDERER "$RENDERER")
+[ -n "$PILOT" ] && EXTRAS+=(--es BWPORT_PILOT "'$PILOT'")
 for kv in $ENVS; do EXTRAS+=(--es "${kv%%=*}" "'${kv#*=}'"); done
 
 # the timeline: screenshots and taps at wall seconds, then the end

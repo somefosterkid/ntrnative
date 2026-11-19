@@ -1,0 +1,34 @@
+	.include "macros.inc"
+	.include "overlay_40.inc"
+	.include "global.inc"
+
+	.public _02244C44
+	.public ov40_0222CE7C
+	.public ov40_0222DD94
+	.public ov40_0222DD9C
+	.public ov40_02230D20
+	.public ov40_0223D5E8
+	.public ov40_02244CA0
+	.public ov40_02244CC8
+	.public ov40_02244CE4
+	.public ov40_02244D00
+	.public ov40_02244D1C
+	.public ov40_02244D38
+	.public ov40_02244D54
+	.public ov40_02244D70
+	.public ov40_02244D8C
+	.public ov40_022450F0
+	.public ov40_02245108
+	.public ov40_02245140
+	.public ov40_02245168
+	.public ov40_02245220
+	.public ov40_02245238
+	.public ov40_0224533C
+	.public ov40_02245368
+	.public ov40_02245470
+	.public ov40_022455F4
+	.public ov40_02245B30
+	.public ov40_02245B44
+	.public ov40_02245B98
+	.public ov40_02245CA8
+	.text

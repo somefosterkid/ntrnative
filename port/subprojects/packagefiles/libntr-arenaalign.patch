@@ -1,0 +1,61 @@
+--- a/libraries/os/src/os_arena.c
++++ b/libraries/os/src/os_arena.c
+@@ -1,8 +1,13 @@
+ #include <nitro.h>
+ 
+ #ifdef SDK_PORT
+-#define OSi_TRUNC(n, a)     (((u64) (n)) & ~((a) - 1))
+-#define OSi_ROUND(n, a)     (((u64) (n) + (a) - 1) & ~((a) - 1))
++// (the mask in 64 bits: `~((a) - 1)` with a u32 `a` is a 32-bit mask, which cut a host pointer to its low 32 bits; that
++// is why the PC path of OS_AllocFromArenaLo had dropped the rounding)
++#define OSi_TRUNC(n, a)     (((u64) (n)) & ~((u64) (a) - 1))
++#define OSi_ROUND(n, a)     (((u64) (n) + (a) - 1) & ~((u64) (a) - 1))
++// An arena block's alignment on the host: the game's (4 on the DS, the u32 words it holds), at least 8, as the block
++// holds pointers there (the sizes the game asks for are unchanged; only where a block starts moves up to 4 bytes)
++#define OSi_HOST_ALIGN(a)   ((a) < 8 ? 8u : (u32) (a))
+ #else
+ #define OSi_TRUNC(n, a)              (((u32) (n)) & ~((a) - 1))
+ #define OSi_ROUND(n, a)              (((u32) (n) + (a) - 1) & ~((a) - 1))
+@@ -418,9 +423,10 @@
+     }
+ 
+     #ifdef SDK_PORT
+-    arenaLo = ptr = (void *)(ptr);
++    align = OSi_HOST_ALIGN(align);
++    arenaLo = ptr = (void *)OSi_ROUND(ptr, align);
+     arenaLo += size;
+-    arenaLo = (u8 *)(arenaLo);
++    arenaLo = (u8 *)OSi_ROUND(arenaLo, align);
+     #else
+     arenaLo = ptr = (void *)OSi_ROUND(ptr, align);
+     arenaLo += size;
+@@ -446,6 +452,9 @@
+         return NULL;
+     }
+ 
++#ifdef SDK_PORT
++    align = OSi_HOST_ALIGN(align);
++#endif
+     arenaHi = (u8 *)OSi_TRUNC(arenaHi, align);
+     arenaHi -= size;
+     arenaHi = ptr = (void *)OSi_TRUNC(arenaHi, align);
+--- a/libraries/sim/src/sim_vars.c
++++ b/libraries/sim/src/sim_vars.c
+@@ -385,12 +385,13 @@
+ 
+ //mmap_shared
+ u8 s_HW_MAIN_MEM_SYSTEM[HW_MAIN_MEM_SYSTEM_SIZE];
+-u8 s_HW_ARENA_INFO_BUF[sizeof(OSArenaInfo)];
+-u8 s_HW_MAIN_MEM_SUB[0x400000];
++// (the arenas' memory and the arena table: aligned as the DS's 32-byte cache lines; their blocks hold host pointers)
++u8 s_HW_ARENA_INFO_BUF[sizeof(OSArenaInfo)] __attribute__((aligned(8)));
++u8 s_HW_MAIN_MEM_SUB[0x400000] __attribute__((aligned(32)));
+ 
+ //mmap_global
+-u8 s_HW_MAIN_MEM[0x800000];
+-u8 s_HW_MAIN_MEM_EX[0x800000];
++u8 s_HW_MAIN_MEM[0x800000] __attribute__((aligned(32)));
++u8 s_HW_MAIN_MEM_EX[0x800000] __attribute__((aligned(32)));
+ u8 s_HW_BG_PLTT[0x200];
+ u8 s_HW_OBJ_PLTT[0x200];
+ u8 s_HW_DB_BG_PLTT[0x200];

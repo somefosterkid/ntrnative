@@ -1,0 +1,32 @@
+pokeplatinum-wideweather.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after widepointers6): the weather particles'
+work array. Every particle node (ov5_021D5EB8.c UnkStruct_ov5_021D6FA8) carries a 10-word work array, unk_0C, that its weather keeps
+its state in (unk_08 points at it). widepointers6 made two weathers keep pointers there as intptr_t (snow ov5_021D7C40 / ov5_021D7E20:
+10 words, ashfall ov5_021DA5A0 / ov5_021DA6BC: 8 words), but the array stayed s32[10], 40 bytes: on the 64-bit host the snow's
+v4[5..9] (and the ash's v5[5..7]) wrote past it over the node's list links unk_34 / unk_38 (v4[5] = 0, v4[6] = 0) and the next pool
+node. The next walk of the list (ov5_021D7568, ov5_021D5EB8.c:2035 `v4 = v3->unk_34`) read a NULL link and SIGSEGV'd at the first
+snow frame on every snowing map (pt_sweep: Snowpoint City, its Pokecenter and east house, Stark Mountain outside, Snowpoint Temple,
+Route 227 and its house). The array is intptr_t[10] (an int's size on the DS, room for a pointer per word on the host; the s32 weathers
+use its first half), and the size check and the clear use sizeof(unk_0C) instead of sizeof(s32) * 10.
+--- a/src/overlay005/ov5_021D5EB8.c
++++ b/src/overlay005/ov5_021D5EB8.c
+@@ -65,5 +65,5 @@
+     Sprite *unk_04;
+     void *unk_08;
+-    s32 unk_0C[10];
++    intptr_t unk_0C[10];
+     struct UnkStruct_ov5_021D6FA8_tag *unk_34;
+     struct UnkStruct_ov5_021D6FA8_tag *unk_38;
+@@ -1536,5 +1536,5 @@
+     GF_ASSERT(param0->unk_08 == NULL);
+     GF_ASSERT(param1 > 0);
+-    GF_ASSERT(param1 <= (sizeof(s32) * 10));
++    GF_ASSERT(param1 <= sizeof(param0->unk_0C));
+ 
+     param0->unk_08 = param0->unk_0C;
+@@ -1544,5 +1544,5 @@
+ {
+     param0->unk_08 = NULL;
+-    memset(param0->unk_0C, 0, (sizeof(s32) * 10));
++    memset(param0->unk_0C, 0, sizeof(param0->unk_0C));
+ }
+ 

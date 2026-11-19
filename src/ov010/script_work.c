@@ -229,5 +229,5 @@ void *ScriptWork_GetStadiumTrainers(ScriptWork *work) {
 }
 
 void *ScriptWork_GetTrainerState(ScriptWork *work, int index) {
-    return work->trainerState[index];
+    return &work->trainerState[index];
 }

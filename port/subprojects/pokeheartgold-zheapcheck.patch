@@ -1,0 +1,42 @@
+pokeheartgold-zheapcheck.patch (tools/pokehg_gen.py applies it after zheapalign.patch; hc1, 2026-11-15): the port's heap checker
+(BWPORT_HEAPCHECK=1, port/src/nnsys_heapcheck.c, docs/nnsys-port.md) names a damaged heap by its HeapID. Heap_InitSystem hands it
+a function that finds the HeapID whose heap a handle is (sHeapInfo's heapIdxs / heapHandles). PC only (SDK_PORT): nothing on the DS.
+Handover-ID: none (port-only)
+
+diff --git a/src/heap.c b/src/heap.c
+--- a/src/heap.c
++++ b/src/heap.c
+@@ -49,6 +49,23 @@
+ 
+ static BOOL CreateHeapInternal(enum HeapID parent, enum HeapID child, u32 size, s32 alignment);
+ 
++#ifdef SDK_PORT
++// The port's heap checker (port/src/nnsys_heapcheck.c, BWPORT_HEAPCHECK) names a damaged heap by its HeapID: the id whose
++// heap this handle is, -1 for none
++void PORT_HeapCheckSetNamer(int (*namer)(NNSFndHeapHandle heap));
++
++static int Heap_PortIdOfHandle(NNSFndHeapHandle handle) {
++    u32 id;
++
++    for (id = 0; id < sHeapInfo.totalNumHeaps; id++) {
++        if (sHeapInfo.heapIdxs[id] != sHeapInfo.unallocatedHeapID && sHeapInfo.heapHandles[sHeapInfo.heapIdxs[id]] == handle) {
++            return (int)id;
++        }
++    }
++    return -1;
++}
++#endif
++
+ void Heap_InitSystem(const HeapParam *templates, u32 nTemplates, u32 totalNumHeaps, u32 preSize) {
+     void *ptr;
+     u32 i;
+@@ -115,6 +132,9 @@
+     for (i = 0; i < totalNumHeaps; i++) {
+         sHeapInfo.numMemBlocks[i] = 0;
+     }
++#ifdef SDK_PORT
++    PORT_HeapCheckSetNamer(Heap_PortIdOfHandle);
++#endif
+ }
+ 
+ static s32 FindFirstAvailableHeapHandle(void) {

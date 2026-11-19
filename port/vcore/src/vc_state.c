@@ -29,6 +29,30 @@ VCoreState *vcore_create(void) {
   return s;
 }
 
+void vcore_hdma_clear(VCoreState *s) {
+  s->hd_on[0] = s->hd_on[1] = 0;
+  memset(s->hd_mask, 0, sizeof s->hd_mask);
+}
+
+void vcore_hdma_add(VCoreState *s, int e, unsigned ofs, unsigned len, const uint8_t *rows, unsigned stride) {
+  if (e < 0 || e > 1 || ofs >= VC_IO9B_SIZE) return;
+  if (len > VC_IO9B_SIZE - ofs) len = VC_IO9B_SIZE - ofs;
+  if (!s->hd_on[e]) {
+    const u8 *io = e ? s->io9b : s->io9;
+    for (int y = 0; y < VC_H; y++) memcpy(s->hd[e][y], io, VC_IO9B_SIZE);
+    s->hd_on[e] = 1;
+  }
+  for (int y = 0; y < VC_H; y++) memcpy(&s->hd[e][y][ofs], rows + (size_t)y * stride, len);
+  memset(&s->hd_mask[e][ofs], 1, len);
+}
+
+void vcore_hdma_copy(VCoreState *dst, const VCoreState *src) {
+  memcpy(dst->hd_on, src->hd_on, sizeof dst->hd_on);
+  memcpy(dst->hd_mask, src->hd_mask, sizeof dst->hd_mask);
+  for (int e = 0; e < 2; e++)
+    if (src->hd_on[e]) memcpy(dst->hd[e], src->hd[e], sizeof dst->hd[e]);
+}
+
 void vcore_destroy(VCoreState *s) {
   if (s == NULL) return;
   vc_p20_destroy(s);
@@ -76,10 +100,13 @@ int vcore_load_vcs_mem(VCoreState *s, const void *data, size_t size, char *err, 
   free_input(s);
   memset(s->io9, 0, sizeof s->io9);
   memset(s->io9b, 0, sizeof s->io9b);
+  vcore_hdma_clear(s);
   memset(s->vram, 0, sizeof s->vram);
   memset(s->pltt, 0, sizeof s->pltt);
   memset(s->oam, 0, sizeof s->oam);
   size_t at = 8;
+  const u8 *hdma = NULL; /* the HDMA chunk (libntr-hdma.patch): applied after the registers are in */
+  u32 nhdma = 0;
   while (at + 8 <= size) {
     const u8 *tag = b + at;
     u32 n = rd32(b + at + 4);
@@ -101,10 +128,18 @@ int vcore_load_vcs_mem(VCoreState *s, const void *data, size_t size, char *err, 
       s->gx_words = n / 4;
     } else if (TAG("LSHT") && n >= 256 * 384 * 4) s->lsht = (u8 *)dup_bytes(p, 256 * 384 * 4, 0);
     else if (TAG("L3D ") && n >= 256 * 192 * 4) s->l3d = (u8 *)dup_bytes(p, 256 * 192 * 4, 0);
+    else if (TAG("HDMA")) hdma = p, nhdma = n;
 #undef TAG
 #undef COPY
     at += n;
     at = (at + 3) & ~(size_t)3;
+  }
+  /* per entry: engine, register offset, length, 0, then VC_H lines of length bytes */
+  for (u32 k = 0; hdma != NULL && k + 4 <= nhdma;) {
+    u32 len = hdma[k + 2];
+    if (k + 4 + (size_t)VC_H * len > nhdma) break;
+    vcore_hdma_add(s, hdma[k], hdma[k + 1], len, hdma + k + 4, len);
+    k += 4 + VC_H * len;
   }
   /* POWCNT1 as the oracle reads it by default (<ref>/oracle/README): the LCD bit on, and a file with 0 (a
    * capture that never saw the register) gets both engines and the 3D on, engine A on top */

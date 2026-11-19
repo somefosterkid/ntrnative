@@ -6,7 +6,8 @@
     # reaches: the stairs         what it gets to, one line
     # store: downstairs           the library name its end state can be stored as (--store NAME)
     # end: f600                   quit at this frame (default: 30 frames after the last key)
-    keys start@f600 a@f1700       raw BWPORT_KEYS items (KEY[*HOLD]@fFRAME), frames counted from boot
+    keys start@f600 a@f1700       raw BWPORT_KEYS items (KEY[*HOLD]@fFRAME), frames counted from boot; the touch screen:
+                                  stylus:X,Y@fA[-fB] (DS pixels, port/src/keys_script.c)
     walk 400 48 up2 right5 a      walk.py's grammar: START frame, STEP frames, then moves: DIR[N][:fH], KEY, KEY*N[/GAP], wN
 
 A script from a save starts with BWPORT_SKIPMENU=1 (the field is up at about f220), so its frames are written from there;
@@ -15,7 +16,8 @@ A script from a save starts with BWPORT_SKIPMENU=1 (the field is up at about f22
 import re
 import sys
 
-GAMES = {'black': 'Pokemon Black', 'white': 'Pokemon White', 'b2': 'Pokemon Black 2', 'w2': 'Pokemon White 2'}
+GAMES = {'black': 'Pokemon Black', 'white': 'Pokemon White', 'b2': 'Pokemon Black 2', 'w2': 'Pokemon White 2',
+         'platinum': 'Pokemon Platinum', 'heartgold': 'Pokemon HeartGold', 'soulsilver': 'Pokemon SoulSilver'}
 
 
 def walk(start, step, moves, hold='f6'):
@@ -52,7 +54,7 @@ def walk(start, step, moves, hold='f6'):
 def parse(text, name='?'):
     """-> dict(game, from, reaches, store, end, keys: [items], last: the last frame-counted key's frame)"""
     meta = {'game': 'black', 'from': 'boot', 'reaches': '', 'store': '', 'end': ''}
-    keys = []
+    keys, env = [], {}
     for n, line in enumerate(text.splitlines(), 1):
         line = line.strip()
         m = re.fullmatch(r'#\s*(\w+):\s*(.*)', line)
@@ -62,6 +64,11 @@ def parse(text, name='?'):
             continue
         elif line.startswith('keys '):
             keys += line[5:].split()
+        elif line.startswith('env '):   # test-hook variables (BWPORT_PT_SCRIPT=2018:1700): set unless the caller's environment has them
+            for item in line[4:].split():
+                if not re.fullmatch(r'BWPORT_\w+=\S*', item):
+                    raise ValueError(f'{name}:{n}: env BWPORT_NAME=VALUE')
+                env[item.split('=', 1)[0]] = item.split('=', 1)[1]
         elif line.startswith('walk '):
             p = line[5:].split()
             if len(p) < 3 or not (p[0].isdigit() and p[1].isdigit()):
@@ -72,10 +79,11 @@ def parse(text, name='?'):
             raise ValueError(f'{name}:{n}: unknown line {line!r}')
     if meta['game'] not in GAMES:
         raise ValueError(f'{name}: game {meta["game"]!r}: one of {" ".join(GAMES)}')
-    frames = [int(m.group(1)) for k in keys for m in [re.search(r'@f(\d+)$', k)] if m]
+    # a touch's range (stylus:X,Y@fA-fB, hold:..@fA-fB) counts by its last frame; a boot suffix (#B: keys_script.c) is allowed
+    frames = [int(m.group(2) or m.group(1)) for k in keys for m in [re.search(r'@f(\d+)(?:-f(\d+))?(?:#\d+)?$', k)] if m]
     if len(frames) != len(keys):
         raise ValueError(f'{name}: keys must be frame-counted (@fN): a seconds key makes the run real time')
-    meta['keys'], meta['last'] = keys, max(frames, default=0)
+    meta['keys'], meta['last'], meta['env'] = keys, max(frames, default=0), env
     end = re.fullmatch(r'f(\d+)', meta['end']) if meta['end'] else None
     if meta['end'] and not end:
         raise ValueError(f'{name}: end: fN')

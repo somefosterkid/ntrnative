@@ -24,6 +24,13 @@ static const PortGame *const sBuilt[] = {
 #ifdef BWPORT_W2
     &w2_bwgame,
 #endif
+#ifdef BWPORT_PLAT
+    &pl_bwgame,
+#endif
+#ifdef BWPORT_HG
+    &hg_bwgame,
+    &ss_bwgame,   // SoulSilver: the same module, its version value set by its table's main
+#endif
 };
 
 // The game of this code in the exe; NULL: not built (a NULL code is Black's)

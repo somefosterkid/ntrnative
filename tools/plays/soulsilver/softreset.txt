@@ -1,0 +1,5 @@
+# game: soulsilver
+# from: ss-room1
+# reaches: heartgold/softreset's keys on SoulSilver: the field, L+R+START+SELECT (the in-process restart, hg40), the title, CONTINUE, the field again (the reset keys are boot 0 only: #0; the run ends at boot 1's f11600 in the field)
+# end: f11600
+keys start@f7700 a@f8300 a@f8700 a@f9100 l*f30@f11000#0 r*f30@f11000#0 start*f30@f11000#0 select*f30@f11000#0

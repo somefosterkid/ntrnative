@@ -55,7 +55,7 @@ void vc_display_line(VCoreState *s, int e, int y, const VC_Line *ln, u32 *dst) {
     for (x = 0; x < VC_W; x++) dst[x] = 0;
   }
   {
-    u16 mb = vc_eng16(s, e, VC_REG_MASTER_BRIGHT);
+    u16 mb = vc_ln16(s, e, y, VC_REG_MASTER_BRIGHT); /* the line's (H-blank DMA) */
     int bm = (mb >> 14) & 3;
     if ((bm == 1 || bm == 2) && (mb & 0x1F) != 0) /* a factor of 0 (or mode 0 / 3) leaves every pixel as it is */
       for (x = 0; x < VC_W; x++) dst[x] = vc_p10_bright(dst[x], mb);

@@ -1,0 +1,119 @@
+#include "global.h"
+
+enum MoveFlag {
+    MOVE_FLAG_NONE = 0,
+    MOVE_FLAG_MAKES_CONTACT = (1 << 0),
+    MOVE_FLAG_CAN_PROTECT = (1 << 1),
+    MOVE_FLAG_CAN_MAGIC_COAT = (1 << 2),
+    MOVE_FLAG_CAN_SNATCH = (1 << 3),
+    MOVE_FLAG_CAN_MIRROR_MOVE = (1 << 4),
+    MOVE_FLAG_TRIGGERS_KINGS_ROCK = (1 << 5),
+    MOVE_FLAG_HIDES_HP_GAUGES = (1 << 6),
+    MOVE_FLAG_HIDES_SHADOWS = (1 << 7),
+    MOVE_FLAG_ALL = ((1 << 8) - 1),
+};
+
+enum BattleSubAnimation {
+    BATTLE_ANIMATION_NONE = 0,
+    BATTLE_ANIMATION_ASLEEP = 1,
+    BATTLE_ANIMATION_POISONED = 2,
+    BATTLE_ANIMATION_BURNED = 3,
+    BATTLE_ANIMATION_FROZEN = 4,
+    BATTLE_ANIMATION_PARALYZED = 5,
+    BATTLE_ANIMATION_CONFUSED = 6,
+    BATTLE_ANIMATION_INFATUATED = 7,
+    BATTLE_ANIMATION_LEVEL_UP = 8,
+    BATTLE_ANIMATION_BAG_ITEM = 9,
+    BATTLE_ANIMATION_HELD_ITEM = 10,
+    BATTLE_ANIMATION_SHINY = 11,
+    BATTLE_ANIMATION_STAT_BOOST = 12,
+    BATTLE_ANIMATION_STAT_DROP = 13,
+    BATTLE_ANIMATION_RESTORE_HP = 14,
+    BATTLE_ANIMATION_SUB_OUT = 15,
+    BATTLE_ANIMATION_SUB_IN = 16,
+    BATTLE_ANIMATION_ITEM_ESCAPE = 17,
+    BATTLE_ANIMATION_WEATHER_FOG = 18,
+    BATTLE_ANIMATION_WEATHER_RAIN = 19,
+    BATTLE_ANIMATION_WEATHER_HAIL = 20,
+    BATTLE_ANIMATION_WEATHER_SAND = 21,
+    BATTLE_ANIMATION_WEATHER_SUN = 22,
+    BATTLE_ANIMATION_UNUSED_23 = 23,
+    BATTLE_ANIMATION_UNUSED_24 = 24,
+    BATTLE_ANIMATION_SUBSTITUTE_IN = 25,
+    BATTLE_ANIMATION_SUBSTITUTE_OUT = 26,
+    BATTLE_ANIMATION_HAPPY = 27,
+    BATTLE_ANIMATION_EATING = 28,
+    BATTLE_ANIMATION_ANGRY = 29,
+    BATTLE_ANIMATION_DAMAGE_CURSE = 30,
+    BATTLE_ANIMATION_DAMAGE_NIGHTMARE = 31,
+    BATTLE_ANIMATION_DAMAGE_LEECH_SEED = 32,
+    BATTLE_ANIMATION_DAMAGE_BIND = 33,
+    BATTLE_ANIMATION_DAMAGE_WRAP = 34,
+    BATTLE_ANIMATION_DAMAGE_FIRE_SPIN = 35,
+    BATTLE_ANIMATION_DAMAGE_MAGMA_STORM = 36,
+    BATTLE_ANIMATION_DAMAGE_CLAMP = 37,
+    BATTLE_ANIMATION_DAMAGE_WHIRLPOOL = 38,
+    BATTLE_ANIMATION_DAMAGE_SAND_TOMB = 39,
+    BATTLE_ANIMATION_DAMAGE_INGRAIN = 40,
+};
+
+enum MoveAttribute {
+    MOVEATTRIBUTE_EFFECT = 0,
+    MOVEATTRIBUTE_CLASS = 1,
+    MOVEATTRIBUTE_POWER = 2,
+    MOVEATTRIBUTE_TYPE = 3,
+    MOVEATTRIBUTE_ACCURACY = 4,
+    MOVEATTRIBUTE_PP = 5,
+    MOVEATTRIBUTE_EFFECT_CHANCE = 6,
+    MOVEATTRIBUTE_RANGE = 7,
+    MOVEATTRIBUTE_PRIORTY = 8,
+    MOVEATTRIBUTE_FLAGS = 9,
+    MOVEATTRIBUTE_CONTEST_EFFECT = 10,
+    MOVEATTRIBUTE_CONTEST_TYPE = 11,
+};
+
+u32 GetMoveAttr(int move, enum MoveAttribute param);
+
+void ov12_02261D30(u8 *hideHealthboxes, u8 *hideShadows, int animMode, int secondaryAnimID, u16 move);
+
+void ov12_02261D30(u8 *hideHealthboxes, u8 *hideShadows, int animMode, int secondaryAnimID, u16 move) {
+    if (animMode == 0) {
+        if ((GetMoveAttr(move, MOVEATTRIBUTE_FLAGS) & MOVE_FLAG_HIDES_HP_GAUGES) == 0) { // MOVE_FLAG_HIDES_HP_GAUGES when true makes healthboxes visible
+            hideHealthboxes[0] = 1;
+        } else {
+            hideHealthboxes[0] = 0;
+        }
+
+        if (GetMoveAttr(move, MOVEATTRIBUTE_FLAGS) & MOVE_FLAG_HIDES_SHADOWS) {
+            hideShadows[0] = 1;
+        } else {
+            hideShadows[0] = 0;
+        }
+    } else {
+        switch (secondaryAnimID) {
+        case BATTLE_ANIMATION_WEATHER_FOG:
+        case BATTLE_ANIMATION_WEATHER_RAIN:
+        case BATTLE_ANIMATION_WEATHER_HAIL:
+        case BATTLE_ANIMATION_WEATHER_SAND:
+        case BATTLE_ANIMATION_WEATHER_SUN:
+        case BATTLE_ANIMATION_DAMAGE_NIGHTMARE:
+        case BATTLE_ANIMATION_DAMAGE_LEECH_SEED:
+        case BATTLE_ANIMATION_DAMAGE_WRAP:
+        case BATTLE_ANIMATION_DAMAGE_FIRE_SPIN:
+        case BATTLE_ANIMATION_DAMAGE_CLAMP:
+        case BATTLE_ANIMATION_DAMAGE_SAND_TOMB:
+            hideHealthboxes[0] = 1;
+            hideShadows[0] = 0;
+            break;
+        case BATTLE_ANIMATION_DAMAGE_MAGMA_STORM:
+        case BATTLE_ANIMATION_DAMAGE_WHIRLPOOL:
+            hideHealthboxes[0] = 1;
+            hideShadows[0] = 1;
+            break;
+        default:
+            hideHealthboxes[0] = 0;
+            hideShadows[0] = 0;
+            break;
+        }
+    }
+}

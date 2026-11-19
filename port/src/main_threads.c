@@ -18,6 +18,9 @@
 #include <string.h>
 #include "port_runtime.h"
 #include "port_route.h"
+#include "port_game.h"
+
+void PORT_KeysFrame(void);   // port/src/keys_script.c: BWPORT_KEYS' frame-timed items
 
 // The game's files see port_runtime.h through port_prefix.h, so this one may too: the real SDK calls here
 #undef OS_Sleep
@@ -175,12 +178,33 @@ void PORT_WaitIrq(BOOL clear, OSIrqMask irqFlags) {
     // themselves, PORT_SetIrqFunction); a game thread that is awake may run meanwhile, as on the DS
     int depth;
 
+    PORT_ExitFrame();
+    PORT_KeysFrame();
     PORT_BenchFrame();
     PortRoute_VBlank();   // BWPORT_PILOT before the field (route_test.c)
     PORT_MachineFrame();
     depth = ReleaseAll();
+    PORT_WmFrame();   // (the lock let go: the game's WM callbacks run on libntr's PXI thread)
     OS_WaitIrq(clear, irqFlags);
     Reacquire(depth);
+}
+
+// Platinum's OS_WaitIrq (port/include_plat/port_plat.h): the bench pin and the pilot's V-blank hooks, then libntr's wait. No lock:
+// its game thread never took one, and its H/V-blank handlers need none
+void PortPlat_WaitIrq(BOOL clear, OSIrqMask irqFlags) {
+    PORT_ExitFrame();
+    if (PORT_Game->frameHook != NULL) {
+        PORT_Game->frameHook();
+    }
+    PORT_KeysFrame();
+    PORT_BenchFrame();
+    PortRoute_VBlank();
+    OS_WaitIrq(clear, irqFlags);
+}
+
+// HeartGold's and SoulSilver's (port/include_hgss/port_hgss.h): the same hooks, no lock (a module build as Platinum's)
+void PortHg_WaitIrq(BOOL clear, OSIrqMask irqFlags) {
+    PortPlat_WaitIrq(clear, irqFlags);
 }
 
 void PORT_WaitVBlankIntr(void) {

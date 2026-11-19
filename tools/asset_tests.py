@@ -200,6 +200,15 @@ def tree_moves():
                                            "sTwin kind:data(any) addr:0x02100020\n")
             ok &= check("a shared static name: the file's own address", asset.symbol_addr("b2_us", "ov001", "sTwin", cf) == 0x02100020
                         and asset.symbol_addr("b2_us", "ov001", "sTwin") == 0x02100004)
+            # a struct (no dimension) behind pret's alignment attribute, a product (not a pointer) in it: the union keeps both
+            c.write_text("typedef struct { u16 a : 4; u16 b : 12; } Bits;\n"
+                         "__attribute__((aligned(4))) static const Bits sBits = { 1, KK * 0x10E };\n")
+            c_consts.consts.cache_clear()
+            skipped, n = asset.move_all("b2_us", cf, min_values=1)
+            text = c.read_text()
+            ok &= check("a struct behind an alignment attribute: a union that keeps it",
+                        n == 1 and "__attribute__((aligned(4))) static const union { u8 raw[8]; Bits t; } sBits_raw = { {" in text
+                        and "#define sBits (sBits_raw.t)" in text)
             # refused: a table of two places (ambiguous), one with pointers
             c.write_text("static const u16 sTwice[] = { 0, 0, 0, 0, 0, 0 };\n"
                          "typedef struct { u16 *p; u16 x : 4; } P;\nstatic const P sBits[] = { { NULL, 1 }, { NULL, 2 } };\n")

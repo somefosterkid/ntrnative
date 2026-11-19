@@ -63,42 +63,27 @@ u32 IsEncountDataLoaded(EventData *data) {
     return data->encLoaded;
 }
 
-typedef struct {
-    u16 unk_0;
-    u16 unk_2;
-    u8 unk_4[0x10];
-} EventDataSlot;
-
-typedef struct {
-    u8 unk_0[0x16];
-    u16 unk_16;
-    u8 unk_18[0xC];
-    EventDataSlot *unk_24;
-} EventDataSystem;
-void func_ov010_0216245c(EventDataSystem *system, u16 index)
+// Both take the EventData itself (they read its warps / triggers and their counts at 0x16 / 0x24 and 0x18 / 0x28 on the
+// DS): local stand-ins padded to those DS offsets read other fields on a 64-bit host, where the arc pointers before them
+// are 8 bytes (the warp disable wrote 0xFFFF through a wrong pointer; the trigger scan crashed on trigger=0x1).
+void func_ov010_0216245c(EventData *data, u16 index)
 {
-    EventDataSlot *slots = system->unk_24;
-    if (system->unk_16 > index) {
-        slots[index].unk_0 = 0xFFFF;
-        slots[index].unk_2 = 0xFFFF;
+    ZoneWarp *warps = data->warps;
+    if (data->warpCount > index) {
+        warps[index].unk0 = 0xFFFF;
+        warps[index].destId = 0xFFFF;
     }
 }
 
-typedef struct {
-    u8 unk_0[0x18];
-    u16 triggerCount;
-    u8 unk_1a[0xE];
-    ZoneTrigger *triggers;
-} ZoneTriggerSet;
-BOOL func_ov010_02162478(ZoneTriggerSet *set, VecFx32 *pos)
+BOOL func_ov010_02162478(EventData *data, VecFx32 *pos)
 {
     ZoneTrigger *trigger;
     u16 count;
     u16 i;
 
-    trigger = set->triggers;
+    trigger = data->triggers;
     if (trigger != NULL) {
-        count = set->triggerCount;
+        count = data->triggerCount;
         for (i = 0; i < count; i++) {
             if (CheckTriggerPositionMatchXYZ(trigger, pos) && trigger->type == 6)
                 return TRUE;

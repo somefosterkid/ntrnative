@@ -1,0 +1,15 @@
+
+#pragma once
+.public UnloadOverlayByID
+.public HandleLoadOverlay
+.public OverlayManager_GetArgs
+.public Heap_Create
+.public Heap_Destroy
+.public LoadDwcOverlay
+.public UnloadDwcOverlay
+.public LoadOVY13
+.public LoadOVY38
+.public UnloadOVY38
+.public OS_ResetSystem
+.public gApp_MainMenu_SelectOption_NintendoWFCSetup
+.public ov13_0221BA00

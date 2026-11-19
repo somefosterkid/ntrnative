@@ -4,7 +4,7 @@
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 out=${TMPDIR:-/tmp}/route_plan_test.$$
-cc -std=gnu11 -O1 -Wall -I"$here/../include" -o "$out" "$here/route_plan_test.c" "$here/../src/route_map.c"
+cc -std=gnu11 -O1 -Wall -I"$here/../include" -o "$out" "$here/route_plan_test.c" "$here/../src/route_map.c" "$here/../src/route_slide.c"
 status=0
 "$out" || status=$?
 rm -f "$out"

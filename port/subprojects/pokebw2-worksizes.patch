@@ -1,0 +1,36 @@
+pokebw2-worksizes.patch (tools/pokebw2_fetch.sh, the maintainers' notes): two work sizes in a definition table are the DS
+number where the work holds pointers, so on a 64-bit host the work outgrows its block and writes over the next block's
+heap header. FIELD_ACTOR_ANM_ASYNC_PROC_TEMPLATE's 0x1a0 (FieldActorAnmProc: 0x1a0 on the DS, 0x1b0 here): the
+async proc's work came out of the field heap (HEAPID_FIELDMAP, 21) 16 bytes short, the curve's handle written past it
+broke the free block behind it (1.3 MB of the 2.4 MB heap fell off the free list), and the next allocation in the
+Route 6 bridge scene (ActorAnimationPlay, zone 331 script 5) found no room: OS_Terminate. BUBBLE_TASK_VTABLE's 0x84
+(BubbleTask: 0x84 on the DS, 0x8c here; the underwater bubbles). Each is the work's sizeof, the same number on the DS.
+Found with pokebw2-heapreport.patch's BWPORT_HEAPLOG=2 and a scan of the FieldAsyncProcDef, FieldEffectTaskVTable and
+WeatherData tables for a number in place of a sizeof (the others have sizeof).
+
+diff --git a/src/ov033/field_actor_animation.c b/src/ov033/field_actor_animation.c
+index 040f4941f..8e7560da5 100644
+--- a/src/ov033/field_actor_animation.c
++++ b/src/ov033/field_actor_animation.c
+@@ -19,7 +19,7 @@ struct EventActorAnmProcWaitWork {
+ static const u32 FIELD_ACTOR_ANM_IS_ALLOW_MOVE_ON_END[6] = { TRUE, FALSE, FALSE, FALSE, FALSE, TRUE };
+ 
+ static const FieldAsyncProcDef FIELD_ACTOR_ANM_ASYNC_PROC_TEMPLATE = {
+-    0, 0x1a0, NULL, NULL, FieldActorAnmProc_Update, FieldActorAnmProc_Draw,
++    0, sizeof(FieldActorAnmProc), NULL, NULL, FieldActorAnmProc_Update, FieldActorAnmProc_Draw,
+ };
+ 
+ BOOL Scrcmd_FieldActorAnimation_ActorAnimationInit(VM *vm, FieldScriptEnv *env) {
+diff --git a/src/ov036/fldeff_bubble.c b/src/ov036/fldeff_bubble.c
+index d85a633c2..8c95c866d 100644
+--- a/src/ov036/fldeff_bubble.c
++++ b/src/ov036/fldeff_bubble.c
+@@ -251,7 +251,7 @@ static const u32 BUBBLE_MDL_INDEX[1] = { 0 };
+ static const u32 BUBBLE_ANM_INDICES[BUBBLE_ANM_COUNT] = { 1, 2 };
+ static const u32 BUBBLE_FILE_IDS[BUBBLE_RES_COUNT] = { 0x53, 0x9d, 0x8a };
+ static const FieldEffectTaskVTable BUBBLE_TASK_VTABLE = {
+-    0x84,
++    sizeof(BubbleTask),
+     (FieldEffectTaskFunc)FldeffBubble_Init,
+     (FieldEffectTaskFunc)FldeffBubble_Exit,
+     (FieldEffectTaskFunc)FldeffBubble_Update,

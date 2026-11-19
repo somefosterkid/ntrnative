@@ -20,8 +20,9 @@
 typedef struct {
     WMParentParam sParentParam;
     u8 unk_38[8];
-    // The buffer that WM works in, WM_SYSTEM_BUF_SIZE (its structs hold pointers: libntr's is 0x1e00 on a PC target)
-    u8 sWmBuf[WORK_AREA_SIZE(0xf00)];
+    // The buffer that WM works in, WM_SYSTEM_BUF_SIZE (its structs hold pointers: libntr's is 0x1e00 on a PC target). WM wants
+    // it 32-byte aligned, which the fields before it (pointers too) no longer give on a PC target
+    u8 sWmBuf[WORK_AREA_SIZE(0xf00)] ATTRIBUTE_ALIGN(32);
     // The copy of the beacon that the scan is looking at
     WMBssDesc sBssDesc;
     u8 sScanBuf[0x400];

@@ -1,0 +1,27 @@
+pokeplatinum-tileindex.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): terrain_collision_manager.c's two tile attribute
+readers (GetTileAttributes, GetSimpleTileAttributes) index the terrain attribute array with a u32 built from (z % 32) * 32 + (x % 32). For
+a tile one row above the map (z = -1) that is 0xFFFFFFE8: on the DS the index scales and wraps with the 32-bit address (a read 24 halfwords
+before the array: harmless), on the 64-bit host it is added to the pointer as +0x1FFFFFFD0 and SIGSEGVs. The Pokemon League's room maps hit
+it (the player stepped north from the door tile, row 0: pt_sweep maps 177, 179, 181, 183, 185, 186). The index is now an int, the same
+bits on the DS, a small negative offset on the host (still a read before the array, as on the DS).
+diff --git a/src/terrain_collision_manager.c b/src/terrain_collision_manager.c
+--- a/src/terrain_collision_manager.c
++++ b/src/terrain_collision_manager.c
+@@ -173,7 +173,7 @@
+         return FALSE;
+     }
+ 
+-    u32 fixedTileIndex = (fixedTileZ % MAP_TILES_COUNT_Z) * MAP_TILES_COUNT_X + (fixedTileX % MAP_TILES_COUNT_X);
++    int fixedTileIndex = (fixedTileZ % MAP_TILES_COUNT_Z) * MAP_TILES_COUNT_X + (fixedTileX % MAP_TILES_COUNT_X);
+     u16 const *terrainAttributes = LandDataManager_GetLoadedMapTerrainAttributes(landDataMan, loadedMapIndex);
+     *attributes = terrainAttributes[fixedTileIndex];
+ 
+@@ -191,7 +191,7 @@
+     u32 mapMatrixZ = tileZ / MAP_TILES_COUNT_Z;
+     u32 mapMatrixIndex = mapMatrixX + mapMatrixZ * mapMatrixWidth;
+ 
+-    u32 tileIndex = (tileZ % MAP_TILES_COUNT_Z) * MAP_TILES_COUNT_X + (tileX % MAP_TILES_COUNT_X);
++    int tileIndex = (tileZ % MAP_TILES_COUNT_Z) * MAP_TILES_COUNT_X + (tileX % MAP_TILES_COUNT_X);
+     u16 const *terrainAttributes = TerrainAttributes_Get(mapMatrixIndex, fieldSystem->terrainAttributes);
+     *attributes = terrainAttributes[tileIndex];
+ 

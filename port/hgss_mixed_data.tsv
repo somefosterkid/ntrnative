@@ -1,0 +1,210 @@
+file	label	ds_bytes	pad_added	ambiguous	C declarations
+asm/unk_02016EDC.s	_020F61C4	52	4	1	
+asm/unk_020192D0.s	_020F6288	16	0	0	extern const ApplicationManagerTemplate _020F6288;
+asm/unk_0205CB48.s	_020FCB88	16	0	0	extern const TileBehaviorCheck _020FCB88[];
+asm/unk_data_020FCBD8.s	_020FCD38	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCD4C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCD60	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCD74	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCD88	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCD9C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCDB0	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCDC4	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCDD8	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCDEC	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE00	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE14	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE28	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE3C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE50	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE64	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE78	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCE8C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCEA0	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCEB4	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCEDC	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCEF0	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF04	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF18	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF2C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF40	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF54	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF68	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF7C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCF90	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCFA4	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCFB8	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCFCC	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCFE0	20	4	0	
+asm/unk_data_020FCBD8.s	_020FCFF4	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD008	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD01C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD030	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD044	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD058	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD06C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD080	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD094	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD0A8	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD0BC	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD0D0	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD0E4	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD0F8	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD10C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD120	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD134	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD148	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD15C	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD170	20	4	0	
+asm/unk_data_020FCBD8.s	_020FD184	20	4	0	
+asm/unk_02061284_020FD77C.s	_020FD838	320	156	0	extern u32 _020FD838;
+asm/unk_020850F4.s	_02102620	16	0	0	extern const ApplicationManagerTemplate _02102620;
+asm/unk_02087A78.s	_02102830	16	0	0	extern const OverlayManagerTemplate _02102830;
+asm/unk_02087A78.s	_02102840	16	0	0	
+asm/unk_02087A78.s	_02102850	16	0	0	
+asm/unk_02087A78.s	_02102860	16	0	0	
+asm/unk_02087A78.s	_02102870	16	0	0	
+asm/unk_02087A78.s	_02102880	16	0	0	
+asm/unk_02087A78.s	_02102890	16	0	0	
+asm/unk_02087FD4.s	_02102BA4	180	0	0	
+asm/unk_02087FD4.s	_02102D0C	180	0	0	
+asm/unk_02087FD4.s	_02102DC0	180	4	0	extern const UnkStruct_020F3DCC _02102DC0[5];
+asm/unk_02087FD4.s	_02102E74	180	0	0	
+asm/unk_02087FD4.s	_02103144	180	4	0	
+asm/unk_02087FD4.s	_021031F8	180	0	0	
+asm/unk_02087FD4.s	_02103360	180	4	0	
+asm/unk_02087FD4.s	_021034C8	180	4	1	
+asm/unk_02087FD4.s	_0210357C	180	0	0	extern const UnkStruct_020F3DCC _0210357C[5];
+asm/unk_02087FD4.s	_02103630	180	0	0	
+asm/unk_02087FD4.s	_021036E4	112	0	0	
+asm/unk_02087FD4.s	_021037B8	220	0	0	extern s32 _021037B8;
+asm/unk_02088288_02088610_021039B8.s	gOverlayTemplate_PokemonSummary	16	0	0	extern const ApplicationManagerTemplate gOverlayTemplate_PokemonSummary; | extern struct OverlayManagerTemplate gOverlayTemplate_PokemonSummary; | extern u32 gOverlayTemplate_PokemonSummary;
+asm/unk_020915B0.s	gApp_MainMenu_SelectOption_NintendoWFCSetup	16	0	0	extern const OverlayManagerTemplate gApp_MainMenu_SelectOption_NintendoWFCSetup;
+asm/unk_02091880.s	sECMenuSpecs	144	44	0	
+asm/frontier.s	gOverlayTemplate_Frontier	16	0	0	extern const OverlayManagerTemplate gOverlayTemplate_Frontier;
+asm/overlay_01_021F6830.s	ov01_02206C60	144	8	0	extern UnkTbl ov01_02206C60[]; | extern s32 ov01_02206C60; | extern u32 ov01_02206C60; | extern u8 ov01_02206C60[];
+asm/overlay_01_sprite_data.s	ov01_02207318	192	96	0	extern s32 ov01_02207318;
+asm/overlay_01_data_02208BFC.s	ov01_02208C5C	288	92	0	extern const FieldEffectRendererFuncs ov01_02208C5C[FIELD_EFFECT_RENDERER_COUNT + 1];
+asm/overlay_01_021FD1B8.s	ov01_02208E1C	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208E1C;
+asm/overlay_01_021FD41C.s	ov01_02208EA0	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208EA0;
+asm/overlay_01_021FD41C.s	ov01_02208EC8	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208EC8;
+asm/overlay_01_021FD41C.s	ov01_02208EDC	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208EDC;
+asm/overlay_01_021FDA14.s	ov01_02208F74	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208F74;
+asm/overlay_01_021FDA14.s	ov01_02208F88	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208F88;
+asm/overlay_01_021FDA14.s	ov01_02208F9C	20	4	0	extern const OverworldAnimManagerFuncs ov01_02208F9C;
+asm/overlay_01_021FE200.s	ov01_02208FE0	20	4	0	extern UnkOv01_02209280 ov01_02208FE0;
+asm/overlay_01_021FE590.s	ov01_02209084	20	4	0	extern const OverworldAnimManagerFuncs ov01_02209084;
+asm/overlay_01_021FE780_021FE8C8_022090D0.s	ov01_022090DC	20	4	0	extern const OverworldAnimManagerFuncs ov01_022090DC;
+asm/overlay_01_021FEA0C_021FEB3C_021FEB8C_022090FC.s	ov01_022090FC	20	4	0	extern const OverworldAnimManagerFuncs ov01_022090FC;
+asm/overlay_01_021FEC38.s	ov01_02209110	20	4	0	extern UnkOv01_02209280 ov01_02209110;
+asm/overlay_01_021FED9C.s	ov01_02209124	20	4	0	extern const OverworldAnimManagerFuncs ov01_02209124;
+asm/overlay_01_021FEEEC.s	ov01_02209138	20	4	0	extern UnkOv01_02209280 ov01_02209138;
+asm/overlay_01_021FEEEC.s	ov01_0220914C	20	4	0	
+asm/overlay_01_021FF464.s	ov01_022091C0	20	4	0	extern const OverworldAnimManagerFuncs ov01_022091C0; | extern u8 ov01_022091C0[];
+asm/overlay_01_021FF6B0.s	ov01_022091EC	20	4	0	extern const OverworldAnimManagerFuncs ov01_022091EC;
+asm/overlay_01_021FF854.s	ov01_02209218	20	4	0	extern UnkOv01_02209280 ov01_02209218;
+asm/overlay_01_021FF854.s	ov01_02209244	20	4	0	
+asm/overlay_01_02200040.s	ov01_02209294	20	4	0	extern const OverworldAnimManagerFuncs ov01_02209294;
+asm/overlay_01_022001E4_02200228_0220035C_0220038C_022003C4_022092C8.s	ov01_022092C8	20	4	0	
+asm/overlay_01_022001E4_02200228_0220035C_0220038C_022003C4_022092C8.s	ov01_022092DC	20	4	0	extern UnkOv01_02209280 ov01_022092DC;
+asm/overlay_01_022006A8.s	ov01_02209308	20	4	0	extern const OverworldAnimManagerFuncs ov01_02209308; | extern u8 ov01_02209308[];
+asm/overlay_01_02200858_02200938_02209340.s	ov01_02209340	20	4	0	extern const OverworldAnimManagerFuncs ov01_02209340;
+asm/overlay_01_022031C0.s	ov01_022094C8	20	4	0	extern UnkOv01_02209280 ov01_022094C8;
+asm/overlay_01_022031C0.s	ov01_022094DC	20	4	0	extern UnkOv01_02209280 ov01_022094DC;
+asm/overlay_01_022031C0.s	ov01_022094F0	20	4	0	extern UnkOv01_02209280 ov01_022094F0;
+asm/overlay_01_022031C0.s	ov01_02209504	20	4	0	extern UnkOv01_02209280 ov01_02209504;
+asm/overlay_01_02203A18.s	ov01_02209518	20	4	0	extern const UnkOv01_02203A18_Template ov01_02209518;
+asm/overlay_01_02203E40.s	ov01_022095B4	20	4	0	extern u32 ov01_022095B4;
+asm/overlay_01_022051EC.s	ov01_022096CC	20	4	0	extern UnkOv01_02209280 ov01_022096CC;
+asm/overlay_02_02245B80.s	ov02_02253254	16	8	0	extern u32 ov02_02253254;
+asm/overlay_02_02245B80.s	ov02_02253264	30	8	1	extern u32 ov02_02253264;
+asm/overlay_02_02248728.s	ov02_02253320	16	0	0	extern const FlyAwayTaskFunc *const ov02_02253320[];
+asm/overlay_02_02248728.s	ov02_02253330	24	0	0	
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_02253440	20	4	0	extern const ov02_LaunchTemplate ov02_02253440;
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_02253454	20	4	0	extern const OverworldAnimManagerFuncs ov02_02253454;
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_02253468	20	4	0	extern const OverworldAnimManagerFuncs ov02_02253468;
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_0225347C	20	4	0	extern const OverworldAnimManagerFuncs ov02_0225347C;
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_02253490	20	4	0	extern const ov02_LaunchTemplate ov02_02253490;
+asm/overlay_02_02248728_0224AC38_022533FC.s	ov02_022534A4	20	4	0	extern const OverworldAnimManagerFuncs ov02_022534A4;
+asm/overlay_02_02248728_0224B6E4_0224BAE4_0224BE24_022536F0.s	ov02_022538FC	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_022538FC;
+asm/overlay_02_02248728_0224B6E4_0224BAE4_0224BE24_022536F0.s	ov02_02253914	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_02253914;
+asm/overlay_02_02248728_0224B6E4_0224BAE4_0224BE24_022536F0.s	ov02_0225392C	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_0225392C;
+asm/overlay_02_02248728_0224D9A4_02253974.s	ov02_02253974	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_02253974;
+asm/overlay_02_02248728_0224D9A4_02253974.s	ov02_0225398C	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_0225398C;
+asm/overlay_02_02248728_0224D9A4_02253974.s	ov02_022539A4	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_022539A4;
+asm/overlay_02_02248728_0224D9A4_02253974.s	ov02_022539BC	24	0	0	extern const UnkStruct_ov6_0223E6EC ov02_022539BC;
+asm/overlay_07_02221D10_02236468.s	ov07_022371B8	72	0	0	extern const FontFreeProc ov07_022371B8[2];
+asm/overlay_14.s	ov14_021F7D50	36	8	0	extern const Box2SubProc ov14_021F7D50[3]; | extern u8 ov14_021F7D50[];
+asm/overlay_33.s	ov33_0225DA50	24	4	0	extern const Ov33Config ov33_0225DA50[2]; | extern const Ov33Config ov33_0225DA50[]; | extern s32 ov33_0225DA50; | extern u32 ov33_0225DA50;
+asm/overlay_37.s	ov37_021E7D20	192	88	1	extern UnkStruct_ov58_021D3180 ov37_021E7D20[24];
+asm/overlay_39_thumb.s	ov39_0222A8B4	12	4	0	extern const UnkFuncPtr_ov61_0222E48C *const ov39_0222A8B4[3];
+asm/overlay_39_thumb.s	ov39_0222A8C0	20	0	0	
+asm/overlay_40_0222FCCC_0222FF64_02230424_02244FF0.s	ov40_022451F4	44	0	0	extern const UnkStruct_ov62_02248CDC ov40_022451F4;
+asm/overlay_40_0223D544_02240B90_022456A4.s	ov40_0224572C	44	4	0	extern u32 ov40_0224572C;
+asm/overlay_40_0223D544_02240B90_022456A4.s	ov40_02245758	44	4	0	extern u32 ov40_02245758;
+asm/overlay_40_0223D544_02240B90_022456A4.s	ov40_02245784	44	4	0	extern u32 ov40_02245784;
+asm/overlay_40_0223D544_02240B90_022456A4.s	ov40_022457B0	44	0	0	extern const UnkStruct_ov62_02248CDC ov40_022457B0;
+asm/overlay_40_0223D544_02240B90_022456A4.s	ov40_022457DC	44	0	0	extern const UnkStruct_ov62_02248CDC ov40_022457DC;
+asm/overlay_45_thumb_0222C3A8_0222C5E8_02254A84.s	ov45_02254AC4	64	28	0	extern const UnkStruct_ov66_022589B4 ov45_02254AC4[8];
+asm/overlay_49_0225904C_02269658.s	ov49_02269698	40	4	0	extern const UnkFuncPtr_ov70_0226D558 ov49_02269698[10];
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B40	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B40;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B48	8	0	0	extern s32 ov49_02269B48;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B50	8	0	0	extern s32 ov49_02269B50;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B58	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B58; | extern s32 ov49_02269B58;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B60	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B60;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B68	8	0	0	extern s32 ov49_02269B68;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B70	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B70;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B78	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B78; | extern s32 ov49_02269B78;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B80	8	0	0	extern const UnkStruct_ov70_0226DA18 ov49_02269B80; | extern s32 ov49_02269B80;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269B88	8	0	0	extern u32 ov49_02269B88;
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269C60	48	4	0	extern const UnkStruct_ov70_0226DBB8 ov49_02269C60[2];
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269C90	144	20	0	extern const UnkStruct_ov70_0226DBB8 ov49_02269C90[6];
+asm/overlay_49_0225AC24_0225B244_02269724.s	ov49_02269D20	216	32	0	extern const UnkStruct_ov70_0226DBB8 ov49_02269D20[9];
+asm/overlay_49_0225CDE8_02264D4C_02269EC4.s	ov49_0226A484	24	0	0	extern BOOL (*const ov49_0226A484[3])(UnkStruct_ov70_0226BD64 *);
+asm/overlay_59.s	ov59_0223C66B	13	11	1	
+asm/overlay_71_02246B58_02246F60_022470DC_0224BBDC.s	ov71_0224BBF8	100	24	0	
+asm/overlay_73_021E5C74_021EA610.s	ov73_021EA664	32	0	0	extern const u8 *const ov73_021EA664[6];
+asm/overlay_74_thumb.s	gApp_MainMenu	16	0	0	extern const OverlayManagerTemplate gApp_MainMenu;
+asm/overlay_74_thumb.s	gApp_MainMenu_SelectOption_ConnectToRanger	16	0	0	extern const OverlayManagerTemplate gApp_MainMenu_SelectOption_ConnectToRanger;
+asm/overlay_74_thumb.s	gApp_MainMenu_SelectOption_MysteryGift	16	0	0	extern const ApplicationManagerTemplate gApp_MainMenu_SelectOption_MysteryGift; | extern const OverlayManagerTemplate gApp_MainMenu_SelectOption_MysteryGift;
+asm/overlay_74_thumb.s	ov74_0223BD5C	12	4	0	extern UnkStruct_ov97_02232E38 ov74_0223BD5C;
+asm/overlay_74_thumb.s	ov74_0223C220	16	8	0	extern StateTransitionMenuOptionTemplate ov74_0223C220[]; | extern s32 ov74_0223C220;
+asm/overlay_74_thumb.s	ov74_0223C230	16	8	0	extern s32 ov74_0223C230;
+asm/overlay_74_thumb.s	ov74_0223C240	16	8	0	extern s32 ov74_0223C240;
+asm/overlay_74_thumb.s	ov74_0223C250	16	8	0	extern s32 ov74_0223C250;
+asm/overlay_74_thumb.s	ov74_0223C260	16	8	0	extern s32 ov74_0223C260;
+asm/overlay_74_thumb.s	ov74_0223C270	48	12	0	extern ListMenuTemplate ov74_0223C270;
+asm/overlay_74_thumb.s	ov74_0223C2A0	16	8	0	extern StateTransitionMenuOptionTemplate ov74_0223C2A0[];
+asm/overlay_74_thumb.s	ov74_0223C2B0	32	16	0	extern s32 ov74_0223C2B0;
+asm/overlay_74_thumb.s	ov74_0223C2D0	16	8	0	extern StateTransitionMenuOptionTemplate ov74_0223C2D0[]; /* HGSS: the wonder card action entries are ov74_0223C2D0[6..9 | extern s32 ov74_0223C2D0;
+asm/overlay_74_thumb.s	ov74_0223C2E0	16	4	0	extern s32 ov74_0223C2E0;
+asm/overlay_74_thumb.s	ov74_0223C2F0	48	12	0	extern s32 ov74_0223C2F0;
+asm/overlay_74_thumb.s	ov74_0223C320	32	4	0	extern const ListMenuTemplate ov74_0223C320;
+asm/overlay_74_thumb.s	ov74_0223C340	912	76	0	extern WonderCardsAppWindowTemplate ov74_0223C340[NUM_WC_APP_WINDOWS];
+asm/overlay_74_thumb.s	ov74_0223C6E0	32	4	0	extern const ListMenuTemplate ov74_0223C6E0;
+asm/overlay_74_thumb.s	ov74_0223C700	544	36	0	extern s32 ov74_0223C700; | extern u32 ov74_0223C700;
+asm/overlay_74_thumb_0222B3A4_0223B410.s	_0223B410	16	0	0	extern const ApplicationManagerTemplate _0223B410;
+asm/overlay_74_thumb_0222B3A4_0223B410.s	_0223B420	16	0	0	extern const ApplicationManagerTemplate _0223B420;
+asm/overlay_74_thumb_0222F624_gApp_MainMenu_SelectOption_MigrateFromAgb.s	gApp_MainMenu_SelectOption_MigrateFromAgb	16	0	0	extern const OverlayManagerTemplate gApp_MainMenu_SelectOption_MigrateFromAgb;
+asm/overlay_75.s	ov75_022498F4	16	0	0	
+asm/overlay_75.s	ov75_02249904	96	20	0	
+asm/overlay_75.s	ov75_App_MainMenu_SelectOption_WiiMessageSettings	16	0	0	extern const OverlayManagerTemplate ov75_App_MainMenu_SelectOption_WiiMessageSettings;
+asm/overlay_75.s	ov75_0224999C	32	4	0	extern const ListMenuTemplate ov75_0224999C;
+asm/overlay_75.s	ov75_022499DC	32	4	0	extern const ListMenuTemplate ov75_022499DC;
+asm/overlay_80_0222ACA0.s	ov80_0223B747	645	7	1	
+asm/overlay_80_02239BF0.s	ov80_0223DB24	8	4	0	extern const UnkFuncPtr_ov104_022418A8 ov80_0223DB24[2];
+asm/overlay_83_02243FD4_02244488_02248178.s	ov83_0224819C	16	4	0	
+asm/overlay_85_021E67F4_021EA728.s	ov85_021EA758	48	16	0	extern const UnkStruct_ov109_021D5C14 ov85_021EA758[5 + 1];
+asm/overlay_86_021E5B38_021E5C94_021E7FE4.s	ov86_021E8230	40	16	0	
+asm/overlay_89_022598D0_02259B00_0225C9CC.s	ov89_0225D64C	24	8	0	extern s32 ov89_0225D64C;
+asm/overlay_92_022608B8_02263EA0.s	ov92_02263EC4	324	28	1	
+asm/overlay_93_thumb_1.s	_022629F8	16	0	0	extern const ApplicationManagerTemplate _022629F8;
+asm/overlay_93_thumb_1.s	ov93_02262A08	16	0	0	extern const ApplicationManagerTemplate ov93_02262A08;
+asm/overlay_93_thumb_1.s	ov93_02262A20	24	0	0	extern int (*const ov93_02262A20[3])(UnkStruct_ov117_02261280 *, UnkStruct_ov117_02262664 *);
+asm/overlay_96.s	ov96_0221A830	20	0	0	
+asm/overlay_96.s	ov96_0221A90C	20	0	0	
+asm/overlay_96.s	ov96_0221A920	20	0	0	
+asm/overlay_103.s	ov103_021EEC78	48	12	0	extern const MailBoxChildProc ov103_021EEC78[MAILBOX_CHILD_COUNT]; | extern u8 ov103_021EEC78[];
+asm/overlay_108_021E8850_021E9488_021E979C_021EABF0.s	ov108_021EAD08	32	16	0	extern u8 ov108_021EAD08;
+asm/overlay_112_021E7670_021E79A8_021F3704.s	ov112_App_MainMenu_SelectOption_ConnectToPokewalker	16	0	0	extern const OverlayManagerTemplate ov112_App_MainMenu_SelectOption_ConnectToPokewalker;
+asm/overlay_112_021EE6B0_021EF15C_021FF124.s	ov112_021FF124	16	0	0	extern u32 ov112_021FF124;

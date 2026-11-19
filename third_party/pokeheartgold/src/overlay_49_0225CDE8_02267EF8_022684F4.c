@@ -1,0 +1,63 @@
+#include "global.h"
+
+#include "sys_task.h"
+
+void Heap_Free(void *ptr);
+
+void ov49_022684F4(void *ptr);
+
+void ov49_022684F4(void *ptr) {
+    Heap_Free(ptr);
+}
+
+struct UnkStruct_ov70_0226C39C_t;
+
+typedef struct UnkStruct_ov70_0226C39C_t UnkStruct_ov70_0226C39C;
+
+typedef struct {
+    s8 unk_00[4];
+} UnkStruct_ov70_0226C4CC;
+
+typedef struct {
+    UnkStruct_ov70_0226C4CC unk_00[2];
+    UnkStruct_ov70_0226C4CC unk_08[4];
+} UnkStruct_ov70_0226C568;
+
+struct UnkStruct_ov70_0226C39C_t {
+    UnkStruct_ov70_0226C568 unk_00;
+    UnkStruct_ov70_0226C568 unk_18;
+    UnkStruct_ov70_0226C568 unk_30;
+    s32 unk_48[2];
+    s32 unk_50[4];
+};
+
+void ov49_02268664(const UnkStruct_ov70_0226C4CC *param0, const UnkStruct_ov70_0226C4CC *param1, UnkStruct_ov70_0226C4CC *param2, s32 param3, s32 param4);
+
+void ov49_022686F0(const UnkStruct_ov70_0226C568 *param0);
+
+void ov49_022684FC(UnkStruct_ov70_0226C39C *param0);
+
+void ov49_022684FC(UnkStruct_ov70_0226C39C *param0) {
+    int v0;
+    BOOL v1 = 0;
+
+    for (v0 = 0; v0 < 2; v0++) {
+        if ((param0->unk_48[v0] + 1) <= 60) {
+            param0->unk_48[v0]++;
+            ov49_02268664(&param0->unk_18.unk_00[v0], &param0->unk_30.unk_00[v0], &param0->unk_00.unk_00[v0], param0->unk_48[v0], 60);
+            v1 = 1;
+        }
+    }
+
+    for (v0 = 0; v0 < 4; v0++) {
+        if ((param0->unk_50[v0] + 1) <= 60) {
+            param0->unk_50[v0]++;
+            ov49_02268664(&param0->unk_18.unk_08[v0], &param0->unk_30.unk_08[v0], &param0->unk_00.unk_08[v0], param0->unk_50[v0], 60);
+            v1 = 1;
+        }
+    }
+
+    if (v1) {
+        ov49_022686F0(&param0->unk_00);
+    }
+}

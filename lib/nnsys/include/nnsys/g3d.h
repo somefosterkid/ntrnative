@@ -32,7 +32,7 @@
 #define NNS_G3D_SIGNATURE_NSBTA 0x30415442
 #define NNS_G3D_SIGNATURE_NSBTP 0x30505442
 
-typedef struct {
+typedef struct NNSG3dResFileHeader {
     u32 sigVal;
     u16 byteOrder;
     u16 version;
@@ -41,8 +41,11 @@ typedef struct {
     u16 dataBlocks;
 } NNSG3dResFileHeader;
 
-typedef struct {
-    u32 kind;
+typedef struct NNSG3dResDataBlockHeader {
+    union {
+        u32 kind;
+        char chr[4]; // the signature as text; HeartGold's code also indexes it as the block's bytes (&header.chr[offset])
+    };
     u32 size;
 } NNSG3dResDataBlockHeader;
 
@@ -51,7 +54,7 @@ typedef struct {
 // the root, whose first child is the top of the tree, or 0 for an empty dictionary. A search follows the children for
 // as long as each node tests a lower bit than the one before it, and the node it stops at has the one entry that the
 // name can be
-typedef struct {
+typedef struct NNSG3dResDictTreeNode {
     u8 refBit;
     u8 idxChild[2];
     u8 idxEntry;
@@ -59,7 +62,7 @@ typedef struct {
 
 // A dictionary: a Patricia tree of names, then each entry's data of sizeUnit bytes. The tree's nodes follow the header,
 // as many as there are entries and the root, so every block that holds a dictionary ends with it
-typedef struct {
+typedef struct NNSG3dResDict {
     u8 revision;
     u8 numEntry;
     u16 sizeDictBlk;
@@ -68,7 +71,7 @@ typedef struct {
     NNSG3dResDictTreeNode node[1];
 } NNSG3dResDict;
 
-typedef struct {
+typedef struct NNSG3dResDictEntryHeader {
     u16 sizeUnit;
     u16 ofsName;
     u8 data[4];
@@ -88,7 +91,7 @@ static inline void *NNS_G3dGetResDataByIdx(const NNSG3dResDict *dict, u32 idx) {
 #define NNS_G3D_RESPLTT_LOADED 0x0001
 #define NNS_G3D_RESPLTT_USEPLTT4 0x8000
 
-typedef struct {
+typedef struct NNSG3dResTexInfo {
     NNSGfdTexKey vramKey;
     u16 sizeTex;
     u16 ofsDict;
@@ -97,7 +100,7 @@ typedef struct {
     u32 ofsTex;
 } NNSG3dResTexInfo;
 
-typedef struct {
+typedef struct NNSG3dResTex4x4Info {
     NNSGfdTexKey vramKey;
     u16 sizeTex;
     u16 ofsDict;
@@ -107,7 +110,7 @@ typedef struct {
     u32 ofsTexPlttIdx;
 } NNSG3dResTex4x4Info;
 
-typedef struct {
+typedef struct NNSG3dResPlttInfo {
     NNSGfdPlttKey vramKey;
     u16 sizePltt;
     u16 flag;
@@ -116,7 +119,7 @@ typedef struct {
     u32 ofsPlttData;
 } NNSG3dResPlttInfo;
 
-typedef struct {
+typedef struct NNSG3dResTex {
     NNSG3dResDataBlockHeader header;
     NNSG3dResTexInfo texInfo;
     NNSG3dResTex4x4Info tex4x4Info;
@@ -125,7 +128,7 @@ typedef struct {
 } NNSG3dResTex;
 
 // A model, and the block of a file's models
-typedef struct {
+typedef struct NNSG3dResMdlInfo {
     u8 sbcType;
     u8 scalingRule;
     u8 texMtxMode;
@@ -153,7 +156,7 @@ typedef struct {
 
 // The nodes of a model: a dictionary of them, then each one's data. A node's data starts with its flag, followed by the
 // parts of its transformation that the flag doesn't say are the identity
-typedef struct {
+typedef struct NNSG3dResNodeInfo {
     NNSG3dResDict dict;
 } NNSG3dResNodeInfo;
 
@@ -167,7 +170,7 @@ typedef struct NNSG3dResMdl {
     NNSG3dResNodeInfo nodeInfo;
 } NNSG3dResMdl;
 
-typedef struct {
+typedef struct NNSG3dResMdlSet {
     NNSG3dResDataBlockHeader header;
     NNSG3dResDict dict;
 } NNSG3dResMdlSet;
@@ -209,7 +212,7 @@ static inline NNSG3dResNodeInfo *NNS_G3dGetNodeInfo(const NNSG3dResMdl *mdl) {
 #define NNS_G3D_SRTFLAG_SIGN_REVC 0x0200
 #define NNS_G3D_SRTFLAG_SIGN_REVD 0x0400
 
-typedef struct {
+typedef struct NNSG3dResNodeData {
     u16 flag;
     fx16 _00;
 } NNSG3dResNodeData;
@@ -226,13 +229,13 @@ static inline NNSG3dResNodeData *NNS_G3dGetNodeDataByIdx(const NNSG3dResNodeInfo
 }
 
 // What a model's envelope holds for a joint: the matrix that undoes the joint's bind pose, and for the normals
-typedef struct {
+typedef struct NNSG3dResEvpMtx {
     MtxFx43 invM;
     MtxFx33 invN;
 } NNSG3dResEvpMtx;
 
 // A model's material block: which materials each texture and each palette is for, then the materials by name
-typedef struct {
+typedef struct NNSG3dResMat {
     u16 ofsDictTexToMatList;
     u16 ofsDictPlttToMatList;
     NNSG3dResDict dict;
@@ -241,7 +244,7 @@ typedef struct {
 // The start of a material. Binding a texture adds its place in VRAM to texImageParam, and sets magW and magH to scale
 // the texture coordinates by how much the stored texture differs from the size the material was made for, from
 // origWidth and origHeight. Binding a palette sets texPlttBase
-typedef struct {
+typedef struct NNSG3dResMatData {
     u16 itemTag;
     u16 size;
     u32 diffAmb;
@@ -280,7 +283,7 @@ typedef struct {
 
 // An entry of a texture-to-material or palette-to-material dictionary: numIdx material numbers, one byte each, at
 // offset from the material block. flag has NNS_G3D_MATLIST_BOUND once the texture or palette is bound to them
-typedef struct {
+typedef struct NNSG3dResDictTexToMatIdxData {
     u16 offset;
     u8 numIdx;
     u8 flag;
@@ -310,11 +313,11 @@ static inline NNSG3dResMatData *NNS_G3dGetMatDataByIdx(const NNSG3dResMat *mat, 
 
 // A model's shape block: a dictionary of the shapes by name, each one's data a tag for how it is drawn, then the
 // display list that draws it and its size
-typedef struct {
+typedef struct NNSG3dResShp {
     NNSG3dResDict dict;
 } NNSG3dResShp;
 
-typedef struct {
+typedef struct NNSG3dResShpData {
     u16 itemTag;
     u16 size;
     u32 flag;
@@ -341,7 +344,7 @@ static inline NNSG3dResShpData *NNS_G3dGetShpDataByIdx(const NNSG3dResShp *shp, 
 }
 
 // The animations block of a file: its animations by name, each at an offset from the block
-typedef struct {
+typedef struct NNSG3dResAnmSet {
     NNSG3dResDataBlockHeader header;
     NNSG3dResDict dict;
 } NNSG3dResAnmSet;
@@ -375,14 +378,14 @@ typedef struct NNSG3dAnmObj {
 #define NNS_G3D_ANMOBJ_SIZE(numMapData) ((sizeof(NNSG3dAnmObj) + (numMapData) * sizeof(u16)) & ~3)
 
 // The header of every animation resource
-typedef struct {
+typedef struct NNSG3dResAnmHeader {
     u8 category0;
     u8 revision;
     u16 category1;
 } NNSG3dResAnmHeader;
 
 // The start of every animation
-typedef struct {
+typedef struct NNSG3dResAnmCommon {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u16 dummy_;
@@ -398,14 +401,14 @@ static inline fx32 NNS_G3dAnmObjGetNumFrame(const NNSG3dAnmObj *anmObj) {
 // it is the offset of an array of them from the animation, with a value for every frame, or with a step of two or
 // four for every second or fourth, and the frames between are made from the stored ones up to LAST_INTERP, the last
 // frame that is. A color is a GXRgb (RGB555) and the alpha a byte
-typedef struct {
+typedef struct NNSG3dResMatCAnm {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u16 flag;
     NNSG3dResDict dict;
 } NNSG3dResMatCAnm;
 
-typedef struct {
+typedef struct NNSG3dResDictMatCAnmData {
     u32 diffuse;
     u32 ambient;
     u32 specular;
@@ -429,19 +432,19 @@ typedef struct {
 // half, and FX16 says that they are fx16 rather than fx32. The second word is the value itself if CONST is set, or the
 // offset of the values from the animation. A rotation is its sine and cosine, two fx16 that make a word, with the
 // cosine in the high half
-typedef struct {
+typedef struct NNSG3dResTexSRTAnm {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u16 dummy_;
     NNSG3dResDict dict;
 } NNSG3dResTexSRTAnm;
 
-typedef struct {
+typedef struct NNSG3dResTexSrtAnmElem {
     u32 info;
     u32 offset;
 } NNSG3dResTexSrtAnmElem;
 
-typedef struct {
+typedef struct NNSG3dResDictTexSRTAnmData {
     NNSG3dResTexSrtAnmElem scaleS;
     NNSG3dResTexSrtAnmElem scaleT;
     NNSG3dResTexSrtAnmElem rot;
@@ -462,7 +465,7 @@ typedef struct {
 
 // A visibility animation (BVA0): a bit for each node at each frame, the bits of a frame being those of numNode nodes
 // after the bits of the frame before, and a set bit meaning the node shows
-typedef struct {
+typedef struct NNSG3dResVisAnm {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u16 numNode;
@@ -475,7 +478,7 @@ typedef struct {
 // material it animates. A material's data says where its run of frame values is, in the animation, and how long it is:
 // the frame values give the texture and palette to show from a frame on (idPltt is 0xff for none). ratioDataFrame is
 // the number of frame values to a frame, in 1/4096ths, for finding the one at a frame without searching from the first
-typedef struct {
+typedef struct NNSG3dResTexPatAnm {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u8 numTex;
@@ -485,14 +488,14 @@ typedef struct {
     NNSG3dResDict dict;
 } NNSG3dResTexPatAnm;
 
-typedef struct {
+typedef struct NNSG3dResDictTexPatAnmData {
     u16 numFV;
     u16 flag;
     fx16 ratioDataFrame;
     u16 offset;
 } NNSG3dResDictTexPatAnmData;
 
-typedef struct {
+typedef struct NNSG3dResTexPatAnmFV {
     u16 idxFrame;
     u8 idTex;
     u8 idPltt;
@@ -503,7 +506,7 @@ typedef struct {
 // identity nor the node's own, either its value if it is constant, or a NNSG3dJntAnmTInfo that says where its values
 // are. The constant of a rotation is an index of the rotation tables (ofsRot3 and ofsRot5, offsets from the animation),
 // and that of a scale component is the scale and its inverse
-typedef struct {
+typedef struct NNSG3dResJntAnm {
     NNSG3dResAnmHeader anmHeader;
     u16 numFrame;
     u16 numNode;
@@ -546,7 +549,7 @@ typedef struct {
 #define NNS_G3D_JNTANM_TINFO_LAST_INTERP_MASK 0x1fff0000
 #define NNS_G3D_JNTANM_TINFO_LAST_INTERP_SHIFT 16
 
-typedef struct {
+typedef struct NNSG3dJntAnmTInfo {
     u32 info;
     u32 offset;
 } NNSG3dJntAnmTInfo;
@@ -554,7 +557,7 @@ typedef struct {
 // A rotation index is that of a rotation of three values (a pivot and two numbers) or of five, in the table that
 // ofsRot3 or ofsRot5 gives. The enum and its names are NitroSystem's, as Kingdom Hearts 358/2 Days' decompilation has
 // them
-typedef enum {
+typedef enum NNSG3dJntAnmRIdx {
     NNS_G3D_JNTANM_RIDX_PIVOT = 0x8000,
     NNS_G3D_JNTANM_RIDX_IDXDATA_MASK = 0x7fff,
     NNS_G3D_JNTANM_RIDX_IDXDATA_SHIFT = 0
@@ -576,7 +579,7 @@ typedef enum {
 // the texture matrix's scale, rotation as a sine and cosine, and translation. Its flag says which of the matrix's parts
 // were set: when a part is the identity, the flag says so and leaves its values alone. The texture matrix is made when
 // TEXMTX_SET or TEXMTX_MULT is set, and the original size and magnification of the texture are the material's
-typedef enum {
+typedef enum NNSG3dMatAnmResultFlag {
     NNS_G3D_MATANM_RESULTFLAG_TEXMTX_SCALEONE = 0x00000001,
     NNS_G3D_MATANM_RESULTFLAG_TEXMTX_ROTZERO = 0x00000002,
     NNS_G3D_MATANM_RESULTFLAG_TEXMTX_TRANSZERO = 0x00000004,
@@ -610,7 +613,7 @@ typedef struct NNSG3dMatAnmResult {
 // scaleEx0 and scaleEx1 are the scale of the parent and its inverse (Softimage), or scaleEx0 the inverse of the
 // parent's scale (Maya), where the joint is to cancel the scale of its parent, and EX0_ONE and EX1_ONE say that they
 // are one. MAYA_SSC_APPLY is Maya's segment scale compensate: the joint cancels the scale of its parent
-typedef enum {
+typedef enum NNSG3dJntAnmResultFlag {
     NNS_G3D_JNTANM_RESULTFLAG_SCALE_ONE = 0x00000001,
     NNS_G3D_JNTANM_RESULTFLAG_ROT_ZERO = 0x00000002,
     NNS_G3D_JNTANM_RESULTFLAG_TRANS_ZERO = 0x00000004,
@@ -619,7 +622,7 @@ typedef enum {
     NNS_G3D_JNTANM_RESULTFLAG_MAYA_SSC = 0x00000020,
 } NNSG3dJntAnmResultFlag;
 
-typedef struct {
+typedef struct NNSG3dJntAnmResult {
     NNSG3dJntAnmResultFlag flag;
     VecFx32 scale;
     VecFx32 scaleEx0;
@@ -632,7 +635,7 @@ typedef struct {
     VecFx32 trans;
 } NNSG3dJntAnmResult;
 
-typedef struct {
+typedef struct NNSG3dVisAnmResult {
     BOOL isVisible;
 } NNSG3dVisAnmResult;
 
@@ -692,7 +695,7 @@ NNSG3dResTex *NNS_G3dGetTex(const NNSG3dResFileHeader *header);       // swan's 
 void *NNS_G3dGetAnmByIdx(const void *header, u32 idx);                // swan's NNS_G3DResGetAnm
 
 // The name of a dictionary entry, padded to sixteen characters with zeros
-typedef union {
+typedef union NNSG3dResName {
     char name[16];
     u32 val[4];
 } NNSG3dResName;
@@ -717,7 +720,7 @@ static inline const NNSG3dResName *NNS_G3dGetResNameByIdx(const NNSG3dResDict *d
 #define NNS_G3D_TEXIMAGE_PARAMEX_ORIGH_MASK 0x003ff800
 #define NNS_G3D_TEXIMAGE_PARAMEX_ORIGH_SHIFT 11
 
-typedef struct {
+typedef struct NNSG3dResDictTexData {
     u32 texImageParam;
     u32 extraParam;
 } NNSG3dResDictTexData;
@@ -729,7 +732,7 @@ static inline NNSG3dResDictTexData *NNS_G3dGetTexDataByIdx(const NNSG3dResTex *t
 // The data of a palette dictionary entry: the palette's offset in 8-byte units, and whether it is a 4-color palette
 #define NNS_G3D_RESDICTPLTT_USEPLTT4 0x0001
 
-typedef struct {
+typedef struct NNSG3dResDictPlttData {
     u16 offset;
     u16 flag;
 } NNSG3dResDictPlttData;
@@ -783,7 +786,7 @@ void NNS_G3dDraw(NNSG3dRenderObj *obj);
 // What starts an animation of a kind of resource: its header, and the function that fills in the animation object
 typedef void (*NNSG3dAnimInitFunc)(NNSG3dAnmObj *anmObj, void *anm, const NNSG3dResMdl *mdl);
 
-typedef struct {
+typedef struct NNSG3dAnmObjInitFunc {
     NNSG3dResAnmHeader header;
     NNSG3dAnimInitFunc init;
 } NNSG3dAnmObjInitFunc;
@@ -823,7 +826,7 @@ extern NNSG3dFuncAnmBlendVis NNS_G3dFuncBlendVisDefault;
 
 // A scale and its inverse: a node's, as a scale function reads them, and each joint's of the model being drawn, which
 // the scaling rules (maya.c and si3d.c) keep for the joints below it in NNS_G3dRSOnGlb
-typedef struct {
+typedef struct NNSG3dJointScale {
     VecFx32 scale;
     VecFx32 invScale;
 } NNSG3dJointScale;
@@ -861,7 +864,7 @@ extern NNSG3dSendTexSRT NNS_G3dSendTexSRT_FuncArray[4];       // swan's NNS_G3D_
 
 // The commands that wait for the DMA: the number of words, then the words as the FIFO takes them (each command, then
 // its parameters)
-typedef struct {
+typedef struct NNSG3dGeBuffer {
     u32 idx;
     u32 data[NNS_G3D_SIZE_COMBUFFER];
 } NNSG3dGeBuffer;
@@ -967,7 +970,7 @@ static inline void NNS_G3dGeBoxTest(const GXBoxTestParam *box) {
 
 // The global state of the geometry engine. The cmd words hold the geometry commands that send what follows them, so
 // that a flush is one run of the structure
-typedef struct {
+typedef struct NNSG3dGlb {
     u32 cmd0;
     u32 mtxmode_proj;
     MtxFx44 projMtx;
@@ -1069,6 +1072,11 @@ static inline void NNS_G3dGlbSetBaseRot(const MtxFx33 *rot) {
 
 static inline const MtxFx43 *NNS_G3dGlbGetCameraMtx(void) {
     return &NNS_G3dGlb.cameraMtx;
+}
+
+// Where NNS_G3dGlbLookAt last put the camera's target
+static inline const VecFx32 *NNS_G3dGlbGetCameraTarget(void) {
+    return &NNS_G3dGlb.camTarget;
 }
 
 static inline const MtxFx44 *NNS_G3dGlbGetProjectionMtx(void) {
@@ -1220,7 +1228,7 @@ extern NNSG3dRS *NNS_G3dRS; // swan's g_NNSG3DModelRenderer
 
 // The matrices that NNSi_G3dFuncSbc_NODEMIX makes for a joint of the envelope: the clip matrix and the normal
 // matrix, 100 bytes together
-typedef struct {
+typedef struct IbpMatrix {
     MtxFx44 clip;
     MtxFx33 normal;
 } IbpMatrix;
@@ -1229,7 +1237,7 @@ typedef struct {
 // material, which a node reuses once one has made it; the scale and inverse scale of each joint relative to the root,
 // which the scaling rules set and read for the joints below it; and the matrices that NODEMIX makes for each joint of
 // the envelope
-typedef struct {
+typedef struct NNSG3dRSOnGlb {
     NNSG3dMatAnmResult matCache[NNS_G3D_SIZE_MAT_MAX];
     NNSG3dJointScale scaleCache[NNS_G3D_SIZE_JNT_MAX];
     IbpMatrix evpCache[NNS_G3D_SIZE_JNT_MAX];
@@ -1279,5 +1287,180 @@ int NNS_G3dWorldPosToScrPos(const VecFx32 *world, int *x, int *y);
 // The near and far ends of the line in the world that a screen position is on (the far end is left out for a null
 // pointer), and 0 if the position is within the viewport, or -1
 int NNS_G3dScrPosToWorldLine(int px, int py, VecFx32 *nearPos, VecFx32 *farPos);
+
+// What the Gen 4 games (Platinum, HeartGold/SoulSilver) call and Black never does: the DS build of Black has none of
+// it (its NitroSystem is the ROM's objects), the port has it for every game. The functions are in model_gen4.c,
+// kernel_gen4.c and util_gen4.c (files the DS build doesn't list)
+
+// A resource name as words, and the bits of a texture's GX_TEXIMAGE_PARAM (GBATEK: 3D texture attributes): the VRAM
+// offset in 8-byte units, the size in s and t (8 << n texels) and the format
+#define NNS_G3D_RESNAME_SIZE 16
+#define NNS_G3D_RESNAME_VALSIZE (NNS_G3D_RESNAME_SIZE / 4)
+#define NNS_G3D_RESTEX4x4_LOADED 0x0001
+#define NNS_G3D_TEXIMAGE_PARAM_TEX_ADDR_MASK 0x0000ffff
+#define NNS_G3D_TEXIMAGE_PARAM_S_SIZE_MASK 0x00700000
+#define NNS_G3D_TEXIMAGE_PARAM_S_SIZE_SHIFT 20
+#define NNS_G3D_TEXIMAGE_PARAM_T_SIZE_MASK 0x03800000
+#define NNS_G3D_TEXIMAGE_PARAM_T_SIZE_SHIFT 23
+#define NNS_G3D_TEXIMAGE_PARAM_TEXFMT_MASK 0x1c000000
+#define NNS_G3D_TEXIMAGE_PARAM_TEXFMT_SHIFT 26
+
+// The texture of a texture block by name, its palette by index, and a node of a model by name or index
+static inline NNSG3dResDictTexData *NNS_G3dGetTexDataByName(const NNSG3dResTex *tex, const NNSG3dResName *name) {
+    return (NNSG3dResDictTexData *)NNS_G3dGetResDataByName(&tex->dict, name);
+}
+
+static inline NNSG3dResDictPlttData *NNS_G3dGetPlttDataByIdx(const NNSG3dResTex *tex, u32 idx) {
+    return (NNSG3dResDictPlttData *)NNS_G3dGetResDataByIdx((const NNSG3dResDict *)((u8 *)tex + tex->plttInfo.ofsDict),
+                                                           idx);
+}
+
+static inline int NNS_G3dGetNodeIdxByName(const NNSG3dResNodeInfo *nodeInfo, const NNSG3dResName *name) {
+    return NNS_G3dGetResDictIdxByName(&nodeInfo->dict, name);
+}
+
+static inline const NNSG3dResName *NNS_G3dGetNodeNameByIdx(const NNSG3dResNodeInfo *nodeInfo, u32 idx) {
+    return NNS_G3dGetResNameByIdx(&nodeInfo->dict, idx);
+}
+
+// An animation object's frame, and leaving a material or node out of its animation (or back in)
+static inline void NNS_G3dAnmObjSetFrame(NNSG3dAnmObj *anmObj, fx32 frame) {
+    anmObj->frame = frame;
+}
+
+static inline void NNS_G3dAnmObjDisableID(NNSG3dAnmObj *anmObj, int id) {
+    anmObj->mapData[id] |= NNS_G3D_ANMOBJ_MAPDATA_DISABLED;
+}
+
+static inline void NNS_G3dAnmObjEnableID(NNSG3dAnmObj *anmObj, int id) {
+    anmObj->mapData[id] &= ~NNS_G3D_ANMOBJ_MAPDATA_DISABLED;
+}
+
+// The global state's polygon attribute, which a material takes the bits from that its polyAttrMask leaves out, and the
+// inverse of the camera matrix
+static inline void NNS_G3dGlbPolygonAttr(int light, GXPolygonMode polyMode, GXCull cullMode, int polygonID, int alpha,
+                                         int misc) {
+    NNS_G3dGlb.prmPolygonAttr = GX_PACK_POLYGONATTR_PARAM(light, polyMode, cullMode, polygonID, alpha, misc);
+}
+
+static inline const MtxFx43 *NNS_G3dGlbGetInvCameraMtx(void) {
+    return NNS_G3dGlbGetInvV();
+}
+
+// More of the buffer's wrappers, one per geometry command (GBATEK: 3D geometry commands 0x1b-0x34), the parameters
+// packed as the FIFO takes them
+static inline void NNS_G3dGeScale(fx32 x, fx32 y, fx32 z) {
+    VecFx32 scale;
+    scale.x = x;
+    scale.y = y;
+    scale.z = z;
+    NNS_G3dGeBufferOP_N(G3OP_MTX_SCALE, (const u32 *)&scale, 3);
+}
+
+static inline void NNS_G3dGeTranslate(fx32 x, fx32 y, fx32 z) {
+    VecFx32 trans;
+    trans.x = x;
+    trans.y = y;
+    trans.z = z;
+    NNS_G3dGeBufferOP_N(G3OP_MTX_TRANS, (const u32 *)&trans, 3);
+}
+
+// VTX_16 (0x23): x and y in the first word, z in the second
+static inline void NNS_G3dGeVtx(fx16 x, fx16 y, fx16 z) {
+    u32 param[2];
+    param[0] = (u32)(u16)x | ((u32)(u16)y << 16);
+    param[1] = (u32)(u16)z;
+    NNS_G3dGeBufferOP_N(0x23, param, 2);
+}
+
+// NORMAL (0x21): three 1.0.9 fixed-point values, 10 bits each, from fx16's 1.3.12
+static inline void NNS_G3dGeNormal(fx16 x, fx16 y, fx16 z) {
+    u32 param = ((u32)(x >> 3) & 0x3ff) | (((u32)(y >> 3) & 0x3ff) << 10) | (((u32)(z >> 3) & 0x3ff) << 20);
+    NNS_G3dGeBufferOP_N(0x21, &param, 1);
+}
+
+static inline void NNS_G3dGeTexImageParam(GXTexFmt texFmt, GXTexGen texGen, GXTexSizeS s, GXTexSizeT t,
+                                          GXTexRepeat repeat, GXTexFlip flip, GXTexPlttColor0 pltt0, u32 addr) {
+    u32 param = GX_PACK_TEXIMAGE_PARAM(texFmt, texGen, s, t, repeat, flip, pltt0, addr);
+    NNS_G3dGeBufferOP_N(G3OP_TEXIMAGE_PARAM, &param, 1);
+}
+
+// TEXPLTT_BASE (0x2b): the palette's address in 16-byte units, 8-byte units for 4-color palettes
+static inline void NNS_G3dGeTexPlttBase(u32 addr, GXTexFmt texFmt) {
+    u32 param = GX_PACK_TEXPLTTBASE_PARAM(addr, texFmt);
+    NNS_G3dGeBufferOP_N(0x2b, &param, 1);
+}
+
+static inline void NNS_G3dGeMaterialColorDiffAmb(GXRgb diffuse, GXRgb ambient, BOOL isSetVtxColor) {
+    u32 param = GX_PACK_DIFFAMB_PARAM(diffuse, ambient, isSetVtxColor);
+    NNS_G3dGeBufferOP_N(G3OP_DIF_AMB, &param, 1);
+}
+
+static inline void NNS_G3dGeMaterialColorSpecEmi(GXRgb specular, GXRgb emission, BOOL isShininess) {
+    u32 param = GX_PACK_SPECEMI_PARAM(specular, emission, isShininess);
+    NNS_G3dGeBufferOP_N(G3OP_SPE_EMI, &param, 1);
+}
+
+static inline void NNS_G3dGeLightVector(GXLightId lightID, fx16 x, fx16 y, fx16 z) {
+    u32 param = GX_PACK_LIGHTVECTOR_PARAM(lightID, x, y, z);
+    NNS_G3dGeBufferOP_N(G3OP_LIGHT_VECTOR, &param, 1);
+}
+
+static inline void NNS_G3dGeLightColor(GXLightId lightID, GXRgb rgb) {
+    u32 param = GX_PACK_LIGHTCOLOR_PARAM(lightID, rgb);
+    NNS_G3dGeBufferOP_N(G3OP_LIGHT_COLOR, &param, 1);
+}
+
+// SHININESS (0x34): the 128-byte specular reflection table, 32 words
+static inline void NNS_G3dGeShininess(const u32 *table) {
+    NNS_G3dGeBufferOP_N(0x34, table, 32);
+}
+
+// A model resource's materials: their colors and polygon attribute bits, each for every material (model_gen4.c). The
+// UseGlb functions make every material take a part from the global state (NNS_G3dGlb) rather than from itself, by
+// clearing its flag bit or polyAttrMask bits (sbc.c's MAT command mixes the two with those masks); UseMdl undo them
+void NNS_G3dMdlSetMdlDiff(NNSG3dResMdl *mdl, u32 matID, GXRgb col);
+void NNS_G3dMdlSetMdlAmb(NNSG3dResMdl *mdl, u32 matID, GXRgb col);
+void NNS_G3dMdlSetMdlSpec(NNSG3dResMdl *mdl, u32 matID, GXRgb col);
+void NNS_G3dMdlSetMdlEmi(NNSG3dResMdl *mdl, u32 matID, GXRgb col);
+int NNS_G3dMdlGetMdlLightEnableFlag(const NNSG3dResMdl *mdl, u32 matID);
+void NNS_G3dMdlSetMdlDiffAll(NNSG3dResMdl *mdl, GXRgb col);
+void NNS_G3dMdlSetMdlAmbAll(NNSG3dResMdl *mdl, GXRgb col);
+void NNS_G3dMdlSetMdlSpecAll(NNSG3dResMdl *mdl, GXRgb col);
+void NNS_G3dMdlSetMdlEmiAll(NNSG3dResMdl *mdl, GXRgb col);
+void NNS_G3dMdlSetMdlLightEnableFlagAll(NNSG3dResMdl *mdl, int lights);
+void NNS_G3dMdlSetMdlPolygonModeAll(NNSG3dResMdl *mdl, GXPolygonMode mode);
+void NNS_G3dMdlSetMdlCullModeAll(NNSG3dResMdl *mdl, GXCull cull);
+void NNS_G3dMdlSetMdl1DotAll(NNSG3dResMdl *mdl, BOOL enable);
+void NNS_G3dMdlSetMdlFarClipAll(NNSG3dResMdl *mdl, BOOL enable);
+void NNS_G3dMdlSetMdlXLDepthUpdateAll(NNSG3dResMdl *mdl, BOOL enable);
+void NNS_G3dMdlSetMdlDepthTestCondAll(NNSG3dResMdl *mdl, BOOL enable);
+void NNS_G3dMdlUseGlbDiff(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbAmb(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbSpec(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbEmi(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbLightEnableFlag(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbPolygonID(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseGlbAlpha(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlDiff(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlAmb(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlSpec(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlEmi(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlLightEnableFlag(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlPolygonID(NNSG3dResMdl *mdl);
+void NNS_G3dMdlUseMdlAlpha(NNSG3dResMdl *mdl);
+
+// Binding (kernel_gen4.c): one texture by index to one texture-to-material list, its release from every material of a
+// model, and binding or releasing the textures and palettes of every model of a set
+BOOL NNS_G3dForceBindMdlTex(NNSG3dResMdl *mdl, const NNSG3dResTex *tex, u32 texToMatListIdx, u32 texIdx);
+void NNS_G3dReleaseMdlTex(NNSG3dResMdl *mdl);
+BOOL NNS_G3dBindMdlSet(NNSG3dResMdlSet *mdlSet, const NNSG3dResTex *tex);
+void NNS_G3dReleaseMdlSet(NNSG3dResMdlSet *mdlSet);
+
+// util_gen4.c: a resource file's textures and palettes into VRAM through the default managers and its models bound to
+// them (FALSE when VRAM is short or the file is of no known kind), and one material and one shape of a model drawn
+// without a render object
+BOOL NNS_G3dResDefaultSetup(void *resData);
+void NNS_G3dDraw1Mat1Shp(const NNSG3dResMdl *mdl, u32 matID, u32 shpID, BOOL sendMat);
 
 #endif // BWPORT_NNSYS_G3D_H

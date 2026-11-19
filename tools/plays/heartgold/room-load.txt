@@ -1,0 +1,5 @@
+# game: heartgold
+# from: hg-room1
+# reaches: the field in the player's house (1F, by the stairs) from the hg-room1 save: the title (HGSS has no BWPORT_SKIPMENU), CONTINUE, the save's summary (hg30: crashes 70-75 fixed, the field is up by ~f10500)
+# end: f10500
+keys start@f7700 a@f8300 a@f8700 a@f9100

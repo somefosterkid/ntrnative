@@ -8,14 +8,12 @@
  * and pixel x adds x*PA, x*PC. PA-PD are signed 8.8 halfwords. Result 24.8 (BG pixels << 8). */
 void vc_bg_affine_pos(const VCoreState *s, int e, int n, int x, int y, s32 *tx, s32 *ty) {
   u32 base = (u32)(n - 2) * 0x10;
-  s32 pa = (s16)vc_eng16(s, e, VC_REG_BG2PA + base);
-  s32 pb = (s16)vc_eng16(s, e, VC_REG_BG2PB + base);
-  s32 pc = (s16)vc_eng16(s, e, VC_REG_BG2PC + base);
-  s32 pd = (s16)vc_eng16(s, e, VC_REG_BG2PD + base);
-  s32 rx = (s32)(vc_eng32(s, e, VC_REG_BG2X + base) << 4) >> 4;
-  s32 ry = (s32)(vc_eng32(s, e, VC_REG_BG2Y + base) << 4) >> 4;
-  *tx = (s32)((u32)rx + (u32)(pa * x) + (u32)(pb * y));
-  *ty = (s32)((u32)ry + (u32)(pc * x) + (u32)(pd * y));
+  s32 pa = (s16)vc_ln16(s, e, y, VC_REG_BG2PA + base);
+  s32 pc = (s16)vc_ln16(s, e, y, VC_REG_BG2PC + base);
+  s32 rx = vc_aff_ref(s, e, y, VC_REG_BG2X + base, VC_REG_BG2PB + base); /* X + y * PB (H-blank DMA: vc_aff_ref) */
+  s32 ry = vc_aff_ref(s, e, y, VC_REG_BG2Y + base, VC_REG_BG2PD + base);
+  *tx = (s32)((u32)rx + (u32)(pa * x));
+  *ty = (s32)((u32)ry + (u32)(pc * x));
 }
 
 void vc_bg_affine_line(VCoreState *s, int e, int n, int y, VC_Line *ln) {

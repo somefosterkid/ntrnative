@@ -1,0 +1,478 @@
+pokeplatinum-widepointers6.patch (tools/pokeplat_gen.py applies it after widepointers5): the menus whose entries are
+functions (wa2's list, wa3's edits). A StringList entry's index holds the entry's callback in the bag's item actions, the
+party menu's context menu, the capsule menu, the underground menus, Mystery Gift and the Wonder Cards: on win64 the exe's
+functions are above 4 GB and the u32 index kept the low half only (Linux's exe sits low, so only Windows called the cut
+address). The index, StringList_AddFromMessageBank/AddFromString's index, Menu_ProcessInput*'s and ListMenu_ProcessInput's
+results, PartyMenu_GetAction, BagApplication_GetItemActionFunc and ItemUseFunction_Get are uintptr_t, and so are the locals
+those sites cast to a function pointer. The menus' sentinels come as an int (MENU_CANCEL) or a u32 (0xfffffffe): the
+string list stores both sign-extended (WideIndex), and three direct switches on a menu's result use MENU_CANCEL for
+their 0xfffffffe label. Also: two weather particles (ov5_021D5EB8.c) keep pointers in their work arrays (intptr_t now),
+healthbox.c's VRAM_TRANSFER_DST adds to a uintptr_t, ov61's `long unk_00` is s32 (long is 32-bit on win64, 64 on Linux).
+Not changed: battle_anim_system.c's JumpIfEqual/JumpIfUnk_01 (an absolute-address read of a relative word: no script uses them).
+
+--- a/include/applications/bag/main.h
++++ b/include/applications/bag/main.h
+@@ -5,5 +5,5 @@
+ 
+ u16 BagInterface_GetItemSlotParam(BagController *controller, u16 slotIndex, u16 itemParam);
+-const u32 BagApplication_GetItemActionFunc(enum ItemAction action);
++uintptr_t BagApplication_GetItemActionFunc(enum ItemAction action);
+ 
+ #endif // POKEPLATINUM_APPLICATIONS_BAG_MAIN_H
+--- a/include/applications/party_menu/context_menu.h
++++ b/include/applications/party_menu/context_menu.h
+@@ -6,5 +6,5 @@
+ typedef void (*PartyMenuAction)(PartyMenuApplication *application, int *partyMenuState);
+ 
+-u32 PartyMenu_GetAction(u8 action);
++uintptr_t PartyMenu_GetAction(u8 action);
+ void PartyMenu_ClearContextWindow(PartyMenuApplication *application);
+ 
+--- a/include/item_use_functions.h
++++ b/include/item_use_functions.h
+@@ -70,5 +70,5 @@
+ } UnkStruct_02068EFC;
+ 
+-u32 ItemUseFunction_Get(u16 funcType, u16 functionIdx);
++uintptr_t ItemUseFunction_Get(u16 funcType, u16 functionIdx);
+ void ItemUseContext_Init(FieldSystem *fieldSystem, ItemUseContext *param1);
+ BOOL BerryPatch_IsEmpty(const ItemUseContext *usageContext);
+--- a/include/list_menu.h
++++ b/include/list_menu.h
+@@ -97,5 +97,5 @@
+ 
+ ListMenu *ListMenu_New(const ListMenuTemplate *template, u16 startListPos, u16 startCursorPos, u8 heapID);
+-u32 ListMenu_ProcessInput(ListMenu *menu);
++uintptr_t ListMenu_ProcessInput(ListMenu *menu);
+ void ListMenu_Free(ListMenu *menu, u16 *outListPos, u16 *outCursorPos);
+ void ListMenu_Draw(ListMenu *menu);
+@@ -106,5 +106,5 @@
+ void ListMenu_GetListAndCursorPos(ListMenu *menu, u16 *outListPos, u16 *outCursorPos);
+ u8 ListMenu_GetLastAction(ListMenu *menu);
+-u32 ListMenu_GetIndexOfChoice(ListMenu *menu, u16 choice);
++uintptr_t ListMenu_GetIndexOfChoice(ListMenu *menu, u16 choice);
+ uintptr_t ListMenu_GetAttribute(ListMenu *menu, u8 attribute);
+ void ListMenu_SetChoices(ListMenu *menu, StringList *choices);
+--- a/include/menu.h
++++ b/include/menu.h
+@@ -55,13 +55,13 @@
+ Menu *Menu_NewSimple(const MenuTemplate *template, u8 cursorStart, u8 heapID);
+ void Menu_Free(Menu *menu, u8 *outCursorPos);
+-u32 Menu_ProcessInput(Menu *menu);
+-u32 Menu_ProcessInputWithSound(Menu *menu, u16 sdatID);
+-u32 Menu_ProcessExternalInput(Menu *menu, u8 input);
++uintptr_t Menu_ProcessInput(Menu *menu);
++uintptr_t Menu_ProcessInputWithSound(Menu *menu, u16 sdatID);
++uintptr_t Menu_ProcessExternalInput(Menu *menu, u8 input);
+ u8 Menu_GetCursorPos(Menu *menu);
+ u8 Menu_GetLastAction(Menu *menu);
+ Menu *Menu_MakeYesNoChoiceWithCursorAt(BgConfig *bgConfig, const WindowTemplate *winTemplate, u16 borderTileStart, u8 borderPalette, u8 cursorStart, u32 heapID);
+ Menu *Menu_MakeYesNoChoice(BgConfig *bgConfig, const WindowTemplate *winTemplate, u16 borderTileStart, u8 borderPalette, u32 heapID);
+-u32 Menu_ProcessInputAndHandleExit(Menu *menu, u32 heapID);
+-u32 Menu_ProcessExternalInputAndHandleExit(Menu *menu, u8 input, u32 heapID);
++uintptr_t Menu_ProcessInputAndHandleExit(Menu *menu, u32 heapID);
++uintptr_t Menu_ProcessExternalInputAndHandleExit(Menu *menu, u8 input, u32 heapID);
+ void Menu_DestroyForExit(Menu *menu, u32 heapID);
+ void Window_DrawMenuCursor(Window *window, u32 x, u32 y);
+--- a/include/overlay061/struct_ov61_0222BC4C_1.h
++++ b/include/overlay061/struct_ov61_0222BC4C_1.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     UnkStruct_ov61_0222BC4C_2 unk_04[0];
+ } UnkStruct_ov61_0222BC4C_1;
+--- a/include/overlay061/struct_ov61_0222BC4C_2.h
++++ b/include/overlay061/struct_ov61_0222BC4C_2.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     u64 unk_04;
+     UnkStruct_ov61_0222BC90 unk_0C;
+--- a/include/overlay061/struct_ov61_0222BCF8.h
++++ b/include/overlay061/struct_ov61_0222BCF8.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     UnkStruct_ov61_0222BCF8_sub1 unk_04[0];
+ } UnkStruct_ov61_0222BCF8;
+--- a/include/overlay061/struct_ov61_0222BCF8_sub1.h
++++ b/include/overlay061/struct_ov61_0222BCF8_sub1.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     long unk_04;
+     u64 unk_08;
+--- a/include/overlay061/struct_ov61_0222BE00.h
++++ b/include/overlay061/struct_ov61_0222BE00.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     UnkStruct_ov61_0222BE00_sub1 unk_04[0];
+ } UnkStruct_ov61_0222BE00;
+--- a/include/overlay061/struct_ov61_0222BE00_sub1.h
++++ b/include/overlay061/struct_ov61_0222BE00_sub1.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     u64 unk_04;
+     UnkStruct_ov61_0222BE20 unk_0C;
+--- a/include/overlay061/struct_ov61_0222BEB8.h
++++ b/include/overlay061/struct_ov61_0222BEB8.h
+@@ -5,5 +5,5 @@
+ 
+ typedef struct {
+-    long unk_00;
++    s32 unk_00;
+     u64 unk_04;
+     UnkStruct_ov61_0222BED8 unk_0C;
+--- a/include/string_list.h
++++ b/include/string_list.h
+@@ -10,5 +10,5 @@
+     void *entry;
+     union {
+-        u32 index;
++        uintptr_t index;
+         void *callbackFunction;
+     };
+@@ -17,6 +17,6 @@
+ StringList *StringList_New(u32 capacity, u32 heapID);
+ void StringList_Free(StringList *list);
+-void StringList_AddFromMessageBank(StringList *list, const MessageLoader *loader, u32 bankEntry, u32 index);
+-void StringList_AddFromString(StringList *list, const String *string, u32 index);
++void StringList_AddFromMessageBank(StringList *list, const MessageLoader *loader, u32 bankEntry, uintptr_t index);
++void StringList_AddFromString(StringList *list, const String *string, uintptr_t index);
+ void StringList_AddFromEntry(StringList *list, const StringList *entry);
+ 
+--- a/include/underground/menus.h
++++ b/include/underground/menus.h
+@@ -79,5 +79,5 @@
+     u8 padding3[4];
+     u16 menuCursorPos;
+-    u32 startMenuInput;
++    uintptr_t startMenuInput;
+     u8 padding4[4];
+     u8 shopSelection;
+--- a/src/applications/bag/main.c
++++ b/src/applications/bag/main.c
+@@ -2013,5 +2013,5 @@
+     }
+ 
+-    u32 selectedOption = Menu_ProcessInput(controller->menu);
++    uintptr_t selectedOption = Menu_ProcessInput(controller->menu);
+ 
+     if (selectedOption == MENU_NOTHING_CHOSEN) {
+@@ -2063,5 +2063,5 @@
+ }
+ 
+-const u32 BagApplication_GetItemActionFunc(enum ItemAction action)
++uintptr_t BagApplication_GetItemActionFunc(enum ItemAction action)
+ {
+     return sItemActionFuncs[action];
+--- a/src/applications/capsule_menu/graphics.c
++++ b/src/applications/capsule_menu/graphics.c
+@@ -445,5 +445,5 @@
+         string = MessageLoader_GetNewString(messageLoader, gSealListMenuEntries[stringIDs[i]].index);
+ 
+-        StringList_AddFromString(appMan->graphicsMan.stringList, string, gSealListMenuEntries[stringIDs[i]].func);
++        StringList_AddFromString(appMan->graphicsMan.stringList, string, (uintptr_t)gSealListMenuEntries[stringIDs[i]].func);
+         String_Free(string);
+     }
+--- a/src/applications/capsule_menu/manager.c
++++ b/src/applications/capsule_menu/manager.c
+@@ -407,5 +407,5 @@
+     case CAPSULE_CAPSULE_MENU_STATE_ID: {
+         SealMenuCallback callback;
+-        u32 result = Menu_ProcessInput(appMan->graphicsMan.menu);
++        uintptr_t result = Menu_ProcessInput(appMan->graphicsMan.menu);
+ 
+         switch (result) {
+--- a/src/applications/party_menu/context_menu.c
++++ b/src/applications/party_menu/context_menu.c
+@@ -81,5 +81,5 @@
+ union PartyMenuActionFunc {
+     PartyMenuAction func;
+-    u32 raw;
++    uintptr_t raw;
+ };
+ 
+@@ -158,5 +158,5 @@
+ // clang-format on
+ 
+-u32 PartyMenu_GetAction(u8 action)
++uintptr_t PartyMenu_GetAction(u8 action)
+ {
+     return sPartyMenuActions[action].raw;
+--- a/src/applications/party_menu/main.c
++++ b/src/applications/party_menu/main.c
+@@ -576,5 +576,5 @@
+ static int HandleContextMenuInput(PartyMenuApplication *application)
+ {
+-    u32 input = Menu_ProcessInput(application->contextMenu);
++    uintptr_t input = Menu_ProcessInput(application->contextMenu);
+     switch (input) {
+     case MENU_NOTHING_CHOSEN:
+@@ -633,5 +633,5 @@
+     case 0:
+         return application->yesnoCallbacks.onYes(application);
+-    case 0xfffffffe:
++    case MENU_CANCEL:
+         return application->yesnoCallbacks.onNo(application);
+     }
+@@ -2427,10 +2427,10 @@
+ static u8 HandleWindowInputEvent(PartyMenuApplication *application, int *partyMenuState)
+ {
+-    u32 v0 = Menu_ProcessInput(application->contextMenu);
++    uintptr_t v0 = Menu_ProcessInput(application->contextMenu);
+ 
+     switch (v0) {
+-    case 0xffffffff:
++    case MENU_NOTHING_CHOSEN:
+         break;
+-    case 0xfffffffe:
++    case MENU_CANCEL:
+         Window_EraseMessageBox(&application->windows[33], 1);
+         PartyMenu_ClearContextWindow(application);
+@@ -2923,5 +2923,5 @@
+     }
+         return v0;
+-    case 0xfffffffe:
++    case MENU_CANCEL:
+         return ResetWindowOnInput(application);
+     }
+--- a/src/battle/healthbox.c
++++ b/src/battle/healthbox.c
+@@ -63,5 +63,5 @@
+ 
+ #define VRAM_TRANSFER_DST(vram, transferTable, index_0, index_1, imgProxy) ( \
+-    (void *)((u32)vram + transferTable[index_0][index_1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]))
++    (void *)((uintptr_t)vram + transferTable[index_0][index_1].pos + imgProxy->vramLocation.baseAddrOfVram[NNS_G2D_VRAM_TYPE_2DMAIN]))
+ 
+ #define S32_MIN -2147483648
+--- a/src/item_use_functions.c
++++ b/src/item_use_functions.c
+@@ -167,5 +167,5 @@
+ // clang-format on
+ 
+-u32 ItemUseFunction_Get(u16 funcType, u16 functionIdx)
++uintptr_t ItemUseFunction_Get(u16 funcType, u16 functionIdx)
+ {
+     if (funcType == ITEM_FUNC_USE_FROM_MENU) {
+--- a/src/list_menu.c
++++ b/src/list_menu.c
+@@ -57,5 +57,5 @@
+ }
+ 
+-u32 ListMenu_ProcessInput(ListMenu *menu)
++uintptr_t ListMenu_ProcessInput(ListMenu *menu)
+ {
+     menu->lastAction = LIST_MENU_ACTION_NONE;
+@@ -209,5 +209,5 @@
+ }
+ 
+-u32 ListMenu_GetIndexOfChoice(ListMenu *menu, u16 choice)
++uintptr_t ListMenu_GetIndexOfChoice(ListMenu *menu, u16 choice)
+ {
+     return menu->template.choices[choice].index;
+--- a/src/main_menu/mystery_gift_app.c
++++ b/src/main_menu/mystery_gift_app.c
+@@ -974,5 +974,5 @@
+     static StateTransitionFuncPtr optionStateTransitionFunc;
+ 
+-    u32 input = ListMenu_ProcessInput(appData->listMenu);
++    uintptr_t input = ListMenu_ProcessInput(appData->listMenu);
+ 
+     switch (input) {
+--- a/src/main_menu/wonder_cards_app.c
++++ b/src/main_menu/wonder_cards_app.c
+@@ -218,5 +218,5 @@
+         enum WonderCardsAppState targetState; //!< Used when the state transition is handled by the main function
+         StateTransitionFuncPtr transitionFunc; //!< Used when some action needs to be performed outside of the main function before changing the state, typically showing a message box and/or menu
+-        u32 asU32;
++        uintptr_t asU32;
+     } stateChange;
+ } StateTransitionMenuOptionTemplate;
+@@ -1121,5 +1121,5 @@
+     static StateTransitionFuncPtr optionStateTransitionFunc;
+ 
+-    u32 input = ListMenu_ProcessInput(appData->listMenu);
++    uintptr_t input = ListMenu_ProcessInput(appData->listMenu);
+ 
+     switch (input) {
+--- a/src/menu.c
++++ b/src/menu.c
+@@ -65,5 +65,5 @@
+ }
+ 
+-u32 Menu_ProcessInput(Menu *menu)
++uintptr_t Menu_ProcessInput(Menu *menu)
+ {
+     menu->lastAction = MENU_ACTION_NONE;
+@@ -114,5 +114,5 @@
+ }
+ 
+-u32 Menu_ProcessInputWithSound(Menu *menu, u16 sdatID)
++uintptr_t Menu_ProcessInputWithSound(Menu *menu, u16 sdatID)
+ {
+     menu->lastAction = MENU_ACTION_NONE;
+@@ -163,5 +163,5 @@
+ }
+ 
+-u32 Menu_ProcessExternalInput(Menu *menu, u8 input)
++uintptr_t Menu_ProcessExternalInput(Menu *menu, u8 input)
+ {
+     switch (input) {
+@@ -379,7 +379,7 @@
+ }
+ 
+-u32 Menu_ProcessInputAndHandleExit(Menu *menu, u32 heapID)
++uintptr_t Menu_ProcessInputAndHandleExit(Menu *menu, u32 heapID)
+ {
+-    u32 result = Menu_ProcessInput(menu);
++    uintptr_t result = Menu_ProcessInput(menu);
+     if (result != MENU_NOTHING_CHOSEN) {
+         Menu_DestroyForExit(menu, heapID);
+@@ -389,7 +389,7 @@
+ }
+ 
+-u32 Menu_ProcessExternalInputAndHandleExit(Menu *menu, u8 input, u32 heapID)
++uintptr_t Menu_ProcessExternalInputAndHandleExit(Menu *menu, u8 input, u32 heapID)
+ {
+-    u32 result = Menu_ProcessExternalInput(menu, input);
++    uintptr_t result = Menu_ProcessExternalInput(menu, input);
+     if (result != MENU_NOTHING_CHOSEN) {
+         Menu_DestroyForExit(menu, heapID);
+--- a/src/overlay005/ov5_021D5EB8.c
++++ b/src/overlay005/ov5_021D5EB8.c
+@@ -2395,5 +2395,5 @@
+     UnkStruct_ov5_021D6FA8 *v2;
+     UnkStruct_ov5_021D9984 *v3;
+-    s32 *v4;
++    intptr_t *v4;
+     int v5;
+     VecFx32 v6;
+@@ -2406,5 +2406,5 @@
+ 
+     for (v0 = 0; v0 < param1; v0++) {
+-        v2 = ov5_021D6F00(param0, sizeof(s32) * 10);
++        v2 = ov5_021D6F00(param0, sizeof(intptr_t) * 10);
+ 
+         if (v2 == NULL) {
+@@ -2412,5 +2412,5 @@
+         }
+ 
+-        v4 = (s32 *)v2->unk_08;
++        v4 = (intptr_t *)v2->unk_08;
+         v5 = MTRNG_Next() % 4;
+ 
+@@ -2449,5 +2449,5 @@
+ }
+ 
+-static void ov5_021D7D54(UnkStruct_ov5_021D6FA8 *param0, s32 *param1)
++static void ov5_021D7D54(UnkStruct_ov5_021D6FA8 *param0, intptr_t *param1)
+ {
+     VecFx32 v0;
+@@ -2498,5 +2498,5 @@
+ {
+     UnkStruct_ov5_021D6FA8 *v0 = (UnkStruct_ov5_021D6FA8 *)param0;
+-    s32 *v1 = (s32 *)v0->unk_08;
++    intptr_t *v1 = (intptr_t *)v0->unk_08;
+     s32 *v2 = (s32 *)v1[7];
+ 
+@@ -4469,5 +4469,5 @@
+     UnkStruct_ov5_021D9984 *v3;
+     int v4;
+-    s32 *v5;
++    intptr_t *v5;
+ 
+     v3 = param0->unk_B98;
+@@ -4478,5 +4478,5 @@
+ 
+     for (v0 = 0; v0 < param1; v0++) {
+-        v2 = ov5_021D6F00(param0, sizeof(s32) * 8);
++        v2 = ov5_021D6F00(param0, sizeof(intptr_t) * 8);
+ 
+         if (v2 == NULL) {
+@@ -4484,5 +4484,5 @@
+         }
+ 
+-        v5 = (s32 *)v2->unk_08;
++        v5 = (intptr_t *)v2->unk_08;
+         v4 = MTRNG_Next() % 4;
+ 
+@@ -4528,5 +4528,5 @@
+ {
+     UnkStruct_ov5_021D6FA8 *v0 = (UnkStruct_ov5_021D6FA8 *)param0;
+-    s32 *v1 = (s32 *)v0->unk_08;
++    intptr_t *v1 = (intptr_t *)v0->unk_08;
+     VecFx32 v2 = ov5_021D7010(v0);
+     BOOL v3 = 0;
+--- a/src/string_list.c
++++ b/src/string_list.c
+@@ -37,5 +37,17 @@
+ }
+ 
+-void StringList_AddFromMessageBank(StringList *list, const MessageLoader *loader, u32 bankEntry, u32 index)
++// PC port: the index is pointer-sized (menus keep their callbacks in it). The menus' sentinels (MENU_CANCEL,
++// MENU_HEADER, ...) arrive as an int (-2) or as a u32 (0xfffffffe): store both sign-extended, as the menus compare them
++// with the int constants. A host address is never in 0xfffffff0-0xffffffff.
++static uintptr_t WideIndex(uintptr_t index)
++{
++    if (index >= 0xfffffff0u && index <= 0xffffffffu) {
++        return (uintptr_t)(intptr_t)(s32)(u32)index;
++    }
++
++    return index;
++}
++
++void StringList_AddFromMessageBank(StringList *list, const MessageLoader *loader, u32 bankEntry, uintptr_t index)
+ {
+     u32 tmp;
+@@ -44,9 +56,9 @@
+     if (list) {
+         list->entry = MessageLoader_GetNewString(loader, bankEntry);
+-        list->index = index;
++        list->index = WideIndex(index);
+     }
+ }
+ 
+-void StringList_AddFromString(StringList *list, const String *string, u32 index)
++void StringList_AddFromString(StringList *list, const String *string, uintptr_t index)
+ {
+     u32 heapID;
+@@ -55,5 +67,5 @@
+     if (list) {
+         list->entry = String_Clone(string, heapID);
+-        list->index = index;
++        list->index = WideIndex(index);
+     }
+ }
+--- a/src/underground/player_talk.c
++++ b/src/underground/player_talk.c
+@@ -565,5 +565,5 @@
+ {
+     TalkMenu *menu = data;
+-    u32 input = ListMenu_ProcessInput(menu->listMenu);
++    uintptr_t input = ListMenu_ProcessInput(menu->listMenu);
+     UndergroundTalk_UpdateCursorPos(menu);
+ 
+--- a/src/unk_020722AC.c
++++ b/src/unk_020722AC.c
+@@ -1120,5 +1120,5 @@
+     case 0:
+         return 1;
+-    case 0xfffffffe:
++    case MENU_CANCEL:
+         return 0;
+     }

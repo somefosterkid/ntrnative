@@ -32,8 +32,8 @@ DeSmuME's OpenGL renderer, NooDS's): this design must not be derived from them. 
 5. A third pass composites engine A at N x: vcore draws the 2D layers (BGs, OBJs, windows) at 1x on the CPU as today,
    the shader reads them nearest-neighbour and the 3D layer at full resolution, and applies the DS's priorities,
    windows, blending (the 3D layer's alpha included) and master brightness. Engine B is vcore's 1x screen, scaled.
-6. Display capture stays at 1x: a frame that captures also runs vcore's CPU 3D, and the capture is vcore's (the game
-   reads it back).
+6. Display capture: a frame that captures also runs vcore (the game reads the capture's 1x bytes back); at Resolution > 1
+   the GPU draws the capture at N x too, GL and Metal ("Display capture").
 7. `Renderer=vcore|gpu|libntr` and `Scale=N` in sim_config.ini and the Config window choose it; the bridge
    (port/bridge/gpu_bridge.c) gathers the frame as today, runs the CPU half on its worker and the GL half on libntr's
    render thread, and hands libntr a GL texture to show.
@@ -254,6 +254,57 @@ picture or the 3D layer into a VRAM bank the game then shows as a BG or reads as
 stores that capture into libntr's bank exactly as today (vcore_bridge.c's StoreCapture); the GPU still draws the N x
 picture shown on that frame. A captured image shown later is 1x (scaled like any BG). Cost: vcore's 3D on capture
 frames only (1-4 ms).
+
+What stays 1x (survey 2026-11-12, BWPORT_CAPLOG=1 logs a line whenever DISPCAPCNT, engine A/B DISPCNT, BG0-3CNT, VRAMCNT A-D or
+BLDCNT change; BWPORT_GPU_SHOTS=DIR:F1,F2 writes the bridge's own picture of those frames, a 1x one written N x nearest):
+- Black, Black 2, White 2 openings (Black f349-f4508, B2 f349-f9958, W2 f349-f9979): a pre-rendered movie on bitmap BGs (mode
+  5, BG2/BG3), no 3D: really 2D, correctly 1x.
+- Their title screens (Black from f4512, B2 f9962, W2 f9983): engine A in display mode 2 (VRAM display of bank D) with a
+  capture every frame, DISPCAPCNT c033040c: 256x192 into bank D, source A = engine A's whole picture (3D + BGs), source B =
+  bank D, blended 12/16 + 4/16 (a motion trail). So the whole top screen is the 1x capture shown from VRAM, and each such
+  frame is vcore's alone (M_VCORE): the 3D is 1x however the GPU draws it. Fixed under GL by the hi-res capture below.
+- White (gx4, 2026-11-12): the same as Black: the opening movie on bitmap BGs (no 3D, 1x), then the title with DISPCAPCNT every
+  frame (bank 3 = D, source A = whole picture, blended with bank D, display mode 2, 3D on): 1x under vcore, Zekrom's 3D (and the
+  trail) at 3x under the hi-res capture (title shots 1x 256x384, 3x 768x1152 in the 2026-11-12 gx4 shots: the 3D edges are smooth
+  at 3x, the logo and backgrounds stay 1x BGs scaled). It did not run in gx1's worktree because port/meson.build decides
+  build_white once, at configure time, from build/w_us/asset: a build dir configured before `ninja` made the assets stays
+  White-less ("Pokemon White is not playable in this build yet"); tools/port_wraps.py now reconfigures such a dir.
+- Platinum (gx4; build/port/linux-plat, tools/port_run.py --game platinum): NO display capture anywhere in the intro or the
+  title (BWPORT_CAPLOG: DISPCAPCNT stays 0 through the Game Freak/Pokemon intro cutscene and the title, f1..f2500; engine A
+  DISPCNT 0x00010b18 = BG mode 0 + 3D on BG0 + BG1/BG3, engine B 0x4001_0e10/0f10 toggling BG0 on and off every few frames, VRAMCNT 00848183 = no bank in LCDC mode). So there is nothing for the hi-res capture to do:
+  its 3D goes through the ordinary GPU path (N x). The top screen shows the logo/BGs and the bottom screen Giratina, which
+  "looks low-detail" at 1x AND at 3x with the same block size relative to the screen (blocks of ~3-4 DS pixels), so it is not
+  the render resolution: most likely a low-resolution texture or sprite magnified without filtering (the DS has none) or the BG
+  mosaic (MOSAIC 0x400004C) on the 3D layer; not verified (next: dump the frame's polygons/textures with BWPORT_VCAPTURE and
+  gpu_render, and read engine A's MOSAIC in CapLog). Platinum's title: keys `start@f600` skip the intro cutscene to it.
+  frame is vcore's alone (M_VCORE): the 3D is 1x however the GPU draws it. Fixed (GL and Metal) by the hi-res capture below.
+  White did not run in a worktree build ("not playable in this build yet"); Platinum not surveyed.
+
+Hi-res capture (GL and Metal, Resolution > 1; 2026-11-12, port/gpu/src/g07_capture.c, shaders/g07_capture.frag, wired in gpu_bridge.c):
+- A capture frame (size not 128x128, destination bank in LCDC mode) stays M_GPU (capHi): vcore runs on a copy of the frame's
+  inputs (CapHi, after the worker join: p19's static buffers) only for the 1x bank bytes the game reads (StoreCapture), and
+  the GL half draws the capture at N x into its bank's texture (four R16UI 256N x 256N: g07_compose_capsrc = pass C for
+  engine A as display mode 1 without master brightness, then g07cap_capture blends source A / the 3D layer with source B).
+- Engine A in display mode 2 (a bank in LCDC mode) at N x: pass C's 1x line is drawn again from the bank texture
+  (g07cap_show, with MASTER_BRIGHT) before this frame's capture writes it.
+- Validity per bank row: StoreCapture keeps a byte copy of each capture (sCapShadow) and a capture number per bank row; Gather
+  gives a row its number only while the gathered 512 bytes still equal the copy (the game did not write them); the GL thread
+  records the number each texture row holds (sGlSer). A row is drawn from the texture when both agree, else from the 1x bytes
+  as before. A 1x capture (vcore's M_VCORE, Resolution 1, Metal) resets the rows it wrote.
+- In-between pictures are off for a capHi frame and for a frame showing a bank at N x (InterpTexture draws neither).
+- Metal (2026-11-12, src/g07_capture_mtl.inc, in gpu_mtl.m): the same steps in the frame's command buffer (gpu_mtl_capsrc for
+  source A; the capture into a scratch R16Uint and a blit into the bank's rows; display mode 2 as a loading pass over pass C's
+  output; the 1x bank upload a ring of GPU_RING buffers). The MSL of g07_capture.frag and its K_SHOW variant comes from
+  tools/gpu_msl.py (glslang 16.6.0, SPIRV-Cross vulkan-sdk-1.4.363.0, under ~/bw-cache/gputools on the Mac; they reproduce the
+  older .metal files byte for byte); under GPU_SPIRV the shader's plain uniforms are block GpuK (gpu_mtl.h). Checked on the Mac,
+  Black's title from boot, the bridge's pictures (BWPORT_GPU_SHOTS): Metal 2x equals GL 2x in every pixel, Metal 3x equals GL 3x
+  but for one pixel; engine A's screen (the bottom one on the title) has 28-35 % of its N x N blocks not flat (the 1x path: 0)
+  and, box-downsampled, is within 4 levels (mean) of the 1x picture: the trail is there. The capture corpus (town, room, lab,
+  battle; gpu_render 1x and 3x, GL and Metal, AA off / 4 samples / SMAA) is unchanged: 216 of 216 pictures equal. Mac GL
+  (4.1 on Metal) built both programs and draws the same pictures; so does the iOS Simulator (2x: 28-30 % non-flat blocks).
+  Cost on the Mac at typical settings (Metal, 2x, Smooth, BWPORT_PANELHZ=120; the same build with the step off for before,
+  two runs each, load 10-38): the title 100.6 -> 117.4 M instructions a drawn frame, GPU 0.29 -> 1.0 ms a present; the field
+  (no capture) unchanged, 16.44 -> 16.49 M, GPU 1.0 / 0.93 ms. Resolution 1 is unchanged everywhere.
 
 ## The renderer switch and the bridge (G8)
 

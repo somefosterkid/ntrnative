@@ -8,6 +8,7 @@
 #include "struct_decls.h"
 #include "system/game_event.h"
 #include "field/field.h"
+#include "field/trainer_script.h"
 
 GameSystem *FieldScriptEnv_GetGameSystem(FieldScriptEnv *env);
 GameData *FieldScriptEnv_GetGameData(FieldScriptEnv *env);
@@ -160,7 +161,9 @@ struct ScriptWork {
     // A bit per sound effect player that the script waits on
     u8 seBitMask;
     u8 unk41[3];
-    u8 trainerState[2][0x1c];
+    // The Trainers who saw the player (0x1c bytes each on the DS; a u8[2][0x1c] here put the second slot's actor
+    // under the first one's eye pointer on a 64-bit target: the Twins' double battle crashed)
+    TrainerClashSlot trainerState[2];
     // Black 2 has 0x62 local variables, Black 0x60 and the save icon of a script that saves (field_saveanime.c)
     u16 localWork[0x60];
     FieldSaveAnime *saveAnime;

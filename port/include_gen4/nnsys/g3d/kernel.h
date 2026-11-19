@@ -1,0 +1,2 @@
+// port/include_gen4/nnsys/g3d/kernel.h: a NitroSystem 071126 sub-header the Gen 4 C includes by name (HGSS's port/asmdata, hk73); lib/nnsys has one header per module
+#include "nnsys_gen4.h"

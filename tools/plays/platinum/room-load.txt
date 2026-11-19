@@ -1,0 +1,5 @@
+# game: platinum
+# from: pt-room
+# reaches: the player's room in Twinleaf from pt-room: the title (start), CONTINUE on the main menu (a), the field with the player where the save was made (pl10, the load check of the X menu's SAVE)
+# end: f7400
+keys start@f6300 a@f6700

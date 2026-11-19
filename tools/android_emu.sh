@@ -6,6 +6,7 @@
 #                                      /tmp/bwport-emu-PORT.pid, its output to /tmp/bwport-emu-PORT.log.
 #   tools/android_emu.sh wait [PORT]   waits until it has booted (prints the adb serial, emulator-PORT)
 #   tools/android_emu.sh stop [PORT]   kills it by its PID
+# BWPORT_AVD=NAME runs another AVD (made as tools/android_deps.sh makes bwport34) for a worker of its own.
 # PORT: an even number 5554..5584 (default 5554); -read-only lets several run the same AVD at once, and every boot is a fresh
 # device (nothing an earlier run installed or wrote is there). NEVER without -no-window: WSLg would put the window on the maintainer's
 # desktop. Sound: -audio none (the guest keeps its audio device, so the game's sound path runs; nothing reaches the host's speakers).
@@ -24,7 +25,7 @@ case $CMD in
 run)
     alive && { echo "$S runs already (pid $(cat "$PIDF"))"; exit 1; }
     echo $$ > "$PIDF"
-    exec "$A/sdk/emulator/emulator" -avd bwport34 -port "$PORT" -no-window -gpu swiftshader_indirect -audio none -read-only \
+    exec "$A/sdk/emulator/emulator" -avd "${BWPORT_AVD:-bwport34}" -port "$PORT" -no-window -gpu swiftshader_indirect -audio none -read-only \
         -no-snapshot -no-boot-anim -no-metrics > "/tmp/bwport-emu-$PORT.log" 2>&1 < /dev/null
     ;;
 wait)

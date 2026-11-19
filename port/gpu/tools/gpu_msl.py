@@ -40,6 +40,8 @@ PROGRAMS += [(fs, "frag", fs, None) for fs in ("g07_compose.frag", "g08_smaa_edg
                                                 "g08_smaa_blend.frag")]
 PROGRAMS += [("g07_compose.frag#1+C_PLAN", "frag", "g07_compose.frag", 1)]  # pass C's plan (shaders/g07_compose.frag)
 PROGRAMS += [("g02_setup.comp", "comp", "g02_setup.vert", None)]
+# display capture at N x (src/g07_capture_mtl.inc; shaders/g07_capture.frag: its uniforms are block GpuK, the argument gK)
+PROGRAMS += [("g07_capture.frag", "frag", "g07_capture.frag", None), ("g07_capture.frag#1+K_SHOW", "frag", "g07_capture.frag", 1)]
 # the fast 3D renderer (src/g10_fast_mtl.inc; docs/gpu-hwraster.md): the triangles' fragment programs read the attachment, MSL 2.3
 # with framebuffer fetch (FETCH); its vertex program pulls src/g10_fast.c's vertices from buffer hwV and the polygons' edge
 # functions from hwE (hwU the grid's size)
@@ -119,7 +121,7 @@ def gen(glslang, spvc):
             ver = ["--msl-version", "20300", "--msl-framebuffer-fetch"] if name in FETCH else ["--msl-version", "20100"]
             msl = subprocess.run([spvc, "--msl"] + ver + [str(spv)], check=True, capture_output=True,
                                  text=True).stdout
-        for typ, new in (("GpuU", "gU"), ("GpuSpanIn", "gSpan"), ("GpuSpanOut", "gSpan"), ("HwV", "hwV"), ("HwU", "hwU"), ("HwE", "hwE")):
+        for typ, new in (("GpuU", "gU"), ("GpuK", "gK"), ("GpuSpanIn", "gSpan"), ("GpuSpanOut", "gSpan"), ("HwV", "hwV"), ("HwU", "hwU"), ("HwE", "hwE")):
             m = re.search(r"\b%s& (\w+) \[\[buffer\(" % typ, msl)
             if m:
                 msl = re.sub(r"\b%s\b" % re.escape(m.group(1)), new, msl)

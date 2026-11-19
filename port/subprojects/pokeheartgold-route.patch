@@ -1,0 +1,412 @@
+pokeheartgold-route.patch (tools/pokehg_gen.py applies the patches in name order: before widepointers2, which also changes ov12_0225E250's file): the
+route pilot's hooks for HeartGold and SoulSilver (tools/route.py hg / ss, docs/hgss.md "Route tool"), as
+pokeplatinum-route.patch's for Platinum. Calls into port/game/route_gen4.c (its HEARTGOLD half). Test-only: the pilot does
+nothing unless its environment variables are set; game behaviour and the DS build are unchanged (the calls are the port's).
+- field_system.c FieldSystem_Main: PortRoute4_Frame once per field frame, after the frame's field task and processes (the
+  pilot's PortRouteState: zone, tile, event; the map adapter).
+- start_menu.c (the touch-screen field menu): Task_StartMenu_HandleInput calls PortRoute4_StartMenu each frame it reads keys
+  (gPortRouteMenu: input, cursor, SAVE, the key toward SAVE); SAVE chosen (Task_StartMenu_HandleSelection_Save) calls
+  PortRoute4_SaveStart, the menu back from the save app (sub_0203D288) PortRoute4_SaveEnd.
+- touch_save_app.c: PortRoute4_Saved after Field_SaveGameNormal (the write).
+- scrcmd_c.c sub_020416E4 (ScrCmd_YesNo's wait): PortRoute4_YesNo with the cursor's row each frame, -1 at the answer (Py, Pn).
+- overlay 1's field menu tasks (ov01_021EDE8C: ScrCmd_MenuExec's 2D menu; ov01_021EE49C: the scrolling list): PortRoute4_FieldMenu
+  each frame they read keys and at the answer (Pl:N).
+- the battle pilot (overlay 12, the player's tasks): ov12_0225DAD4 (the action menu), ov12_0225E250 (the move menu; its
+  local struct gets MoveSelectMenuData's invalidMoves) and ov12_0225FA44 (the yes/no) call PortRoute4_BattleMenu each frame
+  they wait, ov12_022609F8 (forget a move) too; the move menu's answer goes through PortRoute4_BattleMove.
+- the test cheats: battle_controller_player.c ov12_0224B1FC (PP) and BattleSystem_CheckMoveHit ask PortRoute4_CheatSide,
+  BattleControllerPlayer_HpCalc PortRoute4_CheatDamage; overlay_12_0224E4FC.c CheckSortSpeed PortRoute4_CheatSpeed;
+  field/field_control.c FieldSystem_CheckWildEncounter PortRoute4_NoEncounter.
+- script_manager.c SetupScriptEngine (every script start: StartMapSceneScript, QueueScript, StartScriptFromMenu): PortRoute4_ScriptStart(script)
+  (the interaction sweep's log of the script ids a talk, a sign or a trigger tile began: tools/hg_int_sweep.py).
+- the party "knows" the field moves under the test cheat (BWPORT_TESTCHEAT=win; the badge checks stay real, port/game/route_gen4.c
+  PortRoute4_CheatFieldMove): scrcmd_party.c ScrCmd_GetPartySlotWithMove (the std scripts of Cut, Rock Smash, Strength, Rock Climb, Surf,
+  Waterfall, Whirlpool) answers slot 0, script_pokemon_util.c GetIdxOfFirstPartyMonWithMove (the field's Surf and Waterfall checks,
+  field_control.c) 0.
+- F:fly (port/src/route_fly.h): party_menu.c PortRoute4_PartyMenu each frame the list takes keys (PartyMenu_Subtask_MainNormal) and
+  each frame of the context menu (PartyMenu_Subtask_HandleContextMenuInput); the Pokegear's fly map (fly_map.c) PortRoute4_FlyMap each
+  frame of FlyMap_MainTask_HandleInput / _ContextMenu, PortRoute4_TownMapEnd at FlyMap_Exit (the pick and its map).
+Handover-ID: none (port-only)
+
+--- a/src/field_system.c
++++ b/src/field_system.c
+@@ -180,4 +180,6 @@
+ }
+ 
++void PortRoute4_Frame(FieldSystem *fieldSystem); // the port's route pilot (port/game/route_gen4.c)
++
+ static BOOL FieldSystem_Main(FieldSystem *fieldSystem) {
+     FieldSystem_Control(fieldSystem);
+@@ -195,4 +197,5 @@
+         ppOverlayManager_RunFrame_DeleteIfFinished(&fieldSystem->processManager->child);
+     }
++    PortRoute4_Frame(fieldSystem);
+     if (fieldSystem->processManager->isDone && !fieldSystem->taskman && !fieldSystem->processManager->parent && !fieldSystem->processManager->child) {
+         return TRUE;
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -562,4 +562,8 @@
+ }
+ 
++void PortRoute4_StartMenu(FieldSystem *fieldSystem); // the port's route pilot (port/game/route_gen4.c)
++void PortRoute4_SaveStart(void);
++void PortRoute4_SaveEnd(void);
++
+ static BOOL Task_StartMenu_HandleInput(TaskManager *taskManager) {
+     FieldSystem *fieldSystem = TaskManager_GetFieldSystem(taskManager);
+@@ -567,4 +571,5 @@
+ 
+     if (!ov01_021F6B00(fieldSystem) && ov01_021F6B10(fieldSystem) == TRUE) {
++        PortRoute4_StartMenu(fieldSystem);
+         if (gSystem.newKeys & PAD_BUTTON_A) {
+             if (!StartMenu_HandleKeyInput(taskManager, fieldSystem, startMenu)) {
+@@ -1130,4 +1135,5 @@
+     ov01_021F6A9C(fieldSystem, 1, NULL);
+     startMenu->state = START_MENU_STATE_SAVE;
++    PortRoute4_SaveStart();
+     return TRUE;
+ }
+@@ -1147,4 +1153,5 @@
+ 
+     if (!ov01_021F6B00(fieldSystem) && ov01_021F6B10(fieldSystem) == TRUE) {
++        PortRoute4_SaveEnd();
+         if (fieldSystem->lastTouchMenuInput == 1) {
+             fieldSystem->lastTouchMenuInput = 0;
+--- a/src/touch_save_app.c
++++ b/src/touch_save_app.c
+@@ -96,4 +96,5 @@
+ static BOOL TouchSaveApp_ShouldPrintAlternateSavingMessage(TouchSaveAppData *data);
+ static void TouchSaveApp_SetMenuInputState(MenuInputStateMgr *stateMgr, MenuInputState state);
++void PortRoute4_Saved(void); // the port's route pilot (port/game/route_gen4.c)
+ static void ov30_0225DC08(void);
+ static void ov30_0225DC18(void);
+@@ -461,4 +462,5 @@
+ static BOOL TouchSaveApp_SaveGame(TouchSaveAppData *data) {
+     Field_SaveGameNormal(data->fieldSystem);
++    PortRoute4_Saved(); // the port's route pilot (port/game/route_gen4.c)
+     data->state = TOUCHSAVEAPP_STATE_PRINT_SAVED_MESSAGE;
+ 
+--- a/src/scrcmd_c.c
++++ b/src/scrcmd_c.c
+@@ -961,12 +961,16 @@
+ }
+ 
++void PortRoute4_YesNo(int row); // the port's route pilot (port/game/route_gen4.c)
++
+ BOOL sub_020416E4(ScriptContext *ctx) {
+     FieldSystem *fieldSystem = ctx->fieldSystem;
+     struct ListMenu2D **listMenu2D = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_LIST_MENU_2D);
+     u16 *ret_p = GetVarPointer(fieldSystem, ctx->data[0]);
++    PortRoute4_YesNo(Get2dMenuSelection(*listMenu2D));
+     int selection = Handle2dMenuInput_DeleteOnFinish(*listMenu2D, HEAP_ID_FIELD1);
+     if (selection == LIST_NOTHING_CHOSEN) {
+         return FALSE;
+     } else {
++        PortRoute4_YesNo(-1);
+         if (selection == 0) {
+             *ret_p = 0; // yes
+--- a/src/field/field_control.c
++++ b/src/field/field_control.c
+@@ -469,4 +469,6 @@
+ }
+ 
++int PortRoute4_NoEncounter(void); // the port's test switch (port/game/route_gen4.c)
++
+ static BOOL FieldSystem_CheckWildEncounter(FieldSystem *fieldSystem) {
+     if (fieldSystem->encounterInhibitSteps < 0xFFFF) {
+@@ -484,4 +486,7 @@
+         return FALSE;
+     }
++    if (PortRoute4_NoEncounter()) {
++        return FALSE;
++    }
+ 
+     return MapHeader_HasWildEncounters(fieldSystem->location->mapId) && FieldSystem_PerformLandOrSurfEncounterCheck(fieldSystem) == TRUE;
+--- a/src/battle/battle_controller_player.c
++++ b/src/battle/battle_controller_player.c
+@@ -2010,4 +2010,7 @@
+ }
+ 
++int PortRoute4_CheatSide(BattleSystem *battleSys, int battler); // the port's test cheats (port/game/route_gen4.c)
++int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, int damage, int defenderHP);
++
+ BOOL ov12_0224B1FC(BattleSystem *battleSystem, BattleContext *ctx) {
+     int decreasePP = 1;
+@@ -2043,5 +2046,5 @@
+     index = BattleMon_GetMoveIndex(&ctx->battleMons[ctx->battlerIdAttacker], ctx->moveNoTemp);
+ 
+-    if (!ctx->turnData[ctx->battlerIdAttacker].unk0_1 && !ctx->turnData[ctx->battlerIdAttacker].struggleFlag) {
++    if (!ctx->turnData[ctx->battlerIdAttacker].unk0_1 && !ctx->turnData[ctx->battlerIdAttacker].struggleFlag && !PortRoute4_CheatSide(battleSystem, ctx->battlerIdAttacker)) {
+         ctx->turnData[ctx->battlerIdAttacker].unk0_1 = 1;
+         if (ctx->battleMons[ctx->battlerIdAttacker].movePPCur[index] && index < 4) {
+@@ -2423,5 +2426,5 @@
+     u8 moveCategory;
+ 
+-    if (BattleSystem_GetBattleType(battleSystem) & BATTLE_TYPE_TUTORIAL) {
++    if ((BattleSystem_GetBattleType(battleSystem) & BATTLE_TYPE_TUTORIAL) || PortRoute4_CheatSide(battleSystem, battlerIdAttacker)) {
+         return FALSE;
+     }
+@@ -2807,4 +2810,5 @@
+         ctx->damage = ctx->battleMons[ctx->battlerIdTarget].maxHp * -1;
+     }
++    ctx->damage = PortRoute4_CheatDamage(battleSystem, ctx->battlerIdAttacker, ctx->battlerIdTarget, ctx->damage, ctx->battleMons[ctx->battlerIdTarget].hp);
+     if (ctx->damage != 0) {
+         item = GetBattlerHeldItemEffect(ctx, ctx->battlerIdTarget);
+--- a/src/battle/overlay_12_0224E4FC.c
++++ b/src/battle/overlay_12_0224E4FC.c
+@@ -961,4 +961,6 @@
+ };
+ 
++void PortRoute4_CheatSpeed(BattleSystem *battleSys, int battler1, int battler2, u32 *speed1, u32 *speed2); // the port's test cheat (port/game/route_gen4.c)
++
+ u8 CheckSortSpeed(BattleSystem *battleSystem, BattleContext *ctx, int battlerId1, int battlerId2, int flag) {
+     u8 ret = 0; // 0 - don't sort, 1 - sort, 2 - sort (speed tie + won random check)
+@@ -1157,4 +1159,5 @@
+     }
+ 
++    PortRoute4_CheatSpeed(battleSystem, battlerId1, battlerId2, &speed1, &speed2);
+     ctx->effectiveSpeed[battlerId1] = speed1;
+     ctx->effectiveSpeed[battlerId2] = speed2;
+--- a/src/overlay_12_battle_controller_opponent_0225AE48_0225DAD4_0225DAD4.c
++++ b/src/overlay_12_battle_controller_opponent_0225AE48_0225DAD4_0225DAD4.c
+@@ -1434,4 +1434,6 @@
+ void ov12_02265D74(void *);
+ 
++void PortRoute4_BattleMenu(int kind, int arg); // the port's route pilot (port/game/route_gen4.c)
++
+ void ov12_0225DAD4(SysTask *task, void *data) {
+     CommandSetData *commandSetData = data;
+@@ -1024,4 +1026,5 @@
+         break;
+     case 5:
++        PortRoute4_BattleMenu(0, 0);
+         if (gSystem.newKeys & 0x0008) {
+             OpponentData *battlerData;
+--- a/src/overlay_12_battle_controller_opponent_0225AE48_0225E250_0225E250.c
++++ b/src/overlay_12_battle_controller_opponent_0225AE48_0225E250_0225E250.c
+@@ -287,4 +287,6 @@
+     u8 partySlot;
+     u8 state;
++    u8 unused;
++    u16 invalidMoves; // MoveSelectMenuData's (ov12_0225A604 fills it)
+ } UnkStruct_ov12_0225E250;
+ 
+@@ -301,4 +303,7 @@
+ void ov12_0225E250(SysTask *task, void *data);
+ 
++void PortRoute4_BattleMenu(int kind, int arg); // the port's route pilot (port/game/route_gen4.c)
++int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const u16 *moves, const u8 *ppCur, int invalidMoves);
++
+ void ov12_0225E250(SysTask *task, void *data) {
+     UnkStruct_ov12_0225E250 *d = data;
+@@ -355,6 +360,8 @@
+         }
+     case 1:
++        PortRoute4_BattleMenu(1, 0);
+         d->input = BattleInput_CheckTouch(input);
+         if (d->input != -1) {
++            d->input = PortRoute4_BattleMove(d->battleSys, d->battler, d->input, d->moves, d->ppCur, d->invalidMoves);
+             PlaySE(0x5dd);
+             d->state++;
+--- a/src/overlay_12_battle_controller_opponent_0225AE48_0225F980_0225FA44.c
++++ b/src/overlay_12_battle_controller_opponent_0225AE48_0225F980_0225FA44.c
+@@ -1320,4 +1320,6 @@
+ void ov12_0225FA44(SysTask *task, void *data);
+ 
++void PortRoute4_BattleMenu(int kind, int arg); // the port's route pilot (port/game/route_gen4.c)
++
+ void ov12_0225FA44(SysTask *task, void *data) {
+     YesNoMenuData *yesNoMenuData = data;
+@@ -1397,7 +1399,9 @@
+         break;
+     case 2:
++        PortRoute4_BattleMenu(2, yesNoMenuData->yesNoType);
+         yesNoMenuData->input = BattleInput_CheckTouch(btlSubscreen);
+ 
+         if (yesNoMenuData->input != 0xFFFFFFFF) {
++            PortRoute4_BattleMenu(-1, (int)yesNoMenuData->input);
+             PlaySE(1501);
+             yesNoMenuData->state = 3;
+--- a/src/overlay_12_battle_controller_opponent_022609F8.c
++++ b/src/overlay_12_battle_controller_opponent_022609F8.c
+@@ -60,4 +60,6 @@
+ void ov12_02260B30(SysTask *arg0, void *arg1);
+ 
++void PortRoute4_BattleMenu(int kind, int arg); // the port's route pilot (port/game/route_gen4.c)
++
+ void ov12_022609F8(SysTask *task, void *data) {
+     ForgetMoveData *forgetMoveData = data;
+@@ -91,4 +93,5 @@
+         break;
+     case 2:
++        PortRoute4_BattleMenu(forgetMoveData->battlePartyCtx->battlePartyExited ? -1 : 3, forgetMoveData->move);
+         if (forgetMoveData->battlePartyCtx->battlePartyExited) {
+             ov12_02237BB8(forgetMoveData->battleSys);
+--- a/src/script_manager.c
++++ b/src/script_manager.c
+@@ -158,8 +158,11 @@
+     Heap_Free(ctx);
+ }
+ 
++void PortRoute4_ScriptStart(u16 script); // the port's interaction sweep (port/game/route_gen4.c)
++
+ void SetupScriptEngine(FieldSystem *fieldSystem, ScriptEnvironment *env, u16 script, LocalMapObject *lastInteracted, void *a4) {
+     u16 *varLastInteracted = FieldSysGetAttrAddrInternal(env, SCRIPTENV_SPECIAL_VAR_LAST_INTERACTED);
++    PortRoute4_ScriptStart(script);
+     env->facingDirection = PlayerAvatar_GetFacingDirection(fieldSystem->playerAvatar);
+     env->lastInteracted = lastInteracted;
+     env->activeScriptNumber = script;
+--- a/src/scrcmd_party.c
++++ b/src/scrcmd_party.c
+@@ -127,11 +127,18 @@
+     return FALSE;
+ }
+ 
++int PortRoute4_CheatFieldMove(int move); // the port's test cheat: the party knows the field moves (port/game/route_gen4.c)
++
+ BOOL ScrCmd_GetPartySlotWithMove(ScriptContext *ctx) {
+     FieldSystem *fieldSystem = ctx->fieldSystem;
+     u16 *slot = ScriptGetVarPointer(ctx);
+     u16 move = ScriptGetVar(ctx);
+     u8 i;
++
++    if (PortRoute4_CheatFieldMove(move)) {
++        *slot = 0;
++        return FALSE;
++    }
+ 
+     u8 partyCount = Party_GetCount(SaveArray_Party_Get(fieldSystem->saveData));
+     for (i = 0, *slot = PARTY_SIZE; i < partyCount; i++) {
+--- a/src/script_pokemon_util.c
++++ b/src/script_pokemon_util.c
+@@ -68,10 +68,16 @@
+     MonSetMoveInSlot_ResetPpUp(Party_GetMonByIndex(party, mon_slot), moveId, move_slot);
+ }
+ 
++int PortRoute4_CheatFieldMove(int move); // the port's test cheat: the party knows the field moves (port/game/route_gen4.c)
++
+ int GetIdxOfFirstPartyMonWithMove(Party *party, u16 move) {
+     int i;
+     int n;
+     Pokemon *mon;
++
++    if (PortRoute4_CheatFieldMove(move)) {
++        return 0;
++    }
+ 
+     n = Party_GetCount(party);
+     for (i = 0; i < n; i++) {
+--- a/src/party_menu.c
++++ b/src/party_menu.c
+@@ -471,5 +471,8 @@
+ }
+ 
++void PortRoute4_PartyMenu(PartyMenu *partyMenu, int contextMenu); // the port's route pilot (port/game/route_gen4.c)
++
+ static int PartyMenu_Subtask_MainNormal(PartyMenu *partyMenu) {
++    PortRoute4_PartyMenu(partyMenu, 0);
+     switch (PartyMenu_HandleInput(partyMenu)) {
+     case 0:
+@@ -2151,5 +2154,8 @@
+ 
+ static BOOL PartyMenu_Subtask_HandleContextMenuInput(PartyMenu *partyMenu, int *pState) {
+-    u32 func = PartyMenu_HandleInput_ContextMenu(partyMenu, partyMenu->contextMenuCursor);
++    u32 func;
++
++    PortRoute4_PartyMenu(partyMenu, 1);
++    func = PartyMenu_HandleInput_ContextMenu(partyMenu, partyMenu->contextMenuCursor);
+     switch (func) {
+     case LIST_CANCEL:
+--- a/src/application/pokegear/map/fly_map.c
++++ b/src/application/pokegear/map/fly_map.c
+@@ -76,7 +76,11 @@
+ }
+ 
++void PortRoute4_FlyMap(PokegearMapAppData *mapApp); // the port's route pilot (port/game/route_gen4.c)
++void PortRoute4_TownMapEnd(int flySelected, int mapId);
++
+ BOOL FlyMap_Exit(OverlayManager *man, int *state) {
+     PokegearMapAppData *mapApp = OverlayManager_GetData(man);
+     enum HeapID heapID;
++    PortRoute4_TownMapEnd(mapApp->pokegear->args->setFlyDestination, mapApp->pokegear->args->selectedFlyDest);
+     FlyMap_DecouplePokegear(mapApp);
+     MapMatrix_MapData_Free(mapApp->mapData);
+@@ -147,4 +151,5 @@
+     int ret;
+ 
++    PortRoute4_FlyMap(mapApp);
+     if (!mapApp->unk_139_3) {
+         ret = FlyMap_HandleTouchInput_NotDragging(mapApp, &retIsTouch);
+@@ -192,4 +197,5 @@
+ 
+ static int FlyMap_MainTask_ContextMenu(PokegearMapAppData *mapApp) {
++    PortRoute4_FlyMap(mapApp);
+     return FlyMap_HandleContextMenu(mapApp);
+ }
+--- a/src/overlay_01_021EDAFC_021EDC84_021EDE18_021EDE8C.c
++++ b/src/overlay_01_021EDAFC_021EDC84_021EDE18_021EDE8C.c
+@@ -909,6 +909,8 @@
+ 
+ void ov01_021EDE8C(SysTask *sysTask, void *param);
+ 
++void PortRoute4_FieldMenu(const FieldMenuManager *menuManager, int kind, int answer); // the port's route pilot (port/game/route_gen4.c)
++
+ void ov01_021EDE8C(SysTask *sysTask, void *param) {
+     FieldMenuManager *menuManager = (FieldMenuManager *)param;
+ 
+@@ -921,6 +923,7 @@
+         return;
+     }
+ 
++    PortRoute4_FieldMenu(menuManager, 1, 0);
+     u32 selectedEntry = Handle2dMenuInput(menuManager->menu);
+ 
+     switch (selectedEntry) {
+@@ -929,11 +932,13 @@
+     case -2:
+         if (menuManager->canExitWithB == 1) {
+             *menuManager->selectedOptionPtr = -2;
++            PortRoute4_FieldMenu(menuManager, 0, -2);
+             ov01_021EDF38(menuManager);
+         }
+         break;
+     default:
+         *menuManager->selectedOptionPtr = selectedEntry;
++        PortRoute4_FieldMenu(menuManager, 0, (int)selectedEntry);
+         ov01_021EDF38(menuManager);
+         break;
+     }
+--- a/src/overlay_01_021EDAFC_021EE49C_021EE49C.c
++++ b/src/overlay_01_021EDAFC_021EE49C_021EE49C.c
+@@ -929,6 +929,8 @@
+ 
+ void ov01_021EE49C(SysTask *sysTask, void *param);
+ 
++void PortRoute4_FieldMenu(const FieldMenuManager *menuManager, int kind, int answer); // the port's route pilot (port/game/route_gen4.c)
++
+ void ov01_021EE49C(SysTask *sysTask, void *param) {
+     FieldMenuManager *menuManager = (FieldMenuManager *)param;
+ 
+@@ -941,6 +943,7 @@
+         return;
+     }
+ 
++    PortRoute4_FieldMenu(menuManager, 2, 0);
+     u32 selectedOption = ListMenu_ProcessInput(menuManager->listMenu);
+     u16 cursorPos = menuManager->cursorPos;
+ 
+@@ -961,12 +964,14 @@
+         if (menuManager->canExitWithB == 1) {
+             PlaySE(1500);
+             *menuManager->selectedOptionPtr = -2;
++            PortRoute4_FieldMenu(menuManager, 0, -2);
+             ov01_021EE568(param);
+         }
+         break;
+     default:
+         PlaySE(1500);
+         *menuManager->selectedOptionPtr = selectedOption;
++        PortRoute4_FieldMenu(menuManager, 0, (int)selectedOption);
+         ov01_021EE568(param);
+         break;
+     }

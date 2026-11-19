@@ -1,0 +1,45 @@
+#include "constants/abilities.h"
+#include "constants/species.h"
+#include "constants/sndseq.h"
+#include "constants/items.h"
+#include "constants/pokemon.h"
+#include "constants/std_script.h"
+	.include "macros.inc"
+	.include "overlay_02.inc"
+	.include "global.inc"
+
+	.public ov02_02249420
+	.public ov02_0224A570
+	.public ov02_0224A598
+	.public ov02_0224A5D0
+	.public ov02_0224A63C
+	.public ov02_0224A648
+	.public ov02_0224A690
+	.public ov02_0224A69C
+	.public ov02_0224A7A8
+	.public ov02_0224A7B8
+	.public ov02_0224A800
+	.public ov02_0224A810
+	.public ov02_0224A834
+	.public ov02_0224A868
+	.public ov02_0224A88C
+	.public ov02_0224A8D4
+	.public ov02_0224A9B8
+	.public ov02_0224A9D8
+	.public ov02_0224AB58
+	.public ov02_0224AB8C
+	.public ov02_0224AB9C
+	.public ov02_0224AC38
+	.public ov02_0224ADF0
+	.public ov02_0224B6B0
+	.public ov02_022532FC
+	.public ov02_02253304
+	.public ov02_0225330A
+	.public ov02_02253310
+	.public ov02_02253348
+	.public ov02_022533FC
+	.public ov02_02253414
+	.public ov02_022534F0
+	.public ov02_02253588
+	.public ov02_02249E90
+	.text

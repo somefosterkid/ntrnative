@@ -1,0 +1,307 @@
+pokeplatinum-route.patch (tools/pokeplat_gen.py applies the patches in name order): the route pilot's Gen 4 frame hook (tools/route.py pt, docs/port-worker.md "Routes"): one call per field frame, after the
+frame's field task and processes, into port/game/route_gen4.c (PortRoute4_Frame: the pilot's PortRouteState, the map
+adapter). Test-only: the pilot does nothing unless its environment variables are set. Game behaviour and the DS build are
+unchanged (the call is the port's). The start menu (start_menu.c StartMenu_Main: PortRoute4_StartMenu each frame), the
+script's yes/no (scrcmd.c ScriptContext_WaitForYesNoResult: PortRoute4_YesNo) and the save's write (ScrCmd_TrySaveGame:
+PortRoute4_Saved) tell the pilot's S, Py and Pn the menu's state (docs/platinum.md "Route chain"). The battle's
+player menus (battle/battle_display.c: the action menu, the move menu, the yes/no, the forget-a-move screen) call
+PortRoute4_BattleMenu each frame they wait and PortRoute4_BattleMove with the move menu's answer (the battle pilot).
+battle_subscreen.c BattleSystem_Cursor_Battler (the double battle's target menu, cursor shown at the first key press) asks
+PortRoute4_TargetCursorKeep before it restores the saved cursor position: with the pilot on, a saved button whose Pokemon has
+fainted (blank, A does nothing on it) is not restored; the cursor starts where the game puts it with no saved position.
+The test cheats (docs/platinum.md "Test cheats"; nothing changes unless BWPORT_TESTCHEAT=win / BWPORT_NOENCOUNTER=1):
+battle_lib.c BattleSystem_CompareBattlerSpeed passes the turn order's speeds through PortRoute4_CheatSpeed,
+battle_controller_player.c asks PortRoute4_CheatSide in DecrementPP (no PP used) and CheckMoveHitAccuracy (always hits)
+and PortRoute4_CheatDamage in UpdateHP (the hit's damage); field_control.c Field_CheckWildEncounter asks
+PortRoute4_NoEncounter (no wild encounter on a step).
+The party "knows" the field moves under the test cheat (BWPORT_TESTCHEAT=win; docs/platinum.md "Test cheats"): scrcmd_party.c
+ScrCmd_FindPartySlotWithMove (every field move script: Cut, Rock Smash, Strength, Rock Climb, Surf, Defog, Waterfall) and
+unk_02054884.c Party_HasMonWithMove (the field's Surf and Waterfall checks, field_control.c) answer slot 0 for those moves
+when PortRoute4_CheatFieldMove says so (port/game/route_gen4.c); the badge checks stay real.
+The deep-mud task (overlay005/ov5_021DFB54.c FieldTask_StuckInDeepMud, which ends only after five direction changes) calls
+PortRoute4_DeepMud each frame it runs, so the pilot presses turns until it ends (port/game/route_gen4.c; docs/platinum.md).
+overlay006/wild_encounters.c WildEncounters_TryMudEncounter (the mud tile's own encounter roll) asks PortRoute4_NoEncounter too.
+diff --git a/src/field_system.c b/src/field_system.c
+index ac7f7a8bd..b90af7fe7 100644
+--- a/src/field_system.c
++++ b/src/field_system.c
+@@ -54,4 +54,5 @@ static void HandleFieldInput(FieldSystem *fieldSystem);
+ 
+ static FieldSystem *sFieldSystem;
++void PortRoute4_Frame(FieldSystem *fieldSystem); // the port's route pilot (port/game/route_gen4.c)
+ 
+ static BOOL InitFieldSystemContinue(ApplicationManager *appMan, int *state)
+@@ -220,4 +221,6 @@ static BOOL HandleInputsEventsAndProcesses(FieldSystem *fieldSystem)
+     }
+ 
++    PortRoute4_Frame(fieldSystem);
++
+     // Does not match with return (expression)
+     if (fieldSystem->processManager->kill
+--- a/src/start_menu.c
++++ b/src/start_menu.c
+@@ -413,4 +413,6 @@
+ }
+ 
++void PortRoute4_StartMenu(const StartMenu *menu, int saveOption, int pokemonOption, int bagOption); // the port's route pilot (port/game/route_gen4.c)
++
+ static BOOL StartMenu_Main(FieldTask *fieldTask)
+ {
+@@ -418,4 +420,6 @@
+     StartMenu *menu = FieldTask_GetEnv(fieldTask);
+ 
++    PortRoute4_StartMenu(menu, START_MENU_OPTION_SAVE, START_MENU_OPTION_POKEMON, START_MENU_OPTION_BAG);
++
+     switch (menu->state) {
+     case START_MENU_STATE_INIT:
+--- a/src/scrcmd.c
++++ b/src/scrcmd.c
+@@ -1766,4 +1766,7 @@
+ }
+ 
++void PortRoute4_YesNo(int row); // the port's route pilot (port/game/route_gen4.c)
++void PortRoute4_Saved(void);
++
+ static BOOL ScriptContext_WaitForYesNoResult(ScriptContext *ctx)
+ {
+@@ -1772,4 +1775,6 @@
+     u16 *destVar = FieldSystem_GetVarPointer(fieldSystem, ctx->data[0]);
+ 
++    PortRoute4_YesNo(Menu_GetCursorPos(*menu));
++
+     u32 result = Menu_ProcessInputAndHandleExit(*menu, HEAP_ID_FIELD1);
+ 
+@@ -1778,4 +1783,6 @@
+     }
+ 
++    PortRoute4_YesNo(-1);
++
+     if (result == MENU_YES) {
+         *destVar = MENU_YES;
+@@ -4118,4 +4125,5 @@
+ 
+     *destVar = FieldSystem_Save(fieldSystem);
++    PortRoute4_Saved();
+     return FALSE;
+ }
+--- a/src/battle/battle_display.c
++++ b/src/battle/battle_display.c
+@@ -3165,4 +3165,7 @@
+ }
+ 
++void PortRoute4_BattleMenu(int kind, int arg); // the port's route pilot (port/game/route_gen4.c)
++int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const u16 *moves, const u8 *ppCur, int invalidMoves);
++
+ static void Task_PlayerSetCommandSelection(SysTask *task, void *data)
+ {
+@@ -3315,4 +3318,5 @@
+         }
+ 
++        PortRoute4_BattleMenu(0, 0);
+         commandSetData->input = BattleSystem_MenuInput(btlSubscreen);
+ 
+@@ -3545,7 +3549,10 @@
+         break;
+     case 1:
++        PortRoute4_BattleMenu(1, 0);
+         moveSelectMenuData->input = BattleSystem_MenuInput(btlSubscreen);
+ 
+         if (moveSelectMenuData->input != 0xFFFFFFFF) {
++            moveSelectMenuData->input = PortRoute4_BattleMove(moveSelectMenuData->battleSys, moveSelectMenuData->battler, moveSelectMenuData->input,
++                                                              moveSelectMenuData->moves, moveSelectMenuData->ppCur, moveSelectMenuData->invalidMoves);
+             Sound_PlayEffect(SEQ_SE_DP_DECIDE_sseq);
+             moveSelectMenuData->state++;
+@@ -4695,7 +4702,9 @@
+         break;
+     case 2:
++        PortRoute4_BattleMenu(2, yesNoMenuData->yesNoType);
+         yesNoMenuData->input = BattleSystem_MenuInput(btlSubscreen);
+ 
+         if (yesNoMenuData->input != 0xFFFFFFFF) {
++            PortRoute4_BattleMenu(-1, (int)yesNoMenuData->input);
+             Sound_PlayEffect(SEQ_SE_DP_DECIDE_sseq);
+             yesNoMenuData->state = 3;
+@@ -5435,4 +5444,5 @@
+         break;
+     case 2:
++        PortRoute4_BattleMenu(forgetMoveData->battlePartyCtx->battlePartyExited ? -1 : 3, forgetMoveData->move);
+         if (forgetMoveData->battlePartyCtx->battlePartyExited) {
+             BattleSystem_ExitSubMenu(forgetMoveData->battleSys);
+diff --git a/src/battle/battle_controller_player.c b/src/battle/battle_controller_player.c
+index 17366e7b7..64aea8a9c 100644
+--- a/src/battle/battle_controller_player.c
++++ b/src/battle/battle_controller_player.c
+@@ -109,4 +109,6 @@ static BOOL BattleControllerPlayer_LoadQuickClawCheck(BattleSystem *battleSys, B
+ static int BattleControllerPlayer_CheckMoveHitAccuracy(BattleSystem *battleSys, BattleContext *battleCtx, int attacker, int defender, int move);
+ static int BattleControllerPlayer_CheckMoveHitOverrides(BattleSystem *battleSys, BattleContext *battleCtx, int attacker, int defender, int move);
++int PortRoute4_CheatSide(BattleSystem *battleSys, int battler); // the port's test cheats (port/game/route_gen4.c)
++int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, int damage, int defenderHP);
+ static BOOL BattleControllerPlayer_MoveStolen(BattleSystem *battleSys, BattleContext *battleCtx);
+ static BOOL BattleControllerPlayer_ReplaceFainted(BattleSystem *battleSys, BattleContext *battleCtx);
+@@ -2271,5 +2273,5 @@ static BOOL BattleControllerPlayer_DecrementPP(BattleSystem *battleSys, BattleCo
+ 
+     int moveSlot = Battler_SlotForMove(&ATTACKING_MON, battleCtx->moveTemp);
+-    if (ATTACKER_TURN_FLAGS.ppDecremented == FALSE && ATTACKER_TURN_FLAGS.struggling == FALSE) {
++    if (ATTACKER_TURN_FLAGS.ppDecremented == FALSE && ATTACKER_TURN_FLAGS.struggling == FALSE && !PortRoute4_CheatSide(battleSys, battleCtx->attacker)) {
+         ATTACKER_TURN_FLAGS.ppDecremented = 1;
+ 
+@@ -2865,5 +2867,5 @@ static inline int CalcMoveType(BattleContext *battleCtx, int attacker, int move)
+ static int BattleControllerPlayer_CheckMoveHitAccuracy(BattleSystem *battleSys, BattleContext *battleCtx, int attacker, int defender, int move)
+ {
+-    if (BattleSystem_GetBattleType(battleSys) & BATTLE_TYPE_CATCH_TUTORIAL) {
++    if ((BattleSystem_GetBattleType(battleSys) & BATTLE_TYPE_CATCH_TUTORIAL) || PortRoute4_CheatSide(battleSys, attacker)) {
+         return 0;
+     }
+@@ -3344,4 +3346,5 @@ static void BattleControllerPlayer_UpdateHP(BattleSystem *battleSys, BattleConte
+         battleCtx->damage = DEFENDING_MON.maxHP * -1;
+     }
++    battleCtx->damage = PortRoute4_CheatDamage(battleSys, battleCtx->attacker, battleCtx->defender, battleCtx->damage, DEFENDING_MON.curHP);
+ 
+     if (battleCtx->damage) {
+diff --git a/src/battle/battle_lib.c b/src/battle/battle_lib.c
+index f1addf3e5..bb4cc1b47 100644
+--- a/src/battle/battle_lib.c
++++ b/src/battle/battle_lib.c
+@@ -1186,4 +1186,6 @@ static inline int CompareSpeed_ApplySimple(BattleContext *battleCtx, int battler
+ }
+ 
++void PortRoute4_CheatSpeed(BattleSystem *battleSys, int battler1, int battler2, u32 *speed1, u32 *speed2); // the port's test cheat (port/game/route_gen4.c)
++
+ u8 BattleSystem_CompareBattlerSpeed(BattleSystem *battleSys, BattleContext *battleCtx, int battler1, int battler2, BOOL ignoreQuickClaw)
+ {
+@@ -1370,4 +1372,5 @@ u8 BattleSystem_CompareBattlerSpeed(BattleSystem *battleSys, BattleContext *batt
+     }
+ 
++    PortRoute4_CheatSpeed(battleSys, battler1, battler2, &battler1Speed, &battler2Speed);
+     battleCtx->monSpeedValues[battler1] = battler1Speed;
+     battleCtx->monSpeedValues[battler2] = battler2Speed;
+diff --git a/src/overlay005/field_control.c b/src/overlay005/field_control.c
+index fee61145e..3b0528e15 100644
+--- a/src/overlay005/field_control.c
++++ b/src/overlay005/field_control.c
+@@ -541,4 +541,6 @@ int FieldInput_Process_BattleTower(const FieldInput *input, FieldSystem *fieldSy
+ }
+ 
++int PortRoute4_NoEncounter(void); // the port's test switch (port/game/route_gen4.c)
++
+ static BOOL Field_CheckWildEncounter(FieldSystem *fieldSystem)
+ {
+@@ -556,4 +558,8 @@ static BOOL Field_CheckWildEncounter(FieldSystem *fieldSystem)
+     }
+ 
++    if (PortRoute4_NoEncounter()) {
++        return FALSE;
++    }
++
+     return MapHeader_HasWildEncounters(fieldSystem->location->mapHeaderID) && WildEncounters_TryWildEncounter(fieldSystem) == TRUE;
+ }
+diff --git a/src/battle/battle_subscreen.c b/src/battle/battle_subscreen.c
+--- a/src/battle/battle_subscreen.c
++++ b/src/battle/battle_subscreen.c
+@@ -3383,6 +3383,10 @@
+     }
+ }
+ 
++// the port's route pilot (port/game/route_gen4.c): 0 when the saved target button has no Pokemon (the pilot's cursor then starts where
++// the game puts it with no saved position)
++int PortRoute4_TargetCursorKeep(int button, const u8 *present);
++
+ static int BattleSystem_Cursor_Battler(BattleSubscreen *btlSubscreen, BOOL isCursorHidden)
+ {
+     MenuCursor *cursor;
+@@ -3535,7 +3539,8 @@
+ 
+     if (isCursorHidden == TRUE) {
+         if (isSingleTarget == 0) {
+-            if (savedCursorPos->targetingLayout == btlSubscreen->targetingLayout) {
++            if (savedCursorPos->targetingLayout == btlSubscreen->targetingLayout
++                && PortRoute4_TargetCursorKeep(sSelectTargetMenuButtonLayout[savedCursorPos->targetSelectY][savedCursorPos->targetSelectX], targetSlotFlagsPresent)) {
+                 cursor->x = savedCursorPos->targetSelectX;
+                 cursor->y = savedCursorPos->targetSelectY;
+             } else if (targetSlotFlagsPresent[5 - 2] == 1) {
+diff --git a/src/scrcmd_party.c b/src/scrcmd_party.c
+--- a/src/scrcmd_party.c
++++ b/src/scrcmd_party.c
+@@ -137,12 +137,19 @@
+     return FALSE;
+ }
+ 
++int PortRoute4_CheatFieldMove(int move); // the port's test cheat: the party knows the field moves (port/game/route_gen4.c)
++
+ BOOL ScrCmd_FindPartySlotWithMove(ScriptContext *ctx)
+ {
+     FieldSystem *fieldSystem = ctx->fieldSystem;
+     u16 *destVar = ScriptContext_GetVarPointer(ctx);
+     u16 move = ScriptContext_GetVar(ctx);
+ 
++    if (PortRoute4_CheatFieldMove(move)) {
++        *destVar = 0;
++        return FALSE;
++    }
++
+     u8 partyCount = Party_GetCurrentCount(SaveData_GetParty(fieldSystem->saveData));
+ 
+     u8 slot;
+diff --git a/src/unk_02054884.c b/src/unk_02054884.c
+--- a/src/unk_02054884.c
++++ b/src/unk_02054884.c
+@@ -83,11 +83,17 @@
+ 
+ // In many of the functions below, C99-style iterator declaration doesn't match
+ 
++int PortRoute4_CheatFieldMove(int move); // the port's test cheat: the party knows the field moves (port/game/route_gen4.c)
++
+ int Party_HasMonWithMove(Party *party, u16 moveID)
+ {
+     int i;
+     int partyCount = Party_GetCurrentCount(party);
+ 
++    if (PortRoute4_CheatFieldMove(moveID)) {
++        return 0;
++    }
++
+     for (i = 0; i < partyCount; i++) {
+         Pokemon *mon = Party_GetPokemonBySlotIndex(party, i);
+ 
+diff --git a/src/overlay005/ov5_021DFB54.c b/src/overlay005/ov5_021DFB54.c
+--- a/src/overlay005/ov5_021DFB54.c
++++ b/src/overlay005/ov5_021DFB54.c
+@@ -887,11 +887,15 @@
+     GameRecords_IncrementRecordValue(SaveData_GetGameRecords(fieldSystem->saveData), RECORD_TIMES_STUCK_IN_DEEP_MUD);
+ }
+ 
++void PortRoute4_DeepMud(void); // the port's route pilot (port/game/route_gen4.c)
++
+ static BOOL FieldTask_StuckInDeepMud(FieldTask *fieldTaskEnv)
+ {
+     StuckInDeepMudTaskEnv *stuckInDeepMudTaskEnv = FieldTask_GetEnv(fieldTaskEnv);
+     MapObject *playerMapObject = PlayerAvatar_GetMapObject(stuckInDeepMudTaskEnv->playerAvatar);
+ 
++    PortRoute4_DeepMud();
++
+     switch (stuckInDeepMudTaskEnv->state) {
+     case 0:
+         Sound_PlayEffect(SEQ_SE_DP_ZUPO_sseq);
+diff --git a/src/overlay006/wild_encounters.c b/src/overlay006/wild_encounters.c
+--- a/src/overlay006/wild_encounters.c
++++ b/src/overlay006/wild_encounters.c
+@@ -555,6 +555,8 @@
+     return TRUE;
+ }
+ 
++int PortRoute4_NoEncounter(void);
++
+ // seemingly the same as TryGrassEncounter, but doesn't check Surf tables because it's always a grass tile
+ BOOL WildEncounters_TryMudEncounter(FieldSystem *fieldSystem, FieldBattleDTO **battleParams)
+ {
+@@ -570,6 +572,10 @@
+ 
+     *battleParams = NULL;
+ 
++    if (PortRoute4_NoEncounter()) { // the port's test switch (port/game/route_gen4.c)
++        return FALSE;
++    }
++
+     int playerX = PlayerAvatar_GetXPos(fieldSystem->playerAvatar);
+     int playerZ = PlayerAvatar_GetZPos(fieldSystem->playerAvatar);
+     u8 tileBehavior = TerrainCollisionManager_GetTileBehavior(fieldSystem, playerX, playerZ);

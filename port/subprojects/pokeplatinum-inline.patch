@@ -1,0 +1,70 @@
+pokeplatinum-inline.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): six functions that pret writes as plain
+`inline` (C99: an inline definition only, which MWCC links as a function of the file and clang never emits) become
+`static inline`, so each file that calls one has its own copy. Five files.
+
+diff --git a/include/inlines.h b/include/inlines.h
+--- a/include/inlines.h
++++ b/include/inlines.h
+@@ -153,7 +153,7 @@
+ }
+ 
+ // Functionally equivalent to LCRNG_Next() % param
+-inline u16 LCRNG_RandMod(const u16 param)
++static inline u16 LCRNG_RandMod(const u16 param)
+ {
+     GF_ASSERT(param != 0);
+ 
+diff --git a/include/pokemon_sprite.h b/include/pokemon_sprite.h
+--- a/include/pokemon_sprite.h
++++ b/include/pokemon_sprite.h
+@@ -176,12 +176,12 @@
+ void PokemonSprite_DecryptDP(u8 *rawCharData);
+ void PokemonSprite_Decrypt(u8 *rawCharData, enum NarcID narcID);
+ 
+-inline void PokemonSpriteManager_HideShadows(PokemonSpriteManager *monSpriteMan)
++static inline void PokemonSpriteManager_HideShadows(PokemonSpriteManager *monSpriteMan)
+ {
+     PokemonSpriteManager_SetHideShadows(monSpriteMan, 1);
+ }
+ 
+-inline void PokemonSpriteManager_ShowShadows(PokemonSpriteManager *monSpriteMan)
++static inline void PokemonSpriteManager_ShowShadows(PokemonSpriteManager *monSpriteMan)
+ {
+     PokemonSpriteManager_ClearHideShadows(monSpriteMan, 1);
+ }
+diff --git a/src/main_menu/distribution_cartridge.c b/src/main_menu/distribution_cartridge.c
+--- a/src/main_menu/distribution_cartridge.c
++++ b/src/main_menu/distribution_cartridge.c
+@@ -76,7 +76,7 @@
+     return Heap_Alloc(sHeapID, size);
+ }
+ 
+-inline u32 FlipEndianness(u32 val)
++static inline u32 FlipEndianness(u32 val)
+ {
+     return ((val >> 0) & 255) << 24 | ((val >> 8) & 255) << 16 | ((val >> 16) & 255) << 8 | ((val >> 24) & 255) << 0;
+ }
+diff --git a/src/enc_effects.c b/src/enc_effects.c
+--- a/src/enc_effects.c
++++ b/src/enc_effects.c
+@@ -115,7 +115,7 @@
+ static u32 EncEffects_TrainerClassEffect(u32 trainerClass);
+ static u32 EncEffects_WildPokemonEffect(Party *wildParty, int mapHeaderID);
+ 
+-inline BOOL EncEffects_Galactic(u32 effect)
++static inline BOOL EncEffects_Galactic(u32 effect)
+ {
+     return (effect == ENCEFF_GALACTIC_GRUNT)
+         || (effect == ENCEFF_GALACTIC_CMDR)
+diff --git a/src/overlay117/ov117_022626B0.c b/src/overlay117/ov117_022626B0.c
+--- a/src/overlay117/ov117_022626B0.c
++++ b/src/overlay117/ov117_022626B0.c
+@@ -151,7 +151,7 @@
+ 
+ extern const s32 Unk_ov117_02266FD8[];
+ 
+-inline void inline_ov117_02262EAC(int param0)
++static inline void inline_ov117_02262EAC(int param0)
+ {
+     NNS_G3dGeNormal(Unk_ov117_02266B12[param0 * 3], Unk_ov117_02266B12[param0 * 3 + 1], Unk_ov117_02266B12[param0 * 3 + 2]);
+ }

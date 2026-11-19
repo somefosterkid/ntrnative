@@ -1,0 +1,4 @@
+# tools/hg_abi_scan.py rows tools/pokehg_abi.py leaves as they are: NAME<TAB>why (the definition is the bug: declaring it
+# as defined would change what the game does). hg_abi_scan.py --gate lets these pass.
+ov41_0224AC08	overlay_41_02246DE0_02246F08.c declares param2 u8 and passes 471 (NARC 27's member): the DS passes 471 & 0xFF = 215 (0xD7, the member the other callers name); as defined (int) it would get 471. A constant: clang loads it with a 32-bit mov, so win64 gets 215 too.
+ov41_0224AC40	the same call site and the same 471 as ov41_0224AC08 (the DS passes 215).

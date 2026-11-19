@@ -40,7 +40,258 @@ gap3 | b2-gap2 | G:36,715 Wf S W30 | zone 427 36,715 | b2-gap3
 # beacon search (it crashed until WM's buffer in wih.c got its PC size and 32-byte alignment: net_whpipe.c UpdateBeacon,
 # game_beacon_search.c:299 work NULL; cgear-yes2 is that path).
 gym-out | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 M3000 KD:2 K0:6 Ka:2 K0:60 Pa Wf:60 S | zone 427 39,741 | b2-v1
-# Yes to the C-Gear power-on question (Pa answers Yes), the wireless starts and finds nobody, on to Route 19 (zone 438). libntr's ARM7
+# Yes to the C-Gear power-on question (Py: a script's two-item list, which B does not cancel), the wireless starts and finds nobody, on to Route 19 (zone 438). libntr's ARM7
 # WM runs in its own thread, so after the Yes the V-blank counts and the NPCs differ run to run (--repeat says DIFFERENT, the
 # end does not: the last token is a tile walk to the same tile)
-cgear-yes2 | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 Pa M3000 Wf:300 Pb G:warp:438 Wf:600 G:4,14 | zone 438 4,14 | -
+cgear-yes2 | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 Pa Py Wf:300 G:warp:438 Wf:600 G:4,14 | zone 438 4,14 | -
+# No to it (Pn: down onto No, A)
+cgear-no | b2-badge1 | Wf:30 G:warp:436 Wf:30 G:warp:427 Pa Pn Wf:300 G:warp:438 Wf:600 G:4,14 | zone 438 4,14 | -
+# Black 2, second badge (Virbank Gym, Toxic Badge), from b2-v1: Aspertia, Route 19, Floccesy, Route 20, Virbank City
+to-floccesy | b2-v1 | G:zone:439 Wf S W30 | zone 439 96,696 | b2-v2
+floccesy-r20 | b2-v2 | G:zone:446 Wf S W30 | zone 446 128,663 | b2-v3
+r20-virbank | b2-v3 | G:zone:448 Wf S W30 | zone 448 194,650 | b2-v4
+# Virbank City: the first steps in town start Mom's Xtransceiver call (T2), then Roxie and her father argue outside the Center (T0). The street
+# gate to the north (T1 at the Complex door, 215,642) only pushes the player back until the gym is won.
+virbank-scenes | b2-v4 | G:trig:2 Wf G:trig:0 Wf S W30 | zone 448 205,650 | b2-v5
+# Virbank Gym (the small neon building, zone 455 lobby -> 502): the gym trainers (uid 5 spots, 1 and 2 are the two guitarists), then Roxie
+# (uid 0) once both are beaten: Toxic Badge and TM09, work 0x40ac = 3, the blocker at the studio door leaves.
+virbank-gym | b2-v5 | G:warp:455 Wf G:warp:502 Wf G:npc:5 G:npc:1 G:npc:2 G:npc:0 Wf S W30 | zone 502 8,2 | b2-badge2
+# The scout (blonde man) asks the player to visit Pokestar Studios (T0 in the gym), then out to Virbank City.
+virbank-scout | b2-badge2 | G:trig:0 Wf G:warp:455 Wf G:warp:448 Wf S W30 | zone 448 228,668 | b2-v6
+# Pokestar Studios: the tour (zone 566's scene, the first movie watched in zone 574: a recorded battle, Pa through its
+# text), which ends in the studio lobby (zone 568) with work 0x40ac = 4 (the docks scene trigger in Virbank). Not stored: --repeat 2
+# is DIFFERENT (the movie ends at V-blank 8935 or 8806, the end 12424 or 12297; the same end position).
+pokestar-tour | b2-v6 | G:warp:453 Wf G:warp:566 Pa Wf S W30 | zone 568 14,18 | b2-v7
+# Pokestar Studios, the movie: the receptionist (uid 0) starts the film you star in (the menu rows are answered with A, so Pa first); it plays
+# in the theatre and ends back in the lobby: flags 0x0988 clear and 0x09f3 set, the exit trigger T0 (work 0x4000) is off, work 0x40ab = 4.
+# The movie playback length varies run to run: --repeat can say DIFFERENT on frames; the end tile is the same.
+pokestar-movie | b2-v7 | Pa G:npc:0 Wf S W30 | zone 568 14,12 | b2-v8
+# Out of Pokestar Studios (lobby 568 -> studio 566 -> its entrance 453) to Virbank City (448), then the docks scene (T3 at 239,670, work 0x40ac == 4 -> 5):
+# Roxie and Hugh meet the Plasma grunts, a Patrat battle, Roxie gives HM01 Cut and sends the player to Route 20. The end frame varies by tens of frames run to run (same tile).
+pokestar-docks | b2-v8 | Pa G:warp:566 G:warp:453 G:warp:448 G:trig:3 Wf G:npc:9 Wf S W30 | zone 448 238,669 | b2-v9
+# Route 20 after the docks: the hidden Plasma grunt (uid 22, a Purrloin) fights the player; work 0x40ab = 6, 0x40ac = 7 (the docks scene T4 in Virbank waits).
+# The trainers of the route that see the player on the way are fought by the walk.
+route20-grunt | b2-v9 | Pa G:warp:447 G:warp:446 G:161,662 G:npc:22 Wf S W30 | zone 446 155,666 | b2-v10
+# Back to the Virbank docks (Route 20 -> gate 447 -> Virbank 448): T4 at 239,669 (work 0x40ac == 7 -> 8) is the scene where Roxie reconciles with her father.
+docks-return | b2-v10 | Pa G:warp:447 G:warp:448 G:trig:4 Wf S W30 | zone 448 239,669 | b2-v11
+# Castelia by boat, from the Virbank docks (b2-v11)
+boat | b2-v11 | Pa G:warp:452 G:npc:3 Wf S W30 | zone 38 12,10 | b2-c1
+# The ferry ride: the shipbuilding door (zone 452, warp D5 of Virbank), the boat question (uid 3, answered Yes by G:npc) and the ship's scene
+# in zone 38 (flag 0x02ec, work 0x40ae = 2); the player ends on the ship at 12,10 (its warps D0/D1 lead to Castelia, zone 28).
+# The end frame varies by one (3038 or 3039), the tile does not: --repeat says DIFFERENT on v only.
+# Castelia (zone 28 is a RAIL map: the G tokens plan on its rail places, rail[line,front,side] in the dump): the arrival
+# scene (work 0x40e2 = 2); the girl at the Center street's door (zone 31 uid 0: work 0x40b1 = 1); Iris on the street (T1:
+# 0x40b1 = 2); T0 (rail[2,6,-3]) starts the walk to Thumb Pier (0x40b1 = 3, 0x40b2 = 1).
+castelia | b2-c1 | Pa G:warp:28 Wf S W30 | zone 28 44,79 | b2-c2
+c-girl | b2-c2 | G:warp:31 Wf G:npc:0 Wf S W30 | zone 31 23,48 | b2-c3
+c-iris | b2-c3 | G:warp:28 Wf G:trig:1 Wf S W30 | zone 28 69,59 | b2-c4
+c-pier | b2-c4 | G:trig:0 Wf S W30 | zone 28 72,39 | b2-c5
+# Thumb Pier (zone 40: scene work 0x40b2 = 1 -> 2 on entry) and the sewers (zone 495) through the walk-in D2.
+c-sewer | b2-c5 | Pa G:warp:40 Wf G:warp:495 Wf S W30 | zone 495 88,21 | b2-c6
+# The sewers: Hugh joins at T1 (83,20), the grunts at T0 (49,9): the double battle with Hugh, HM04 (work 0x40b2 = 3, 0x40b3 = 1).
+c-sewer2 | b2-c6 | Pa G:trig:1 Wf G:trig:0 Wf S W30 | zone 495 52,9 | b2-c7
+# Castelia's plaza (zone 30, a HYBRID zone: rails around a grid square): G:zone:30 arrives on a rail; G:warp:32 plans
+# the rail to a hand-off (a switch place, the rail ahead blocked, the grid free: the key held steps onto the grid), then
+# the grid to D0 (zone 32).
+c-plaza | b2-c7 | Pa G:zone:30 G:warp:32 Wf S W30 | zone 32 18,62 | b2-c8
+# Castelia plaza (zone 30, hybrid): G:warp:31 from the grid picks the nearest hand-off, which leads to a rail component without the Center street door; the west strip hand-off (5,19, key Down held) leads to the right one, so the leg steps there first (TOOL GAP: the planner does not try the other hand-offs). Then the street door and the gym door are plain warps.
+c-gym-in | b2-c8 | Pa G:warp:30 Wf G:5,19 KD:12 G:warp:31 Wf G:warp:29 Wf S W30 | zone 29 16,20 | b2-c9
+# the gym rides by G:ride:N (sRides index in ov091 gym_insect.c); the trainers on the cocoon paths battle on the way
+c-gym-rides | b2-c9 | Pa Wf G:ride:0 G:ride:10 G:ride:5 G:ride:6 G:ride:12 G:ride:14 Wf S W30 | zone 488 15,19 | b2-c10
+# Burgh: G:npc:0 walks up, talks and battles (the test cheat wins), the badge scene runs through with A
+c-burgh | b2-c10 | Pa G:npc:0 Wf S W30 | zone 488 15,11 | b2-badge3
+# the way back from the leader room is a zone 488 ride (index 15) that starts when the player presses Down at 15,19 into the wall tile 15,20 (G:ride has no table entry for zone 488 rides: TOOL GAP)
+c-gym-ride-out | b2-badge3 | Pa G:15,19 KD:30 Pa Wf S W30 | zone 29 2,14 | b2-c11
+# out of the gym: the rides back down (13, 7, 4, 11, 1: the way up in reverse, through the right-hand platform and the middle floor), then the door
+c-gym-door | b2-c11 | Pa G:ride:13 G:ride:7 G:ride:4 G:ride:11 G:ride:1 Wf G:warp:31 Wf S W30 | zone 31 24,48 | b2-c12
+# the plaza trigger scene (work 0x40b4 = 2 after it); T0 is on the plaza grid
+c-colress | b2-c12 | Pa G:warp:30 Wf G:trig:0 Wf S W30 | zone 30 12,9 | b2-c13
+# Castelia plaza north door to Route 4 south (zone 32), the gatehouse door (zone 51), its entrance trigger T0 (work 0x40ed = 0)
+r4-gate | b2-c13 | Pa G:warp:32 Wf G:warp:51 Wf G:trig:0 Wf S W30 | zone 51 4,10 | b2-r4-1
+# out of the gatehouse (zone 51 -> 326) onto trigger T0 (work 0x40b6 = 3 after it)
+r4-colress | b2-r4-1 | Pa G:warp:326 Wf G:trig:0 Wf S W30 | zone 326 430,584 | b2-r4-2
+# walk Route 4 north (zone 326) to the top of the planner window first (a G:warp target further than the 64x64 window is not planned), then the north door (429,490 -> zone 490), trigger T0 (work 0x410b = 0)
+r4-gate490 | b2-r4-2 | Pa G:429,546 Wf G:warp:490 Wf G:trig:0 Wf S W30 | zone 490 15,73 | b2-r4-3
+# the greeter at 15,68 (script 4, work 0x4110 = 2); a possible yes/no is answered by Pa
+ja-greeter | b2-r4-3 | Pa G:npc:1 Wf S W30 | zone 490 15,71 | b2-r4-4
+# the Route 4 north gatehouse door into Nimbasa (zone 62)
+nim-in | b2-r4-4 | Pa G:warp:62 Wf S W30 | zone 62 431,478 | b2-nim1
+# the east door of Nimbasa (zone 62) into the old gym with the roller coaster (zone 64)
+nim-gym-in | b2-nim1 | Pa G:warp:64 Wf S W30 | zone 64 10,15 | b2-nim2
+# the actor at 23,23 (script 13 sets the coaster works)
+nim-clyde | b2-nim2 | Pa G:npc:11 Wf S W30 | zone 64 23,22 | b2-nim3
+# the coaster zone 585: ride 0 boards at the start platform and lands at the east stop (22,39); T0 (29,33) throws car 0 switch; ride 1 then runs to the west middle platform (16,27)
+nim-coaster1 | b2-nim3 | Pa G:warp:585 Wf G:ride:0 Wf G:trig:0 Wf G:ride:1 Wf S W30 | zone 585 16,27 | b2-nim4
+# walk north to the platform with T1 (13,16: car 1 switch), G:ride:3 boards car 1 there and lands at the east stop (41,40)
+nim-coaster2 | b2-nim4 | Pa G:trig:1 Wf G:ride:3 Wf S W30 | zone 585 41,40 | b2-nim5
+# T2 (46,41) throws car 2 switch, G:ride:5 boards car 2 at 49,40 (the first boarding plays the Rich Boy scene, a won battle) and lands at the north stop (34,8)
+nim-coaster3 | b2-nim5 | Pa G:trig:2 Wf G:ride:5 Wf S W30 | zone 585 34,8 | b2-nim6
+# the Beauty uid 2 at 28,5 (script 15) sets flag 0x29d, the blocker on the door of the new gym
+nim-coaster4 | b2-nim6 | Pa G:npc:2 Wf S W30 | zone 585 28,6 | b2-nim7
+# T3 (25,9) throws car 3 switch, G:ride:7 boards at 22,8 and lands at the start platform (5,39)
+nim-coaster5 | b2-nim7 | Pa G:trig:3 Wf G:ride:7 Wf S W30 | zone 585 5,39 | b2-nim8
+# out of the coaster zone 585 to zone 64 (the old gym), then its door at 71,10 into the new gym zone 63 (the blocker is gone with flag 0x29d)
+nim-newgym | b2-nim8 | Pa G:warp:64 Wf G:warp:63 Wf S W30 | zone 63 15,60 | b2-nim9
+# the entrance trigger T4 (14,59, script 14, work 0x4142 = 0): the old gym man walks up and talks
+nim-newgym-clyde | b2-nim9 | Pa G:trig:4 Wf S W30 | zone 63 15,59 | b2-nim10
+# triggers T0 (14,54), T1 (14,39), T2 (14,24) each start one Beauty battle (work 0x409b 0 -> 1 -> 2 -> 3); the battle cheat wins them
+nim-newgym-beauties | b2-nim10 | Pa G:trig:0 Wf G:trig:1 Wf G:trig:2 Wf S W30 | zone 63 15,24 | b2-nim11
+# Elesa uid 4 at 15,4 (script 1); the battle cheat wins; the badge and TM come in her script
+nim-elesa | b2-nim11 | Pa G:npc:4 Wf S W30 | zone 63 15,6 | b2-badge4
+# trigger T3 (14,35, script 12, work 0x409c = 1 after the badge): the Beauties and Elesa gather and the scene sets work 0x4001
+nim-gym-exit | b2-badge4 | Pa G:trig:3 Wf S W30 | zone 63 15,53 | b2-nim12
+# G:zone:62 takes the warp hops from the new gym (zone 63) through the old gym zone 64 to Nimbasa
+nim-out | b2-nim12 | Pa G:zone:62 Wf S W30 | zone 62 435,463 | b2-nim13
+# trigger T0 (409,437, script 12, work 0x40c0 = 1): the subway bosses and the other trainer talk; the Vs. Recorder follows
+nim-subway | b2-nim13 | Pa G:trig:0 Wf S W30 | zone 62 409,440 | b2-nim14
+# the first subway boss uid 0 (script 15, work 0x40c0 = 2) starts the double battle (two trainer battles in the script); the battle cheat wins; both bosses then walk into the subway
+nim-subway-battle | b2-nim14 | Pa G:npc:0 Wf S W30 | zone 62 407,439 | b2-nim15
+# Nimbasa west door (384,437) into the Route 5 gatehouse zone 91
+nim-gate | b2-nim15 | Pa G:warp:91 Wf S W30 | zone 91 15,6 | b2-nim16
+# the gatehouse west door (1,4 of zone 91) onto Route 5 (zone 329)
+r5-in | b2-nim16 | Pa G:warp:329 Wf S W30 | zone 329 376,438 | b2-r5-1
+# trigger T5 (372,437, script 18, work 0x4139 = 0): the friend walks up, gives the HM (item 421) and a yes/no follows (Pa answers Yes)
+r5-bianca | b2-r5-1 | Pa G:trig:5 Wf S W30 | zone 518 15,14 | b2-r5-2
+# the grotto (zone 518) has no warp: its exit is the trigger T0 at 15,27 (script 5 warps out); the wild Pokemon in it (actor uid 224) is left
+r5-grotto | b2-r5-2 | Pa G:trig:0 Wf S W30 | zone 329 373,425 | b2-r5-3
+# Dancer Brian on the way fights by sight (G:352,435); the friend (uid 8 at 340,433, script 5) starts the grunt double battle only when the party holds 3 Pokemon: two X:mon cheat members (a game-state blocker, like the Twins leg); the grunts and the friend leave (flag 0x2f8)
+r5-hugh | b2-r5-3 | Pa X:mon:504:25 X:mon:506:25 G:352,435 Wf G:npc:8 Wf S W30 | zone 329 342,433 | b2-r5-4
+# Charles and his crowd are on the Nimbasa side of the gate (zone 62 uid 5 at 422,462), so the leg walks back through the gatehouse (zone 91); the actor is 37 tiles out of the dump window, so one G:X,Z hop first. A Baker on the way fights by sight. The scene is one script (a rotation battle in Black 2).
+r5-charles | b2-r5-4 | Pa G:warp:91 Wf:60 G:warp:62 Wf G:411,445 Wf G:npc:5 Wf S W30 | zone 62 421,461 | b2-r5-5
+# Route 5 west through the gatehouse, over the drawbridge (zone 253) into Driftveil (zone 96); the planner takes the warp hops.
+r5-bridge | b2-r5-5 | Pa G:zone:96 Wf G:245,431 S W30 | zone 96 245,431 | b2-drift1
+# T0 at 221,430 (zone 96 script 11) is the scene at the city entrance; it sets work 0x40c3 to 1.
+drift-grunts | b2-drift1 | Pa G:trig:0 Wf S W30 | zone 96 221,433 | b2-drift2
+# T2 at 194,397 (zone 96 script 29, work 0x40c3 1 -> 2) brings the old grunt (uid 4, spawn flag 0x2cb); his talk (script 8) sets work 3 and the story walks on by itself: into the ex-Plasma hideout (zone 104), the guard's battle (money, a Zorua for the party, flag 0x2cf that opens the gym door actor's way). The hideout's backstory scene (zone 104 script 16) needs the Memory Link flag (work 0x400f) and does not run in a new game.
+drift-oldgrunt | b2-drift2 | Pa G:trig:2 Wf G:npc:4 Wf S W30 | zone 104 1,9 | b2-drift3
+# The gate actor in front of the gym door is gone (the Plasma hideout scene set its flag), so the real door works: warp 98 (the lift room), then the console (bg 2) rides the lift into zone 97 at 12,87.
+drift-gym-in | b2-drift3 | Pa G:warp:96 Wf:60 G:warp:98 Wf:60 G:bg:2 Wf:120 S W30 | zone 97 12,87 | b2-gym5-1
+# G:npc:7 is Clay (zone 97 uid 7 at 46,17), 70 tiles from the lift exit; the pilot hops beyond its window and crosses the pits by the slide pads; trainers on the way fight by sight. His script fights, gives the badge and rides the freight lift to zone 98 (the friend's scene there runs by itself). Flaky on Linux: one of three runs (the first repeat, started without gdb) hangs mid-fight in the wireless code (main thread in GFL_NetErrAbortCore <- WH_Reset <- NetWhpipe StateParentWait, frame ~7700-7970); the others end the same (v=13705), so b2-badge5 was stored from a single --store run.
+gym-clay | b2-gym5-1 | Pa G:npc:7 Wf:600 S W30 | zone 98 6,4 | b2-badge5
+# Leaving the gym by its lift room door runs zone 96 scene 2 (work 0x40c3 4 -> 5) by itself.
+drift-out | b2-badge5 | Pa G:warp:96 Wf:60 Wf S W30 | zone 96 213,403 | b2-drift4
+cave-bianca | b2-drift4 | Pa G:zone:191 Wf:60 G:trig:0 Wf S W30 | zone 192 15,14 | b2-r6-1
+# The desk is actor 0 (script 10655): Ka:2 talks, Pl:1 = the entry, Pl:1 = the Driftveil tournament; the party screen is keyed by K tokens only (no Pa before it: the pulse would press A on its menu): A opens a Pokemon, A enters it, right/down move the cursor, three entered then Confirm. The K0 waits are the fade times.
+pwt-drift | b2-r6-1 | G:npc:0:nota Ka:2 Pl:1 Pl:1 K0:200 Ka:3 K0:400 Ka:3 K0:40 Ka:3 K0:60 KR:3 K0:20 Ka:3 K0:40 Ka:3 K0:60 KD:3 K0:20 Ka:3 K0:40 Ka:3 K0:60 K0:30 Ka:3 K0:30 Pa Wf:300 S W30 | zone 192 15,9 | b2-r6-2
+pwt-out | b2-r6-2 | Pa G:warp:191 Wf:60 Wf:300 S W30 | zone 191 197,470 | b2-r6-3
+dock-enter | b2-r6-3 | Pa G:warp:552 Wf:60 Wf:300 S W30 | zone 552 12,31 | b2-r6-4
+dock-talk | b2-r6-4 | Pa G:npc:1 Wf:300 S W30 | zone 552 12,28 | b2-r6-5
+dock-friend | b2-r6-5 | Pa G:npc:0 Wf:300 S W30 | zone 191 197,491 | b2-r6-6
+r6-cheren | b2-r6-6 | Pa G:zone:331 Wf:60 G:trig:0 Wf:300 S W30 | zone 332 6,7 | b2-r6-7
+# The bridge scene (trigger T1 at 102..104,365, script 5) runs for real: it ends with work 0x40ca = 2. It used to break the field heap (FieldActorAnmProc work too small on a PC, fixed by pokebw2-worksizes.patch).
+r6-cobalion | b2-r6-7 | Pa G:warp:331 Wf:60 G:trig:1 Wf:300 G:zone:331-195 Wf:60 S W30 | zone 195 7,59 | b2-r6-8b
+# Crystal pushes from tools/crystal_solve.py (same list as Black: dumps of zones 195/196 from X:warp looks); F:stone:X,Z:DIR names a crystal by its tile.
+charge-1 | b2-r6-8b | Pa G:trig:0 Wf:30 F:stone:15,39:2 F:stone:9,26:3 F:stone:24,16:2 F:stone:24,17:1 G:trig:1 Wf:30 S W30 | zone 195 47,41 | b2-charge1b
+charge-2 | b2-charge1b | Pa F:stone:60,42:1 G:warp:196 Wf:60 F:stone:45,14:2 F:stone:43,12:0 G:warp:195 Wf:60 S W30 | zone 195 56,5 | b2-charge2b
+mist-enter | b2-charge2b | Pa G:warp:107 Wf:60 Wf:300 S W30 | zone 107 103,310 | b2-mist1b
+mist-juniper | b2-mist1b | Pa G:trig:0 Wf:300 S W30 | zone 107 103,301 | b2-mist2b
+gym6-enter | b2-mist2b | Pa G:warp:108 Wf:60 Wf S W30 | zone 108 11,50 | b2-gym6-1b
+# G:npc:3 plans the cannon rides as jumps (landing, re-plan), trainers on the way fight by sight.
+# The wind: ov094 counts field checks and blows the player south at 120; the planner hops shelter to shelter (pz4) and waits for each gust. Trainers on the way fight by sight.
+gym6-skyla | b2-gym6-1b | Pa G:trig:0 Wf:60 G:npc:3 Wf:900 S W30 | zone 108 11,3 | b2-badge6
+gym6-out | b2-badge6 | Pa G:warp:107 Wf:60 Wf:300 S W30 | zone 107 78,271 | b2-r7-1
+# A real Center heal (no save: a test leg): Mistralton Center (zone 109), the nurse uid 0 behind the counter talked to across it from 7,12; her yes/no is answered by Pa; the party is healed (PP back).
+mist-heal | b2-r7-1 | Pa G:zone:109 G:npc:0 Wf S W30 | zone 109 7,12 | -
+r7-call | b2-r7-1 | Pa G:zone:337 Wf:60 G:trig:0 Wf:300 S W30 | zone 337 136,245 | b2-r7-2
+tower-guide | b2-r7-2 | Pa G:warp:338 Wf:60 G:npc:0 Wf:300 S W30 | zone 338 16,15 | b2-r7-3
+# gm14 chain: the Celestial Tower guide scene is done (b2-r7-3); from zone 338 the warp hops lead to the airport (111) and its attendant (npc 4) flies the player to Lentimas.
+plane | b2-r7-3 | Pa G:zone:338-111 Wf:60 G:npc:4 Wf:900 S W30 | zone 458 617,305 | b2-lent1
+# gm14: G:zone follows the running version warps (Black 2 interior 461/..), arrival in Undella (412) with Hugh scene due.
+reversal | b2-lent1 | Pa G:zone:458-412 Wf:600 S W30 | zone 412 710,299 | b2-rev1
+# gm14: trigger 0 is the arrival scene with the rival.
+undella | b2-rev1 | Pa G:trig:0 Wf:600 S W30 | zone 412 751,299 | b2-und1
+# gm14: from Undella onto Route 13 and its trigger 1.
+r13 | b2-und1 | Pa G:zone:412-370 Wf:60 G:trig:1 Wf:600 S W30 | zone 370 683,187 | b2-r13-1
+# gm14: Route 13 north to Lacunosa and its trigger 0.
+lacunosa | b2-r13-1 | Pa G:zone:370-406 Wf:60 G:trig:0 Wf:600 S W30 | zone 409 6,5 | b2-lac1
+# gm14: leaving the building runs the Lacunosa scene (work 0x40cc = 3 due).
+lacunosa-out | b2-lac1 | Pa G:warp:406 Wf:300 S W30 | zone 406 653,170 | b2-lac2
+# gm14: Route 12 is a lake, F:surf before the walk to Opelucid (zone 120).
+r12 | b2-lac2 | Pa G:zone:406-255 Wf:60 F:surf G:zone:255-120 Wf:60 S W30 | zone 120 446,175 | b2-r12-1
+# story.py next: zone 120 trigger 1 (work 0x40d5 = 1) is the only thing due in the city before the gym.
+opelucid | b2-r12-1 | Pa G:trig:1 Wf:600 S W30 | zone 120 440,175 | b2-opel1
+# Drayden's gym on Black 2: gm9's line (docs/route-writer.md "Opelucid Gym"): statues move by script, each live trigger tile lifts the player to the next platform; three veterans fought on the way, the Leader at the top.
+gym7-drayden | b2-opel1 | Pa G:warp:121 Wf:300 G:15,46 KU:300 Wf:30 G:npc:1 G:trig:32 Wf:60 G:trig:2 Wf:60 G:trig:22 Wf:60 G:npc:3 G:trig:11 Wf:60 G:trig:20 Wf:60 G:trig:26 Wf:60 G:npc:4 G:trig:13 Wf:60 G:trig:24 Wf:60 KU:40 Ka:4 Wb Wf:300 S W30 | zone 121 15,18 | b2-badge7
+# pz7: one G:warp:120 from the Leader tier: the planner rides the statue lifts down (open lifts as levers, the adapter PortMap_OpelucidLifts) and leaves the corridor rail by its hand-off
+gym7-out | b2-badge7 | Pa Wf:300 G:warp:120 Wf:300 S W30 | zone 120 405,147 | b2-opel2
+opel-plasma | b2-opel2 | Pa G:trig:2 Wf:300 G:trig:4 Wf:300 S W30 | zone 120 415,163 | b2-opel3
+# the demo after the house scene runs ~5000 frames, partly without a field (the hang check counts those frames a quarter)
+opel-house | b2-opel3 | Pa G:warp:123 Wf:300 S W30 | zone 120 418,162 | b2-opel4
+# story: three trainer scripts (zone 120 uids 2, 3, 4) each add 1 to work 0x40d7; the third clears flag 0x31b, which makes actor uid 1 appear
+opel-grunts | b2-opel4 | Pa G:npc:2 G:npc:3 G:npc:4 Wf S W30 | zone 120 423,145 | b2-opel5
+opel-lady | b2-opel5 | Pa G:npc:1 Wf S W30 | zone 120 406,145 | b2-opel6
+opel-marine | b2-opel6 | Pa G:trig:0 Wf:600 S W30 | zone 120 440,173 | b2-opel7
+# Walks the plaza rows 176-177 on purpose: the trainer at 492,173 sees row 174 and the battle there (a switch question mid-fight) leaves the field heap broken (a later map unload crashes in the expheap free), a port bug; the lower rows start no battle
+opel-r12 | b2-opel7 | Pa To:90000 G:zone:120-365 Wf:60 G:486,176 G:490,177 G:500,176 G:zone:365-255 Wf:60 S W30 | zone 255 3,33 | b2-r12b1
+opel-lake | b2-r12b1 | Pa Wf:60 F:surf To:90000 G:zone:255-412 Wf:60 S W30 | zone 412 752,296 | b2-tube1
+tube | b2-tube1 | Pa To:60000 G:zone:412-465 Wf:60 S W30 | zone 465 790,179 | b2-tube2
+humi-scene1 | b2-tube2 | Pa G:trig:3 Wf:600 S W30 | zone 465 789,175 | b2-humi1
+humi-scene2 | b2-humi1 | Pa G:trig:0 Wf:600 S W30 | zone 465 795,157 | b2-humi2
+humi-gym-in | b2-humi2 | Pa G:warp:473 Wf:60 S W30 | zone 473 16,75 | b2-gym8-1
+# gm7 ride chain from the real door (first visit only): the gym ride table, 3 Ace Trainers on the way, then Marlon
+humi-gym | b2-gym8-1 | Pa Wf:60 To:60000 G:ride:35 G:ride:30 G:ride:25 G:ride:23 G:ride:26 G:ride:15 G:ride:11 G:ride:9 G:ride:2 G:ride:8 G:ride:9 G:ride:36 G:npc:0 Wf:900 S W30 | zone 473 16,6 | b2-badge8
+# After the fight the game's own ride 3 (16,11 down, 51 long) is the shortcut back to the door (the plain walk to the door does not plan there); zone 465 scene 2 runs on arrival.
+humi-out | b2-badge8 | Pa Wf:60 G:ride:3 Wf:60 G:warp:465 Wf:600 S W30 | zone 465 783,176 | b2-humi3
+# story.py next from b2-humi3 --zone 474: the trigger runs once the gym fight set work 0x40e3; it opens zone 463 T0 (work 0x4106). The west side of Humilau is a plain walk, no Surf; the first G:X,Z puts the player into zone 474 (a bare G:trig:0 in zone 465 would take that zone T0).
+humiw-scene | b2-humi3 | Pa To:60000 G:730,138 Wf:30 G:trig:0 Wf:900 S W30 | zone 474 727,138 | b2-humiw1
+# Route 21 (zone 463) by Surf from Humilau's beach tile 785,190 into its west part; its door 782,242 is the cave's (zone 515) north door. The east part (T0, the Frigate's gangplank door) is reached only through the cave.
+r21-cave-in | b2-humiw1 | Pa To:60000 G:785,190 F:surf:785,190:1 Wf:60 To:60000 G:warp:515 Wf:60 S W30 | zone 515 6,15 | b2-sea1
+# Seaside Cave (zone 515): the lower path x14 runs under a bridge (rows 41-42 at height 48): the planner's grid holds one height a tile, so G:14,40 then G:14,47 walk it. Surf from 14,48 east, then water waypoints up the channel x=25 (the upper chunk is unloaded from the lake: a far G would land and take the one-way ledges). The rock (uid 9, Colress MCHN flag 0x170) is a wild battle; door 4 (30,10) is the exit to zone 463 791,241; T0 runs the Frigate scene.
+seaside-cave | b2-sea1 | Pa To:60000 G:6,29 G:14,40 G:14,47 F:surf:14,48:3 To:60000 G:25,47 G:25,33 G:25,20 G:17,14 G:npc:9 Wf:60 G:door:4 Wf:60 G:trig:0 Wf:900 S W30 | zone 463 797,241 | b2-sea2
+# Zone 463's door 2 sits in the wall (787,247) until work 0x4106 >= 3 (the init script's ObjInitWarpGPos); the trigger scene sets it, then it is 800,241.
+frigate-board | b2-sea2 | Pa To:60000 G:warp:552 Wf:900 S W30 | zone 552 9,30 | b2-frig1
+# Plasma Frigate, Black 2: the hub room (zone 553) has four switch tiles T1..T4, one in each side room; a side room is reached only by a warp pad from a room off the corridor (zone 558: rooms 559, 575, 577, 578). Each switch sets work 0x40f5..0x40f8; the barrier rows T0/T5..T7 push back while their work is 0. With all four set the hub pad (11,2) leads to zone 556.
+frigate-switches | b2-frig1 | Pa G:warp:553 Wf:60 G:warp:552 Wf:60 G:warp:558 Wf:60 G:warp:559 Wf:60 G:warp:553 Wf:60 G:trig:1 Wf:60 G:warp:559 Wf:60 G:warp:558 Wf:60 G:warp:575 Wf:60 G:warp:553 Wf:60 G:trig:2 Wf:60 G:warp:575 Wf:60 G:warp:558 Wf:60 G:warp:577 Wf:60 G:warp:553 Wf:60 G:trig:3 Wf:60 G:warp:577 Wf:60 G:warp:558 Wf:60 G:warp:578 Wf:60 G:warp:553 Wf:60 G:trig:4 Wf:60 G:warp:578 Wf:60 G:warp:558 Wf:60 G:warp:552 Wf:60 G:warp:553 Wf:60 G:warp:556 Wf:60 S W30 | zone 556 12,20 | b2-frig2
+# X:heal: b2-frig2's lead has a first move with no PP left (drained before the battle cheat kept PP), and the move menu refuses it
+frigate-end | b2-frig2 | Pa X:heal G:trig:0 Wf:900 S W30 | zone 463 798,242 | b2-frig3
+# the Frigate left the player on the cave-only east beach; the way to the Giant Chasm (Route 22) is back through the Seaside Cave: land -> the pond (F:surf from 23,11 down) -> water waypoints down the channel x=25 -> shore 14,47 -> lower path x14 -> door 1 (6,14, the west door), the reverse of seaside-cave
+chasm-cave-back | b2-frig3 | Pa To:60000 G:warp:515 Wf:60 G:23,11 F:surf:23,11:1 Wf:60 G:25,47 G:14,47 G:14,40 G:6,29 G:door:1 Wf:60 S W30 | zone 463 782,241 | b2-chasm1
+# Route 21 west part: the water pocket by the cave door is cut off from the north water by a land bridge (792..796, 230..233): walk it on land to the shore 794,230 and F:surf north from there; the planner never goes land to water by itself, so the surf starts by token, then two hops (the loaded rows end at z 192) to the beach tile 785,190
+chasm-surf-humi | b2-chasm1 | Pa Wf:60 G:794,230 F:surf:794,230:0 Wf:60 G:785,193 Wf:30 G:785,190 Wf:60 S W30 | zone 465 785,190 | b2-chasm2
+# Humilau west by plain walk through Route 22 (zone 474, a trainer on the way) to its door 709,136; zone 231 trigger 0 (61,37) needs work 0x4070 = 1, which the Frigate end scene set
+chasm-r22 | b2-chasm2 | Pa To:60000 G:warp:231 Wf:60 S W30 | zone 231 61,12 | b2-chasm3
+chasm-scene1 | b2-chasm3 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 231 60,39 | b2-chasm4
+chasm-to233 | b2-chasm4 | Pa To:60000 G:warp:233 Wf:60 S W30 | zone 233 26,78 | b2-chasm5
+chasm-scene2 | b2-chasm5 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 233 26,72 | b2-chasm6
+# From the grunts scene the planner slides the ice of zone 233 (stairs x32-34 z60, the slide north, the step up at x39, the ice down to door 2 at 42,49) into the Frigate (zone 562); door 3 (49,64) to zone 557 is on the upper floor (height 32) reached later from zone 234 northeast
+chasm-frig2 | b2-chasm6 | Pa To:60000 G:warp:562 Wf:60 S W30 | zone 562 23,30 | b2-chasm7
+# Frigate in the Giant Chasm: the south door (zone 554) has the double battle and the warp pad (trigger 0) to zone 561 (White 2: 564); the walking grunt uid 0 on the lower floor gives the card (global script 10891, flag 0x164); the trainers on the way are fought by the walk
+chasm-card | b2-chasm7 | Pa To:60000 G:warp:554 Wf:60 G:trig:0 Wf:300 G:npc:0 Wf:60 S W30 | zone 561 11,42 | b2-chasm8
+chasm-term | b2-chasm8 | Pa To:60000 Wf:60 G:12,19 R:script:561:12 Py Pk:pw Wf:60 G:trig:8 Wf:900 S W30 | zone 561 13,14 | b2-chasm9
+chasm-colress | b2-chasm9 | Pa To:60000 G:trig:1 Wf:300 G:npc:0 Wf:900 S W30 | zone 555 6,9 | b2-chasm10
+chasm-grunt9 | b2-chasm10 | Pa To:60000 G:trig:0 Wf:300 G:trig:10 Wf:900 S W30 | zone 561 8,12 | b2-chasm11
+chasm-557 | b2-chasm11 | Pa To:60000 G:trig:2 Wf:900 S W30 | zone 557 11,8 | b2-chasm12
+chasm-triad | b2-chasm12 | Pa To:60000 G:npc:3 Wf:600 G:npc:5 Wf:900 S W30 | zone 557 11,9 | b2-chasm13
+# From the Shadow Triad save the way on is the door at 557 (10,16) into zone 233 (the Giant Chasm room the Frigate is docked in)
+chasm-233 | b2-chasm13 | Pa To:60000 G:warp:233 Wf:60 S W30 | zone 233 49,65 | b2-chasm15
+# the planner sees only loaded chunks: the crater ice is walked by waypoints found offline on the ROM terrain (no heights)
+chasm-604 | b2-chasm15 | Pa To:30000 G:warp:234 Wf:60 G:warp:604 Wf:60 S W30 | zone 604 15,45 | b2-chasm16
+chasm-kyurem | b2-chasm16 | Pa To:60000 G:trig:0 Wf:900 S W30 | zone 604 15,24 | b2-chasm17
+chasm-legend | b2-chasm17 | Pa To:60000 G:npc:1 Wf:900 S W30 | zone 604 17,18 | b2-chasm18
+chasm-out | b2-chasm18 | Pa To:60000 G:zone:604-475 Wf:60 S W30 | zone 475 663,138 | b2-r23-0
+r23 | b2-r23-0 | Pa To:60000 G:zone:475-573 Wf:60 S W30 | zone 573 81,57 | b2-vr0
+# Ruins room (zone 587): the 2x2 Strength boulder is pushed left once, then up three tiles into the 2x2 Strength hole (class 0x1d, the dump's O) at 52-53,18-19 (F:strength:UID:DIR:N counts the boulder's tiles, pz20: a push leaves the player where he stands); the filled hole is floor (the dump's o), the walk on to the stairs north
+vr-ruins | b2-vr0 | Pa To:60000 G:warp:587 Wf:60 F:strength:0:L F:push:0:U:3 Wf:60 G:warp:589 Wf:60 S W30 | zone 589 83,26 | b2-vr1
+# The Leader tier is one tile; stepping Down from it (after the post-battle wait) starts the gym descent script, which carries the player to a lower platform; then the planned walk to the door. Story: zone 120 scene 2 (work 0x40d6 = 2) runs on leaving.
+# story.py next from the badge save: zone 120 scene 2 (work 0x40d6 = 2) runs on leaving the gym.
+# The tower's floor-2 trainer (zone 339 trigger 0, a ghost-type trainer) is not on this leg: the pilot's move 1 cannot hurt it (battle hangs, rw27 BLOCKERS). Flag 0x960 is the game-clear flag (global script 9601 is the Hall of Fame setup, FieldScript_CallPlayerPostHOFSetup), not a nurse talk: the scene at 142,204 that wanted it is post-game.
+# Victory Road, zone 590 (from the second floor door, one trainer on the way): the 2x2 Strength boulder uid 0 at 31,9 walls off the way east; pushed north two tiles it drops into the 2x2 hole at 31-32,6-7 (the dump's O) and the walk goes over it (o) east along row 6 to the door D2 56,6 -> zone 592 (pz20)
+vr-590 | b2-vr1 | Pa G:warp:590 Wf:60 F:strength:0:U:2 Wf:30 G:warp:592 Wf:60 S W30 | zone 592 53,48 | b2-vr2
+# Victory Road zone 592 from the cave door: the north door W5 (33,1) straight into zone 228 (trainers on the way fight by sight), its trigger 0 (work 0x4124 = 1), the door into zone 214 and its trigger 0: the warp to the League (zone 136). The zone 592/596 scenes of work 0x4123 are post-game: only the Hall of Fame setup (global script 9601, FieldScript_CallPlayerPostHOFSetup) sets 0x4123 = 1, so the route no longer walks them (the old vr-592 .. vr-214 legs did, with an X:work:0x4123:1 stand-in).
+vr-north | b2-vr2 | Pa G:warp:228 Wf:60 G:trig:0 Wf:300 G:warp:214 Wf:60 G:trig:0 Wf:300 S W30 | zone 136 32,57 | b2-vrn6
+# League with the real party (no X:mon lead): the pilot picks the move that hurts the target (Ember against the Ghost-type room, IN A BATTLE). Trigger 0 at 31,48 is the gate guard scene (a yes/no: Pa answers yes).
+lg-gate | b2-vrn6 | Pa G:trig:0 Wf:300 Pa Wf:60 S W30 | zone 136 32,48 | b2-lg1
+# League: the gate hall door into the corridor (zone 137), the first room door by its rail lane (G:warp:140 picks the switch tile of the lane that has door 140), the room rail to the opponent (G:15,26 then Up held), the talk and the battle (G:npc:0), the exit scene (trigger 1) puts the player back on the hall grid.
+lg-140 | b2-lg1 | Pa G:warp:137 Wf:200 G:warp:140 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | b2-lg2
+# League: the second room in the story order (flag 0x969), same walk as the first.
+lg-142 | b2-lg2 | Pa G:warp:142 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | b2-lg3
+# League: the third room in the story order (flag 0x968), same walk.
+lg-141 | b2-lg3 | Pa G:warp:141 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | b2-lg4
+# League: the fourth room (flag 0x96a), same walk.
+lg-143 | b2-lg4 | Pa G:warp:143 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | b2-lg5
+# League: the statue (bg event 0) in the hall after the four rooms: the lift to the champion corridor (zone 138).
+lg-lift | b2-lg5 | Pa G:bg:0 Wf:900 S W30 | zone 138 30,83 | b2-lg6
+# League: through the corridor to the champion room (zone 144), the trigger 4 scene, then Iris, the Hall of Fame (zone 145, an auto-save; global script 9601 sets the game-clear flag 0x960) and the credits are ONE event for G:npc:0 (To:60000); the credits end with the game resetting itself and loading its save (zone 428).
+lg-iris | b2-lg6 | Pa G:warp:144 Wf:300 G:trig:4 Wf:900 To:60000 G:npc:0 Wf:900 | zone 428 13,5 | b2-champ
+# The in-process restart's sound (fx7): the field save's sound effect played, then a soft reset (one: L+R+Start+Select for a frame), then a save again. Before acapture_reset the new core's memory was empty while the translation still took the save effect's data as written: the effect never ended and the save hung at its wait (REPORT_STATE_WAIT_SAVE_SE), as after the credits' own reset (lg-iris then S).
+reset-save | b2-champ | Pa S W30 Krlse:1 Wf:300 S W30 | zone 428 13,5 | - | quick

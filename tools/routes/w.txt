@@ -1,7 +1,206 @@
 # White (tools/route.py w). name | start | pilot tokens | end | save | flags
 # w-room (made by new-w, S at the end): Cheren and Bianca beside the player, no Pokemon yet. The gift box on the table (actor uid 2, at 5,8)
 # starts the starter choice and both battles (G:npc:2 = one token, ~5700 frames); then the stairs trigger T0 is dead and G:warp:390 goes down.
-# TOOL GAP: S after the starter is chosen (before the Pokedex) fails (save-failed): the field menu is a 2-column grid there (POKEMON, BAG /
-# trainer card, SAVE / OPTIONS) and the cursor starts on POKEMON; 3 downs, 0-2, 4, 5 downs and right+down / down+right all left save.bin unchanged.
-new-w | NEWGAME | Pa M16000 S | zone 391 5,6 | w-room | quick
+# S after the starter is chosen (before the Pokedex): the field menu is a 2-column grid there (POKEMON, BAG / trainer card, SAVE /
+# OPTIONS), SAVE is not 3 downs away: S moves the cursor until the menu says it is on SAVE (port/extern/src/ov021/field_menu.c).
+new-w | NEWGAME | Pa Mz:391 S | zone 391 5,6 | w-room | quick
 room-box | w-room | Pa G:npc:2 Wf:200 | zone 391 4,6 | -
+box-save | w-room | Pa G:npc:2 Wf:200 S | zone 391 4,6 | w-box
+# Legs room-down .. route1-accum are Black's room-down .. caught-accum written with targets (G:warp/G:npc/G:trig) instead of coordinates. White differs from Black here only in that the catch is not needed: w-route1 has the party of one (Black's `caught` has Lillipup too) and Accumula's speech ends at 786,658 (T1), not 780,658. The Nuvema lab door guard is uid 4 (G:npc:4 after Bianca's house scene, zone 392 work 0x4078 = 1); Accumula's Center tour starts by talking to uid 6 (it blocks the door), then the nurse uid 1 (work 0x407b = 2).
+room-down | w-box | Pa G:warp:390 Wf:60 S W30 | zone 390 3,2 | w-down
+town-bianca | w-down | Pa G:warp:389 Wf:60 G:warp:392 Wf:60 G:warp:389 Wf:60 S W30 | zone 389 776,758 | w-bianca
+town-lab | w-bianca | Pa G:npc:4 Wf:60 S W30 | zone 396 3,7 | w-lab
+lab-townmap | w-lab | Pa G:warp:389 Wf:60 S W30 | zone 389 777,742 | w-townmap
+townmap-route1 | w-townmap | Pa G:trig:1 Wf:60 G:warp:317 Wf:60 S W30 | zone 317 788,725 | w-route1
+# catch: a wild catch with the first Poke Ball (C:ball: encounters on, the Bag, Poke Balls, the first ball; the test cheat makes the catch sure; the nickname question is answered by the pilot). The party is then two, which the Twins leg wants (not yet re-added: see the NEXT comment).
+catch | w-route1 | Pa G:788,720 C:ball G:788,720 S W30 | zone 317 788,720 | w-caught
+route1-accum | w-caught | Pa G:warp:397 Wf:60 G:npc:6 Wf:60 G:npc:1 Wf:60 G:warp:397 Wf:60 G:trig:1 Wf S W30 | zone 397 786,658 | w-accum
+# route2 .. fennel-talk: Black's route2 .. fennel-talk, the same tokens and the same end tiles (Striaton, restaurant uid 5, gym door uid 8, puzzle triggers 10 6 1 5 0, leader uid 2, Dreamyard Cut tree uid 8).
+route2 | w-accum | Pa Wf:60 G:warp:320 G:warp:319 Wf:100 S W30 | zone 319 760,649 | w-route2
+route2-striaton | w-route2 | Pa G:warp:6 Wf:60 S W30 | zone 6 784,607 | w-striaton
+striaton-bros | w-striaton | Pa G:warp:15 G:npc:5 Wf:60 S W30 | zone 15 8,2 | w-striaton-bros
+gym-door | w-striaton-bros | Pa G:warp:6 Wf:60 G:npc:8 Wf:60 G:warp:7 Wf:60 S W30 | zone 7 12,43 | w-gym1a
+gym-puzzle | w-gym1a | Pa G:trig:10 Wf:30 G:trig:6 Wf:30 G:trig:1 Wf:30 G:trig:5 Wf:30 G:trig:0 Wf:30 S W30 | zone 7 12,5 | w-gym1b
+gym-leader | w-gym1b | Pa G:npc:2 Wf:60 S W30 | zone 7 12,4 | w-badge1
+badge-fennel | w-badge1 | Pa G:warp:6 Wf:60 S W30 | zone 10 11,7 | w-fennel
+dreamyard-cut | w-fennel | Pa G:zone:152 Wf:60 G:npc:8 Wf G:trig:0 Wf S W30 | zone 152 23,27 | w-dream1
+dream-scene | w-dream1 | Pa G:trig:1 Wf G:trig:2 Wf S W30 | zone 152 27,14 | w-dream2
+fennel-talk | w-dream2 | Pa G:zone:10 G:npc:0 Wf S W30 | zone 10 11,7 | w-fennel2
+# NEXT, the chain stops here: r3-twins (Pa G:trig:8 Wf S W30 from w-r3a) loops: the Twins' trigger T8 (741,563, zone 321 script 15) needs PokePartyGetCount >= 2. Black's `caught` save has Tepig + Lillipup (a hand-made wild catch), White's party is the starter alone, so the Twins push the player back to 742,565 every ~160 frames until the leg's end (v=16869, off-route 742,563). TOOL GAP: a way to get a second party Pokemon (a pilot token that throws a Poke Ball in a wild battle, or a cheat that adds one); w-route1 (Route 1 after the catch demo, 5 Poke Balls) is the place, or any save before Route 3.
+striaton-r3 | w-fennel2 | Pa G:zone:321 Wf S W30 | zone 321 751,575 | w-r3a
+# twins-cheat: X:mon adds a level 4 Pokemon so the Twins' trigger (needs 2 party members) runs; X:money:5000 sets the money. A test leg, not the route (the catch leg is).
+twins-cheat | w-r3a | Pa X:mon:504:4 X:money:5000 G:trig:8 Wf S W30 | zone 321 741,565 | w-tw5-cheat
+# tf17: the catch works now (leg `catch`, w-route1 -> w-caught, party of two). Route 3 has no grass before the Twins (its grass, 719..722,572..578, is behind T8 at 741,564: G:720,574 loops in the Twins' push-back), so the second Pokemon must come from Route 1: re-chain route1-accum from w-caught (as Black's caught-accum, `Pa G:warp:397 ...` unchanged) under NEW save names for every leg from w-accum on, then r3-twins .. as Black's b.txt lines 56-64.
+r3-twins | w-r3a | Pa G:trig:8 Wf S W30 | zone 321 741,565 | w-r3b
+r3-cheren | w-r3b | Pa G:trig:2 Wf S W30 | zone 321 717,563 | w-r3c
+r3-bianca | w-r3c | Pa G:trig:5 Wf S W30 | zone 321 680,555 | w-r3d
+cave-grunts | w-r3d | Pa G:warp:324 Wf G:trig:0 Wf S W30 | zone 324 25,6 | w-cave1
+r3-girl | w-cave1 | Pa G:warp:321 Wf G:trig:10 Wf S W30 | zone 321 716,565 | w-r3e
+r3-nacrene | w-r3e | Pa G:zone:16 Wf S W30 | zone 16 670,598 | w-nacrene1
+nacrene-n | w-nacrene1 | Pa G:trig:0 Wf G:trig:1 Wf S W30 | zone 16 644,582 | w-nacrene2
+nacrene-museum | w-nacrene2 | Pa G:zone:18 Wf S W30 | zone 18 9,30 | w-nacrene3
+gym-book1 | w-nacrene3 | Pa G:trig:0 Wf Ws:0x408a=1 G:bg:11 Wf Ws:0x408a=2 S W30 | zone 18 6,19 | w-gym2a
+gym-book2 | w-gym2a | Pa G:bg:5 Wf Ws:0x408a=3 G:npc:0 Wf Ws:0x408a=4 G:bg:3 Wf Ws:0x408a=5 S W30 | zone 18 6,3 | w-gym2b
+gym-book3 | w-gym2b | Pa G:bg:20 Wf Ws:0x408a=6 G:npc:2 Wf G:bg:24 Wf Ws:0x408a=7 S W30 | zone 18 13,11 | w-gym2c
+gym-lenora | w-gym2c | Pa G:warp:19 Wf G:npc:0 Wf S W30 | zone 19 4,11 | w-badge2
+gym-plasma | w-badge2 | Pa G:warp:18 Wf G:warp:17 Wf G:trig:1 Wf S W30 | zone 17 11,12 | w-gym2d
+nacrene-after | w-gym2d | Pa G:warp:16 Wf Ws:0x4092=4 S W30 | zone 16 644,587 | w-pin1
+pin-enter | w-pin1 | Pa G:warp:154 Wf G:trig:0 Wf Ws:0x408c=2 S W30 | zone 154 592,585 | w-pin2
+pin-west1 | w-pin2 | Pa G:warp:155 Wf G:trig:1 Wf G:trig:2 Wf S W30 | zone 155 62,73 | w-pin3
+pin-heal | w-pin3 | Pa G:zone:20 G:npc:1 Wf S W30 | zone 20 7,12 | w-pin4
+pin-west2 | w-pin4 | G:warp:16 G:631,595 G:626,588 G:warp:154 G:warp:155 G:trig:4 Wf G:24,71 G:18,74 G:20,62 S W30 | zone 155 20,62 | w-pin5
+pin-t5 | w-pin5 | G:15,53 G:trig:5 Wf S W30 | zone 155 22,53 | w-pin6
+pin-t6 | w-pin6 | G:trig:6 Wf S W30 | zone 155 43,33 | w-pin7
+pin-exit | w-pin7 | G:warp:250 Wf S W30 | zone 250 15,29 | w-pin8
+# White: Black holds KU:1700 along Skyarrow Bridge's rail and is inside the far gate house (zone 252) after about 3900 V-blanks; White's bridge rail is longer (the same hold
+# stops at 112,185, still on the bridge, "stuck": no rail warp to Castelia there; the full walk is about 6800 V-blanks), so G:warp:252 plans the rail to the far gate house
+# (a rail warp of zone 249) instead of a held key. The arrival tile in Castelia (71,31) is not Black's (69,33): the next legs (ported unchanged) do not care.
+bridge | w-pin8 | Pa G:warp:251 Wf G:warp:249 Wf G:warp:252 Wf G:warp:28 Wf S W30 | zone 28 71,31 | w-bridge1
+c-street | w-bridge1 | Pa Wf G:warp:31 Wf S W30 | zone 31 17,62 | w-cas1
+c-gym | w-cas1 | Pa G:trig:0 Wf S W30 | zone 31 21,48 | w-cas2
+c-pier | w-cas2 | Pa G:warp:28 Wf G:warp:38 Wf S W30 | zone 38 15,10 | w-cas3
+# c-burgh: see b.txt (the same street and walkers); G:rail:4,22,0 fixes the side the trigger is entered on
+c-burgh | w-cas3 | Pa G:warp:28 Wf G:rail:4,22,0 Wf G:trig:0 Wf S W30 | zone 28 21,38 | w-cas4
+c-bld | w-cas4 | Pa G:warp:31 Wf G:trig:1 Wf S W30 | zone 31 11,35 | w-cas5
+c-ghetsis | w-cas5 | Pa G:warp:56 Wf G:trig:0 Wf G:item:9 Wf G:warp:31 Wf S W30 | zone 31 7,34 | w-cas6
+gym-a | w-cas6 | Pa G:warp:29 Wf G:32,34 KU:70 Wf G:trig:0 Wf G:trig:1 Wf S W30 | zone 29 44,29 | w-gym3-1
+gym-b | w-gym3-1 | Pa G:38,30 KU:70 Wf G:trig:9 Wf G:trig:3 Wf G:trig:2 Wf G:trig:5 Wf S W30 | zone 29 44,21 | w-gym3-2
+gym-c | w-gym3-2 | Pa G:wall:2 Wf G:trig:8 Wf G:wall:3 Wf G:trig:4 Wf S W30 | zone 29 20,21 | w-gym3-3
+gym-d | w-gym3-3 | Pa G:wall:3 Wf G:wall:2 Wf G:wall:4 Wf G:trig:6 Wf S W30 | zone 29 26,17 | w-gym3-4
+gym-e | w-gym3-4 | Pa G:wall:4 Wf G:wall:5 Wf G:trig:7 Wf G:wall:5 Wf G:wall:6 Wf G:npc:9 Wf S W30 | zone 29 32,5 | w-badge3
+gym-out | w-badge3 | Pa G:wall:6 Wf G:wall:1 Wf G:wall:0 Wf G:warp:31 Wf S W30 | zone 31 24,48 | w-r4-0
+r4-gate | w-r4-0 | Pa G:warp:30 Wf G:warp:32 Wf G:warp:51 Wf G:trig:0 Wf S W30 | zone 51 4,9 | w-r4-1
+r4-cheren | w-r4-1 | Pa G:warp:326 Wf G:trig:1 Wf S W30 | zone 326 429,585 | w-r4-2
+r4-gate90 | w-r4-2 | Pa G:429,546 Wf G:warp:90 Wf G:trig:0 Wf S W30 | zone 90 4,10 | w-r4-3
+nim-grunt | w-r4-3 | Pa G:warp:62 Wf G:trig:1 Wf S W30 | zone 62 430,469 | w-nim1
+nim-gym-in | w-nim3 | Pa G:warp:64 Wf G:trig:0 Wf S W30 | zone 64 55,15 | w-nim4
+nim-musical | w-nim1 | Pa G:trig:0 M1500 T:129,177 M500 T:22,170 Wf G:warp:62 Wf S W30 | zone 62 433,436 | w-nim3
+gym4-a | w-nim4 | Pa G:warp:63 Wf G:14,39 KU:50 K:160 KD:30 Wf S W30 | zone 63 22,39 | w-gym4-1
+gym4-b | w-gym4-1 | Pa G:npc:2 Wf G:trig:2 Wf G:22,39 KU:200 K:120 KD:30 Wf S W30 | zone 63 16,27 | w-gym4-2
+gym4-c | w-gym4-2 | Pa G:npc:3 Wf G:trig:1 Wf G:ride:3 Wf S W30 | zone 63 41,40 | w-gym4-3
+gym4-d | w-gym4-3 | Pa G:trig:0 Wf G:ride:5 Wf S W30 | zone 63 34,8 | w-gym4-4
+gym4-e | w-gym4-4 | Pa G:npc:5 Wf S W30 | zone 63 28,5 | w-badge4
+gym4-f | w-badge4 | Pa G:trig:3 Wf G:ride:7 Wf S W30 | zone 63 5,39 | w-gym4-6
+gym4-out | w-gym4-6 | Pa G:warp:64 Wf G:warp:62 Wf S W30 | zone 62 435,461 | w-nim5
+r5-cheren | w-nim5 | Pa G:trig:2 Wf S W30 | zone 62 423,460 | w-r5-1
+r5-west | w-r5-1 | Pa G:zone:329 Wf S W30 | zone 329 376,439 | w-r5-2
+r5-scene | w-r5-2 | Pa G:trig:0 Wf S W30 | zone 329 372,437 | w-r5-3
+r5-bridge | w-r5-3 | Pa G:trig:2 Wf S W30 | zone 329 339,433 | w-r5-4
+drift-in | w-r5-4 | Pa G:warp:253 Wf G:warp:96 Wf S W30 | zone 96 245,432 | w-drift1
+drift-clay | w-drift1 | Pa G:trig:1 Wf S W30 | zone 96 204,431 | w-drift2
+cold-in | w-drift2 | Pa Wf:60 G:warp:191 Wf G:trig:0 Wf S W30 | zone 191 167,474 | w-cold1
+cold-lobby | w-cold1 | Pa G:zone:192 Wf S W30 | zone 192 8,31 | w-cold2
+cold-scene | w-cold2 | Pa G:trig:0 Wf S W30 | zone 192 6,8 | w-cold3
+cold-in2 | w-cold3 | Pa G:warp:193 Wf S W30 | zone 193 4,11 | w-cold4
+cold-grunt1 | w-cold4 | Pa G:npc:5 Wf S W30 | zone 193 7,12 | w-cold5
+cold-grunts | w-cold5 | Pa G:npc:7 Wf G:npc:9 Wf G:npc:10 Wf S W30 | zone 193 5,11 | w-cold6
+cold-out | w-cold6 | Pa G:zone:96 Wf S W30 | zone 96 175,447 | w-drift3
+drift-plaza | w-drift3 | Pa Wf:60 G:180,431 G:180,405 G:trig:0 Wf S W30 | zone 96 212,404 | w-drift4
+gym5-in | w-drift4 | Pa G:warp:98 Wf S W30 | zone 98 7,15 | w-gym5-0
+gym5-lobby | w-gym5-0 | Pa G:9,5 KU:30 Ka:4 Pa Wf S W30 | zone 97 17,25 | w-gym5-1
+gym5-lifts | w-gym5-1 | Pa G:bg:1 Wf G:bg:9 Wf G:bg:16 Wf G:bg:21 Wf S W30 | zone 97 16,21 | w-gym5-2
+gym5-clay | w-gym5-2 | Pa G:npc:0 Wf S W30 | zone 97 15,6 | w-badge5
+gym5-out | w-badge5 | Pa G:bg:20 Wf G:bg:24 Wf G:warp:96 Wf G:trig:2 Wf S W30 | zone 96 164,404 | w-drift5
+r6-in | w-drift5 | Pa G:zone:194 Wf S W30 | zone 194 104,351 | w-r6-1
+charge-web | w-r6-1 | Pa G:npc:0 Wf S W30 | zone 194 107,342 | w-charge1
+charge-in | w-charge1 | Pa G:warp:195 Wf:60 G:trig:3 Wf S W30 | zone 195 8,54 | w-charge2
+charge-push | w-charge2 | Pa G:trig:0 Wf:30 F:stone:15,39:2 F:stone:9,26:3 F:stone:24,16:2 F:stone:24,17:1 G:trig:1 Wf:30 S W30 | zone 195 33,24 | w-charge3
+charge-bridge | w-charge3 | Pa G:trig:4 Wf:30 F:stone:60,42:1 G:warp:196 Wf:60 S W30 | zone 196 60,50 | w-charge4
+charge-down | w-charge4 | Pa F:stone:45,14:2 F:stone:43,12:0 G:warp:195 Wf:60 S W30 | zone 195 56,5 | w-charge5
+charge-n | w-charge5 | Pa G:trig:2 Wf S W30 | zone 195 67,13 | w-charge6
+charge-out | w-charge6 | Pa G:warp:107 Wf S W30 | zone 107 103,310 | w-mist1
+mist-cedric | w-mist1 | Pa G:trig:0 Wf S W30 | zone 107 103,302 | w-mist2
+r7-mom | w-mist2 | Pa G:zone:337 Wf:60 G:trig:1 Wf S W30 | zone 337 136,245 | w-tower1
+mist-heal | w-tower1 | Pa G:zone:109 G:npc:0 Wf S W30 | zone 109 7,12 | w-mist3
+tower-up | w-mist3 | Pa G:zone:342 Wf S W30 | zone 342 22,15 | w-tower2
+tower-bell | w-tower2 | Pa G:trig:0 Wf G:bg:0 Wf:300 S W30 | zone 342 16,11 | w-tower3
+tower-out | w-tower3 | Pa G:zone:109 G:npc:0 Wf S W30 | zone 109 7,12 | w-mist4
+gym6 | w-mist4 | Pa G:zone:107 Wf:60 G:warp:108 Wf:60 G:npc:1 Wf:900 S W30 | zone 108 15,6 | w-gym6-1
+gym6-out | w-gym6-1 | Pa G:zone:107 Wf:120 S W30 | zone 107 78,269 | w-badge6
+r7-north | w-badge6 | Pa G:zone:200 Wf S W30 | zone 200 4,60 | w-r7-n1
+twist-1 | w-r7-n1 | Pa G:door:1 Wf:60 G:door:1 Wf:60 G:door:4 Wf:60 G:door:4 Wf:60 S W30 | zone 200 35,4 | w-twist1
+twist-2 | w-twist1 | Pa G:door:6 Wf:60 G:door:0 Wf:60 G:door:6 Wf:60 G:door:2 Wf:60 S W30 | zone 199 15,25 | w-twist2
+twist-3 | w-twist2 | Pa G:door:8 Wf:60 G:door:4 Wf:60 G:door:1 Wf:60 G:door:10 Wf:60 S W30 | zone 202 50,28 | w-twist3
+twist-4 | w-twist3 | Pa G:door:3 Wf:60 S W30 | zone 113 171,208 | w-icirrus1
+icirrus-gym-in | w-icirrus1 | Pa G:warp:114 Wf:60 S W30 | zone 114 18,63 | w-gym7-1
+icirrus-gym | w-gym7-1 | Pa G:trig:1 Wf:60 G:trig:0 Wf:60 G:trig:2 Wf:60 G:npc:11 Wf:900 S W30 | zone 114 18,14 | w-gym7-2
+icirrus-gym-out | w-gym7-2 | Pa G:warp:113 Wf S W30 | zone 113 171,169 | w-badge7
+dragon-north | w-badge7 | Pa G:warp:205 Wf:60 G:trig:0 Wf:300 S W30 | zone 205 181,146 | w-dragon1
+dragon-approach | w-dragon1 | Pa G:zone:207 Wf:60 G:trig:0 Wf:300 S W30 | zone 207 25,2 | w-dragon2
+dragon-in | w-dragon2 | Pa G:zone:208 Wf:60 G:trig:0 Wf:300 S W30 | zone 208 15,24 | w-dragon3
+dragon-boulder | w-dragon3 | Pa G:12,12 Wf:30 KL:4 Ka:1 Wf:200 KL:30 Wf:60 G:zone:209 Wf:60 S W30 | zone 209 29,16 | w-dragon4
+dragon-up | w-dragon4 | Pa G:warp:210 Wf:60 S W30 | zone 210 30,15 | w-dragon5
+dragon-scene1 | w-dragon5 | Pa G:trig:1 Wf:300 S W30 | zone 210 22,15 | w-dragon6
+dragon-scene2 | w-dragon6 | Pa G:trig:0 Wf:300 S W30 | zone 210 21,15 | w-dragon7
+dragon-up2 | w-dragon7 | Pa G:warp:211 Wf:60 S W30 | zone 211 15,29 | w-dragon8
+dragon-up3 | w-dragon8 | Pa G:warp:212 Wf:60 S W30 | zone 212 16,28 | w-dragon9
+dragon-scene3 | w-dragon9 | Pa G:trig:0 Wf:300 S W30 | zone 212 16,25 | w-dragon10
+dragon-scene4 | w-dragon10 | Pa G:trig:1 Wf:300 S W30 | zone 212 13,11 | w-dragon11
+dragon-top | w-dragon11 | Pa G:warp:213 Wf:60 G:trig:0 Wf:300 S W30 | zone 205 179,146 | w-dragon12
+back-twist | w-dragon12 | Pa G:zone:113 Wf:60 G:door:4 Wf:60 G:door:2 Wf:60 G:door:9 Wf:60 G:door:4 Wf:60 G:door:3 Wf:60 G:door:7 Wf:60 G:door:1 Wf:60 G:door:5 Wf:60 G:door:5 Wf:60 G:door:5 Wf:60 G:door:3 Wf:60 G:door:2 Wf:60 G:door:0 Wf:60 S W30 | zone 200 16,48 | w-back1
+back-mist | w-back1 | Pa To:40000 G:zone:107 Wf:60 S W30 | zone 107 115,288 | w-back2
+back-charge | w-back2 | Pa To:40000 G:zone:195 Wf:60 F:stone:40,12:2 To:40000 G:zone:194 Wf:60 S W30 | zone 194 107,340 | w-back3
+back-drift | w-back3 | Pa To:40000 G:zone:96 Wf:60 S W30 | zone 96 160,403 | w-back4
+back-nimbasa | w-back4 | Pa To:40000 G:zone:90 Wf:60 S W30 | zone 90 4,1 | w-back5
+back-desert | w-back5 | Pa To:40000 G:zone:157 Wf:60 S W30 | zone 157 403,511 | w-back6
+relic-in | w-back6 | Pa To:40000 G:zone:159 Wf:60 To:40000 G:zone:158 Wf:60 S W30 | zone 158 83,82 | w-relic1
+relic-scene | w-relic1 | Pa To:40000 G:trig:0 Wf:300 S W30 | zone 158 61,30 | w-relic2
+relic-fall1 | w-relic2 | Pa G:warp:160 Wf:60 G:trig:1 Wf:300 S W30 | zone 160 18,17 | w-relic3
+relic-fall2 | w-relic3 | Pa G:warp:161 Wf:60 G:26,16 Wf:300 S W30 | zone 162 22,17 | w-relic5
+relic-fall3 | w-relic5 | Pa G:16,13 Wf:300 S W30 | zone 163 27,9 | w-relic6
+relic-up | w-relic6 | Pa G:warp:162 Wf:60 S W30 | zone 162 9,7 | w-relic7
+relic-fall5 | w-relic7 | Pa G:11,22 Wf:300 S W30 | zone 163 21,19 | w-relic8
+relic-fall6 | w-relic8 | Pa G:19,25 Wf:300 S W30 | zone 164 26,26 | w-relic9
+relic-rim1 | w-relic8 | Pa G:4,23 Wf:60 S W30 | zone 163 4,23 | w-relic10
+relic-fall7 | w-relic10 | Pa G:8,23 Wf:300 S W30 | zone 164 15,21 | w-relic11
+relic-fall8 | w-relic11 | Pa G:9,21 Wf:600 S W30 | zone 158 61,32 | w-relic12
+relic-out | w-relic12 | Pa To:60000 G:zone:16 Wf:60 S W30 | zone 16 608,588 | w-relic13
+town16-scene | w-relic13 | Pa To:30000 G:trig:2 Wf:600 S W30 | zone 16 644,585 | w-relic14
+town16-route4 | w-relic14 | Pa To:60000 G:zone:326 Wf:60 G:431,598 S W30 | zone 326 431,598 | w-r8-1
+route4-charge | w-r8-1 | Pa To:60000 G:zone:195 Wf:60 F:stone:15,39:2 F:stone:9,26:3 F:stone:24,16:2 F:stone:24,17:1 F:stone:60,42:1 G:warp:196 Wf:60 S W30 | zone 196 60,50 | w-r8-2
+charge-east | w-r8-2 | Pa F:stone:45,14:2 F:stone:43,12:0 G:warp:195 Wf:60 G:warp:107 Wf:60 S W30 | zone 107 103,310 | w-r8-3
+mist-r7 | w-r8-3 | Pa To:60000 G:zone:200 Wf S W30 | zone 200 4,60 | w-r8-4
+twist-east | w-r8-4 | Pa G:door:1 Wf:60 G:door:1 Wf:60 G:door:4 Wf:60 G:door:4 Wf:60 G:door:6 Wf:60 G:door:0 Wf:60 G:door:6 Wf:60 G:door:2 Wf:60 G:door:8 Wf:60 G:door:4 Wf:60 G:door:1 Wf:60 G:door:10 Wf:60 G:door:3 Wf:60 S W30 | zone 113 171,208 | w-r8-5
+icirrus-east | w-r8-5 | Pa Wf:60 G:205,200 G:209,199 G:209,194 G:209,189 Wf:60 To:30000 G:warp:347 Wf:60 S W30 | zone 347 1,8 | w-r8-6
+route8-scene | w-r8-6 | Pa G:warp:254 Wf:60 G:trig:2 Wf:600 S W30 | zone 254 15,50 | w-r8-7
+route8-north | w-r8-7 | Pa To:40000 G:zone:348 Wf:600 S W30 | zone 348 337,175 | w-r8-8
+route8-opelucid | w-r8-8 | Pa To:60000 G:zone:120 Wf:600 S W30 | zone 120 385,175 | w-r8-9
+opelucid-scene | w-r8-9 | Pa To:30000 G:trig:0 Wf:600 S W30 | zone 120 417,175 | w-opel1
+opelucid-scene2 | w-opel1 | Pa To:30000 G:trig:1 Wf:600 S W30 | zone 120 417,167 | w-opel2
+opelucid-scene3 | w-opel2 | Pa To:30000 G:trig:2 Wf:600 S W30 | zone 120 417,162 | w-opel3
+opelucid-house | w-opel3 | Pa To:30000 G:zone:123 Wf:900 S W30 | zone 123 9,9 | w-opel4
+opelucid-gym-in | w-opel4 | Pa To:30000 G:zone:121 Wf:600 S W30 | zone 121 27,50 | w-gym8-1
+gym8 | w-gym8-1 | Pa To:60000 G:npc:4 Wf:900 S W30 | zone 121 27,3 | w-badge8
+# from route b gym8-out (White ends a tile south: its Opelucid is another map; work 0x4020 differs)
+gym8-out | w-badge8 | Pa To:30000 G:warp:120 Wf:900 S W30 | zone 120 430,140 | w-opel5
+opel-gate | w-opel5 | Pa To:30000 G:warp:132 G:trig:0 Wf:900 S W30 | zone 132 7,11 | w-r10-0
+r10-gates | w-r10-0 | Pa To:30000 G:zone:361 Wf:600 S W30 | zone 361 15,20 | w-r10-1
+r10-gates2 | w-r10-1 | Pa To:30000 G:zone:364 Wf:600 S W30 | zone 364 15,20 | w-r10-2
+vr-out | w-r10-2 | Pa To:30000 G:warp:214 Wf:600 S W30 | zone 214 31,57 | w-vr1
+vr-cave1 | w-vr1 | Pa To:30000 G:warp:215 Wf:60 G:warp:216 Wf:60 G:door:1 Wf:600 S W30 | zone 214 31,44 | w-vr2
+vr-scene1 | w-vr2 | Pa To:30000 G:trig:1 Wf:600 S W30 | zone 214 33,44 | w-vr3
+vr-cave2 | w-vr3 | Pa To:30000 G:rail:15,2,1 KD:60 Wf:120 G:door:6 Wf:60 G:door:1 Wf:60 G:door:2 Wf:60 G:door:0 Wf:600 S W30 | zone 214 40,33 | w-vr4
+vr-cave3 | w-vr4 | Pa To:30000 G:door:7 Wf:60 G:door:2 Wf:60 G:door:1 Wf:600 S W30 | zone 214 39,28 | w-vr5
+vr-cave4 | w-vr4 | Pa To:30000 G:door:3 Wf:60 G:warp:224 Wf:60 G:warp:225 Wf:600 S W30 | zone 225 6,12 | w-vr6
+vr-cave5 | w-vr6 | Pa To:30000 G:warp:226 Wf:60 G:door:1 Wf:600 S W30 | zone 214 35,9 | w-vr7
+vr-cave6 | w-vr7 | Pa To:30000 G:door:9 Wf:60 G:warp:228 Wf:600 S W30 | zone 228 12,4 | w-vr8
+vr-league | w-vr8 | Pa To:30000 G:warp:214 Wf:60 G:trig:0 Wf:600 S W30 | zone 136 32,57 | w-league0
+league-gate | w-league0 | Pa G:trig:0 Wf:600 G:warp:137 Wf:200 S W30 | zone 137 31,50 | w-league1
+league-room140 | w-league1 | Pa G:warp:140 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w-league2
+league-room141 | w-league2 | Pa G:warp:141 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w-league3
+league-room142 | w-league3 | Pa G:warp:142 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w-league4
+league-room143 | w-league4 | Pa G:warp:143 Wf:200 G:15,26 KU:400 Wf:30 G:npc:0 Wf:600 G:trig:1 Wf:600 S W30 | zone 137 31,48 | w-league5
+league-champion | w-league5 | Pa G:bg:0 Wf:900 G:warp:144 Wf:300 To:40000 G:trig:0 Wf:900 S W30 | zone 144 16,11 | w-league6
+league-castle-hall | w-league6 | Pa To:30000 G:warp:139 Wf:300 G:warp:264 Wf:900 S W30 | zone 264 25,16 | w-ncastle1
+ncastle-hall2 | w-ncastle1 | Pa To:30000 G:warp:265 Wf:300 G:trig:0 Wf:900 S W30 | zone 265 22,17 | w-ncastle2
+ncastle-hall3 | w-ncastle2 | Pa To:30000 G:warp:269 Wf:300 G:trig:0 Wf:900 S W30 | zone 269 5,13 | w-ncastle3
+ncastle-throne | w-ncastle3 | Pa To:30000 G:warp:273 Wf:900 S W30 | zone 273 7,17 | w-ncastle4
+ncastle-hall5 | w-ncastle4 | Pa To:30000 G:warp:277 Wf:300 G:trig:0 Wf:900 S W30 | zone 277 25,9 | w-ncastle5
+ncastle-long-hall | w-ncastle5 | Pa To:30000 G:warp:278 Wf:300 G:trig:0 Wf:900 S W30 | zone 278 17,47 | w-ncastle6
+ncastle-scene1 | w-ncastle6 | Pa To:30000 G:trig:1 Wf:900 S W30 | zone 278 16,42 | w-ncastle7
+ncastle-reshiram | w-ncastle7 | Pa Cc To:30000 G:npc:4 Wf:900 | zone 391 5,6 | w-ncastle9
+post-home | w-ncastle9 | Pa G:warp:390 Wf:900 G:warp:389 Wf:900 S W30 | zone 389 782,749 | w-post1
+# F:teach (fy4): Zekrom (644; Black: Reshiram 643) learns Fly from the Bag for the flights after it
+teach-fly | w-post1 | Pa F:teach:421:644:163 S W30 | zone 389 782,749 | w-post2
+# F:teach (fy4): Zekrom (644; Black: Reshiram 643) learns Fly from the Bag for the flights after it
+fly-nuvema | w-post2 | Pa F:fly:136 F:fly:389 S W30 | zone 389 782,750 | w-post3

@@ -1,0 +1,36 @@
+#include "constants/pokemon.h"
+#include "constants/sndseq.h"
+	.include "macros.inc"
+	.include "overlay_12_battle_controller_opponent.inc"
+	.include "global.inc"
+
+	.public ov12_0226D120
+	.public ov12_0226D140
+	.public ov12_0226D141
+	.public ov12_0226D15A
+	.public ov12_0226D18C
+	.public ov12_0226D1E8
+	.public ov12_0226D1EA
+	.public ov12_0226D350
+	.public ov12_02260584
+	.public ov12_022605D0
+	.public ov12_02260614
+	.public ov12_022609F8
+	.public ov12_02260B30
+	.public ov12_02260BA0
+	.public ov12_02260C58
+	.public ov12_02260CDC
+	.public ov12_02260D28
+	.public ov12_02260D84
+	.public ov12_022612A4
+	.public ov12_022615F0
+	.public ov12_02261928
+	.public ov12_022619E4
+	.public ov12_02261AD4
+	.public ov12_02261B80
+	.public ov12_02261CA8
+	.public ov12_02261DC8
+	.public ov12_02261EB8
+	.public ov12_02261ED4
+	.public ov12_02261F38
+	.text

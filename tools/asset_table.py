@@ -82,11 +82,23 @@ def arm9_dir(version):
     return ROOT / (VENDORED + "/config" if version in ("b2_us", "w2_us") else "config") / version / "arm9"
 
 
+def plat_rows():
+    """[(file, symbol, module, start, end)] of config/plat_us/symbols.tsv (read anew: asset.py adds no rows to it)."""
+    p = ROOT / "config/plat_us/symbols.tsv"
+    rows = [l.split("\t") for l in p.read_text().splitlines()[1:]] if p.exists() else []
+    return [(f, s, m, int(a, 16), int(e, 16)) for f, s, m, a, e in rows]
+
+
 @lru_cache(maxsize=None)
 def symbol_names(version, mod):
     """{address: [names]} of main, the autoloads and one overlay of a version."""
-    root = arm9_dir(version)
     out = {}
+    if version == "plat_us":   # Platinum: the tables tools/plat_symbols.py placed (config/plat_us/symbols.tsv)
+        for row in plat_rows():
+            if row[2] in ("main", mod):
+                out.setdefault(row[3], []).append(row[1])
+        return out
+    root = arm9_dir(version)
     for p in sorted(root.rglob("symbols.txt")):
         m = "main" if p.parent == root else p.parent.name
         if m.startswith("ov") and m != mod:

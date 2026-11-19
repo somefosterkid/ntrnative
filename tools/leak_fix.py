@@ -2,6 +2,7 @@
 """Moves the ROM-matching tables of vendored Black 2 / White 2 files to asset rows and says what still leaks.
 
     python3 tools/leak_fix.py [--version b2_us] [--allow-code] FILE...     # FILE: src/ov036/foo.c or the full path
+    python3 tools/leak_fix.py --version plat_us third_party/pokeplatinum/src/foo.c   # Platinum: run tools/plat_symbols.py first
 
 Per file: asset.py --move-all (every table of 12 numbers or names), then tools/rom_leak_check.py --where, then --move of
 the tables the findings name that move-all left (smaller ones), rescanning, until the file is clean or a round moves
@@ -75,7 +76,7 @@ def main():
     code_only = []
     for p, found in sorted(left.items()):
         for kind, runs in found:
-            for first, last, n, tables in runs:
+            for first, last, n, tables, *_ in runs:
                 where = f"L{first}" + (f"-{last}" if last != first else "") + " " + (",".join(dict.fromkeys(tables)) or "(code)")
                 ts = list(dict.fromkeys(tables))
                 why = "; ".join((f"{t}: " if len(ts) > 1 else "") + reason_for(t, skipped[p]) for t in ts) or CODE_REASON

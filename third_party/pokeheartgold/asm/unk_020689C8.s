@@ -1,0 +1,40 @@
+#include "constants/sndseq.h"
+#include "constants/species.h"
+#include "constants/maps.h"
+#include "constants/pokemon.h"
+#include "constants/flags.h"
+#include "constants/vars.h"
+#include "constants/items.h"
+#include "constants/std_script.h"
+#include "fielddata/script/scr_seq/event_D24R0204.h"
+#include "constants/field_move_response.h"
+	.include "macros.inc"
+	.include "unk_020689C8.inc"
+	.include "global.inc"
+
+	.public sub_02068B80
+	.public sub_02068BDC
+	.public sub_02068C08
+	.public sub_02068C2C
+	.public sub_02068C38
+	.public sub_02068C5C
+	.public sub_02068C6C
+	.public sub_02068CC4
+	.public sub_02068CC8
+	.public sub_02068CCC
+	.public sub_02068CD8
+	.public sub_02068CE4
+	.public sub_02068CF4
+	.public sub_02068CFC
+	.public sub_02068D10
+	.public sub_02068D2C
+	.public sub_02068D48
+	.public sub_02068D64
+	.public sub_02068D6C
+	.public sub_02068D78
+	.public sub_02068D8C
+	.public sub_02068D94
+	.public sub_02068D9C
+	.public sub_02068DA4
+	.public sub_02068DA8
+	.text

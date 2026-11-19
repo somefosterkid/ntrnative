@@ -1,0 +1,26 @@
+pokeplatinum-vblanktasks.patch (tools/pokeplat_gen.py applies the patches in name order): room for the V-blank tasks
+one frame schedules. The DS runs gSystem.vBlankTaskMgr's tasks in its V-blank interrupt, which also fires during a
+long load; the PC runs them only at the game's V-blank wait. Entering the field schedules one BindModelTextureSysTaskCB
+(simple3d.c) per map model in one frame: the 32 slots filled, and the next SysTask_ExecuteOnVBlank returned NULL, so the
+map objects' texture upload task (ov5_021ECE40.c's ov5_021EE1AC) never ran: their textures were discarded without an
+upload and the player's billboard drew whatever was in its VRAM (pl9). 256 slots where a pointer is 8 bytes.
+
+diff --git a/src/system.c b/src/system.c
+index 7668a409c..cab14a543 100644
+--- a/src/system.c
++++ b/src/system.c
+@@ -13,5 +13,14 @@
+ 
+ #define MAIN_TASK_MAX        160
++#include <stdint.h>
++
++// The DS runs the V-blank tasks in its V-blank interrupt, which also fires in the middle of a long load (the field
++// schedules one texture bind per map model), so the 32 slots drain while the load goes on. The PC runs them only at
++// the game's V-blank wait, after the whole load: room for every task one frame can schedule.
++#if UINTPTR_MAX > 0xFFFFFFFFu
++#define VBLANK_TASK_MAX      256
++#else
+ #define VBLANK_TASK_MAX      32
++#endif
+ #define POST_VBLANK_TASK_MAX 32
+ #define PRINT_TASK_MAX       4

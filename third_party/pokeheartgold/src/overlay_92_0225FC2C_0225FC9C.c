@@ -1,0 +1,123 @@
+#include "global.h"
+
+#include "constants/heap.h"
+
+#include "bg_window.h"
+#include "camera.h"
+#include "filesystem.h"
+#include "palette.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "sys_task.h"
+#include "touchscreen.h"
+#include "unk_02005D10.h"
+#include "overlay_92_unk_struct_ov116_02262d08.h"
+#include "overlay_92_unk_struct_ov116_02265d84.h"
+#include "field/overlay_01_021FB878.h"
+#include "overlay_92_unk_struct_ov116_022649e4.h"
+#include "overlay_92_unk_struct_ov116_02262a8c.h"
+
+typedef struct G3DPipelineBuffers G3DPipelineBuffers;
+
+struct G3DPipelineBuffers {
+    enum HeapID heapID;
+    void *paletteBuffer;
+    void *textureBuffer;
+};
+
+enum RotationAxis {
+    ROTATION_AXIS_X = 0,
+    ROTATION_AXIS_Y,
+    ROTATION_AXIS_Z,
+    ROTATION_AXIS_COUNT
+};
+
+BOOL ov92_02260428(UnkStruct_ov116_0226501C *param0, int param1, int param2, int param3, int param4, f32 param5, BOOL param6);
+
+BOOL ov92_02260628(UnkStruct_ov116_0226501C *param0, f32 param1);
+
+s32 ov92_02260A38(UnkStruct_ov116_02262A8C *, s16, s16);
+
+extern TouchscreenHitbox ov92_02263C34;
+
+extern TouchscreenHitbox ov92_02263C3C;
+
+extern s32 ov92_02263C5C;
+
+extern s32 ov92_02263C68;
+
+void ov92_0225FC9C(UnkStruct_ov116_02262A8C *param0);
+
+void ov92_0225FC9C(UnkStruct_ov116_02262A8C *param0) {
+    VecFx32 sp20;
+    VecFx32 sp14;
+    u32 sp10;
+    u32 spC;
+    f32 var_r4;
+    f32 var_r6;
+    s32 temp_r4;
+    s32 var_r0;
+    u32 temp_r1;
+    u32 temp_r1_2;
+    u32 temp_r2;
+    u32 temp_r2_2;
+
+    System_GetTouchHeldCoords(&sp10, &spC);
+    param0->unk_279C.unk_A4 = 0;
+    if (param0->unk_2870 != 0) {
+        var_r0 = TouchscreenHitbox_FindHitboxAtPoint(&ov92_02263C3C, sp10, spC);
+    } else {
+        var_r0 = TouchscreenHitbox_FindHitboxAtPoint(&ov92_02263C34, sp10, spC);
+    }
+    if (var_r0 == -1) {
+        param0->unk_1FBC.unk_00 = 0;
+        param0->unk_1FBC.unk_04 = 0;
+        if (param0->unk_FC.unk_1F8 != 0) {
+            ov92_02260628(&param0->unk_FC, 1.0f);
+            ov92_02260628(param0->unk_308, 0.5f);
+            sp20 = *(VecFx32 *)((u8 *)&ov92_02263C5C);
+            MTX_MultVec43(&sp20, &param0->unk_308[0].unk_1B0, &param0->unk_1FB0);
+            param0->unk_279C.unk_A4 = 1;
+            return;
+        }
+        param0->unk_FC.unk_1FC = 0.0f;
+        param0->unk_FC.unk_200 = 0.0f;
+        temp_r2 = param0->unk_1FBC.unk_04;
+        temp_r1 = param0->unk_1FBC.unk_00;
+        ov92_02260428(&param0->unk_FC, (s32)temp_r1, (s32)temp_r2, (s32)temp_r1, (s32)temp_r2, 1.88f, 0);
+        temp_r2_2 = param0->unk_1FBC.unk_04;
+        temp_r1_2 = param0->unk_1FBC.unk_00;
+        ov92_02260428(param0->unk_308, (s32)temp_r1_2, (s32)temp_r2_2, (s32)temp_r1_2, (s32)temp_r2_2, 0.22f, 0);
+        return;
+    }
+    temp_r4 = (s32)param0->unk_1FB0.y >> 0xC;
+    var_r6 = (f32)((s32)(0x64 - temp_r4) / 40);
+    if (temp_r4 >= 0x5F) {
+        var_r6 = 0.1f;
+    }
+    if ((double)var_r6 >= 0.22) {
+        var_r4 = 0.22f;
+    } else {
+        var_r4 = (f32)(0.22 - (double)var_r6);
+    }
+    if (param0->unk_1FBC.unk_00 == 0) {
+        param0->unk_1FBC.unk_00 = sp10;
+        param0->unk_1FBC.unk_04 = spC;
+    }
+    ov92_02260428(&param0->unk_FC, (s32)sp10, (s32)spC, (s32)param0->unk_1FBC.unk_00, (s32)param0->unk_1FBC.unk_04, 2.0f, 1);
+    ov92_02260428(param0->unk_308, (s32)sp10, (s32)spC, (s32)param0->unk_1FBC.unk_00, (s32)param0->unk_1FBC.unk_04, var_r4, 1);
+    sp14 = *(VecFx32 *)((u8 *)&ov92_02263C68);
+    MTX_MultVec43(&sp14, &param0->unk_308[0].unk_1B0, &param0->unk_1FB0);
+    param0->unk_279C.unk_A4 = 1;
+    if (param0->unk_279C.unk_B4 == 0) {
+        param0->unk_279C.unk_B4 = 1;
+    }
+    if (sp10 != 0) {
+        if (IsSEPlaying(0x58AU) == 0) {
+            PlaySE(0x58AU);
+        }
+        ov92_02260A38(param0, (s16)sp10, (s16)spC);
+    }
+    param0->unk_1FBC.unk_00 = sp10;
+    param0->unk_1FBC.unk_04 = spC;
+}

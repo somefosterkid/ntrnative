@@ -18,6 +18,7 @@ void PORT_Sleep(u32 msec);
 void PORT_SleepThread(OSThreadQueue *queue);
 void PORT_WaitIrq(BOOL clear, OSIrqMask irqFlags);
 void PORT_BenchFrame(void);   // port/src/bench_pin.c: BWPORT_BENCH_SEED, off by default
+void PORT_ExitFrame(void);    // port/src/run_frames.c: BWPORT_EXIT_FRAME=N ends the run at V-blank N (port_run.py --frames), off by default
 void PORT_MachineFrame(void); // port/src/machine.c: BWPORT_MACHINE_CHECK, off by default
 void PORT_MachineReset(void); // port/src/machine.c: the in-process restart (Apple builds)
 void PORT_WaitVBlankIntr(void);
@@ -30,8 +31,9 @@ void PORT_LockMutex(OSMutex *mutex);
 BOOL PORT_ReceiveMessage(OSMessageQueue *mq, OSMessage *msg, s32 flags);
 BOOL PORT_SendMessage(OSMessageQueue *mq, OSMessage msg, s32 flags);
 void PORT_SetIrqFunction(OSIrqMask intrBit, OSIrqFunction function);
-void PORT_ResetSystem(u32 parameter);   // port/src/reset.c
+void PORT_ResetSystem(u32 parameter, const char *caller);   // port/src/reset.c (caller: the game function, for the log)
 OSTick PORT_GetTick(void);   // port/src/bench_tick.c: frame-based under BWPORT_BENCH_CLOCK
+void PORT_WmFrame(void);     // port/src/bench_tick.c: the wireless stepped at the frame's end under BWPORT_BENCH_CLOCK
 
 // The game lock, for PC code that calls into the game from a host thread of its own (port/src/main_threads.c)
 void PORT_GameLock(void);
@@ -56,7 +58,7 @@ void PORT_GameUnlock(void);
 #define OS_ReceiveMessage(mq, msg, flags) PORT_ReceiveMessage(mq, msg, flags)
 #define OS_SendMessage(mq, msg, flags) PORT_SendMessage(mq, msg, flags)
 #define OS_SetIrqFunction(intrBit, function) PORT_SetIrqFunction(intrBit, function)
-#define OS_ResetSystem(parameter) PORT_ResetSystem(parameter)
+#define OS_ResetSystem(parameter) PORT_ResetSystem(parameter, __func__)
 #define OS_GetTick() PORT_GetTick()
 #endif
 

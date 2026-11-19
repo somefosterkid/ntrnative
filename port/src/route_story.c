@@ -33,8 +33,8 @@ typedef struct {
     const char *name;
 } PortStoryName;
 // port/src/route_story_names.c (tools/route_story_names.py)
-extern const PortStoryName gPortStoryNamesBW[], gPortStoryNamesB2W2[];
-extern const int gPortStoryNamesBWCount, gPortStoryNamesB2W2Count;
+extern const PortStoryName gPortStoryNamesBW[], gPortStoryNamesB2W2[], gPortStoryNamesPT[], gPortStoryNamesHG[];
+extern const int gPortStoryNamesBWCount, gPortStoryNamesB2W2Count, gPortStoryNamesPTCount, gPortStoryNamesHGCount;
 
 #define MAXF 4096
 #define MAXW 512
@@ -54,7 +54,13 @@ static int EnvOn(const char *name) {
 }
 
 static void Names(const char *game, const PortStoryName **t, int *n) {
-    if (game[0] != '\0' && game[1] == '2') {
+    if (game[0] == 'P' || game[0] == 'p') {   // Gen 4: "PT" (Platinum), "HG" / "SS" (HeartGold, SoulSilver: one table)
+        *t = gPortStoryNamesPT;
+        *n = gPortStoryNamesPTCount;
+    } else if (game[0] == 'H' || game[0] == 'h' || game[0] == 'S' || game[0] == 's') {
+        *t = gPortStoryNamesHG;
+        *n = gPortStoryNamesHGCount;
+    } else if (game[0] != '\0' && game[1] == '2') {
         *t = gPortStoryNamesB2W2;
         *n = gPortStoryNamesB2W2Count;
     } else {
@@ -195,9 +201,9 @@ static void FlagState(FILE *f, const char *game, const PortStory *s, unsigned fl
     fprintf(f, "flag 0x%04x%s%s %s", flag, *Nm(game, flag) ? " " : "", Nm(game, flag), FlagNow(s, flag) ? "set" : "clear");
 }
 
-void PortRouteStory_Print(FILE *f, const char *game) {
+void PortRouteStory_Print(FILE *f, const char *game, int brief) {
     PortStory *s = &sS;
-    int i, j, n;
+    int i, j, n, quiet;
 
     if (gPortRouteStoryFill == NULL) {
         return;
@@ -219,15 +225,16 @@ void PortRouteStory_Print(FILE *f, const char *game) {
     for (i = 0; sHave && i < sNW; i++) {
         n += s->works[i] != sBaseW[i];
     }
-    fprintf(f, "changed since the snapshot (%d):\n", n);
+    fprintf(f, "changed since the snapshot (%d%s):\n", n, brief && n > 12 ? "; the first 12" : "");
+    quiet = 0;
     for (i = 0; sHave && i < sNF; i++) {
-        if ((s->flags[i / 8] ^ sBaseF[i / 8]) >> (i % 8) & 1) {
+        if ((s->flags[i / 8] ^ sBaseF[i / 8]) >> (i % 8) & 1 && !(brief && ++quiet > 12)) {
             fprintf(f, "  flag 0x%04x = %d (was %d; V-blank %u, zone %u) %s\n", i, s->flags[i / 8] >> (i % 8) & 1,
                     sBaseF[i / 8] >> (i % 8) & 1, sWhenF[i], sZoneF[i], Nm(game, i));
         }
     }
     for (i = 0; sHave && i < sNW; i++) {
-        if (s->works[i] != sBaseW[i]) {
+        if (s->works[i] != sBaseW[i] && !(brief && ++quiet > 12)) {
             fprintf(f, "  work 0x%04x = %u (was %u; V-blank %u, zone %u) %s\n", PORT_STORY_WORK0 + i, s->works[i],
                     sBaseW[i], sWhenW[i], sZoneW[i], Nm(game, PORT_STORY_WORK0 + i));
         }
@@ -253,12 +260,18 @@ void PortRouteStory_Print(FILE *f, const char *game) {
         fprintf(f, " type %u script %u%s", s->init[i].type, s->init[i].script, i + 1 < s->ninit ? ";" : "");
     }
     fprintf(f, "\n");
-    fprintf(f, "actors (%d NPC entries; created while the spawn flag is clear):\n", s->nnpc);
+    fprintf(f, "actors (%d NPC entries; created while the spawn flag is clear%s):\n", s->nnpc,
+            brief ? "; only the hidden or absent ones are listed" : "");
+    quiet = 0;
     for (i = 0; i < s->nnpc; i++) {
         int live = 0;
 
         for (j = 0; j < s->nlive; j++) {
             live |= s->live[j] == s->npc[i].uid;
+        }
+        if (brief && live && !FlagNow(s, s->npc[i].flag)) {
+            quiet++;
+            continue;
         }
         if (s->npc[i].rail) {
             fprintf(f, "  uid %u (rail) script %u ev %u ", s->npc[i].uid, s->npc[i].script, s->npc[i].ev);
@@ -269,10 +282,19 @@ void PortRouteStory_Print(FILE *f, const char *game) {
         FlagState(f, game, s, s->npc[i].flag);
         fprintf(f, ": %s; %s\n", FlagNow(s, s->npc[i].flag) ? "hidden" : "shown", live ? "on the map" : "not on the map");
     }
-    fprintf(f, "triggers (%d; run when the work has the value, work 0 always):\n", s->ntrig);
+    if (brief && quiet) {
+        fprintf(f, "  (%d shown on the map)\n", quiet);
+    }
+    fprintf(f, "triggers (%d; run when the work has the value, work 0 always%s):\n", s->ntrig,
+            brief ? "; only the live ones are listed" : "");
+    quiet = 0;
     for (i = 0; i < s->ntrig; i++) {
         int v = WorkNow(s, s->trig[i].work);
 
+        if (brief && s->trig[i].work != 0 && v != (int)s->trig[i].value) {
+            quiet++;
+            continue;
+        }
         if (s->trig[i].rail) {
             fprintf(f, "  T%d (rail) script %u ", i, s->trig[i].script);
         } else {
@@ -286,8 +308,16 @@ void PortRouteStory_Print(FILE *f, const char *game) {
                     Nm(game, s->trig[i].work), s->trig[i].value, v, v == (int)s->trig[i].value ? " LIVE" : "");
         }
     }
-    fprintf(f, "bg events (%d):\n", s->nbg);
+    if (brief && quiet) {
+        fprintf(f, "  (%d not live)\n", quiet);
+    }
+    fprintf(f, "bg events (%d%s):\n", s->nbg, brief ? "; only the hidden items still there are listed" : "");
+    quiet = 0;
     for (i = 0; i < s->nbg; i++) {
+        if (brief && (s->bg[i].cond != 2 || FlagNow(s, s->bg[i].flag))) {
+            quiet++;
+            continue;
+        }
         if (s->bg[i].rail) {
             fprintf(f, "  b%d (rail) script %u ", i, s->bg[i].script);
         } else {
@@ -300,6 +330,9 @@ void PortRouteStory_Print(FILE *f, const char *game) {
         } else {
             fprintf(f, "condition %u\n", s->bg[i].cond);
         }
+    }
+    if (brief && quiet) {
+        fprintf(f, "  (%d others)\n", quiet);
     }
 }
 

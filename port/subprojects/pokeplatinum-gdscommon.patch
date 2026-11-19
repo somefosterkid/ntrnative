@@ -1,0 +1,27 @@
+pokeplatinum-gdscommon.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): gds_internal.h defines
+Unk_ov61_0222E764 (a tentative definition, no extern) and the five lib/gds files that include it each get one; MWCC
+merges them as common symbols, the port's -fno-common (the overlays' data in their own sections) makes them multiple
+definitions at pl.o's link. The header declares it extern, ov61_0222CEDC.c (the first user) defines it.
+
+diff --git a/lib/gds/include/gds_internal.h b/lib/gds/include/gds_internal.h
+index feba6b7b0..2d83ad68d 100644
+--- a/lib/gds/include/gds_internal.h
++++ b/lib/gds/include/gds_internal.h
+@@ -72,5 +72,5 @@ typedef struct {
+ } UnkStruct_ov61_0222D1FC;
+ 
+-UnkStruct_ov61_0222E764 Unk_ov61_0222E764;
++extern UnkStruct_ov61_0222E764 Unk_ov61_0222E764;
+ 
+ void ov61_0222CEDC(void);
+diff --git a/lib/gds/src/ov61_0222CEDC.c b/lib/gds/src/ov61_0222CEDC.c
+index 6009ab7a3..c0179614d 100644
+--- a/lib/gds/src/ov61_0222CEDC.c
++++ b/lib/gds/src/ov61_0222CEDC.c
+@@ -4,4 +4,6 @@
+ #include "gds_internal.h"
+ 
++UnkStruct_ov61_0222E764 Unk_ov61_0222E764;
++
+ static void ov61_0222CFD4(void);
+ 

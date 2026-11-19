@@ -142,11 +142,6 @@ struct Ov038WorkBlock {
     u32 unk_1c;
     u32 unk_20;
 };
-struct Ov038Cmd {
-    u32 unk_0;
-    u32 unk_4;
-    u32 unk_8;
-};
 struct Ov038Rec {
     u32 unk_0;
     u32 unk_4;
@@ -168,9 +163,9 @@ const s8 data_ov038_021f4628[10] = { 1, 0, 3, 2, 5, 4, -1, -1, 9, 8 };
 const u8 data_ov038_021f4632[10] = { 0, 0, 1, 1, 2, 2, 3, 4, 5, 5 };
 
 const u32 data_ov038_021f463c[4] = { 0x18, 0x19, 0x1a, 0x1b };
-extern const struct Ov038Cmd data_ov038_021f47c0[28];
+extern const G3DSceneResourceSetup data_ov038_021f47c0[28];
 extern const struct Ov038Rec data_ov038_021f4910[35];
-const G3DSceneSetup data_ov038_021f464c = { (const G3DSceneResourceSetup *)data_ov038_021f47c0, 0x1c, (const G3DSceneActorSetup *)data_ov038_021f4910, 0x23 };
+const G3DSceneSetup data_ov038_021f464c = { data_ov038_021f47c0, 0x1c, (const G3DSceneActorSetup *)data_ov038_021f4910, 0x23 };
 const VecFx32 data_ov038_021f465c[2] = {
     { 0x268000, 0, 0x198000 },
     { 0x148000, 0, 0x1d8000 },
@@ -186,7 +181,7 @@ const VecFx32 data_ov038_021f46e8[8] = {
 const VecFx32 data_ov038_021f4748[10] = {
 #include "asset/gym_insect_data_ov038_021f4748.inc"
 };
-const struct Ov038Cmd data_ov038_021f47c0[28] = {
+const G3DSceneResourceSetup data_ov038_021f47c0[28] = {
 #include "asset/gym_insect_data_ov038_021f47c0.inc"
 };
 const struct Ov038Rec data_ov038_021f4910[35] = {

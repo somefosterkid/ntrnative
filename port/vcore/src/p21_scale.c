@@ -934,10 +934,10 @@ void vc_n_picture_rows(VCoreState *s, int a_top, int y0, int y1) {
   VC_NFrame *F = s->p21.f;
   const int n = F->on, W = F->ow, k = F->aa, rowA = a_top ? 0 : F->oh, rowB = a_top ? F->oh : 0;
   u32 res[VC_W * VC_MAX_SCALE]; /* the 3D layer's row at the picture's grid (ow <= 256 * 8) */
-  const int hofs = vc_eng16(s, VC_ENG_A, VC_REG_BG0HOFS) & 0x1FF;
   const u16 mb = vc_eng16(s, VC_ENG_A, VC_REG_MASTER_BRIGHT);
   const int bm = (mb >> 14) & 3, bright = (bm == 1 || bm == 2) && (mb & 0x1F) != 0;
   for (int y = y0; y < y1; y++) {
+    const int hofs = vc_ln16(s, VC_ENG_A, y, VC_REG_BG0HOFS) & 0x1FF; /* the line's (H-blank DMA) */
     fill_row(F, rowB, y, s->eng_out[VC_ENG_B][y]);
     VC_Line *ln = &s->p20.stage[y];
     if (!ln->bg3d) { /* this line has no 3D layer: its 1x pixels (engine A's display line) scaled */

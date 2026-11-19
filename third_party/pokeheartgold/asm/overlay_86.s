@@ -1,0 +1,127 @@
+	.include "macros.inc"
+	.include "overlay_86.inc"
+	.include "global.inc"
+
+	.public ov86_021E5E98
+	.public ov86_021E5ECC
+	.public ov86_021E5F58
+	.public ov86_021E60B8
+	.public ov86_021E6E30
+	.public ov86_021E6E98
+	.public ov86_021E6FF4
+	.public ov86_021E703C
+	.public ov86_021E7094
+	.public ov86_021E71C0
+	.public ov86_021E71FC
+	.public ov86_021E720C
+	.public ov86_021E7258
+	.public ov86_021E73E8
+	.public ov86_021E7678
+	.public ov86_021E7680
+	.public ov86_021E7710
+	.public ov86_021E78A8
+	.public ov86_021E78B0
+	.public ov86_021E7984
+	.public ov86_021E7B54
+	.public ov86_021E7DF8
+	.public ov86_021E7E40
+	.public ov86_021E7E68
+	.public ov86_021E7E90
+	.public ov86_021E5B38
+	.public ov86_021E5BA0
+	.public ov86_021E5C94
+	.public ov86_021E5E90
+	.data
+
+	.data
+
+	.global _021E7E98
+_021E7E98:
+	.byte 0xA4, 0xBB, 0xC1, 0xFE
+
+	.global ov86_021E7E9C
+ov86_021E7E9C: ; 0x021E7E9C
+	.byte 0xA2, 0xBD, 0x12, 0x2D
+	.byte 0xA2, 0xBD, 0x32, 0x4D, 0xFF, 0x00, 0x00, 0x00
+
+	.global ov86_021E7EA8
+ov86_021E7EA8: ; 0x021E7EA8
+	.word ov86_021E73E8
+	.word ov86_021E73E8
+	.word ov86_021E78A8
+	.word ov86_021E78B0
+
+	.global ov86_021E7EB8
+ov86_021E7EB8: ; 0x021E7EB8
+	.word ov86_021E73E8
+	.word ov86_021E73E8
+	.word ov86_021E7678
+	.word ov86_021E7680
+
+	.global ov86_021E7EC8
+ov86_021E7EC8:
+	.global hgasset_asm_overlay_86_s_ov86_021E7EC8
+	.set hgasset_asm_overlay_86_s_ov86_021E7EC8, ov86_021E7EC8 ; 0x021E7EC8
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7ED8
+ov86_021E7ED8:
+	.global hgasset_asm_overlay_86_s_ov86_021E7ED8
+	.set hgasset_asm_overlay_86_s_ov86_021E7ED8, ov86_021E7ED8 ; 0x021E7ED8
+	.byte 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0, 0x00
+	.byte 0x00, 0, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov86_021E7EEC
+ov86_021E7EEC:
+	.global hgasset_asm_overlay_86_s_ov86_021E7EEC
+	.set hgasset_asm_overlay_86_s_ov86_021E7EEC, ov86_021E7EEC ; 0x021E7EEC
+	.byte 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F04
+ov86_021E7F04:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F04
+	.set hgasset_asm_overlay_86_s_ov86_021E7F04, ov86_021E7F04 ; 0x021E7F04
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F20
+ov86_021E7F20:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F20
+	.set hgasset_asm_overlay_86_s_ov86_021E7F20, ov86_021E7F20 ; 0x021E7F20
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0, 0, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F3C
+ov86_021E7F3C:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F3C
+	.set hgasset_asm_overlay_86_s_ov86_021E7F3C, ov86_021E7F3C ; 0x021E7F3C
+	.byte 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F58
+ov86_021E7F58:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F58
+	.set hgasset_asm_overlay_86_s_ov86_021E7F58, ov86_021E7F58 ; 0x021E7F58
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0, 0x00, 0, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F74
+ov86_021E7F74:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F74
+	.set hgasset_asm_overlay_86_s_ov86_021E7F74, ov86_021E7F74 ; 0x021E7F74
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00
+
+	.global ov86_021E7F94
+ov86_021E7F94:
+	.global hgasset_asm_overlay_86_s_ov86_021E7F94
+	.set hgasset_asm_overlay_86_s_ov86_021E7F94, ov86_021E7F94 ; 0x021E7F94
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, 0x00

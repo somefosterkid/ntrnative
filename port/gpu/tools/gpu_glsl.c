@@ -36,6 +36,9 @@ static const Prog kProgs[] = {
   /* pass C (src/g07_compose.c) and its plan */
   {"g00_full.vert", "g07_compose.frag", 0, 3},
   {"g00_full.vert", "g07_compose.frag#1+C_PLAN", 0, 3},
+  /* display capture at N x (src/g07_capture.c) */
+  {"g00_full.vert", "g07_capture.frag", 0, 3},
+  {"g00_full.vert", "g07_capture.frag#1+K_SHOW", 0, 3},
   /* SMAA (src/g08_smaa.c) */
   {"g00_full.vert", "g08_smaa_edge.frag", 0, 3},
   {"g00_full.vert", "g08_smaa_weight.frag", 0, 3},

@@ -1,0 +1,170 @@
+pokeplatinum-hostlayout.patch (tools/pokeplat_gen.py applies the patches in name order): pointers held in 32-bit integers,
+found by tools/plat_lint.py (check C4; docs/platinum.md). On the DS an address fits a u32; on the host a pointer is 64
+bits, so a value that is really a pointer must travel as uintptr_t. Two groups reached a u32:
+ - the H-blank offset-register address of the screen scroll and shake effects: libntr's REG_BGxHOFS_ADDR is the
+   address of a host variable, passed as `u32 bg` through ScreenScrollManager_ScrollX/Y, ScreenScrollTask_Scroll,
+   ScreenShakeEffect_Start (the water encounter effect), ov104_0223F0B0/ov104_0223F1B4 (the Frontier scene effects) and
+   CustomBgScrollContext_New/BattleAnimUtil_GetHOffsetRegisterForBg (battle backgrounds), into a u32 field that is cast
+   back to `void *` for BufferManager_StartDMA: the DMA target was the low half of the address;
+ - the Giratina/Shaymin icon refresh in the PC boxes: `u32 vramAddr` held G2_GetOBJCharPtr() plus an offset, then
+   was copied to as a `void *`.
+No struct that is read from a file changes; the structs touched are runtime state (ScreenScrollManager,
+CustomBgScrollContext, UnkStruct_ov104_0223F174).
+
+--- a/include/battle_anim/battle_anim_helpers.h
++++ b/include/battle_anim/battle_anim_helpers.h
+@@ -127,5 +127,5 @@
+     u32 buffer1[HW_LCD_HEIGHT];
+     u32 buffer2[HW_LCD_HEIGHT];
+-    u32 offsetReg;
++    uintptr_t offsetReg;
+ };
+ 
+@@ -210,5 +210,5 @@
+ void AlphaFadeContext_Init(AlphaFadeContext *ctx, s16 startEv1, s16 endEv1, s16 startEv2, s16 endEv2, int steps);
+ BOOL AlphaFadeContext_IsDone(const AlphaFadeContext *ctx);
+-CustomBgScrollContext *CustomBgScrollContext_New(u32 offsetReg, u32 initValue, enum HeapID heapID);
++CustomBgScrollContext *CustomBgScrollContext_New(uintptr_t offsetReg, u32 initValue, enum HeapID heapID);
+ void CustomBgScrollContext_Free(CustomBgScrollContext *ctx);
+ void *CustomBgScrollContext_GetWriteBuffer(const CustomBgScrollContext *ctx);
+@@ -219,5 +219,5 @@
+ void BgScrollContext_Stop(BgScrollContext *ctx);
+ u32 BattleAnimUtil_MakeBgOffsetValue(u16 x, u16 y);
+-u32 BattleAnimUtil_GetHOffsetRegisterForBg(int bgID);
++uintptr_t BattleAnimUtil_GetHOffsetRegisterForBg(int bgID);
+ void BattleAnimUtil_GetXYMean(s16 x1, s16 y1, s16 x2, s16 y2, s16 *mx, s16 *my);
+ void BattleAnimUtil_DistanceBetween(s16 x1, s16 y1, s16 x2, s16 y2, fx32 *distance);
+--- a/include/cutscenes/spear_pillar/screen_capture.h
++++ b/include/cutscenes/spear_pillar/screen_capture.h
+@@ -6,5 +6,5 @@
+ void ScreenScrollTask_Init(ScreenScrollTask *ssTask, u32 heapID);
+ void ScreenScrollTask_Free(ScreenScrollTask *ssTask);
+-void ScreenScrollTask_Scroll(ScreenScrollTask *ssTask, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority, int axis);
++void ScreenScrollTask_Scroll(ScreenScrollTask *ssTask, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority, int axis);
+ ScreenCapture *ScreenCapture_Start(ScreenCaptureTemplate *template);
+ void ScreenCapture_End(ScreenCapture **capture, GXDispMode dispMode, GXBGMode bgMode, GXBG0As bg0As);
+--- a/include/overlay104/ov104_0223E894.h
++++ b/include/overlay104/ov104_0223E894.h
+@@ -28,6 +28,6 @@
+ BOOL ov104_0223EE44(UnkStruct_ov104_0223EBD0 *param0);
+ void ov104_0223F094(UnkStruct_ov104_0223F094 *param0, enum HeapID heapID);
+-void ov104_0223F0B0(UnkStruct_ov104_0223F094 *param0, u8 param1, u8 param2, u16 param3, fx32 param4, s16 param5, u32 param6, u32 param7, u32 param8);
+-UnkStruct_ov104_0223F174 *ov104_0223F1B4(u32 param0, UnkStruct_ov104_0223F1B4 *param1, enum HeapID heapID);
++void ov104_0223F0B0(UnkStruct_ov104_0223F094 *param0, u8 param1, u8 param2, u16 param3, fx32 param4, s16 param5, uintptr_t param6, u32 param7, u32 param8);
++UnkStruct_ov104_0223F174 *ov104_0223F1B4(uintptr_t param0, UnkStruct_ov104_0223F1B4 *param1, enum HeapID heapID);
+ void ov104_0223F258(UnkStruct_ov104_0223F174 *param0);
+ void *ov104_0223F27C(const UnkStruct_ov104_0223F174 *param0);
+--- a/include/screen_scroll_manager.h
++++ b/include/screen_scroll_manager.h
+@@ -22,5 +22,5 @@
+     u8 start;
+     u8 end;
+-    u32 offsetRegisterAddr;
++    uintptr_t offsetRegisterAddr;
+     u32 initValue;
+     s16 scrollPos;
+@@ -29,6 +29,6 @@
+ 
+ ScreenScrollManager *ScreenScrollManager_New(enum HeapID heapID);
+-void ScreenScrollManager_ScrollX(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority);
+-void ScreenScrollManager_ScrollY(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority);
++void ScreenScrollManager_ScrollX(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority);
++void ScreenScrollManager_ScrollY(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority);
+ void ScreenScrollManager_Stop(ScreenScrollManager *screenScrollMgr);
+ void ScreenScrollManager_Delete(ScreenScrollManager *screenScrollMgr);
+--- a/src/applications/pc_boxes/icon_helper.c
++++ b/src/applications/pc_boxes/icon_helper.c
+@@ -220,5 +220,5 @@
+ void MonIconHelper_UpdateIconForm(MonIconHelper *iconHelper, MonIcon *monIcon, BOOL isStored)
+ {
+-    u32 vramAddr;
++    uintptr_t vramAddr;
+     NNSG2dCharacterData *charData;
+ 
+--- a/src/battle_anim/battle_anim_helpers.c
++++ b/src/battle_anim/battle_anim_helpers.c
+@@ -852,5 +852,5 @@
+ }
+ 
+-CustomBgScrollContext *CustomBgScrollContext_New(u32 offsetReg, u32 initValue, enum HeapID heapID)
++CustomBgScrollContext *CustomBgScrollContext_New(uintptr_t offsetReg, u32 initValue, enum HeapID heapID)
+ {
+     CustomBgScrollContext *ctx = Heap_Alloc(heapID, sizeof(CustomBgScrollContext));
+@@ -917,5 +917,5 @@
+     memset(ctx, 0, sizeof(BgScrollContext));
+ 
+-    u32 offsetReg = BattleAnimUtil_GetHOffsetRegisterForBg(bgID);
++    uintptr_t offsetReg = BattleAnimUtil_GetHOffsetRegisterForBg(bgID);
+     ctx->screenScrollMgr = ScreenScrollManager_New(heapID);
+ 
+@@ -956,5 +956,5 @@
+ }
+ 
+-u32 BattleAnimUtil_GetHOffsetRegisterForBg(int bgID)
++uintptr_t BattleAnimUtil_GetHOffsetRegisterForBg(int bgID)
+ {
+     switch (bgID) {
+--- a/src/cutscenes/spear_pillar/screen_capture.c
++++ b/src/cutscenes/spear_pillar/screen_capture.c
+@@ -62,5 +62,5 @@
+ }
+ 
+-void ScreenScrollTask_Scroll(ScreenScrollTask *ssTask, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority, int axis)
++void ScreenScrollTask_Scroll(ScreenScrollTask *ssTask, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority, int axis)
+ {
+     if (axis == 0) {
+--- a/src/overlay005/encounter_effect_core.c
++++ b/src/overlay005/encounter_effect_core.c
+@@ -106,5 +106,5 @@
+ static void ScreenShakeEffect_Init(ScreenShakeEffect *screenShake, enum HeapID heapID);
+ static void ScreenShakeEffect_Finish(ScreenShakeEffect *screenShake);
+-static void ScreenShakeEffect_Start(ScreenShakeEffect *screenShake, u8 startX, u8 endX, u16 angleIncrement, fx32 amplitude, s16 shakeSpeed, u32 bg, u32 defaultValue, u32 priority);
++static void ScreenShakeEffect_Start(ScreenShakeEffect *screenShake, u8 startX, u8 endX, u16 angleIncrement, fx32 amplitude, s16 shakeSpeed, uintptr_t bg, u32 defaultValue, u32 priority);
+ static void ScreenShakeEffect_InvertBuffer(ScreenShakeEffect *screenShake, u32 interval);
+ 
+@@ -443,5 +443,5 @@
+ }
+ 
+-static void ScreenShakeEffect_Start(ScreenShakeEffect *screenShake, u8 startX, u8 endX, u16 angleIncrement, fx32 amplitude, s16 shakeSpeed, u32 bg, u32 defaultValue, u32 priority)
++static void ScreenShakeEffect_Start(ScreenShakeEffect *screenShake, u8 startX, u8 endX, u16 angleIncrement, fx32 amplitude, s16 shakeSpeed, uintptr_t bg, u32 defaultValue, u32 priority)
+ {
+     ScreenScrollManager_ScrollX(screenShake->screenScrollMgr, startX, endX, angleIncrement, amplitude, shakeSpeed, bg, defaultValue, priority);
+--- a/src/overlay104/ov104_0223E894.c
++++ b/src/overlay104/ov104_0223E894.c
+@@ -71,5 +71,5 @@
+     UnkStruct_ov104_0223F1B4 unk_20[192];
+     UnkStruct_ov104_0223F1B4 unk_1820[192];
+-    u32 unk_3020;
++    uintptr_t unk_3020;
+ } UnkStruct_ov104_0223F174;
+ 
+@@ -514,5 +514,5 @@
+ }
+ 
+-void ov104_0223F0B0(UnkStruct_ov104_0223F094 *param0, u8 param1, u8 param2, u16 param3, fx32 param4, s16 param5, u32 param6, u32 param7, u32 param8)
++void ov104_0223F0B0(UnkStruct_ov104_0223F094 *param0, u8 param1, u8 param2, u16 param3, fx32 param4, s16 param5, uintptr_t param6, u32 param7, u32 param8)
+ {
+     ScreenScrollManager_ScrollX(param0->screenScrollMgr, param1, param2, param3, param4, param5, param6, param7, param8);
+@@ -593,5 +593,5 @@
+ }
+ 
+-UnkStruct_ov104_0223F174 *ov104_0223F1B4(u32 param0, UnkStruct_ov104_0223F1B4 *param1, enum HeapID heapID)
++UnkStruct_ov104_0223F174 *ov104_0223F1B4(uintptr_t param0, UnkStruct_ov104_0223F1B4 *param1, enum HeapID heapID)
+ {
+     UnkStruct_ov104_0223F174 *v0;
+--- a/src/screen_scroll_manager.c
++++ b/src/screen_scroll_manager.c
+@@ -90,5 +90,5 @@
+ }
+ 
+-void ScreenScrollManager_ScrollX(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority)
++void ScreenScrollManager_ScrollX(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority)
+ {
+     GF_ASSERT(screenScrollMgr);
+@@ -110,5 +110,5 @@
+ }
+ 
+-void ScreenScrollManager_ScrollY(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, u32 bg, u32 initValue, u32 priority)
++void ScreenScrollManager_ScrollY(ScreenScrollManager *screenScrollMgr, u8 start, u8 end, u16 angleIncrement, fx32 amplitude, s16 speed, uintptr_t bg, u32 initValue, u32 priority)
+ {
+     GF_ASSERT(screenScrollMgr);

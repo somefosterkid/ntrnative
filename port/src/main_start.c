@@ -22,6 +22,7 @@
 #include "port_game.h"
 #ifdef __APPLE__
 #include <TargetConditionals.h>
+#include <mach-o/dyld.h>    // (_NSGetExecutablePath: macOS's app bundle)
 #endif
 #if defined(__APPLE__) && TARGET_OS_IOS
 #define PORT_IOS 1
@@ -127,7 +128,7 @@ BOOL PORT_ExtractRomIfMissing(void) {
     const char *rom;
     int files;
 
-    if (FileExists("header.bin") && FileExists("a/0/0/0")) {
+    if (LC_HasFilesIn(".")) {    // header.bin and the extraction's mark (Platinum has no a/ tree), or a/0/0/0
         return TRUE;
     }
     if ((rom = FindRom(name, sizeof(name))) == NULL || !FileExists(rom)) {
@@ -251,7 +252,7 @@ void PORT_RunLauncher(void) {
 // FALSE: the flat layout stays (a failed migration), as before the launcher.
 static BOOL LauncherStart(void) {
     char work[1100], err[600];
-    const LC_Game *found[8], *g;
+    const LC_Game *found[LC_MAX_GAMES], *g;
     int n, i;
 
     if (getcwd(work, sizeof(work)) == NULL) {
@@ -283,7 +284,7 @@ static BOOL LauncherStart(void) {
     if (LC_IsFlat() && LC_Migrate(err, sizeof(err)) < 0) {
         return FALSE;
     }
-    n = LC_Scan(found, 8);
+    n = LC_Scan(found, LC_MAX_GAMES);
     g = LC_LastGame();
     for (i = 0; g != NULL && i < n && found[i] != g; i++) {
     }
@@ -391,6 +392,22 @@ __attribute__((constructor)) static void PortStart(void) {
         unlink(link);    // the container's path changes on a reinstall or an update: a link from before points nowhere
         symlink(target, link);    // a dangling link is fine: fopen "wb" creates the target
         dir = work;
+    }
+#elif defined(__APPLE__)
+    // macOS, the release app (tools/mac_package.sh): started from Finder its working directory is /, so an exe inside a .app
+    // bundle takes ~/Library/Application Support/bwport as its root, as iOS's hidden folder. A bare exe keeps the working
+    // directory (the build dir's and the test tools' runs).
+    char exe[1024];
+    uint32_t exeLen = sizeof(exe);
+    static char appRoot[1100];
+    if (dir == NULL && getenv("HOME") != NULL && _NSGetExecutablePath(exe, &exeLen) == 0 && strstr(exe, ".app/Contents/MacOS/") != NULL) {
+        snprintf(appRoot, sizeof(appRoot), "%s/Library", getenv("HOME"));
+        PORT_MKDIR(appRoot);
+        snprintf(appRoot, sizeof(appRoot), "%s/Library/Application Support", getenv("HOME"));
+        PORT_MKDIR(appRoot);
+        snprintf(appRoot, sizeof(appRoot), "%s/Library/Application Support/bwport", getenv("HOME"));
+        PORT_MKDIR(appRoot);
+        dir = appRoot;
     }
 #endif
     if (dir != NULL && chdir(dir) != 0) {

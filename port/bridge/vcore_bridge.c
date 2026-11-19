@@ -44,6 +44,19 @@ void SIM_SetFrameRenderer(SIM_FrameRendererFn fn);
 uint32_t SIM_VCapGather(uint8_t *io9, uint8_t *io9b, uint8_t *vram, uint8_t *pltt, uint8_t *oam, uint32_t **gx,
                         uint32_t *cap);
 uint8_t *SIM_VCapBankHome(int bank);
+/* libntr-hdma.patch: channel ch's H-blank DMA into the 2D registers, line by line (sim_vcapture.cpp) */
+int SIM_VCapHDma(int ch, int *eng, unsigned *ofs, unsigned *len, uint8_t *rows, unsigned stride);
+
+/* the frame's H-blank DMAs into s (after SIM_VCapGather: line 0 is the registers as gathered); gpu_bridge.c has the same */
+static void GatherHDma(VCoreState *s) {
+  uint8_t rows[VC_H * VC_IO9B_SIZE];
+  vcore_hdma_clear(s);
+  for (int ch = 0; ch < 4; ch++) {
+    int e;
+    unsigned ofs, len;
+    if (SIM_VCapHDma(ch, &e, &ofs, &len, rows, VC_IO9B_SIZE)) vcore_hdma_add(s, e, ofs, len, rows, VC_IO9B_SIZE);
+  }
+}
 void SIM_SetFrameRendererSized(const unsigned char *(*fn)(int *w, int *h)); /* libntr-vscale.patch */
 int SIM_GLRendererOption(int which); /* libntr-gpuopt.patch: 0 dot, 1 line, 2 edge, 3 filter (each 0 or 1: the N x looks) */
 int SIM_RenderScale(void); /* the Resolution 1..8 (sim_config.ini Resolution=, BWPORT_RESOLUTION, the Config window) */
@@ -458,6 +471,7 @@ static const uint8_t *FrameSized(int *pw, int *ph) {
   vcore_set_options(s, SIM_GLRendererOption(0), SIM_GLRendererOption(1), SIM_GLRendererOption(2));
   vcore_set_filter(s, SIM_GLRendererOption(3));
   s->gx_words = SIM_VCapGather(s->io9, s->io9b, s->vram, s->pltt, s->oam, &s->gx, &sl->gxcap);
+  GatherHDma(s);
   /* POWCNT1 as vc_state.c's loader (and the oracle) reads it: the LCD bit on, 0 = everything on, engine A on top */
   u16 pow = (u16)(s->io9[VC_REG_POWCNT1] | s->io9[VC_REG_POWCNT1 + 1] << 8);
   pow = pow == 0 ? 0x820F : (u16)(pow | 1);

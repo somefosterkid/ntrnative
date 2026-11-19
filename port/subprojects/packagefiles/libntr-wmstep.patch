@@ -1,0 +1,123 @@
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -45,6 +45,58 @@
+ static void SIM_PxiPendInit(void);
+ static volatile int s_pxi7to9Pending = 0;
+ 
++// bw-port (libntr-wmstep.patch): the wireless stepped from the game's frames. The ARM7's WM request thread and the
++// callbacks it sends back (the game's WM callbacks, run on the 7-to-9 PXI thread) ran whenever the host scheduled them,
++// so which frame of the game saw a scan's result changed from run to run, and with it the order of the game's random
++// numbers (Black 2's beacon search draws from the LC its field's NPCs use). Once SIM_WmStep has been called (the port's
++// frame end, under its bench pin), the game's WM requests wait here, and SIM_WmStep runs them all and waits for their
++// callbacks: every request a frame makes is answered before the next frame, on every run.
++#define WM_STEP_MAX 64
++static volatile int s_wmStep = 0;
++static SDL_mutex * s_wmMx = NULL;
++static uPtr s_wmData[WM_STEP_MAX];
++static BOOL s_wmErr[WM_STEP_MAX];
++static int s_wmCount = 0;
++extern volatile int SIM_wmRequestsPending;   // wmsp_system.c: sent to the request thread and not done yet
++void SIM_PxiDrain(void);
++
++void SIM_WmStep(void)
++{
++	uPtr data[WM_STEP_MAX];
++	BOOL err[WM_STEP_MAX];
++	int n, i;
++	Uint32 t0;
++
++	if( s_wmMx == NULL )
++	{
++		s_wmMx = SDL_CreateMutex();
++		s_wmStep = 1;
++		return;
++	}
++	SIM_PxiDrain();   // the frame's requests reached the list
++	SDL_LockMutex( s_wmMx );
++	n = s_wmCount;
++	for( i = 0; i < n; i++ )
++	{
++		data[i] = s_wmData[i];
++		err[i] = s_wmErr[i];
++	}
++	s_wmCount = 0;
++	SDL_UnlockMutex( s_wmMx );
++	for( i = 0; i < n; i++ )
++	{
++		if( FifoRecvCallbackTable7[PXI_FIFO_TAG_WM] )
++		{
++			FifoRecvCallbackTable7[PXI_FIFO_TAG_WM]( PXI_FIFO_TAG_WM, data[i], err[i] );
++		}
++	}
++	t0 = SDL_GetTicks();
++	while( ( SIM_wmRequestsPending > 0 || s_pxi7to9Pending > 0 ) && SDL_GetTicks() - t0 < 1000 )
++	{
++		SDL_Delay( 0 );
++	}
++}
++
+ void SIM_pxiInit(void)
+ {
+ 	SIM_PxiPendInit();  // bw-port (libntr-ios-reset.patch): before the machine's snapshot, so a reset keeps it
+@@ -467,6 +519,19 @@
+             case PXI_FIFO_TAG_WM:
+ 
+                 {
++					// bw-port (libntr-wmstep.patch): stepped, the request waits for the frame's end
++					if( s_wmStep )
++					{
++						SDL_LockMutex( s_wmMx );
++						if( s_wmCount < WM_STEP_MAX )
++						{
++							s_wmData[s_wmCount] = msg->e.data;
++							s_wmErr[s_wmCount++] = (BOOL)msg->e.err;
++							SDL_UnlockMutex( s_wmMx );
++							break;
++						}
++						SDL_UnlockMutex( s_wmMx );
++					}
+ 
+ 					if(FifoRecvCallbackTable7[PXI_FIFO_TAG_WM]) {
+ 						FifoRecvCallbackTable7[PXI_FIFO_TAG_WM](PXI_FIFO_TAG_WM, msg->e.data, (BOOL)msg->e.err);
+--- a/libraries/sim7/src/wm/wmsp_system.c
++++ b/libraries/sim7/src/wm/wmsp_system.c
+@@ -151,6 +151,8 @@
+ 
+ #include <nitro/wram_end.h>
+ 
++volatile int SIM_wmRequestsPending = 0;   // bw-port (libntr-wmstep.patch): pxi.c's SIM_WmStep waits for them
++
+ static void WmspPxiCallback(PXIFifoTag tag, uPtr data, BOOL err)
+ {
+     #pragma unused( tag )
+@@ -164,10 +166,12 @@
+ 
+     WMSP_DLOGF_REQUEST_QUEUE("[R]:=%d", *((u16 *)data) & ~WM_API_REQUEST_ACCEPTED);
+ 
++    __sync_fetch_and_add(&SIM_wmRequestsPending, 1);
+     result = OS_SendMessage(&(wmspW.requestQ), (OSMessage)data, OS_MESSAGE_NOBLOCK);
+ 
+     if (!result)
+     {
++        __sync_fetch_and_sub(&SIM_wmRequestsPending, 1);
+         if (wmspW.wm7buf != NULL)
+         {
+             WMCallback *cb = (WMCallback *)WMSP_GetBuffer4Callback2Wm9();
+--- a/libraries/sim7/src/wm/wmsp_request.c
++++ b/libraries/sim7/src/wm/wmsp_request.c
+@@ -64,6 +64,7 @@
+ };
+ 
+ static int requestNo = 0;
++extern volatile int SIM_wmRequestsPending;   // bw-port (libntr-wmstep.patch): wmsp_system.c
+ 
+ void WMSP_RequestThread(void *arg)
+ {
+@@ -112,6 +113,7 @@
+         }
+ 
+         *((u16 *)msg) = (u16)(apiid | WM_API_REQUEST_ACCEPTED);
++        __sync_fetch_and_sub(&SIM_wmRequestsPending, 1);   // bw-port (libntr-wmstep.patch)
+ 
+         #ifndef SDK_BUILD_ARM
+         #ifdef SDK_TRACY_ENABLE

@@ -13,6 +13,19 @@ typedef struct GpuMslSrc {
 extern const GpuMslSrc gpu_msl_src[];
 
 typedef struct GpuMtlC GpuMtlC; /* pass C's Metal side (G07's) */
+typedef struct GpuMtlK GpuMtlK; /* the display capture's (g07_capture.c's; g07_capture_mtl.inc) */
+/* shaders/g07_capture.frag's uniforms under Metal (its block GpuK, std140: 64 bytes) */
+typedef struct GpuK {
+  uint32_t rows[8]; /* kRows */
+  int32_t n;
+  uint32_t bright;
+  int32_t y0;
+  int32_t sc3d;
+  uint32_t cnt;
+  int32_t roff;
+  uint32_t haveB;
+  uint32_t pad;
+} GpuK;
 
 /* test-only ablations (the maintainers' notes): a pass taken out or faked so a perf run measures the frame without it. Off (0) by
  * default; the bridge hands the mask in from the cfgscript's ablate= key. The pictures are wrong while one is on. */
@@ -51,6 +64,14 @@ unsigned gpu_mtl_c_upload_3d(GpuMtlC *c, const uint8_t *rgba8ui, int w, int h);
 unsigned gpu_mtl_c_frame_tex(const GpuMtlC *c);
 void gpu_mtl_c_read(GpuMtlC *c, uint8_t *rgba);
 double gpu_mtl_c_gpu_ms(const GpuMtlC *c); /* the last pass C's command buffer GPU ms, once it is done (0 before) */
+/* g07_compose_capsrc on Metal: pass C again into c's capture source (texture name returned; 0 when serial's pack is not up) */
+unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, unsigned smaa, const GpuU *u);
+/* include/g07_capture.h's steps on Metal (texture names as gpu_mtl_texture's); bank1x NULL: no source B upload */
+GpuMtlK *gpu_mtl_k_create(int scale, char *err, size_t errlen);
+void gpu_mtl_k_destroy(GpuMtlK *k);
+int gpu_mtl_k_capture(GpuMtlK *k, const GpuK *u, int bank, int bankB, unsigned texA, unsigned tex3d, const uint8_t *bank1x,
+                      int h, int woff);
+int gpu_mtl_k_show(GpuMtlK *k, unsigned out, const GpuK *u, int bank);
 #else
 static inline void gpu_mtl_ablate(unsigned mask) { (void)mask; }
 static inline int gpu_mtl_init(GpuCore *g, int smaa, char *err, size_t errlen) {
@@ -87,6 +108,25 @@ static inline unsigned gpu_mtl_c_upload_3d(GpuMtlC *c, const uint8_t *rgba8ui, i
 static inline unsigned gpu_mtl_c_frame_tex(const GpuMtlC *c) { return (void)c, 0u; }
 static inline void gpu_mtl_c_read(GpuMtlC *c, uint8_t *rgba) { (void)c, (void)rgba; }
 static inline double gpu_mtl_c_gpu_ms(const GpuMtlC *c) { return (void)c, 0.0; }
+static inline unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, unsigned smaa, const GpuU *u) {
+  (void)c, (void)serial, (void)plan, (void)tex3d, (void)smaa, (void)u;
+  return 0;
+}
+static inline GpuMtlK *gpu_mtl_k_create(int scale, char *err, size_t errlen) {
+  (void)scale;
+  snprintf(err, errlen, "no Metal core in this build");
+  return NULL;
+}
+static inline void gpu_mtl_k_destroy(GpuMtlK *k) { (void)k; }
+static inline int gpu_mtl_k_capture(GpuMtlK *k, const GpuK *u, int bank, int bankB, unsigned texA, unsigned tex3d,
+                                    const uint8_t *bank1x, int h, int woff) {
+  (void)k, (void)u, (void)bank, (void)bankB, (void)texA, (void)tex3d, (void)bank1x, (void)h, (void)woff;
+  return -1;
+}
+static inline int gpu_mtl_k_show(GpuMtlK *k, unsigned out, const GpuK *u, int bank) {
+  (void)k, (void)out, (void)u, (void)bank;
+  return -1;
+}
 #endif
 
 #endif

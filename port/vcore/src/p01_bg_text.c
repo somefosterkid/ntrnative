@@ -18,8 +18,8 @@ void vc_bg_text_line(VCoreState *s, int e, int n, int y, VC_Line *ln) {
   u32 *dst = ln->bg[n];
   const u16 cnt = vc_eng16(s, e, VC_REG_BG0CNT + 2 * n);
   const u32 dispcnt = vc_eng32(s, e, VC_REG_DISPCNT);
-  const int hofs = vc_eng16(s, e, VC_REG_BG0HOFS + 4 * n) & 0x1FF; /* GBATEK 05: bits 0-8 */
-  const int vofs = vc_eng16(s, e, VC_REG_BG0VOFS + 4 * n) & 0x1FF;
+  const int hofs = vc_ln16(s, e, y, VC_REG_BG0HOFS + 4 * n) & 0x1FF; /* GBATEK 05: bits 0-8 (the line's: H-blank DMA) */
+  const int vofs = vc_ln16(s, e, y, VC_REG_BG0VOFS + 4 * n) & 0x1FF;
   /* GBATEK 25: engine A adds DISPCNT bits 24-26 * 64K to the char base and bits 27-29 * 64K to the screen base;
    * engine B has none. BGxCNT bits 2-5 are the char base in 16K units. */
   u32 char_base = ((u32)(cnt >> 2) & 0xF) * 0x4000;

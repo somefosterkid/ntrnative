@@ -8,7 +8,6 @@
 static void SetMCDataToMCInstanceImpl_(NNSG2dMultiCellInstance *instance, const NNSG2dMultiCellData *mcData,
                                        u16 totalVideoFrame);
 static u16 GetMCBankNumCellAnimRequired_(const NNSG2dMultiCellDataBank *mcBank);
-static u16 NNS_G2dGetMCBankNumNodesRequired(const NNSG2dMultiCellDataBank *mcBank);
 
 // How a node's cell animation plays when its multi-cell is shown: from its start, or on from where it would be had it
 // played since the multi-cell animation began
@@ -210,7 +209,7 @@ u32 NNS_G2dGetMCWorkAreaSize(const NNSG2dMultiCellDataBank *mcBank, NNSG2dMCType
     }
 }
 
-static u16 NNS_G2dGetMCBankNumNodesRequired(const NNSG2dMultiCellDataBank *mcBank) {
+u16 NNS_G2dGetMCBankNumNodesRequired(const NNSG2dMultiCellDataBank *mcBank) {
     u16 max = 0;
     u16 i;
 
@@ -348,3 +347,13 @@ void NNS_G2dTraverseMCNodes(NNSG2dMultiCellInstance *instance, NNSG2dMCTraverseN
         }
     }
 }
+
+#ifndef __MWERKS__
+// The Gen 4 games' (NitroSystem 071126) call that sets up a multi-cell animation with a cell animation for each node
+// from the caller's arrays. It is not in Black's ROM, so the DS build leaves it out
+void NNS_G2dInitMCAnimation(NNSG2dMultiCellAnimation *mcAnim, NNSG2dNode *nodes, NNSG2dCellAnimation *cellAnims,
+                            u16 numNodes, const NNSG2dCellAnimBankData *anims, const NNSG2dCellDataBank *cells,
+                            const NNSG2dMultiCellDataBank *mcBank) {
+    InitMCAnimationNotShareCellAnim_(mcAnim, nodes, cellAnims, numNodes, anims, cells, mcBank);
+}
+#endif

@@ -62,6 +62,11 @@ int g07_pack_differs(const G07Pack *a, const G07Pack *b, VCoreState *s, int mask
  * frame's in-between pictures and the frame itself) */
 int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa);
 
+/* a display capture's source A at N x (docs/gpu.md "Display capture"): pass C again for engine A as if it showed the
+ * compositor's picture (display mode 1), without master brightness, into a texture of c's (256 N x 192 N RGBA8, returned;
+ * 0 on failure). Right after g07_compose_packed with the same k (its uploads are reused). */
+unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa);
+
 /* the output texture of the last g07_compose (256 N x 384 N, RGBA8) */
 unsigned g07_frame_tex(const G07 *c);
 /* the Metal core's: the last pass C's GPU milliseconds once its command buffer is done (gpu_render --time); 0 under GL */

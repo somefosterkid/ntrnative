@@ -1,0 +1,25 @@
+pokeplatinum-evalorder.patch (tools/pokeplat_gen.py applies the patches in name order): the script VM's GoTo and Call
+read their 32-bit offset after the jump base. `ctx->scriptPtr + ScriptContext_ReadWord(ctx)`: MWCC loads scriptPtr
+after the call (past the offset, as the script assembler counts), clang before it, so every GoTo and Call landed 4
+bytes short. The X menu's SAVE (common script 2005 calls TrySaveGame) ran the 4 bytes before it, the end of the
+previous script, and stopped at once: the menu came back with nothing saved (pl10). The same shape as Black's
+N-battle hang (tools/evalorder_scan.py; Platinum's src has only these two, eo scan pl10). Read the offset first.
+
+--- a/src/scrcmd.c
++++ b/src/scrcmd.c
+@@ -1004,5 +1004,6 @@
+ static BOOL ScrCmd_GoTo(ScriptContext *ctx)
+ {
+-    ScriptContext_Jump(ctx, ctx->scriptPtr + ScriptContext_ReadWord(ctx));
++    s32 offset = ScriptContext_ReadWord(ctx);
++    ScriptContext_Jump(ctx, ctx->scriptPtr + offset);
+     return FALSE;
+ }
+@@ -1053,5 +1054,6 @@
+ static BOOL ScrCmd_Call(ScriptContext *ctx)
+ {
+-    ScriptContext_Call(ctx, ctx->scriptPtr + ScriptContext_ReadWord(ctx));
++    s32 offset = ScriptContext_ReadWord(ctx);
++    ScriptContext_Call(ctx, ctx->scriptPtr + offset);
+     return FALSE;
+ }

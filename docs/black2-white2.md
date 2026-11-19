@@ -3,24 +3,24 @@
 Pokémon Black 2 and White 2 (USA) run in the same app as Black and White. Their game code is not ours: it is the C of
 [pokebw2](https://github.com/fuddlesworth/pokebw2) (GPL-3.0, a matched decompilation of both games by its contributors).
 A patched copy of what the build needs is committed in `third_party/pokebw2` (GPL-3.0, with its LICENSE); the games' data
-tables are not in it: they are read from your ROM at build time. The build needs no network.
+tables are not in it: they are read from your ROM when the game starts. The build needs no network and no ROM.
 
 ## Build
 
-1. Put your dumps next to Black's and White's in `orig/`:
-
-   | Game | File | SHA-1 |
-   | --- | --- | --- |
-   | Black 2 (USA) | `orig/baserom_b2_us.nds` | `e51e6dfb8678a3d19dcd2a10691b96a569ca0abb` |
-   | White 2 (USA) | `orig/baserom_w2_us.nds` | `b5d7490be7b415b8f1e672a53e978a9cc667e56a` |
-
-2. Build the port as the README says (`ninja` first, then the platform's command). When the port's build finds a Black 2
-   or White 2 ROM in `orig/`, it fills each game's data tables from that ROM (`tools/rom_modules.py --assets`, the rows
-   of `config/b2_us/assets.tsv` and `config/w2_us/assets.tsv`, as for Black) and compiles the vendored, patched pokebw2
+1. Build the port as the README says (the platform's command; no ROM needed). It compiles the vendored, patched pokebw2
    code (`third_party/pokebw2`; the patches in `port/subprojects/pokebw2-*.patch` are already applied in it) into one
-   module per game (`b2.o`, `w2.o`), beside Black's. No ROM, no Black 2 / White 2 in the build.
-3. Start the app and import the ROM (the launcher does it on first start), or pick the game in the games window. All four
-   games can be switched in one process.
+   module per game (`b2.o`, `w2.o`), beside Black's; `-Db2w2=disabled` leaves them out. The games' data tables (the rows
+   of `config/b2_us/assets.tsv` and `config/w2_us/assets.tsv`, as for Black) are filled from the ROM the app imported.
+2. Start the app and import your ROM (the launcher does it on first start), or pick the game in the games window. All
+   four games can be switched in one process. The ROMs it takes:
+
+   | Game | SHA-1 |
+   | --- | --- |
+   | Black 2 (USA) | `e51e6dfb8678a3d19dcd2a10691b96a569ca0abb` |
+   | White 2 (USA) | `b5d7490be7b415b8f1e672a53e978a9cc667e56a` |
+
+   With every built game's dump in `orig/` (`baserom_b2_us.nds`, `baserom_w2_us.nds` for these two) the build also runs
+   its release step, which takes the games' data back out of the binary.
 
 The DS ROMs of Black 2 and White 2 are not rebuilt here: pokebw2 does that for its own repository.
 
@@ -39,7 +39,7 @@ The DS ROMs of Black 2 and White 2 are not rebuilt here: pokebw2 does that for i
 
 | Platform | Black 2 / White 2 |
 | --- | --- |
-| macOS, iOS | Playable: Black 2's new game runs through Aspertia City with no open bugs |
+| macOS, iOS (coming: the Apple build files are not in this repository yet) | Playable: Black 2's new game runs through Aspertia City with no open bugs |
 | Linux, Windows, Android | Run: new game to the player's room, save and continue, title music, switching between the four games, about 17 of 18 route legs of the first hours of Black 2 (the one flaky leg is an unpinned battle). Tested less than Black and White |
 
 `tools/route.py b2` replays Black 2's first route in legs from saves (`tools/routes/b2.txt`); on Linux
@@ -51,8 +51,8 @@ For maintainers; a build needs none of it.
 
 - `third_party/pokebw2` holds only what the port's build reads (its README lists it): `src`, `include`, the headers of
   eight libraries, the generated headers, and each version's arm9 `delinks.txt` and `symbols.txt`. Message IDs have
-  neutral names (`tools/msgid_neutral.py`); each table that is game data includes `asset/<name>.inc`, written from the
-  user's ROM. Nothing from a ROM is in the tree.
+  neutral names (`tools/msgid_neutral.py`); each table that is game data includes `asset/<name>.inc`, which the build
+  makes a placeholder row filled from the user's ROM when the game starts. Nothing from a ROM is in the tree.
 - To update from a newer pokebw2 commit: set `COMMIT` in `tools/pokebw2_fetch.sh`, run `tools/pokebw2_fetch.sh --vendor`
   (needs network; `POKEBW2_URL` can point at a local clone; it fetches a sparse checkout, applies the patches and copies
   the file set into `third_party/pokebw2`). Then re-run what a fresh copy lacks: the patches that no longer apply are

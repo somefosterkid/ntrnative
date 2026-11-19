@@ -17,6 +17,16 @@ import compiler_probe as cp  # noqa: E402
 MD5 = ROOT / "lib/nitrowifi/src/ssl/md5.c"
 
 
+class Skip(Exception):
+    """A test whose input this tree lacks: a fresh clone has no ROM files (extract/), no build, no compiler."""
+
+
+def need(*files):
+    gone = [f for f in files if not (ROOT / f).exists()]
+    if gone:
+        raise Skip("no " + ", ".join(gone))
+
+
 def test_same_place_of_a_function_black_lacks():
     known = next(n for n in ("CPSi_md5_calc", "MI_CpuCopy8") if cp.symbol_address(n) is not None)
     assert cp.same_place("NotBlacks_Copy", known)  # an extern unknown to the symbols: by undefined()
@@ -27,6 +37,7 @@ def test_same_place_of_a_function_black_lacks():
 def test_a_call_of_a_name_nothing_defines_is_no_match():
     # bsubway_scr.c called Black 2's func_ov033_0217c11c, which neither Black's symbols nor any object of the link
     # define, and the judge said 32/32: a call's bytes are relocated, so only its symbol tells
+    need("build/b_us/objects.txt", "extract/b_us/arm9/arm9.yaml", "tools/wibo")
     assert cp.undefined("func_ov033_0217c11c") and cp.undefined("func_ov033_0217c11c+0x4")
     assert not cp.undefined("MI_CpuFill8") and not cp.undefined("OVERLAY_1_ID")  # Black's; the linker script's
     assert not cp.undefined("func_ov033_0217c11c", {"func_ov033_0217c11c"})  # the compiled object defines it
@@ -55,6 +66,7 @@ def test_a_call_of_a_name_nothing_defines_is_no_match():
 def test_static_table_named_apart_from_its_place_matches():
     # poke_tool.c is complete (it links byte for byte); its table is named data_0209e298 and lands at Black's
     # stat_nature_adjust (0x0209e2a4): a static table isn't judged by its name
+    need("extract/b_us/arm9/arm9.yaml", "tools/wibo")
     pt = ROOT / "src/system/poke_tool.c"
     results, _, failed = cp.probe_source(pt, functions={"isStatAdjustedForNature"}, original=pt, cwd=ROOT)
     assert not failed, failed
@@ -62,6 +74,7 @@ def test_static_table_named_apart_from_its_place_matches():
 
 
 def test_wrong_static_table_does_not_match():
+    need("extract/b_us/arm9/arm9.yaml", "tools/wibo")
     text = MD5.read_text()
     assert "data_ov009_021a1de8" in text and "data_ov009_021a1da8" in text
     # CPSi_md5_result reads the padding table; the other u8[64] table compiles to the same bytes
@@ -115,6 +128,7 @@ def test_word_into_a_thumb_function_matches_and_its_data_reads_as_data():
     # os_reset_itcm.c: OSi_VerifyHmac's pool word 0x01ff8368 holds the address of the key inside its own Thumb code
     # (+0x80). MWCC writes it OSi_VerifyHmac+0x7f (the link adds the Thumb bit), dsd +0x80: the judge said "1 symbols"
     # of a function that links byte for byte, and its diff read the original's key words as Thumb code (t35m)
+    need("extract/b_us/arm9/arm9.yaml", "tools/wibo")
     results, diffs, failed = cp.probe_source(RESET_ITCM, functions={"OSi_VerifyHmac"}, original=RESET_ITCM, cwd=ROOT)
     assert not failed, failed
     assert list(results["OSi_VerifyHmac"].values()) == ["MATCH"], (results, diffs)
@@ -142,15 +156,18 @@ def test_word_into_a_thumb_function_matches_and_its_data_reads_as_data():
 
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
-    bad = 0
+    bad = skipped = 0
     for t in tests:
         try:
             t()
             print(f"ok   {t.__name__}")
+        except Skip as e:
+            skipped += 1
+            print(f"skip {t.__name__}: {e}")
         except Exception as e:  # noqa: BLE001
             bad += 1
             print(f"FAIL {t.__name__}: {type(e).__name__}: {e}")
-    print(f"{len(tests) - bad} of {len(tests)} passed")
+    print(f"{len(tests) - bad - skipped} of {len(tests)} passed, {skipped} skipped")
     sys.exit(1 if bad else 0)
 
 

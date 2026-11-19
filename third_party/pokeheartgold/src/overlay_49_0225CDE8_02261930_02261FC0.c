@@ -1,0 +1,41 @@
+#include "global.h"
+
+#include "overlay_42.h"
+
+struct UnkStruct_ov70_0225C894_t;
+
+struct UnkStruct_ov70_0225CA20_t;
+
+struct UnkStruct_ov70_0225CC54_t;
+
+typedef struct UnkStruct_ov70_0225C894_t UnkStruct_ov70_0225C894;
+
+BOOL ov49_022589D8(const UnkStruct_ov70_0225C894 *param0, u32 param1, u16 *param2, u16 *param3, u32 param4);
+
+typedef struct UnkStruct_ov70_0225CA20_t UnkStruct_ov70_0225CA20;
+
+typedef struct UnkStruct_ov70_0225CC54_t UnkStruct_ov70_0225CC54;
+
+const UnkStruct_ov70_0225CC54 *ov49_02258F7C(const UnkStruct_ov70_0225CA20 *param0, u16 param1, u16 param2);
+
+BOOL ov49_02261FC0(const UnkStruct_ov70_0225C894 *param0, const UnkStruct_ov70_0225CA20 *param1, const u32 *param2, u32 param3, UnkStruct_ov44_02232914 *param4);
+
+BOOL ov49_02261FC0(const UnkStruct_ov70_0225C894 *param0, const UnkStruct_ov70_0225CA20 *param1, const u32 *param2, u32 param3, UnkStruct_ov44_02232914 *param4) {
+    u16 v0, v1;
+    int v2;
+    BOOL v3;
+
+    for (v2 = 0; v2 < param3; v2++) {
+        v3 = ov49_022589D8(param0, param2[v2], &v0, &v1, 0);
+
+        if (v3 == 1) {
+            if (ov49_02258F7C(param1, v0, v1) == NULL) {
+                param4->unk0 = (v0) * 16;
+                param4->unk2 = (v1) * 16;
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}

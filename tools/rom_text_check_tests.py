@@ -159,6 +159,14 @@ def spans(found):
     return [f[:3] for f in found]
 
 
+def test_message_paths():
+    files = {'a/0/0/2': 0, 'a/0/0/3': 0, 'a/0/2/7': 0, 'msgdata/pl_msg.narc': 0}
+    assert T.message_paths(b'IPK', files) == (4, ['a/0/2/7'])   # HeartGold: not Gen 5's a/0/0/2
+    assert T.message_paths(b'IPG', files) == (4, ['a/0/2/7'])   # SoulSilver
+    assert T.message_paths(b'IRB', files) == (5, ['a/0/0/2', 'a/0/0/3'])
+    assert T.message_paths(b'CPU', {'msgdata/pl_msg.narc': 0}) == (4, ['msgdata/pl_msg.narc'])
+
+
 def test_decode_words():
     ms = list(T.messages(bank(['Hello there, you\nare Pokémon.', 'A b@c d e f'])))
     assert T.message_words(ms[0]) == [['hello', 'there', 'you', 'are', 'pokemon']], T.message_words(ms[0])

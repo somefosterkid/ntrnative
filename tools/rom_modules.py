@@ -38,7 +38,8 @@ sys.path.insert(0, str(ROOT / "tools"))
 import asset  # noqa: E402
 
 # configure.py's VERSIONS[version]["asset_root"]; Black 2's and White 2's: port/meson.build's include dir per game
-ASSET_ROOT = {"b_us": "build", "w_us": "build/w_us", "b2_us": "build/b2_us", "w2_us": "build/w2_us"}
+ASSET_ROOT = {"b_us": "build", "w_us": "build/w_us", "b2_us": "build/b2_us", "w2_us": "build/w2_us",
+              "plat_us": "build/plat_us"}   # (Platinum: not linked yet; its rows' .inc go there when it is)
 
 
 def blz_decompress(data):

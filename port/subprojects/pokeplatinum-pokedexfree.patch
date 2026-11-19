@@ -1,0 +1,31 @@
+pokeplatinum-pokedexfree.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): the Pokedex screens' teardown frees the page data and
+then hands the SAME pointer, param0->pageData, to the graphics holder's free, which frees it a second time (upstream's own comment on
+ov21_021E1984 asks "should be pageGraphics?"); the holder (a PokedexGraphicData ** from the screen's constructor) is never freed. Two screens
+have it: ov21_021D7710 (ov21_021D76B0.c) and ov21_021E1984 (ov21_021E1924.c). On the DS the second free is harmless: nothing runs between the
+two, the used list's neighbours are unchanged, and the Pokedex's heap is destroyed right after; the free list holds a second block over
+the same bytes meanwhile. The heap checker (BWPORT_HEAPCHECK) found them as a free block that spans another free block, one frame after the
+exit (platinum.md "Battle and menu sweep"; menu-dex stopped at f2776). The second call now frees pageGraphics.
+diff --git a/src/applications/pokedex/ov21_021D76B0.c b/src/applications/pokedex/ov21_021D76B0.c
+--- a/src/applications/pokedex/ov21_021D76B0.c
++++ b/src/applications/pokedex/ov21_021D76B0.c
+@@ -143,7 +143,7 @@
+ void ov21_021D7710(PokedexScreenManager *param0)
+ {
+     ov21_021D77D4(param0->pageData);
+-    ov21_021D77E8(param0->pageData); // should be pageGraphics?
++    ov21_021D77E8(param0->pageGraphics);
+     ov21_021D77FC(param0->screenStates);
+ }
+ 
+diff --git a/src/applications/pokedex/ov21_021E1924.c b/src/applications/pokedex/ov21_021E1924.c
+--- a/src/applications/pokedex/ov21_021E1924.c
++++ b/src/applications/pokedex/ov21_021E1924.c
+@@ -157,7 +157,7 @@
+ void ov21_021E1984(PokedexScreenManager *param0)
+ {
+     ov21_021E1A7C(param0->pageData);
+-    ov21_021E1A90(param0->pageData); // should be pageGraphics?
++    ov21_021E1A90(param0->pageGraphics);
+     ov21_021E1AA4(param0->screenStates);
+ }
+ 

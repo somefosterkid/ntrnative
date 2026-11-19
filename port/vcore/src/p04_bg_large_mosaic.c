@@ -8,11 +8,12 @@ static s32 sx28(u32 v) { return (s32)(v << 4) >> 4; }
 /* The affine position (8.8) of screen pixel (x, y): reference + y * (PB, PD) + x * (PA, PC). Kept local so this
  * piece's tests do not depend on piece 2's vc_bg_affine_pos; same definition (GBATEK 06). */
 static void large_pos(const VCoreState *s, int e, int x, int y, s32 *tx, s32 *ty) {
-  s32 pa = (s16)vc_eng16(s, e, VC_REG_BG2PA), pb = (s16)vc_eng16(s, e, VC_REG_BG2PB);
-  s32 pc = (s16)vc_eng16(s, e, VC_REG_BG2PC), pd = (s16)vc_eng16(s, e, VC_REG_BG2PD);
-  s32 rx = sx28(vc_eng32(s, e, VC_REG_BG2X)), ry = sx28(vc_eng32(s, e, VC_REG_BG2Y));
-  *tx = rx + pb * y + pa * x;
-  *ty = ry + pd * y + pc * x;
+  s32 pa = (s16)vc_ln16(s, e, y, VC_REG_BG2PA), pc = (s16)vc_ln16(s, e, y, VC_REG_BG2PC);
+  /* reference + y * (PB, PD); H-blank DMA: the line's values (vc_aff_ref) */
+  s32 rx = vc_aff_ref(s, e, y, VC_REG_BG2X, VC_REG_BG2PB), ry = vc_aff_ref(s, e, y, VC_REG_BG2Y, VC_REG_BG2PD);
+  (void)sx28;
+  *tx = rx + pa * x;
+  *ty = ry + pc * x;
 }
 
 /* Mode 6 BG2 (GBATEK 25): a 256-colour rot/scal bitmap, BGxCNT bits 14-15 = 0: 512x1024, 1: 1024x512 (2, 3 are not

@@ -43,3 +43,27 @@ file	f0c0443e487064a12dffa761cc06a16b71da4b01ada1628375018d74f642f4c4	libSDL2.so
 file	865b53f85851e430f1f0a37119052a5d009a3bb04cfd8557ecf80b28be1c6eb6	libSDL2.so	x86_64 SDL 2.32.10 (tools/android_deps.sh, NDK r30): 3 runs, 1108 bytes: SDL_mixer.c mix8 (the 8-bit mixing clamp table) twice in a row with the YUV tables after it, and a run of a ROM file by chance
 file	b5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f	libc++_shared.so	arm64-v8a NDK r30 libc++: no run beyond the listed public ones (charconv tables)
 file	39faf2d59346e65a18980f207794fab2f1faff8a8de3f087b8319a181fa16fbd	libc++_shared.so	x86_64 NDK r30 libc++: 1 run, 51 bytes: a digit/charconv table, equal by chance to a ROM file
+# Linux exe with Platinum (-Dplatinum, strip --strip-debug), 2026-11-14 (pas1: Platinum is group pl of the whole-image step):
+fe5dceeb057e8d83a6b121d01328967bc7bca7f8	1539	the SDK's pitch table (libntr's snd_util.c PitchTable and port/acore's k_pitch, 768 u16, twice in the image), equal for all 768 entries to round(65536*(2^(i/768)-1)): a closed-form function, not the game's data; Platinum's SDK has the same values (Black's differs); 3 chance zero bytes around it
+55a2c7a46ed18f2c18de072bcd4f848061720ff9	327	the host's .data.rel.ro (port/src/route_story_names.c's pointer tables, the slots zero in the file): 308 zero bytes and 19 others, equal by chance to a mostly-zero stretch of a Black overlay
+78ed1026089b593c48afba4dde50d247e2f72de9	135	the host's .data.rel.ro.local (libsim imgui.cpp, pointer slots zero in the file): 127 zero bytes and 8 others, equal by chance to a mostly-zero stretch of a Black 2 overlay
+# win64 exe with Platinum (-Dplatinum, x86_64-w64-mingw32-strip --strip-debug), 2026-11-14 (pas1): the Linux runs above (the pitch
+# table, the stb_image ones; SDL/mingw's __tens_D2A is the 64-byte one already listed) and one more:
+123ae4ec7e9a6a42e45cf1a17f411404d224d061	57	win64 exe, pl.o's .data at WarpType.names+0x37 (pret's C, 52 bytes of one value and 5 zeros: two byte values only, no table): equal by chance to a stretch of the Platinum ROM file outside its modules
+# macOS bwport and the IPA's binary (arm64 Mach-O, tools/port_romfill.py), 2026-11-12: the runs above, and
+d236f746e09d6eabac4b8da6df883599e7941f13	64	arm64 Mach-O, stb_image (port/src/launcher_cover.c): stbi__jpeg_dezigzag, the JPEG zigzag order (ITU-T T.81); the ROM's JPEG code (ov172) has it too
+2ee9a99f934628f7b657b8a7cd9afa383075efec	181	arm64 Mach-O, stb_image_write: std_ac_chrominance_values, the JPEG standard Huffman table (ITU-T T.81 Annex K.3); the ROM's JPEG code (ov172)
+06ddd73200a7570ce312e4e597cc933edf976aff	57	arm64 Mach-O, port/gpu SMAA kArea (the SMAA area lookup, Jimenez et al.), equal by chance to bytes of a Black 2 ROM file (mostly zeros)
+aa74f767dfa5f56bbb8e61f8240beced6f1df547	513	IPA binary, SDL 2.32.10 static (tools/ios_deps.sh): yuv_rgb_std.c YUV2RGB, a 0..255 clamp ramp; the ROM's JPEG code (ov172) has the same clamp table
+052f6ee042ca1f5c400fddb408b7093b3230b55e	512	IPA binary, SDL 2.32.10 static: SDL_mixer.c mix8, a 0..255 clamp ramp; equal to the ROM's JPEG clamp table (ov172)
+25421cbdf4f9113369a46972915921ab263a646e	55	IPA binary: clang's 16-byte vector literals (zeros, then 3, 4, 1, 2 as u32) in __const, equal by chance to zeros and small numbers of a Black 2 ROM file; not in any game's modules
+# macOS bwport with Platinum, HeartGold and SoulSilver built in and their ROMs in the check (2026-11-17, gen4): host data only
+4f7b2d4408e2c11bf3aa9c829023a26b32755e12	67	arm64 Mach-O __TEXT,__ustring (host UTF-16 literals, never filled): a step-2 ramp of 16-bit codes, equal by chance to bytes of the Platinum ROM file
+579070d6a7e2940120d68096fc6b51249b4b5f96	48	arm64 Mach-O: zeros (filled strings) then the asset row name pokemontrade_demo_common_irc_ov118_data_... (tools/port_assets.py's literal, the host's rows have it too, so ld64's merged copy stays); its first 24 characters are a file name in Black's overlay 118
+d5760aea5ef68b241dbca5e91a0ed81eb5b98260	78	arm64 Mach-O __bwconst: zeros (filled game constants) then a host table of 16-bit codes 0x3001, 0x3002, ... (CJK punctuation), equal to zeros and the same ramp in the Black ROM file
+c15d0549b9f37178f1f7a93d0032f358c0bc114b	67	arm64 Mach-O, stb_image: stbi__zdist_extra (RFC 1951 distance extra bits) at the extent HeartGold's overlay 96 matches (its inflate code has the table)
+1cce626b69f54e760864302b02bfba3de950722b	159	arm64 Mach-O, libc++ std::__itoa::__pow10_64 (the powers of ten as u64), equal to a powers-of-ten table in the Platinum ROM file
+1ae213cbb79c18845748bed48b242cf74790b89f	57	arm64 Mach-O, libntr's JIS maps (unicode2sjis_array, a ramp of 16-bit codes and zeros) at another extent than the rows above
+0d6b3bbe57f1a2be3c9e9b51422eeaa9aa2e2ede	65	IPA binary __TEXT,__ustring: the same host step-2 ramp of 16-bit codes as the macOS row above, at the extent the IPA's layout gives
+a00df7eb5170a37ae3f08958cd4b5bbf508fea9b	75	IPA binary, SDL 2.32.10 static: SDL_uikitevents' SDL_ASCIIKeyInfoTable (scancode, modifier pairs), equal by chance to a table of number pairs in HeartGold's overlay 7
+af8b9d6f43d1c759cbe7f83a62893f513944c844	516	macOS app, SDL 2.32.10 static (tools/ios_deps.sh macosx): SDL_mixer.c mix8, a 0..255 clamp ramp with the zeros before it; equal to the ROM JPEG code's clamp table (ov172)

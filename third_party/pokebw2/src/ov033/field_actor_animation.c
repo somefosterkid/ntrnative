@@ -19,7 +19,7 @@ struct EventActorAnmProcWaitWork {
 static const u32 FIELD_ACTOR_ANM_IS_ALLOW_MOVE_ON_END[6] = { TRUE, FALSE, FALSE, FALSE, FALSE, TRUE };
 
 static const FieldAsyncProcDef FIELD_ACTOR_ANM_ASYNC_PROC_TEMPLATE = {
-    0, 0x1a0, NULL, NULL, FieldActorAnmProc_Update, FieldActorAnmProc_Draw,
+    0, sizeof(FieldActorAnmProc), NULL, NULL, FieldActorAnmProc_Update, FieldActorAnmProc_Draw,
 };
 
 BOOL Scrcmd_FieldActorAnimation_ActorAnimationInit(VM *vm, FieldScriptEnv *env) {

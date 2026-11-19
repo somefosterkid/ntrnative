@@ -1,0 +1,48 @@
+diff --git a/libraries/fs/src/fs_file.c b/libraries/fs/src/fs_file.c
+index 86d39448e..6b6f253e6 100644
+--- a/libraries/fs/src/fs_file.c
++++ b/libraries/fs/src/fs_file.c
+@@ -28,11 +28,25 @@
+    close them (the FSFiles themselves are the machine's memory, put back as they were before the game started) */
+ #define FSi_PORT_FILES_MAX 1024   /* Platinum and HGSS hold ~120 FSFiles open (their NARCs): 64 lost 58 host files per reset, hg40 */
+ static FILE * s_portFiles[FSi_PORT_FILES_MAX];
++/* bw-port (libntr-openfiles.patch): host files open now and the most at once, FS_PortOpenFiles (port/src/run_frames.c's
++   guard against a game that opens a file and never closes it: Linux stops at ulimit -n, the CRT on win64 at 512) */
++static int s_portOpen, s_portPeak;
++
++int FS_PortOpenFiles(int * peak)
++{
++	if (peak != NULL) {
++		*peak = s_portPeak;
++	}
++	return s_portOpen;
++}
+ 
+ static FILE * FSi_PortFopen(const char * path, const char * mode)
+ {
+ 	FILE * f = fopen(path, mode);
+ 	int i;
++	if (f != NULL && ++s_portOpen > s_portPeak) {
++		s_portPeak = s_portOpen;
++	}
+ 	for (i = 0; f != NULL && i < FSi_PORT_FILES_MAX; i++) {
+ 		if (s_portFiles[i] == NULL) {
+ 			s_portFiles[i] = f;
+@@ -50,6 +64,9 @@ static int FSi_PortFclose(FILE * f)
+ 			s_portFiles[i] = NULL;
+ 		}
+ 	}
++	if (s_portOpen > 0) {
++		s_portOpen--;
++	}
+ 	return fclose(f);
+ }
+ 
+@@ -63,6 +80,7 @@ int FS_PortCloseAll(void)
+ 			n++;
+ 		}
+ 	}
++	s_portOpen = 0;
+ 	return n;
+ }
+ #define fopen FSi_PortFopen

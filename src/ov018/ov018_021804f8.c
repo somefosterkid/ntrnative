@@ -210,9 +210,9 @@ u32 func_ov018_02180538(GameEvent *event, s32 *state, IntrudeCommReward *param) 
 void func_ov018_021808c4(GameEvent *param_1, void *param_2) {
     void *dest;
 
-    GameEvent_Transplant(param_1, (void *)func_ov018_021808e8, 0xa8);
+    GameEvent_Transplant(param_1, (void *)func_ov018_021808e8, sizeof(EventCommCommonWork) + 0x10);
     dest = GameEvent_GetData(param_1);
-    MI_CpuCopy8(param_2, dest, 0x98);
+    MI_CpuCopy8(param_2, dest, sizeof(EventCommCommonWork));
 }
 
 const u16 data_ov018_0218383c[6] = { 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x00 };

@@ -149,3 +149,14 @@ void NNS_SndWaveOutWaitForChannelStop(NNSSndWaveOutHandle handle) {
     while (SND_GetChannelStatus() & (1 << waveOut->chNo)) {
     }
 }
+
+#ifndef __MWERKS__
+// The Gen 4 games' NNS_SndWaveOutSetPan, which Black never calls: not in the DS build, whose waveout.c is complete
+void NNS_SndWaveOutSetPan(NNSSndWaveOutHandle handle, int pan) {
+    NNSSndWaveOut *waveOut = handle;
+
+    if (waveOut->activeFlag) {
+        SND_SetChannelPan(1 << waveOut->chNo, pan);
+    }
+}
+#endif

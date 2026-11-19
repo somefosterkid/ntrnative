@@ -1,0 +1,202 @@
+pokeplatinum-widepointers2.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum, after widepointers): the pointer
+pass's rule for locals. A u32 local that takes a pointer through a (uintptr_t) cast (widepointers' casts) is a uintptr_t:
+pret's C keeps the address in it, adds to it or aligns it, and turns it back into a pointer (particle_system.c's
+ParticleSystem_AllocMemory cut the heap address, and the opening's SPLManager_New wrote through it). Every such local, as
+a rule: a widening of the local only.
+
+diff --git a/src/applications/trade_room/application.c b/src/applications/trade_room/application.c
+--- a/src/applications/trade_room/application.c
++++ b/src/applications/trade_room/application.c
+@@ -1616,5 +1616,5 @@
+ static void *TradeRoom_OffsetPartyPtr(Party *party, int index)
+ {
+-    u32 base = (uintptr_t)party;
++    uintptr_t base = (uintptr_t)party;
+ 
+     return (void *)(base + index * (236 * MAX_PARTY_SIZE + 4 * 2));
+diff --git a/src/comm_manager.c b/src/comm_manager.c
+--- a/src/comm_manager.c
++++ b/src/comm_manager.c
+@@ -294,5 +294,5 @@
+         (uintptr_t)CommTask_ConnectUndergroundClient, (uintptr_t)CommTask_ConnectUndergroundServer, 0
+     };
+-    u32 task = (uintptr_t)sCommMan->task;
++    uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -437,5 +437,5 @@
+         0,
+     };
+-    u32 task = (uintptr_t)sCommMan->task;
++    uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -1920,5 +1920,5 @@
+         (uintptr_t)CommTask_ScanPoketch, 0
+     };
+-    u32 task = (uintptr_t)sCommMan->task;
++    uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+     if (sCommMan == NULL) {
+@@ -2395,5 +2395,5 @@
+ BOOL CommManager_IsLoginBattleWifi(void)
+ {
+-    u32 task = (uintptr_t)sCommMan->task;
++    uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+     if (task == (uintptr_t)CommTask_WifiBattleLogin) {
+@@ -2415,5 +2415,5 @@
+ BOOL CommManager_IsLoginBattleMatchWifi(void)
+ {
+-    u32 task = (uintptr_t)sCommMan->task;
++    uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+     if (task == (uintptr_t)CommTask_WifiBattleMatchmaking) {
+@@ -2529,5 +2529,5 @@
+ {
+     if (sCommMan) {
+-        u32 task = (uintptr_t)sCommMan->task;
++        uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+         if (task == (uintptr_t)CommTask_WifiBattleError) {
+@@ -2822,5 +2822,5 @@
+ {
+     if (sCommMan) {
+-        u32 task = (uintptr_t)sCommMan->task;
++        uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+         if (task == (uintptr_t)CommTask_WifiPlazaError) {
+@@ -2870,5 +2870,5 @@
+ {
+     if (sCommMan) {
+-        u32 task = (uintptr_t)sCommMan->task;
++        uintptr_t task = (uintptr_t)sCommMan->task;
+ 
+         if (task == (uintptr_t)CommTask_ConnectWifiPlazaP2P) {
+diff --git a/src/main_menu/ov97_02232DC8.c b/src/main_menu/ov97_02232DC8.c
+--- a/src/main_menu/ov97_02232DC8.c
++++ b/src/main_menu/ov97_02232DC8.c
+@@ -87,5 +87,5 @@
+     UnkStruct_ov97_0223222C *v1 = ov97_02233410();
+     void *v2 = param1;
+-    u32 v3 = (uintptr_t)param1 & 0x1F;
++    uintptr_t v3 = (uintptr_t)param1 & 0x1F;
+ 
+     if (v3) {
+diff --git a/src/overlay109/ov109_021D0D80.c b/src/overlay109/ov109_021D0D80.c
+--- a/src/overlay109/ov109_021D0D80.c
++++ b/src/overlay109/ov109_021D0D80.c
+@@ -724,5 +724,5 @@
+ {
+     int v0;
+-    u32 v1 = (uintptr_t)param0->unk_24;
++    uintptr_t v1 = (uintptr_t)param0->unk_24;
+     v0 = CommSys_SendDataHuge(131, (void *)v1, 236 * 6 + 4 * 2);
+ 
+diff --git a/src/particle_system.c b/src/particle_system.c
+--- a/src/particle_system.c
++++ b/src/particle_system.c
+@@ -215,5 +215,5 @@
+     void *allocated = particleSystem->heap;
+ 
+-    u32 newHeapPos = (uintptr_t)particleSystem->heap + size;
++    uintptr_t newHeapPos = (uintptr_t)particleSystem->heap + size;
+     u32 offset = newHeapPos % 4;
+     if (offset > 0) {
+diff --git a/src/savedata.c b/src/savedata.c
+--- a/src/savedata.c
++++ b/src/savedata.c
+@@ -1341,5 +1341,5 @@
+     }
+ 
+-    u32 address = (uintptr_t)&halfTable[halfSize];
++    uintptr_t address = (uintptr_t)&halfTable[halfSize];
+     GF_ASSERT(FALSE);
+ 
+@@ -1360,4 +1360,4 @@
+     halfTable[halfSize] = checksum;
+ 
+-    u32 address = (uintptr_t)&halfTable[halfSize];
+-}
++    uintptr_t address = (uintptr_t)&halfTable[halfSize];
++}
+diff --git a/src/underground/comm_manager.c b/src/underground/comm_manager.c
+--- a/src/underground/comm_manager.c
++++ b/src/underground/comm_manager.c
+@@ -131,9 +131,9 @@
+     FieldCommunicationManager *fieldCommMan = FieldCommManager_Get();
+ 
+-    u32 currentTask = (uintptr_t)fieldCommMan->task;
+-    u32 mainTaskServer = (uintptr_t)CommManUnderground_MainTaskServer;
+-    u32 mainTaskClient = (uintptr_t)CommManUnderground_MainTaskClient;
+-    u32 mainTaskAlone = (uintptr_t)CommManUnderground_CheckForConnectionsTask;
+-    u32 mainTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTask;
++    uintptr_t currentTask = (uintptr_t)fieldCommMan->task;
++    uintptr_t mainTaskServer = (uintptr_t)CommManUnderground_MainTaskServer;
++    uintptr_t mainTaskClient = (uintptr_t)CommManUnderground_MainTaskClient;
++    uintptr_t mainTaskAlone = (uintptr_t)CommManUnderground_CheckForConnectionsTask;
++    uintptr_t mainTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTask;
+     u32 baseTransitionTasks[] = {
+         (uintptr_t)CommManUnderground_BaseTransitionStartTaskServer,
+@@ -169,9 +169,9 @@
+ {
+     FieldCommunicationManager *fieldCommMan = FieldCommManager_Get();
+-    u32 currentTask = (uintptr_t)fieldCommMan->task;
+-    u32 moveTaskServer = (uintptr_t)CommManUnderground_BaseTransitionTaskServer;
+-    u32 moveTaskClient = (uintptr_t)CommManUnderground_BaseTransitionTaskClient;
+-    u32 moveTaskAlone = (uintptr_t)CommManUnderground_BaseTransitionTaskAlone;
+-    u32 moveTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTransitionTask;
++    uintptr_t currentTask = (uintptr_t)fieldCommMan->task;
++    uintptr_t moveTaskServer = (uintptr_t)CommManUnderground_BaseTransitionTaskServer;
++    uintptr_t moveTaskClient = (uintptr_t)CommManUnderground_BaseTransitionTaskClient;
++    uintptr_t moveTaskAlone = (uintptr_t)CommManUnderground_BaseTransitionTaskAlone;
++    uintptr_t moveTaskClosedBase = (uintptr_t)CommManUnderground_ClosedBaseTransitionTask;
+ 
+     if (currentTask == moveTaskServer) {
+@@ -211,5 +211,5 @@
+         0
+     };
+-    u32 currentTask = (uintptr_t)fieldCommMan->task;
++    uintptr_t currentTask = (uintptr_t)fieldCommMan->task;
+ 
+     if (fieldCommMan == NULL) {
+diff --git a/src/underground/traps.c b/src/underground/traps.c
+--- a/src/underground/traps.c
++++ b/src/underground/traps.c
+@@ -1119,5 +1119,5 @@
+ static void Traps_RemoveBuriedTrap(BuriedTrap *trap)
+ {
+-    u32 start = (uintptr_t)&trapsEnv->buriedTraps[0];
++    uintptr_t start = (uintptr_t)&trapsEnv->buriedTraps[0];
+     u32 index = ((uintptr_t)trap - start) / sizeof(BuriedTrap);
+     u32 netID = index / MAX_PLACED_TRAPS;
+diff --git a/src/unk_02033200.c b/src/unk_02033200.c
+--- a/src/unk_02033200.c
++++ b/src/unk_02033200.c
+@@ -230,5 +230,5 @@
+ {
+     sCommServerClient->unk_14F4 = 0;
+-    u32 v0 = (uintptr_t)sCommServerClient->unk_14E8;
++    uintptr_t v0 = (uintptr_t)sCommServerClient->unk_14E8;
+ 
+     v0 = 32 - (v0 % 32) + v0;
+diff --git a/src/unk_0209BDF8.c b/src/unk_0209BDF8.c
+--- a/src/unk_0209BDF8.c
++++ b/src/unk_0209BDF8.c
+@@ -352,5 +352,5 @@
+ void *sub_0209C188(UnkStruct_0209BDF8 *param0, int param1)
+ {
+-    u32 v0 = (uintptr_t)(param0->unk_50);
++    uintptr_t v0 = (uintptr_t)(param0->unk_50);
+     v0 += param1 * (236 * 6 + 4 * 2);
+ 
+diff --git a/src/wireless_manager.c b/src/wireless_manager.c
+--- a/src/wireless_manager.c
++++ b/src/wireless_manager.c
+@@ -1228,5 +1228,5 @@
+ BOOL WirelessManager_Initialize(void *heap, BOOL isNotListening)
+ {
+-    u32 heapAddress = (uintptr_t)heap;
++    uintptr_t heapAddress = (uintptr_t)heap;
+ 
+     if (heapAddress % 32) {

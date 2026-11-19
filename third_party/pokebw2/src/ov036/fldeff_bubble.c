@@ -251,7 +251,7 @@ static const u32 BUBBLE_MDL_INDEX[1] = { 0 };
 static const u32 BUBBLE_ANM_INDICES[BUBBLE_ANM_COUNT] = { 1, 2 };
 static const u32 BUBBLE_FILE_IDS[BUBBLE_RES_COUNT] = { 0x53, 0x9d, 0x8a };
 static const FieldEffectTaskVTable BUBBLE_TASK_VTABLE = {
-    0x84,
+    sizeof(BubbleTask),
     (FieldEffectTaskFunc)FldeffBubble_Init,
     (FieldEffectTaskFunc)FldeffBubble_Exit,
     (FieldEffectTaskFunc)FldeffBubble_Update,

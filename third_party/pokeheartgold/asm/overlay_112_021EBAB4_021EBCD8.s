@@ -1,0 +1,44 @@
+#include "config.h"
+	.include "macros.inc"
+	.include "overlay_112.inc"
+	.include "global.inc"
+	.public gApplication_TitleScreen
+
+	.public ov112_021E7464
+	.public ov112_021E7484
+	.public ov112_021E7668
+	.public ov112_021E76A8
+	.public ov112_021E7CA4
+	.public ov112_021E7CC8
+	.public ov112_021E9290
+	.public ov112_021E9338
+	.public ov112_021E966C
+	.public ov112_021E96D0
+	.public ov112_021E9750
+	.public ov112_021E9888
+	.public ov112_021E98E8
+	.public ov112_021E9A78
+	.public ov112_021E9C10
+	.public ov112_021E9F40
+	.public ov112_021E9FA4
+	.public ov112_021EA010
+	.public ov112_021EA08C
+	.public ov112_021EA17C
+	.public ov112_021EA19C
+	.public ov112_021EA51C
+	.public ov112_021EA570
+	.public ov112_021EA584
+	.public ov112_021EA5A4
+	.public ov112_021EA64C
+	.public ov112_021EA670
+	.public ov112_021EA688
+	.public ov112_021EA6A0
+	.public ov112_021EA7D0
+	.public ov112_021EA864
+	.public ov112_021ED0D0
+	.public ov112_021ED2F4
+	.public ov112_021FF0C4
+	.public ov112_021FF740
+	.public ov112_021FF7CC
+	.public ov112_021EC440
+	.text

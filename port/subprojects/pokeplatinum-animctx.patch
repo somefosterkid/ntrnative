@@ -1,0 +1,27 @@
+pokeplatinum-animctx.patch (tools/pokeplat_gen.py applies the patches in name order): the overworld anim manager's
+function context buffer (funcsCtx, inline in each manager) sized for the host. On the DS it is 160 bytes and every
+manager's context struct fits (the Eterna gym's fountain animation uses 132); with 8-byte pointers the same struct is
+224 bytes, so ResetFuncsContext's memset and the init function's writes ran past the buffer over the manager's own
+init/tick/render/exit pointers (and into the next manager): the gym's anim tick then called a null pointer the frame
+the player entered the gym (zone 67), SIGSEGV in OverworldAnimManager_CallTickFunc. 512 holds the host layout of
+every context seen (the lists are 32 to 128 managers: at most ~80 KB). The assert says when a context ever outgrows it.
+
+--- a/include/overworld_anim_manager.h
++++ b/include/overworld_anim_manager.h
+@@ -7,5 +7,5 @@
+ #include "sys_task.h"
+ 
+-#define OVERWORLD_ANIM_MANAGER_FUNCS_CONTEXT_SIZE 160
++#define OVERWORLD_ANIM_MANAGER_FUNCS_CONTEXT_SIZE 512
+ 
+ typedef struct OverworldAnimManager OverworldAnimManager;
+--- a/src/overworld_anim_manager.c
++++ b/src/overworld_anim_manager.c
+@@ -77,6 +77,7 @@
+         OverworldAnimManager_SetPosition(iter, &zeroPos);
+     }
+ 
++    GF_ASSERT(funcs->baseFuncs.ctxSize <= OVERWORLD_ANIM_MANAGER_FUNCS_CONTEXT_SIZE);
+     OverworldAnimManager_ResetFuncsContext(iter, funcs->baseFuncs.ctxSize);
+     OverworldAnimManager_SetInitFunc(iter, funcs->baseFuncs.initFunc);
+     OverworldAnimManager_SetExitFunc(iter, funcs->baseFuncs.exitFunc);

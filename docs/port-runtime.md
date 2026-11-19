@@ -172,6 +172,20 @@ missing it extracts `BWPORT_ROM` or the first `*.nds` of the directory (the FNT/
 0x200 bytes): Black's 247 files in about 2 s, byte-identical to extract/b_us/files. `BWPORT_DIR` sets the
 directory. So: `BWPORT_ROM=pokeblack.nds ./bwport` once, or the .nds next to bwport.exe.
 
+**Open files (fl1, 2026-11-17).** Every file a game opens is a host `FILE *` (libraries/fs/src/fs_file.c: `fopen` through
+`FSi_PortFopen`, `fclose` through `FSi_PortFclose`; there is no `_open` or `CreateFile` anywhere in the port's FS). A game that
+opens a file and never closes it costs a host file each time, where the DS did not care: HeartGold's GetNarcMemberSizeByIdPair and
+Platinum's NARC_GetMemberSizeByIndexPair leaked one per call, ~33 per 1000 frames, so a play of ~8 minutes reached `ulimit -n`
+1024 on Linux (the save hung at EMFILE) and would reach the CRT's 512 on win64 (`_getmaxstdio`; the port never raises it, and
+needs no more: a long play keeps ~25 files open). Both are fixed (the decomp's hw12; port/subprojects/pokeplatinum-narcclose.patch).
+The guard: libntr-openfiles.patch counts the host files open now and the most at once (`FS_PortOpenFiles`); port/src/run_frames.c
+looks at the peak at every V-blank wait and, past 256, prints `openfiles: leak: N host files open at frame F ...` once (with
+BWPORT_HEAPCHECK on it aborts there, tools/port_run.py's verdict `openfiles: ...`); a run's end (the exit frame, the pilot's end)
+prints `openfiles: now N peak P`. tools/route.py reads it: a leg whose log has the leak line is the verdict `leak` (not a pass),
+and a chain report prints `open files: peak P at once (leg), N legs` above its total. Peaks at the HG pin 79ce66778 (hg and ss
+chains, 58 legs each, one process a leg): 23; Platinum chain (218 legs): 21; Gen 5 `--quick` (10 legs): 31. A leak below the bound (a slow one)
+shows as a peak that grows from one build to the next, not as a verdict.
+
 ## The save
 
 libntr's backup is the host file `save.bin` in the working directory: nitro/card/backup.h's PC inlines of
@@ -210,9 +224,20 @@ port/extern/src/ov093/battle_event.c (Black, White) and port/extern_b2w2/src/ov1
 prints `cheat: speed mon N ratio ..` / `cheat: damage atk A def D -> N` to the log. Proven: tools/plays/black/route1-fight.txt,
 tools/plays/b2/hugh-fight.txt (Hugh's battle). A new stand-in file is only picked up after `touch port/meson.build` (the source list is
 made at configure time).
+The party also "knows" the field moves (Cut 15, Fly 19, Surf 57, Strength 70, Waterfall 127, Flash 148, Rock Smash 249, Dive 291:
+PortRoute_CheatFieldMove, port/src/route_test.c): the script command 0x116 PokePartyHasMoveAny (the gate of the Cut tree, Strength
+boulder, Surf and Waterfall scripts, Dive) answers slot 0 (port/extern/src/ov010/scrcmd_pokemon.c, port/extern_b2w2/src/ov012/scrcmd_pokemon.c:
+the game's function with the same reads, the field moves found in the first slot); and the field's own Surf (A press at water) and Waterfall
+(step into the fall) checks, which look at a Pokemon's four moves in fieldmap_event.c (Black func_ov021_0218b630, Black 2
+GameData_FindPartyPkmByMove), see Surf and Waterfall as MOVE1/MOVE2 of every Pokemon (a macro on PokeParty_GetParam in the stand-in
+port/extern*/src/ov021|ov036/fieldmap_event.c, the only place that file reads moves). 0x115 (a given slot) is untouched. Proven on Black's Dreamyard Cut tree (leg dreamyard-cut: `Pa G:zone:152 Wf:60 G:npc:8 Wf G:trig:0 Wf S W30` from b-fennel,
+save b-dream1): the script asks 'use Cut?' and G:npc's pulse key (A) answers Yes at the cursor's Yes (no Py needed); the tree goes
+and the next token walks onto its tile.
 Not covered: a move of the opponent's with priority (Quick Attack) still goes first, but does 0 damage; moves that do not go through
 CALC_DAMAGE (fixed damage: Dragon Rage, Seismic Toss, Super Fang), status moves, poison/burn, weather, recoil, confusion; the
 opponent can still cause status conditions and stat drops.
+Platinum (11-14): the same switches, its own hooks in the Gen 4 battle engine (turn-order speeds, accuracy, PP, the hit's damage)
+and the field's step encounter check: docs/platinum.md "Test cheats".
 
 ## The probe
 

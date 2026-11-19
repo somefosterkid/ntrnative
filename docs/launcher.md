@@ -1,9 +1,9 @@
 # The launcher: games, ROMs, saves, settings (design, 2026-11-04)
 
-A design only: nothing here is built. Where it gives a number, the number comes from the 11-04 macOS arm64 and iOS builds in
-the ipa-build worktree (`nm`, `size -m`, `otool -l` on `build/port/{macos,ios}/bwport` and the static libraries next to
-it), the sources, or the base ROM's header. Anything not measured says so. The rules, the maintainers' notes and
-the maintainers' notes all apply. The ones that matter most here: the game C stays byte-identical to the ROM build,
+Written as a design on 2026-11-04; the "as built" sections record what was built since, on every platform. Where the design
+gives a number, the number comes from the 11-04 macOS arm64 and iOS builds (`nm`, `size -m`, `otool -l` on
+`build/port/{macos,ios}/bwport` and the static libraries next to it), the sources, or the base ROM's header. Anything not
+measured says so. The maintainers' notes apply. The ones that matter most here: the game C stays byte-identical to the ROM build,
 mods go in port-only code, every platform gets the change, the maintainer's save and settings are sacred, and nothing from
 the ROM goes in git.
 
@@ -348,6 +348,9 @@ bytes) and the ROM version at 0x1E (0). The used size is at 0x80 (0x0C3B8E00) an
 | Pokemon White (USA, Europe) | IRAO | 1.0, the user's dump (header checked: "POKEMON W", IRAO, unit 0x02, chip 0x0b, 268,435,456 bytes) | bc696a0dfb448c7b3a8a206f0f8214411a039208 |
 | Pokemon Black 2 (USA, Europe) | IREO | 1.0, the user's dump (the maintainers' notes) | e51e6dfb8678a3d19dcd2a10691b96a569ca0abb |
 | Pokemon White 2 (USA, Europe) | IRDO | 1.0, the user's dump | b5d7490be7b415b8f1e672a53e978a9cc667e56a |
+| Pokemon Platinum (USA, Rev 1) | CPUE | 1.0, the user's dump | 0862ec35b24de5c7e2dcb88c9eea0873110d755c |
+| Pokemon HeartGold (USA) | IPKE | 1.0, the user's dump | 4fcded0e2713dc03929845de631d0932ea2b5a37 |
+| Pokemon SoulSilver (USA) | IPGE | 1.0, the user's dump | f8dc38ea20c17541a43b58c5e6d18c1732c7e582 |
 
 The White, Black 2 and White 2 codes are the public ones; confirm them on the dumps. Validation is code first, then
 sha1. A trimmed dump is hashed as if it were padded with 0xFF to the chip size (128 KB << byte 0x14), so one sha1 per
@@ -488,7 +491,7 @@ Recommendation: **native on the phones, ImGui on the desktop, over one C core.**
 - **Measured** (M2, hidden window, frame skip 4, BWPORT_FRAMERATE=unlimited, 1-minute load about 2-6): five rounds of Games...
   from the room, then Play: resets 29.7, 21.9, 21.8, 21.4, 25.0 ms, threads 39, 39, 38, 38, 38, heap 41.6-41.8 MB, resident
   366-395 MB; the room after the sixth boot. Export, import, restore and export again are byte-equal to the saves they came from.
-  Screenshots of both layouts, the questions and the sizes: ~/bw-cache/launcher-shots-desktop/ (its README).
+  Screenshots of both layouts, the questions and the sizes were kept outside the repository.
 - **Windows and Linux (2026-11-05, wl90):** the window, the first-start path, the migration and the covers run on the win64 exe
   (built and run on Windows, hidden test steps and real clicks). (1) win64 links launcher_gui.cpp (meson: libstdc++.a first with
   -Bstatic, -lwinhttp, -lole32, -luuid; launcher_core.c leaves u8/u32 to libntr there). (2) The root is the working directory:
@@ -682,6 +685,96 @@ folder. The logic is C (port/src/launcher_cover.c); only the GET is per platform
 - **Covers:** GameTDB has IREO and IRDO (art.gametdb.com/ds/coverHQ/US/IREO.jpg 235 KB, IRDO.jpg 214 KB; EN and the
   smaller sizes too), and libretro-thumbnails has `Pokemon - Black Version 2 (USA, Europe) (NDSi Enhanced).png` (416 KB) and
   the White 2 one (447 KB): the table's codes and names were right as they were.
+
+### Platinum, HeartGold and SoulSilver in the launcher (2026-11-16, Linux and Windows)
+
+- **Built in by default.** port/meson.options' `platinum` and `hgss` are on (`-Dplatinum=false`, `-Dhgss=false` leave a
+  module out). As first built (11-16) Platinum's module read its ROM for the overlay layout and HeartGold and SoulSilver were
+  not in the win64 build; since then both build with no ROM on Linux, Windows and Android (docs/port-build.md "A build with no
+  ROM"; Android: docs/android-parity.md "Generation IV on Android"), so every launcher lists all seven games. A build directory
+  made before the change keeps its old options
+  (meson does not re-read a changed default): `meson configure DIR -Dplatinum=true -Dhgss=true`, or a new directory.
+  tools/port_run.py and route.py run Platinum and HG/SS from the default build dir too (build/port/linux; port_run configures the
+  module on in an older dir), or from the dir `BWPORT_PLAT_BUILD` / `BWPORT_HG_BUILD` names (the older build/port/linux-plat,
+  linux-hgss); `BWPORT_BUILD` still wins over both. The launcher
+  rows (`BWPORT_PLAT`, `BWPORT_HG`) and the games table (port/src/games.c) were already there; nothing else in the core changed.
+- **Sizes and times (Linux, unstripped, this desktop under other agents' load, -j 6, nice 10).** bwport with every game 325 MB
+  (the Gen 5 build 119 MB, the HG/SS-only build 282 MB); a new build directory 32 minutes (17,458 steps: the Gen 5 modules,
+  Platinum, HG/SS; ccache cold for the directory), the romfill step 82 s. win64 with Platinum: 634 s on the laptop (7 CPUs,
+  ccache warm), 207 MB. The one-exe link needed nothing new (`--fail-on-data` of the HG/SS build now covers Black and
+  Platinum too: 0 new undefined data symbols).
+- **Identification, folders, covers.** By the header code and the sha1s above (README's table), as the Gen 5 games; each game's
+  folder is `Pokemon Platinum/`, `Pokemon HeartGold/`, `Pokemon SoulSilver/` under the root, with the ROM copy, `save.bin`,
+  `backups/` and the extracted files. Covers: GameTDB by the code (coverHQ for CPUE, IPKE and IPGE), libretro-thumbnails by the
+  table's No-Intro name as the fallback; the generic path, no per-game code. The page's edition line is `LC_Edition` (the
+  No-Intro name's groups: "USA / Europe  ·  NDSi Enhanced" for the Gen 5 games, "USA  ·  Rev 1" for Platinum, "USA" for HG/SS;
+  it said "USA / Europe  ·  NDSi Enhanced" under every game before; checked by port/tests/launcher_plat_save_test.c).
+- **Saves.** Gen 4's `save.bin` is the same 512 KB image the Gen 5 games use, beside the ROM. The launcher's own check reads
+  Platinum's two footers (saveBlock0 0xcf2c, saveEnd 0x1f110, 20-byte footers) and HG/SS's two (the general block to 0xf628,
+  the boxes from 0xf700 to 0x21a10, 16-byte footers: saveBoxes, saveFooter). Until 2026-11-18 (lcfix1) the HG/SS rows read only
+  a Gen 5-style last footer, which no real HG/SS save has: import and restore refused every one. Test:
+  port/tests/run_launcher_hgss_save_test.sh [saves...] (synthetic saves; real ones imported, imported again, the backup
+  restored). Gen 4 saves hold no date, so LC_SaveFileInfo has none for them; the desktop's and iOS's import dialogs now take
+  a good save without one ("a HeartGold save") instead of refusing it with an empty message.
+- **Extracted?** LC_ExtractRom writes `.bwport-extracted` last; LC_HasFilesIn (LC_HasFiles, main_start.c's flat layout) wants
+  header.bin and that mark, or a/0/0/0 (a Gen 5 extraction older than the mark). Platinum's file system has no a/ tree, so
+  before the mark every Play extracted it again.
+- **Linux, a fresh root, hidden Xvfb (the test hook of this document: `BWPORT_LAUNCHER_TEST` / `_AGAIN`, cfgscript `games=1`).**
+  Importing Platinum, HeartGold, SoulSilver and Black in the window took 4 steps, each extracted (340 files for Platinum); the
+  library and the tabs list the four with their covers. One process then ran Platinum, HeartGold, SoulSilver, Black and
+  Platinum again (`game=next;play` and `games=1` at the title, 5 boots, 115 s with the first extraction), no CRASH or HANG in
+  the log, each game's title (Platinum, Black) or its opening (HG, SS) shot. cfgscript note: its steps are consumed once per
+  process, so a round trip needs `pN` steps (`f12000:shot=t;p200:games=1;p12000:shot=t;...`: the V-blank count restarts with each
+  boot, and SIM_ResetHost zeroes the pN mark); a list of `fN` steps all fire at the first boot's frame N.
+- **A Gen 4 save persists (Linux: Platinum, HeartGold, SoulSilver; Windows: Platinum).** A new game to the first save through the
+  game's own X menu (tools/plays/<game>/room-save.txt's keys, 23,000 to 27,200 frames), the process ended; a new process: the
+  launcher goes straight to the last game (launcher.ini), CONTINUE (room-load.txt's keys), the player stands where the save
+  was made. `save.bin` is 524,288 bytes and has the same sha1 before and after the load, on every run.
+- **Windows (laptop, hidden window, the win64 exe with Platinum).** Platinum and Black import into a fresh `run\`, Platinum boots
+  to its title from the launcher and the new game saves and continues (same save sha1 after the second process, the room
+  shot equal to Linux's). **Game > Games from Platinum** (cfgscript `games=1`) ended the process with 0xC00000FF (bad function
+  table) right after "the game reset the system (from TrySystemReset): starting again", until 2026-11-16 (wr1). The cause was
+  not the restart's ranges but the unwind table: mingw's longjmp unwinds the game's frames by the exe's `.pdata`, and GNU ld
+  sorts a section named `.pdata` by its bytes in the `-r` link of tools/port_relink.py too, where they are only addends while
+  the relocations stay put: pl.o's (and b2.o's, w2.o's) entries named other objects' functions (101,030 bad entries in the exe).
+  Black is linked directly, so its round trip worked. port_relink.py now gathers the table into `.bwpdata` for the `-r` link
+  and objcopy names it back; `x86_64-w64-mingw32-objdump -p bwport.exe | grep -c "same begin"` is 0. One process then ran
+  Platinum, Games, Black, Games, Platinum on the laptop (hidden) and quit with code 0. Any module relinked that way (HG/SS's
+  hg.o once it is in the win64 build) gets the same.
+### The iOS and macOS launchers' Gen 4 rows (2026-11-17, as built)
+
+- ios_launcher.m reads the same table as the PC's: a game with a ROM copy or extracted files gets a tab and a page, so the three
+  rows needed only a theme each (Theme(): Platinum dark steel grey, HeartGold light gold, SoulSilver light silver; launcher_gui.cpp's
+  Theme() has the same three, for the macOS and PC window), the edition line from `LC_Edition` ("USA  ·  Rev 1" for Platinum,
+  "USA" for HG/SS; it was the fixed "USA / Europe  ·  NDSi Enhanced"), and the Add Game texts that named Black only. ROM import,
+  save import and the summary are the core's (LC_ImportRom identifies by sha1; the save layouts are the table's).
+- **Simulator (iPhone 17 Pro, `--fresh`, the test hook).** Black, Platinum (340 files), HeartGold and SoulSilver (384 each) import
+  through `importrom=` one after the other; the covers come from GameTDB (coverHQ) into the run's root; the library and tab pages
+  show each with its theme and "USA  ·  Rev 1" / "USA". Platinum from the launcher reached its title and NEW GAME's first scene
+  (Rowan's "Hello there!"); Platinum, then Game > Games, then HeartGold booted in one process, and so did Black, HeartGold and
+  SoulSilver (the Gen 4 to Gen 5 switch). Not run: a Gen 4 save import (no Gen 4 save on the Mac; the core's layout is the PC's).
+  A shot taken while iOS had the app in the background (one run, after the first import) is blank white: take shots again.
+
+- **Mac and iOS (as planned on 11-16; the Generation IV modules link on the Mac and the iOS Simulator since 11-17,
+  docs/port-build.md "On Apple"; the Apple build files are not in the public repository yet):** (1) Platinum's and HG/SS's modules in the Mach-O build (port/meson.build gates both on `not is_mac`; their
+  overlay files go through tools/port_overlays.py's `--macho-*` options as Black 2's do, one relocatable `pl.o` / `hg.o` by ld64
+  `-r`), the games' rows then need `BWPORT_PLAT` / `BWPORT_HG` in the Apple builds' `game_args`; (2) ios_launcher.m adopts the
+  core's look and texts (below: its Theme() table of four codes gave every other game Black's blue; its fixed "USA / Europe  ·
+  NDSi Enhanced" line and the Black-only ROM prompts and not-playable note); (3) Android has them since 2026-11-17 (run in the
+  x86_64 emulator since: docs/android-parity.md); (4) otherwise the Apple and Android launchers read the same table.
+- **The look of a game, one place (2026-11-17, lch1).** Every front-end kept its own table of the four Gen 5 codes for the colours,
+  so a Gen 4 game got Black's blue; the empty library, the Add Game text and the "not playable" note named Black only; Android and
+  iOS showed "USA / Europe · NDSi Enhanced" under every game. Now `LC_Game` (launcher_core.h) carries `accent`, `deep`, `glow` and
+  `dark` (Black blue, White orange, Black 2 yellow, White 2 pink as before; Platinum steel grey on dark, HeartGold gold over red on
+  dark, SoulSilver silver-blue on light), `LC_Edition` gives the page's region/feature line ("USA  ·  Rev 1", "USA") and
+  `LC_PlayableNames` the games of the build for the prompts. launcher_gui.cpp (Linux, Windows, macOS) and Android (android_launcher.c's
+  row, LauncherCore.java, LauncherActivity.java) read them; port/tests/launcher_plat_save_test.c checks that no two rows share an
+  accent. Also launcher_gui.cpp's tab row now scrolls (the selected tab comes into view; the wheel over the row moves it): seven
+  tabs are wider than an 800-point window and the last ones were clipped and unreachable. Checked on Linux (Xvfb, all seven ROMs
+  imported: library and tabs, 1280x800 and 800x600) and on the win64 exe (hidden, this desktop: Black, Platinum, HeartGold and
+  SoulSilver, which are the win64 table's). Both layouts show each game's own accent, banner icon, GameTDB cover, title and edition
+  line; a Gen 4 save is detected by its footers as before. Not done: `LC_SaveFileInfo` returns none for Gen 4 (no play time or
+  date of the last save is read), so a Gen 4 card shows "No save yet" or the file's date and no "N min played".
 
 ## 4. The ROM library
 

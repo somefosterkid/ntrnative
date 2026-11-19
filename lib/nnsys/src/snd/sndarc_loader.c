@@ -57,6 +57,10 @@ BOOL NNS_SndArcLoadSeq(int seqNo, NNSSndHeapHandle heap) {
     return NNSi_SndArcLoadSeq(seqNo, 0xff, heap, TRUE, NULL) == NNS_SND_ARC_LOAD_SUCESS;
 }
 
+BOOL NNS_SndArcLoadBank(int bankNo, NNSSndHeapHandle heap) {
+    return NNSi_SndArcLoadBank(bankNo, 0xff, heap, TRUE, NULL) == NNS_SND_ARC_LOAD_SUCESS;
+}
+
 BOOL NNS_SndArcLoadWaveArc(int waveArcNo, NNSSndHeapHandle heap) {
     return NNSi_SndArcLoadWaveArc(waveArcNo, 0xff, heap, TRUE, NULL) == NNS_SND_ARC_LOAD_SUCESS;
 }

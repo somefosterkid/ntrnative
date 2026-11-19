@@ -5,12 +5,22 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ['BWPORT_GATE_APK'] = '1'   # the tier tests below include the APK check (off by default since 11-15)
 from gate_select import select
 
 
 def ran(files, full=False):
     why, tests = select(files, full)
     return {c for c, w in why.items() if w}, tests
+
+
+def t_apk_off_by_default():
+    os.environ.pop('BWPORT_GATE_APK')
+    try:
+        r, _ = ran(['port/src/x.c'])
+        assert 'apk' not in r, r
+    finally:
+        os.environ['BWPORT_GATE_APK'] = '1'
 
 
 def t_decomp():
@@ -41,6 +51,16 @@ def t_port():
     assert 'apk' in r and 'cores' in r, r
     r, _ = ran(['tools/android/app/a.kt'])
     assert r == {'apk'}, r
+
+
+def t_plat_only():
+    r, _ = ran(['port/game/route_gen4.c', 'port/game/plat_online.c', 'port/subprojects/pokeplatinum-route.patch',
+                'port/include_plat/port_plat.h', 'port/include_gen4/nnsys_gen4.h'])
+    assert r == set(), r
+    r, _ = ran(['port/game/route_gen4.c', 'port/src/audio.c'])   # one shared file and the whole port tier is back
+    assert r == {'port', 'cores', 'switch', 'sweep', 'touch', 'apk'}, r
+    r, _ = ran(['port/game/game_table.c'])   # Gen 5's table too: not Platinum-only
+    assert 'port' in r, r
 
 
 def t_full():

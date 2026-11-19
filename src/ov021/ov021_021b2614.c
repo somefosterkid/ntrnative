@@ -21,7 +21,7 @@ struct GameEvent {
 
 void func_ov043_021f42a8(GameSystem *param_1);
 GameEvent *func_ov043_021f3a28(GameSystem *gsys, s32 param_2);
-GameEvent *func_ov038_021f3a88(GameSystem *param_1, s32 param_2, s32 param_3);
+GameEvent *func_ov046_021f3a88(GameSystem *param_1, s32 param_2, s32 param_3);
 GameEvent *func_ov046_021f3b5c(GameSystem *param_1, s32 param_2);
 GameEvent *func_ov046_021f3ad0(GameSystem *gsys, s32 param_2, s32 param_3);
 GameEvent *func_ov046_021f3b18(GameSystem *gsys, s32 param_2);
@@ -95,7 +95,7 @@ u32 func_ov021_021b26e4(VM *param_1, FieldScriptEnv *param_2) {
     ScriptWork *work;
 
     work = FieldScriptEnv_GetScriptWork(param_2);
-    event = func_ov042_021f3888(FieldScriptEnv_GetGameSystem(param_2), (u32) VM_Read16(param_1));
+    event = func_ov045_021f3888(FieldScriptEnv_GetGameSystem(param_2), (s32) VM_Read16(param_1));
     if (event == NULL) {
         return 1U;
     }
@@ -116,7 +116,7 @@ BOOL func_ov021_021b273c(VM *vm, FieldScriptEnv *env) {
     ScriptWork *work;
 
     work = FieldScriptEnv_GetScriptWork(env);
-    event = func_ov038_021f3a88(FieldScriptEnv_GetGameSystem(env), (s32) VM_Read16(vm), (s32) VM_Read16(vm));
+    event = func_ov046_021f3a88(FieldScriptEnv_GetGameSystem(env), (s32) VM_Read16(vm), (s32) VM_Read16(vm));
     if (event == NULL) {
         return 1;
     }

@@ -1,0 +1,34 @@
+#include "config.h"
+	.include "macros.inc"
+	.include "overlay_73.inc"
+	.include "global.inc"
+
+	.public _021EA940
+	.public ov73_021E6830
+	.public ov73_021E6A70
+	.public ov73_021E746C
+	.public ov73_021EA520
+	.public ov73_021EA664
+	.public ov73_021EA684
+	.public ov73_021EA68C
+	.public ov73_021EA69C
+	.public ov73_021EA6D4
+	.public ov73_021EA6F0
+	.public ov73_021EA70C
+	.public ov73_021EA728
+	.public ov73_021EA744
+	.public ov73_021EA83C
+	.public ov73_021EA840
+	.public ov73_021EA844
+	.public ov73_021EA848
+	.public ov73_021E9F34
+	.public ov73_021E9FF8
+	.public ov73_021EA088
+	.public ov73_021EA0F0
+	.public ov73_021EA12C
+	.public ov73_021EA134
+	.public ov73_021EA15C
+	.public ov73_021EA180
+	.public ov73_021E83D4
+	.public ov73_021E844C
+	.text

@@ -1,0 +1,82 @@
+#include "global.h"
+
+#include "unk_02019BA4.h"
+#include "overlay_14_unk_struct_ov14_boxapp.h"
+#include "overlay_14_unk_struct_ov14_boxsys.h"
+#include "overlay_14_box_funcs.h"
+
+s32 ov14_021E9F20(UnkStruct_ov14_boxapp *app);
+void ov14_021F4848(u8 *);
+void ov14_021E5A50(UnkStruct_ov14_boxsys *sys, UnkFuncPtr_ov14_boxtask task);
+s32 ov14_021F29E4(UnkStruct_ov14_boxsys *, s32, s32);
+s32 ov14_021F48B4(void *);
+s32 ov14_021F49E0(void *);
+s32 ov14_021F57B8(void *);
+s32 ov14_021F7AC4(UnkStruct_ov14_boxsys *, s32, s32);
+
+void ov14_021F7184(void *arg0, s32 arg1, s32 arg2) {
+    s32 var_r4;
+    int var_r1;
+    int var_r1_2;
+    void *temp_r0;
+    void *temp_r1;
+    u8 *new_var;
+    new_var = (u8 *)arg0;
+    var_r4 = arg1;
+    temp_r0 = ((void *)((UnkStruct_ov14_boxapp *)arg0)->sys);
+    if ((*((u8 *)&((UnkStruct_ov14_boxsys *)temp_r0)->unk_44B)) == 0) {
+        if ((var_r4 >= 0x25) && (var_r4 <= 0x2A)) {
+            ov14_021F29E4(temp_r0, 9, 0xE);
+        } else {
+            ov14_021F29E4(temp_r0, 9, 8);
+        }
+    }
+    if ((var_r4 == 0x25) && (((((arg2 >= 0) && (arg2 <= 5)) || ((arg2 >= 0x18) && (arg2 <= 0x1D))) || ((arg2 >= 0x1E) && (arg2 <= 0x1F))) || (arg2 == 0x24))) {
+        temp_r1 = ((void *)((UnkStruct_ov14_boxapp *)arg0)->sys);
+        var_r4 = ((UnkStruct_ov14_boxsys *)temp_r1)->unk_43C;
+        GridInputHandler_SetNextLastUnk0FInputs(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C, (s32)((u8)var_r4), (s32)((u8)arg2), GridInputHandler_GetUnk0F(((UnkStruct_ov14_boxsys *)temp_r1)->unk_2C));
+    }
+    if ((var_r4 >= 0x25) && (var_r4 <= 0x2A)) {
+        ((UnkStruct_ov14_boxapp *)arg0)->sys->unk_43C = var_r4;
+    }
+    temp_r0 = (u8 *)arg0;
+    if ((var_r4 == 0x25) && (arg2 == 0x2A)) {
+        if (((s32)((((UnkStruct_ov14_boxapp *)new_var)->unk25) + 1)) >= 0x12) {
+            var_r1 = 0;
+        } else {
+            var_r1 = (((UnkStruct_ov14_boxapp *)arg0)->unk25) + 1;
+        }
+        ((UnkStruct_ov14_boxapp *)temp_r0)->unk25 = var_r1;
+        ov14_021F49E0(arg0);
+        ov14_021F48B4(arg0);
+        ov14_021F4848((u8 *)arg0);
+        ov14_021F57B8(arg0);
+        ov14_021F29E4(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), 5, 4);
+        ov14_021F7AC4(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), var_r4, arg2);
+        ov14_021E5A50(((void *)((UnkStruct_ov14_boxapp *)temp_r0)->sys), ov14_021E9F20);
+        return;
+    }
+    if ((var_r4 == 0x2A) && (arg2 == 0x25)) {
+        if (((s32)((((UnkStruct_ov14_boxapp *)temp_r0)->unk25) - 1)) < 0) {
+            var_r1_2 = 0x11;
+        } else {
+            var_r1_2 = (((UnkStruct_ov14_boxapp *)arg0)->unk25) - 1;
+        }
+        ((UnkStruct_ov14_boxapp *)temp_r0)->unk25 = var_r1_2;
+        ov14_021F49E0(arg0);
+        ov14_021F48B4(arg0);
+        ov14_021F4848((u8 *)arg0);
+        ov14_021F57B8(arg0);
+        ov14_021F29E4(((void *)((UnkStruct_ov14_boxapp *)temp_r0)->sys), 4, 2);
+        ov14_021F7AC4(((void *)((UnkStruct_ov14_boxapp *)temp_r0)->sys), var_r4, arg2);
+        ov14_021E5A50(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), ov14_021E9F20);
+        return;
+    }
+    if ((((var_r4 >= 0x25) && (var_r4 <= 0x2A)) && (arg2 >= 0x25)) && (arg2 <= 0x2A)) {
+        ((UnkStruct_ov14_boxapp *)temp_r0)->unk25 = (u8)((var_r4 + (6 * (((s32)(((UnkStruct_ov14_boxapp *)arg0)->unk25)) / 6))) - 0x25);
+        ov14_021F48B4(arg0);
+        ov14_021F57B8(arg0);
+    }
+    ov14_021F7AC4(((void *)((UnkStruct_ov14_boxapp *)temp_r0)->sys), var_r4, arg2);
+    ov14_021E5A50(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), ov14_021E9F20);
+}

@@ -11,10 +11,15 @@
 // WHEN is seconds, or fN for frame N of the V-blank count (OS_GetVBlankCount), as port_run.py's --keys: "start@f600".
 // Touches (the phone's touch layout, libntr-ios-touch.patch; positions are window points): "tap:X,Y@f1700" a finger down at
 // (X, Y) for 4 frames, "hold:X,Y@f1700-f1800" down at the first frame and up at the second (seconds without the f), and
+// "stylus:X,Y@f1700[-f1800]" the DS touch screen's own pixel (0..255, 0..191) for 6 frames (or to the second frame) through
+// libntr's bwport_touch_force (libntr-touchforce.patch): no window or touch layout, so it works in any desktop run (a
+// tap: finger is a window point, which the desktop build's mouse-driven touch screen does not take), and
 // "drag:X0,Y0,X1,Y1@f1700-f1800" a finger moving from the first point to the second over that time. They are pushed as SDL
 // finger events (a finger id of its own each), as the screen would send them: they work wherever the touch layout does.
 // On Apple systems they are pushed on the main thread's queue (libntr-ios-inputprio.patch): they reach the game as UIKit's touches
 // do, when the main run loop runs (SDL's pump, the game's waits on iOS), and go through the touch layer's event filter.
+// KEY[*HOLD]@WHEN#B: only in boot B (0: the first; 1: after the game's first OS_ResetSystem, the in-process restart, which
+// otherwise plays the whole script again from its V-blank 0: a soft-reset test's L+R+START+SELECT would reset forever, hg40).
 // HOLD is seconds, or fN for N frames ("down*f24@f3000": walking a step and a half whatever the frame rate). A frame
 // key without *HOLD is held 4 frames.
 #include <SDL2/SDL.h>
@@ -37,6 +42,7 @@ typedef struct {
     double hold; // seconds (frames if byFrame and no *HOLD)
     int byFrame; // at is a frame number
     int holdFrames;
+    int boot;    // the boot it plays in (#B), -1: every boot
 } KeyPress;
 
 static KeyPress sKeys[KEYS_MAX];
@@ -47,7 +53,10 @@ typedef struct {
     double at, until;     // start, end (frames if byFrame)
     int byFrame;
     int state;            // 0 waiting, 1 down, 2 done
+    int ds;               // stylus: (DS pixels, bwport_touch_force)
 } TouchPress;
+
+extern volatile unsigned int bwport_touch_force;   // libntr-touchforce.patch
 
 static TouchPress sTouches[KEYS_MAX];
 static int sTouchCount;
@@ -65,7 +74,7 @@ static void ParseTouch(const char *tok) {
     TouchPress *t = &sTouches[sTouchCount];
     const char *colon = strchr(tok, ':'), *at = strchr(tok, '@');
     float v[4] = {0, 0, 0, 0};
-    int n, drag = strncmp(tok, "drag:", 5) == 0, tap = strncmp(tok, "tap:", 4) == 0;
+    int n, drag = strncmp(tok, "drag:", 5) == 0, tap = strncmp(tok, "tap:", 4) == 0, ds = strncmp(tok, "stylus:", 7) == 0;
 
     if (colon == NULL || at == NULL) {
         fprintf(stderr, "bwport: BWPORT_KEYS: %s is not tap:X,Y@WHEN / hold:X,Y@FROM-TO / drag:X0,Y0,X1,Y1@FROM-TO\n", tok);
@@ -84,9 +93,10 @@ static void ParseTouch(const char *tok) {
     t->at = atof(at + 1 + t->byFrame);
     {
         const char *dash = strchr(at, '-');
-        t->until = dash != NULL ? atof(dash + 1 + (dash[1] == 'f')) : t->at + (tap ? 4 : 0);
+        t->until = dash != NULL ? atof(dash + 1 + (dash[1] == 'f')) : t->at + (tap ? 4 : ds ? 6 : 0);
     }
     t->state = 0;
+    t->ds = ds;
     sTouchCount++;
 }
 
@@ -100,7 +110,8 @@ static void ParseKeys(const char *script) {
         if (buf[k] == ' ') {
             touch = 0;
         } else if (k == 0 || buf[k - 1] == ' ') {
-            touch = strncmp(buf + k, "tap:", 4) == 0 || strncmp(buf + k, "hold:", 5) == 0 || strncmp(buf + k, "drag:", 5) == 0;
+            touch = strncmp(buf + k, "tap:", 4) == 0 || strncmp(buf + k, "hold:", 5) == 0 || strncmp(buf + k, "drag:", 5) == 0 ||
+                    strncmp(buf + k, "stylus:", 7) == 0;
         }
         if (buf[k] == ',' && !touch) {
             buf[k] = ' ';
@@ -113,7 +124,8 @@ static void ParseKeys(const char *script) {
         u32 i;
         KeyPress *k = &sKeys[sKeyCount];
 
-        if (strncmp(tok, "tap:", 4) == 0 || strncmp(tok, "hold:", 5) == 0 || strncmp(tok, "drag:", 5) == 0) {
+        if (strncmp(tok, "tap:", 4) == 0 || strncmp(tok, "hold:", 5) == 0 || strncmp(tok, "drag:", 5) == 0 ||
+            strncmp(tok, "stylus:", 7) == 0) {
             ParseTouch(tok);
             continue;
         }
@@ -144,6 +156,7 @@ static void ParseKeys(const char *script) {
             k->hold = 4;
         }
         k->at = atof(at + 1 + k->byFrame);
+        k->boot = strchr(at, '#') != NULL ? atoi(strchr(at, '#') + 1) : -1;
         sKeyCount++;
     }
     free(buf);
@@ -196,6 +209,10 @@ static void PushFingerMain(void *arg) {
 
 // a finger event at (x, y) points, as SDL's UIKit sends them (normalised to the window)
 static void PushFinger(int n, int type, float x, float y) {
+    if (sTouches[n].ds) {   // stylus: the DS pixel itself, read by libntr's next input tick
+        bwport_touch_force = type == SDL_FINGERUP ? 0 : 0x80000000u | (unsigned)y << 8 | (unsigned)x;
+        return;
+    }
     if (type == SDL_FINGERUP) {
         sUpNs[n] = CounterNs();
     }
@@ -234,6 +251,7 @@ static void PushFingerNow(int n, int type, float x, float y) {
 }
 
 static volatile int sRewind;
+static int sBoot;   // the in-process restarts so far (a #B key plays in boot B only)
 
 // The in-process restart (machine.c): the script runs again from the new boot's V-blank 0 (as when the program started
 // again: the keys of a test replay after each reset)
@@ -241,80 +259,117 @@ void PORT_KeysReset(void) {
     sRewind = 1;
 }
 
-static void *ScriptThread(void *arg) {
-    double start = *(double *)arg;
-    struct timespec ms = {0, 1000000};
-    int i, done = 0, touchDone = 0;
-    u8 down[KEYS_MAX] = {0};
-    double pf[KEYS_MAX], pt[KEYS_MAX];
+// The script's state, one lock for the two that step it: the game's V-blank wait (PORT_KeysFrame) takes the items timed in frames,
+// the thread the ones in seconds. A frame item used to wait for the thread's next 1 ms poll too: at Platinum's ~2,000 frames a
+// second that landed 1-4 frames late, a different number each run, so the same script played differently (pl7: the info box's
+// `down down a` missed in some runs). Pressed at the wait, frame N's key is in the register when the game reads it after V-blank N,
+// every run.
+static pthread_mutex_t sStepLock = PTHREAD_MUTEX_INITIALIZER;
+static double sStart;   // Now() at the start (or the restart): the items in seconds count from it
+static u8 sDown[KEYS_MAX];   // a key: 0 waiting, 1 down, 2 done
+static double sPf[KEYS_MAX], sPt[KEYS_MAX];   // the frame and the second it went down
+static int sDone, sTouchDone;
+static volatile int sScript;   // a script is running: PORT_KeysFrame steps it
 
-    for (;;) {
-        double t, fr;
+static void Step(int frameCall) {
+    double t, fr;
+    int i;
 
-        if (sRewind) {
-            sRewind = 0;
-            for (i = 0; i < sKeyCount; i++) {
-                if (down[i] == 1) {
-                    SetKey(&sKeys[i], 0);
-                }
-                down[i] = 0;
+    pthread_mutex_lock(&sStepLock);
+    if (sRewind) {
+        sRewind = 0;
+        sBoot++;
+        for (i = 0; i < sKeyCount; i++) {
+            if (sDown[i] == 1) {
+                SetKey(&sKeys[i], 0);
             }
-            for (i = 0; i < sTouchCount; i++) {
-                if (sTouches[i].state == 1) {
-                    PushFinger(i, SDL_FINGERUP, sTouches[i].x1, sTouches[i].y1);
-                }
-                sTouches[i].state = 0;
-            }
-            done = touchDone = 0;
-            start = Now();
+            sDown[i] = 0;
         }
-        if (done >= sKeyCount && touchDone >= sTouchCount) {
-            struct timespec idle = {0, 10000000};
-            nanosleep(&idle, NULL);   // all done: only a restart's rewind is waited for
+        for (i = 0; i < sTouchCount; i++) {
+            if (sTouches[i].state == 1) {
+                PushFinger(i, SDL_FINGERUP, sTouches[i].x1, sTouches[i].y1);
+            }
+            sTouches[i].state = 0;
+        }
+        sDone = sTouchDone = 0;
+        sStart = Now();
+    }
+    if (sDone >= sKeyCount && sTouchDone >= sTouchCount) {
+        pthread_mutex_unlock(&sStepLock);
+        return;
+    }
+    t = Now() - sStart;
+    fr = (double)OS_GetVBlankCount();
+    for (i = 0; i < sTouchCount; i++) {
+        TouchPress *p = &sTouches[i];
+        double n = p->byFrame ? fr : t;
+        if (p->byFrame != frameCall) {
             continue;
         }
-        t = Now() - start;
-        fr = (double)OS_GetVBlankCount();
-        for (i = 0; i < sTouchCount; i++) {
-            TouchPress *p = &sTouches[i];
-            double n = p->byFrame ? fr : t;
-            if (p->state == 0 && n >= p->at) {
-                p->state = 1;
-                PushFinger(i, SDL_FINGERDOWN, p->x0, p->y0);
-                fprintf(stderr, "bwport: %.1f s, frame %.0f: finger %d down at %.0f,%.0f\n", t, fr, i, p->x0, p->y0);
-            } else if (p->state == 1) {
-                double f = p->until > p->at ? (n - p->at) / (p->until - p->at) : 1.0;
-                if (n >= p->until) {
-                    PushFinger(i, SDL_FINGERUP, p->x1, p->y1);
-                    p->state = 2;
-                    touchDone++;
-                    fprintf(stderr, "bwport: %.1f s, frame %.0f: finger %d up\n", t, fr, i);
-                } else if (p->x0 != p->x1 || p->y0 != p->y1) {
-                    PushFinger(i, SDL_FINGERMOTION, p->x0 + (p->x1 - p->x0) * (float)f, p->y0 + (p->y1 - p->y0) * (float)f);
-                }
+        if (p->state == 0 && n >= p->at) {
+            p->state = 1;
+            PushFinger(i, SDL_FINGERDOWN, p->x0, p->y0);
+            fprintf(stderr, "bwport: %.1f s, frame %.0f: finger %d down at %.0f,%.0f\n", t, fr, i, p->x0, p->y0);
+        } else if (p->state == 1) {
+            double f = p->until > p->at ? (n - p->at) / (p->until - p->at) : 1.0;
+            if (n >= p->until) {
+                PushFinger(i, SDL_FINGERUP, p->x1, p->y1);
+                p->state = 2;
+                sTouchDone++;
+                fprintf(stderr, "bwport: %.1f s, frame %.0f: finger %d up\n", t, fr, i);
+            } else if (p->x0 != p->x1 || p->y0 != p->y1) {
+                PushFinger(i, SDL_FINGERMOTION, p->x0 + (p->x1 - p->x0) * (float)f, p->y0 + (p->y1 - p->y0) * (float)f);
             }
         }
-        for (i = 0; i < sKeyCount; i++) {
-            double n = sKeys[i].byFrame ? fr : t;
-            if (down[i] == 0 && n >= sKeys[i].at) {
-                SetKey(&sKeys[i], 1);
-                down[i] = 1;
-                pf[i] = fr;
-                pt[i] = t;
-                fprintf(stderr, "bwport: %.1f s, frame %.0f: %s\n", t, fr, sKeyNames[__builtin_ctz(sKeys[i].mask)]);
-            } else if (down[i] == 1 && (sKeys[i].holdFrames ? fr - pf[i] : t - pt[i]) >= sKeys[i].hold) {
-                SetKey(&sKeys[i], 0);
-                down[i] = 2;
-                done++;
+    }
+    for (i = 0; i < sKeyCount; i++) {
+        double n = sKeys[i].byFrame ? fr : t;
+        // a key in seconds held for frames (a*f24@10) goes down on the thread and up at a wait
+        int mine = sDown[i] == 1 && sKeys[i].holdFrames ? frameCall : sKeys[i].byFrame == frameCall;
+        if (sKeys[i].boot >= 0 && sKeys[i].boot != sBoot) {   // another boot's key: done for this one
+            if (sDown[i] == 0) {
+                sDown[i] = 2;
+                sDone++;
             }
+            continue;
         }
+        if (!mine) {
+            continue;
+        }
+        if (sDown[i] == 0 && n >= sKeys[i].at) {
+            SetKey(&sKeys[i], 1);
+            sDown[i] = 1;
+            sPf[i] = fr;
+            sPt[i] = t;
+            fprintf(stderr, "bwport: %.1f s, frame %.0f: %s\n", t, fr, sKeyNames[__builtin_ctz(sKeys[i].mask)]);
+        } else if (sDown[i] == 1 && (sKeys[i].holdFrames ? fr - sPf[i] : t - sPt[i]) >= sKeys[i].hold) {
+            SetKey(&sKeys[i], 0);
+            sDown[i] = 2;
+            sDone++;
+        }
+    }
+    pthread_mutex_unlock(&sStepLock);
+}
+
+// At each V-blank wait of the game (port/src/main_threads.c: PORT_WaitIrq, PortPlat_WaitIrq), before the frame is drawn
+void PORT_KeysFrame(void) {
+    if (sScript) {
+        Step(1);
+    }
+}
+
+static void *ScriptThread(void *arg) {
+    struct timespec ms = {0, 1000000};
+
+    (void)arg;
+    for (;;) {
+        Step(0);
         nanosleep(&ms, NULL);
     }
     return NULL;
 }
 
 __attribute__((constructor)) static void KeysScriptInit(void) {
-    static double start;
     const char *keys = getenv("BWPORT_KEYS");
     pthread_t thread;
 
@@ -323,8 +378,9 @@ __attribute__((constructor)) static void KeysScriptInit(void) {
     }
     ParseKeys(keys);
     if (sKeyCount > 0 || sTouchCount > 0) {
-        start = Now();
-        pthread_create(&thread, NULL, ScriptThread, &start);
+        sStart = Now();
+        sScript = 1;
+        pthread_create(&thread, NULL, ScriptThread, NULL);
         pthread_detach(thread);
     }
 }

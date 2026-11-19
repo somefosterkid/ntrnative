@@ -1,0 +1,310 @@
+pokeplatinum-portc.patch (tools/pokeplat_gen.py applies it to build/pokeplatinum): pret's C that Metrowerks accepts and the
+port's clang (64-bit host, C) does not, each as the smallest edit:
+- lvalue casts `(u8 *)p += n;` (9: pc_boxes/application_manager.c, overlay005/ov5_021ECE40.c, main_menu/ov97_02232DC8.c)
+- struct assignment of a struct with a const member (overlay_manager.c: memcpy)
+- `\uNNNN` escapes of Shift-JIS bytes in four debug strings (underground/comm_manager.c): clang refuses UCNs of control
+  characters; `\xNN` is the byte MWCC makes
+- initializers holding function addresses as u32 (applications/bag/main.c, underground/menus.c, underground/player_talk.c):
+  not constant on a 64-bit host; uintptr_t is (the consumers still pass these through u32: the pointer pass)
+- implicit declarations, which on x86-64 return int (a pointer would be cut to 32 bits): the missing #include
+  (heap.h, graphics.h, wifi_history_save_data.h, chatot_cry.h, underground/manager.h), include/link_contest_records.h
+  guarded with contest.h's name (so contest.c never saw it), and prototypes for functions defined in one .c and called from
+  another with no header (PlayerAvatar_GetMoveState, BattleController_EmitSelected*, PokedexSort_NumDisplayed,
+  CapsuleGraphics_LoadBgLayer2Tilemap/Dummy)
+
+diff --git a/include/applications/capsule_menu/graphics.h b/include/applications/capsule_menu/graphics.h
+index 10985a66c..95ee196c8 100644
+--- a/include/applications/capsule_menu/graphics.h
++++ b/include/applications/capsule_menu/graphics.h
+@@ -78,4 +78,6 @@ void CapsuleGraphics_InitCapsuleUI(CapsuleAppManager *appMan);
+ void CapsuleGraphics_SetPageSpritesDrawFlag(CapsuleAppManager *appMan, int flag);
+ void CapsuleGraphics_Unused(CapsuleAppManager *appMan);
++void CapsuleGraphics_LoadBgLayer2Tilemap(CapsuleAppManager *appMan, NARC *narc);
++void CapsuleGraphics_Dummy(CapsuleAppManager *appMan);
+ void CapsuleGraphics_FreeUISprites(CapsuleAppManager *appMan);
+ 
+diff --git a/include/applications/pokedex/pokedex_sort.h b/include/applications/pokedex/pokedex_sort.h
+index 1f821e1c2..fc18e62cd 100644
+--- a/include/applications/pokedex/pokedex_sort.h
++++ b/include/applications/pokedex/pokedex_sort.h
+@@ -98,4 +98,5 @@ u32 PokedexSort_WormadamForm(const PokedexSortData *param0, int formIndex);
+ u32 PokedexSort_DefaultForm(const PokedexSortData *param0, u32 species);
+ u32 PokedexSort_NumGendersVisible(const PokedexSortData *param0, int species);
++int PokedexSort_NumDisplayed(const PokedexSortData *param0);
+ u32 PokedexSort_SpindaForm(const PokedexSortData *param0);
+ u32 PokedexSort_DeoxysForm(const PokedexSortData *param0, int formIndex);
+diff --git a/include/battle/battle_controller.h b/include/battle/battle_controller.h
+index 2d2ecc5f0..2d19d9ed0 100644
+--- a/include/battle/battle_controller.h
++++ b/include/battle/battle_controller.h
+@@ -30,4 +30,7 @@ void ov16_022658CC(BattleSystem *battleSys, int battler, int command);
+ void BattleController_EmitShowBagMenu(BattleSystem *battleSys, BattleContext *battleCtx, int battler);
+ void BattleController_EmitSelectedBagItem(BattleSystem *battleSys, int battler, BattleItemUse message);
++void BattleController_EmitSelectedCommand(BattleSystem *battleSys, int battler, int command);
++void BattleController_EmitSelectedMove(BattleSystem *battleSys, int battler, int command);
++void BattleController_EmitSelectedTarget(BattleSystem *battleSys, int battler, int command);
+ void BattleController_EmitShowPartyMenu(BattleSystem *battleSys, BattleContext *battleCtx, int battler, int listMode, int canSwitch, int doublesSelection);
+ void BattleController_EmitPartyMenuResult(BattleSystem *battleSys, int battler, int command);
+diff --git a/include/link_contest_records.h b/include/link_contest_records.h
+index 5365a64c3..ff07438de 100644
+--- a/include/link_contest_records.h
++++ b/include/link_contest_records.h
+@@ -1,4 +1,4 @@
+-#ifndef POKEPLATINUM_CONTEST_H
+-#define POKEPLATINUM_CONTEST_H
++#ifndef POKEPLATINUM_LINK_CONTEST_RECORDS_H
++#define POKEPLATINUM_LINK_CONTEST_RECORDS_H
+ 
+ #include "constants/contests.h"
+@@ -16,3 +16,3 @@ void LinkContestRecords_IncrementSavaData(SaveData *saveData, enum PokemonContes
+ u16 LinkContestRecords_GetSavaData(SaveData *saveData, enum PokemonContestType contestType, int placement);
+ 
+-#endif // POKEPLATINUM_CONTEST_H
++#endif // POKEPLATINUM_LINK_CONTEST_RECORDS_H
+diff --git a/include/player_avatar.h b/include/player_avatar.h
+index 9816a4b38..e9b8588e0 100644
+--- a/include/player_avatar.h
++++ b/include/player_avatar.h
+@@ -57,4 +57,5 @@ void PlayerAvatar_Delete(PlayerAvatar *playerAvatar);
+ MapObject *MapObjectMan_GetPlayerMapObject(const MapObjectManager *param0);
+ int PlayerAvatar_GetFacingDir(PlayerAvatar *const playerAvatar);
++int PlayerAvatar_GetMoveState(const PlayerAvatar *playerAvatar);
+ void PlayerAvatar_TryFace(PlayerAvatar *playerAvatar, int param1);
+ int PlayerAvatar_GetMovingDir(PlayerAvatar *const playerAvatar);
+diff --git a/src/applications/bag/main.c b/src/applications/bag/main.c
+index 5b57d66ea..411ff2888 100644
+--- a/src/applications/bag/main.c
++++ b/src/applications/bag/main.c
+@@ -320,16 +320,16 @@ static const u8 sPocketSizes[POCKET_MAX] = {
+ };
+ 
+-static const u32 sItemActionFuncs[] = {
+-    [ITEM_ACTION_USE] = (u32)ItemActionFunc_Use,
+-    [ITEM_ACTION_WALK] = (u32)ItemActionFunc_Use,
+-    [ITEM_ACTION_CHECK] = (u32)ItemActionFunc_Use,
+-    [ITEM_ACTION_PLANT] = (u32)ItemActionFunc_Use,
+-    [ITEM_ACTION_OPEN] = (u32)ItemActionFunc_Use,
+-    [ITEM_ACTION_TRASH] = (u32)ItemActionFunc_Trash,
+-    [ITEM_ACTION_REGISTER] = (u32)ItemActionFunc_Register,
+-    [ITEM_ACTION_DESELECT] = (u32)ItemActionFunc_Deselect,
+-    [ITEM_ACTION_GIVE] = (u32)ItemActionFunc_Give,
+-    [ITEM_ACTION_CHECK_TAG] = (u32)ItemActionFunc_CheckTag,
+-    [ITEM_ACTION_CONFIRM] = (u32)ItemActionFunc_Confirm,
++static const uintptr_t sItemActionFuncs[] = {
++    [ITEM_ACTION_USE] = (uintptr_t)ItemActionFunc_Use,
++    [ITEM_ACTION_WALK] = (uintptr_t)ItemActionFunc_Use,
++    [ITEM_ACTION_CHECK] = (uintptr_t)ItemActionFunc_Use,
++    [ITEM_ACTION_PLANT] = (uintptr_t)ItemActionFunc_Use,
++    [ITEM_ACTION_OPEN] = (uintptr_t)ItemActionFunc_Use,
++    [ITEM_ACTION_TRASH] = (uintptr_t)ItemActionFunc_Trash,
++    [ITEM_ACTION_REGISTER] = (uintptr_t)ItemActionFunc_Register,
++    [ITEM_ACTION_DESELECT] = (uintptr_t)ItemActionFunc_Deselect,
++    [ITEM_ACTION_GIVE] = (uintptr_t)ItemActionFunc_Give,
++    [ITEM_ACTION_CHECK_TAG] = (uintptr_t)ItemActionFunc_CheckTag,
++    [ITEM_ACTION_CONFIRM] = (uintptr_t)ItemActionFunc_Confirm,
+     [ITEM_ACTION_CANCEL] = MENU_CANCEL
+ };
+diff --git a/src/applications/pc_boxes/application_manager.c b/src/applications/pc_boxes/application_manager.c
+index 82c927db2..3b025aba7 100644
+--- a/src/applications/pc_boxes/application_manager.c
++++ b/src/applications/pc_boxes/application_manager.c
+@@ -3735,5 +3735,5 @@ static void BoxAppMan_PutDownSelectedMons(BoxApplicationManager *boxAppMan, BoxA
+         posInBox = selectionTopLeftPos + (selection->selectedMonsOrigBoxPos[i] - origSelectionTopLeftPos);
+         PCBoxes_TryStoreBoxMonAt(boxAppMan->pcBoxes, USE_CURRENT_BOX, posInBox, boxMon);
+-        (u8 *)boxMon += boxMonStructSize;
++        boxMon = (BoxPokemon *)((u8 *)boxMon + boxMonStructSize);
+     }
+ 
+diff --git a/src/applications/pokedex/pokedex_panel.c b/src/applications/pokedex/pokedex_panel.c
+index 44acc821b..9d0bce91e 100644
+--- a/src/applications/pokedex/pokedex_panel.c
++++ b/src/applications/pokedex/pokedex_panel.c
+@@ -4,4 +4,6 @@
+ #include <string.h>
+ 
++#include "heap.h"
++
+ static int inline CurrentButtonIndex(const PokedexPanelData *pokedexPanelData);
+ static int inline CalcButtonIndex(const PokedexPanelData *pokedexPanelData, int col, int row);
+diff --git a/src/field_battle_data_transfer.c b/src/field_battle_data_transfer.c
+index 16dc3f962..f06f87111 100644
+--- a/src/field_battle_data_transfer.c
++++ b/src/field_battle_data_transfer.c
+@@ -49,4 +49,5 @@
+ #include "system_data.h"
+ #include "system_flags.h"
++#include "wifi_history_save_data.h"
+ #include "system_vars.h"
+ #include "terrain_collision_manager.h"
+diff --git a/src/main_menu/ov97_02232DC8.c b/src/main_menu/ov97_02232DC8.c
+index 4037d3c06..ac5b8e257 100644
+--- a/src/main_menu/ov97_02232DC8.c
++++ b/src/main_menu/ov97_02232DC8.c
+@@ -102,17 +102,19 @@ void ov97_02232E38(UnkStruct_ov97_02232E38 *param0, void *param1)
+ 
+     v1->unk_34 = param1;
+-    (u8 *)param1 += WM_SYSTEM_BUF_SIZE;
++    param1 = (u8 *)param1 + WM_SYSTEM_BUF_SIZE;
+ 
+     v1->unk_38 = param1;
+-    (u8 *)param1 += v1->unk_2C = ov97_02232E28();
++    v1->unk_2C = ov97_02232E28();
++    param1 = (u8 *)param1 + v1->unk_2C;
+ 
+     v1->unk_3C = param1;
+-    (u8 *)param1 += v1->unk_30 = ov97_02232E30();
++    v1->unk_30 = ov97_02232E30();
++    param1 = (u8 *)param1 + v1->unk_30;
+ 
+     v1->unk_28 = param1;
+-    (u8 *)param1 += sizeof(WMBssDesc);
++    param1 = (u8 *)param1 + sizeof(WMBssDesc);
+ 
+     v1->unk_24 = param1;
+-    (u8 *)param1 += sizeof(WMScanParam);
++    param1 = (u8 *)param1 + sizeof(WMScanParam);
+ 
+     (void)WM_Init(v1->unk_34, 2);
+@@ -150,8 +152,8 @@ void ov97_02232E38(UnkStruct_ov97_02232E38 *param0, void *param1)
+ 
+     ov97_02233538()->unk_08 = param1;
+-    (u8 *)param1 += v1->unk_2C;
++    param1 = (u8 *)param1 + v1->unk_2C;
+ 
+     ov97_02233538()->unk_0C = param1;
+-    (u8 *)param1 += v1->unk_30;
++    param1 = (u8 *)param1 + v1->unk_30;
+ 
+     (void)WM_GetNextTgid();
+diff --git a/src/overlay005/ov5_021ECE40.c b/src/overlay005/ov5_021ECE40.c
+index 32436f2e9..b1048593a 100644
+--- a/src/overlay005/ov5_021ECE40.c
++++ b/src/overlay005/ov5_021ECE40.c
+@@ -336,5 +336,5 @@ static void ov5_021ED0A4(UnkStruct_ov5_021ED0A4 *param0, int param1)
+         v3->unk_04 = v2;
+         v3++;
+-        (u8 *)v2 += v1;
++        v2 = (BillboardResources *)((u8 *)v2 + v1);
+         param1--;
+     } while (param1);
+diff --git a/src/overlay_manager.c b/src/overlay_manager.c
+index 3d63ed556..5cfb0fe41 100644
+--- a/src/overlay_manager.c
++++ b/src/overlay_manager.c
+@@ -11,5 +11,5 @@ ApplicationManager *ApplicationManager_New(const ApplicationManagerTemplate *tem
+     ApplicationManager *appMan = Heap_Alloc(heapID, sizeof(ApplicationManager));
+ 
+-    appMan->template = *template;
++    memcpy(&appMan->template, template, sizeof(*template));
+     appMan->execState = 0;
+     appMan->procState = 0;
+diff --git a/src/password_word_bank.c b/src/password_word_bank.c
+index fd3322ff8..905ee2b6a 100644
+--- a/src/password_word_bank.c
++++ b/src/password_word_bank.c
+@@ -9,4 +9,6 @@
+ 
+ #include "easy_chat_words.h"
++#include "graphics.h"
++#include "heap.h"
+ 
+ #include "res/words/word_bank.naix"
+diff --git a/src/scrcmd_contests.c b/src/scrcmd_contests.c
+index eac8b5634..e96cd5e65 100644
+--- a/src/scrcmd_contests.c
++++ b/src/scrcmd_contests.c
+@@ -10,4 +10,5 @@
+ #include "overlay006/link_contest_record_display.h"
+ 
++#include "chatot_cry.h"
+ #include "contest.h"
+ #include "field_script_context.h"
+diff --git a/src/underground/comm_manager.c b/src/underground/comm_manager.c
+index 39a32dd5a..3553f718d 100644
+--- a/src/underground/comm_manager.c
++++ b/src/underground/comm_manager.c
+@@ -354,5 +354,5 @@ static void CommManUnderground_ConnectTaskServer(void)
+         }
+ 
+-        CommManUnderground_DebugPrintDummy("\u0090\u0065\u008B\u0040\u0090\u00DA\u0091\u00B1"); // 親機接続
++        CommManUnderground_DebugPrintDummy("\x90\x65\x8B\x40\x90\xDA\x91\xB1"); // 親機接続
+ 
+         CommPlayer_SendPos(FALSE);
+@@ -432,5 +432,5 @@ static void CommManUnderground_WaitForDataReadTaskClient(void)
+ 
+     if (CommInfo_IsDataFinishedReading()) {
+-        CommManUnderground_DebugPrintDummy("info\u0083\u0066\u0081\u005B\u0083\u005E\u008E\u00F3\u0090\u004D\u008A\u00AE\u0097\u00B9"); // データ受信完了
++        CommManUnderground_DebugPrintDummy("info\x83\x66\x81\x5B\x83\x5E\x8E\xF3\x90\x4D\x8A\xAE\x97\xB9"); // データ受信完了
+         UndergroundPlayer_SendHeldFlagOwnerInfo();
+         CommManUnderground_SetFieldCommManTask(CommManUnderground_WaitForFlagDataReceiptTaskClient, 200);
+@@ -462,5 +462,5 @@ static void CommManUnderground_WaitForTrapDataReceiptTaskClient(void)
+ {
+     if (Traps_HaveLinksReceivedPlacedTraps()) {
+-        CommManUnderground_DebugPrintDummy("\u0090\u0065\u008B\u0040\u00E3\u00A9\u0083\u0066\u0081\u005B\u0083\u005E\u0093\u00CD\u0082\u00A2\u0082\u00BD\u0082\u00E7\u0082\u00B5\u0082\u00A2"); // 親機罠データ届いたらしい
++        CommManUnderground_DebugPrintDummy("\x90\x65\x8B\x40\xE3\xA9\x83\x66\x81\x5B\x83\x5E\x93\xCD\x82\xA2\x82\xBD\x82\xE7\x82\xB5\x82\xA2"); // 親機罠データ届いたらしい
+         Traps_ClearLinksReceivedPlacedTraps();
+         SecretBases_SendBaseInfo();
+@@ -475,5 +475,5 @@ static void CommManUnderground_WaitForBaseDataReceiptTaskClient(void)
+ {
+     if (SecretBases_HaveLinksReceivedBaseData()) {
+-        CommManUnderground_DebugPrintDummy("\u0094\u00E9\u0096\u00A7\u008A\u00EE\u0092\u006E\u0082\u00CC\u0088\u00CA\u0092\u0075\u0082\u00AA\u0082\u00AB\u0082\u00BD"); // 秘密基地の位置がきた
++        CommManUnderground_DebugPrintDummy("\x94\xE9\x96\xA7\x8A\xEE\x92\x6E\x82\xCC\x88\xCA\x92\x75\x82\xAA\x82\xAB\x82\xBD"); // 秘密基地の位置がきた
+         SecretBases_ClearLinksReceivedBaseData();
+         CommPlayer_SendPos(TRUE);
+diff --git a/src/underground/menus.c b/src/underground/menus.c
+index 1fd5fe83d..d6b1354de 100644
+--- a/src/underground/menus.c
++++ b/src/underground/menus.c
+@@ -158,13 +158,13 @@ static const WindowTemplate sYesNoWindowTemplate = {
+ static const struct {
+     u32 bankEntry;
+-    u32 callback;
++    uintptr_t callback;
+ } sUndergroundMenuOptions[] = {
+-    [UNDERGROUND_START_MENU_OPTION_TRAPS]     = { .bankEntry = UndergroundCommon_Text_Traps,          .callback = (u32)UndergroundMenu_OpenTrapsMenu      },
+-    [UNDERGROUND_START_MENU_OPTION_SPHERES]   = { .bankEntry = UndergroundCommon_Text_Spheres,        .callback = (u32)UndergroundMenu_OpenSpheresMenu    },
+-    [UNDERGROUND_START_MENU_OPTION_GOODS]     = { .bankEntry = UndergroundCommon_Text_Goods,          .callback = (u32)UndergroundMenu_OpenGoodsMenu      },
+-    [UNDERGROUND_START_MENU_OPTION_TREASURES] = { .bankEntry = UndergroundCommon_Text_Treasures,      .callback = (u32)UndergroundMenu_OpenTreasuresMenu  },
+-    [UNDERGROUND_START_MENU_OPTION_TRAINER]   = { .bankEntry = UndergroundCommon_Text_PlayerTemplate, .callback = (u32)UndergroundMenu_OpenTrainerRecords },
+-    [UNDERGROUND_START_MENU_OPTION_GO_UP]     = { .bankEntry = UndergroundCommon_Text_GoUp,           .callback = (u32)UndergroundMenu_GoUpCallback       },
+-    [UNDERGROUND_START_MENU_OPTION_CLOSE]     = { .bankEntry = UndergroundCommon_Text_Close,          .callback = (u32)UndergroundMenu_CloseCallback      }
++    [UNDERGROUND_START_MENU_OPTION_TRAPS]     = { .bankEntry = UndergroundCommon_Text_Traps,          .callback = (uintptr_t)UndergroundMenu_OpenTrapsMenu      },
++    [UNDERGROUND_START_MENU_OPTION_SPHERES]   = { .bankEntry = UndergroundCommon_Text_Spheres,        .callback = (uintptr_t)UndergroundMenu_OpenSpheresMenu    },
++    [UNDERGROUND_START_MENU_OPTION_GOODS]     = { .bankEntry = UndergroundCommon_Text_Goods,          .callback = (uintptr_t)UndergroundMenu_OpenGoodsMenu      },
++    [UNDERGROUND_START_MENU_OPTION_TREASURES] = { .bankEntry = UndergroundCommon_Text_Treasures,      .callback = (uintptr_t)UndergroundMenu_OpenTreasuresMenu  },
++    [UNDERGROUND_START_MENU_OPTION_TRAINER]   = { .bankEntry = UndergroundCommon_Text_PlayerTemplate, .callback = (uintptr_t)UndergroundMenu_OpenTrainerRecords },
++    [UNDERGROUND_START_MENU_OPTION_GO_UP]     = { .bankEntry = UndergroundCommon_Text_GoUp,           .callback = (uintptr_t)UndergroundMenu_GoUpCallback       },
++    [UNDERGROUND_START_MENU_OPTION_CLOSE]     = { .bankEntry = UndergroundCommon_Text_Close,          .callback = (uintptr_t)UndergroundMenu_CloseCallback      }
+ };
+ // clang-format on
+diff --git a/src/underground/player_talk.c b/src/underground/player_talk.c
+index 910938cf5..5f64b07a0 100644
+--- a/src/underground/player_talk.c
++++ b/src/underground/player_talk.c
+@@ -215,10 +215,10 @@ static ResponseMenu *sCurrentResponseMenu = NULL;
+ static const struct {
+     u32 bankEntry;
+-    u32 callback;
++    uintptr_t callback;
+ } sTalkOptions[] = {
+-    { UndergroundCommon_Text_Greet, (u32)UndergroundTalk_OfferExchangeTrainerCases },
+-    { UndergroundCommon_Text_Question, (u32)UndergroundTalk_StartAskingQuestions },
+-    { UndergroundCommon_Text_GiveGoods, (u32)UndergroundTalk_OpenGiveGiftMenu },
+-    { UndergroundCommon_Text_Exit, (u32)UndergroundTalk_CancelTalk }
++    { UndergroundCommon_Text_Greet, (uintptr_t)UndergroundTalk_OfferExchangeTrainerCases },
++    { UndergroundCommon_Text_Question, (uintptr_t)UndergroundTalk_StartAskingQuestions },
++    { UndergroundCommon_Text_GiveGoods, (uintptr_t)UndergroundTalk_OpenGiveGiftMenu },
++    { UndergroundCommon_Text_Exit, (uintptr_t)UndergroundTalk_CancelTalk }
+ };
+ 
+diff --git a/src/underground/text_printer.c b/src/underground/text_printer.c
+index c956e9255..b870dd1db 100644
+--- a/src/underground/text_printer.c
++++ b/src/underground/text_printer.c
+@@ -4,4 +4,6 @@
+ #include <string.h>
+ 
++#include "underground/manager.h"
++
+ #include "bg_window.h"
+ #include "heap.h"

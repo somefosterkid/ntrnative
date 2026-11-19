@@ -6,6 +6,7 @@
 import os
 import random
 import struct
+import subprocess
 import sys
 import tempfile
 
@@ -98,7 +99,8 @@ def test_static():
             open(os.path.join(tmp, "a.png"), "wb").write(b"\x89PNG\0\0")
             open(os.path.join(tmp, "b.c"), "w").write("u8 t[] = {" + ", ".join(str(i % 7) for i in range(500)) + "};")
             open(os.path.join(tmp, "c.c"), "w").write("int main(void) { return 0; }\n" * 30)
-            got = {r[0] for r in R.static_check(["a.png", "b.c", "c.c"])}
+            open(os.path.join(tmp, "d.c"), "w").write("u8 t[] = {" + ", ".join(["0", "0x0"] * 300) + "};")  # blanked
+            got = {r[0] for r in R.static_check(["a.png", "b.c", "c.c", "d.c"])}
             assert got == {"a.png", "b.c"}, got
         finally:
             R.REPO = old
@@ -146,8 +148,9 @@ def test_where():
                + chr(10).join(f"    {v}," for v in vals) + chr(10) + "};" + chr(10) + "int f(void) { return 5; }" + chr(10))
         found = R.where_data(src.encode())
         kinds = {k: runs for k, runs in found}
-        a, b, n, tables = kinds["u16"][0]
+        a, b, n, tables, where = kinds["u16"][0]
         assert (a, b, n, tables) == (4, 63, 120, ["sBig"]), kinds["u16"]
+        assert where.startswith("t:") and "+0x" in where, where   # the test ROM is no NDS image: the source and offset only
         assert R.where_lines("f.c", found)[0].startswith("WHERE f.c [u16] 120B: L4-63 sBig 120B")
         # raw bytes: the line of the first and last byte
         raw = R.where_data(b"x" + chr(10).encode() * 3 + ROM[1234:1334] + chr(10).encode() + b"tail")
@@ -159,8 +162,40 @@ def test_where():
     print("ok where")
 
 
+def test_place():
+    """place(): a ROM offset -> module, address and what the config says (a made-up NDS header: ARM9, one overlay, 3 files)."""
+    rom = bytearray(0x1000)
+    struct.pack_into("<4I", rom, 0x20, 0x200, 0x02000000, 0x02000000, 0x100)   # ARM9: ROM offset, entry, RAM load, size
+    struct.pack_into("<4I", rom, 0x48, 0x400, 24, 0x500, 32)                   # FAT (3 files), overlay table (1 overlay)
+    for i, (a, b) in enumerate(((0x600, 0x680), (0x700, 0x780), (0x800, 0x880))):
+        struct.pack_into("<2I", rom, 0x400 + 8 * i, a, b)
+    struct.pack_into("<2I", rom, 0x500, 5, 0x021D0D80)                         # overlay 5: RAM address
+    struct.pack_into("<2I", rom, 0x518, 0, 0)                                  # its file 0, not compressed
+    saved = R._idx, R._cfg_cache.get("g"), R._hdr_cache.pop("g", None)
+    R._idx = (None, None, None, ["g:rom"], [bytes(rom)])
+    R._cfg_cache["g"] = {"main": [(0x02000000, 0x02000020, "data sTable")], "ov005": [(0x021D0D80, 0x021D0DA0, "code")]}
+    try:
+        assert R.place("g:rom", 0x210) == "g main+0x10 @0x02000010 data sTable"
+        assert R.place("g:rom", 0x240) == "g main+0x40 @0x02000040 unlisted"
+        assert R.place("g:rom", 0x610) == "g ov005+0x10 @0x021d0d90 code"
+        assert R.place("g:rom", 0x710) == "g file 1+0x10 data"
+        assert R.place("g:ov005", 0x30) == "g ov005+0x30 @0x021d0db0 unlisted"
+        assert R.place("g:arm9", 0x8) == "g main+0x8 @0x02000008 data sTable"
+        assert R.place("g:cache:x.bin", 3) == "g:cache:x.bin+0x3"
+    finally:
+        R._idx = saved[0]
+        R._hdr_cache.pop("g", None)
+        R._cfg_cache.pop("g", None)
+    print("ok place")
+
+
 def test_file_args():
     """--files: a folder is its tracked files; a path that names nothing is reported, not silently scanned as empty."""
+    try:
+        R.tracked()
+    except (subprocess.CalledProcessError, OSError):
+        print("skip file_args: not a git work tree (a git archive export), --files reads git ls-files")
+        return
     files, bad = R.file_args(["tools/rom_leak_check.py", "tools/", "src/no_such_file.c"])
     assert "tools/rom_leak_check.py" in files and "tools/rom_leak_check_tests.py" in files and files.count("tools/rom_leak_check.py") == 1
     assert bad == ["src/no_such_file.c"], bad
@@ -180,3 +215,4 @@ if __name__ == "__main__":
     test_modules()
     test_result_cache()
     test_where()
+    test_place()

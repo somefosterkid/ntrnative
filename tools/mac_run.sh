@@ -13,7 +13,7 @@
 #               for runs that check what the game DOES; a run that checks a SCREEN or times anything uses --noskip (tools/mac_perf.py does)
 # --root       RUNDIR is a launcher root (docs/launcher.md; a new one starts empty): no BWPORT_DIR, the exe starts in RUNDIR, BWPORT_ROM only when you
 #               set it (the root's own .nds otherwise); --save (and --store) use RUNDIR/GAME/save.bin once that folder exists,
-#               GAME by the save's name: b2-* Pokemon Black 2, w2-* Pokemon White 2, w-* and white-* Pokemon White, else Pokemon Black
+#               GAME by the save's name: b2-* Pokemon Black 2, w2-* Pokemon White 2, pt-* Platinum, hg-* HeartGold, ss-* SoulSilver, w-* and white-* Pokemon White, else Pokemon Black
 # --store NAME  after the run keep RUNDIR/save.bin as $HOME/bw-saves/NAME.bin (add its line to the README)
 # A crash prints a backtrace (port/src/crash_bt.c) and exits without macOS's dialog; lldb can't attach from a sandboxed shell.
 # KEYS is BWPORT_KEYS ("start@f600 a@f1700"), frames counted from boot. SHOTS: fN entries (f1700) are frame-exact cfgscript shot= steps
@@ -42,7 +42,7 @@ if [ ! -d "$RUN" ] && [ -z "$ROOTMODE" ]; then   # a new root (--root) starts em
 fi
 mkdir -p "$RUN"; RUN=$(cd "$RUN" && pwd)
 # a launcher root's game folder, by the save's name (README: b2-*, w2-* are Black 2's and White 2's)
-case ${SAVE:-$STORE} in b2-*) GAMEDIR="Pokemon Black 2";; w2-*) GAMEDIR="Pokemon White 2";; white-*|w-*) GAMEDIR="Pokemon White";; *) GAMEDIR="Pokemon Black";; esac
+case ${SAVE:-$STORE} in b2-*) GAMEDIR="Pokemon Black 2";; w2-*) GAMEDIR="Pokemon White 2";; pt-*) GAMEDIR="Pokemon Platinum";; hg-*) GAMEDIR="Pokemon HeartGold";; ss-*) GAMEDIR="Pokemon SoulSilver";; white-*|w-*) GAMEDIR="Pokemon White";; *) GAMEDIR="Pokemon Black";; esac
 SAVEBIN=$RUN/save.bin
 [ -n "$ROOTMODE" ] && [ -d "$RUN/$GAMEDIR" ] && SAVEBIN=$RUN/$GAMEDIR/save.bin
 if [ -n "$SAVE" ]; then

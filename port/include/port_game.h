@@ -8,7 +8,7 @@
 typedef struct {
     const char *code;                        // the ROM header's game code (launcher_core.c's table)
     void (*main)(void);                      // NitroMain: src/system/main.c's main
-    unsigned char *sndHeap;                  // g_GFLSndHeap (port/src/acapture.c)
+    unsigned char *sndHeap;                  // g_GFLSndHeap (port/src/acapture.c); NULL when sndHeapFn finds it
     unsigned sndHeapLen;                     // its size (src/system/snd_sys.c's SND_HEAP_SIZE)
     void (*randomUpdateMT)(unsigned seed);   // GFL_RandomUpdateMT (port/src/bench_pin.c)
     // ld64 builds: the overlays' markers and DS layout (tools/port_overlays.py --macho-files: ovltab.c; port/src/ovl.c)
@@ -21,12 +21,18 @@ typedef struct {
     // and White 2's 167, 148-154, 286, 287 (config/*/arm9/overlays)
     unsigned ovlBattle, ovlEncFirst, ovlEncLast, ovlBag, ovlParty;
     void (*pinLC)(void);                     // the game's linear congruential generator to the pinned seed (port/src/bench_pin.c)
+    void (*frameHook)(void);                 // at each V-blank wait (Platinum's: BWPORT_PLATTRACE, port/game/game_table.c)
+    unsigned char *(*sndHeapFn)(void);       // sndHeap for a game that keeps its sound heap in a struct, not a global (Platinum's
+                                             // SoundSystem, port/game/game_table.c): where the heap is, once the program runs
 } PortGame;
 
 extern const PortGame bwgame;       // Black: port/game/game_table.c
 extern const PortGame w_bwgame;     // White (BWPORT_WHITE builds): the same file
 extern const PortGame b2_bwgame;    // Black 2 (BWPORT_B2 builds; pokebw2's C, the maintainers' notes): the same file
 extern const PortGame w2_bwgame;    // White 2 (BWPORT_W2 builds): the same file
+extern const PortGame pl_bwgame;    // Platinum (BWPORT_PLAT builds; pret's C, docs/platinum.md): the same file
+extern const PortGame hg_bwgame;    // HeartGold (BWPORT_HG builds; pret's pokeheartgold, docs/hgss.md): the same file
+extern const PortGame ss_bwgame;    // SoulSilver (BWPORT_HG builds): the same module and file, its main sets the version
 extern const PortGame *PORT_Game;   // the game PORT_EnterGame chose; Black until then (port/src/games.c)
 
 const PortGame *PORT_GameByCode(const char *code);   // port/src/games.c: NULL when the build lacks that game

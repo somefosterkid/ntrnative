@@ -32,8 +32,8 @@
 void PortOvl_Keep(const void *p, size_t n);        // ovl.c
 void PORT_MachineKeep(const void *p, size_t n);    // machine.c
 
-#define REG_MAX 2048
-#define GAMES_MAX 4
+#define REG_MAX 16384  // (Black's, White's, Black 2's and White 2's rows: 2478; HeartGold's and SoulSilver's ~2,750 each)
+#define GAMES_MAX 8
 
 typedef struct {
     const char *game;
@@ -230,6 +230,34 @@ static unsigned char *ReadAt(FILE *f, unsigned off, unsigned len) {
     return b;
 }
 
+// The DS layout of a game's n ARM9 overlays from its ROM's overlay table (header 0x50: offset, 0x54: size; 32-byte rows,
+// the first four words id, address, image size, bss size): ovl.c's, for a module built without the game's ROM (Platinum,
+// HeartGold: tools/port_overlays.py compiles zeros then). 0: no ROM with the code, or its table is not n rows.
+int PORT_AssetRomOverlays(const char *code, unsigned (*rows)[4], unsigned n) {
+    char path[1024];
+    unsigned char h[0x58], *t = NULL;
+    unsigned i, j;
+    FILE *f;
+
+    if (!FindRom(code, path, sizeof(path)) || (f = fopen(path, "rb")) == NULL) {
+        return 0;
+    }
+    if (fread(h, 1, sizeof(h), f) == sizeof(h) && Rd32(h + 0x54) == n * 32) {
+        t = ReadAt(f, Rd32(h + 0x50), n * 32);
+    }
+    fclose(f);
+    if (t == NULL) {
+        return 0;
+    }
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < 4; j++) {
+            rows[i][j] = Rd32(t + i * 32 + j * 4);
+        }
+    }
+    free(t);
+    return 1;
+}
+
 // A module's image at its DS address (NULL: not in this ROM): -1 the ARM9 static module, -2 the ARM7's, N overlay N
 static const unsigned char *Module(BwAssetRom *r, int module, unsigned *base, unsigned *len) {
     int k = module == -1 ? 0 : module == -2 ? 1 : 2 + module;
@@ -355,6 +383,10 @@ static int Layout(const char *s, BwAssetField *f, int max) {
             sz = 4;
             isPtr = 2;
             s += 3;
+        } else if (strncmp(s, "n8", 2) == 0) {   // a 4-byte value in a 1-byte slot (its low byte)
+            sz = 4;
+            isPtr = 3;
+            s += 2;
         } else {
             return -1;
         }
@@ -373,7 +405,8 @@ static int Layout(const char *s, BwAssetField *f, int max) {
             if (n == max) {
                 return -1;
             }
-            f[n++] = (BwAssetField){(unsigned char)sz, (unsigned char)(isPtr ? sizeof(void *) : sz), (unsigned char)(isPtr == 1)};
+            f[n++] = (BwAssetField){(unsigned char)sz, (unsigned char)(isPtr == 3 ? 1 : isPtr ? sizeof(void *) : sz),
+                                    (unsigned char)(isPtr == 1)};
         }
         if (*s == ',') {
             s++;
@@ -424,7 +457,8 @@ static int Fill(const BwAssetRow *row, const char *layout, const unsigned char *
     for (rec = 0; rec < nrec; rec++) {
         for (i = 0; i < n; i++) {
             if (!f[i].ptr) {
-                memcpy((unsigned char *)dst + rec * hostStride + hostOff[i], src + rec * dsStride + dsOff[i], f[i].ds);
+                memcpy((unsigned char *)dst + rec * hostStride + hostOff[i], src + rec * dsStride + dsOff[i],
+                       f[i].host < f[i].ds ? f[i].host : f[i].ds);   // (little endian: a narrower slot takes the low bytes)
             }
         }
     }
@@ -450,9 +484,13 @@ static void Fail(const char *msg) {
 // streams: per copy zigzag(destination - previous copy's end), length, module << 1 | shared (module 0 = ARM9, 1 =
 // ARM7, 2 + N = overlay N), zigzag(source offset - previous copy's source end). A shared copy (C both games use) is
 // done for the first game that starts. Unfilled (a link without the step): no regions, no games.
-#if !defined(__APPLE__) && !defined(BWASSET_TEST)
+#if !defined(BWASSET_TEST)
 #define BWFILL_SIZE (512 * 1024)
+#ifdef __APPLE__   // (Mach-O: the game's data is in writable __DATA,__bwrom_* sections, so no protection changes there)
+__attribute__((section("__DATA,__bwfill"), used, aligned(16))) const unsigned char bwfill_table[BWFILL_SIZE] = {'B', 'W', 'F', 'L', 1};
+#else
 __attribute__((section(".bwfill"), used, aligned(16))) const unsigned char bwfill_table[BWFILL_SIZE] = {'B', 'W', 'F', 'L', 1};
+#endif
 #define BWFILL_HAVE 1
 #endif
 
@@ -530,6 +568,14 @@ static int FillProtect(FillRegion *g, int writable) {
 
 static unsigned FillRd32(const unsigned char *p) {
     return (unsigned)p[0] | (unsigned)p[1] << 8 | (unsigned)p[2] << 16 | (unsigned)p[3] << 24;
+}
+
+// How many games the image has copies for (0: a link without tools/port_romfill.py)
+static unsigned FillGames(void) {
+    const unsigned char *volatile vtab = bwfill_table;   // (volatile: the initialiser is not what the image holds)
+    const unsigned char *tab = vtab;
+
+    return memcmp((const void *)tab, "BWFL", 4) != 0 ? 0 : FillRd32(tab + 12);
 }
 
 // Has the image copies for this game? (0: a link without tools/port_romfill.py, or not this game)
@@ -652,6 +698,10 @@ static int FillImage(BwAssetRom *r, const char *code, unsigned long *bytes, unsi
     return ok;
 }
 #else
+static unsigned FillGames(void) {
+    return 0;
+}
+
 static const unsigned char *FillGame(const char *code) {
     (void)code;
     return NULL;
@@ -665,14 +715,47 @@ static int FillImage(BwAssetRom *r, const char *code, unsigned long *bytes, unsi
 }
 #endif
 
-// Fills the game's tables (code: its ROM header's game code) from its ROM, once per process; 0 when the build registered
-// none (macOS and iOS for now: their C still includes the ROM build's values)
+// FNV-1a 64 of the bytes g's rows read from the ROM, the rows in order (tools/port_assets.py fnv's), without the rows of
+// another module (-2: no table registers one); FALSE (with msg) when the ROM lacks a row's module or range
+static int RowsHash(BwAssetRom *r, const BwAssetGame *g, const char *path, unsigned long long *out, char *msg, size_t msgLen) {
+    unsigned long long h = 0xCBF29CE484222325ULL;
+    int j;
+
+    for (j = 0; j < g->count; j++) {
+        const BwAssetRow *row = &g->rows[j];
+        unsigned base = 0, len = 0, b;
+        const unsigned char *img;
+
+        if (row->module < -1) {
+            continue;
+        }
+        img = Module(r, row->module, &base, &len);
+        if (img == NULL || row->start < base || row->end > base + len || row->end < row->start) {
+            snprintf(msg, msgLen, "asset %s: %s has no module %d bytes %08x-%08x (a ROM of another revision?)", row->name, path,
+                     row->module, row->start, row->end);
+            return 0;
+        }
+        for (b = row->start - base; b < row->end - base; b++) {
+            h = (h ^ img[b]) * 0x100000001B3ULL;
+        }
+    }
+    *out = h;
+    return 1;
+}
+
+// the game whose rows last filled the tables: HeartGold and SoulSilver register the same tables (one module), each with its
+// own rows, so a switch between them in one process fills them again (the restart snapshot too: PORT_MachineKeep)
+static char sRowsFor[5];
+
+// Fills the game's tables (code: its ROM header's game code) from its ROM: the image's copies once per process, the rows
+// again whenever another game's rows filled them since; 0 when the build registered none and the image has no copies for it
+// (a link without tools/port_romfill.py)
 int PORT_AssetsLoad(const char *code) {
     const BwAssetGame *g = NULL;
     BwAssetRom *r;
     char path[1024], msg[1400];
     struct timespec t0, t1;
-    int i, k, filled = 0, log = getenv("BWPORT_ASSET_LOG") != NULL;
+    int i, k, filled = 0, again = 0, log = getenv("BWPORT_ASSET_LOG") != NULL;
     unsigned long bytes = 0, fillBytes = 0;
     unsigned fillCopies = 0;
 
@@ -684,10 +767,20 @@ int PORT_AssetsLoad(const char *code) {
     }
     for (k = 0; k < GAMES_MAX && sLoaded[k][0] != 0; k++) {
         if (memcmp(sLoaded[k], code, 4) == 0) {
-            return 1;
+            again = 1;
         }
     }
     for (i = 0; i < sNReg && strncmp(sReg[i].game, code, 4) != 0; i++) {
+    }
+    if (again && (i == sNReg || memcmp(sRowsFor, code, 4) == 0)) {
+        return 1;   // filled, and no other game's rows since
+    }
+    // an image filled by tools/port_romfill.py without this game's ROM: the C every game runs (group s) holds only what the
+    // listed games' ROMs agree on, the rest zeroed, so this game would run on zeroed data (port/meson.build's rom_fill gate)
+    if (FillGames() > 0 && FillGame(code) == NULL) {
+        snprintf(msg, sizeof(msg), "this build's game data was filled from other games' ROMs only, not %.4s's: it can't play "
+                 "this game (build it with every built game's ROM, or with none)", code);
+        Fail(msg);
     }
     if (i == sNReg && FillGame(code) == NULL) {
         return 0;
@@ -710,6 +803,28 @@ int PORT_AssetsLoad(const char *code) {
     if (r == NULL || (r->f = fopen(path, "rb")) == NULL || fread(r->head, 1, sizeof(r->head), r->f) != sizeof(r->head)) {
         snprintf(msg, sizeof(msg), "%s: can't read its header", path);
         Fail(msg);
+    }
+    // the whole image's game data first (port_romfill.py's table, a build with the ROMs): a placeholder's zeros can be one
+    // of its copies (a run of zeros in the ROM), which the rows below must overwrite, not the other way round
+    if (!again && !FillImage(r, code, &fillBytes, &fillCopies, msg, sizeof(msg))) {
+        char full[1600];
+
+        snprintf(full, sizeof(full), "%s: %s", path, msg);
+        Fail(full);
+    }
+    // the rows' bytes are the ones this build's rows were made for (the same check as the image's copies: a ROM of another
+    // revision has the same game code, and its tables can be elsewhere or differ)
+    if (!again && g != NULL && g->code != NULL) {
+        unsigned long long h = 0;
+
+        if (!RowsHash(r, g, path, &h, msg, sizeof(msg))) {
+            Fail(msg);
+        }
+        if (h != g->fnv) {
+            snprintf(msg, sizeof(msg), "%s: the ROM's data is not the data this build was made for (its %.4s rows' bytes hash "
+                     "to %016llx, not %016llx: a ROM of another revision?)", path, code, h, g->fnv);
+            Fail(msg);
+        }
     }
     for (i = 0; i < sNReg; i++) {
         const BwAssetReg *e = &sReg[i];
@@ -760,12 +875,6 @@ int PORT_AssetsLoad(const char *code) {
         filled++;
         bytes += e->size;
     }
-    if (!FillImage(r, code, &fillBytes, &fillCopies, msg, sizeof(msg))) {   // the whole image's game data
-        char full[1600];
-
-        snprintf(full, sizeof(full), "%s: %s", path, msg);
-        Fail(full);
-    }
     for (i = 0; i < 2 + 512; i++) {
         free(r->mod[i]);
     }
@@ -773,13 +882,17 @@ int PORT_AssetsLoad(const char *code) {
     free(r);
     for (k = 0; k < GAMES_MAX && sLoaded[k][0] != 0; k++) {
     }
-    if (k < GAMES_MAX) {
+    if (k < GAMES_MAX && !again) {
         memcpy(sLoaded[k], code, 4);
     }
+    if (filled > 0) {
+        memcpy(sRowsFor, code, 4);
+    }
     clock_gettime(CLOCK_MONOTONIC, &t1);
-    printf("assets: %.4s: %d tables, %lu bytes, the image's data %lu bytes in %u copies, from %s in %.1f ms\n", code,
+    printf("assets: %.4s: %d tables, %lu bytes, the image's data %lu bytes in %u copies, from %s in %.1f ms%s\n", code,
            filled, bytes, fillBytes, fillCopies, path,
-           (double)(t1.tv_sec - t0.tv_sec) * 1e3 + (double)(t1.tv_nsec - t0.tv_nsec) / 1e6);
+           (double)(t1.tv_sec - t0.tv_sec) * 1e3 + (double)(t1.tv_nsec - t0.tv_nsec) / 1e6,
+           again ? " (the rows again: another game's filled them since)" : "");
     fflush(stdout);
     return 1;
 }

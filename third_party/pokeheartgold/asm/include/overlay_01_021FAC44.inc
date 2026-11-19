@@ -1,0 +1,9 @@
+
+#pragma once
+.public Heap_Alloc
+.public Heap_Free
+.public MI_CpuFill8
+.public ov01_021FAC44
+.public ov01_021FACB4
+.public ov01_021FACE4
+.public ov01_021FACEC

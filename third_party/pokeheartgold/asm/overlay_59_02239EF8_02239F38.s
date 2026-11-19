@@ -1,0 +1,37 @@
+	.include "macros.inc"
+	.include "overlay_59.inc"
+	.include "global.inc"
+
+	.public ov59_0223BADC
+	.public ov59_0223BAE8
+	.public ov59_0223BBB0
+	.public ov59_0223BBD4
+	.public ov59_0223BC88
+	.public ov59_0223BD4C
+	.public ov59_0223BE70
+	.public ov59_0223C054
+	.public ov59_0223C138
+	.public ov59_0223C298
+	.public ov59_0223C304
+	.public ov59_0223C350
+	.public ov59_0223C374
+	.public ov59_0223AA6C
+	.public ov59_0223AABC
+	.public ov59_0223AB00
+	.public ov59_0223AB3C
+	.public ov59_0223AB90
+	.public ov59_0223ABE4
+	.public ov59_0223ABEC
+	.public ov59_0223AC48
+	.public ov59_0223ACD0
+	.public ov59_0223AE20
+	.public ov59_0223A0B8
+	.public ov59_0223A120
+	.public ov59_0223A268
+	.public ov59_0223A2D0
+	.public ov59_0223A3B0
+	.public ov59_0223A418
+	.public ov59_0223A58C
+	.public ov59_0223A614
+	.public ov59_0223C940
+	.text

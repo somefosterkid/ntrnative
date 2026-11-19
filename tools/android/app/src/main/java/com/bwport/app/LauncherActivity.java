@@ -237,17 +237,12 @@ public class LauncherActivity extends Activity {
         return Math.round(v * getResources().getDisplayMetrics().density);
     }
 
-    private static int[] theme(String code) {    // accent, deep, glow, dark (ios_launcher.m's Theme)
-        switch (code) {
-            case "IRAO": return new int[] {0xE8590C, 0xF4F1EC, 0xFFB37A, 0};
-            case "IREO": return new int[] {0xF2B705, 0x10131C, 0x2E6F9E, 1};
-            case "IRDO": return new int[] {0xD6336C, 0xEEF3F7, 0x8FD3FF, 0};
-            default: return new int[] {0x3D8BFF, 0x0B0F1A, 0x1E5BD8, 1};
-        }
+    private static int[] theme(LauncherCore.Game g) {    // accent, deep, glow, dark: the core's table (launcher_core.c)
+        return g.theme;
     }
 
     private static int accent(LauncherCore.Game g) {
-        return 0xFF000000 | theme(g.code)[0];
+        return 0xFF000000 | g.theme[0];
     }
 
     private TextView text(String s, float sp, int color, boolean bold) {
@@ -406,7 +401,7 @@ public class LauncherActivity extends Activity {
 
     /** The cover in a box: the game's gradient behind, the cover aspect-fit over a blurred copy of itself; "no cover": the icon. */
     private View showcase(LauncherCore.Game g, boolean cardTop) {
-        int[] t = theme(g.code);
+        int[] t = theme(g);
         FrameLayout f = new FrameLayout(this);
         GradientDrawable grad = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 new int[] {0xFF000000 | t[2], 0xFF000000 | (t[3] == 1 ? t[1] : 0x20252E)});
@@ -463,14 +458,14 @@ public class LauncherActivity extends Activity {
         boolean tabs = mInitOk && LauncherCore.nativeGet(LauncherCore.LAYOUT) == 1 && !mGames.isEmpty();
         LauncherCore.Game sel = tabs ? find(mSelected) : null;
         if (sel != null) {
-            int[] t = theme(sel.code);
+            int[] t = theme(sel);
             GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                     new int[] {0xFF000000 | t[1], t[3] == 1 ? 0xFF000000 | t[2] & 0x7F7F7F : 0xFFFFFFFF});
             mRoot.setBackground(t[3] == 1 ? g : new ColorDrawable(0xFF000000 | t[1]));
         } else {
             mRoot.setBackgroundColor(BG);
         }
-        int fg = sel != null && theme(sel.code)[3] == 0 ? 0xFF1A1C22 : TEXT;
+        int fg = sel != null && theme(sel)[3] == 0 ? 0xFF1A1C22 : TEXT;
         // the top row: the title or the tabs, then Add and the menu
         LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -529,7 +524,7 @@ public class LauncherActivity extends Activity {
         l.setPadding(dp(32), dp(16), dp(32), dp(16));
         TextView t = text("No games yet", 24, TEXT, true);
         t.setGravity(Gravity.CENTER);
-        TextView b = text("Add your own copy of Pokemon Black (USA/Europe, the NDSi Enhanced 1.0 dump) as a .nds file.", 16, SUBTLE, false);
+        TextView b = text("Add your own ROM (.nds) of a game this build plays: Pokemon " + LauncherCore.nativePlayableNames() + ".", 16, SUBTLE, false);
         b.setGravity(Gravity.CENTER);
         TextView add = button("Add Game", 0xFF3D8BFF, Color.WHITE);
         add.setOnClickListener(v -> pick(PICK_ROM, null));
@@ -654,7 +649,7 @@ public class LauncherActivity extends Activity {
         TextView sum = text(g.playable ? summary(g) : "Example entry", 15, fg == TEXT ? SUBTLE : 0xFF555B66, false);
         sum.setPadding(0, dp(6), 0, 0);
         info.addView(sum);
-        TextView det = text(g.playable ? "USA / Europe  ·  NDSi Enhanced" : "Not supported yet", 13, fg == TEXT ? SUBTLE : 0xFF555B66, false);
+        TextView det = text(g.playable ? g.edition : "Not supported yet", 13, fg == TEXT ? SUBTLE : 0xFF555B66, false);
         info.addView(det);
         TextView play = button(g.hasSave ? "Continue" : "Play", accent(g), Color.WHITE);
         play.setTextSize(20);
@@ -945,7 +940,7 @@ public class LauncherActivity extends Activity {
             return;
         }
         if (!g.playable) {
-            note(g.title, g.title + " is not supported yet. This build plays Pokemon Black.");
+            note(g.title, g.title + " is not playable in this build. It plays Pokemon " + LauncherCore.nativePlayableNames() + ".");
             return;
         }
         if (g.hasFiles) {

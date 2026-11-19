@@ -122,11 +122,21 @@ engines x 49,152 pixels) and the compositor (the layer priority sort, window mas
   the bag; master brightness fades on both engines at every scene change.
 - **Captures**: DISPCAPCNT bit 31 set on single frames at menu transitions (the bridge draws those frames with vcore
   alone at 1x: nothing changes for them).
-- **Mid-frame register changes**: none reach the renderer today. libntr runs the game's H-blank handler once per frame
-  (libntr-vcount.patch), SIM_VCapGather snapshots the registers at V-blank, and vcore draws the frame from that one
-  snapshot (affine reference points advance by PB / PD from the latched value: GBATEK's per-line rule, no per-line
-  writes). The game registers H-blank tasks (gfl_use.c, wipe.c), so a future per-line model would be a 192-row register
-  texture in any design; neither option here changes that.
+- **Mid-frame register changes**: H-blank DMA reaches the renderer (hdma1, 11-15), the H-blank interrupt does not.
+  libntr runs the game's H-blank handler once per frame (libntr-vcount.patch) and SIM_VCapGather snapshots the registers
+  at V-blank. An H-blank DMA (MI_HBlankDmaCopy32/16[If]) is recorded per channel by libntr-hdma.patch (MI_StopDma ends
+  it); the bridges ask SIM_VCapHDma for each line's register bytes after the gather (line 0: the register, line y > 0:
+  the source's entry y - 1, as on the DS) into VCoreState hd[e][y] (vcore_hdma_add), and SIM_HDmaFrameDone leaves entry
+  191 in the register after every frame. A destination outside the 2D registers (palette, OAM) gets entry 191 as plain
+  memory. vcore reads the line's value with vc_ln16 / vc_ln32 / vc_aff_ref: text BG scroll (p01), the affine, extended
+  and large BGs' reference point (a DMA'd BGxX/Y reloads it each line, a DMA'd PB/PD is summed) and PA/PC (p02-p04),
+  windows (p08), blending (p09), MASTER_BRIGHT (p10), the 3D layer's BG0HOFS (p20 at 1x, p21 at N x). p24 compares the
+  tables. The GPU path follows for the 2D layers and the windows (vcore's stage); its compose pass still takes BG0HOFS
+  (the 3D layer's scroll: Platinum's water encounter shake), the blend registers and MASTER_BRIGHT as per-frame uniforms
+  (g07_compose.c, cHofs ...): per-line values there need the GLSL and its MSL (tools/gpu_msl.py, the Mac's glslang and
+  SPIRV-Cross) changed together. A .vcs capture holds the tables in an HDMA chunk (vc_state.c applies it). Users:
+  Platinum's ScreenScrollManager (water encounter effects, battle move backgrounds, Spear Pillar), wonder cards, the
+  Battle Frontier (ov104); HG/SS sub_02014AB0; Black / White: none.
 
 Not seen in these scenes but in the game (to keep an exact fallback for): the large bitmap BG (mode 6), 256-colour
 bitmap BGs, OBJ windows, mosaic, semi-transparent and bitmap OBJs, OBJ extended palettes.

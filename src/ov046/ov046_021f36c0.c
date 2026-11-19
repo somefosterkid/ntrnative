@@ -272,7 +272,7 @@ void func_ov046_021f3a28(Field *field) {
 }
 
 
-void func_ov046_021f3a88(GameSystem *param_1, s32 param_2, s32 param_3) {
+GameEvent *func_ov046_021f3a88(GameSystem *param_1, s32 param_2, s32 param_3) {
     Field *field;
     GameSystem *gsys;
     GameData *gameData;
@@ -289,7 +289,7 @@ void func_ov046_021f3a88(GameSystem *param_1, s32 param_2, s32 param_3) {
     work->unk_00 = param_2;
     work->unk_04 = param_3;
     work->unk_08 = &table[param_2];
-    GameEvent_Create(param_1, (GameEvent *)0x0, (void *)func_ov046_021f3bfc, 0);
+    return GameEvent_Create(param_1, (GameEvent *)0x0, (void *)func_ov046_021f3bfc, 0);
 }
 
 GameEvent *func_ov046_021f3ad0(GameSystem *param_1, s32 param_2, s32 param_3) {

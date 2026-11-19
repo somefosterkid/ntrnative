@@ -1,0 +1,34 @@
+--- a/libraries/sim7/src/pxi.c
++++ b/libraries/sim7/src/pxi.c
+@@ -616,12 +616,28 @@
+ 
+ // bw-port (libntr-soundclock.patch): the sound clock steps when the game's frame ends; every command the game sent
+ // before it must have reached the sound side then, or which frame a command lands in would depend on the thread
+-// scheduler. A message that never finishes (blocked on the game's lock) is not waited for beyond 20 ms.
++// scheduler. bw-port (libntr-pxidrain.patch, wc1's audit a8: game frames, not wall clock): the wait runs to completion;
++// it gave up after 20 ms of real time, so on a loaded host a command still queued landed a frame later. The PXI thread
++// no longer waits in real time for the frame's step (acore's full queue: port/src/acore_glue.c keeps the list), so
++// only a stuck message is left; after 2 s (an outer watchdog, logged with a count) the frame goes on as before.
+ void SIM_PxiDrain(void)
+ {
+-	Uint32 t0 = SDL_GetTicks();
+-	while( s_pxiPending > 0 && SDL_GetTicks() - t0 < 20 )
++	static unsigned sGaveUp = 0;
++	Uint32 t0;
++
++	if( s_pxiPending <= 0 )
++	{
++		return;
++	}
++	t0 = SDL_GetTicks();
++	while( s_pxiPending > 0 )
+ 	{
++		if( SDL_GetTicks() - t0 >= 2000 )
++		{
++			sGaveUp++;
++			fprintf( stderr, "bwport: PXI drain: %d messages still pending after 2 s (%u times)\n", s_pxiPending, sGaveUp );
++			return;
++		}
+ 		SDL_Delay( 0 );
+ 	}
+ }

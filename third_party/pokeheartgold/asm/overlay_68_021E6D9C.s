@@ -1,0 +1,27 @@
+	.include "macros.inc"
+	.include "overlay_68.inc"
+	.include "global.inc"
+
+	.public ov68_021E734C
+	.public ov68_021E7388
+	.public ov68_021E73A4
+	.public ov68_021E7424
+	.public ov68_021E74C0
+	.public ov68_021E74D8
+	.public ov68_021E7568
+	.public ov68_021E75C0
+	.public ov68_021E7604
+	.public ov68_021E7614
+	.public ov68_021E7618
+	.public ov68_021E773C
+	.public ov68_021E7898
+	.public ov68_021E7A18
+	.public ov68_021E7A90
+	.public ov68_021E7AB4
+	.public ov68_021E7AD8
+	.public ov68_021E7B6C
+	.public ov68_021E7B8C
+	.public ov68_021E7B94
+	.public ov68_021E7BC8
+	.public ov68_021E6C14
+	.text

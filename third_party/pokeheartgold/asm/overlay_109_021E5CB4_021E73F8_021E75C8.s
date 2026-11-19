@@ -1,0 +1,28 @@
+	.include "macros.inc"
+	.include "overlay_109.inc"
+	.include "global.inc"
+
+	.public _021E7884
+	.public ov109_021E7890
+	.public ov109_021E789C
+	.public ov109_021E78A8
+	.public ov109_021E78B8
+	.public ov109_021E78C8
+	.public ov109_021E78DC
+	.public ov109_021E78F4
+	.public ov109_021E790C
+	.public ov109_021E7928
+	.public ov109_021E7944
+	.public ov109_021E7960
+	.public ov109_021E797C
+	.public ov109_021E7998
+	.public ov109_021E79B4
+	.public ov109_021E79D0
+	.public ov109_021E7A18
+	.public ov109_021E7A58
+	.public ov109_021E5DEC
+	.public ov109_021E70C4
+	.public ov109_021E7248
+	.public ov109_021E7388
+	.public ov109_021E7474
+	.text

@@ -65,8 +65,8 @@ lib/nitro/src/fx/fx_sincos.c 16385  # SDK / third-party constants (same in every
 lib/nitro/src/math/math_md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitro/src/os/os_protectionRegion.c 102  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitro/src/os/os_reset_itcm.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/nitro/src/rtc/convert.c 48  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/nitro/src/snd/snd_util.c 724  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/rtc/convert.c 51  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/snd/snd_util.c 1794  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitro/src/wm/wm_standard.c 51  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitrowifi/src/ssl/md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nnsys/include/nnsys/g3d.h 115  # NitroSystem bit masks (powers of two) and array sizes as u32: coincidences with Black's arm9 and Black 2's ov257; no ROM data
@@ -77,13 +77,13 @@ lib/twl/src/card/card_hash.c 64  # SDK / third-party constants (same in every DS
 lib/twl/src/ssp_jpegdec.c 1539  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/twl/src/ssp_jpegenc.c 484  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 port/acore/src/p02_adpcm.c 356  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
-port/acore/src/p06_tables.c 726  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/acore/src/p06_tables.c 1793  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/acore/tests/t05_capture.c 50  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/acore/tests/t15_commands.c 51  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/gpu/src/g08_smaa_area.inc 179200  # SMAA's area texture (MIT, port/gpu/LICENSE-SMAA): third-party data, not the game's
 port/gpu/src/g08_smaa_search.inc 1024  # SMAA's search texture (MIT, port/gpu/LICENSE-SMAA): third-party data, not the game's
 port/src/route_test.c 54  # the test-cheat comment and code (no tables in the change): a text/code coincidence with ov172
-port/src/stb_image.h 67  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/src/stb_image.h 134  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stb_image_write.h 488  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stub_online.c 48  # a run of small u32 constants that also occurs in Black 2's ROM; flagged once the file changed (SOCInAddr)
 port/subprojects/packagefiles/libntr-ios-stuckinput.patch 63  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
@@ -124,7 +124,7 @@ third_party/pokebw2/src/ov139/frame_list.c 68  # decompiled code's own constants
 third_party/pokebw2/src/ov167/btl_client.c 64  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov167/btl_server_flow_sub.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov255/box2_bmp.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov255/box2_obj.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+third_party/pokebw2/src/ov255/box2_obj.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov255/box2_seq.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov321/pkwd_count.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov324/pkwd_briefing.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
@@ -160,3 +160,38 @@ src/ov128/wifi_note.c 55  # decompiled code's own constants (a literal-pool coin
 src/ov170/box2_obj.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 src/ov217/research_list.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 src/system/poke_regulation.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
+port/vcore/src/vc_state.c 55  # our own C (vcs loader + vc_info); the token stream matches a small-number gym grid by chance, no game data
+third_party/pokeheartgold/asm/macros/movement.inc 138  # HG/SS decomp: movement command numbers in macro bodies, chance match of another game's file
+third_party/pokeheartgold/asm/overlay_70_02237F64_0223826C_02246358.s 72  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum
+third_party/pokeheartgold/asm/overlay_70_02237F64_0224613C.s 150  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum
+third_party/pokeheartgold/include/bg_window.h 55  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/include/constants/battle.h 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/include/map_object.h 63  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/application/capsule_menu/graphics.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/battle/battle_command.c 133  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/battle/battle_system.c 133  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/naming_screen.c 60  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_10_trainer_ai_0221BF44.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_10_trainer_ai_0221C038.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_14_021EE3C8_021EE3C8.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_43_0222C024_0222C024.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_44_0222CDAC.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_02229EE0_0222A480.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_02230B8C_02230D0C_02230D0C.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_02236B78_02237254.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_022372D8_02237980.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_02237A70_02237E30.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_80_02238034_02238444.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_96_021E8340_021E8340.c 59  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_96_021EFB58.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_96_022000E4_022002F8_022000E4.c 55  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/scrcmd_c.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/unk_020632B0_0206402C_020640A4_020641EC.c 63  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+port/gpu/src/g10_fast.c 106  # our code's constants matching HeartGold ov054 by chance (--where: code lines), not a table
+lib/nnsys/src/g3d/anm/nsbca.c 67  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+src/ov091/plist_menu.c 59  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
+src/ov010/game_beacon_set.c 51  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
+src/ov112/mus_item_data.c 51  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
+private/saves/b2-champ.bin 56  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
+private/saves/hg-out2.bin 278  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
+lib/dwc/src/nhttp/nhttp_stdlib.c 49  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables

@@ -1,0 +1,75 @@
+pokeheartgold-compile.patch (tools/pokehg_gen.py applies it to build/pokeheartgold, before the generated widepointers*.patch):
+the C of HeartGold/SoulSilver's decompilation that host clang rejects, one fix each (hg4, 2026-11-12, for the submodule at
+95d5f7f1d; port/include_hgss/port_hgss.h has the names these use).
+- an array assigned: port/nonmatching/ov96_022055AC.c (memcpy).
+hg25 (re-pin to c8bd0f92c, hgss 1e9a5d5cb, "host compile errors 0"): the other 20 files' hunks are upstream now (DWC/VCT
+prototypes and renames, the weather table as WeatherIntTable4, the cast-as-lvalue sites, REG_GX_POWCNT_DSEL_MASK, the
+PORT_PAD struct pads, the touchscreen.h include, the party-menu action table as a table index under SDK_PORT): dropped.
+Not here, the decomp's own to fix (C:\stress\hg4\proto_mismatch.txt): calls that pass fewer arguments than the prototype
+has (12 files), and two files that name a member lib/dwc's struct lacks (DWCInetControl.nspotInfo, DWCUserData.reserved).
+Handover-ID: none (port-only)
+
+diff --git a/port/nonmatching/ov96_022055AC.c b/port/nonmatching/ov96_022055AC.c
+index c01a19eb6..279bc7c0f 100755
+--- a/port/nonmatching/ov96_022055AC.c
++++ b/port/nonmatching/ov96_022055AC.c
+@@ -80,5 +80,5 @@ void ov96_022055AC(PokeathlonCourseData *arg0)
+   var_r4 = ov96_021E8A20(sp28 + 0x50);
+   var_r3 = ov96_021E8A20(sp28);
+-  *((VecFx32 (*)[3]) var_r4) = *((VecFx32 (*)[3]) var_r3);
++  memcpy(var_r4, var_r3, sizeof(VecFx32) * 3);
+   temp_r0_3 = *((u16 *) (((u8 *) sp2C) + 0x50C));
+   if (temp_r0_3 != 0)
+
+abi1 (the decomp's hk612 on fdcaeca11): render_window.h now declares ClearWindowPixelBuffer(Window *, u8) as defined; this
+file's own prototype said BOOL (wider than the definition, harmless) and is now `conflicting types`: dropped (the header's
+is in scope). Handover-ID: none (the decomp's file: its next pass drops it too)
+diff --git a/port/nonmatching/GeonetGlobe_Main.c b/port/nonmatching/GeonetGlobe_Main.c
+index dfd1c0367..dc1c7a073 100644
+--- a/port/nonmatching/GeonetGlobe_Main.c
++++ b/port/nonmatching/GeonetGlobe_Main.c
+@@ -72,7 +72,6 @@ struct _MAT_ENTRY;
+ 
+ 
+ 
+-void ClearWindowPixelBuffer(Window *window, BOOL dont_copy_to_vram);
+ enum GeonetGlobeState {
+     GEONET_GLOBE_STATE_LOAD,
+     GEONET_GLOBE_STATE_WAIT_FADE_IN,
+
+r2fx (moved from zhostfix: a compile fix): port/nonmatching/ov12_0225A07C.c still reads OpponentData.battlerId, which
+the decomp renamed `battler` (include/battle/battle.h); clang rejects the old name. The new name.
+Handover-ID: none yet (decomp bug: the file uses the old member name battlerId)
+diff --git a/port/nonmatching/ov12_0225A07C.c b/port/nonmatching/ov12_0225A07C.c
+--- a/port/nonmatching/ov12_0225A07C.c
++++ b/port/nonmatching/ov12_0225A07C.c
+@@ -72,10 +72,10 @@
+     } else {
+         pos = param_2->battlerType & 1;
+     }
+-    param_3->trainerType = ov12_02261EF0(param_1, param_2->battlerId, param_3->trainerType);
++    param_3->trainerType = ov12_02261EF0(param_1, param_2->battler, param_3->trainerType);
+     battleType = BattleSystem_GetBattleType(param_1);
+     flag = 0;
+-    if (ov12_0223C140(param_1, param_2->battlerId) != 0xFF) {
++    if (ov12_0223C140(param_1, param_2->battler) != 0xFF) {
+         if ((battleType & 2) && !(battleType & 8)) {
+             flag = 0;
+         } else {
+@@ -98,14 +98,14 @@
+         tmpl.species = 0;
+         tmpl.isAnimated = 0;
+         tmpl.personality = 0;
+-        data->pokepic = PokepicManager_CreatePokepic(pokepicManager, &tmpl, x, y, ov07_022377F4[pos][2], param_2->battlerId, NULL, NULL);
++        data->pokepic = PokepicManager_CreatePokepic(pokepicManager, &tmpl, x, y, ov07_022377F4[pos][2], param_2->battler, NULL, NULL);
+     } else {
+         data->pokepic = NULL;
+     }
+     data->unk14 = ov07_022377DC[pos][0];
+     data->bsys = param_1;
+     data->command = param_3->command;
+-    data->battlerId = param_2->battlerId;
++    data->battlerId = param_2->battler;
+     data->battlerType = param_2->battlerType;
+     data->unk20 = 0;
+     if (data->battlerType == 0 || data->battlerType == 2) {

@@ -1,0 +1,324 @@
+#include "global.h"
+
+#include "struct_defs/resdat_narc_structs.h"
+
+#include "bg_window.h"
+#include "gf_3d_loader.h"
+#include "message_printer.h"
+#include "palette.h"
+#include "pm_string.h"
+#include "seal_case.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "sys_task.h"
+#include "unk_02009D48.h"
+#include "unk_0200A090.h"
+#include "unk_02020A0C.h"
+#include "overlay_08_battle_party.h"
+#include "overlay_08_battle_sub_menu_cursor.h"
+#include "battle/battle.h"
+#include "msgdata.h"
+#include "battle/battle_cursor.h"
+#include "battle/battle_party_context.h"
+
+struct BattleSystem;
+
+
+typedef u16 charcode_t;
+
+typedef struct MessageBankEntry {
+    u32 offset;
+    u32 length;
+} MessageBankEntry;
+
+typedef struct MessageBank {
+    u16 count;
+    u16 seed;
+
+    MessageBankEntry entries[];
+} MessageBank;
+
+
+typedef union MailIconData {
+    struct {
+        u16 spriteIndex : 12;
+        u16 palIndex : 4;
+    } asStruct;
+    u16 asValue;
+} MailIconData;
+
+typedef struct StringTemplateArgHeader {
+    u8 unused_00;
+    u8 unused_01;
+    u8 unused_02;
+    u8 unused_03;
+} StringTemplateArgHeader;
+
+typedef struct StringTemplateArg {
+    StringTemplateArgHeader header;
+    String *string;
+} StringTemplateArg;
+
+enum BattlePartyScreen {
+    BATTLE_PARTY_SCREEN_POKEMON_PARTY = 0,
+    BATTLE_PARTY_SCREEN_SELECT_POKEMON,
+    BATTLE_PARTY_SCREEN_POKEMON_SUMMARY,
+    BATTLE_PARTY_SCREEN_POKEMON_MOVES,
+    BATTLE_PARTY_SCREEN_MOVE_SUMMARY,
+    BATTLE_PARTY_SCREEN_RESTORE_MOVE_PP,
+    BATTLE_PARTY_SCREEN_LEARN_MOVE,
+    BATTLE_PARTY_SCREEN_CONFIRM_LEARN_MOVE,
+    BATTLE_PARTY_SCREEN_LEARN_MOVE_CONTEST_STATS,
+    BATTLE_PARTY_SCREEN_CONFIRM_LEARN_MOVE_CONTEST_STATS,
+};
+
+enum BattlePokemonPartyScreenButton {
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_1 = 0,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_2,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_3,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_4,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_5,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_6,
+    BATTLE_POKEMON_PARTY_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleSelectPokemonScreenButton {
+    BATTLE_POKEMON_SELECT_POKEMON_SCREEN_BUTTON_SHIFT = 0,
+    BATTLE_POKEMON_SELECT_POKEMON_SCREEN_BUTTON_SUMMARY,
+    BATTLE_POKEMON_SELECT_POKEMON_SCREEN_BUTTON_CHECK_MOVES,
+    BATTLE_POKEMON_SELECT_POKEMON_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattlePokemonMovesScreenButton {
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_1 = 0,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_2,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_3,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_4,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_PREV_POKEMON,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_NEXT_POKEMON,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_SUMMARY,
+    BATTLE_POKEMON_MOVES_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleMoveSummaryScreenButton {
+    BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_1 = 0,
+    BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_2,
+    BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_3,
+    BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_4,
+    BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleRestoreMovePPScreenButton {
+    BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_1 = 0,
+    BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_2,
+    BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_3,
+    BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_4,
+    BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattleLearnMoveScreenButton {
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_1 = 0,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_2,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_3,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_4,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_TO_LEARN,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_CONTEST_STATS,
+    BATTLE_LEARN_MOVE_SCREEN_BUTTON_CANCEL,
+};
+
+enum BattlePartyMode {
+    BATTLE_PARTY_MODE_SELECT_POKEMON = 0,
+    BATTLE_PARTY_MODE_SELECT_POKEMON_NO_CANCEL,
+    BATTLE_PARTY_MODE_USE_ITEM,
+    BATTLE_PARTY_MODE_LEARN_MOVE,
+};
+
+u8 ov08_0221D5DC(BattleParty *battleParty, s32 partySlot);
+
+enum Button {
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_1 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_1,
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_2 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_2,
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_3 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_3,
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_4 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_4,
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_5 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_5,
+    BUTTON_POKEMON_PARTY_SCREEN_POKEMON_6 = BATTLE_POKEMON_PARTY_SCREEN_BUTTON_POKEMON_6,
+    BUTTON_CANCEL = 6,
+    BUTTON_SELECT_POKEMON_SCREEN_SHIFT = 7 + BATTLE_POKEMON_SELECT_POKEMON_SCREEN_BUTTON_SHIFT,
+    BUTTON_SELECT_POKEMON_SCREEN_SUMMARY = 8,
+    BUTTON_POKEMON_MOVES_SCREEN_SUMMARY,
+    BUTTON_SELECT_POKEMON_SCREEN_CHECK_MOVES = 10,
+    BUTTON_POKEMON_SUMMARY_SCREEN_CHECK_MOVES,
+    BUTTON_PREV_POKEMON = 12,
+    BUTTON_NEXT_POKEMON,
+    BUTTON_POKEMON_MOVES_SCREEN_MOVE_1 = 14 + BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_1,
+    BUTTON_POKEMON_MOVES_SCREEN_MOVE_2 = 14 + BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_2,
+    BUTTON_POKEMON_MOVES_SCREEN_MOVE_3 = 14 + BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_3,
+    BUTTON_POKEMON_MOVES_SCREEN_MOVE_4 = 14 + BATTLE_POKEMON_MOVES_SCREEN_BUTTON_MOVE_4,
+    BUTTON_CONTEST_STATS = 18,
+    BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_1 = 19 + BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_1,
+    BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_2 = 19 + BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_2,
+    BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_3 = 19 + BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_3,
+    BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_4 = 19 + BATTLE_RESTORE_MOVE_PP_SCREEN_BUTTON_MOVE_4,
+    BUTTON_LEARN_MOVE_SCREEN_MOVE_1 = 23 + BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_1,
+    BUTTON_LEARN_MOVE_SCREEN_MOVE_2 = 23 + BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_2,
+    BUTTON_LEARN_MOVE_SCREEN_MOVE_3 = 23 + BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_3,
+    BUTTON_LEARN_MOVE_SCREEN_MOVE_4 = 23 + BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_4,
+    BUTTON_LEARN_MOVE_SCREEN_MOVE_TO_LEARN = 23 + BATTLE_LEARN_MOVE_SCREEN_BUTTON_MOVE_TO_LEARN,
+    BUTTON_CONFIRM_LEARN_MOVE_SCREEN_CONFIRM = 28,
+    BUTTON_CONFIRM_LEARN_MOVE_CONTEST_STATS_SCREEN_CONFIRM,
+    BUTTON_MOVE_SUMMARY_SCREEN_MOVE_1 = 30 + BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_1,
+    BUTTON_MOVE_SUMMARY_SCREEN_MOVE_2 = 30 + BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_2,
+    BUTTON_MOVE_SUMMARY_SCREEN_MOVE_3 = 30 + BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_3,
+    BUTTON_MOVE_SUMMARY_SCREEN_MOVE_4 = 30 + BATTLE_MOVE_SUMMARY_SCREEN_BUTTON_MOVE_4,
+};
+
+static u8 ov08_02222564(BattleParty *battleParty);
+
+void ov08_02221E6C(BattleParty *battleParty, u8 button, u8 buttonState, u8 isAltButton);
+
+void ov08_022221CC(BattleParty *battleParty, enum BattlePartyScreen screen);
+
+void ov08_022221CC(BattleParty *battleParty, enum BattlePartyScreen screen) {
+    switch (screen) {
+    case BATTLE_PARTY_SCREEN_POKEMON_PARTY:
+        for (u16 i = 0; i < 6; i++) {
+            u16 partySlotSelectable = ov08_0221D5DC(battleParty, i);
+
+            if (partySlotSelectable == 0) {
+                ov08_02221E6C(battleParty, i, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 1);
+            } else if (partySlotSelectable == 1) {
+                ov08_02221E6C(battleParty, i, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            } else if (partySlotSelectable == 2) {
+                ov08_02221E6C(battleParty, i, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 1);
+            }
+        }
+
+        if (battleParty->context->battlePartyMode == BATTLE_PARTY_MODE_SELECT_POKEMON_NO_CANCEL) {
+            ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+        } else {
+            ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        }
+        break;
+    case BATTLE_PARTY_SCREEN_SELECT_POKEMON:
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_SELECT_POKEMON_SCREEN_SHIFT, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+
+        if (battleParty->partyPokemon[battleParty->context->selectedPartyIndex].isEgg != 0) {
+            ov08_02221E6C(battleParty, BUTTON_SELECT_POKEMON_SCREEN_SUMMARY, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+            ov08_02221E6C(battleParty, BUTTON_SELECT_POKEMON_SCREEN_CHECK_MOVES, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+        } else {
+            ov08_02221E6C(battleParty, BUTTON_SELECT_POKEMON_SCREEN_SUMMARY, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            ov08_02221E6C(battleParty, BUTTON_SELECT_POKEMON_SCREEN_CHECK_MOVES, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        }
+        break;
+    case BATTLE_PARTY_SCREEN_POKEMON_SUMMARY:
+        if (ov08_02222564(battleParty) == 1) {
+            ov08_02221E6C(battleParty, BUTTON_PREV_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            ov08_02221E6C(battleParty, BUTTON_NEXT_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        } else {
+            ov08_02221E6C(battleParty, BUTTON_PREV_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+            ov08_02221E6C(battleParty, BUTTON_NEXT_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+        }
+
+        ov08_02221E6C(battleParty, BUTTON_POKEMON_SUMMARY_SCREEN_CHECK_MOVES, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        break;
+    case BATTLE_PARTY_SCREEN_POKEMON_MOVES:
+        if (ov08_02222564(battleParty) == 1) {
+            ov08_02221E6C(battleParty, BUTTON_PREV_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            ov08_02221E6C(battleParty, BUTTON_NEXT_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        } else {
+            ov08_02221E6C(battleParty, BUTTON_PREV_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+            ov08_02221E6C(battleParty, BUTTON_NEXT_POKEMON, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+        }
+
+        for (u16 i = 0; i < 4; i++) {
+            if (battleParty->partyPokemon[battleParty->context->selectedPartyIndex].moves[i].move != MOVE_NONE) {
+                ov08_02221E6C(battleParty, BUTTON_POKEMON_MOVES_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            } else {
+                ov08_02221E6C(battleParty, BUTTON_POKEMON_MOVES_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+            }
+        }
+
+        ov08_02221E6C(battleParty, BUTTON_POKEMON_MOVES_SCREEN_SUMMARY, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        break;
+    case BATTLE_PARTY_SCREEN_MOVE_SUMMARY:
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+
+        for (u16 i = 0; i < 4; i++) {
+            if (battleParty->context->selectedMoveSlot == i) {
+                ov08_02221E6C(battleParty, BUTTON_MOVE_SUMMARY_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_PRESSED, 0);
+            } else {
+                ov08_02221E6C(battleParty, BUTTON_MOVE_SUMMARY_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            }
+        }
+        break;
+    case BATTLE_PARTY_SCREEN_RESTORE_MOVE_PP:
+        for (u16 i = 0; i < 4; i++) {
+            if (battleParty->partyPokemon[battleParty->context->selectedPartyIndex].moves[i].move != MOVE_NONE) {
+                ov08_02221E6C(battleParty, BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+            } else {
+                ov08_02221E6C(battleParty, BUTTON_RESTORE_MOVE_PP_SCREEN_MOVE_1 + i, BATTLE_SUB_MENU_BUTTON_STATE_DISABLED, 0);
+            }
+        }
+
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        break;
+    case BATTLE_PARTY_SCREEN_LEARN_MOVE:
+    case BATTLE_PARTY_SCREEN_LEARN_MOVE_CONTEST_STATS:
+        ov08_02221E6C(battleParty, BUTTON_LEARN_MOVE_SCREEN_MOVE_1, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_LEARN_MOVE_SCREEN_MOVE_2, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_LEARN_MOVE_SCREEN_MOVE_3, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_LEARN_MOVE_SCREEN_MOVE_4, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_LEARN_MOVE_SCREEN_MOVE_TO_LEARN, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+
+        if (battleParty->hasVisitedContestHall == 1) {
+            ov08_02221E6C(battleParty, BUTTON_CONTEST_STATS, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        }
+        break;
+    case BATTLE_PARTY_SCREEN_CONFIRM_LEARN_MOVE:
+        ov08_02221E6C(battleParty, BUTTON_CONFIRM_LEARN_MOVE_SCREEN_CONFIRM, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+
+        if (battleParty->hasVisitedContestHall == 1) {
+            ov08_02221E6C(battleParty, BUTTON_CONTEST_STATS, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        }
+        break;
+    case BATTLE_PARTY_SCREEN_CONFIRM_LEARN_MOVE_CONTEST_STATS:
+        ov08_02221E6C(battleParty, BUTTON_CONFIRM_LEARN_MOVE_CONTEST_STATS_SCREEN_CONFIRM, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        ov08_02221E6C(battleParty, BUTTON_CANCEL, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+
+        if (battleParty->hasVisitedContestHall == 1) {
+            ov08_02221E6C(battleParty, BUTTON_CONTEST_STATS, BATTLE_SUB_MENU_BUTTON_STATE_UNPRESSED, 0);
+        }
+        break;
+    }
+}
+
+void ov08_02222524(BattleParty *battleParty, enum BattlePartyScreen screen);
+
+void ov08_02222524(BattleParty *battleParty, enum BattlePartyScreen screen) {
+    if (screen == BATTLE_PARTY_SCREEN_POKEMON_MOVES) {
+        PaletteData_LoadPalette(battleParty->palette, &battleParty->screenPaletteData[(16)], PLTTBUF_SUB_BG, ((12) * (16)), ((16) * sizeof(u16)));
+    } else {
+        PaletteData_LoadPalette(battleParty->palette, &battleParty->screenPaletteData[0], PLTTBUF_SUB_BG, ((12) * (16)), ((16) * sizeof(u16)));
+    }
+}
+
+static u8 ov08_02222564(BattleParty *battleParty) {
+    u16 i, numSelectablePartyPokemon = 0;
+
+    for (i = 0; i < 6; i++) {
+        if (battleParty->partyPokemon[i].species != SPECIES_NONE && battleParty->partyPokemon[i].isEgg == 0) {
+            numSelectablePartyPokemon++;
+        }
+    }
+
+    if (numSelectablePartyPokemon >= 2) {
+        return 1;
+    }
+
+    return 0;
+}

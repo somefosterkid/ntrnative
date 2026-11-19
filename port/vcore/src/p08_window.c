@@ -37,9 +37,10 @@ void vc_window_line(VCoreState *s, int e, int y, VC_Line *ln) {
     for (int x = 0; x < VC_W; x++) ln->winmask[x] = 0x3F;
     return;
   }
-  u16 winin = vc_eng16(s, e, VC_REG_WININ), winout = vc_eng16(s, e, VC_REG_WINOUT);
-  u16 h0 = vc_eng16(s, e, VC_REG_WIN0H), h1 = vc_eng16(s, e, VC_REG_WIN1H);
-  u16 v0 = vc_eng16(s, e, VC_REG_WIN0V), v1 = vc_eng16(s, e, VC_REG_WIN1V);
+  /* the line's registers (H-blank DMA: vc_ln16) */
+  u16 winin = vc_ln16(s, e, y, VC_REG_WININ), winout = vc_ln16(s, e, y, VC_REG_WINOUT);
+  u16 h0 = vc_ln16(s, e, y, VC_REG_WIN0H), h1 = vc_ln16(s, e, y, VC_REG_WIN1H);
+  u16 v0 = vc_ln16(s, e, y, VC_REG_WIN0V), v1 = vc_ln16(s, e, y, VC_REG_WIN1V);
   int y0 = w0 && win_in_y(y, v0 >> 8, v0 & 255);
   int y1 = w1 && win_in_y(y, v1 >> 8, v1 & 255);
   u8 m_w0 = winin & 0x3F, m_w1 = (winin >> 8) & 0x3F, m_obj = (winout >> 8) & 0x3F, m_out = winout & 0x3F;

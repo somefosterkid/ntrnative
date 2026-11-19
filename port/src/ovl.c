@@ -5,8 +5,9 @@
 // with them) into two output sections in overlay order, .ovldata and .ovlbss, and a table (.ovltab) of each overlay's
 // offsets into them and its DS layout. Here: a copy of .ovldata taken before the game starts, and libntr's
 // FS_LoadOverlayInfo, FS_LoadOverlay and FS_UnloadOverlay over it (libntr's assume a ROM image and 32-bit addresses
-// on PC: its FS_LoadOverlay is empty with SDK 5). With all three here, libntr's fs_overlay.c object stays out of the
-// link (its FSi_InitOverlay, which FS_Init calls, is port/subprojects/packagefiles/libntr-sdk-gaps.patch's).
+// on PC: its FS_LoadOverlay is empty with SDK 5), and the two halves of FS_LoadOverlay that Platinum calls (pret's
+// src/game_overlay.c): FS_LoadOverlayImage(Async) and FS_StartOverlay. With all of them here, libntr's fs_overlay.c object
+// stays out of the link (its FSi_InitOverlay, which FS_Init calls, is port/subprojects/packagefiles/libntr-sdk-gaps.patch's).
 //
 // FS_LoadOverlayInfo gives the DS's numbers (address, image and bss size): lib/gfl/src/gf_overlay.c checks with them
 // that no two loaded overlays share memory, as on the DS. The address is the DS's: nothing on PC may read through it.
@@ -70,7 +71,7 @@ typedef struct {
 // Black 2 and White 2 on the PC (GNU ld, lld, PE): their overlays' data is outside the script's table (port/machine/gnu_ovl_section.h,
 // tools/port_overlays.py puts it at the end of .ovldata and .ovlbss), so they have a table of their own, made as the Mach-O build
 // makes each game's from the markers in PortGame; Black and White (ovlCount NULL) keep the script's.
-#if defined(BWPORT_OVL_SCRIPT) && !defined(BWPORT_OVL_MACHO) && (defined(BWPORT_B2) || defined(BWPORT_W2))
+#if defined(BWPORT_OVL_SCRIPT) && !defined(BWPORT_OVL_MACHO) && (defined(BWPORT_B2) || defined(BWPORT_W2) || defined(BWPORT_PLAT))
 #define BWPORT_OVL_GAMES
 #endif
 
@@ -156,13 +157,15 @@ void PortOvl_Init(void) {
 }
 
 #if defined(BWPORT_OVL_MACHO) || defined(BWPORT_OVL_GAMES)
+int PORT_AssetRomOverlays(const char *code, unsigned (*rows)[4], unsigned n);   // asset_load.c
+
 // A game's table and snapshot, made the first time it is chosen (its overlays' data is still as linked then: a game
 // runs only once chosen, and machine.c puts every game's back at a reset)
 static struct {
     const PortGame *game;
     PortOvlTable *tab;
     u8 *snapshot;
-} sGames[4];
+} sGames[8];   // (5 games have tables: Black 2, White 2, Platinum, HeartGold, SoulSilver)
 
 void PortOvl_SetGame(const PortGame *g) {
     u32 i, k, n;
@@ -179,9 +182,9 @@ void PortOvl_SetGame(const PortGame *g) {
     }
 #endif
     n = *g->ovlCount;
-    for (k = 0; k < 4 && sGames[k].game != NULL && sGames[k].game != g; k++) {
+    for (k = 0; k < 8 && sGames[k].game != NULL && sGames[k].game != g; k++) {
     }
-    if (k == 4) {
+    if (k == 8) {
         return;
     }
     if (sGames[k].game == NULL) {
@@ -203,6 +206,19 @@ void PortOvl_SetGame(const PortGame *g) {
             e->dataSize = (u32)(g->ovlData[i + 1] - g->ovlData[i]);
             e->bssOffset = (u32)(g->ovlBss[i] - g->ovlBss[0]);
             e->bssSize = (u32)(g->ovlBss[i + 1] - g->ovlBss[i]);
+        }
+        if (n > 0 && g->ovlDs[0][1] == 0) {   // built without the game's ROM (zeros compiled): the layout from its ROM
+            unsigned (*ds)[4] = calloc(n, sizeof(*ds));
+
+            if (ds != NULL && PORT_AssetRomOverlays(g->code, ds, n)) {
+                for (i = 0; i < n; i++) {
+                    t->entries[i].id = ds[i][0];
+                    t->entries[i].dsRam = ds[i][1];
+                    t->entries[i].dsImageSize = ds[i][2];
+                    t->entries[i].dsBssSize = ds[i][3];
+                }
+            }
+            free(ds);
         }
         sMachoTab = t;
         sMachoData = g->ovlData[0];
@@ -259,7 +275,7 @@ static void PortOvl_Load(void) {
 // asset_load.c: a table filled from the ROM after the snapshot was taken; its bytes go into the snapshot too, so each load of
 // its overlay puts the ROM's values back (not the placeholders the exe was linked with)
 void PortOvl_Keep(const void *p, size_t n) {
-#if defined(BWPORT_OVL_SCRIPT) && !defined(BWPORT_OVL_MACHO)
+#ifdef BWPORT_OVL_SCRIPT   // (Mach-O: the chosen game's table and snapshot, PortOvl_SetGame's)
     const u8 *b = p;
 
     if (sSnapshot != NULL && sTable != NULL && b >= __bwovl_data && b + n <= __bwovl_data + sTable->dataTotal) {
@@ -419,6 +435,45 @@ BOOL FS_UnloadOverlay(MIProcessor target, FSOverlayID id) {
     return TRUE;
 }
 
+// FS_LoadOverlay's halves: the image (here the reset) and the start (the overlay's static initializers: Black has none;
+// Platinum's, below). The async load is done when it returns; p_file is left an open file that is not busy
+// (as the SDK's is once its read ends), so pret's caller's FS_WaitAsync returns at once and its FS_CloseFile finds a file.
+BOOL FS_LoadOverlayImage(FSOverlayInfo *p_ovi) {
+    return FS_LoadOverlay(p_ovi->target, p_ovi->header.id);
+}
+
+BOOL FS_LoadOverlayImageAsync(FSOverlayInfo *p_ovi, FSFile *p_file) {
+    p_file->stat |= FS_FILE_STATUS_IS_FILE;
+    return FS_LoadOverlay(p_ovi->target, p_ovi->header.id);
+}
+
+// Platinum's NitroStaticInit table (port/include_plat/nitro/sinit.h): each file's init and an address in its .ovlbss.
+#define BWOVL_SINIT_MAX 64
+static struct {
+    void (*fn)(void);
+    const void *anchor;
+} sSinit[BWOVL_SINIT_MAX];
+static int sSinitN;
+
+void PortOvl_RegisterSinit(void (*fn)(void), const void *anchor) {
+    if (sSinitN < BWOVL_SINIT_MAX) {
+        sSinit[sSinitN].fn = fn;
+        sSinit[sSinitN].anchor = anchor;
+        sSinitN++;
+    }
+}
+
+// The overlay's static initializers (the DS runs its .sinit table here, in link order)
+void FS_StartOverlay(FSOverlayInfo *p_ovi) {
+    int i;
+
+    for (i = 0; i < sSinitN; i++) {
+        if (PortOvl_Owner(sSinit[i].anchor) == (int)p_ovi->header.id) {
+            sSinit[i].fn();
+        }
+    }
+}
+
 BOOL PortOvl_IsLoaded(u32 id) {
     return id < BWOVL_MAX && sLoaded[id];
 }
@@ -441,6 +496,19 @@ int PortOvl_Owner(const void *p) {
     (void)p;
 #endif
     return -1;
+}
+
+// "1,5,12": the loaded overlays' ids (the state line port/src/run_frames.c prints when the exe ends itself at the frame cap)
+void PortOvl_LoadedList(char *buf, size_t n) {
+    size_t len = 0;
+    u32 i;
+
+    buf[0] = 0;
+    for (i = 0; i < BWOVL_MAX && len + 8 < n; i++) {
+        if (sLoaded[i]) {
+            len += (size_t)snprintf(buf + len, n - len, "%s%u", len ? "," : "", (unsigned)i);
+        }
+    }
 }
 
 u32 PortOvl_Count(void) {

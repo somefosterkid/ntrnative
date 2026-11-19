@@ -1,0 +1,44 @@
+#include "constants/items.h"
+#include "constants/moves.h"
+#include "constants/pokemon.h"
+#include "constants/ribbon.h"
+#include "constants/field_move_response.h"
+#include "msgdata/msg/msg_0300.h"
+	.include "macros.inc"
+	.include "unk_02088288.inc"
+	.include "global.inc"
+
+	.public gOverlayTemplate_Battle
+	.public gNatureStatMods
+
+	.public sub_02089C50
+	.public sub_02089E30
+	.public sub_02089E98
+	.public sub_0208A2C0
+	.public sub_0208A2E0
+	.public sub_0208A520
+	.public sub_0208A564
+	.public sub_0208A63C
+	.public sub_0208A71C
+	.public sub_0208A79C
+	.public sub_0208A834
+	.public sub_0208A9C4
+	.public sub_0208AA9C
+	.public sub_0208AB58
+	.public sub_0208ADB8
+	.public sub_0208ADCC
+	.public sub_0208ADDC
+	.public sub_0208AE08
+	.public sub_0208AE48
+	.public sub_0208AE88
+	.public sub_0208AEB4
+	.public sub_0208AEC4
+	.public sub_0208AED4
+	.public sub_0208AF08
+	.public sub_0208AFA0
+	.public sub_0208B044
+	.public sub_0208B068
+	.public sub_0208B08C
+	.public sub_0208B0B0
+	.public sub_0208B0F4
+	.text

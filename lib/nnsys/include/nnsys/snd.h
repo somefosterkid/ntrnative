@@ -7,6 +7,7 @@
 #include "nitro/fs.h"
 #include "nitro/snd.h"
 #include "nitro/spi/ARM9/pm.h"
+#include "nnsys/fnd.h"
 
 // NitroSystem's sound library (NNS_Snd). The names are NitroSystem's, where the code shows them, and ours elsewhere, as
 // for what is newer than that reconstruction; swan's names are noted where they differ. The sources' names have a snd_
@@ -65,7 +66,7 @@ void NNS_SndPlayerPause(NNSSndHandle *handle, BOOL flag);
 void NNS_SndPlayerSetInitialVolume(NNSSndHandle *handle, int volume);
 void NNS_SndPlayerMoveVolume(NNSSndHandle *handle, int targetVolume, int frames);
 void NNS_SndPlayerSetChannelPriority(NNSSndHandle *handle, int prio);
-typedef enum {
+typedef enum NNSSndSeqMute {
     NNS_SND_SEQ_MUTE_OFF = SND_SEQ_MUTE_OFF,
     NNS_SND_SEQ_MUTE_NO_STOP = SND_SEQ_MUTE_NO_STOP,
     NNS_SND_SEQ_MUTE_RELEASE = SND_SEQ_MUTE_RELEASE,
@@ -87,7 +88,7 @@ BOOL NNS_SndPlayerReadDriverTrackInfo(NNSSndHandle *handle, int trackNo, SNDTrac
 
 typedef struct NNSSndWaveOut *NNSSndWaveOutHandle;
 
-typedef enum {
+typedef enum NNSSndWaveFormat {
     NNS_SND_WAVE_FORMAT_PCM8,
     NNS_SND_WAVE_FORMAT_PCM16,
 } NNSSndWaveFormat;
@@ -112,7 +113,8 @@ BOOL NNS_SndLockChannel(u32 chBitMask);
 void NNS_SndUnlockChannel(u32 chBitMask);
 int NNS_SndAllocAlarm(void);
 void NNS_SndFreeAlarm(int alarmNo);
-// Frees capture channels locked for the capture
+// Locks capture channels for the capture, which fails when one is locked already, and frees them
+BOOL NNS_SndLockCapture(u32 capBitFlag);
 void NNS_SndUnlockCapture(u32 capBitFlag);
 
 // NitroSystem's sound archive (NNS_SndArc): the info of a sequence, a bank and a wave archive by number, and the
@@ -278,7 +280,27 @@ typedef enum NNSSndStrmCallbackStatus {
 typedef void (*NNSSndStrmCallback)(NNSSndStrmCallbackStatus status, int numChannels, void *buffer[], u32 len,
                                    NNSSndStrmFormat format, void *arg);
 
-typedef struct NNSSndStrm NNSSndStrm;
+// A stream (stream.c). Its buffer is split into one part per channel, each played in a loop in interval blocks of
+// chBufLen / interval bytes; curBuffer is the block the callback fills next. Public, since the Gen 4 games embed one in
+// their own structs
+typedef struct NNSSndStrm {
+    NNSFndLink link;
+    PMSleepCallbackInfo preSleepInfo;
+    PMSleepCallbackInfo postSleepInfo;
+    NNSSndStrmFormat format;
+    BOOL activeFlag : 1;
+    BOOL startFlag : 1;
+    u32 chBufLen;
+    int interval;
+    NNSSndStrmCallback callback;
+    void *callbackArg;
+    int curBuffer;
+    int volume;
+    int alarmNo;
+    u32 chBitMask;
+    int numChannels;
+    u8 channelNo[NNS_SND_STRM_CHANNEL_MAX];
+} NNSSndStrm;
 
 void NNS_SndStrmInit(NNSSndStrm *stream);
 BOOL NNS_SndStrmAllocChannel(NNSSndStrm *stream, int numChannels, const u8 chNoList[]);
@@ -353,5 +375,38 @@ u32 NNS_SndArcStrmGetCurrentPlayingPos(NNSSndStrmHandle *handle);
 // Locks or frees a stream player's channels while it doesn't play
 BOOL NNS_SndArcStrmAllocChannel(int playerNo);
 void NNS_SndArcStrmFreeChannel(int playerNo);
+
+// The Gen 4 games' NitroSystem (071126: Platinum, HeartGold/SoulSilver) API that Black never calls
+// (docs/platinum.md, "NitroSystem"): declared here, defined in lib/nnsys as they are added (wave 2: capture.c and
+// waveout.c are Black's complete files, so their Gen 4 functions need a DS-build-neutral home)
+// The stream timer's clock: SND_TIMER_CLOCK / 32, the unit of NNS_SndStrmSetup's timer (stream.c scales it by 32) and
+// of the alarms' ticks
+#define NNS_SND_STRM_TIMER_CLOCK (SND_TIMER_CLOCK / 32)
+
+typedef enum NNSSndCaptureFormat {
+    NNS_SND_CAPTURE_FORMAT_PCM8,
+    NNS_SND_CAPTURE_FORMAT_PCM16,
+} NNSSndCaptureFormat;
+
+typedef enum NNSSndCaptureOutputEffectType {
+    NNS_SND_CAPTURE_OUTPUT_EFFECT_NORMAL,
+} NNSSndCaptureOutputEffectType;
+
+typedef void (*NNSSndCaptureEffectCallback)(void *bufferL, void *bufferR, u32 len, NNSSndCaptureFormat format,
+                                            void *arg);
+
+BOOL NNS_SndCaptureStartReverb(void *buffer, u32 bufSize, NNSSndCaptureFormat format, int sampleRate, int volume);
+void NNS_SndCaptureStopReverb(int frames);
+void NNS_SndCaptureSetReverbVolume(int volume, int frames);
+BOOL NNS_SndCaptureStartEffect(void *buffer, u32 bufSize, NNSSndCaptureFormat format, int sampleRate, int interval,
+                               NNSSndCaptureEffectCallback callback, void *arg);
+void NNS_SndCaptureStopEffect(void);
+BOOL NNS_SndCaptureIsActive(void);
+void NNS_SndWaveOutSetPan(NNSSndWaveOutHandle handle, int pan);
+void NNS_SndPlayerStopSeqByPlayerNo(int playerNo, int fadeFrame);
+void NNS_SndPlayerStopSeqBySeqNo(int seqNo, int fadeFrame);
+void NNS_SndPlayerStopSeqAll(int fadeFrame);
+int NNS_SndPlayerGetSeqNo(const NNSSndHandle *handle);
+BOOL NNS_SndArcLoadBank(int bankNo, NNSSndHeapHandle heap);
 
 #endif // BWPORT_NNSYS_SND_H

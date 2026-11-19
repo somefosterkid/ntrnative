@@ -80,10 +80,11 @@ jstring JFN(nativeInit)(JNIEnv *env, jclass cls, jstring root) {
 
 // One line per game under the root that has a ROM copy or extracted files, tab-separated:
 // code title shortName playable(0/1) hasRom hasFiles hasSave playSeconds(-1) savedEpoch(0) coverSource coverLink
+// accent deep glow dark(0/1) (the table's look: launcher_core.h) edition (LC_Edition)
 jobjectArray JFN(nativeGames)(JNIEnv *env, jclass cls) {
-    const LC_Game *found[8];
+    const LC_Game *found[LC_MAX_GAMES];
     char line[1800];
-    int n = LC_Scan(found, 8), i, k = 0;
+    int n = LC_Scan(found, LC_MAX_GAMES), i, k = 0;
     jclass sc = (*env)->FindClass(env, "java/lang/String");
     jobjectArray a;
 
@@ -91,7 +92,7 @@ jobjectArray JFN(nativeGames)(JNIEnv *env, jclass cls) {
     a = (*env)->NewObjectArray(env, n, sc, NULL);
     for (i = 0; i < n; i++) {
         const LC_Game *g = found[i];
-        char dir[1200], path[1300], name[64] = "", link[256] = "";
+        char dir[1200], path[1300], name[64] = "", link[256] = "", edition[96];
         long secs = -1;
         time_t when = 0;
         int hasSave = LC_HasSave(g) != 0;
@@ -108,8 +109,10 @@ jobjectArray JFN(nativeGames)(JNIEnv *env, jclass cls) {
             when = stat(path, &st) == 0 ? st.st_mtime : 0;
         }
         LC_CoverSource(g, name, sizeof(name), link, sizeof(link));
-        snprintf(line, sizeof(line), "%s\t%s\t%s\t%d\t%d\t%d\t%d\t%ld\t%lld\t%s\t%s", g->code, g->title, g->shortName, g->sha1[0] != NULL,
-                 LC_HasRom(g) != 0, LC_HasFiles(g) != 0, hasSave, secs, (long long)when, name, link);
+        LC_Edition(g, edition, sizeof(edition));
+        snprintf(line, sizeof(line), "%s\t%s\t%s\t%d\t%d\t%d\t%d\t%ld\t%lld\t%s\t%s\t%u\t%u\t%u\t%d\t%s", g->code, g->title, g->shortName,
+                 g->sha1[0] != NULL, LC_HasRom(g) != 0, LC_HasFiles(g) != 0, hasSave, secs, (long long)when, name, link, g->accent, g->deep,
+                 g->glow, g->dark, edition);
         (*env)->SetObjectArrayElement(env, a, k++, JStr(env, line));
     }
     // (a shorter array when a folder was skipped: the unused tail is NULL, Java stops at it)
@@ -270,6 +273,15 @@ void JFN(nativeSetLastGame)(JNIEnv *env, jclass cls, jstring code) {
     if (g != NULL) {
         LC_SetLastGame(g);
     }
+}
+
+// "Black, White and Platinum": the games this build plays (for the empty library's and the refusal's text)
+jstring JFN(nativePlayableNames)(JNIEnv *env, jclass cls) {
+    char names[200];
+
+    (void)cls;
+    LC_PlayableNames(names, sizeof(names));
+    return JStr(env, names);
 }
 
 jstring JFN(nativeLastGame)(JNIEnv *env, jclass cls) {

@@ -73,13 +73,12 @@ static inline Cand mkcand(const VC_Line *ln, int slot, int x, u32 objpx) {
 }
 
 void vc_compose_line(VCoreState *s, int e, int y, VC_Line *ln) {
-  (void)y;
   u32 dispcnt = vc_eng32(s, e, VC_REG_DISPCNT);
   u16 bgcnt[4];
   for (int n = 0; n < 4; n++) bgcnt[n] = vc_eng16(s, e, VC_REG_BG0CNT + 2 * n);
-  u16 bld = vc_eng16(s, e, VC_REG_BLDCNT);
-  u16 alpha = vc_eng16(s, e, VC_REG_BLDALPHA);
-  int evy = clamp16(vc_eng16(s, e, VC_REG_BLDY) & 0x1F);
+  u16 bld = vc_ln16(s, e, y, VC_REG_BLDCNT); /* the line's (H-blank DMA: vc_ln16) */
+  u16 alpha = vc_ln16(s, e, y, VC_REG_BLDALPHA);
+  int evy = clamp16(vc_ln16(s, e, y, VC_REG_BLDY) & 0x1F);
   int eva = clamp16(alpha & 0x1F), evb = clamp16((alpha >> 8) & 0x1F);
   int mode = (bld >> 6) & 3;
   u32 backdrop = vc_555_to_rgb6(vc_pal(s, e, 0, 0));

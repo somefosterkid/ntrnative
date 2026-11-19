@@ -1,0 +1,85 @@
+pokeplatinum-wroutefly.patch (tools/pokeplat_gen.py applies the patches in name order, this one after the others that touch the party menu): F:fly on Platinum
+(port/src/route_fly.h; docs/platinum.md, ptleg24). The party menu (applications/party_menu/main.c PartyMenu_Main, each frame: its state and
+the context menu's cursor; PartyMenu_DrawContextMenu's caller: the entries) and the Town Map (applications/town_map/main.c TownMap_Main, each
+frame: the cursor and the places; TownMap_Exit: the pick) tell the route pilot their state through port/game/route_gen4.c, as Gen 5's
+menus do. GetContextMenuEntriesForPartyMon asks PortRoute4_CheatFlyEntry: under the test cheat (BWPORT_TESTCHEAT=win) the first party
+member gets a Fly entry when nobody knows the move (the cheat's field-move answer, as the scripts' FindPartySlotWithMove). Test-only.
+diff --git a/src/applications/party_menu/main.c b/src/applications/party_menu/main.c
+--- a/src/applications/party_menu/main.c
++++ b/src/applications/party_menu/main.c
+@@ -343,10 +343,17 @@
+     return TRUE;
+ }
+ 
++// the route pilot's F:fly (port/game/route_gen4.c): the list's state each frame, the context menu's entries, the test cheat's Fly entry
++void PortRoute4_PartyMenu(int takesKeys, int menuCursor, int slot, int mode);
++void PortRoute4_PartyContext(const u8 *entries, int count, int fly);
++int PortRoute4_CheatFlyEntry(int slot);
++
+ static BOOL PartyMenu_Main(ApplicationManager *appMan, int *state)
+ {
+     PartyMenuApplication *partyMenu = ApplicationManager_Data(appMan);
+ 
++    PortRoute4_PartyMenu(*state == PARTY_MENU_STATE_DEFAULT, (*state == PARTY_MENU_STATE_HANDLE_PARTY_MENU_ACTION || *state == PARTY_MENU_STATE_HANDLE_CONTEXT_MENU_INPUT) ? (int)Menu_GetCursorPos(partyMenu->contextMenu) : -1, partyMenu->currPartySlot, partyMenu->partyMenu->mode);
++
+     switch (*state) {
+     case PARTY_MENU_STATE_START:
+         *state = sub_0207E490(partyMenu);
+@@ -1781,6 +1788,7 @@
+         v1 = sub_020801F0(application, v0);
+     }
+ 
++    PortRoute4_PartyContext(v0, v1, GetFieldMoveIndex(MOVE_FLY));
+     PartyMenu_DrawContextMenu(application, v0, v1);
+     Heap_FreeExplicit(HEAP_ID_PARTY_MENU, v0);
+     PartyMenu_LoadContextMenuPrompt(application);
+@@ -1815,6 +1823,21 @@
+                     fieldMoveIndex++;
+                 }
+             }
++
++            {   // the route pilot's test cheat: the first party member "knows" Fly (port/game/route_gen4.c)
++                u8 fly = GetFieldMoveIndex(MOVE_FLY), j, hasFly = FALSE;
++
++                for (j = 0; j < count; j++) {
++                    hasFly |= menuEntriesBuffer[j] == fly;
++                }
++
++                if (hasFly == FALSE && fieldMoveIndex < 4 && PortRoute4_CheatFlyEntry(application->currPartySlot)) {
++                    menuEntriesBuffer[count] = fly;
++                    count++;
++                    PartyMenu_SetKnownFieldMove(application, MOVE_FLY, fieldMoveIndex);
++                    fieldMoveIndex++;
++                }
++            }
+ 
+             menuEntriesBuffer[count] = 0;
+             count++;
+diff --git a/src/applications/town_map/main.c b/src/applications/town_map/main.c
+--- a/src/applications/town_map/main.c
++++ b/src/applications/town_map/main.c
+@@ -126,10 +126,16 @@
+     return TRUE;
+ }
+ 
++// the route pilot's F:fly (port/game/route_gen4.c): the map's state each frame, and how it ended
++void PortRoute4_TownMap(const TownMapAppData *appData, int takesKeys);
++void PortRoute4_TownMapEnd(int flySelected, int mapHeader);
++
+ BOOL TownMap_Main(ApplicationManager *appMan, int *unused)
+ {
+     TownMapAppData *appData = ApplicationManager_Data(appMan);
+ 
++    PortRoute4_TownMap(appData, appData->mainAppState == TOWN_MAP_APP_STATE_MAIN_LOOP);
++
+     switch (appData->mainAppState) {
+     case TOWN_MAP_APP_STATE_INIT_RESOURCES:
+         appData->mainAppState = InitAppResources(appData);
+@@ -163,6 +169,7 @@
+ {
+     TownMapAppData *appData = ApplicationManager_Data(appMan);
+ 
++    PortRoute4_TownMapEnd(appData->context->flyLocationSelected, appData->context->flyLocationMapHeader);
+     ApplicationManager_FreeData(appMan);
+     Heap_Destroy(HEAP_ID_TOWN_MAP);
+ 

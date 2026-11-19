@@ -1,0 +1,8 @@
+#ifndef POKEHEARTGOLD_OVERLAY_12_02258800_H
+#define POKEHEARTGOLD_OVERLAY_12_02258800_H
+
+#include "global.h"
+
+void * ov12_02258D74(u32 param_1, u8 *param_2);
+
+#endif // POKEHEARTGOLD_OVERLAY_12_02258800_H

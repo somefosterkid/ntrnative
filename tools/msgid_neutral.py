@@ -19,6 +19,12 @@ after `_Text_` is already NNN or VarK is left alone, so a second run changes not
     python3 tools/msgid_neutral.py --check            # change nothing; exit 1 when something would change
     python3 tools/msgid_neutral.py --root DIR --headers build/include/generated/text \\
         --dirs src lib include build/include/generated   # another tree (pokebw2)
+
+--all-ids (pret's Platinum banks, run by tools/pokeplat_gen.py): every numeric #define in the headers is a message ID,
+also one without `_Text_` (`BoxText_PickOne`, `GenericNames_PlayerMale_3`, `Text_Gts_X`): it becomes
+`<Head>_Text_NNN`, Head = the name's first `_` part (after a leading `Text_`). Kept as they are (KEEP_RE): ALL_CAPS
+constants (entry counts, met-location names), pret's numbered `pl_msg_NNNNNNNN_NNNNN` and `species_name_<species>`
+(the species constants' own names, used all over the C as SPECIES_*). Uses are then matched as whole identifiers.
 """
 import argparse
 import os
@@ -28,6 +34,9 @@ from pathlib import Path
 
 NAME_RE = re.compile(r'(?<![A-Za-z0-9])([A-Za-z0-9]+)_Text_([A-Za-z0-9_]+)(?![A-Za-z0-9_])')
 DEFINE_RE = re.compile(r'^\s*#\s*define\s+([A-Za-z0-9]+_Text_[A-Za-z0-9_]+)\s+(0[xX][0-9a-fA-F]+|[0-9]+)\b')
+ANY_DEFINE_RE = re.compile(r'^\s*#\s*define\s+([A-Za-z_][A-Za-z0-9_]*)\s+(0[xX][0-9a-fA-F]+|[0-9]+)\b')
+KEEP_RE = re.compile(r'^(?:[A-Z0-9_]+|pl_msg_\d+_\d+|species_name_\w+)$')
+IDENT_RE = re.compile(r'(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*')
 NEUTRAL_RE = re.compile(r'^(\d+|Var\d+)$')
 BRANCH_RE = re.compile(r'^\s*#\s*(if|ifdef|ifndef|elif|else|endif)\b')
 SKIP_DIRS = {'.git', 'build', 'orig', 'extract', '__pycache__', 'node_modules'}
@@ -57,7 +66,17 @@ def read(p):
         return None
 
 
-def collect(files):
+def split_name(name):
+    """(prefix, the part to neutralise): `P_Text_S` -> (P, S); with --all-ids `Head_Rest` -> (Head, Rest)."""
+    if '_Text_' in name:
+        return tuple(name.split('_Text_', 1))
+    parts = name.split('_')
+    if parts[0] == 'Text' and len(parts) > 2:
+        parts = parts[1:]
+    return parts[0], '_'.join(parts[1:])
+
+
+def collect(files, all_ids=False):
     """name -> set of integer values (numeric defines only)."""
     values = {}
     for p in files:
@@ -65,8 +84,8 @@ def collect(files):
         if txt is None:
             continue
         for line in txt.split('\n'):
-            m = DEFINE_RE.match(line)
-            if m:
+            m = (ANY_DEFINE_RE if all_ids else DEFINE_RE).match(line)
+            if m and not (all_ids and (KEEP_RE.match(m.group(1)) or '_' not in m.group(1))):
                 values.setdefault(m.group(1), set()).add(int(m.group(2), 0))
     return values
 
@@ -76,13 +95,13 @@ def build_map(values):
     mapping = {}
     var_n = {}
     for name in sorted(values):
-        pre, suf = name.split('_Text_', 1)
+        pre, suf = split_name(name)
         if NEUTRAL_RE.match(suf):
             continue
         if len(values[name]) == 1:
             mapping[name] = '%s_Text_%03d' % (pre, next(iter(values[name])))
     for name in sorted(values):
-        pre, suf = name.split('_Text_', 1)
+        pre, suf = split_name(name)
         if NEUTRAL_RE.match(suf) or len(values[name]) == 1:
             continue
         k = var_n.get(pre, 0)
@@ -100,11 +119,11 @@ def build_map(values):
     return mapping
 
 
-def sub_names(text, mapping):
-    return NAME_RE.sub(lambda m: mapping.get(m.group(0), m.group(0)), text)
+def sub_names(text, mapping, all_ids=False):
+    return (IDENT_RE if all_ids else NAME_RE).sub(lambda m: mapping.get(m.group(0), m.group(0)), text)
 
 
-def rewrite_header(txt, mapping):
+def rewrite_header(txt, mapping, all_ids=False):
     """The header's lines renamed; a numeric define whose neutral name and value were just defined in the same
     #if branch is dropped."""
     out = []
@@ -112,13 +131,13 @@ def rewrite_header(txt, mapping):
     for line in txt.split('\n'):
         if BRANCH_RE.match(line):
             seen = set()
-        m = DEFINE_RE.match(line)
+        m = (ANY_DEFINE_RE if all_ids else DEFINE_RE).match(line)
         if m and m.group(1) in mapping:
             key = (mapping[m.group(1)], int(m.group(2), 0))
             if key in seen:
                 continue
             seen.add(key)
-        out.append(sub_names(line, mapping))
+        out.append(sub_names(line, mapping, all_ids))
     return '\n'.join(out)
 
 
@@ -137,10 +156,10 @@ def walk_files(root, dirs):
         yield f
 
 
-def run(root, headers, dirs, check=False, out=sys.stdout):
+def run(root, headers, dirs, check=False, out=sys.stdout, all_ids=False):
     root = Path(root)
     hfiles = header_files(root, headers)
-    values = collect(hfiles)
+    values = collect(hfiles, all_ids)
     mapping = build_map(values)
     hset = set(hfiles)
     changed = []
@@ -150,9 +169,9 @@ def run(root, headers, dirs, check=False, out=sys.stdout):
             continue
         seen.add(p)
         txt = read(p)
-        if txt is None or '_Text_' not in txt:
+        if txt is None or not (all_ids or '_Text_' in txt):
             continue
-        new = rewrite_header(txt, mapping) if p in hset else sub_names(txt, mapping)
+        new = rewrite_header(txt, mapping, all_ids) if p in hset else sub_names(txt, mapping, all_ids)
         if new != txt:
             changed.append(p)
             if not check:
@@ -169,8 +188,9 @@ def main(argv=None):
     ap.add_argument('--headers', nargs='+', default=['include/text'])
     ap.add_argument('--dirs', nargs='+', default=['src', 'include', 'lib', 'port', 'tools', 'docs', 'config'])
     ap.add_argument('--check', action='store_true')
+    ap.add_argument('--all-ids', action='store_true', help='every numeric define in the headers is an ID (pret)')
     a = ap.parse_args(argv)
-    changed = run(a.root, a.headers, a.dirs, a.check)
+    changed = run(a.root, a.headers, a.dirs, a.check, all_ids=a.all_ids)
     return 1 if (a.check and changed) else 0
 
 

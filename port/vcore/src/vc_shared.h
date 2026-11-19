@@ -47,6 +47,11 @@ struct VCoreState {
   char *info;            /* the INFO chunk's text (key=value lines), NUL-terminated */
   u8 *lsht;              /* libntr's picture of the frame (256x384 RGBA8) or NULL */
   u8 *l3d;               /* libntr's 3D layer (256x192 RGBA8) or NULL */
+  /* H-blank DMA (libntr-hdma.patch, vcore_hdma_add): engine e's 2D registers line by line when hd_on[e] (hd[e][y]: the
+   * 0x70 bytes line y sees; hd_mask[e][ofs]: 1 where a DMA writes the byte each line). vc_ln16 / vc_ln32 read them. */
+  u8 hd_on[2];
+  u8 hd_mask[2][VC_IO9B_SIZE];
+  u8 hd[2][VC_H][VC_IO9B_SIZE];
 
   /* ---- the working state ---- */
   VC_Region rgn[VC_NREGIONS]; /* the VRAM views (piece 12, vc_vram_map) */
@@ -79,6 +84,28 @@ static inline u16 vc_eng16(const VCoreState *s, int e, u32 ofs) {
 }
 static inline u32 vc_eng32(const VCoreState *s, int e, u32 ofs) {
   return vc_eng16(s, e, ofs) | (u32)vc_eng16(s, e, ofs + 2) << 16;
+}
+/* the register as line y (0-191) sees it: an H-blank DMA's value for the line (s->hd), else the frame's (vc_eng16) */
+static inline u16 vc_ln16(const VCoreState *s, int e, int y, u32 ofs) {
+  if (!s->hd_on[e]) return vc_eng16(s, e, ofs);
+  const u8 *r = s->hd[e][y];
+  return (u16)(r[ofs] | r[ofs + 1] << 8);
+}
+static inline u32 vc_ln32(const VCoreState *s, int e, int y, u32 ofs) {
+  return vc_ln16(s, e, y, ofs) | (u32)vc_ln16(s, e, y, ofs + 2) << 16;
+}
+/* GBATEK 06: an affine BG's reference point on line y (rofs: BGxX or BGxY, pofs: PB or PD; 28-bit signed 19.8): the
+ * register's value plus PB (PD) for each line drawn since; a write (an H-blank DMA into the reference point, every line)
+ * reloads it, so such a line starts at the value written for it. Without DMA: X + y * PB, as before. */
+static inline s32 vc_aff_ref(const VCoreState *s, int e, int y, u32 rofs, u32 pofs) {
+  if (!s->hd_on[e] || !(s->hd_mask[e][rofs] | s->hd_mask[e][pofs])) {
+    s32 r = (s32)(vc_eng32(s, e, rofs) << 4) >> 4;
+    return (s32)((u32)r + (u32)((s16)vc_eng16(s, e, pofs) * y));
+  }
+  if (s->hd_mask[e][rofs]) return (s32)(vc_ln32(s, e, y, rofs) << 4) >> 4;
+  u32 r = (u32)((s32)(vc_eng32(s, e, rofs) << 4) >> 4);
+  for (int l = 0; l < y; l++) r += (u32)(s32)(s16)vc_ln16(s, e, l, pofs);
+  return (s32)r;
 }
 /* palette RAM: engine e, obj 0 = BG / 1 = OBJ, colour index 0-255 */
 static inline u16 vc_pal(const VCoreState *s, int e, int obj, int idx) {

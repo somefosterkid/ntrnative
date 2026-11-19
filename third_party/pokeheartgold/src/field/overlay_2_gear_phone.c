@@ -1,0 +1,311 @@
+#include "constants/maps.h"
+#include "constants/phone_scripts.h"
+#include "constants/sndseq.h"
+
+#include "overlay_2/overlay_02_gear_phone.h"
+
+#include "map_header.h"
+#include "math_util.h"
+#include "msgdata.h"
+#include "phonebook_dat.h"
+#include "sav_system_info.h"
+#include "save_local_field_data.h"
+#include "save_vars_flags.h"
+#include "script_manager.h"
+#include "sound_radio.h"
+#include "sys_flags.h"
+#include "sys_vars.h"
+#include "unk_02092BE8.h"
+
+typedef struct UnkStruct_02253C86 {
+    u8 callerId;
+    u8 unk1;
+    u16 callScriptID;
+    u8 forcePickUp;
+    u8 unk5;
+} UnkStruct_02253C86;
+
+static const UnkStruct_02253C86 ov02_02253C84[] = {
+
+    { PHONE_CONTACT_PROF__ELM, 0, PHONE_SCRIPT_013,  FALSE, 0 },
+    // Hello, player? I discovered something called Pokérus
+    { PHONE_CONTACT_PROF__ELM, 0, PHONE_SCRIPT_007,  FALSE, 0 },
+
+    { PHONE_CONTACT_BIKE_SHOP, 0, PHONE_SCRIPT_085,  TRUE,  0 },
+
+    { PHONE_CONTACT_BILL,      0, PHONE_SCRIPT_093,  TRUE,  0 },
+    { PHONE_CONTACT_PROF__OAK, 0, PHONE_SCRIPT_NONE, FALSE, 0 },
+    { PHONE_CONTACT_DAY_C_MAN, 0, PHONE_SCRIPT_NONE, FALSE, 0 },
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_NONE, FALSE, 0 },
+
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_142,  TRUE,  0 },
+
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_143,  TRUE,  0 },
+
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_144,  TRUE,  0 },
+    // This is Baoba, we've come up with so many objects!
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_145,  TRUE,  0 },
+    // This is Baoba, I'm stuck in a time loop!
+    { PHONE_CONTACT_BAOBA,     0, PHONE_SCRIPT_146,  TRUE,  0 },
+    // Hi honey, I bought something with your money :3
+    { PHONE_CONTACT_MOTHER,    0, PHONE_SCRIPT_027,  FALSE, 0 }
+};
+
+static u8 ov02_02251FDC(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId);
+static u32 ov02_022521C0(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId);
+static u8 ov02_02252218(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId);
+static void ov02_022522AC(GearPhoneRingManager *gearPhone, BOOL a1);
+
+String *GetPhoneBookEntryName(GearPhoneRingManager *gearPhone, enum HeapID heapID) {
+    String *str;
+    if (!gearPhone->active || gearPhone->callerId >= NUM_PHONE_CONTACTS) {
+        str = String_New(8, heapID);
+    } else {
+        int phoneMsg = GetPhoneMessageGmm(gearPhone->callerId);
+        MsgData *msgData = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, phoneMsg, heapID);
+        str = NewString_ReadMsgData(msgData, 0);
+        DestroyMsgData(msgData);
+    }
+    return str;
+}
+
+void GearPhoneRingManager_SetCallerParams(GearPhoneRingManager *gearPhone, u8 callerId, u8 a2, u8 a3, u8 isScriptedCall, u8 callScriptID) {
+    // a4 set to 2 when passed from script
+    // a5 related to message id? when passed from script
+    if (callerId >= NUM_PHONE_CONTACTS) {
+        gearPhone->callerId = 0xFF;
+        gearPhone->unk_arr5[0] = 0xFF;
+        gearPhone->unk_arr5[1] = 0;
+        GF_ASSERT(FALSE);
+    } else {
+        gearPhone->callerId = callerId;
+        gearPhone->unk_arr5[0] = a2;
+        gearPhone->unk_arr5[1] = a3;
+    }
+
+    gearPhone->isScriptedCall = isScriptedCall;
+    gearPhone->callScriptID = callScriptID;
+}
+
+u8 ov02_02251EE8(GearPhoneRingManager *gearPhone, Unk_PokegearSTRUCT_14 *a1) {
+    MI_CpuFill8(a1, 0, 5);
+    if (gearPhone->callerId >= NUM_PHONE_CONTACTS) {
+        GF_ASSERT(FALSE);
+        a1->unk_0 = 0xFF;
+        return 0xFF;
+    }
+    a1->unk_0 = gearPhone->unk_arr5[0];
+    a1->unk_1 = gearPhone->unk_arr5[1];
+    a1->isScriptedCall = gearPhone->isScriptedCall;
+    a1->callScriptID = gearPhone->callScriptID;
+    a1->callTriggerID = gearPhone->callTriggerID;
+    return gearPhone->callerId;
+}
+
+BOOL ov02_02251F20(GearPhoneRingManager *gearPhone) {
+    Location *position = LocalFieldData_GetCurrentPosition(Save_LocalFieldData_Get(gearPhone->saveData));
+
+    if (!MapHeader_CanReceivePhoneCalls(position->mapId)) {
+        return FALSE;
+    }
+
+    if (gearPhone->active || gearPhone->unk_var8 < gearPhone->unk_varC) {
+        return FALSE;
+    }
+
+    PhoneBook *phoneBook = AllocAndReadPhoneBook(HEAP_ID_FIELD1);
+    u32 var = ov02_022521C0(gearPhone, phoneBook, position->mapId);
+    if (var) {
+        FreePhoneBook(phoneBook);
+        if (var == 2) {
+            gearPhone->sys->unkD2_7 = TRUE;
+            StartMapSceneScript(gearPhone->sys, 0x7FF, 0);
+            return TRUE;
+        }
+        ov02_022522AC(gearPhone, 1);
+        return FALSE;
+    }
+    u32 rand = MTRandom() % 100;
+
+    if (rand > gearPhone->unk_var12) {
+        FreePhoneBook(phoneBook);
+        gearPhone->unk_var8 = 0;
+        return FALSE;
+    }
+
+    var = ov02_02251FDC(gearPhone, phoneBook, position->mapId);
+    FreePhoneBook(phoneBook);
+
+    if (var == 0) {
+        gearPhone->unk_var8 = 0;
+    }
+    return FALSE;
+}
+
+static inline u16 ov02_02251FDC_sub(u16 a0) {
+    u32 r4 = a0 * 100;
+    u32 r0 = MTRandom() % r4;
+    return r0 / 100;
+}
+
+static u8 ov02_02251FDC(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId) {
+    u8 i;
+    u8 slot;
+    u8 index;
+    u8 ret;
+    u8 var;
+    PhoneContact *ptr;
+    PhoneContact *contact;
+    SaveVarsFlags *varsFlags = Save_VarsFlags_Get(gearPhone->saveData);
+    PlayerProfile *playerProfile = Save_PlayerData_GetProfile(gearPhone->saveData);
+    SAVE_MISC_DATA *miscData = Save_Misc_Get(gearPhone->saveData);
+
+    slot = SavePokegear_FindEmptyPhonebookSlot(gearPhone->pokegearData);
+
+    contact = SavePokegear_AllocAndCopyPhonebook(gearPhone->pokegearData, HEAP_ID_FIELD1);
+
+    ptr = Heap_AllocAtEnd(HEAP_ID_FIELD1, slot);
+    MI_CpuFill8(ptr, 0xFF, slot);
+
+    u16 rand = LCRandom() % 1000;
+    if (rand < 500) {
+        var = 0;
+    } else if (rand < 800) {
+        var = 1;
+    } else {
+        var = 2;
+    }
+
+    index = 0;
+    for (i = 0; i < slot; i++) {
+        if (phoneBook->entries[contact[i]].unkF != var) {
+            continue;
+        }
+
+        if (phoneBook->entries[contact[i]].type == 0 || phoneBook->entries[contact[i]].type == 12 || phoneBook->entries[contact[i]].type == 11 || phoneBook->entries[contact[i]].type == 10 || phoneBook->entries[contact[i]].type == 14) {
+            ptr[index++] = contact[i];
+        }
+    }
+    if (index == 0) {
+
+        Heap_Free(contact);
+        Heap_Free(ptr);
+        return FALSE;
+    }
+
+    MI_CpuFill8(contact, 0xFF, slot);
+
+    u8 r0 = 0, slot2;
+    SysInfo_RTC *rtc = Save_SysInfo_RTC_Get(gearPhone->saveData);
+    u8 hour = rtc->time.hour;
+    u8 bugContestFlag = Save_VarsFlags_CheckBugContestFlag(varsFlags);
+    ret = 0;
+
+    r0 = sub_0202AAD4(miscData, var);
+
+    if (r0 == index) {
+        sub_0202AA9C(miscData, var);
+    }
+
+    for (i = 0; i < index; i++) {
+        if (phoneBook->entries[ptr[i]].mapId == mapId) {
+            continue;
+        }
+        if (sub_0202AA44(miscData, var, ptr[i])) {
+            continue;
+        }
+        if (ptr[i] == PHONE_CONTACT_BUENA) {
+
+            if (sub_02095FF8(hour) || Save_VarsFlags_IsInRocketTakeover(varsFlags)) {
+                continue;
+            }
+        }
+        if (phoneBook->entries[ptr[i]].mapId == MAP_NATIONAL_PARK && bugContestFlag) {
+            continue;
+        }
+        contact[ret++] = ptr[i];
+    }
+    if (ret != 0) {
+
+        slot2 = ov02_02251FDC_sub(ret);
+        GearPhoneRingManager_SetCallerParams(gearPhone, contact[slot2], var, index, 0, 0);
+        GearPhoneRingManager_StartRinging(gearPhone);
+        ov02_022522AC(gearPhone, TRUE);
+    }
+    Heap_Free(contact);
+    Heap_Free(ptr);
+
+    return ret;
+}
+
+static u32 ov02_022521C0(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId) {
+    u8 callTriggerID = ov02_02252218(gearPhone, phoneBook, mapId);
+    if (callTriggerID == 0xFF) {
+        return FALSE;
+    }
+    GearPhoneRingManager_SetCallerParams(gearPhone, ov02_02253C84[callTriggerID].callerId, 0xFF, 0, 3, ov02_02253C84[callTriggerID].callScriptID);
+    GearPhoneRingManager_StartRinging(gearPhone);
+    gearPhone->callTriggerID = callTriggerID;
+    return ov02_02253C84[callTriggerID].forcePickUp + 1;
+}
+
+// FIXME: This is a fakematch from decomp.me, it doesn't match locally without the label https://decomp.me/scratch/YdDak
+static u8 ov02_02252218(GearPhoneRingManager *gearPhone, PhoneBook *phoneBook, u32 mapId) {
+    u8 *ptr = Heap_AllocAtEnd(HEAP_ID_FIELD1, NUM_CALL_TRIGGERS);
+    MI_CpuFill8(ptr, 0, NUM_CALL_TRIGGERS);
+
+    int cnt = 0;
+    for (int i = 0; i < NUM_CALL_TRIGGERS; i++) {
+        if (PhoneCallPersistentState_CheckCallTriggerFlag(gearPhone->savingsData, i) == 0) {
+            continue;
+        }
+        PhoneBookEntry *entry = &phoneBook->entries[ov02_02253C84[i].callerId];
+        if (entry->id == PHONE_CONTACT_DAY_C_MAN) {
+            if (SavePokegear_IsNumberRegistered(gearPhone->pokegearData, PHONE_CONTACT_DAY_C_MAN) != 0xFF) {
+                // had to do this to match
+                goto LABEL;
+            } else {
+                continue;
+            }
+        } else if (entry->mapId == mapId) {
+            continue;
+        }
+LABEL:
+        ptr[cnt++] = i;
+    }
+
+    if (cnt == 0) {
+        Heap_Free(ptr);
+        return 0xFF;
+    }
+
+    u8 ret = ptr[LCRandom() % cnt];
+    Heap_Free(ptr);
+    return ret;
+}
+
+static void ov02_022522AC(GearPhoneRingManager *gearPhone, BOOL a1) {
+    GearPhone_ToggleRinging(gearPhone, a1);
+}
+
+enum RadioMusicPlayingSeq GetRadioMusicPlayingSeq(void) {
+    u16 seq = SndRadio_GetSeqNo();
+    switch (seq) {
+    case SEQ_GS_RADIO_MARCH:
+    case SEQ_GS_P_RADIO_MARCH:
+        return RADIO_MUSIC_SEQ_MARCH;
+    case SEQ_GS_RADIO_KOMORIUTA:
+    case SEQ_GS_P_RADIO_KOMORIUTA:
+        return RADIO_MUSIC_SEQ_LULLABY;
+    case SEQ_GS_RADIO_R_101:
+        return RADIO_MUSIC_SEQ_HOENN_SOUNDS;
+    case SEQ_GS_RADIO_R_201:
+        return RADIO_MUSIC_SEQ_SINNOH_SOUNDS;
+    case SEQ_GS_RADIO_UNKNOWN:
+        return RADIO_MUSIC_SEQ_UNOWN;
+    case SEQ_GS_HUE:
+    case SEQ_GS_P_HUE:
+        return RADIO_MUSIC_SEQ_POKEFLUTE;
+    }
+    return RADIO_MUSIC_SEQ_NONE;
+}

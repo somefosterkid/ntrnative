@@ -275,3 +275,66 @@ void NNS_G2dResetOamManagerBuffer(NNSG2dOamManagerInstance *man) {
     man->managedAttrArea.currentIdx = man->managedAttrArea.fromIdx;
     man->managedAffineArea.currentIdx = man->managedAffineArea.fromIdx;
 }
+
+#ifndef __MWERKS__
+// The Gen 4 games' (NitroSystem 071126) OAM manager functions that Black never calls, as the managers above are written.
+// They are not in Black's ROM, so the DS build leaves them out
+
+// Whether num entries from from are all free and within the table. None are free, and an area of none is empty (its
+// first entry after its last)
+static inline BOOL IsAreaFree_(const u16 *usedBy, u16 from, u16 num, u16 limit) {
+    return from + num <= limit && (num == 0 || IsOamNotUsed_(usedBy, from, from + (num - 1)));
+}
+
+static void ReserveArea_(NNSG2dOAMManageArea *area, u16 *usedBy, u16 from, u16 num, u16 managerID) {
+    if (num == 0) {
+        area->fromIdx = 1;
+        area->toIdx = 0;
+        area->currentIdx = 1;
+        return;
+    }
+    area->fromIdx = from;
+    area->toIdx = from + (num - 1);
+    area->currentIdx = from;
+    DoReserveArea_(usedBy, from, from + (num - 1), managerID);
+}
+
+BOOL NNS_G2dGetNewOamManagerInstance(NNSG2dOamManagerInstance *man, u16 fromOBJ, u16 numOBJ, u16 fromAffine,
+                                     u16 numAffine, NNSG2dOamType type) {
+    OamCache *cache;
+
+    if (type >= NNS_G2D_OAMTYPE_MAX) {
+        return FALSE;
+    }
+    cache = GetOamCachePtr_(type);
+    if (!IsAreaFree_(cache->reservationTable, fromOBJ, numOBJ, NUM_HW_OAM_ATTR) ||
+        !IsAreaFree_(cache->affineUsedBy, fromAffine, numAffine, NUM_HW_OAM_AFFINE)) {
+        return FALSE;
+    }
+
+    man->GUID = numRegisterdInstance_++;
+    ReserveArea_(&man->managedAttrArea, cache->reservationTable, fromOBJ, numOBJ, man->GUID);
+    ReserveArea_(&man->managedAffineArea, cache->affineUsedBy, fromAffine, numAffine, man->GUID);
+    man->type = type;
+    man->bFastTransferEnable = FALSE;
+    man->spriteZoffsetStep = 0;
+    return TRUE;
+}
+
+BOOL NNS_G2dEntryOamManagerOam(NNSG2dOamManagerInstance *man, const GXOamAttr *oams, u16 num) {
+    u16 i;
+
+    if (!HasEnoughCapacity_(&man->managedAttrArea, num)) {
+        return FALSE;
+    }
+    for (i = 0; i < num; i++) {
+        // Each OAM keeps the affine parameter index in its own attribute 1
+        NNS_G2dEntryOamManagerOamWithAffineIdx(man, &oams[i], NNS_G2D_OAM_AFFINE_IDX_NONE);
+    }
+    return TRUE;
+}
+
+u16 NNS_G2dGetOamManagerOamCapacity(NNSG2dOamManagerInstance *man) {
+    return GetCapacity_(&man->managedAttrArea);
+}
+#endif

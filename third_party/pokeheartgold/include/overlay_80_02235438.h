@@ -1,0 +1,7 @@
+#ifndef POKEHEARTGOLD_OVERLAY_80_02235438_H
+#define POKEHEARTGOLD_OVERLAY_80_02235438_H
+
+#include "global.h"
+#include "sys_task.h"
+
+#endif // POKEHEARTGOLD_OVERLAY_80_02235438_H

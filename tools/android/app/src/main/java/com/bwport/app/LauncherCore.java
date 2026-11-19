@@ -28,6 +28,8 @@ final class LauncherCore {
         String code, title, shortName, coverSource = "", coverLink = "";
         boolean playable, hasRom, hasFiles, hasSave;
         long playSeconds = -1, saved;    // saved: epoch seconds
+        int[] theme = {0x3D8BFF, 0x0B0F1A, 0x1E5BD8, 1};    // accent, deep, glow (0xRRGGBB), dark (1/0): the core's table
+        String edition = "";    // "USA  ·  Rev 1": LC_Edition
 
         static Game parse(String line) {
             String[] f = line.split("\t", -1);
@@ -47,6 +49,10 @@ final class LauncherCore {
             if (f.length > 10) {
                 g.coverSource = f[9];
                 g.coverLink = f[10];
+            }
+            if (f.length > 15) {
+                g.theme = new int[] {(int) Long.parseLong(f[11]), (int) Long.parseLong(f[12]), (int) Long.parseLong(f[13]), Integer.parseInt(f[14])};
+                g.edition = f[15];
             }
             return g;
         }
@@ -74,6 +80,8 @@ final class LauncherCore {
     static native String nativeRestore(String code, String name);
     static native void nativeSetLastGame(String code);
     static native String nativeLastGame();
+    /** "Black, White and Platinum": the games this build plays. */
+    static native String nativePlayableNames();
     static native int nativeGet(int what);    // 0 start mode, 1 layout, 2 cover downloads, 3 skip title and menu
     static native void nativeSet(int what, int v);
     static native boolean nativeCoverWanted(String code);

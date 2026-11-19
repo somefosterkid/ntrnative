@@ -15,8 +15,11 @@
 
 // The texture pattern animations a map can have
 #define FIELD_TERRAIN_TEXPAT_ANIMATION_MAX 16
-// The size of each chunk's SRT animation object, fixed whatever the animation
-#define FIELD_TERRAIN_SRT_ANMOBJ_SIZE 0x80
+// The size of each chunk's SRT animation object, fixed whatever the animation: the NNSG3dAnmObj and its material map
+// after it, 0x80 where pointers are 4 bytes (a 0x1c record and room for 50 materials). The record holds four pointers,
+// so on a 64-bit host 0x80 leaves room for 43: a chunk model with more materials wrote its map over the
+// next block's heap header (the field heap, Opelucid's east plaza; Black's src/ov021/field_ground_anime.c has the same)
+#define FIELD_TERRAIN_SRT_ANMOBJ_SIZE WORK_AREA_SIZE(0x80)
 
 // A texture pattern animation's value at a frame
 typedef struct {

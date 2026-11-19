@@ -1,0 +1,31 @@
+	.include "macros.inc"
+	.include "overlay_83.inc"
+	.include "global.inc"
+
+	.public ov83_02244BA8
+	.public ov83_02244DA0
+	.public ov83_02244DF4
+	.public ov83_02245C80
+	.public ov83_02245CE8
+	.public ov83_02245D48
+	.public ov83_02245F24
+	.public ov83_02246114
+	.public ov83_02246988
+	.public ov83_02246E08
+	.public ov83_02247454
+	.public ov83_022474C4
+	.public ov83_0224755C
+	.public ov83_022475EC
+	.public ov83_02247844
+	.public ov83_02247864
+	.public ov83_022478D4
+	.public ov83_02247A7C
+	.public ov83_02247CB8
+	.public ov83_02248044
+	.public ov83_02248068
+	.public ov83_02248084
+	.public ov83_022480A0
+	.public ov83_022480BC
+	.public ov83_022480D8
+	.public ov83_022480F4
+	.text

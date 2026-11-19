@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """The world atlas of a Gen 5 game, read from the user's ROM: every zone's header, map matrix chunks and event data, and
-the connection graph (warps, and the edges where a map matrix walks on into the neighbour chunk's zone).
+the connection graph (warps, and the edges where a map matrix walks on into the neighbour chunk's zone). Gen 4 (pt hg ss:
+orig/baserom_plat_us.nds, _hg_, _ss_) is read by tools/atlas_gen4.py into the same JSON; it has no scripted doors yet.
 
-    python3 tools/atlas.py GAME build            # build/atlas/GAME.json from orig/baserom_GAME_us.nds (GAME: b w b2 w2)
+    python3 tools/atlas.py GAME build            # build/atlas/GAME.json from orig/baserom_GAME_us.nds (GAME: b w b2 w2 pt hg ss)
     python3 tools/atlas.py GAME zone N           # one zone: header numbers, chunks, warps, actors, triggers, BG events
-    python3 tools/atlas.py GAME path A B         # the shortest zone chain A -> B by warps and matrix edges, tiles used
+    python3 tools/atlas.py GAME path A B         # the shortest zone chain A -> B by warps, matrix edges and scripted
+                                                 # doors (tools/story.py's scripted_edges: talk to an actor, step on a
+                                                 # trigger, read a BG event whose script changes map), tiles used
     python3 tools/atlas.py GAME find npc S       # actors with script S (trainer [S], item [S]: trainers / items; flag F:
                                                  # actors, BG events and triggers that test flag or work F)
+Every listing is capped (a zone: 8 of each kind; path 12 steps; find 15) with "N more: --all"; --all gives it all.
 The other commands build the JSON first when it is missing or older than the ROM or this file. Numbers only: no game
 text (a zone's name is its place-name id), and the JSON is build output, never committed.
+A zone's entity file holds both versions' warps (Reversal Mountain's two interiors): the ones a zone's init script moves off the
+door for GAME's version are marked "dead" (tools/story.py version_dead_warps) and path / neighbours skip them.
 
 The formats are the ones the decompiled loaders read (src/ for Black, third_party/pokebw2 for Black 2):
 - the ROM's file system (GBATEK "DS Cartridge NitroROM"): the FNT names the archives, a/X/Y/Z for archive id XYZ
@@ -39,8 +45,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 from rom_leak_check import narc_members  # noqa: E402
+import atlas_gen4  # noqa: E402
 
-GAMES = {"b": 125, "w": 125, "b2": 126, "w2": 126}   # the zone entities' archive per game
+# the zone entities' archive per game; Gen 4 (pt hg ss): tools/atlas_gen4.py's GEN4
+GAMES = {"b": 125, "w": 125, "b2": 126, "w2": 126, "pt": None, "hg": None, "ss": None}
 ARC_ZONEDATA, ARC_MATRIX, ARC_TERRAIN = 12, 9, 8
 TRAINER_TYPES = {1, 4, 5, 6, 7, 8, 11, 12, 13}
 NONE16 = 0xFFFF
@@ -78,9 +86,14 @@ def rom_file(rom, fid):
     return rom[start:stop]
 
 
+def arc_path(rom, path):
+    """The members of the archive at path in the ROM's file system."""
+    return narc_members(rom_file(rom, fnt_file_id(rom, path)))
+
+
 def arc(rom, arc_id):
     """An archive's members: a/X/Y/Z for archive id XYZ."""
-    return narc_members(rom_file(rom, fnt_file_id(rom, "a/" + "/".join("%03d" % arc_id))))
+    return arc_path(rom, "a/" + "/".join("%03d" % arc_id))
 
 
 def parse_header(b, zone):
@@ -174,6 +187,13 @@ def build(rom, ent_arc):
         if cid not in walks:
             walks[cid] = chunk_walk(terrain[cid]) if cid < len(terrain) else None
         return walks[cid]
+    return {"zones": zones, "edges": matrix_edges(matrices, len(zones), walk), "matrices": len(matrices),
+            "entity_size_mismatch": bad}
+
+
+def matrix_edges(matrices, nzones, walk):
+    """{"a>b": [segments]}: the sides between neighbour chunks of two zones (Gen 5 and Gen 4 alike, parse_matrix's shape).
+    walk(chunk id): the chunk's 32 x 32 walkable flags, or None (unknown: the whole side, marked unchecked)."""
     edges = {}
     for m in matrices:
         if m["zones"] is None:
@@ -187,7 +207,7 @@ def build(rom, ent_arc):
                     if nx >= w or nz >= hgt:
                         continue
                     b = zs[nz * w + nx]
-                    if a == b or a >= len(zones) or b >= len(zones) or \
+                    if a == b or a >= nzones or b >= nzones or \
                             0xFFFFFFFF in (m["chunks"][cz * w + cx], m["chunks"][nz * w + nx]):
                         continue
                     # the tiles along the side walkable on both sides of it (unknown terrain: all of them, unchecked)
@@ -211,7 +231,7 @@ def build(rom, ent_arc):
                         seg["unchecked"] = back["unchecked"] = 1
                     edges.setdefault("%d>%d" % (a, b), []).append(seg)
                     edges.setdefault("%d>%d" % (b, a), []).append(back)
-    return {"zones": zones, "edges": edges, "matrices": len(matrices), "entity_size_mismatch": bad}
+    return edges
 
 
 def chunk_walk(b):
@@ -237,12 +257,32 @@ def atlas_path(game):
 
 
 def load(game, rebuild=False):
-    rom_path = ROOT / "orig" / ("baserom_%s_us.nds" % game)
+    rom_path = ROOT / "orig" / ("baserom_%s_us.nds" % atlas_gen4.GEN4.get(game, {}).get("rom", game))
     out = atlas_path(game)
-    if not rebuild and out.exists() and out.stat().st_mtime > max(rom_path.stat().st_mtime, Path(__file__).stat().st_mtime):
+    stamp = max(p.stat().st_mtime for p in (rom_path, Path(__file__), ROOT / "tools" / "story.py",
+                                            Path(atlas_gen4.__file__)))
+    if not rebuild and out.exists() and out.stat().st_mtime > stamp:
         return json.loads(out.read_text())
+    if game in atlas_gen4.GEN4:   # scripted doors from tools/story.py; no dead warps (no version twins in one ROM)
+        data = atlas_gen4.build4(rom_path.read_bytes(), game, arc_path, matrix_edges)
+        data.update(game=game, dead_warps=[])
+        import story
+        try:
+            data["scripted"] = story.scripted_edges(game, data)
+        except FileNotFoundError as e:   # no pret source for the command table (HGSS lives off main): no scripted doors, no cache
+            print("atlas: %s without scripted doors (%s; set BW_HGSS_SRC)" % (game, e.filename), file=sys.stderr)
+            data["scripted"] = []
+            return data
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(data, separators=(",", ":")))
+        return data
     data = build(rom_path.read_bytes(), GAMES[game])
     data["game"] = game
+    import story   # it reads this atlas: imported here, not at the top
+    data["scripted"] = story.scripted_edges(game, data)
+    data["dead_warps"] = story.version_dead_warps(game, data)   # this version's init scripts move only its own warps
+    for z, i in data["dead_warps"]:
+        data["zones"][z]["warps"][i]["dead"] = True
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, separators=(",", ":")))
     return data
@@ -255,7 +295,7 @@ def tile(e):
 def neighbours(data, z):
     """(next zone, how) for each warp and matrix edge out of zone z."""
     for w in data["zones"][z]["warps"]:
-        if w["to"] < len(data["zones"]):
+        if w["to"] < len(data["zones"]) and not w.get("dead"):   # dead: the other version's twin of a warp
             yield w["to"], "warp %d at %s -> warp %d" % (w["i"], tile(w), w["to_warp"])
     for key, segs in data["edges"].items():
         a, b = map(int, key.split(">"))
@@ -265,6 +305,9 @@ def neighbours(data, z):
                 "z=%d x=%d-%d" % (s["z"], *s["x"])
             yield b, "edge %s %s (%d open tiles%s)" % (s["dir"], line, sum(x["open"] for x in segs),
                                                      ", terrain unchecked" if "unchecked" in s else "")
+    for e in data.get("scripted", []):   # last: a warp or an edge to the same zone wins
+        if e["from"] == z:
+            yield e["to"], "script %s: %s" % (e["tok"], e["how"])
 
 
 def path(data, a, b):
@@ -288,28 +331,43 @@ def path(data, a, b):
     return steps[::-1]
 
 
-def show_zone(data, n):
+BRIEF = 8   # entries of one kind a zone listing shows without --all
+
+
+def few(lines, full, what, n=BRIEF):
+    """lines cut to n and a pointer to --all, unless full."""
+    if full or len(lines) <= n:
+        return lines
+    return lines[:n] + ["  ... %d more %s: --all" % (len(lines) - n, what)]
+
+
+def show_zone(data, n, full=False):
     z = data["zones"][n]
-    out = ["zone %d: matrix %d entities %d script %d text %d enc %d parent %d name %d type %d" % (
-        n, z["matrix"], z["entities"], z["script"], z["text"], z["enc"], z["parent"], z["name"], z["type"])]
+    out = ["zone %d: matrix %d entities %d script %d%s text %d enc %d parent %d name %d type %d" % (
+        n, z["matrix"], z["entities"], z["script"], " init %d" % z["init"] if "init" in z else "", z["text"], z["enc"],
+        z["parent"], z["name"], z["type"])]
     if z["chunks"]:
         xs, zs = [c[0] for c in z["chunks"]], [c[1] for c in z["chunks"]]
         out.append("  chunks %d: x %d-%d z %d-%d (tiles x %d-%d z %d-%d)" % (
             len(z["chunks"]), min(xs), max(xs), min(zs), max(zs), min(xs) * 32, max(xs) * 32 + 31, min(zs) * 32,
             max(zs) * 32 + 31))
-    for w in z["warps"]:
-        out.append("  W%d %s -> zone %d warp %d (dir %d trans %d)" % (w["i"], tile(w), w["to"], w["to_warp"], w["dir"],
-                                                                     w["trans"]))
+    out += few(["  W%d %s -> zone %d warp %d%s%s" % (w["i"], tile(w), w["to"], w["to_warp"],
+                                                   " (dir %d trans %d)" % (w["dir"], w["trans"]) if "dir" in w else "",
+                                                   " DEAD: the other version's" if w.get("dead") else "")
+                for w in z["warps"]], full, "warps", 12)
+    npcs = []
     for e in z["npcs"]:
         kind = " trainer sight %d" % e["sight"] if "trainer" in e else " item" if "item" in e else ""
-        out.append("  uid %d %s model %d move %d ev %d scr %d flag %d dir %d%s" % (
+        npcs.append("  uid %d %s model %d move %d ev %d scr %d flag %d dir %d%s" % (
             e["uid"], tile(e), e["model"], e["move"], e["ev"], e["scr"], e["flag"], e["dir"], kind))
-    for t in z["triggers"]:
-        out.append("  T%d %s %dx%d scr %d work %d == %d type %d" % (
-            t["i"], tile(t), t.get("w", 0), t.get("h", 0), t["scr"], t["work"], t["value"], t["type"]))
-    for i, e in enumerate(z["bg"]):
-        out.append("  b%d %s scr %d flag %d dir %d%s" % (i, tile(e), e["scr"], e["flag"], e["dir"],
-                                                        " hidden item" if "item" in e else ""))
+    out += few(npcs, full, "actors")
+    out += few(["  T%d %s %dx%d scr %d work %d == %d%s" % (
+        t["i"], tile(t), t.get("w", 0), t.get("h", 0), t["scr"], t["work"], t["value"],
+        " type %d" % t["type"] if "type" in t else "") for t in z["triggers"]],
+               full, "triggers")
+    out += few(["  b%d %s scr %d %s dir %d%s" % (i, tile(e), e["scr"], "type %d" % e["type"] if "type" in e else
+                                                "flag %d" % e["flag"], e["dir"], " hidden item" if "item" in e else "")
+                for i, e in enumerate(z["bg"])], full, "BG events")
     for n2, how in neighbours(data, n):
         if how.startswith("edge"):
             out.append("  -> zone %d %s" % (n2, how))
@@ -337,23 +395,25 @@ def find(data, what, x):
 def main(argv):
     if len(argv) < 2 or argv[0] not in GAMES:
         sys.exit(__doc__)
+    full = "--all" in argv
     game, cmd, args = argv[0], argv[1], [int(a, 0) for a in argv[2:] if a.lstrip("-").isdigit() or a.startswith("0x")]
     data = load(game, rebuild=cmd == "build")
     if cmd == "build":
-        print("%s: %d zones, %d matrices, %d edges, %d entity files whose sizes don't add up -> %s" % (
-            game, len(data["zones"]), data["matrices"], len(data["edges"]), data["entity_size_mismatch"],
+        print("%s: %d zones, %d matrices, %d edges, %d scripted doors, %d entity files whose sizes don't add up -> %s" % (
+            game, len(data["zones"]), data["matrices"], len(data["edges"]), len(data["scripted"]),
+            data["entity_size_mismatch"],
             atlas_path(game).relative_to(ROOT)))
     elif cmd == "zone":
-        print(show_zone(data, args[0]))
+        print(show_zone(data, args[0], full))
     elif cmd == "path":
         steps = path(data, args[0], args[1])
         if steps is None:
             sys.exit("no path from zone %d to zone %d" % (args[0], args[1]))
-        for a, how, b in steps:
-            print("%d -> %d: %s" % (a, b, how))
+        print("\n".join(few(["%d -> %d: %s" % (a, b, how) for a, how, b in steps], full, "steps", 12)))
     elif cmd == "find":
         res = find(data, argv[2], args[0] if args else None)
-        print("\n".join(res[:40]) + ("\n... %d in all" % len(res) if len(res) > 40 else ""))
+        lim = len(res) if full else 15
+        print("\n".join(res[:lim]) + ("\n... %d more: --all" % (len(res) - lim) if len(res) > lim else ""))
     else:
         sys.exit(__doc__)
 

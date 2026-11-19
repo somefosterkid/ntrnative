@@ -1,0 +1,16 @@
+HGSS on the PC: a call with no prototype in scope is a build error in HG/SS's module (port/meson.build:
+-Werror=implicit-function-declaration; the callee is taken to return int, so a pointer cut to 32 bits or a u8/u16 read with
+garbage above it on win64 / arm64 / clang 21). The tree had one (impl1, 2026-11-18, a syntax-only pass over all 10318 files):
+port/nonmatching/ov96_021F234C.c calls GF_ASSERT, a macro of assert.h, which the file did not include, so the compiler took
+it for a function: no such function exists, the link took it as an undefined symbol and the exe's stub for it printed its name
+and aborted when ov96_021F234C reached the assertion (undefined.txt listed GF_ASSERT). Included here.
+DROP when the decomp's file includes assert.h.
+Handover-ID: impl1-0001
+
+--- a/port/nonmatching/ov96_021F234C.c
++++ b/port/nonmatching/ov96_021F234C.c
+@@ -1,3 +1,4 @@
++#include "assert.h"   // GF_ASSERT (a macro): without it the call below was an implicit declaration of a function
+ #include "error_handling.h"
+ 
+ typedef struct { /* invented */

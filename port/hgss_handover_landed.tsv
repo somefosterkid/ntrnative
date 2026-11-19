@@ -1,0 +1,15 @@
+# handover_id_or_file	status	coverage	landing_hgss	branch	note
+hg36-0001	pending	full	-	hk450 (in hk495 backlog merge)	sub_020548EC / TerrainCollisionManager tables typed
+hg36-0002	pending	full	-	hk450 (in hk495)	MapProp_GetTranslation real out-pointer call; ov02 healing files keep local proto with real signature
+hg36-0003	pending	full	-	hk450 (in hk495)	ov01_022055DC NULL guard under SDK_PORT||UBFIX
+hg36-0004	pending	full	-	hk450 (in hk495)	ov12_02238A68 battler tables: fix lives in pipeline port_static_fixes (6a8aab0), survives re-export
+hg36-0005	landed	full	66eb6c32f	hk449	PokemonAnim typed whole (both 02017208.c and 020176CC.c parts)
+phs1-0001	landed	full	c58c23af1	hk488	sub_020154B8/C4/D0 typed ParticleSystem *
+phs1-0002	landed	full	c58c23af1	hk488	DB4/EBC double the work area themselves (SDK_PORT||NONMATCHING); heap.c HEAP_HOST_SIZE too
+hg37-0001-ov01_021F6614-set-MapModelLoadTask.cancel-by-its-fie.patch	pending	full	-	hk480 (in hk495)	task->cancel
+hg37-0001-Type-the-trainer-mugshot-encounter-effect-and-its-sp.patch	pending	partial	-	hk480 (mugshot) + hk481 (G2dRenderer copies, in hk495)	mugshot typed by hk480; the 7 UnkStruct_ov5_021DE47C renderer copies by hk481 flatsdk
+hg37-0001-ov12_0225B960-BallCapsuleConfig-local-and-OpponentDa.patch	pending	partial	-	hk480 (in hk495) + hk503 (queued after)	BallCapsuleConfig typed only under the PC guard (DS keeps u32 sp4c[3]); OpponentData/MonShowData reads typed
+hg37-item3-ov01_021F0614	pending	full	-	hk480 (in hk495)	arg2 + 0x10 -> UnkStruct_ov5_021DE5A4.unk_10
+hg38-0001	landed	partial	bdcd1979b	hk497	seal effect + ball mode 0 + palette fade hunks covered; ov07_02232AFC keeps DS walk with typed form under PC guard
+hg38-0002	landed	full	bdcd1979b	hk497	FontSystem_NewInit / FontOAM / sub_02013AC0 by sizeof
+hc1-0001	pending	full	-	hk515 (self-merging)	ov01_021FF830 Billboard read typed

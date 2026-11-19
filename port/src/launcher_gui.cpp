@@ -138,22 +138,12 @@ struct Game {
     std::string coverSource, coverLink;   // its cover.txt: "GameTDB" or "libretro", the page the credit links to
 };
 
-// Each game's colours and theme, by its game code (ios_launcher.m's)
+// Each game's colours and theme: the core's table (launcher_core.c), the same on every front-end
 void Theme(Game &x) {
-    struct { const char *code; unsigned accent, deep, glow; bool dark; } t[] = {
-        {"IRBO", 0x3d8bff, 0x0b0f1a, 0x1e5bd8, true},    // Black
-        {"IRAO", 0xe8590c, 0xf4f1ec, 0xffb37a, false},   // White
-        {"IREO", 0xf2b705, 0x10131c, 0x2e6f9e, true},    // Black 2
-        {"IRDO", 0xd6336c, 0xeef3f7, 0x8fd3ff, false},   // White 2
-    };
-    size_t k = 0;
-    for (size_t i = 0; i < sizeof t / sizeof t[0]; i++) {
-        if (strcmp(t[i].code, x.lc->code) == 0) k = i;
-    }
-    x.accent = Hex(t[k].accent);
-    x.deep = Hex(t[k].deep);
-    x.glow = Hex(t[k].glow);
-    x.dark = t[k].dark;
+    x.accent = Hex(x.lc->accent);
+    x.deep = Hex(x.lc->deep);
+    x.glow = Hex(x.lc->glow);
+    x.dark = x.lc->dark != 0;
 }
 
 std::string GameDir(const LC_Game *g) {
@@ -333,8 +323,8 @@ void Reload() {
         FreeTex(g.coverBack);
     }
     sGames.clear();
-    const LC_Game *found[8];
-    int n = LC_Scan(found, 8);
+    const LC_Game *found[LC_MAX_GAMES];
+    int n = LC_Scan(found, LC_MAX_GAMES);
     for (int i = 0; i < n; i++) {
         if (!LC_HasRom(found[i]) && !LC_HasFiles(found[i])) continue;
         Game x;
@@ -797,7 +787,9 @@ void Enter(const Game &g) {
 
 void Play(Game &g) {
     if (!g.playable) {
-        Note(g.title, g.title + " is not supported yet. This build plays Pokemon Black.");
+        char names[160];
+        LC_PlayableNames(names, sizeof names);
+        Note(g.title, g.title + " is not playable in this build. It plays " + names + ".");
         return;
     }
     if (LC_HasFiles(g.lc)) {
@@ -874,11 +866,13 @@ void ImportSave(const Game &g, const std::string &path) {
         what = "saved " + DateText(when) + ", " + PlayText(secs) + " played";
     } else {
         char err[600] = "";
-        if (LC_CheckSaveFile(g.lc, path.c_str(), err, sizeof(err)) != LC_SAVE_NEW) {
+        int r = LC_CheckSaveFile(g.lc, path.c_str(), err, sizeof(err));
+        if (r != LC_SAVE_NEW && r != LC_SAVE_GOOD) {
             Note("Import Save", err);
             return;
         }
-        what = "an empty save (a new game)";
+        // a good save without a date: Platinum's, HeartGold's and SoulSilver's (Gen 4 saves hold none)
+        what = r == LC_SAVE_NEW ? "an empty save (a new game)" : "a " + g.title + " save";
     }
     const LC_Game *lc = g.lc;
     Question("Import this save?", g.title + "'s save is replaced by this one: " + what + ".\n\nThe current save is backed up first (Backups).",
@@ -1260,12 +1254,16 @@ void TopButtons(ImVec2 at, float r, bool dark) {   // at: the right edge's centr
 void Empty(ImVec2 a, ImVec2 b, bool dark) {
     ImU32 fg = dark ? IM_COL32(245, 245, 247, 255) : IM_COL32(28, 28, 30, 255), dim = dark ? IM_COL32(160, 160, 168, 255) : IM_COL32(110, 110, 115, 255);
     float cx = (a.x + b.x) * 0.5f, cy = (a.y + b.y) * 0.5f;
-    const char *t1 = "No games yet", *t2 = "Add your own Pokemon Black ROM (USA / Europe) to start.";
-    ImVec2 s1 = TextSize(sBold, 26.0f, t1), s2 = TextSize(sFont, 15.0f, t2);
-    Text(sBold, 26.0f, ImVec2(cx - s1.x * 0.5f, cy - s1.y - 40.0f * S()), fg, t1);
-    Text(sFont, 15.0f, ImVec2(cx - s2.x * 0.5f, cy - 30.0f * S()), dim, t2);
+    char names[160];
+    LC_PlayableNames(names, sizeof names);
+    std::string t3s = std::string("Pokemon ") + names + " (a .nds file).";
+    const char *t1 = "No games yet", *t2 = "Add your own ROM of a game this build plays:", *t3 = t3s.c_str();
+    ImVec2 s1 = TextSize(sBold, 26.0f, t1), s2 = TextSize(sFont, 15.0f, t2), s3 = TextSize(sFont, 15.0f, t3);
+    Text(sBold, 26.0f, ImVec2(cx - s1.x * 0.5f, cy - s1.y - 56.0f * S()), fg, t1);
+    Text(sFont, 15.0f, ImVec2(cx - s2.x * 0.5f, cy - 46.0f * S()), dim, t2);
+    Text(sFont, 15.0f, ImVec2(cx - s3.x * 0.5f, cy - 24.0f * S()), dim, t3);
     float w = 200.0f * S(), h = 46.0f * S();
-    if (Pill("##addempty", ImVec2(cx - w * 0.5f, cy + 4.0f * S()), ImVec2(cx + w * 0.5f, cy + 4.0f * S() + h), U32(Hex(0x3d8bff)),
+    if (Pill("##addempty", ImVec2(cx - w * 0.5f, cy + 8.0f * S()), ImVec2(cx + w * 0.5f, cy + 8.0f * S() + h), U32(Hex(0x3d8bff)),
              IM_COL32_WHITE, "Add Game...", sBold, 17.0f, G_PLUS)) {
         OpenPicker(P_ROM, nullptr);
     }
@@ -1375,8 +1373,32 @@ void Tabs(ImVec2 a, ImVec2 b) {
     float pad = 24.0f * s, r = 19.0f * s;
     float ty = a.y + 16.0f * s, th = 38.0f * s;
     // the tab row: the selected one filled with its accent, the others glass with a dot of theirs; it fades out under the buttons
-    float x = a.x + pad, limit = b.x - pad - r * 5.0f;
-    DL()->PushClipRect(ImVec2(a.x, a.y), ImVec2(limit, b.y), true);
+    // (seven games do not fit a small window: the row scrolls, the mouse wheel over it moves it, and a newly selected tab comes into view)
+    float x0 = a.x + pad, limit = b.x - pad - r * 5.0f;
+    static float sTabOff = 0.0f;
+    static int sTabSeen = -1;
+    {
+        float total = 0.0f, selA = 0.0f, selB = 0.0f;
+        for (size_t i = 0; i < sGames.size(); i++) {
+            float w = TextSize((int)i == sSelected ? sBold : sFont, 15.0f, sGames[i].shortTitle.c_str()).x + 56.0f * s;
+            if ((int)i == sSelected) {
+                selA = total;
+                selB = total + w;
+            }
+            total += w + 10.0f * s;
+        }
+        float view = limit - x0;
+        ImGuiIO &io = ImGui::GetIO();
+        if (sTabSeen != sSelected) {
+            sTabSeen = sSelected;
+            if (selB - sTabOff > view) sTabOff = selB - view;
+            if (selA < sTabOff) sTabOff = selA;
+        }
+        if (io.MouseWheel != 0.0f && io.MousePos.x < limit && io.MousePos.y > a.y && io.MousePos.y < ty + th + 8.0f * s) sTabOff -= io.MouseWheel * 60.0f * s;
+        sTabOff = fmaxf(0.0f, fminf(sTabOff, total - 10.0f * s - view));
+    }
+    float x = x0 - sTabOff;
+    DL()->PushClipRect(ImVec2(x0 - 2.0f * s, a.y), ImVec2(limit, b.y), true);
     for (size_t i = 0; i < sGames.size(); i++) {
         Game &t = sGames[i];
         bool on = (int)i == sSelected;
@@ -1384,8 +1406,8 @@ void Tabs(ImVec2 a, ImVec2 b) {
         float w = ts.x + 30.0f * s + 26.0f * s;
         ImVec2 p(x, ty), q(x + w, ty + th);
         ImGui::PushID((int)i);
-        bool hv;
-        if (Hit("##tab", p, q, &hv)) sSelected = (int)i;
+        bool hv = false;
+        if (q.x > a.x && p.x < limit && ImGui::GetIO().MousePos.x < limit && Hit("##tab", p, q, &hv)) sSelected = (int)i;
         ImGui::PopID();
         DL()->AddRectFilled(p, q, on ? U32(t.accent) : dark ? IM_COL32(255, 255, 255, hv ? 44 : 28) : IM_COL32(0, 0, 0, hv ? 26 : 14), th * 0.5f);
         float ix = p.x + 12.0f * s, iy = p.y + (th - 22.0f * s) * 0.5f;
@@ -1399,6 +1421,10 @@ void Tabs(ImVec2 a, ImVec2 b) {
     if (x > limit) {   // the row's fade under the buttons
         Col bg = top;
         DL()->AddRectFilledMultiColor(ImVec2(limit - 40.0f * s, ty), ImVec2(limit, ty + th), U32(bg, 0.0f), U32(bg, 1.0f), U32(bg, 1.0f), U32(bg, 0.0f));
+    }
+    if (sTabOff > 0.0f) {   // and at the left edge when it has been scrolled
+        Col bg = top;
+        DL()->AddRectFilledMultiColor(ImVec2(x0 - 6.0f * s, ty), ImVec2(x0 + 34.0f * s, ty + th), U32(bg, 1.0f), U32(bg, 0.0f), U32(bg, 0.0f), U32(bg, 1.0f));
     }
     TopButtons(ImVec2(b.x - pad, ty + th * 0.5f), r, dark);
 
@@ -1430,7 +1456,9 @@ void Tabs(ImVec2 a, ImVec2 b) {
     std::string sum = Summary(g);
     Text(sFont, 16.0f, ImVec2(ia.x, iy), dim, sum.c_str(), iw);
     iy += 26.0f * s;
-    Text(sFont, 14.0f, ImVec2(ia.x, iy), dim2, g.playable ? "USA / Europe  \xc2\xb7  NDSi Enhanced" : "Not supported yet");
+    char edition[96];
+    LC_Edition(g.lc, edition, sizeof edition);
+    Text(sFont, 14.0f, ImVec2(ia.x, iy), dim2, g.playable ? edition : "Not supported yet");
     iy += 36.0f * s;
     float bw = fminf(iw, 420.0f * s);
     if (Pill("##play", ImVec2(ia.x, iy), ImVec2(ia.x + bw, iy + 54.0f * s), U32(g.accent), IM_COL32_WHITE, g.hasSave ? "Continue" : "Play",

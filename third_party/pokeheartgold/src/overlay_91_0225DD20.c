@@ -1,0 +1,47 @@
+#include "global.h"
+
+typedef struct {
+    u8 unk_00;
+    u8 unk_01;
+    u16 unk_02;
+    u16 unk_04;
+    u16 unk_06;
+    fx32 unk_08;
+    MtxFx33 unk_0C;
+    MtxFx33 unk_30;
+    MtxFx33 unk_54;
+    VecFx32 unk_78;
+    VecFx32 unk_84;
+    fx32 unk_90;
+    fx32 unk_94;
+    fx32 unk_98;
+    VecFx32 unk_9C;
+    fx32 unk_A8;
+    fx32 unk_AC;
+    fx32 unk_B0;
+    fx32 unk_B4;
+    fx32 unk_B8;
+    fx32 unk_BC;
+    fx32 unk_C0;
+    fx32 unk_C4;
+    fx32 unk_C8;
+    fx32 unk_CC;
+    fx32 unk_D0;
+    fx32 unk_D4;
+    VecFx32 unk_D8;
+    fx32 unk_E4;
+} UnkStruct_ov115_02261C18;
+
+void ov91_0225DD20(UnkStruct_ov115_02261C18 *param0, BOOL param1);
+void ov91_0225DD24(UnkStruct_ov115_02261C18 *param0, u16 param1);
+
+void ov91_0225DD20(UnkStruct_ov115_02261C18 *param0, BOOL param1) {
+    param0->unk_00 = param1;
+}
+
+void ov91_0225DD24(UnkStruct_ov115_02261C18 *param0, u16 param1) {
+    param0->unk_04 = param1;
+
+    MTX_Identity33(&param0->unk_0C);
+    MTX_RotX33(&param0->unk_0C, FX_SinIdx(param1), FX_CosIdx(param1));
+}

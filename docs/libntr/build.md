@@ -2,8 +2,9 @@
 
 Measured 2026-10-28 in WSL (Ubuntu 26.04, gcc 15.2, meson 1.10.1, ninja 1.13.2, 24 cores of a shared slice)
 on libntr `1555d91` ("SIM: Add fullscreen support", a local clone of ~/ref/libntr). Everything lives outside the
-repo in <scratch>: `libntr/` (clone and its build dirs), `hello/` (the test program), `mingw/` (win64 deps),
-`mingw-native.ini`, `dl/` (downloads). Nothing in libntr itself was changed.
+repo in a scratch dir, <scratch> below (gone now): `libntr/` (clone and its build dirs), `hello/` (the test program),
+`run/` (its cwd), `mingw-native.ini`. The win64 deps the port's build uses (port/machine/win64.ini, tools/port_win64.sh)
+live in one folder, $DEPS below (port/machine/win64.ini and tools/port_win64.sh name it): `dl/` (downloads), `mingw/` (SDL2, enet, the shim), `mesa/`. Nothing in libntr itself was changed.
 
 ## Results
 
@@ -29,7 +30,7 @@ SDL2 2.32.10 and enet 1.3.18 here). It has no OpenGL link dependency: glad loads
 
 ## linux
 
-    cd <scratch>
+    cd <scratch>/libntr
     meson setup build-linux-ntr -Dbuild_target=linux -Dstandalone=true -Dc_args=-U_FORTIFY_SOURCE -Dcpp_args=-U_FORTIFY_SOURCE
     meson compile -C build-linux-ntr           # 30 s wall, 2m37 user
     # TWL hybrid, the setting for Black:
@@ -47,7 +48,7 @@ Outputs: 33 thin static archives (libsim.a holds the SDL/GL/ImGui simulator, lib
 sound), `standalone/libntr` (16.4 MB, -O0 -g, a spinning-cube demo), `components/ichneumon/ichneumon_sub`.
 The executable links SDL2, enet and libstdc++ dynamically.
 
-## The tiny NitroMain program (<scratch>)
+## The tiny NitroMain program (<scratch>/hello)
 
 libntr's `main()` (libraries/sim/src/sim_main.cpp) sets up the simulated hardware, opens the SDL window and then calls the
 game's `NitroMain()`. A game gives NitroMain and nothing else. The frame happens inside `OS_WaitVBlankIntr()`:
@@ -85,13 +86,13 @@ the main and sub engines are drawn, then the game's HBlank and VBlank IRQ handle
 `cube.c` is libntr's standalone/main.c (DEMO init, a G3 cube) with the same frame counter, screenshot and exit.
 
     # hello must be a git repo with one commit first (see "Consumer must be a git repo" below)
-    cd <scratch>
+    cd <scratch>/hello
     meson setup build-linux-ntr -Dlibntr:build_target=linux
     meson setup build-linux-twl -Dlibntr:build_target=linux -Dlibntr:sdk_version_major=5 -Dlibntr:hardware_type=twl_hyb
     meson compile -C build-linux-ntr           # whole libntr + hello + cube: 17-22 s
-    cd <scratch>                       # the program writes sim_config.ini, imgui.ini, DbgLog.txt in its cwd
-    SDL_AUDIODRIVER=dummy HELLO_FRAMES=300 timeout -s KILL 60 xvfb-run -a <scratch>
-    SDL_AUDIODRIVER=dummy HELLO_FRAMES=300 timeout -s KILL 60 <scratch>    # WSLg, DISPLAY=:0
+    cd <scratch>/run                   # the program writes sim_config.ini, imgui.ini, DbgLog.txt in its cwd
+    SDL_AUDIODRIVER=dummy HELLO_FRAMES=300 timeout -s KILL 60 xvfb-run -a <scratch>/hello/build-linux-ntr/hello
+    SDL_AUDIODRIVER=dummy HELLO_FRAMES=300 timeout -s KILL 60 <scratch>/hello/build-linux-ntr/hello    # WSLg, DISPLAY=:0
 
 Measured (frames, then OS_GetTick time; CapFrameRate=true and VsyncInterval=1 are the sim_config.ini defaults; the box was shared with other
 workers, so fps varies run to run):
@@ -134,7 +135,7 @@ would give the *build* machine (linux gcc) to all of libntr. So mingw-w64 goes i
 through a native file. Then meson cannot run the compiler's test executable: WSL interop fails under
 `systemd-run` ("Invalid argument", even with WSL_INTEROP set), so the sanity check is skipped.
 
-`<scratch>`:
+`<scratch>/mingw-native.ini`:
 
     [binaries]
     c = 'x86_64-w64-mingw32-gcc-posix'          # posix threads: libntr uses pthreads
@@ -144,34 +145,41 @@ through a native file. Then meson cannot run the compiler's test executable: WSL
     windres = 'x86_64-w64-mingw32-windres'
     pkg-config = 'false'
     [built-in options]
-    c_args = ['-I<scratch>', '-I<scratch>', '-U_FORTIFY_SOURCE']
-    cpp_args = ['-I<scratch>', '-I<scratch>', '-U_FORTIFY_SOURCE']
-    c_link_args = ['-L<scratch>', '-static-libgcc', '-static-libstdc++']
-    cpp_link_args = ['-L<scratch>', '-static-libgcc', '-static-libstdc++']
+    c_args = ['-I$DEPS/mingw/include', '-I$DEPS/mingw/shim', '-U_FORTIFY_SOURCE']
+    cpp_args = ['-I$DEPS/mingw/include', '-I$DEPS/mingw/shim', '-U_FORTIFY_SOURCE']
+    c_link_args = ['-L$DEPS/mingw/lib', '-static-libgcc', '-static-libstdc++']
+    cpp_link_args = ['-L$DEPS/mingw/lib', '-static-libgcc', '-static-libstdc++']
     [properties]
     skip_sanity_check = true
 
 Dependencies (Ubuntu ships no mingw SDL2 or enet):
 
-    cd <scratch>
+    cd $DEPS/dl
     curl -sSLO https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-devel-2.32.10-mingw.tar.gz
     curl -sSLO http://enet.bespin.org/download/enet-1.3.18.tar.gz
-    #   sha256 83a5d740...38ff2 (SDL2), 2a8a0c53...85d36 (enet)
-    tar xzf SDL2-devel-2.32.10-mingw.tar.gz && cp -r SDL2-2.32.10/x86_64-w64-mingw32/* <scratch>
+    curl -sSLO https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-mingw.7z
+    sha256sum -c <<'EOF'
+    83a5d74012311edc3c0d40ea6faecbe57ad692aa033fa5dc273cc937e3938ff2  SDL2-devel-2.32.10-mingw.tar.gz
+    2a8a0c5360d68bb4fcd11f2e4c47c69976e8d2c85b109dd7d60b1181a4f85d36  enet-1.3.18.tar.gz
+    36a30a04d8cab6e2bea2d3c747c326d15024d9711dd80f45ef97ac6f2c3c5086  mesa3d-26.2.4-release-mingw.7z
+    EOF
+    mkdir -p $DEPS/mesa && 7z e -o$DEPS/mesa mesa3d-26.2.4-release-mingw.7z 'x64/*'   # Mesa's x64 DLLs: tools/port_win64.sh deploy copies them to mesa\
+    tar xzf SDL2-devel-2.32.10-mingw.tar.gz && cp -r SDL2-2.32.10/x86_64-w64-mingw32/* $DEPS/mingw/
     tar xzf enet-1.3.18.tar.gz && cd enet-1.3.18 && mkdir -p obj
     for f in callbacks compress host list packet peer protocol unix win32; do x86_64-w64-mingw32-gcc-posix -O2 -Iinclude -c $f.c -o obj/$f.o; done
-    x86_64-w64-mingw32-gcc-posix -shared -o <scratch> obj/*.o -lws2_32 -lwinmm -Wl,--out-implib,<scratch>
-    cp -r include/enet <scratch>
-    mkdir -p <scratch> && echo '#include <windows.h>' > <scratch>
+    x86_64-w64-mingw32-gcc-posix -shared -o $DEPS/mingw/bin/enet.dll obj/*.o -lws2_32 -lwinmm -Wl,--out-implib,$DEPS/mingw/lib/libenet.dll.a
+    cp -r include/enet $DEPS/mingw/include/
+    mkdir -p $DEPS/mingw/shim && echo '#include <windows.h>' > $DEPS/mingw/shim/Windows.h
+    cd $DEPS/dl && rm -rf SDL2-2.32.10 enet-1.3.18
 
 Build:
 
-    cd <scratch>
-    meson setup build-win64-ntr --native-file <scratch> -Dbuild_target=win64 -Dstandalone=true
+    cd <scratch>/libntr
+    meson setup build-win64-ntr --native-file <scratch>/mingw-native.ini -Dbuild_target=win64 -Dstandalone=true
     meson compile -C build-win64-ntr standalone/libntr      # 24 s -> standalone/libntr.exe, 20.4 MB
-    cd <scratch>
-    meson setup build-win64-ntr --native-file <scratch> -Dlibntr:build_target=win64
-    meson setup build-win64-twl --native-file <scratch> -Dlibntr:build_target=win64 -Dlibntr:sdk_version_major=5 -Dlibntr:hardware_type=twl_hyb
+    cd <scratch>/hello
+    meson setup build-win64-ntr --native-file <scratch>/mingw-native.ini -Dlibntr:build_target=win64
+    meson setup build-win64-twl --native-file <scratch>/mingw-native.ini -Dlibntr:build_target=win64 -Dlibntr:sdk_version_major=5 -Dlibntr:hardware_type=twl_hyb
     meson compile -C build-win64-ntr hello cube              # 22 s; name the targets (see 1. below)
 
 What it took, each found by a failing build:
@@ -184,8 +192,27 @@ What it took, each found by a failing build:
    `-lSDL2 -lenet -lws2_32` and no winmm. Building enet as a DLL (as MSYS2 packages it) fixes it.
 4. The posix-thread mingw variant (`-posix`), because libntr uses pthreads.
 
+The port's bwport.exe (tools/port_win64.sh build; the C with clang --target=x86_64-w64-mingw32) needed one more, found
+2026-11-12 on its first build here: the link failed with `b2.o: unable to load COMDAT section name` (and w2.o). clang
+18 gives the section of a `#pragma clang section` an empty name on COFF, so every Black 2 / White 2 object's data and
+bss sat in one nameless section; the `ld -r` output kept it and GNU objcopy (tools/port_relink.py) wrote that name as
+a garbage string-table offset, which ld then can't read. port/machine/gnu_machine_section.h and gnu_ovl_section.h use
+`#pragma data_seg`/`bss_seg` on _WIN32 instead (named sections; their bss is stored zeros).
+Then the exe faulted at its first `__thread` read (port/src/main_threads.c's tDepth, PORT_RuntimeInit): clang's native
+TLS with Ubuntu's mingw-w64 11 CRT crashes here even in a 3-line main (GNU ld or lld); gcc's (emutls) and clang
+`-femulated-tls` work, so port/meson.build adds that for win64's C. Open: the stored bss makes .machbss/.ovlbss
+~65 MB of zeros in the exe (objcopy --set-section-flags=...=alloc on b2.o did not change that).
+Then (2026-11-13) it ran to the launcher and the ROM import and died ~1 s into the game, 0xC0000374 (heap corruption),
+once 0xc0000005 in msvcrt's _setjmp (movdqa into an 8-aligned jmp_buf). The cause was tools/port_romfill.py, not the
+TLS code: emulated TLS gives each `__thread` variable a control object `__emutls_v.X` (size, align, index, template) in
+the object's .data, and the step had matched the size and align of libntr's os_thread.c ones (t_exitJmp, t_machine,
+t_bootGen, t_seenEpoch, s_WIN_unknownThread) against ROM bytes and zeroed them. libntr's threads made before
+PORT_AssetsLoad's copies then got 0-byte, 8-aligned blocks from __emutls_get_address, which setjmp's 256 bytes and the
+ints overran. The step now keeps every `__emutls_v.*` object and its template as linked (its report line `emulated TLS:
+N control objects kept`; Linux has none, its image is byte-identical). The same holds for Android (API 24: emulated TLS).
+
 `hello.exe` imports KERNEL32, USER32, SHELL32, WS2_32, msvcrt, SDL2.dll, enet.dll and libwinpthread-1.dll. Ship
-the last three next to it (<scratch>, /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll).
+the last three next to it ($DEPS/mingw/bin/, /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll).
 
 Run on the Windows side of this host (Windows Server 2025 VM, "Microsoft Basic Display Adapter", no GPU):
 - Plain: it segfaults during SDL/GL setup, because Windows' own opengl32 is GDI 1.1 and has no GL 4.2 core.

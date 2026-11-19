@@ -1,0 +1,151 @@
+#include "global.h"
+#include "bg_window.h"
+#include "overlay_manager.h"
+#include "gf_gfx_planes.h"
+
+struct BgConfig;
+
+struct BgTemplate;
+
+enum BgType {
+    BG_TYPE_STATIC = 0,
+    BG_TYPE_AFFINE,
+    BG_TYPE_STATIC_WITH_AFFINE,
+};
+
+enum BgScreenSize {
+    BG_SCREEN_SIZE_128x128 = 0,
+    BG_SCREEN_SIZE_256x256,
+    BG_SCREEN_SIZE_256x512,
+    BG_SCREEN_SIZE_512x256,
+    BG_SCREEN_SIZE_512x512,
+    BG_SCREEN_SIZE_1024x1024,
+};
+
+void InitBgFromTemplate(BgConfig *bgConfig, u8 bgLayer, const BgTemplate *bgTemplate, u8 bgType);
+
+void BgClearTilemapBufferAndCommit(BgConfig *bgConfig, u8 bgLayer);
+
+void ov74_0222A6F8(BgConfig *bgConfig, int bgLayer, u32 screenBase, u32 charBase);
+
+void ov74_0222A6F8(BgConfig *bgConfig, int bgLayer, u32 screenBase, u32 charBase) {
+    BgTemplate bgTemplate = {
+        .x = 0,
+        .y = 0,
+        .bufferSize = 0x800,
+        .baseTile = 0,
+        .size = BG_SCREEN_SIZE_256x256,
+        .colorMode = GX_BG_COLORMODE_16,
+        .screenBase = GX_BG_SCRBASE_0xe000,
+        .charBase = GX_BG_CHARBASE_0x00000,
+        .bgExtPltt = GX_BG_EXTPLTT_01,
+        .priority = 0,
+        .areaOver = 0,
+        .mosaic = FALSE
+    };
+
+    bgTemplate.screenBase = screenBase / 0x800;
+    bgTemplate.charBase = charBase / 0x4000;
+
+    InitBgFromTemplate(bgConfig, bgLayer, &bgTemplate, BG_TYPE_STATIC);
+    BgClearTilemapBufferAndCommit(bgConfig, bgLayer);
+}
+
+struct OverlayManager;
+
+struct GraphicsModes;
+
+void SetBothScreensModesAndDisable(const GraphicsModes *graphicsModes);
+
+enum MysteryGiftAppState {
+    MG_APP_STATE_SETUP = 0,
+    MG_APP_STATE_INIT_GRAPHICS,
+    MG_APP_STATE_WAIT_SCREEN_TRANSITION,
+    MG_APP_STATE_WAIT_MAIN_MENU_INPUT,
+    MG_APP_STATE_WAIT_RECEPTION_METHOD_CHOICE,
+    MG_APP_STATE_WAIT_CONFIRM_WIRELESS_COMMS,
+    MG_APP_STATE_UNUSED_6,
+
+    MG_APP_STATE_SEARCH_FOR_FRIEND_GIFT,
+    MG_APP_STATE_WAIT_CONFIRM_RECEIVE_FRIEND_GIFT,
+    MG_APP_STATE_CONNECT_WITH_FRIEND,
+    MG_APP_STATE_RECEIVING_FROM_FRIEND,
+    MG_APP_STATE_SAVE_GIFT_FROM_FRIEND,
+    MG_APP_STATE_CHECK_FRIEND_CONNECTION_STILL_VALID,
+    MG_APP_STATE_WAIT_FRIEND_READY_TO_DISCONNECT,
+    MG_APP_STATE_PERSON_SHARING_DISCONNECTED,
+    MG_APP_STATE_RECEIVE_FROM_FRIEND_SUCCESS,
+    MG_APP_STATE_FRIEND_LEFT_BEFORE_SENDING,
+
+    MG_APP_STATE_NO_GIFT_FOUND,
+    MG_APP_STATE_RETURN_TO_MENU,
+    MG_APP_STATE_FOUND_WIFI_OR_GBA_GIFT,
+    MG_APP_STATE_WAIT_ACCEPT_WIFI_OR_GBA_GIFT,
+    MG_APP_STATE_GOTO_SHOW_RECEIVING_GIFT_MSG,
+    MG_APP_STATE_SHOW_RECEIVING_GIFT_MSG,
+    MG_APP_STATE_SAVE_RECEIVED_MYSTERY_GIFT,
+    MG_APP_STATE_WAIT_MYSTERY_GIFT_SAVED,
+    MG_APP_STATE_WAIT_BEFORE_EXIT_AFTER_RECEIVING_GIFT,
+    MG_APP_STATE_UNUSED_26,
+    MG_APP_STATE_SEARCH_FOR_WIFI_EVENT,
+
+    MG_APP_STATE_UNUSED_28,
+    MG_APP_STATE_UNUSED_29,
+    MG_APP_STATE_UNUSED_30,
+
+    MG_APP_STATE_WAIT_CONFIRM_RECEIVE_LOCAL_WIRELESS_GIFT,
+    MG_APP_STATE_SEARCH_FOR_LOCAL_WIRELESS_EVENT,
+    MG_APP_STATE_RECEIVE_FROM_LOCAL_WIRELESS,
+    MG_APP_STATE_WAIT_LOCAL_WIRELESS_GIFT_SAVED,
+    MG_APP_STATE_WAIT_FOR_ANIMATION_FINISHED,
+    MG_APP_STATE_DISCONNECT_FROM_LOCAL_WIRELESS,
+
+    MG_APP_STATE_UNUSED_37,
+    MG_APP_STATE_UNUSED_38,
+    MG_APP_STATE_UNUSED_39,
+    MG_APP_STATE_UNUSED_40,
+    MG_APP_STATE_UNUSED_41,
+    MG_APP_STATE_UNUSED_42,
+    MG_APP_STATE_UNUSED_43,
+    MG_APP_STATE_UNUSED_44,
+    MG_APP_STATE_UNUSED_45,
+    MG_APP_STATE_UNUSED_46,
+    MG_APP_STATE_UNUSED_47,
+    MG_APP_STATE_UNUSED_48,
+
+    MG_APP_STATE_FROM_FRIEND_OR_CANT_RECEIVE,
+    MG_APP_STATE_WAIT_MESSAGE_BOX_FOR_TRANSITION,
+    MG_APP_STATE_WAIT_INPUT_RETURN_TO_MENU,
+    MG_APP_STATE_ASK_CONFIRM_RECEIVE_SHARED_GIFT,
+    MG_APP_STATE_EXIT_TO_TITLE_SCREEN,
+    MG_APP_STATE_EXIT_TO_WONDER_CARDS_APP,
+    MG_APP_STATE_EXIT_AFTER_RECEIVING_GIFT,
+    MG_APP_STATE_SHOW_RECEIVED_WONDERCARD,
+    MG_APP_STATE_RESET_SYSTEM,
+
+    MG_APP_KEEP_PREVIOUS_STATE = -1,
+};
+
+enum MysteryGiftAppState ov74_0222A35C(OverlayManager *appMan);
+
+enum MysteryGiftAppState ov74_0222A3CC(OverlayManager *appMan);
+
+void ov74_0222AC1C(OverlayManager *appMan, enum MysteryGiftAppState *state);
+
+void ov74_0222A744(BgConfig *bgConfig);
+
+void ov74_0222A744(BgConfig *bgConfig) {
+    GraphicsModes graphicsModes = {
+        GX_DISPMODE_GRAPHICS,
+        GX_BGMODE_0,
+        GX_BGMODE_0,
+        GX_BG0_AS_2D
+    };
+
+    SetBothScreensModesAndDisable(&graphicsModes);
+
+    ov74_0222A6F8(bgConfig, GF_BG_LYR_MAIN_0, GX_BG_SCRBASE_0xf000 * 0x800, GX_BG_CHARBASE_0x00000 * 0x4000);
+    ov74_0222A6F8(bgConfig, GF_BG_LYR_MAIN_1, GX_BG_SCRBASE_0xf800 * 0x800, GX_BG_CHARBASE_0x08000 * 0x4000);
+    ov74_0222A6F8(bgConfig, GF_BG_LYR_SUB_0, GX_BG_SCRBASE_0x3800 * 0x800, GX_BG_CHARBASE_0x00000 * 0x4000);
+    ov74_0222A6F8(bgConfig, GF_BG_LYR_SUB_1, GX_BG_SCRBASE_0x7800 * 0x800, GX_BG_CHARBASE_0x04000 * 0x4000);
+}

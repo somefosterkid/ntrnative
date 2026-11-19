@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-cel24
+# reaches: the trainer card (X menu, fourth entry), flipped to its back with A, B out to the field
+# end: f2500
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys x*f4@f1800 down*f4@f1850 down*f4@f1890 down*f4@f1930 a*f4@f1980 a*f4@f2150 a*f4@f2250 b*f4@f2350 b*f4@f2430

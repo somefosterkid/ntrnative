@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-room
+# reaches: the X menu in the room (shot ~f7600), then the bag (A on its first entry, ~f8100): the menus whose entries hold callbacks (wa3, widepointers6)
+# end: f8200
+keys start@f6300 a@f6700
+keys x@f7500 a@f7700

@@ -557,7 +557,7 @@ static void bg_line(VCoreState *s, int e, int n, int y, VC_Line *ln, int defer3d
 /* GBATEK 55: the 3D layer is a 512 pixel wide BG0: the 256 pixel image, then 256 transparent pixels, wrapping.
  * BG0HOFS (9 bits) scrolls it horizontally; no vertical scroll, no mosaic. Alpha 0 = transparent. */
 void vc_3d_layer_line(VCoreState *s, int y, VC_Line *ln) {
-  int hofs = vc_eng16(s, VC_ENG_A, VC_REG_BG0HOFS) & 0x1FF;
+  int hofs = vc_ln16(s, VC_ENG_A, y, VC_REG_BG0HOFS) & 0x1FF; /* the line's (H-blank DMA) */
   for (int x = 0; x < VC_W; x++) {
     int pos = (x + hofs) & 0x1FF;
     u32 px = pos < VC_W ? s->f3d.out[y][pos] : 0;

@@ -9,7 +9,23 @@
 // bundled Mesa instead, before libntr creates its window. The log says which and why.
 //   BWPORT_GL=system   the system's GL, whatever it is (its software GL too); only a GL that can't make a context at all
 //                      still goes to Mesa (a message in the log, never a crash or a black window)
-//   BWPORT_GL=mesa     the bundled Mesa
+//   BWPORT_GL=mesa     the bundled Mesa, software (llvmpipe)
+//   BWPORT_GL=zink     the bundled Mesa on the graphics card through Vulkan (below)
+//   BWPORT_GL=d3d12    the bundled Mesa on the graphics card through Direct3D 12 (below)
+// The bundled Mesa runs on the graphics card when it can: over Remote Desktop the system's GL is GDI Generic 1.1 while
+// Vulkan and Direct3D still see the card, so a desktop viewed over RDP gets its GPU. Order, with the bundled Mesa in use
+// and no GALLIUM_DRIVER / BWPORT_GL=mesa saying otherwise:
+//   1. Zink (Mesa's GL on Vulkan; MIT, needs nothing but the graphics driver's Vulkan): when vulkan-1.dll has a physical
+//      device that is a real GPU (discrete or integrated; FindVulkanGpu)
+//   2. d3d12 (Mesa's GL on Direct3D 12): when mesa\dxil.dll is there (Microsoft's DXIL signer: not in the public zips, a
+//      private folder may carry it) and DXGI has a hardware adapter that makes a D3D12 device (FindD3D12Adapter)
+//   3. llvmpipe, the software GL
+// A GPU driver that gives no usable context (no context, GL below 4.2, or a software renderer under it) is unloaded and the
+// next one tried; only llvmpipe failing is fatal. The AMD desktop in an RDP session, Renderer=gpu: zink 650-740 fps,
+// d3d12 570-645, llvmpipe 175.
+// GALLIUM_DRIVER set by the user stands (zink, d3d12 or llvmpipe: that driver first, the later ones of the order as the
+// fallback; llvmpipe: only it). Nothing on the system changes (no policy, no registry): for d3d12 the adapter is handed to
+// this process's Mesa only, and the card's memory is used while the game runs.
 // The llvmpipe tuning (LP_NUM_THREADS, GALLIUM_DRIVER=llvmpipe) is set only when Mesa's software GL is the one in use.
 // Linux: the system's GL always (Mesa or a vendor driver); only the report (hardware or not) and the LP_NUM_THREADS
 // rule (a hardware driver ignores it) apply.
@@ -21,7 +37,9 @@
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32
+#define COBJMACROS
 #include <windows.h>
+#include <dxgi1_6.h>
 #endif
 
 typedef struct GlInfo {
@@ -169,24 +187,257 @@ static int MesaPath(char *path, size_t size, char *dir, size_t dirsize) {
     return ok;
 }
 
-static int LoadMesa(const char *path, const char *dir, int lowThreads) {
+// The bundled Mesa on the graphics card. Mesa's d3d12 driver takes DXGI's first adapter unless its WGL front end gets
+// an adapter from the ICD callback pfnGetAdapterLuid; in an RDP session the first adapter is the Microsoft Basic Render
+// Driver (WARP, software: the GPU renderer at 53 fps). FindD3D12Adapter picks the first hardware adapter in DXGI's
+// high-performance order that makes a D3D12 device; PointMesaAtAdapter hands its LUID to Mesa through
+// DrvSetCallbackProcs (libgallium_wgl.dll's ICD entry point; Mesa checks each callback for NULL) before the first context.
+static LUID sD3dLuid;
+static char sD3dName[128];
+
+typedef HRESULT(WINAPI *CreateDxgiFactoryFn)(UINT, REFIID, void **);
+typedef HRESULT(WINAPI *CreateD3D12DeviceFn)(IUnknown *, int, REFIID, void **);
+static const GUID kIidFactory6 = {0xc1b6694f, 0xff09, 0x44a9, {0xb0, 0x3c, 0x77, 0x90, 0x0a, 0x0a, 0x1d, 0x17}};
+static const GUID kIidAdapter1 = {0x29038f61, 0x3839, 0x4626, {0x91, 0xfd, 0x08, 0x68, 0x79, 0x01, 0x1a, 0x05}};
+static const GUID kIidD3D12Device = {0x189819f1, 0x1db6, 0x4b57, {0xbe, 0x54, 0x18, 0x21, 0x33, 0x9b, 0x85, 0xf7}};
+
+static int FindD3D12Adapter(void) {
+    HMODULE dx = LoadLibraryA("dxgi.dll");
+    HMODULE d12 = LoadLibraryA("d3d12.dll");
+    CreateDxgiFactoryFn makeFactory = dx != NULL ? (CreateDxgiFactoryFn)(void *)GetProcAddress(dx, "CreateDXGIFactory2") : NULL;
+    CreateD3D12DeviceFn makeDevice = d12 != NULL ? (CreateD3D12DeviceFn)(void *)GetProcAddress(d12, "D3D12CreateDevice") : NULL;
+    if (makeFactory == NULL || makeDevice == NULL) {
+        GlLog("bwport: GL: no Direct3D 12 (%s)\n", makeFactory == NULL ? "dxgi.dll" : "d3d12.dll");
+        return 0;
+    }
+    IDXGIFactory6 *f = NULL;
+    if (FAILED(makeFactory(0, &kIidFactory6, (void **)&f))) {
+        GlLog("bwport: GL: no DXGI 1.6 factory\n");
+        return 0;
+    }
+    int found = 0;
+    IDXGIAdapter1 *a = NULL;
+    for (UINT i = 0; !found && SUCCEEDED(IDXGIFactory6_EnumAdapterByGpuPreference(f, i, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                                                                  &kIidAdapter1, (void **)&a)); i++) {
+        DXGI_ADAPTER_DESC1 d;
+        // a software adapter (WARP, the Basic Render Driver: vendor 0x1414) is no better than llvmpipe
+        if (SUCCEEDED(IDXGIAdapter1_GetDesc1(a, &d)) && !(d.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) && d.VendorId != 0x1414 &&
+            SUCCEEDED(makeDevice((IUnknown *)a, 0xb000 /* D3D_FEATURE_LEVEL_11_0 */, &kIidD3D12Device, NULL))) {
+            sD3dLuid = d.AdapterLuid;
+            WideCharToMultiByte(CP_UTF8, 0, d.Description, -1, sD3dName, sizeof(sD3dName), NULL, NULL);
+            found = 1;
+        }
+        IDXGIAdapter1_Release(a);
+    }
+    IDXGIFactory6_Release(f);
+    if (!found) {
+        GlLog("bwport: GL: no hardware Direct3D 12 adapter\n");
+    }
+    return found;
+}
+
+static VOID APIENTRY D3dAdapterLuid(HDC hdc, LUID *luid) {
+    (void)hdc;
+    *luid = sD3dLuid;
+}
+
+static void PointMesaAtAdapter(void) {
+    typedef void(APIENTRY * SetCallbackProcsFn)(INT, PROC *);
+    HMODULE g = GetModuleHandleA("libgallium_wgl.dll");
+    SetCallbackProcsFn set = g != NULL ? (SetCallbackProcsFn)(void *)GetProcAddress(g, "DrvSetCallbackProcs") : NULL;
+    if (set == NULL) {
+        GlLog("bwport: GL: libgallium_wgl.dll has no DrvSetCallbackProcs: Mesa picks the adapter itself\n");
+        return;
+    }
+    // WGLCALLBACKS (Mesa's gldrv.h): SetCurrentValue, GetCurrentValue, GetDhglrc, unused, PresentBuffers, GetAdapterLuid
+    PROC procs[6] = {NULL, NULL, NULL, NULL, NULL, (PROC)(void *)D3dAdapterLuid};
+    set(6, procs);
+}
+
+// The bundled Mesa on the graphics card through Vulkan (Zink). Mesa's own Zink picks the Vulkan device; this only asks the
+// Vulkan loader whether a real GPU is there, so a machine with no Vulkan (or only a software device: lavapipe) goes on to
+// the next driver without making Zink fail. The few Vulkan types are declared here (no Vulkan SDK in the toolchain);
+// layouts of the 64-bit ABI, checked against the spec: VkApplicationInfo 48 bytes, VkInstanceCreateInfo 64,
+// VkPhysicalDeviceProperties 824 (only deviceType and deviceName are read; the buffer is bigger than the struct).
+typedef struct VkAppInfoLite {
+    int sType;   // VK_STRUCTURE_TYPE_APPLICATION_INFO = 0
+    const void *pNext;
+    const char *pApplicationName;
+    unsigned applicationVersion;
+    const char *pEngineName;
+    unsigned engineVersion;
+    unsigned apiVersion;
+} VkAppInfoLite;
+typedef struct VkInstanceInfoLite {
+    int sType;   // VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 1
+    const void *pNext;
+    unsigned flags;
+    const VkAppInfoLite *pApplicationInfo;
+    unsigned enabledLayerCount;
+    const char *const *ppEnabledLayerNames;
+    unsigned enabledExtensionCount;
+    const char *const *ppEnabledExtensionNames;
+} VkInstanceInfoLite;
+typedef struct VkPhysPropsLite {
+    unsigned apiVersion, driverVersion, vendorID, deviceID;
+    int deviceType;   // 0 other, 1 integrated GPU, 2 discrete GPU, 3 virtual GPU, 4 CPU
+    char deviceName[256];
+    unsigned char pipelineCacheUUID[16];
+    unsigned long long rest[96];   // limits and sparseProperties (824 bytes in all): 1064 here, more than enough
+} VkPhysPropsLite;
+#ifdef _WIN64
+_Static_assert(sizeof(VkAppInfoLite) == 48, "VkApplicationInfo");
+_Static_assert(sizeof(VkInstanceInfoLite) == 64, "VkInstanceCreateInfo");
+_Static_assert(__builtin_offsetof(VkPhysPropsLite, deviceName) == 20, "VkPhysicalDeviceProperties.deviceName");
+_Static_assert(sizeof(VkPhysPropsLite) >= 824, "VkPhysicalDeviceProperties");
+#endif
+
+typedef void *(WINAPI *VkGetInstanceProcAddrFn)(void *, const char *);
+typedef int(WINAPI *VkCreateInstanceFn)(const VkInstanceInfoLite *, const void *, void **);
+typedef void(WINAPI *VkDestroyInstanceFn)(void *, const void *);
+typedef int(WINAPI *VkEnumeratePhysicalDevicesFn)(void *, unsigned *, void **);
+typedef void(WINAPI *VkGetPhysicalDevicePropertiesFn)(void *, VkPhysPropsLite *);
+
+static char sVkName[260];
+
+// 1 when vulkan-1.dll has a physical device that is a real GPU (discrete or integrated; not CPU, virtual or other): the
+// first one wins and its name is in sVkName. An instance (Vulkan 1.0, no layers, no extensions) is made and destroyed
+// and vulkan-1.dll released again; nothing else is called.
+static int FindVulkanGpu(void) {
+    HMODULE vk = LoadLibraryA("vulkan-1.dll");
+    if (vk == NULL) {
+        GlLog("bwport: GL: no Vulkan (no vulkan-1.dll)\n");
+        return 0;
+    }
+    VkGetInstanceProcAddrFn getProc = (VkGetInstanceProcAddrFn)(void *)GetProcAddress(vk, "vkGetInstanceProcAddr");
+    VkCreateInstanceFn create = getProc != NULL ? (VkCreateInstanceFn)getProc(NULL, "vkCreateInstance") : NULL;
+    if (create == NULL) {
+        GlLog("bwport: GL: no Vulkan (vulkan-1.dll has no vkCreateInstance)\n");
+        FreeLibrary(vk);
+        return 0;
+    }
+    VkAppInfoLite app = {0};
+    app.apiVersion = 1u << 22;   // VK_API_VERSION_1_0
+    VkInstanceInfoLite info = {0};
+    info.sType = 1;
+    info.pApplicationInfo = &app;
+    void *inst = NULL;
+    int res = create(&info, NULL, &inst);
+    if (res != 0 || inst == NULL) {
+        GlLog("bwport: GL: no Vulkan driver (vkCreateInstance: %d)\n", res);
+        FreeLibrary(vk);
+        return 0;
+    }
+    VkDestroyInstanceFn destroy = (VkDestroyInstanceFn)getProc(inst, "vkDestroyInstance");
+    VkEnumeratePhysicalDevicesFn enumerate = (VkEnumeratePhysicalDevicesFn)getProc(inst, "vkEnumeratePhysicalDevices");
+    VkGetPhysicalDevicePropertiesFn getProps =
+        (VkGetPhysicalDevicePropertiesFn)getProc(inst, "vkGetPhysicalDeviceProperties");
+    int found = 0;
+    if (destroy == NULL || enumerate == NULL || getProps == NULL) {
+        GlLog("bwport: GL: no Vulkan (the loader lacks a core function)\n");
+    } else {
+        void *devs[16];
+        unsigned n = 16;
+        res = enumerate(inst, &n, devs);   // 0 = success, 5 = incomplete (more than 16: the first 16 will do)
+        if ((res != 0 && res != 5) || n == 0) {
+            GlLog("bwport: GL: no Vulkan device (vkEnumeratePhysicalDevices: %d, %u)\n", res, n);
+            n = 0;
+        }
+        for (unsigned i = 0; i < n; i++) {
+            VkPhysPropsLite p;
+            memset(&p, 0, sizeof(p));
+            getProps(devs[i], &p);
+            p.deviceName[sizeof(p.deviceName) - 1] = '\0';
+            if (!found && (p.deviceType == 1 || p.deviceType == 2)) {
+                snprintf(sVkName, sizeof(sVkName), "%s", p.deviceName);
+                found = 1;
+                GlLog("bwport: GL: Vulkan device: %s (%s GPU)\n", sVkName, p.deviceType == 2 ? "discrete" : "integrated");
+            } else if (!found) {
+                GlLog("bwport: GL: Vulkan device %s is not a GPU (type %d): skipped\n", p.deviceName, p.deviceType);
+            }
+        }
+        if (!found && n > 0) {
+            GlLog("bwport: GL: no Vulkan GPU\n");
+        }
+    }
+    if (destroy != NULL) {
+        destroy(inst, NULL);
+    }
+    FreeLibrary(vk);
+    return found;
+}
+
+// the pre-loaded Mesa DLL (its handle is released with the rest by UnloadMesa)
+static HMODULE sMesaPre;
+
+// GALLIUM_DRIVER is set by the caller (SetEnv): Mesa (built against the UCRT) reads its environment as the DLL loads and at
+// its first context
+static int LoadMesa(const char *path, const char *dir, int d3d12Adapter) {
     wchar_t wdir[MAX_PATH];
     if (MultiByteToWideChar(CP_UTF8, 0, dir, -1, wdir, MAX_PATH) > 0) {
         SetDllDirectoryW(wdir);
     }
-    // Mesa (built against the UCRT) reads its environment as the DLL loads and at its first context: set before both
-    if (getenv("GALLIUM_DRIVER") == NULL) {
-        SetEnv("GALLIUM_DRIVER", "llvmpipe");   // the one Mesa driver that works with no GPU
-    }
-    if (lowThreads) {
-        LowThreads();
+    // the adapter before SDL_GL_LoadLibrary: SDL makes a context there already (its WGL extension query), and Mesa's
+    // screen, made at the first context, keeps the adapter it got then
+    if (d3d12Adapter) {
+        wchar_t wpath[MAX_PATH];
+        if (MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, MAX_PATH) > 0 && (sMesaPre = LoadLibraryW(wpath)) != NULL) {
+            PointMesaAtAdapter();
+        }
     }
     if (SDL_GL_LoadLibrary(path) != 0) {
         GlLog("bwport: GL: the bundled Mesa (%s) did not load: %s\n", path, SDL_GetError());
         return -1;
     }
-    sSource = "bundled Mesa";
     return 0;
+}
+
+// Mesa's DLLs out of the process again, so the next driver starts from a fresh load (Mesa reads GALLIUM_DRIVER and makes its
+// screen once per load). 1 when libgallium_wgl.dll is gone, 0 when something still holds it (a second load would then
+// give the same driver again).
+static int UnloadMesa(void) {
+    SDL_GL_UnloadLibrary();
+    if (sMesaPre != NULL) {
+        FreeLibrary(sMesaPre);
+        sMesaPre = NULL;
+    }
+    return GetModuleHandleA("libgallium_wgl.dll") == NULL;
+}
+
+typedef enum MesaDrv { DRV_ZINK, DRV_D3D12, DRV_LLVMPIPE, DRV_OTHER } MesaDrv;
+static const char *const sDrvName[] = {"zink", "d3d12", "llvmpipe", "(its own)"};
+static const char *const sDrvSource[] = {"bundled Mesa (Zink, Vulkan)", "bundled Mesa (d3d12, Direct3D 12)",
+                                         "bundled Mesa (llvmpipe)", "bundled Mesa"};
+
+// 1 when this GPU driver can be tried (d3d12: dxil.dll and a hardware adapter; zink: a Vulkan GPU unless forced); the log
+// says why when not. Sets what the driver's name goes by in the log.
+static int DriverUsable(MesaDrv d, const char *dir, int forced, char *where, size_t whereSize) {
+    if (d == DRV_ZINK) {
+        int have = FindVulkanGpu();
+        snprintf(where, whereSize, "%s", have ? sVkName : "the Vulkan device Mesa picks");
+        if (!have && forced) {
+            GlLog("bwport: GL: zink was asked for (BWPORT_GL or GALLIUM_DRIVER): tried although no Vulkan GPU was found\n");
+        }
+        return have || forced;
+    }
+    if (d == DRV_D3D12) {
+        // Mesa's d3d12 driver signs its shaders with mesa\dxil.dll (Microsoft's: not in the public zips, a user may put it
+        // there): without it the first draw fails (exit 0x80070057)
+        char dxil[1100];
+        snprintf(dxil, sizeof(dxil), "%s\\dxil.dll", dir);
+        FILE *fd = fopen(dxil, "rb");
+        if (fd == NULL) {
+            GlLog("bwport: GL: d3d12 skipped: no %s (optional, user-supplied)\n", dxil);
+            return 0;
+        }
+        fclose(fd);
+        if (!FindD3D12Adapter()) {
+            return 0;
+        }
+        snprintf(where, whereSize, "%s", sD3dName);
+        return 1;
+    }
+    return 1;
 }
 #endif
 
@@ -200,8 +451,9 @@ static void Select(int lowThreads) {
         return;
     }
     const char *force = getenv("BWPORT_GL");
-    if (force != NULL && force[0] != '\0' && strcmp(force, "system") != 0 && strcmp(force, "mesa") != 0) {
-        GlLog("bwport: GL: BWPORT_GL=%s is not system or mesa; ignored\n", force);
+    if (force != NULL && force[0] != '\0' && strcmp(force, "system") != 0 && strcmp(force, "mesa") != 0 &&
+        strcmp(force, "zink") != 0 && strcmp(force, "d3d12") != 0) {
+        GlLog("bwport: GL: BWPORT_GL=%s is not system, mesa, zink or d3d12; ignored\n", force);
         force = NULL;
     }
     if (force != NULL && force[0] == '\0') {
@@ -212,9 +464,9 @@ static void Select(int lowThreads) {
     int haveMesa = MesaPath(path, sizeof(path), dir, sizeof(dir));
     int useMesa = 0;
     char reason[320] = "";
-    if (force != NULL && strcmp(force, "mesa") == 0) {
+    if (force != NULL && (strcmp(force, "mesa") == 0 || strcmp(force, "zink") == 0 || strcmp(force, "d3d12") == 0)) {
         useMesa = 1;
-        snprintf(reason, sizeof(reason), "BWPORT_GL=mesa");
+        snprintf(reason, sizeof(reason), "BWPORT_GL=%s", force);
     } else {
         if (SDL_GL_LoadLibrary(NULL) != 0) {   // the system's opengl32.dll
             snprintf(reason, sizeof(reason), "no system GL library: %s", SDL_GetError());
@@ -249,15 +501,81 @@ static void Select(int lowThreads) {
             Fatal(msg);
         }
         GlLog("bwport: GL: loading the bundled Mesa (%s)%s\n", path,
-              force == NULL ? "" : strcmp(force, "mesa") == 0 ? ": BWPORT_GL=mesa" : ": BWPORT_GL=system is not possible here");
-        if (LoadMesa(path, dir, lowThreads) != 0) {
-            Fatal("The bundled Mesa (mesa\\opengl32.dll) could not be loaded. See the log.");
+              force == NULL ? "" : strcmp(force, "system") != 0 ? "" : ": BWPORT_GL=system is not possible here");
+        // The drivers to try, in order: the user's own GALLIUM_DRIVER first (it stands), else BWPORT_GL=zink|d3d12|mesa, else
+        // zink -> d3d12 -> llvmpipe. A GPU driver that is skipped or gives no usable context hands over to the next one.
+        const char *gd = getenv("GALLIUM_DRIVER");
+        int userGd = gd != NULL && gd[0] != '\0';
+        const char *want = userGd ? gd : (force != NULL && strcmp(force, "system") != 0 ? force : "");
+        MesaDrv order[3];
+        int n = 0, forced = 1;
+        if (strcmp(want, "") == 0) {
+            forced = 0;
+            order[n++] = DRV_ZINK;
+            order[n++] = DRV_D3D12;
+            order[n++] = DRV_LLVMPIPE;
+        } else if (strcmp(want, "zink") == 0) {
+            order[n++] = DRV_ZINK;
+            order[n++] = DRV_D3D12;
+            order[n++] = DRV_LLVMPIPE;
+        } else if (strcmp(want, "d3d12") == 0) {
+            order[n++] = DRV_D3D12;
+            order[n++] = DRV_LLVMPIPE;
+        } else if (strcmp(want, "mesa") == 0 || strcmp(want, "llvmpipe") == 0) {
+            order[n++] = DRV_LLVMPIPE;
+        } else {
+            order[n++] = DRV_OTHER;   // softpipe, a debug driver ...: the user's word, no fallback
         }
-        Probe(&sInfo);
-        if (!sInfo.ok) {
+        int got = 0;
+        memset(&sInfo, 0, sizeof(sInfo));
+        for (int i = 0; i < n && !got; i++) {
+            MesaDrv d = order[i];
+            int last = i == n - 1;
+            char where[300] = "";
+            if (!DriverUsable(d, dir, forced && i == 0, where, sizeof(where))) {
+                continue;   // the log says why; llvmpipe (always last) is never skipped
+            }
+            if (d == DRV_ZINK || d == DRV_D3D12) {
+                SetEnv("GALLIUM_DRIVER", sDrvName[d]);
+                GlLog("bwport: GL: the bundled Mesa on %s through %s (GALLIUM_DRIVER=%s; GALLIUM_DRIVER=llvmpipe or "
+                      "BWPORT_GL=mesa for the software GL)\n", where, d == DRV_ZINK ? "Vulkan (Zink)" : "Direct3D 12",
+                      sDrvName[d]);
+            } else if (d == DRV_LLVMPIPE) {
+                SetEnv("GALLIUM_DRIVER", "llvmpipe");   // the one Mesa driver that works with no GPU
+                if (lowThreads) {
+                    LowThreads();
+                }
+            }
+            sSource = sDrvSource[d];
             char msg[512];
-            snprintf(msg, sizeof(msg), "The bundled Mesa gives no usable OpenGL: %s", sInfo.why);
-            Fatal(msg);
+            int ok = LoadMesa(path, dir, d == DRV_D3D12) == 0;
+            if (ok) {
+                Probe(&sInfo);
+                ok = sInfo.ok && (sInfo.hardware || d == DRV_LLVMPIPE || d == DRV_OTHER);
+                if (!ok) {
+                    snprintf(msg, sizeof(msg), "%s", sInfo.ok ? "a software renderer under a GPU driver" : sInfo.why);
+                }
+            } else {
+                snprintf(msg, sizeof(msg), "the Mesa DLL did not load");
+            }
+            if (ok) {
+                got = 1;
+                break;
+            }
+            char fatal[700];
+            if (last) {
+                snprintf(fatal, sizeof(fatal), "The bundled Mesa gives no usable OpenGL (%s): %s", sDrvName[d], msg);
+                Fatal(fatal);
+            }
+            GlLog("bwport: GL: the bundled Mesa on %s gives no usable OpenGL (%s; %s): unloading it, trying the next driver\n",
+                  sDrvName[d], msg, sInfo.renderer[0] != '\0' ? sInfo.renderer : "no renderer");
+            if (!UnloadMesa()) {
+                snprintf(fatal, sizeof(fatal), "The bundled Mesa on %s gave no usable OpenGL (%s) and cannot be unloaded to "
+                         "try another driver in this process. Start with BWPORT_GL=mesa (the software GL).", sDrvName[d],
+                         msg);
+                Fatal(fatal);
+            }
+            memset(&sInfo, 0, sizeof(sInfo));
         }
         sHave = 1;
         GlLog("bwport: GL: bundled Mesa: %s, %s (%s)\n", sInfo.renderer, sInfo.version, sInfo.vendor);

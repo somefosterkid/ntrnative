@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-cel24
+# reaches: the Poketch's apps: BWPORT_PT_POKETCH enables it and registers every app at the first free field frame, then a tap on the upper app-switch button (x 224-255, y 32-96 of the touch screen) every 90 frames (one app per tap: a tap during the switch is ignored) steps through all of them (the digital watch and the rest, each app's own overlay and heap)
+# end: f4700
+env BWPORT_PT_POKETCH=1
+keys start*f10@f1000 start*f10@f1300 a*f10@f1600
+keys stylus:240,60@f1800-f1803 stylus:240,60@f1890-f1893 stylus:240,60@f1980-f1983 stylus:240,60@f2070-f2073 stylus:240,60@f2160-f2163 stylus:240,60@f2250-f2253 stylus:240,60@f2340-f2343 stylus:240,60@f2430-f2433 stylus:240,60@f2520-f2523 stylus:240,60@f2610-f2613 stylus:240,60@f2700-f2703 stylus:240,60@f2790-f2793 stylus:240,60@f2880-f2883 stylus:240,60@f2970-f2973 stylus:240,60@f3060-f3063 stylus:240,60@f3150-f3153 stylus:240,60@f3240-f3243 stylus:240,60@f3330-f3333 stylus:240,60@f3420-f3423 stylus:240,60@f3510-f3513 stylus:240,60@f3600-f3603 stylus:240,60@f3690-f3693 stylus:240,60@f3780-f3783 stylus:240,60@f3870-f3873 stylus:240,60@f3960-f3963 stylus:240,60@f4050-f4053 stylus:240,60@f4140-f4143 stylus:240,60@f4230-f4233 stylus:240,60@f4320-f4323 stylus:240,60@f4410-f4413

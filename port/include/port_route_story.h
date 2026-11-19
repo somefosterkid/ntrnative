@@ -56,7 +56,7 @@ extern void (*gPortRouteStoryFill)(PortStory *s, int full);
 // (BWPORT_STORYLOG=1 also prints a "story: ..." line each)
 void PortRouteStory_Frame(const char *game);
 // the map dump's story section (port/src/route_map.c)
-void PortRouteStory_Print(FILE *f, const char *game);
+void PortRouteStory_Print(FILE *f, const char *game, int brief);   // brief: the notable entries only (the short dump's)
 // the pilot's Ws:SPEC (route_test.c): 1 met, 0 not (yet). SPEC: a flag (name or number) set, !FLAG cleared,
 // WORK=V a work value (name or number from 0x4000) equal to V
 int PortRouteStory_Cond(const char *game, const char *spec);

@@ -36,3 +36,18 @@ OSTick PORT_GetTick(void) {
     }
     return (OSTick)v * FRAME_CYCLES / 64u + sCalls;
 }
+
+void SIM_WmStep(void);   // libntr-wmstep.patch (sim7/src/pxi.c)
+
+// Under the pin, the wireless steps with the frames: the WM requests the game made in a frame run on libntr's ARM7 and
+// their callbacks come back before the next frame (libntr-wmstep.patch), not whenever the host's threads get to them
+void PORT_WmFrame(void) {
+    static int sPin = -1;
+
+    if (sPin < 0) {
+        sPin = getenv("BWPORT_BENCH_CLOCK") != NULL;
+    }
+    if (sPin) {
+        SIM_WmStep();
+    }
+}

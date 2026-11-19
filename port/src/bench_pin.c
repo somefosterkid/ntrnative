@@ -60,10 +60,12 @@ static void *LocalSymbol(const char *name) {
 }
 
 static int sFrame = -2;   // -2: not read yet, -1: off or done, else the frame to reseed at
+static int sEarly;        // the LC was pinned at the first V-blank wait too (below)
 
 // An in-process restart (machine.c): the new boot is reseeded at the same frame
 void PORT_BenchReset(void) {
     sFrame = -2;
+    sEarly = 0;
 }
 
 // Called at each V-blank wait with the game lock held (main_threads.c's PORT_WaitIrq)
@@ -72,6 +74,22 @@ void PORT_BenchFrame(void) {
     if (sFrame == -2) {
         const char *e = getenv("BWPORT_BENCH_SEED");
         sFrame = e != NULL && *e ? atoi(e) : -1;
+    }
+    if (sFrame >= 0 && !sEarly) {
+        // buildSeed (lib/gfl/src/gf_standard.c) hashes the stack's leftovers into the boot seed ("for whatever the stack held"):
+        // they change with every build's layout, and the field's NPCs draw from the LC for the V-blanks before the pin below
+        // (a zone's init at ~V-blank 5): the walkers of the leg's next zone were in other places in each build (tools/route.py
+        // b c-burgh, 2026-11-12). The LC is pinned at the first wait too; the MT and the rest stay as they were.
+        sEarly = 1;
+        if (PORT_Game->pinLC != NULL) {
+            PORT_Game->pinLC();
+        } else {
+            GFLUseWork **w = LocalSymbol("data_020aa1a4");
+
+            if (w != NULL && *w != NULL) {
+                (*w)->rand.x = 0x0123456789ABCDEFULL;
+            }
+        }
     }
     if (sFrame >= 0 && OS_GetVBlankCount() >= (u32)sFrame) {
         GFLUseWork **work = PORT_Game->pinLC == NULL ? LocalSymbol("data_020aa1a4") : NULL;

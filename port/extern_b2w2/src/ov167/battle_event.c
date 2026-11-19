@@ -1,8 +1,9 @@
 // (Black 2 / White 2 twin of port/extern/src/ov093/battle_event.c) The PC build compiles pokebw2 src/ov167/battle_event.c through this file (tools/port_sources.py). Test only
 // (port/src/route_test.c, docs/port-worker.md "Test cheat"): with BWPORT_TESTCHEAT=win the battles still play in full, but
-// the player's side (mon IDs 0-11: clients 0 and 2) always moves first, its attacks do 3000 damage (they one-shot) and the
-// attacks on it do none. It rewrites two event results after the game's own handlers ran: CALC_SPEED's ratio and
-// CALC_DAMAGE's damage. Off by default: then the game's own function runs and nothing else. The DS build never sees this file.
+// the player's side (mon IDs 0-11: clients 0 and 2) always moves first, its attacks do 3000 damage (they one-shot), never miss,
+// use no PP, and the attacks on it do none. It rewrites event results after the game's own handlers ran: CALC_SPEED's ratio,
+// CALC_DAMAGE's damage, CHECK_ALWAYS_HIT's flag and CALC_PP_DECREMENT's amount. Off by default: then the game's own function runs
+// and nothing else. The DS build never sees this file.
 #pragma push_macro("BattleEvent_CallHandlers")
 #define BattleEvent_CallHandlers BattleEvent_CallHandlers_game
 #include "../../../../third_party/pokebw2/src/ov167/battle_event.c"
@@ -13,8 +14,14 @@
 
 void BattleEvent_CallHandlers(BtlServerFlow *flow, u32 event) {
     BattleEvent_CallHandlers_game(flow, event);
-    if ((event == 0x47 || event == 0x13 || event == 0x32) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
-        if (event == 0x32) {   // CHECK_ALWAYS_HIT: attacker var 3, result flag var 0x51: the player's moves never miss
+    if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
+        if (event == 0x4e) {   // BTL_EVENT_CALC_PP_DECREMENT (btl_server_flow.c): attacker BTL_EVAR_ATTACKER 3, amount BTL_EVAR_AMOUNT
+            // 0x20: the player's moves use none, as in Black (the pilot only presses A, and the move menu refuses a move with no PP
+            // left: Black 2's frigate battle hung on a lead whose first move had run dry)
+            if (BattleEventVar_GetValue(3) < 12) {
+                BattleEventVar_SetValue(0x20, 0);
+            }
+        } else if (event == 0x32) {   // CHECK_ALWAYS_HIT: attacker var 3, result flag var 0x51: the player's moves never miss
             if (BattleEventVar_GetValue(3) < 12) {
                 BattleEventVar_SetValue(0x51, 1);
             }
@@ -29,7 +36,7 @@ void BattleEvent_CallHandlers(BtlServerFlow *flow, u32 event) {
 
             if (def < 12) {
                 BattleEventVar_SetValue(0x32, 0);
-            } else if (atk < 12) {
+            } else if (atk < 12 && !gPortRouteCatch) {   // (C:ball does not attack: a one-shot would end a catch before it)
                 BattleEventVar_SetValue(0x32, 3000);
             }
             fprintf(stderr, "cheat: damage atk %u def %u -> %u\n", (unsigned)atk, (unsigned)def,

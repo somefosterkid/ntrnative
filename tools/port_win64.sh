@@ -3,7 +3,7 @@
 #
 #   tools/port_win64.sh                   BUILD ONLY (build/port/win64/bwport.exe): touches nothing outside the build dir.
 #                                         (Until 11-07 this form deployed to the deploy folder, C:\bwport: it no longer does.)
-#   tools/port_win64.sh deploy            build bwport.exe AND fill the folder (default C:\bwport, the OWNER's: his exe is replaced):
+#   tools/port_win64.sh deploy            build bwport.exe AND fill the folder (default C:\bwport, the one played from: its exe is replaced):
 #                                         the exe, its DLLs, Mesa's software GL
 #                                         (in mesa\, used only when the system has no usable GL), bwport.bat, the ROM
 #                                         (copied once), licenses\ (THIRD_PARTY.md and the notices). Then double-click bwport.bat on Windows.
@@ -30,22 +30,26 @@
 #   --also DIR  deploy to a second folder too (repeatable): the exe, DLLs, mesa\ and bwport.bat only, never its run\ folder
 #               or its ROM, and nothing is deleted there but the old top-level opengl32.dll / libgallium_wgl.dll
 #   --no-mesa   leave the mesa\ folder out (a machine with a GPU driver; without it a missing system GL is a message box)
-#   MINGW       SDL2 and enet for mingw (default <scratch>, as port/machine/win64.ini), MESA the Mesa
-#               x64 DLLs (default <scratch>): docs/libntr/build.md says how to get both
+#   --dxil      also copy mesa\dxil.dll (Microsoft's DXIL signer: Mesa's d3d12 driver, the fallback when Zink/Vulkan is not there)
+#               into a PRIVATE folder; without it the folder has none (an older folder's copy is removed): never in a public zip
+#   MINGW       SDL2 and enet for mingw (default /root/deps/win64/mingw, as port/machine/win64.ini), MESA the Mesa
+#               x64 DLLs (default /root/deps/win64/mesa): docs/libntr/build.md says how to get both
 #   run passes SDL_AUDIODRIVER, GALLIUM_DRIVER, BWPORT_GL (system|mesa), BWPORT_ROM, BWPORT_DIR (paths translated), BWPORT_OVL_LOG,
 #   BWPORT_OVL_POISON, BWPORT_TRACE_EXIT, BWPORT_FPSLOG (libntr: fps and ms per frame each second), BWPORT_GAME (IRAO: White), BWPORT_CFGSCRIPT (shot=NAME needs BWPORT_HIDDEN=1), BWPORT_SKIPMENU, BWPORT_KEYS (port/src/keys_script.c: a key script by time,
 #   e.g. BWPORT_KEYS="start@115 a@125") to the exe when they are set
 set -e
 REPO=$(cd "$(dirname "$0")/.." && pwd)
-BUILD=$REPO/build/port/win64
-EXE=$BUILD/bwport.exe
+# --game platinum (or env BWPORT_WIN64_GAME): Platinum's module build (meson -Dplatinum=true, docs/platinum.md) in a build dir of its
+# own, build/port/win64-plat, as Linux's build/port/linux-plat: Black's build dir stays without pret's C.
+GAME=${BWPORT_WIN64_GAME:-}
 OUT=${BWPORT_WIN64_OUT:-/mnt/c/bwport}
-MINGW=${MINGW:-/root/pc/t40u/mingw}
-MESA=${MESA:-/root/pc/t40u/dl/mesa/x64}
+MINGW=${MINGW:-/root/deps/win64/mingw}
+MESA=${MESA:-/root/deps/win64/mesa}
 PTHREAD=/usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll
 MAIN=$(cd "$REPO" && dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
 ROM=$MAIN/orig/baserom_b_us.nds
 MESA_ON=1
+DXIL=
 ALSO=()
 GDB_PORT=${GDB_PORT:-2345}
 
@@ -57,7 +61,9 @@ while [ $# -gt 0 ]; do
         --out) OUT=$2; shift 2 ;;
         --rom) ROM=$2; shift 2 ;;
         --no-rom) ROM=; shift ;;
+        --game) GAME=$2; shift 2 ;;
         --no-mesa) MESA_ON=; shift ;;
+        --dxil) DXIL=1; shift ;;
         --also) ALSO+=("$2"); shift 2 ;;
         --shots) SHOTS=$2; shift 2 ;;
         --fresh) FRESH=1; shift ;;
@@ -66,6 +72,20 @@ while [ $# -gt 0 ]; do
 done
 cmd=${cmd:-build}
 RUN=$OUT/run
+BUILD=$REPO/build/port/win64
+GAME_ARGS=()
+case "$GAME" in
+    platinum) BUILD=$REPO/build/port/win64-plat; GAME_ARGS=(-Dplatinum=true)
+              [ "$ROM" = "$MAIN/orig/baserom_b_us.nds" ] && ROM=$MAIN/orig/baserom_plat_us.nds ;;
+    # HeartGold / SoulSilver: one module, one exe (meson -Dhgss=true, docs/hgss.md), build/port/win64-hgss as Linux's linux-hgss
+    heartgold) BUILD=$REPO/build/port/win64-hgss; GAME_ARGS=(-Dhgss=true)
+              [ "$ROM" = "$MAIN/orig/baserom_b_us.nds" ] && ROM=$MAIN/orig/baserom_hg_us.nds ;;
+    soulsilver) BUILD=$REPO/build/port/win64-hgss; GAME_ARGS=(-Dhgss=true)
+              [ "$ROM" = "$MAIN/orig/baserom_b_us.nds" ] && ROM=$MAIN/orig/baserom_ss_us.nds ;;
+    ''|black) ;;
+    *) echo "port_win64: --game: platinum, heartgold, soulsilver, or none for the Gen 5 build"; exit 2 ;;
+esac
+EXE=$BUILD/bwport.exe
 
 # the worker slice when there is one (bw-port's WSL); interop can't start Windows programs inside it
 slice() {
@@ -89,10 +109,36 @@ kill_win() {
 }
 
 build() {
+    # BWPORT_WIN64_PREBUILT=1 (lp_route.sh: the exe was cross-built on the build host and shipped here): no build, the exe is there,
+    # with its commit in bwport.exe.sha next to it (written on arrival); an exe of another commit, or of another --game (another
+    # build dir: an old exe left there), is refused
+    if [ -n "${BWPORT_WIN64_PREBUILT:-}" ]; then
+        local head stamp
+        head=$(git -C "$REPO" rev-parse HEAD); stamp=$(cat "$EXE.sha" 2>/dev/null || true)
+        if [ ! -f "$EXE" ] || [ "$stamp" != "$head" ]; then
+            echo "port_win64: prebuilt $EXE: stamp ${stamp:-missing} is not HEAD $head: refusing it (the shipped exe is for another commit or --game)"
+            return 1
+        fi
+        # its DLLs come with it from the machine that built it: another toolchain's libwinpthread-1.dll stops the exe at once
+        # (0xC0000139, entry point not found: an exe of a newer mingw with an older libwinpthread-1.dll)
+        if [ ! -f "$BUILD/dlls/libwinpthread-1.dll" ]; then
+            echo "port_win64: prebuilt $EXE came without its build machine's DLLs ($BUILD/dlls): refusing it"
+            return 1
+        fi
+        echo "port_win64: prebuilt $EXE (stamp ${stamp:0:9} = HEAD)"; return 0
+    fi
+    # ccache (when installed) in front of the compilers: only a NEW build dir takes the second native file; base_dir (ccache.conf)
+    # lets every checkout of the machine share the objects, as the Linux builds do (port/machine/win64-ccache.ini)
+    local cc=()
+    command -v ccache > /dev/null && cc=(--native-file "$REPO/port/machine/win64-ccache.ini")
     # meson setup, or the wraps' patches again and a reconfigure when they changed (tools/port_wraps.py)
-    python3 "$REPO/tools/port_wraps.py" "$BUILD" --native-file "$REPO/port/machine/win64.ini" -Dbuild_target=win64
+    python3 "$REPO/tools/port_wraps.py" "$BUILD" --native-file "$REPO/port/machine/win64.ini" "${cc[@]}" -Dbuild_target=win64 "${GAME_ARGS[@]}"
     # name the target: a plain ninja stops at libntr's ARM7 component (docs/libntr/build.md, win64)
     slice ninja -C "$BUILD" bwport.exe
+    git -C "$REPO" rev-parse HEAD > "$EXE.sha"   # the exe's commit (the PREBUILT check above)
+    # the DLLs of THIS toolchain beside it (fill_folder deploys these): a shipped exe carries its own
+    mkdir -p "$BUILD/dlls"
+    cp "$MINGW/bin/SDL2.dll" "$MINGW/bin/enet.dll" "$PTHREAD" "$BUILD/dlls/"
 }
 
 write_bat() {
@@ -129,14 +175,23 @@ fill_folder() {
     local dst=$1
     mkdir -p "$dst"
     cp "$EXE" "$dst/"
-    cp "$MINGW/bin/SDL2.dll" "$MINGW/bin/enet.dll" "$PTHREAD" "$dst/"
-    # Mesa's software GL sits in a subfolder: next to the exe it would be loaded instead of the system's GL (a real
+    if [ -f "$BUILD/dlls/libwinpthread-1.dll" ]; then cp "$BUILD"/dlls/*.dll "$dst/"   # the build machine's (build() above)
+    else cp "$MINGW/bin/SDL2.dll" "$MINGW/bin/enet.dll" "$PTHREAD" "$dst/"; fi
+    # Mesa's GL sits in a subfolder: next to the exe it would be loaded instead of the system's GL (a real
     # graphics driver's); the exe loads it itself (port/src/gl_select.c) when the system's GL is missing or unusable.
-    # Older folders had both DLLs beside the exe: they must go.
+    # Older folders had both DLLs beside the exe: they must go. The bundled Mesa runs on the graphics card through Zink
+    # (Vulkan: nothing more to ship) when it can (a desktop viewed over Remote Desktop). dxil.dll (Microsoft's DXIL signer,
+    # licence terms of its own) is only for Mesa's d3d12 driver, the second choice: NOT in the folder unless --dxil (a
+    # private folder), and an older folder's copy is removed, so the zip never carries it.
     rm -f "$dst/opengl32.dll" "$dst/libgallium_wgl.dll"
     if [ -n "$MESA_ON" ]; then
         mkdir -p "$dst/mesa"
         cp "$MESA/opengl32.dll" "$MESA/libgallium_wgl.dll" "$dst/mesa/"
+        if [ -n "$DXIL" ]; then
+            cp "$MESA/dxil.dll" "$dst/mesa/"
+        else
+            rm -f "$dst/mesa/dxil.dll"
+        fi
     else
         rm -rf "$dst/mesa"
     fi
@@ -185,7 +240,7 @@ symbolize() {
 wslenv() {
     local v e=
     for v in SDL_AUDIODRIVER GALLIUM_DRIVER BWPORT_OVL_LOG BWPORT_OVL_POISON BWPORT_TRACE_EXIT BWPORT_NOPAUSE \
-        BWPORT_GL BWPORT_KEYS BWPORT_FPSLOG LP_NUM_THREADS BWPORT_VCORE_THREADS BWPORT_VCORE_PIPE BWPORT_VCORE_BANDS BWPORT_SWITCH_TEST BWPORT_SWITCH_START BWPORT_RENDERER BWPORT_RESOLUTION BWPORT_FRAMESKIP BWPORT_AUDIOLOG BWPORT_VCORE_POOL BWPORT_NOPRESENT BWPORT_BREAKDOWN BWPORT_PERFLOG BWPORT_GAME BWPORT_CFGSCRIPT BWPORT_HIDDEN BWPORT_SHOTS BWPORT_SKIPMENU; do
+        BWPORT_GL BWPORT_KEYS BWPORT_FPSLOG LP_NUM_THREADS BWPORT_VCORE_THREADS BWPORT_VCORE_PIPE BWPORT_VCORE_BANDS BWPORT_SWITCH_TEST BWPORT_SWITCH_START BWPORT_RENDERER BWPORT_RESOLUTION BWPORT_FRAMESKIP BWPORT_AUDIOLOG BWPORT_VCORE_POOL BWPORT_NOPRESENT BWPORT_BREAKDOWN BWPORT_PERFLOG BWPORT_GAME BWPORT_ASSET_LOG BWPORT_CFGSCRIPT BWPORT_HIDDEN BWPORT_SHOTS BWPORT_SKIPMENU BWPORT_LCTEST BWPORT_BENCH_CLOCK BWPORT_BENCH_SEED BWPORT_MUSICNORMAL SDL_VIDEODRIVER; do
         if [ -n "${!v+x}" ]; then e=$e:$v; fi
     done
     for v in BWPORT_ROM BWPORT_DIR BWPORT_FRAMELOG; do

@@ -32,6 +32,11 @@ typedef struct {
     u16 magic;
     HeapDebugInfo debug;
     u8 unk18[4];
+#if defined(__SIZEOF_POINTER__) && __SIZEOF_POINTER__ == 8
+    // A 64-bit PC target: 32 bytes, not the DS's 28, so the caller's pointer after the header keeps the block's 8-byte
+    // alignment (heapsys.c's HEAP_HOST_ALIGN; the blocks hold pointers)
+    u8 hostPad[4];
+#endif
 } HeapBlockHeader;
 
 NNSFndHeapHandle GFL_HeapGetBase(HeapID heapId);

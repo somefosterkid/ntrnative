@@ -95,6 +95,35 @@ def test_other_header_dir():
         assert (d / 'gen/bank.h').read_text() == '#define Bank0001_Text_044 44\n'
 
 
+PRET = """#define MSGENC_X_H
+#define BoxText_PickOneThing 3
+#define GenericNames_PlayerMale_2 4
+#define Text_Gts_TradeIsDone 5
+#define Machine_Text_HelloWorld 6
+#define TEXT_BANK_X_ENTRY_COUNT 7
+#define pl_msg_00000001_00002 2
+#define species_name_bulbasaur 1
+"""
+
+
+def test_all_ids():
+    with tempfile.TemporaryDirectory() as t:
+        d = Path(t)
+        (d / 'gen').mkdir()
+        (d / 'src').mkdir()
+        (d / 'gen/x.h').write_text(PRET)
+        (d / 'src/c.c').write_text('a(BoxText_PickOneThing, Text_Gts_TradeIsDone, GenericNames_PlayerMale_2, '
+                                   'xBoxText_PickOneThing, species_name_bulbasaur);\n')
+        M.main(['--root', str(d), '--headers', 'gen', '--dirs', 'src', '--all-ids'])
+        h = (d / 'gen/x.h').read_text()
+        for want in ('BoxText_Text_003 3', 'GenericNames_Text_004 4', 'Gts_Text_005 5', 'Machine_Text_006 6',
+                     'TEXT_BANK_X_ENTRY_COUNT 7', 'pl_msg_00000001_00002 2', 'species_name_bulbasaur 1', 'MSGENC_X_H'):
+            assert '#define ' + want in h, want
+        assert (d / 'src/c.c').read_text() == ('a(BoxText_Text_003, Gts_Text_005, GenericNames_Text_004, '
+                                               'xBoxText_PickOneThing, species_name_bulbasaur);\n')
+        assert M.run(d, ['gen'], ['src'], out=io.StringIO(), all_ids=True) == []
+
+
 def test_collision_raises():
     with tempfile.TemporaryDirectory() as t:
         d = Path(t)

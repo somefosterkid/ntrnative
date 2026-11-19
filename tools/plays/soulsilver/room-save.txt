@@ -1,0 +1,9 @@
+# game: soulsilver
+# from: boot
+# reaches: (SoulSilver copy of heartgold/room-save, ss1) the first save: the room (hg13's new-game keys), the stairs (left 3, up 2 onto the warp tile, left), the scene downstairs by A, the X menu (cursor on the bag: right, up = SAVE), A three times (the save written by ~f26000; the overwrite question shows although the run starts without a save)
+# store: ss-room1
+# end: f27200
+keys start@f7700 b@f8100 b@f8250 a@f8400 a@f8550 a@f8700 a@f8850 a@f9000 a@f9150 a@f9300 a@f9450 a@f9600 a@f9750 a@f9900 a@f10050 a@f10200 a@f10350 a@f10500 a@f10650 a@f10800 a@f10950 a@f11100 a@f11250 a@f11400 a@f11550 a@f11700 a@f11850 a@f12000 a@f12150 a@f12300 a@f12450 a@f12600 a@f12750 a@f12900 a@f13050 a@f13200 a@f13350 a@f13500 a@f13650 a@f13800 a@f13950 a@f14100 a@f14250 a@f14400 a@f14550 a@f14700 a@f14850 a@f15000 a@f15150 a@f15300 a@f15450 a@f15600 a@f15750 a@f15900 a@f16050 a@f16200 a@f16350 a@f16500
+walk 17000 60 left3 up2 left
+walk 18000 120 a*50/120
+keys x@f24200 right@f24300 up@f24400 a@f24500 a@f24800 a@f25100 a@f25700 a@f26000 b@f26600

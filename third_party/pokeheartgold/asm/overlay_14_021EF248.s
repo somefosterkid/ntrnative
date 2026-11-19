@@ -1,0 +1,31 @@
+#include "constants/items.h"
+#include "constants/pokemon.h"
+	.include "macros.inc"
+	.include "overlay_14.inc"
+	.include "global.inc"
+
+	.public ov14_021E6070
+	.public ov14_021E7588
+	.public ov14_021E765C
+	.public ov14_021E76B8
+	.public ov14_021E85E4
+	.public ov14_021E8620
+	.public ov14_021E8634
+	.public ov14_021E8648
+	.public ov14_021F0244
+	.public ov14_021F0D34
+	.public ov14_021F0D58
+	.public ov14_021F0EE8
+	.public ov14_021F1004
+	.public ov14_021F19F0
+	.public ov14_021F1B4C
+	.public ov14_021F2270
+	.public ov14_021F2330
+	.public ov14_021F2490
+	.public ov14_021F2A18
+	.public ov14_021F6408
+	.public ov14_021F6A14
+	.public ov14_021F6A34
+	.public ov14_021F70C0
+	.public ov14_021F7B7C
+	.text

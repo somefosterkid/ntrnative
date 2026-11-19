@@ -17,6 +17,7 @@ struct G07 {
   int scale, w, h; /* scale: the grid pass C draws on (N); w, h: the output (256 N x 384 N) */
   GLuint prog, vao, fbo, t_out, t_stage, t_src, t_3d, t_none; /* t_none: 1 x 1 RGBA8, cSmaa's when unused */
   GLuint prog_plan, fbo_plan, t_plan; /* the plan (g07_compose.frag's C_PLAN), 256 x 192 RG32UI */
+  GLuint fbo_cap, t_cap; /* g07_compose_capsrc's: engine A without master brightness, 256 N x 192 N RGBA8 (made on first use) */
   unsigned plan_serial;               /* the pack the plan is made from (0: none) and the uniforms it read */
   uint32_t plan_key[8];
   int sc3d;
@@ -167,11 +168,12 @@ void g07_destroy(G07 *c) {
   }
   gpu_gl_program_done(c->prog);
   gpu_gl_program_done(c->prog_plan);
-  GLuint tex[] = {c->t_out, c->t_stage, c->t_src, c->t_3d, c->t_none, c->t_plan};
+  GLuint tex[] = {c->t_out, c->t_stage, c->t_src, c->t_3d, c->t_none, c->t_plan, c->t_cap};
   for (unsigned i = 0; i < sizeof tex / sizeof tex[0]; i++)
     if (tex[i]) GL(DeleteTextures)(1, &tex[i]);
   if (c->fbo) GL(DeleteFramebuffers)(1, &c->fbo);
   if (c->fbo_plan) GL(DeleteFramebuffers)(1, &c->fbo_plan);
+  if (c->fbo_cap) GL(DeleteFramebuffers)(1, &c->fbo_cap);
   if (c->vao) GL(DeleteVertexArrays)(1, &c->vao);
   free(c->own);
   g07_pack_destroy(c->pack);
@@ -330,6 +332,60 @@ int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, 
   GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
   GLenum e = GL(GetError)();
   return e == GL_NO_ERROR ? 0 : -(int)e;
+}
+
+unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa) {
+  if (c->mtl == NULL && k->serial != c->up) return 0; /* (g07_compose_packed with k first: its textures are up) */
+  const int h = VC_H * c->scale;
+  if (c->mtl != NULL) {
+    GpuU u;
+    uni_compose(&u, s, c->scale, sc, tex3d != 0, smaa != 0);
+    u.cCompose = 1, u.cATop = 1, u.cBright = 0; /* (as below) */
+    return gpu_mtl_capsrc(c->mtl, k->serial, plan_stale(c, &u, k->aserial), tex3d, smaa, &u);
+  }
+  if (c->t_cap == 0) {
+    c->t_cap = make_tex(GL_RGBA8, c->w, h);
+    GL(TexImage2D)(GL_TEXTURE_2D, 0, GL_RGBA8, c->w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    GL(GenFramebuffers)(1, &c->fbo_cap);
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_cap);
+    GL(FramebufferTexture2D)(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, c->t_cap, 0);
+    GLenum st = GL(CheckFramebufferStatus)(GL_FRAMEBUFFER);
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
+    if (st != GL_FRAMEBUFFER_COMPLETE) return 0;
+  }
+  GpuU u;
+  uni_compose(&u, s, c->scale, sc, tex3d != 0, smaa != 0);
+  u.cCompose = 1; /* the compositor's picture whatever engine A displays, on top (the output's first 192 N rows) */
+  u.cATop = 1;
+  u.cBright = 0; /* a capture is taken before master brightness */
+  int plan = plan_stale(c, &u, k->aserial); /* (the next frame's pass C plans again when its master brightness is not 0) */
+  GLenum buf = GL_COLOR_ATTACHMENT0;
+  GL(Disable)(GL_DEPTH_TEST);
+  GL(Disable)(GL_BLEND);
+  GL(BindVertexArray)(c->vao);
+  if (plan) {
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_plan);
+    GL(DrawBuffers)(1, &buf);
+    gpu_gl_invalidate(1);
+    GL(Viewport)(0, 0, VC_W, VC_H);
+    GL(UseProgram)(c->prog_plan);
+    tex_unit(c->prog_plan, 0, "cStage", c->t_stage);
+    gpu_gl_uniforms(&u);
+    GL(DrawArrays)(GL_TRIANGLES, 0, 3);
+  }
+  GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_cap);
+  GL(DrawBuffers)(1, &buf);
+  gpu_gl_invalidate(1);
+  GL(Viewport)(0, 0, c->w, h);
+  GL(UseProgram)(c->prog);
+  tex_unit(c->prog, 0, "cPlan", c->t_plan);
+  tex_unit(c->prog, 1, "cSrc1x", c->t_src);
+  tex_unit(c->prog, 2, "c3d", tex3d ? tex3d : c->t_stage);
+  tex_unit(c->prog, 3, "cSmaa", tex3d && smaa ? smaa : c->t_none);
+  gpu_gl_uniforms(&u);
+  GL(DrawArrays)(GL_TRIANGLES, 0, 3);
+  GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
+  return GL(GetError)() == GL_NO_ERROR ? c->t_cap : 0;
 }
 
 unsigned g07_frame_tex(const G07 *c) { return c->mtl != NULL ? gpu_mtl_c_frame_tex(c->mtl) : c->t_out; }

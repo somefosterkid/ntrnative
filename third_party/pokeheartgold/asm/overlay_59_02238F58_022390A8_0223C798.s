@@ -1,0 +1,211 @@
+	.include "macros.inc"
+	.include "overlay_59.inc"
+	.include "global.inc"
+
+	.public ov59_0223BADC
+	.public ov59_0223BAE8
+	.public ov59_0223BBB0
+	.public ov59_0223BBD4
+	.public ov59_0223BC88
+	.public ov59_0223BD4C
+	.public ov59_0223BE70
+	.public ov59_0223C054
+	.public ov59_0223C138
+	.public ov59_0223C298
+	.public ov59_0223C304
+	.public ov59_0223C350
+	.public ov59_0223C374
+	.public ov59_0223AA6C
+	.public ov59_0223AABC
+	.public ov59_0223AB00
+	.public ov59_0223AB3C
+	.public ov59_0223AB90
+	.public ov59_0223ABE4
+	.public ov59_0223ABEC
+	.public ov59_0223AC48
+	.public ov59_0223ACD0
+	.public ov59_0223AE20
+	.public ov59_02237E94
+	.public ov59_02237F3C
+	.public ov59_02237FA4
+	.public ov59_0223801C
+	.public ov59_02238068
+	.public ov59_022380E4
+	.public ov59_022380EC
+	.public ov59_0223811C
+	.public ov59_02238124
+	.public ov59_02238218
+	.public ov59_022382F4
+	.public ov59_0223834C
+	.public ov59_022383B4
+	.public ov59_022384E4
+	.public ov59_02238578
+	.public ov59_0223858C
+	.public ov59_02238624
+
+
+	.data
+	.balign 4, 0
+	.global ov59_0223C798
+ov59_0223C798:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C798
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C798, ov59_0223C798 ; 0x0223C798
+	.byte 0x00, 0, 0, 0, 0, 0, 0, 0x00
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0x00, 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0, 0, 0, 0, 0, 0
+	.byte 0x00, 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0, 0, 0, 0, 0, 0
+	.byte 0x00, 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0, 0, 0, 0, 0, 0
+
+	.global ov59_0223C7F0
+ov59_0223C7F0:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C7F0
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C7F0, ov59_0223C7F0 ; 0x0223C7F0
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00
+	.byte 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C840
+ov59_0223C840:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C840
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C840, ov59_0223C840 ; 0x0223C840
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00
+	.byte 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C8B8
+ov59_0223C8B8:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C8B8
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C8B8, ov59_0223C8B8 ; 0x0223C8B8
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00
+	.byte 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C8E0
+ov59_0223C8E0:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C8E0
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C8E0, ov59_0223C8E0 ; 0x0223C8E0
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C908
+ov59_0223C908:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C908
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C908, ov59_0223C908 ; 0x0223C908
+	.byte 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C924
+ov59_0223C924:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C924
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C924, ov59_0223C924 ; 0x0223C924
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+	.global ov59_0223C940
+ov59_0223C940:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C940
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C940, ov59_0223C940 ; 0x0223C940
+	.byte 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C94C
+ov59_0223C94C:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C94C
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C94C, ov59_0223C94C ; 0x0223C94C
+	.byte 0x00, 0, 0, 0x00
+	.byte 0x00, 0, 0, 0x00
+
+	.global ov59_0223C954
+ov59_0223C954:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C954
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C954, ov59_0223C954 ; 0x0223C954
+	.byte 0x00, 0, 0, 0x00, 0x00, 0, 0, 0x00
+
+	.global ov59_0223C95C
+ov59_0223C95C:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C95C
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C95C, ov59_0223C95C ; 0x0223C95C
+	.byte 0, 0, 0, 0x00
+	.byte 0, 0, 0, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C968
+ov59_0223C968:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C968
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C968, ov59_0223C968 ; 0x0223C968
+	.byte 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00
+	.byte 0, 0, 0, 0, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C978
+ov59_0223C978:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C978
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C978, ov59_0223C978 ; 0x0223C978
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C988
+ov59_0223C988:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C988
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C988, ov59_0223C988 ; 0x0223C988
+	.byte 0, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00
+	.byte 0x00, 0, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C99C
+ov59_0223C99C:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C99C
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C99C, ov59_0223C99C ; 0x0223C99C
+	.byte 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223C9B0
+ov59_0223C9B0:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9B0
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9B0, ov59_0223C9B0 ; 0x0223C9B0
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0, 0x00, 0, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C9CC
+ov59_0223C9CC:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9CC
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9CC, ov59_0223C9CC ; 0x0223C9CC
+	.byte 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223C9E8
+ov59_0223C9E8:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9E8
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223C9E8, ov59_0223C9E8 ; 0x0223C9E8
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+	.byte 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0, 0x00, 0, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223CA04
+ov59_0223CA04:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA04
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA04, ov59_0223CA04 ; 0x0223CA04
+	.byte 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+
+	.global ov59_0223CA20
+ov59_0223CA20:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA20
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA20, ov59_0223CA20 ; 0x0223CA20
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+	.byte 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0, 0x00, 0x00, 0x00
+
+	.global ov59_0223CA40
+ov59_0223CA40:
+	.global hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA40
+	.set hgasset_asm_overlay_59_02238F58_022390A8_0223C798_s_ov59_0223CA40, ov59_0223CA40 ; 0x0223CA40
+	.byte 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0, 0, 0, 0, 0, 0, 0x00
+	.byte 0, 0, 0, 0, 0, 0, 0, 0x00, 0, 0, 0, 0, 0, 0, 0, 0x00
+	.byte 0, 0, 0, 0, 0, 0, 0, 0x00

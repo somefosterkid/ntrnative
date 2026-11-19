@@ -1,0 +1,5 @@
+# game: soulsilver
+# from: boot
+# reaches: the player's room from boot (hg13's new-game keys: title, the opening, the professor's speech, the name and gender questions; HeartGold reaches the room ~f16450). ss1
+# end: f17000
+keys start@f7700 b@f8100 b@f8250 a@f8400 a@f8550 a@f8700 a@f8850 a@f9000 a@f9150 a@f9300 a@f9450 a@f9600 a@f9750 a@f9900 a@f10050 a@f10200 a@f10350 a@f10500 a@f10650 a@f10800 a@f10950 a@f11100 a@f11250 a@f11400 a@f11550 a@f11700 a@f11850 a@f12000 a@f12150 a@f12300 a@f12450 a@f12600 a@f12750 a@f12900 a@f13050 a@f13200 a@f13350 a@f13500 a@f13650 a@f13800 a@f13950 a@f14100 a@f14250 a@f14400 a@f14550 a@f14700 a@f14850 a@f15000 a@f15150 a@f15300 a@f15450 a@f15600 a@f15750 a@f15900 a@f16050 a@f16200 a@f16350 a@f16500

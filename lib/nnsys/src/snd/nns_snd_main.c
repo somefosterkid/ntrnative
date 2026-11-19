@@ -126,3 +126,18 @@ static void BeginSleep(void *arg) {
 static void EndSleep(void *arg) {
     NNSi_SndCaptureEndSleep();
 }
+
+#ifndef __MWERKS__
+// NitroSystem's, which the Gen 4 games call and Black doesn't (HeartGold declares it implicitly): a channel's state
+// from the driver's info that NNS_SndUpdateDriverInfo last read. Not in the DS build
+BOOL NNS_SndReadDriverChannelInfo(int chNo, SNDChannelInfo *chInfo);
+
+BOOL NNS_SndReadDriverChannelInfo(int chNo, SNDChannelInfo *chInfo) {
+    const SNDDriverInfo *driverInfo = GetCurDriverInfo();
+
+    if (!driverInfo) {
+        return FALSE;
+    }
+    return SND_ReadChannelInfo(driverInfo, chNo, chInfo);
+}
+#endif
