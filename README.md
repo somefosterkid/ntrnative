@@ -1,8 +1,8 @@
 # NTR Native
 
 Decompiled Nintendo DS games rebuilt as native apps, with our own renderers and sound core, for Pokémon Black, White,
-Black 2, White 2, Platinum, HeartGold and SoulSilver. "NTR" is the DS's product code. Bring your own ROM: none is
-included or will be provided.
+Black 2, White 2, Platinum, HeartGold and SoulSilver; Diamond and Pearl will be added when their decompilation is
+finished. "NTR" is the DS's product code. Bring your own ROM: none is included or will be provided.
 
 ## Games
 
@@ -16,36 +16,15 @@ included or will be provided.
 | HeartGold | `4fcded0e2713dc03929845de631d0932ea2b5a37` |
 | SoulSilver | `f8dc38ea20c17541a43b58c5e6d18c1732c7e582` |
 
-All four play on Windows, Linux, Android, macOS and iOS, in one app that switches between them. Every
-game has been tested playable from a new game to the first gym, by hand and by scripted runs; scripted runs through the
-rest of all four games are in progress. Android is tested on the x86_64 emulator only (the arm64 build for phones is
-packaged but has not run on a device); iOS on the Simulator only, where Black and Black 2 reach their field. Online play, DS Protect and the DSi-only features are not supported. Black 2 and White 2:
+All seven play on Windows, Linux, Android, macOS and iOS, in one app that switches between them. Scripted runs play
+Black, White, Black 2, White 2 and Platinum from a new game to the credits, and HeartGold and SoulSilver to Ecruteak
+City. Known issues in HeartGold and SoulSilver: opening the PC box, the Pokédex or the Trainer Card can crash; fixes are
+in progress. Online play, DS Protect and the DSi-only features are not supported. Black 2 and White 2:
 [docs/black2-white2.md](docs/black2-white2.md).
 
-The Generation IV games are further behind. They are built into the Windows, Linux, Android, macOS and iOS builds (the Android APK carries
-them, checked on the x86_64 emulator only: each boots from a save and the touch screen works; on macOS and in the iOS
-Simulator, Platinum, HeartGold and SoulSilver each reach the field from a save):
+No game data is in the repository: you supply the ROMs.
 
-- **Platinum** (Windows and Linux; on Android it boots and the Poketch takes touches) plays from a new game to the credits. 218 scripted legs take it through the whole
-  story, each leg replayed three times to the same result, and the whole chain from a new game to the credits replays
-  with identical frame counts, twice and on two different machines. Windows and Linux run the same frames. Crash sweeps
-  cover all 593 maps, every species and every move
-  in battle, and every person, sign, hidden item and trigger tile; the crashes left are out of context: rooms that need
-  a link session (Union Room, the Underground, the Battle Tower), maps the game never uses, and scenes the sweep enters
-  sideways. Testing so far is scripted runs and sweeps. The code is pret's pokeplatinum plus our patches; it is fetched
-  when you build, not kept here.
-- **HeartGold and SoulSilver**: playable. Known issues: opening the PC box, the Pokedex or the Trainer Card can crash;
-  fixes are in progress. Scripted runs take a new game on both from the start into Ecruteak City's Burned Tower and gym:
-  69 legs each, through three gyms, the Slowpoke Well, Cut in the Ilex Forest and the Surf machine. Windows matches
-  Linux frame for frame on the runs compared so far (Windows is less tested than Linux). Crash sweeps: every map but two
-  loads; battles against every species all finish (493 of 493), and 99 of 117 in a sweep of every move. The story after
-  Ecruteak and hand play are less tested. The code is pret's pokeheartgold with our 64-bit work, in
-  `third_party/pokeheartgold`.
-
-Neither pret project has a license file; see Credits and [THIRD_PARTY.md](THIRD_PARTY.md). No game data is in the
-repository: you supply the ROMs.
-
-Coming soon: Pokémon Diamond and Pearl. Later: mods such as Nuzlocke and randomizer modes, which are plain C changes once a
+Later: mods such as Nuzlocke and randomizer modes, which are plain C changes once a
 game is decompiled.
 
 ## Features
@@ -117,8 +96,9 @@ A tour of the code for contributors (layers, the games in one app, the build wit
   original Metrowerks compiler. The rest is working C that is not yet byte-matched ([docs/nonmatching.md](docs/nonmatching.md)),
   plus Nintendo's online (Wi-Fi) library, which comes from your ROM and is unused: online play is stubbed. White builds from
   the same source ([docs/white.md](docs/white.md)).
-- **Generation IV**: Platinum and HeartGold/SoulSilver compile pret's decompiled C on libntr and our NitroSystem, with
-  patches of ours for 64-bit hosts (pointer widths, struct layouts).
+- **Generation IV**: Platinum compiles pret's decompiled C; HeartGold and SoulSilver compile our decompilation, built on
+  pret's unfinished pokeheartgold. Both run on libntr and our NitroSystem, with our 64-bit work (pointer widths, struct
+  layouts).
 - **Port**: the game's C runs natively on [libntr](https://github.com/cybervisi0n/libntr), a NitroSDK for PC, with our own
   NitroSystem (`lib/nnsys`, [docs](docs/nnsys-port.md)).
 - **Video**: `vcore` is our clean-room CPU renderer of the DS video hardware, exact at 1x and upscaling on the CPU;
@@ -150,9 +130,10 @@ the pokeplatinum that Platinum's build fetches (no license file upstream). Every
     Wi-Fi library C is re-ported from it. Many names and struct layouts come from it, and through it from
     [swan](https://github.com/ds-pokemon-hacking/swan).
 - **[libntr](https://github.com/cybervisi0n/libntr)** (MIT): the NitroSDK for PC the whole port runs on.
-- **[pret](https://github.com/pret)**: Platinum is built from their [pokeplatinum](https://github.com/pret/pokeplatinum)
-  and HeartGold/SoulSilver from their [pokeheartgold](https://github.com/pret/pokeheartgold), made to run on 64-bit
-  hosts by our patches. All credit for the decompilations goes to pret and its contributors.
+- **[pret](https://github.com/pret)**: Platinum is built from their [pokeplatinum](https://github.com/pret/pokeplatinum),
+  made to run on 64-bit hosts by our patches; the credit for that decompilation goes to pret and its contributors.
+  HeartGold and SoulSilver start from their unfinished [pokeheartgold](https://github.com/pret/pokeheartgold): we
+  decompiled the rest of the game's code into C and typed its data structures for 64-bit hosts.
 - The DS decompilation community: the other pret projects, [zeldaret](https://github.com/zeldaret)'s
   st and ph and the kh decompilations (Metrowerks library C), taxicat1's dsprot, and the authors of dsd and
   decomp-permuter.
