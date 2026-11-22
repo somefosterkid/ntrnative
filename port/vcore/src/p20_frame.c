@@ -268,6 +268,12 @@ static RPool *pool_make(int nworkers) {
   return rp;
 }
 
+/* in a fork()'s child (vcore.h): the pool's threads were the parent's (its next frame waited for them for ever); a new
+ * pool is made at the next 3D frame, the old one leaks (its records only) */
+void vcore_forked(VCoreState *s) {
+  if (s != NULL) s->p20.pool = NULL;
+}
+
 void vc_p20_destroy(VCoreState *s) {
   pool_free((RPool *)s->p20.pool);
   s->p20.pool = NULL;

@@ -62,6 +62,7 @@ import glob
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
 import struct
@@ -74,7 +75,16 @@ import port_wraps
 import play_script
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# BWPORT_BUILD_GAMES=black (or a comma list: black,white,b2w2,platinum,hgss): a build dir that holds only those games, build/port/linux-black
+# (meson -Dgames=...: about a third of the compile steps for Black alone, and no HG/SS or Platinum generator at configure).
+# The default stays the dir with every game; BWPORT_BUILD still wins.
+GAMES_ENV = os.environ.get('BWPORT_BUILD_GAMES', '')
+if GAMES_ENV and 'BWPORT_BUILD' not in os.environ:
+    os.environ['BWPORT_BUILD'] = 'build/port/linux-' + GAMES_ENV.replace(',', '-')
 BUILD = os.path.join(REPO, os.environ.get('BWPORT_BUILD', 'build/port/linux'))
+if os.environ.get('BWPORT_SYSROOT') and os.path.exists(os.path.join(os.environ['BWPORT_SYSROOT'], 'bin', 'meson')):
+    # the sysroot's pinned meson (tools/port_sysroot.py: another meson version makes other C++ compiles)
+    os.environ['PATH'] = os.path.join(os.environ['BWPORT_SYSROOT'], 'bin') + os.pathsep + os.environ.get('PATH', '')
 EXE = os.path.join(BUILD, 'bwport')
 # Gen 4 games: the default build has every game (port/meson.options' `platinum` and `hgss` are on), so they run from it too.
 # A module build of their own still works: BWPORT_PLAT_BUILD (Platinum) and BWPORT_HG_BUILD (HeartGold and SoulSilver) name
@@ -148,6 +158,18 @@ def setup_args():
     args = ['--native-file', 'port/machine/linux.ini']
     if shutil.which('ccache'):
         args += ['--native-file', 'port/machine/linux-ccache.ini']
+    if os.environ.get('BWPORT_SYSROOT'):   # the pinned 24.04 sysroot (tools/port_sysroot.py): the same objects on every machine
+        ini = 'native-ccache.ini' if shutil.which('ccache') else 'native.ini'
+        args += ['--native-file', os.path.join(os.environ['BWPORT_SYSROOT'], ini)]
+        # no precompiled headers: a .pch names the checkout/build dir it was made in, and ccache's -E (a direct-mode miss) then
+        # fails "file not found" once that dir is gone (every .c: Result preprocessor_error, uncached), its dependency file
+        # names the gone dir's generated headers (direct mode off). Without a .pch every object is keyed by its preprocessed text.
+        # (libntr's sources rely on its nitro_pch.h being forced in: port/meson.options' nitro_header)
+        args += ['-Db_pch=false', '-Dpch=disabled', '-Dnitro_header=true']
+    if not os.environ.get('BWPORT_FULL_LINK'):
+        args += ['-Ddev_fast=true']        # the short relink (port/meson.options): no ROM fill, cached undefined set, line-tables debug info
+    if GAMES_ENV:
+        args += ['-Dgames=' + GAMES_ENV]   # a NEW dir only: meson keeps a dir's options
     if os.path.basename(BUILD) == 'linux-plat':
         args += ['-Dplatinum=true']        # Platinum's module (port/meson.build's `platinum`, docs/platinum.md)
     if os.path.basename(BUILD) == 'linux-hgss':
@@ -275,8 +297,9 @@ def xwd_to_png(xwd, png):
 class Exe:
     """the running exe: found among gdb's descendants; its V-blank count read through /proc/<pid>/mem"""
 
-    def __init__(self, root_pid):
+    def __init__(self, root_pid, fork_pidfile=None):
         self.root_pid, self.pid, self.count_addr = root_pid, None, None
+        self.fork_pidfile = fork_pidfile       # BWPORT_FORK_PIDFILE: the game forked (title_fork.c); its child plays on
         out = sh(['nm', '--defined-only', EXE]).stdout
         m = re.search(r'^([0-9a-f]+) \w bwport_vblank_count$', out, re.M)
         self.sym = int(m.group(1), 16) if m else None
@@ -295,7 +318,18 @@ class Exe:
                 pass
         return self.pid
 
+    def forked(self):
+        """the child's pid once the game forked at BWPORT_FORK_AT (its parent's V-blank count stays at the fork's)"""
+        try:
+            pid = int(open(self.fork_pidfile).read().split()[0])
+        except (TypeError, OSError, ValueError, IndexError):
+            return
+        if pid != self.pid:
+            self.pid, self.count_addr = pid, None   # the same address space layout (a fork): the address is read again anyway
+
     def frame(self):
+        if self.fork_pidfile:
+            self.forked()
         if self.pid is None or self.sym is None:
             return None
         try:
@@ -545,7 +579,7 @@ def import_game(run_dir, game):
     rom = os.path.join(os.path.dirname(find_rom()), ROMS[game])
     if not os.path.exists(rom):
         sys.exit(f'port_run: no {rom}')
-    env = dict(os.environ, BWPORT_LCTEST=f'importrom={rom}', SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
+    env = dict(os.environ, BWPORT_LCTEST=f'importrom={rom}', DBUS_SESSION_BUS_ADDRESS='disabled:', SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
     r = sh([EXE], cwd=run_dir, env=env, timeout=300)
     if 'lctest: 0 failed' not in r.stdout:
         sys.exit(f'port_run: {game} import failed:' + chr(10) + chr(10).join(r.stdout.splitlines()[-8:]))
@@ -658,7 +692,9 @@ def main():
         os.environ['BWPORT_KEYS'] = ' '.join(play['keys'])
         for k, v in play.get('env', {}).items():
             os.environ.setdefault(k, v)
-        if not os.environ.get('BWPORT_CFGSCRIPT'):
+        # fast forward for a functional run; --realtime (a timing run) keeps the 60 fps cap: with ff=1 it ran uncapped too (pf2 11-19:
+        # route1-battle --realtime did 700 frames in 1 s)
+        if not os.environ.get('BWPORT_CFGSCRIPT') and not args.realtime:
             os.environ['BWPORT_CFGSCRIPT'] = "f1:ff=1"
     keys = parse_keys(exe_keys(args.keys)[1], 0.03 if args.fast else 0.1)   # frame items go to the exe (below)
     clicks = []
@@ -738,7 +774,7 @@ def main():
     trace('Xvfb up')
     # the game only ever sees the Xvfb display: SDL's default Wayland socket (wayland-0) and DISPLAY :0 are WSLg's,
     # on the desktop of whoever uses this PC
-    env = dict(os.environ, DISPLAY=display, SDL_VIDEODRIVER='x11', WAYLAND_DISPLAY='', SDL_AUDIODRIVER='dummy',
+    env = dict(os.environ, DISPLAY=display, SDL_VIDEODRIVER='x11', WAYLAND_DISPLAY='', DBUS_SESSION_BUS_ADDRESS='disabled:', SDL_AUDIODRIVER='dummy',
                BWPORT_ROM=find_rom())
     if game != 'black':
         env.setdefault('BWPORT_GAME', CODES[game])
@@ -752,6 +788,10 @@ def main():
         env['BWPORT_FRAMESKIP'] = str(args.skip)
     if args.frames:
         env['BWPORT_EXIT_FRAME'] = str(args.frames)
+    if env.get('BWPORT_FORK_AT') or env.get('BWPORT_FORK_SERVER'):   # title_fork.c: the child writes its pid here; the frame watch follows it
+        env['BWPORT_FORK_PIDFILE'] = os.path.join(out, '.forkpid')
+        if os.path.exists(env['BWPORT_FORK_PIDFILE']):
+            os.remove(env['BWPORT_FORK_PIDFILE'])
     if args.no_gdb:   # what gdb adds to the exe's environment (its length moves the stack, and the game's end V-blank with it)
         env.update(COLUMNS='80', LINES='24')
     # --keys' frame items: the exe presses them at the V-blank wait (exe_keys; game frames, not this script's poll)
@@ -761,7 +801,8 @@ def main():
         keys = parse_keys(xdo_keys, 0.03 if args.fast else 0.1)
     win_file = os.path.join(out, '.window')
     final = (f'shell [ -s {win_file} ] && xwd -silent -id $(cat {win_file}) -out {out}/final.xwd')
-    gdb = [SETARCH, '-R', EXE] if args.no_gdb else ['gdb', '-q', '-nx', '-batch', '-ex', 'set pagination off', '-ex', 'set confirm off',
+    # BWPORT_RUN_WRAP="cmd args": a program run in front of the exe with --no-gdb (tools/perf_frame.py --wrap: the CPU counters)
+    gdb = [SETARCH, '-R'] + shlex.split(os.environ.get('BWPORT_RUN_WRAP', '')) + [EXE] if args.no_gdb else ['gdb', '-q', '-nx', '-batch', '-ex', 'set pagination off', '-ex', 'set confirm off',
            '-ex', 'set print thread-events off', '-ex', 'set startup-with-shell off',
            '-ex', 'handle SIGPIPE SIGUSR1 SIGUSR2 SIGFPE nostop noprint pass',
            '-ex', 'set breakpoint pending on'] + [a for c in args.gdb for a in ('-ex', c)] + ['-ex', 'run',
@@ -772,7 +813,7 @@ def main():
     proc = subprocess.Popen(slice_cmd(gdb), cwd=run_dir, env=env, stdin=subprocess.DEVNULL, stdout=log,
                             stderr=subprocess.STDOUT, start_new_session=True)
     trace('exe started' if args.no_gdb else 'gdb started')
-    exe = Exe(proc.pid)
+    exe = Exe(proc.pid, env.get('BWPORT_FORK_PIDFILE'))
     rc = None                                           # --no-gdb: the exe's exit status, when it ended by itself
     launched, t0, window, pad, next_shot = time.monotonic(), None, None, None, 0.0
     samples, timed_out, scanned = [], False, 0          # (seconds, frame); the log read up to scanned

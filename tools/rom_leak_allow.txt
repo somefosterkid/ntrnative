@@ -86,8 +86,6 @@ port/src/route_test.c 54  # the test-cheat comment and code (no tables in the ch
 port/src/stb_image.h 134  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stb_image_write.h 488  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stub_online.c 48  # a run of small u32 constants that also occurs in Black 2's ROM; flagged once the file changed (SOCInAddr)
-port/subprojects/packagefiles/libntr-ios-stuckinput.patch 63  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
-port/subprojects/packagefiles/libntr-vs70.patch 62  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 src/ov208/zukan_detail_form.c 177  # float sprite offsets (-13.9f) that the checker reads as the digit pairs 13, 9: chance match with B2's bytes, no game data
 src/system/pm_voice.c 50  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 tools/brief.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
@@ -195,3 +193,31 @@ src/ov112/mus_item_data.c 51  # decompiled code's own constants matching HeartGo
 private/saves/b2-champ.bin 56  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
 private/saves/hg-out2.bin 278  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
 lib/dwc/src/nhttp/nhttp_stdlib.c 49  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+port/subprojects/libntr/components/ichneumon/FP_fullI_v4t_LE.a 5205  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/nitro/wm/common/wm.h 125  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/simulator/glad/glad.h 118  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/twl/mi/common/dma.h 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/twl/rtc/common/type_ex.h 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/twl/specfiles/default.bnr 1697  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/card/src/card_hash.c 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/dgt/prebuilt/libdgt.a 3853  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/fs/src/fs_overlay.c 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/fx/src/fx_atanidx.c 325  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/fx/src/fx_sincos.c 16449  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/rtc/src/convert.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/sim/src/imgui/imgui_draw.cpp 1051  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/sim/src/sim_audio.cpp 598  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/sim/src/sim_main.cpp 189  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/packagefiles/libntr-ours.patch 125  # our changes to libntr as a diff (public export): its sim_main.cpp hunks hold two chance runs of small integer literals (GL code), the same chance matches sim_main.cpp has above; not game data
+port/subprojects/libntr/libraries/sim7/src/snd/snd_channel.c 598  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/sim7/src/wm/wmsp_system.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/snd/src/snd_util.c 2942  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/spi/src/mic_arm7_2.c 243  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/std/include/unicode2sjis.h 1861  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wl_arm7/include/DbgChar.h 132  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wl_arm7/include/Global.h 196  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wl_arm7/src/Diag.c 332  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wl_arm7/src/WlNic.c 125  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wm/src/wm_standard.c 112  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wm_arm7/src/wmsp_indicate.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/wm_arm7/src/wmsp_system.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data

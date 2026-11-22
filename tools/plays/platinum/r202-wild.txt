@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-catch
+# reaches: Route 202's south end from pt-catch (CONTINUE), then up and down through the tall grass until a wild battle starts (its intro: the 3D platforms and the Pokemon, for the fast 3D renderer's captures)
+# end: f10000
+keys start@f6300 a@f6700
+walk 7500 16 left1 up4 down4 up4 down4 up4 down4 up4 down4 up4 down4 up4 down4 up4 down4 up4 down4 up4 down4

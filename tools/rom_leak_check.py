@@ -53,7 +53,7 @@ def _main_checkout():
 
 def _default_roms():
     """(name, ROM, dsd extract dir or None) of each game this machine has: the checkout's orig/ (the worktree's, else the main
-    one's), White's in $ROMLEAK_WHITE_ROM / $ROMLEAK_WHITE_EXT (default /root/white_rom, /root/white_ext), Black 2, White 2 and
+    one's), White's in $ROMLEAK_WHITE_ROM / $ROMLEAK_WHITE_EXT (default /root/white_rom, else orig/; the checkout's extract/w_us, else /root/white_ext), Black 2, White 2 and
     Platinum (port/include_plat, port/subprojects/pokeplatinum-*.patch), HeartGold and SoulSilver (third_party/pokeheartgold)
     from orig/ (no extract: the raw ROM, its modules BLZ-decompressed and its LZ cache are searched)."""
     roots = [REPO, _main_checkout()]
@@ -79,7 +79,9 @@ def _default_roms():
     if not os.path.exists(w):
         w = find("orig", "baserom_w_us.nds")
     if w:
-        out.append(("white", w, os.environ.get("ROMLEAK_WHITE_EXT", "/root/white_ext")))
+        # the White extract: $ROMLEAK_WHITE_EXT, else the checkout's extract/w_us when it exists (no env var needed), else /root/white_ext
+        wx = os.environ.get("ROMLEAK_WHITE_EXT") or find("extract", "w_us") or "/root/white_ext"
+        out.append(("white", w, wx))
     for name, f in (("black2", "baserom_b2_us.nds"), ("white2", "baserom_w2_us.nds"),
                     ("platinum", "baserom_plat_us.nds"), ("heartgold", "baserom_hg_us.nds"),
                     ("soulsilver", "baserom_ss_us.nds")):

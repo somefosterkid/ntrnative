@@ -387,11 +387,14 @@ def test_ui(rig, tag, st):
         # a small window's touch screen, where this click used to hit Quit
         cyp = (max(T, st2['vis'] + 40) + B) // 2
         cyp = (cyp + B) // 2
+        # (the first menu, Speed, is wide and tall since the menu restructure: this click can land on one of its items and keep the
+        # menu open, so a second click at the window's bottom right corner, outside the menu, closes it; its touch is not judged)
         ls = rig.click(cx, cyp)
         rig.npts += 1
         if ls:
             rig.fail(tag, f'the click that closes a menu touched {ls[-1]}')
         rig.key('Escape'); time.sleep(0.2)
+        rig.click(st2['W'] - 3, st2['H'] - 3); time.sleep(0.2)
     else:
         rig.fail(tag, f'the bar did not come out at the top edge (vis {st2["vis"]})')
     rig.mouse(cx, (T + B) // 2); time.sleep(0.5)

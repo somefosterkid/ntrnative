@@ -371,8 +371,8 @@ void s_build(int rec) {
         } else if (xe < xs) ok = false;
         if (ldx == 0 && ldy != 0) rflags |= int(ROW_VERTL);
         if ((fl & SU_FLATBOT) != 0u && y == yend) rflags |= int(ROW_ALLEDGE);
-        den_f = Rrd - xs + 1 + (rvert ? 0 : 1);
-        den_z = xe - xs + 2;
+        den_f = max(Rrd - xs + 1 + (rvert ? 0 : 1), 1); // at least 1, as vcore p16 (a 1-px vertical line: 0 / 0)
+        den_z = max(xe - xs + 2, 1);
       }
     }
   }

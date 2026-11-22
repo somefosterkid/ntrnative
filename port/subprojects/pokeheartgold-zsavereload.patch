@@ -1,0 +1,50 @@
+--- a/include/save.h
++++ b/include/save.h
+@@ -90,6 +90,7 @@
+ };
+ 
+ SaveData *SaveData_New(void);
++void SaveData_PortReload(void);
+ SaveData *SaveData_Get(void);
+ void *SaveArray_Get(SaveData *saveData, int id);
+ const void *SaveArray_Const_Get(const SaveData *saveData, int id);
+--- a/src/save.c
++++ b/src/save.c
+@@ -65,13 +65,27 @@
+ static u32 PCModifiedFlags_CountModifiedBoxes(u32 flags);
+ static u32 PCModifiedFlags_GetIndexOfNthModifiedBox(u32 flags, u8 last);
+ 
++static void SaveData_PortLoad(SaveData *ret);
++
+ SaveData *SaveData_New(void) {
+     SaveData *ret;
++
++    ret = Heap_Alloc(HEAP_ID_1, sizeof(SaveData));
++    SaveData_PortLoad(ret);
++    return ret;
++}
++
++// PC port (title_fork.c, a leg's process forked from a game parked at the title): read save.bin again (the working
++// directory is the leg's own) into the SaveData the boot made, as SaveData_New did (port/game/game_table.c HgSaveReload)
++void SaveData_PortReload(void) {
++    SaveData_PortLoad(SaveData_Get());
++}
++
++static void SaveData_PortLoad(SaveData *ret) {
+     int status;
+     int sp4;
+     int sp0;
+ 
+-    ret = Heap_Alloc(HEAP_ID_1, sizeof(SaveData));
+     MI_CpuClearFast(ret, sizeof(SaveData));
+     sSaveDataPtr = ret;
+ 
+@@ -116,8 +130,6 @@
+         Save_InitDynamicRegion(ret);
+         break;
+     }
+-
+-    return ret;
+ }
+ 
+ SaveData *SaveData_Get(void) {

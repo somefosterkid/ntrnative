@@ -41,6 +41,26 @@ if build_target == 'win64'
   add_global_arguments('-femulated-tls', language: 'c', native: true)
 endif
 
+# No absolute build paths in a shipped binary (__FILE__ of the assert strings, debug info): the checkout root becomes "."
+# (tools/release_check.py scans the packages for what is left). ccache leaves these three options out of its hash.
+# The build dir is under the root, so its generated files map to ./build/...
+add_global_arguments('-ffile-prefix-map=' + repo + '=.', language: ['c', 'cpp'], native: true)
+if is_mac   # (the Metal core and bridge, apple_thermal.m, the settings sheet; metal_present.mm): here, as meson takes global arguments only before the first target
+  add_languages('objc', 'objcpp', native: true)
+  add_global_arguments('-ffile-prefix-map=' + repo + '=.', language: ['objc', 'objcpp'], native: true)
+endif
+if get_option('nitro_header')
+  add_global_arguments('-include', repo / 'port/pch/force_nitro.h', language: 'c', native: true)
+endif
+# dev_fast (meson.options): function names and lines in a backtrace are all a dev build needs of the debug info (250 of the exe's 328 MB)
+dev_fast = get_option('dev_fast')
+if dev_fast
+  foreach lang : ['c', 'cpp']   # (the C++ compiler can be gcc beside clang)
+    add_global_arguments(meson.get_compiler(lang, native: true).get_id() == 'clang' ? '-gline-tables-only' : '-g1',
+                         language: lang, native: true)
+  endforeach
+endif
+
 nitrosdk_dep = dependency('NitroSDK', fallback: ['libntr', 'nitrosdk_dep'], native: true)
 # Our NitroSystem (lib/nnsys, docs/nnsys-port.md; libntrsystem's place until 2026-11-07). Its headers here (the umbrella
 # <nnsys.h> port_prefix.h includes is port/include_nnsys/nnsys.h), the library below the game's flags
@@ -98,7 +118,9 @@ asset_gen = generator(python,
   output: '@PLAINNAME@',
   depfile: '@PLAINNAME@.d',
   arguments: [asset_tool, 'src', '@INPUT@', '@OUTPUT@', '@DEPFILE@'])
-build_white = get_option('white').allowed()   # (its data: placeholders, filled from White's ROM at start)
+# -Dgames=black (port/meson.options): the exe holds only the listed games; each per-game option below still applies as well
+games_wanted = get_option('games')
+build_white = get_option('white').allowed() and 'white' in games_wanted   # (its data: placeholders, filled from White's ROM at start)
 # the ROMs the whole-image fill reads (below; none: the link as it is): orig/, on Apple tools/mac_rom.sh's dir (the main
 # checkout's orig/: a worktree has none), or -Drom_dir (an empty folder: a build that sees no ROM)
 b2_rom_dir = get_option('rom_dir') != '' ? get_option('rom_dir') : repo / 'orig'
@@ -108,15 +130,32 @@ endif
 # Black 2 and White 2 (GNU ld, lld, PE, ld64: tools/port_relink.py), with or without their ROMs: their data rows are
 # placeholders filled from the player's ROM at start, as Black's (the sha1s are checked at run time:
 # port/src/launcher_core.c); -Db2w2=disabled leaves them out
-build_b2 = get_option('b2w2').allowed()
+build_b2 = get_option('b2w2').allowed() and 'b2w2' in games_wanted
 build_w2 = build_b2
 
 # Platinum's module (below): on by default, with or without its ROM (without it the overlays' DS layout comes from the
 # player's ROM at start: asset_load.c PORT_AssetRomOverlays)
-build_plat = get_option('platinum')
+build_plat = get_option('platinum') and 'platinum' in games_wanted
 # HeartGold's and SoulSilver's (below Platinum's): on by default, win64 too (port/subprojects/pokeheartgold-zwin64.patch),
 # macOS and iOS too (ld64: port_relink.py --macho, pokehg_asm.py's Mach-O names)
-build_hg = get_option('hgss')
+build_hg = get_option('hgss') and 'hgss' in games_wanted
+
+# A precompiled prefix per target (docs/port-build.md "Precompiled prefix"): the forced prefix header (port_prefix.h) is ~75k lines of
+# libntr, SDL2 and the host's libc, parsed again by each of the 17k compiles (1.3 s of a 1.3-1.9 s compile, measured). meson's c_pch
+# makes one clang .pch per target from the target's own flags and adds -include-pch to its compiles (the -include of the prefix stays in
+# the flags: it finds its guard defined). The objects are the same but for debug info.
+# NOT through c_pch on the targets that get `-include gnu_*_section.h` (Black 2 / White 2 / Platinum / HG/SS): clang bakes the PCH-time
+# `-include` list into the .pch and skips the same names at use, while `#pragma clang section` is not stored in a .pch, so their variables
+# landed in .bss/.data instead of .plovlbss/.hgovldata... (885 objects differed, tb3b 11-20; docs/port-build.md "Precompiled prefix"). They
+# get a probe library below (tb3c): its .pch is made without the section include, theirs comes after `-include-pch`.
+# Clang only (apt's clang 21 here), Linux for now: -Dpch=disabled leaves it off; the ccache .ini adds -fno-pch-timestamp.
+use_pch = get_option('pch').enabled() or (get_option('pch').auto() and build_target == 'linux' and not is_mac and not is_android
+                                          and meson.get_compiler('c', native: true).get_id() == 'clang')
+pch_bw = use_pch ? ['pch/bw_prefix.h'] : []
+pch_gen4 = use_pch ? ['pch/gen4_prefix.h'] : []
+# The Gen 4 and Black 2 / White 2 targets: their own PCH from a probe library (one empty source, the target's flags MINUS the
+# `-include gnu_*_section.h`), and the real targets pass `-include-pch` of it themselves, their section -include after it, which
+# clang then applies (a `#pragma clang section` is not stored in a .pch and a .pch skips the -include files it was made with).
 
 game_args = [
   '-fms-extensions',       # a function prototyped extern and defined static (86 files): MWCC takes it, clang only so
@@ -168,7 +207,7 @@ if true
   game_args += '-DBWPORT_NNSYS'   # port/src/machine.c: the restart's reset of port/src/nnsys_*.c
   nnsys_kw = {'dependencies': [nitrosdk_dep.partial_dependency(compile_args: true, includes: true, sources: true),
                                nitrosystem_dep],
-              'override_options': ['c_std=gnu99'], 'implicit_include_directories': false, 'native': true}
+              'override_options': ['c_std=gnu99'], 'implicit_include_directories': false, 'native': true, 'c_pch': pch_bw}
   nnsys_libs += static_library('nnsys',
     run_command(python, repo / 'tools/port_sources.py', '--nnsys', check: true).stdout().strip().split('\n'),
     c_args: game_args + machine_args + ['-include', repo / 'port/include_nnsys/nnsys_lib.h'] +
@@ -192,7 +231,7 @@ endforeach
 # writable data in the machine's sections (machine_args, above), which port/src/machine.c puts back at an in-process
 # restart (docs/launcher.md, section 1)
 entry = static_library('entry', entry_c,
-  c_args: game_args + machine_args + ['-DBWPORT_ENTRY'],
+  c_args: game_args + machine_args + ['-DBWPORT_ENTRY'], c_pch: pch_bw,
   # the headers and defines only: the link gets libntr's libraries and crt0 objects once, from the executable
   dependencies: [nitrosdk_dep.partial_dependency(compile_args: true, includes: true, sources: true),
                  nitrosystem_dep.partial_dependency(compile_args: true, includes: true)] + asset_deps,
@@ -288,7 +327,7 @@ if entry_c in asset_files
   error('src/system/main.c includes an asset: port/meson.build compiles it apart (entry), without the rewrite')
 endif
 game = static_library('game', game_plain, game_gen,
-  c_args: game_args + machine_args,
+  c_args: game_args + machine_args, c_pch: pch_bw,
   dependencies: [nitrosdk_dep.partial_dependency(compile_args: true, includes: true, sources: true),
                  nitrosystem_dep.partial_dependency(compile_args: true, includes: true)] + asset_deps,
   override_options: ['c_std=gnu99'],
@@ -329,14 +368,14 @@ if build_white and not is_mac
   endforeach
   white_libs += static_library('game_w', white_sources, rename_h,
     asset_gen.process(white_assets, preserve_path_from: repo),
-    c_args: white_args + machine_args,
+    c_args: white_args + machine_args, c_pch: pch_bw,
     dependencies: [nitrosdk_dep.partial_dependency(compile_args: true, includes: true, sources: true),
                    nitrosystem_dep.partial_dependency(compile_args: true, includes: true)] + asset_deps,
     override_options: ['c_std=gnu99'],
     implicit_include_directories: false,
     native: true)
   white_libs += static_library('entry_w', entry_c, rename_h,
-    c_args: white_args + machine_args + ['-DBWPORT_ENTRY'],
+    c_args: white_args + machine_args + ['-DBWPORT_ENTRY'], c_pch: pch_bw,
     dependencies: [nitrosdk_dep.partial_dependency(compile_args: true, includes: true, sources: true),
                    nitrosystem_dep.partial_dependency(compile_args: true, includes: true)],
     override_options: ['c_std=gnu99'],
@@ -495,14 +534,23 @@ if b2w2_games.length() > 0 or build_plat or build_hg   # (Platinum's and HeartGo
     ovl_members = [asset_gen.process(ovl_members, preserve_path_from: repo)]
     kw = b2_kw + {'dependencies': b2_kw['dependencies'] + asset_deps}
     args = ['-D' + g[1]] + b2_args + ['-I' + asset_inc_dir / g[2]] + b2_late
+    kw_pch = kw
+    pch_args = []
+    if use_pch
+      probe = static_library(tag + '_pchprobe', 'pch/pch_probe.c', c_args: args + ['-fno-common'], kwargs: kw + {'c_pch': pch_gen4})
+      pch_stamp = custom_target(tag + '_pch', output: tag + '_pch.stamp', depends: [probe],
+        command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@'])
+      kw_pch = kw + {'dependencies': kw['dependencies'] + declare_dependency(sources: pch_stamp)}
+      pch_args = ['-include-pch', 'lib' + tag + '_pchprobe.a.p/gen4_prefix.h.pch']
+    endif
     # the writable data in sections of its own (the machine's range, the overlays'): ld64's by pragma, the others' by
     # port/machine/gnu_*_section.h and the linker script (tools/port_overlays.py)
     b2_mach = is_mac ? machine_args : ['-fno-common', '-include', meson.current_source_dir() / 'machine/gnu_machine_section.h']
     b2_ovlh = meson.current_source_dir() / (is_mac ? 'machine/macos_ovl_section.h' : 'machine/gnu_ovl_section.h')
-    libs = [static_library(tag + '_game', main_files, c_args: args + b2_mach, kwargs: kw),
+    libs = [static_library(tag + '_game', main_files, c_args: args + pch_args + b2_mach, kwargs: kw_pch),
             static_library(tag + '_entry', b2_entry_c, c_args: args + b2_mach + ['-DBWPORT_ENTRY'], kwargs: kw),
             static_library(tag + '_game_ovl', ovl_members,
-              c_args: args + ['-fno-common', '-include', b2_ovlh], kwargs: kw)]
+              c_args: args + pch_args + ['-fno-common', '-include', b2_ovlh], kwargs: kw_pch)]
     b2w2_objs += custom_target(tag + '_o',
       output: tag + '.o',
       input: libs,
@@ -583,10 +631,18 @@ if build_plat
     command: [python, repo / 'tools/rom_modules.py', '--assets', b2_rom_dir, '--version', 'plat_us', '--stamp', '@OUTPUT@'],
     build_always_stale: true)
   kw = b2_kw + {'dependencies': b2_kw['dependencies'] + declare_dependency(sources: pl_assets)}
+  pch_args = []
+  if use_pch   # (the probe, see "The Gen 4 and Black 2" above)
+    probe = static_library('pl_pchprobe', 'pch/pch_probe.c', c_args: pl_args + ['-fno-common'], kwargs: kw + {'c_pch': pch_gen4})
+    pch_stamp = custom_target('pl_pch', output: 'pl_pch.stamp', depends: [probe],
+      command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@'])
+    kw = kw + {'dependencies': kw['dependencies'] + declare_dependency(sources: pch_stamp)}
+    pch_args = ['-include-pch', 'libpl_pchprobe.a.p/gen4_prefix.h.pch']
+  endif
   libs = [static_library('pl_game', main_files,
-            c_args: pl_args + ['-fno-common', '-include', gen4_mach], kwargs: kw),
+            c_args: pl_args + pch_args + ['-fno-common', '-include', gen4_mach], kwargs: kw),
           static_library('pl_game_ovl', ovl_members,
-            c_args: pl_args + ['-fno-common', '-include', gen4_ovlh], kwargs: kw)]
+            c_args: pl_args + pch_args + ['-fno-common', '-include', gen4_ovlh], kwargs: kw)]
   # the battle AI's script (gTrainerAITable): data pret writes in assembly with its macros (asm/macros/aicmd.inc), assembled
   # here from the working copy as pret's tools/scripts/make_script_bin.sh does (the C preprocessor, pret's enumproc for the
   # enums of its headers, then the assembler: the build's C compiler, whose words are the DS's, little-endian: the same 42,428
@@ -711,6 +767,15 @@ if build_hg
       main_files += s
     endif
   endforeach
+  hg_kw = b2_kw
+  hg_pch = []
+  if use_pch   # (the probe, see "The Gen 4 and Black 2" above)
+    probe = static_library('hg_pchprobe', 'pch/pch_probe.c', c_args: hg_args + hg_cov + ['-fno-common'], kwargs: b2_kw + {'c_pch': pch_gen4})
+    pch_stamp = custom_target('hg_pch', output: 'hg_pch.stamp', depends: [probe],
+      command: [python, '-c', 'import sys; open(sys.argv[1], "w").close()', '@OUTPUT@'])
+    hg_kw = b2_kw + {'dependencies': b2_kw['dependencies'] + declare_dependency(sources: pch_stamp)}
+    hg_pch = ['-include-pch', 'libhg_pchprobe.a.p/gen4_prefix.h.pch']
+  endif
   # the overlay files in archives of 2,500 members, in order (the relink takes them in order: the layout stays one run): the
   # one archive's `ar` line was 1.2 MB, more than macOS's posix_spawn takes (Apple's ar reads no @file)
   hg_ovl_libs = []
@@ -719,16 +784,16 @@ if build_hg
     part += m
     if part.length() == 2500
       hg_ovl_libs += static_library('hg_game_ovl' + (hg_ovl_libs.length() > 0 ? hg_ovl_libs.length().to_string() : ''), part,
-        c_args: hg_args + hg_cov + ['-fno-common', '-include', gen4_ovlh], kwargs: b2_kw)
+        c_args: hg_args + hg_cov + hg_pch + ['-fno-common', '-include', gen4_ovlh], kwargs: hg_kw)
       part = []
     endif
   endforeach
   if part.length() > 0
     hg_ovl_libs += static_library('hg_game_ovl' + (hg_ovl_libs.length() > 0 ? hg_ovl_libs.length().to_string() : ''), part,
-      c_args: hg_args + hg_cov + ['-fno-common', '-include', gen4_ovlh], kwargs: b2_kw)
+      c_args: hg_args + hg_cov + hg_pch + ['-fno-common', '-include', gen4_ovlh], kwargs: hg_kw)
   endif
   libs = [static_library('hg_game', main_files,
-            c_args: hg_args + hg_cov + ['-fno-common', '-include', gen4_mach], kwargs: b2_kw)] + hg_ovl_libs + [
+            c_args: hg_args + hg_cov + hg_pch + ['-fno-common', '-include', gen4_mach], kwargs: hg_kw)] + hg_ovl_libs + [
           # the online stubs (port/game/hg_online.c: Platinum's, whose headers are port/include_plat's)
           static_library('hg_online', meson.current_source_dir() / 'game/hg_online.c',
             c_args: hg_args + ['-I' + repo / 'port/include_plat', '-fno-common', '-include',
@@ -938,6 +1003,22 @@ if is_ios
   buildinfo += static_library('ioshttp', 'src/ios_http.m', native: true, objc_args: ['-fobjc-arc'])
 endif
 
+# One ninja target per game (`ninja -C build/port/linux game-hgss`): its objects, with no other game's and no link. A compile check of
+# one game in a build dir that holds all of them (a cold dir: 17k compile steps for the six, about a third of them Black's)
+alias_target('game-black', game, entry)
+if white_libs.length() + white_objs.length() > 0
+  alias_target('game-white', white_libs, white_objs)
+endif
+if b2w2_objs.length() > 0
+  alias_target('game-b2w2', b2w2_objs)
+endif
+if pl_objs.length() > 0
+  alias_target('game-platinum', pl_objs)
+endif
+if hg_objs.length() > 0
+  alias_target('game-hgss', hg_objs)
+endif
+
 # The link is C++'s (not objcpp: port/src/metal_present.mm). On win64 meson picks it itself: link_language: 'cpp' makes it
 # add -lstdc++, which finds libstdc++.dll.a before the static libstdc++ and the link fails on duplicate symbols
 link_kw = build_target == 'win64' ? {} : {'link_language': 'cpp'}
@@ -954,16 +1035,19 @@ bwport_nostubs = executable('bwport-nostubs', white_objs, b2w2_objs, pl_objs, hg
 
 stub_sources = []
 if get_option('allow_undefined')
-  sdk_libs = subproject('libntr').get_variable('nitrosdk_libs') + nnsys_libs
+  # What bwport-nostubs links without being a library of the lists above (the stub step runs its link command itself, ninja knows only
+  # `depends`): libinit, whose crt0 object comes in as nitrosdk_dep's `objects`, and ovl_ld, the linker script (link_depends). Missing, the
+  # step could start before crt0.c.o (behind its pending PCH) or ovl_ld was made: "ld.lld: cannot open ...libinit.a.p/src_crt0.c.o"
+  sdk_libs = subproject('libntr').get_variable('nitrosdk_libs') + nnsys_libs + [subproject('libntr').get_variable('libinit')]
   # an undefined DATA symbol is a table the game reads as zeros: in the HGSS build a new one fails the link step
   # (port/undefined_data_allow.txt names the known ones); the others (Black, Platinum) only list it (undefined.txt)
   data_args = ['--allow-data', repo / 'port/undefined_data_allow.txt'] + (build_hg ? ['--fail-on-data'] : [])
   stub_sources = custom_target('undefined_stubs',
     output: ['undefined_stubs.c', 'undefined.txt'],
     command: [python, repo / 'tools/port_undefined.py', meson.current_build_dir(), '--edge', 'bwport-nostubs',
-              '--stubs', '@OUTPUT0@', '-o', '@OUTPUT1@'] + data_args,
+              '--stubs', '@OUTPUT0@', '-o', '@OUTPUT1@'] + data_args + (dev_fast ? ['--cache'] : []),
     depend_files: [repo / 'port/undefined_data_allow.txt', repo / 'tools/port_undefined.py'],
-    depends: [game, entry, vbridge, abridge, gbridge, gpu_lib, vcore_lib, acore_lib] + white_libs + host_libs + macho_ovl_libs + buildinfo + sdk_libs + white_objs + b2w2_objs + pl_objs + hg_objs)[0]
+    depends: [game, entry, vbridge, abridge, gbridge, gpu_lib, vcore_lib, acore_lib] + white_libs + host_libs + macho_ovl_libs + buildinfo + sdk_libs + [ovl_ld] + white_objs + b2w2_objs + pl_objs + hg_objs)[0]
 endif
 
 # The link is bwport-full, with the game's data as compiled, and bwport is it after tools/port_romfill.py: every byte of
@@ -976,7 +1060,7 @@ endif
 # zeros (port/src/asset_load.c refuses to start a game the image's fill has no row for)
 rom_fill = fs.exists(b2_rom_dir / 'baserom_b_us.nds') and (not build_white or fs.exists(b2_rom_dir / 'baserom_w_us.nds')) and (
   not build_b2 or fs.exists(b2_rom_dir / 'baserom_b2_us.nds')) and (not build_w2 or fs.exists(b2_rom_dir / 'baserom_w2_us.nds')) and (
-  not build_plat or fs.exists(plat_rom)) and (not build_hg or (fs.exists(hg_rom) and fs.exists(ss_rom)))
+  not build_plat or fs.exists(plat_rom)) and (not build_hg or (fs.exists(hg_rom) and fs.exists(ss_rom))) and not dev_fast
 map_arg = is_mac ? '-map,' : '-Map='
 fill_link_args = ['-Wl,' + map_arg + meson.current_build_dir() / 'bwport-full.map']
 if is_mac
@@ -994,6 +1078,7 @@ bwport_full = executable(rom_fill ? 'bwport-full' : 'bwport', stub_sources, whit
   link_depends: ovl_ld,
   dependencies: exe_deps,
   kwargs: link_kw,
+  c_args: ['-DBWPORT_NO_NITRO_FORCE'],   # (undefined_stubs.c declares its own types: port/pch/force_nitro.h)
   implicit_include_directories: false,
   native: true)
 bwport = bwport_full

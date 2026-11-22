@@ -199,6 +199,7 @@ void PortPlat_WaitIrq(BOOL clear, OSIrqMask irqFlags) {
     PORT_KeysFrame();
     PORT_BenchFrame();
     PortRoute_VBlank();
+    PORT_MachineFrame();   // BWPORT_MACHINE_CHECK / _DUMP (machine.c), as Black's PORT_WaitIrq
     OS_WaitIrq(clear, irqFlags);
 }
 
@@ -329,6 +330,11 @@ void PORT_WakeupThreadDirect(OSThread *thread) {
     SDL_SemPost(t->wake);
 }
 
+// title_fork.c: libntr's restart of the OS threads after a fork leaves these to StartHost (PORT_ThreadsForked)
+void (*PORT_ThreadHostEntry(void))(void *) {
+    return HostEntry;
+}
+
 // A slot's host thread, made at the first wakeup of a game thread on it, or before the game (PORT_ThreadsPrestart)
 static void StartHost(PortThread *t) {
     t->hostStarted = TRUE;
@@ -409,6 +415,32 @@ void PORT_ThreadsReset(void) {
     }
     sHBlank = sVBlank = NULL;
     sResetting = FALSE;
+}
+
+// The title snapshot's leg (title_fork.c ChildThreads), right after the fork: the process has only the forking thread.
+// The game lock is a recursive mutex, which belongs to a thread id, and the server's id is not this thread's: an unlock
+// does nothing and the next lock waits for good (Platinum's credits end in a reset, whose PORT_ThreadsPark hung there,
+// ver69). A new lock, held as deep as this thread held the old one. The slots' host threads were the server's: each is
+// made again at the first wakeup on it (StartHost). Returns the game threads lost with them (the server ran them)
+int PORT_ThreadsForked(void) {
+    int i, lost = 0;
+
+    sGameLock = SDL_CreateMutex();
+    for (i = 0; i < tDepth; i++) {
+        SDL_LockMutex(sGameLock);
+    }
+    for (i = 0; i < PORT_THREAD_MAX; i++) {
+        PortThread *t = &sThreads[i];
+
+        lost += t->busy && !t->dead;
+        t->hostStarted = FALSE;
+        t->busy = FALSE;
+        t->dead = FALSE;
+        t->cancelled = FALSE;
+        t->game = NULL;
+        t->wake = NULL;
+    }
+    return lost;
 }
 
 void PORT_SleepThreadDirect(OSThread *thread, OSThreadQueue *queue) {

@@ -69,6 +69,8 @@ def link_command(bdir, edge):
                 .replace("$in", ins).replace("$out", out))
     cmd = sub(rvars["command"])
     n = 4 if cmd.startswith("xcrun ") else 1   # the iOS native files: xcrun --sdk SDK clang++ ARGS
+    if os.path.basename(cmd.split()[0]).startswith("ccache"):   # port/machine/linux-ccache.ini: the compiler is `ccache-nopch g++`
+        n += 1
     args = sub(rvars["rspfile_content"]) if "rspfile_content" in rvars else cmd.split(None, n)[n]
     args = args.replace("--unresolved-symbols=ignore-all", "--unresolved-symbols=report-all")
     # macOS: ld64 has no such flag; its failed link lists every undefined symbol
@@ -117,12 +119,111 @@ def undefined(bdir, edge):
             refs[m[1]].add(source_of(src))
     if not refs and r.returncode:
         sys.exit(r.stderr[-3000:])
+    return refs, link_inputs(bdir, args)
+
+
+def link_inputs(bdir, args):
+    """The object and archive files of the link's arguments that are in the build or the repo, in order."""
     inputs = []
     for t in args.split():
         p = (bdir / t).resolve()
         if t.endswith((".o", ".a")) and p.is_file() and (p.is_relative_to(bdir) or p.is_relative_to(ROOT)) and p not in inputs:
             inputs.append(p)
-    return refs, inputs
+    return inputs
+
+
+def elf_iface(buf, base, out):
+    """Adds (name, undefined, binding) of each global symbol of the ELF64 object buf[base:] to `out`; False for anything
+    else (COFF, Mach-O, 32 bit): such a file's interface is its whole content."""
+    if bytes(buf[base:base + 6]) != b"\x7fELF\x02\x01" or len(buf) < base + 0x40:
+        return False
+    shoff, = struct.unpack_from("<Q", buf, base + 0x28)
+    shentsize, shnum = struct.unpack_from("<HH", buf, base + 0x3A)
+    secs = [struct.unpack_from("<IIQQQQII", buf, base + shoff + i * shentsize) for i in range(shnum)]
+    for sec in secs:
+        if sec[1] != 2:   # SHT_SYMTAB
+            continue
+        strtab = base + secs[sec[6]][4]
+        syms = memoryview(buf)[base + sec[4]:base + sec[4] + sec[5] // 24 * 24]
+        for n, info, _, shndx, _, _ in struct.iter_unpack("<IBBHQQ", syms):
+            if n and info >> 4:   # not local
+                out.append((bytes(buf[strtab + n:buf.find(b"\0", strtab + n)]), shndx == 0, info >> 4))
+    return True
+
+
+def iface_hash(path):
+    """A hash of what a link sees of an object or archive: its global symbols' names and whether each is defined
+    (not their addresses or sizes), so a function body edit leaves it as it was; any other file: its content."""
+    import hashlib
+    with open(path, "rb") as f:
+        if os.fstat(f.fileno()).st_size < 8:
+            return "empty"
+        buf = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        out, ok = [], True
+        if bytes(buf[:8]) in (b"!<arch>\n", b"!<thin>\n"):
+            for b, base in archive_files(buf, path):
+                out.append(None)
+                ok = elf_iface(b, base, out) and ok
+        else:
+            ok = elf_iface(buf, 0, out)
+        if not ok:
+            return hashlib.sha1(buf).hexdigest()
+        return hashlib.sha1(repr(out).encode()).hexdigest()
+
+
+def stamp_of(p):
+    st = p.stat()
+    return [st.st_mtime_ns, st.st_size]
+
+
+def file_info(p, want):
+    """[interface hash, the symbols of `want` the file calls, those it takes the address of] (what the link and the
+    relocation scan of this file give, for the cache)"""
+    called, addressed = reloc_uses([p], want)
+    return [iface_hash(p), sorted(called), sorted(addressed)]
+
+
+def cached_undefined(bdir, edge):
+    """undefined() and reloc_uses() as `--cache` wants them: (refs, inputs, called, addressed). The undefined set is the
+    last link's while every changed input file has the interface (global symbol names, defined or not) it had then: the
+    link is skipped, and only the changed files' relocations are read again. Any other change (a new symbol, a file
+    added) links as before. The cache is bdir/undefined_cache.json."""
+    import hashlib
+    _, args, _ = link_command(bdir, edge)
+    inputs = link_inputs(bdir, args)
+    key = hashlib.sha1(args.encode()).hexdigest()
+    stamps = {str(p): stamp_of(p) for p in inputs}   # (before the link: a file written meanwhile reads as changed next time)
+    cpath = bdir / "undefined_cache.json"
+    try:
+        cache = json.loads(cpath.read_text())
+        ok = cache["args"] == key and sorted(cache["files"]) == sorted(stamps)
+    except (OSError, ValueError, KeyError, TypeError):
+        cache, ok = None, False
+    files = {}
+    if ok:
+        refs = {s: set(v) for s, v in cache["refs"].items()}
+        want = set(refs)
+        for p in inputs:
+            old = cache["files"][str(p)]
+            if old[:2] == stamps[str(p)]:
+                files[str(p)] = old
+                continue
+            info = file_info(p, want)
+            if info[0] != old[2]:
+                ok = False
+                break
+            files[str(p)] = stamps[str(p)] + info
+    if not ok:
+        refs, _ = undefined(bdir, edge)
+        want = set(refs)
+        files = {str(p): stamps[str(p)] + file_info(p, want) for p in inputs}
+    tmp = cpath.with_suffix(f".{os.getpid()}.tmp")
+    tmp.write_text(json.dumps({"args": key, "refs": {s: sorted(v) for s, v in refs.items()}, "files": files}, separators=(",", ":")))
+    tmp.replace(cpath)
+    called = {s for v in files.values() for s in v[3]}
+    addressed = {s for v in files.values() for s in v[4]} - called
+    print(f"port_undefined: {'cache hit (no link)' if ok else 'cache miss (linked)'}", file=sys.stderr)
+    return refs, inputs, called, addressed
 
 
 def source_of(path):
@@ -164,17 +265,20 @@ def rom_definitions(rom, cache=NM_CACHE):
     """{symbol: [repo-style path of the defining ROM object]}: build/b_us/<dir>/x.o -> <dir>/x.c, delinks too; and
     {symbol: (nm type letter, size)}. nm over the ~3200 objects took 17 s of every relink, so each object's symbols are
     kept in `cache` (a JSON file) under its mtime and size: only the objects `ninja` rewrote since are read again."""
+    frozen = os.environ.get("BWPORT_ROM_DEFS_FROZEN") == "1"   # slot jobs: no ROM build; `cache` was made for this decomp tree
     try:
         kept = json.loads(cache.read_text())
-        kept = kept["objs"] if kept["rom"] == str(rom.resolve()) else {}
+        kept = kept["objs"] if (frozen or kept["rom"] == str(rom.resolve())) else {}
     except (OSError, ValueError, KeyError, TypeError):
+        if frozen:
+            raise SystemExit(f"port_undefined: BWPORT_ROM_DEFS_FROZEN=1 but {cache} is unreadable")
         kept = {}
-    objs = sorted(rom.rglob("*.o"))
+    objs = [] if frozen else sorted(rom.rglob("*.o"))
     stamp = {}
     for p in objs:
         st = p.stat()
         stamp[p.relative_to(rom).as_posix()] = [st.st_mtime_ns, st.st_size]
-    fresh = {rel: kept[rel] for rel in stamp if rel in kept and kept[rel][:2] == stamp[rel]}
+    fresh = dict(kept) if frozen else {rel: kept[rel] for rel in stamp if rel in kept and kept[rel][:2] == stamp[rel]}
     todo = [rel for rel in stamp if rel not in fresh]
     failed = set()
     for i in range(0, len(todo), 400):
@@ -390,11 +494,15 @@ def main():
     ap.add_argument("--stubs", type=Path, help="write a C file that defines every undefined symbol there")
     ap.add_argument("--allow-data", type=Path, help="a file of the undefined data symbols that are known (one per line, # comments)")
     ap.add_argument("--fail-on-data", action="store_true", help="exit 1 for an undefined datum that --allow-data does not name")
+    ap.add_argument("--cache", action="store_true", help="skip the link while the changed input files' global symbols are as at the last run (dev builds)")
     a = ap.parse_args()
     bdir = a.builddir.resolve()
     out = a.out or ROOT / "build/port/undefined.txt"
-    refs, inputs = undefined(bdir, a.edge)
-    called, addressed = reloc_uses(inputs, refs)
+    if a.cache:
+        refs, inputs, called, addressed = cached_undefined(bdir, a.edge)
+    else:
+        refs, inputs = undefined(bdir, a.edge)
+        called, addressed = reloc_uses(inputs, refs)
     defs, kinds = rom_definitions(a.rom)
     # Black 2's symbols' kinds from pokebw2's config (tools/pokebw2_fetch.sh's checkout, the maintainers' notes): its C's undefined
     # references are told function from data by its ROM's symbols, not by the name (DWC_IsValidFriendData is code)

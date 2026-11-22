@@ -342,7 +342,11 @@ int bwport_sys_frame(void) {
     double span = now - gSecStart;
     gSecStart = now;
     gSys.framesPerSec = (float)((double)gFrames / span);
-    gCycle = gFrames < 30 ? 30 : gFrames;
+    // BWPORT_SYSBURST=frames (benches, tools/perf_frame.py): the timed burst is 14 of every 60 frames, not of every second, so a
+    // drawn frame's cost does not follow the run's speed (an uncapped run on a loaded host timed more of its frames)
+    static int sFixed = -1;
+    if (sFixed < 0) sFixed = getenv("BWPORT_SYSBURST") != NULL && strcmp(getenv("BWPORT_SYSBURST"), "frames") == 0;
+    if (!sFixed) gCycle = gFrames < 30 ? 30 : gFrames;
     gFrames = 0;
 #ifdef SYS_HAVE_CLOCK
     double g = ProbeGHz();

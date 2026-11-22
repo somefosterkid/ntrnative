@@ -196,6 +196,21 @@ VCT_TEST(p16_linear_when_w_equal) {
   for (int x = 0; x < 33; x++) VCT_EQ(VC_R6(at(x, 1)->col), (511 * x / 33) >> 3);
 }
 
+/* a one-pixel vertical line (a zero-area quad, Platinum's door outline): the steep left edge raises the span's end to its
+ * pixel while the vertical right edge's rounded x is one less, so the colour's denominator was 0 (0 / 0: black). Every
+ * vertex has colour 27, so every pixel is 27 (6 bits: 55) */
+VCT_TEST(p16_vertical_line_colour) {
+  VCoreState *s = setup();
+  V(s, 0, 10, 0, 0, 0x1000, 27, 28, 26, 0, 0);
+  V(s, 1, 10, 8, 0, 0x1000, 27, 28, 26, 0, 0);
+  V(s, 2, 10, 8, 0, 0x1000, 27, 28, 26, 0, 0);
+  V(s, 3, 10, 0, 0, 0x1000, 27, 28, 26, 0, 0);
+  VC_Poly p = poly(s, 4, ALPHA31);
+  vc_raster_poly(s, &p);
+  VCT_CHECK(nrec >= 8);
+  for (int i = 0; i < nrec; i++) VCT_EQ(VC_R6(rec[i].col), 55);
+}
+
 /* untextured toon / highlight shade like a textured polygon with a white texel (oracle, q19): toon = the table colour
  * of the vertex red's index, highlight = table colour + the vertex red (6 bit) */
 VCT_TEST(p16_untextured_toon) {

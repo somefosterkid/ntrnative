@@ -1,0 +1,21 @@
+# port_sysroot.py: the pinned Ubuntu 24.04 sysroot of the Linux port build (tools/port_sysroot.py make; deterministic tar)
+sha256 a341bf0a37ccb8ca44750627c278cf04597802cd521c62e3eaa688b64de38489
+# the meson that configures a sysroot build dir on every machine (the PyPI wheel meson-1.10.1-py3-none-any.whl), and the clang version
+# the native file names in __clang_version__/__VERSION__ (port_sysroot.py's doc: why both)
+meson 1.10.1 sha256 fe43d1cc2e6de146fbea78f3a062194bcc0e779efc8a0f0d7c35544dfb86731f
+clang 21.1.8
+package libc6 2.39-0ubuntu8.12
+package libc6-dev 2.39-0ubuntu8.12
+package linux-libc-dev 6.8.0-149.149
+package libcrypt-dev 1:4.4.36-4build1
+package libcrypt1 1:4.4.36-4build1
+package libgcc-13-dev 13.3.0-6ubuntu2~24.04.1
+package libstdc++-13-dev 13.3.0-6ubuntu2~24.04.1
+package libgcc-s1 14.2.0-4ubuntu2~24.04.1
+package libstdc++6 14.2.0-4ubuntu2~24.04.1
+package libsdl2-dev 2.30.0+dfsg-1ubuntu3.1
+package libsdl2-2.0-0 2.30.0+dfsg-1ubuntu3.1
+package libenet-dev 1.3.17+ds-2build1
+package libenet7 1.3.17+ds-2build1
+package libx11-dev 2:1.8.7-1ubuntu0.1
+package x11proto-dev 2023.2-1

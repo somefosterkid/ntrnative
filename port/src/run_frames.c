@@ -71,10 +71,13 @@ static void PORT_OpenFilesFrame(void) {
     }
 }
 
+void PORT_ForkFrame(void);   // title_fork.c (BWPORT_FORK_AT)
+
 void PORT_ExitFrame(void) {
     static int sState;   // 0: not read yet, 1: on, -1: off
     static u32 sFrame;
 
+    PORT_ForkFrame();
     PORT_HeapCheckFrame();   // (a heap hit since the last wait is said at this V-blank, the exit frame's too)
     PORT_OpenFilesFrame();
     if (sState == 0) {

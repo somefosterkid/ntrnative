@@ -38,6 +38,35 @@ typedef struct SOCSockAddr SOCSockAddr;
 // pret's FS_OVERLAY_ID(name): libntr's SDK_PORT turns it into (0) (Black names overlays by number), which made every
 // Overlay_LoadByID load overlay 0 (none was reset or started: a Poketch app's NitroStaticInit never ran). Here it is the
 // overlay's id as a constant (PORT_OVID_<name>: tools/port_overlays.py plat_id_symbols writes port_ovids.h).
+// A pointer that the DS keeps in saved data (a map object's movement data, MapObjectSave.unk_30/unk_40) is a 4-byte DS address
+// there. Held as a host pointer it widens the struct and writes a host address into the save: the save then differs from build
+// to build (the address of libntr's s_HW_MAIN_MEM moves with the binary). Such a field is a u32 holding the DS-style address:
+// the game's heaps all lie in s_HW_MAIN_MEM (OS arenas), so HW_MAIN_MEM + offset <-> 0x02000000 + offset, NULL <-> 0.
+#define PORT_PLAT_DS_MAIN_MEM 0x02000000u
+static inline u32 PortPlat_DsAddr(const void *p)
+{
+    uintptr_t a = (uintptr_t)p;
+
+    if (p == NULL) {
+        return 0;
+    }
+    if (a < (uintptr_t)HW_MAIN_MEM || a >= (uintptr_t)HW_MAIN_MEM + HW_MAIN_MEM_SIZE) {
+        OS_Panic("PortPlat_DsAddr: %p is not in the main memory", p);
+    }
+    return PORT_PLAT_DS_MAIN_MEM + (u32)(a - (uintptr_t)HW_MAIN_MEM);
+}
+
+static inline void *PortPlat_HostAddr(u32 a)
+{
+    if (a == 0) {
+        return NULL;
+    }
+    if (a < PORT_PLAT_DS_MAIN_MEM || a - PORT_PLAT_DS_MAIN_MEM >= HW_MAIN_MEM_SIZE) {
+        OS_Panic("PortPlat_HostAddr: 0x%08x is not a main memory address", a);
+    }
+    return (void *)((uintptr_t)HW_MAIN_MEM + (a - PORT_PLAT_DS_MAIN_MEM));
+}
+
 #include "port_ovids.h"
 #undef FS_OVERLAY_ID
 #define FS_OVERLAY_ID(name) ((u32)(PORT_OVID_ ## name))

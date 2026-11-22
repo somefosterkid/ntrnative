@@ -74,18 +74,46 @@ void main() {
   ivec2 g0 = P * 4 + 1 - vO; // sample 0 in G relative to vertex 0
   ivec3 E0 = vA * g0.x + vB * g0.y + vC;
   bvec3 tl = bvec3(uvec3(greaterThan(vA, ivec3(0))) | (uvec3(equal(vA, ivec3(0))) & uvec3(greaterThan(vB, ivec3(0)))));
-  uvec4 hit;
+  // the polygon's edges at the samples (2N pixels along the minor axis, positive inside), for the grown samples and the edge flags
+  vec3 q0 = vec3(vec2(P * 2) + 0.5, 1.0);
+  vec3 e0 = vec3(dot(vE0, q0), dot(vE1, q0), dot(vE2, q0)), ex = vec3(vE0.x, vE1.x, vE2.x), ey = vec3(vE0.y, vE1.y, vE2.y);
+  // a filled polygon's top and left edges grown out on the 2N grid as AA off's on the N grid (src/g10_fast.c grow_poly: 7/8 of a
+  // pixel X-major, 63/64 Y-major): the DS takes a left edge's floored x and an X-major edge's whole run, so where two polygons'
+  // edges are not quite one (a vertex of one mid-way along the other's edge, each clipped on its own) it leaves no sample out, and
+  // the GPU's rule left single samples empty between them: with the game's edge marking on, each drew a dark mark on its
+  // neighbours, dotted black lines along tile edges (Platinum's town, 2026-11-19 fk3). The fan's inner edges (tri edge 0 from
+  // vertex 0 unless the triangle is the first, tri edge 2 back to it unless the last) do not grow
+  int nv = (vF >> 4) & 15, ti = vF >> 8;
+  vec3 gr = vec3(0.0);
+  if (nv > 0) {
+    bvec3 ptl = bvec3(uvec3(greaterThan(ex, vec3(0.0))) | (uvec3(equal(ex, vec3(0.0))) & uvec3(greaterThan(ey, vec3(0.0)))));
+    vec3 amt = mix(vec3(0.984375), vec3(0.875), greaterThan(abs(ey), abs(ex)));
+    gr = mix(vec3(0.0), amt, ptl);
+  }
+  bool dg0 = ti != 1, dg2 = ti + 2 != nv;
+  uvec4 hit, grown = uvec4(0u);
   for (int i = 0; i < 4; i++) {
     ivec3 E = E0 + vA * (2 * (i & 1)) + vB * (2 * (i >> 1));
     bvec3 in3 = bvec3(uvec3(greaterThan(E, ivec3(0))) | (uvec3(equal(E, ivec3(0))) & uvec3(tl)));
     hit[i] = all(in3) ? ~0u : 0u;
+    vec3 e3 = e0 + ex * float(i & 1) + ey * float(i >> 1);
+    if (!all(in3) && nv > 0 && (in3.x || !dg0) && (in3.z || !dg2) && all(greaterThanEqual(e3, -gr))) grown[i] = ~0u;
   }
+  hit |= grown;
   if (all(equal(hit, uvec4(0u)))) G10_DISCARD; // (the attachments keep their values)
   uvec4 dep;
   bool wbuf = (uSwap & 2u) != 0u;
   for (int i = 0; i < 4; i++) {
     vec2 d = vec2(g0 + ivec2(2 * (i & 1), 2 * (i >> 1)));
     dep[i] = wbuf ? uint(min(1.0 / pl(vIW, d) + 0.5, 16777215.0)) : uint(clamp(pl(vZ, d) + 0.5, 0.0, 16777215.0));
+    if (grown[i] != 0u) { // a grown sample loses to a polygon at its depth (+ 256, AA off's rule); never nearer than at the edge
+      vec3 e3 = e0 + ex * float(i & 1) + ey * float(i >> 1);
+      float e = min(min(e3.x, e3.y), e3.z);
+      vec2 en = e == e3.x ? vE0.xy : e == e3.y ? vE1.xy : vE2.xy;
+      vec2 de = d + 2.0 * (abs(en.x) >= abs(en.y) ? vec2(-e / en.x, 0.0) : vec2(0.0, -e / en.y)); // (G: twice the 2N grid)
+      uint ze = wbuf ? uint(min(1.0 / pl(vIW, de) + 0.5, 16777215.0)) : uint(clamp(pl(vZ, de) + 0.5, 0.0, 16777215.0));
+      dep[i] = min(max(dep[i], ze) + 256u, 16777215u);
+    }
   }
   G10_LOAD4;
 #ifdef G10_DIRECT
@@ -113,13 +141,14 @@ void main() {
   uvec4 col = g_texture(k, px, uvec4(px.rgb, g_poly(k, 1).w));
   // the samples' edge flag and coverage
   uvec4 edge, cov;
-  vec3 q0 = vec3(vec2(P * 2) + 0.5, 1.0);
-  vec3 e0 = vec3(dot(vE0, q0), dot(vE1, q0), dot(vE2, q0)), ex = vec3(vE0.x, vE1.x, vE2.x), ey = vec3(vE0.y, vE1.y, vE2.y);
   for (int i = 0; i < 4; i++) {
     vec3 e3 = e0 + ex * float(i & 1) + ey * float(i >> 1);
     float e = min(min(e3.x, e3.y), e3.z);
+    // (a flat edge's samples are edge samples, as the DS's flat edge's run, with whole coverage: AA leaves flat edges alone)
+    vec3 ec = mix(e3, vec3(1e9), equal(ex, vec3(0.0)));
+    float c = min(min(ec.x, ec.y), ec.z);
     edge[i] = (vF & 1) != 0 || e < 1.0 ? ~0u : 0u;
-    cov[i] = e < 1.0 ? uint(clamp(e + 0.5, 0.0, 1.0) * 31.0 + 0.5) : (vF & 2) != 0 ? 0u : 31u;
+    cov[i] = c < 1.0 ? uint(clamp(c + 0.5, 0.0, 1.0) * 31.0 + 0.5) : (vF & 2) != 0 ? 0u : 31u;
   }
   // the state as g_plot4's lanes
 #ifdef G10_DIRECT
@@ -131,6 +160,9 @@ void main() {
   uvec4 C = (Z & 63u) | (((Z >> 8) & 63u) << 6) | (((Z >> 16) & 63u) << 12) | ((Z >> 24) << 18);
   uvec4 F = Y >> 16, I = Y & 0xFFFFu;
 #endif
+
+  // (a grown sample keeps the DS's coverage, also over one nothing has drawn yet: 31 there until 2026-11-19 fk4, a little farther
+  // from Exact in the town and Black's battle captures; the 4 samples cover the gaps, so no black dots either way)
   uvec4 C0 = C, D0 = D, F0 = F, I0 = I;
   g_plot4(C, D, F, I, hit, dep, edge, k, col);
   bvec4 ch = bvec4(uvec4(notEqual(C, C0)) | uvec4(notEqual(D, D0)) | uvec4(notEqual(F & 255u, F0 & 255u)) | uvec4(notEqual(I, I0)));

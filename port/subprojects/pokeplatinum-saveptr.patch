@@ -1,0 +1,72 @@
+pokeplatinum-saveptr.patch (tools/pokeplat_gen.py applies the patches in name order): no host pointer in a map object's
+saved movement data. MapObject_Save copies each map object's two 16-byte movement-data buffers (unk_D8, unk_E8) into the
+save as they are (MapObjectSave.unk_30, unk_40). Two movement types keep a pointer there:
+ - UnkStruct_02069F48.unk_08, the MapObject a trainer follows (sub_02069DF4's type: the second trainer of a pair walks
+   behind the first);
+ - UnkStruct_0206A0BC.unk_04, the OverworldAnimManager of a hidden object's effect (sub_0206A104's types).
+On the DS each is a 4-byte address; as a host pointer it is 8 bytes (UnkStruct_02069F48 grew from 12 to 16 bytes, still
+inside the buffer) and the save held the host address: a Platinum save then differed by the build (the address of
+libntr's s_HW_MAIN_MEM moves with the binary; clang 18 and clang 21 builds wrote different bytes at the same frame). Both
+fields are now u32 DS-style addresses (port_plat.h PortPlat_DsAddr / PortPlat_HostAddr: the game's heaps lie in
+s_HW_MAIN_MEM, an offset there is 0x02000000 + offset), so the structs have the DS's size and the save the same bytes on
+every build. The game never reads the saved value back: each type's restore function clears it (sub_02069E50 sets
+unk_01 = 0, so sub_02069F48 finds the partner again before unk_08 is read; sub_0206A168 sets unk_04 to NULL), so a save
+written before this change (a host pointer in those 8 bytes) loads as before.
+
+--- a/src/unk_02069BE0.c
++++ b/src/unk_02069BE0.c
+@@ -36,5 +36,5 @@
+     s16 unk_04;
+     u16 unk_06;
+-    MapObject *unk_08;
++    u32 unk_08; // the MapObject followed, as a DS address (PortPlat_DsAddr): saved with the map object (MapObjectSave.unk_30)
+ } UnkStruct_02069F48;
+ 
+@@ -44,5 +44,5 @@
+     u8 unk_02;
+     u8 unk_03;
+-    OverworldAnimManager *unk_04;
++    u32 unk_04; // an OverworldAnimManager, as a DS address (PortPlat_DsAddr): saved with the map object
+ } UnkStruct_0206A0BC;
+ 
+@@ -370,10 +370,10 @@
+     param1->unk_04 = MapObject_GetZ(param2);
+     param1->unk_06 = 0xff;
+-    param1->unk_08 = param2;
++    param1->unk_08 = PortPlat_DsAddr(param2);
+ }
+ 
+ static int sub_02069FE8(MapObject *mapObj, UnkStruct_02069F48 *param1)
+ {
+-    MapObject *v0 = param1->unk_08;
++    MapObject *v0 = PortPlat_HostAddr(param1->unk_08);
+     int v1 = MapObject_GetX(mapObj);
+     int v2 = MapObject_GetZ(mapObj);
+@@ -392,8 +392,9 @@
+     int v0 = MapObject_GetX(mapObj);
+     int v1 = MapObject_GetZ(mapObj);
+-    int v2 = MapObject_GetX(param1->unk_08);
+-    int v3 = MapObject_GetZ(param1->unk_08);
+-    int v4 = MapObject_GetXPrev(param1->unk_08);
+-    int v5 = MapObject_GetZPrev(param1->unk_08);
++    MapObject *followed = PortPlat_HostAddr(param1->unk_08);
++    int v2 = MapObject_GetX(followed);
++    int v3 = MapObject_GetZ(followed);
++    int v4 = MapObject_GetXPrev(followed);
++    int v5 = MapObject_GetZPrev(followed);
+     int v6;
+ 
+@@ -526,5 +527,5 @@
+ {
+     UnkStruct_0206A0BC *v0 = sub_02062A78(mapObj);
+-    v0->unk_04 = param1;
++    v0->unk_04 = PortPlat_DsAddr(param1);
+ }
+ 
+@@ -532,5 +533,5 @@
+ {
+     UnkStruct_0206A0BC *v0 = sub_02062A78(mapObj);
+-    return v0->unk_04;
++    return PortPlat_HostAddr(v0->unk_04);
+ }
+ 

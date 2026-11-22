@@ -317,10 +317,11 @@ static void *HangWatch(void *arg)
     return 0;
 }
 
+static int sStarted;   // (a constructor runs once a process; PORT_HangWatchChild: a forked child, which has no watch thread)
+
 __attribute__((constructor)) static void HangWatchInit(void) {
     const char *e = getenv("BWPORT_HANGWATCH");
     int limit = e != NULL && *e ? atoi(e) : 10;
-    static int sStarted;
 
     if (limit <= 0 || sStarted) {
         return;
@@ -346,5 +347,11 @@ __attribute__((constructor)) static void HangWatchInit(void) {
         pthread_detach(t);
     }
 #endif
+}
+
+// title_fork.c's leg (forked from the fork server): its own watch, with its own environment's BWPORT_HANGWATCH
+void PORT_HangWatchChild(void) {
+    sStarted = 0;
+    HangWatchInit();
 }
 #endif

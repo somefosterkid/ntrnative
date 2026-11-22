@@ -27,7 +27,7 @@ typedef struct GpuU {
   uint32_t uZero;
   int32_t uFirst, uPart, uN, uR;
   float aLuma;
-  uint32_t pad[1]; /* std140: the block's size is a multiple of 16 */
+  uint32_t uHiPrec; /* (std140: the block's size is a multiple of 16; this field took the pad's place) */
 } GpuU;
 
 _Static_assert(sizeof(GpuU) == 816, "GpuU: std140 layout of shaders/g00_head.glsl's block");

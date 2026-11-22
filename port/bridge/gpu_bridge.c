@@ -51,7 +51,7 @@ int SIM_FrameSkipping(void); /* libntr-frameskip.patch: this frame is not to be 
 int SIM_AntialiasWanted(void); /* libntr-aa70.patch, libntr-ios-msaa.patch: Antialiasing off|4 samples as k = 1, 2; 3 SMAA (libntr-ios-smaa.patch) */
 void SIM_RendererAAUsed(int k); /* the k the GPU path draws with (k x k samples per pixel; never lowered) */
 void SIM_Renderer3DFast(int ok, const char *how); /* libntr-ios-fastgl.patch: Renderer3D=fast drawn (1) or not (0), how or why */
-int SIM_GLRendererOption(int which); /* libntr-gpuopt.patch: 0 dot, 1 line, 2 edge, 3 filter; 4 the 3D renderer fast (libntr-ios-fast3d.patch) */
+int SIM_GLRendererOption(int which); /* libntr-gpuopt.patch: 0 dot, 1 line, 2 edge, 3 filter (bilinear); 4 the 3D renderer fast; 5 the 2D filter (0 off, 1 Scale2x, 2 MMPX), 6 texture smoothing (0 off, 1 bilinear, 2 mips), 7 fog, 8 colour (the ini keys) */
 uint32_t SIM_VCapGather(uint8_t *io9, uint8_t *io9b, uint8_t *vram, uint8_t *pltt, uint8_t *oam, uint32_t **gx,
                         uint32_t *cap);
 uint8_t *SIM_VCapBankHome(int bank);
@@ -250,6 +250,10 @@ typedef struct Slot {
   int ipN;
   long long ipSerial, ipNominal, ipTick, ipOff[IP_MAXSLOT], ipNext;
   IpMid mid[IP_MAXSLOT];
+  /* G12, the texture cache (opt.texcache, not fast): this frame's layers as gpu_texcache_frame gave them (on the worker, after
+   * td), drawn by the frame and its in-between pictures (gpu_use_tcframe before each gpu_render_prepared) */
+  GpuTcFrame *tc;
+  int tcOk; /* tc holds this frame's */
 } Slot;
 enum { M_GPU = 0, M_VCORE = 1 };
 static Slot *sIpTick; /* the slot this call launched, when it has in-between pictures */
@@ -263,6 +267,19 @@ static VCTask sThread;  /* vcore's persistent task threads (p22_task.c), not a n
 
 static int sInit, sDead, sLogged;
 static GpuCore *sCore;
+/* G12, the texture cache's CPU half: one for the stream of frames, made on the GL thread before the first worker that wants it
+ * and kept across a new GpuCore (Resolution, AA: the core takes it over or starts a new generation); its options from the
+ * environment once (BWPORT_GPU_TEXCACHE=off|exact|on, _TEXMIPS, _ANISO, _TEXMAG, _TEXCACHEMB) */
+static GpuTexCache *sTc;
+static GpuOptions sTcEnv;
+static int sTcEnvRead;
+static int sTcAB; /* BWPORT_GPU_TCAB=1: each picture with the cache drawn without it first and the two 3D layers compared (RenderTc) */
+static uint32_t *sTcA, *sTcB;
+static size_t sTcABn;
+static struct {
+  unsigned pics, mids, used, differ;
+  unsigned long long polys, px;
+} sTcN;
 static int sScale;  /* the grid the spans and samples are on: sOut * k */
 static int sOut;    /* the picture's scale (the Resolution): pass R's targets and the 3D layer are at sOut */
 static int sFastOk; /* the fast 3D renderer (Renderer3D=fast, docs/gpu-hwraster.md): 1 the core draws it, 0 it cannot (a GL without
@@ -566,6 +583,13 @@ static int GeometryAgain(VCoreState *s) {
   return r;
 }
 
+/* G12 (a worker): the texture cache's frame of sl from s->geo and sl->td, when the frame wants the cache */
+static void TcFrame(Slot *sl) {
+  if (sl->tcOk || !sl->opt.texcache || sl->opt.fast || sTc == NULL || sl->tc == NULL || !sl->tdOk) return;
+  gpu_texcache_frame(sTc, sl->td, sl->s, sl->tc);
+  sl->tcOk = 1;
+}
+
 /* stage 1 with in-between pictures (a worker): the 2D first (engine B's lines, engine A's layers: the mids reuse them, only the
  * 3D is redone), then for each present slot after the first the 3D's geometry with its vertices blended toward the previous
  * keyframe (IpGather's pairing) and its span records, and last the picture the next tick's first slot shows (this slot's own
@@ -597,6 +621,8 @@ static void Stage1Interp(Slot *sl) {
       }
       int ok = GeometryAgain(s);
       vc_ip_apply_end(s);
+      if (ok) TcFrame(sl); /* from the first geometry, before a mid is settled (the GL thread may draw it at once); a key the
+                            * other pictures add samples the texture slots as without the cache */
       if (ok) PrepareInto(sl, &m->prep);
       if (ok && m->prep != NULL) {
         MidSettle(m, 1);
@@ -609,6 +635,7 @@ static void Stage1Interp(Slot *sl) {
       long long g0 = sl->pfOn ? NowNs() : 0;
       sl->geo = GeometryAgain(s);
       if (blend) vc_ip_apply_end(s);
+      if (sl->geo) TcFrame(sl);
       long long g1 = g0 != 0 ? NowNs() : 0;
       if (sl->geo) PrepareInto(sl, &sl->prep), sl->prepared = sl->prep != NULL;
       if (g0 != 0) sl->pfGeo = (double)(g1 - g0) / 1e6, sl->pfSpans = (double)(NowNs() - g1) / 1e6;
@@ -624,6 +651,7 @@ static void Stage1(Slot *sl) {
   VCoreState *s = sl->s;
   long long t0 = sl->pfOn ? NowNs() : 0;
   sl->pfGeo = sl->pfSpans = sl->pf2d = 0.0;
+  sl->tcOk = 0;
   if (sl->mode == M_VCORE) {
     vcore_render(s);
     vcore_frame_rgba(s, sl->rgba);
@@ -646,7 +674,7 @@ static void Stage1(Slot *sl) {
   }
   long long t2 = t0 != 0 ? NowNs() : 0;
   Build2D(sl);
-  if (sl->geo) gpu_texdata_build(sl->td, s), sl->tdOk = 1;
+  if (sl->geo) gpu_texdata_build(sl->td, s), sl->tdOk = 1, TcFrame(sl);
   if (t0 != 0) {
     sl->pfGeo = (double)(t1 - t0) / 1e6;
     sl->pfSpans = (double)(t2 - t1) / 1e6;
@@ -669,6 +697,17 @@ static void PerfReport1(const Slot *sl) {
   if (sl->pfGeo > 0.0) SIM_PerfStage("3D geometry", 2, sl->pfGeo);
   if (sl->pfSpans > 0.0) SIM_PerfStage("spans + bins", 2, sl->pfSpans);
   if (sl->pf2d > 0.0) SIM_PerfStage("2D (B lines, A layers)", 2, sl->pf2d);
+}
+
+/* the title snapshot (port/src/title_fork.c), before its fork: the worker running the last frame's stage 1 joined (it is not in
+ * the child, which would wait for it in its next frame), as the next call would join it; that frame's GL half stays to run.
+ * The task pool itself starts empty in the child (bwport_vcore_forked: vcore_task_forked) */
+void bwport_gpu_fork_prepare(void) {
+  if (sInflight) {
+    vcore_task_join(&sThread);
+    sInflight = 0;
+    PerfReport1(&sSlot[sCur ^ 1]);
+  }
 }
 
 static void *Worker(void *arg) {
@@ -895,13 +934,56 @@ static const Half *sHalf = &kGL;
 
 /* pass C's 3D input and the 1x layer for the CPU fallback. Returns the 3D layer's texture for g07_compose (0: none), with
  * *sc its scale; sets *gpu when the GPU drew it, else vcore's CPU raster did (a GL error) and *tex is g07_upload_3d's */
+/* the GL thread: p's 3D (the frame's records or an in-between picture's) with the frame's textures and texture cache frame
+ * (gpu_use_tcframe always, so the core runs no cache of its own); BWPORT_GPU_TCAB=1 draws it without the cache first and
+ * compares the two 3D layers (the log line every 300 pictures and at the first differences) */
+static int RenderTc(Slot *sl, const GpuPrep *p, int mid) {
+  VCoreState *s = sl->s;
+  const GpuTcFrame *f = sl->tcOk ? sl->tc : NULL;
+  size_t n = (size_t)VC_W * VC_H * sScale * sScale; /* (the 3D layer is sOut x sOut of it) */
+  if (sTcAB && f != NULL && n > sTcABn) {
+    free(sTcA), free(sTcB);
+    sTcA = malloc(n * 4), sTcB = malloc(n * 4);
+    sTcABn = sTcA != NULL && sTcB != NULL ? n : 0;
+  }
+  if (sTcAB && f != NULL && sTcABn >= n) {
+    gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL);
+    gpu_use_tcframe(sCore, sTc, NULL);
+    if (gpu_render_prepared(sCore, s, p) == 0) {
+      gpu_read_3d(sCore, sTcA, NULL);
+      gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL);
+      gpu_use_tcframe(sCore, sTc, f);
+      int rc = gpu_render_prepared(sCore, s, p);
+      if (rc != 0) return rc;
+      gpu_read_3d(sCore, sTcB, NULL);
+      size_t m = (size_t)VC_W * VC_H * sOut * sOut;
+      unsigned long long d = 0;
+      for (size_t i = 0; i < m; i++) d += sTcA[i] != sTcB[i];
+      int used = gpu_tc_last_polys(sCore);
+      sTcN.pics++, sTcN.mids += mid != 0, sTcN.used += used > 0, sTcN.polys += (unsigned)used;
+      sTcN.differ += d != 0, sTcN.px += d;
+      if (sTcN.pics % 300 == 0 || (d != 0 && sTcN.differ <= 5))
+        Log("bwport: Renderer=gpu: TCAB: %u pictures (%u in-between) compared at %dx, %u drew %llu polygons from the cache, %u differ "
+            "(%llu px)%s\n", sTcN.pics, sTcN.mids, sOut, sTcN.used, sTcN.polys, sTcN.differ, sTcN.px, d != 0 ? ": this one differs" : "");
+      return 0;
+    }
+  }
+  gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL);
+  gpu_use_tcframe(sCore, sTc, f);
+  return gpu_render_prepared(sCore, s, p);
+}
+
 static unsigned Layer3D(Slot *sl, int *sc) {
   VCoreState *s = sl->s;
   sHalf->drain(); /* libntr's own, not ours */
   int rc;
-  gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL); /* uploaded by this frame's in-between pictures already, if it had any */
-  if (sl->prepared && gpu_prep_scale(sl->prep) == sScale) rc = gpu_render_prepared(sCore, s, sl->prep);
-  else rc = gpu_render_3d(sCore, s); /* no records yet (the first frame, a scale change): spans here */
+  /* the textures: uploaded by this frame's in-between pictures already, if it had any */
+  if (sl->prepared && gpu_prep_scale(sl->prep) == sScale) rc = RenderTc(sl, sl->prep, 0);
+  else { /* no records yet (the first frame, a scale change): spans here */
+    gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL);
+    gpu_use_tcframe(sCore, sTc, sl->tcOk ? sl->tc : NULL); /* (always: the core runs no cache of its own then) */
+    rc = gpu_render_3d(sCore, s);
+  }
   if (rc == 0) {
     *sc = sOut;
     return gpu_3d_tex(sCore);
@@ -1204,8 +1286,8 @@ static unsigned InterpTexture(int slot, int *w, int *h, long long waitNs) {
   sHalf->drain();
   gpu_set_options(sCore, &sl->opt);
   unsigned tex = 0;
-  gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL); /* the keyframe's VRAM: uploaded once, by the first mid */
-  if (m->prep != NULL && gpu_prep_scale(m->prep) == sScale && gpu_render_prepared(sCore, sl->s, m->prep) == 0 &&
+  /* the keyframe's VRAM (uploaded once, by the first mid) and its cache frame */
+  if (m->prep != NULL && gpu_prep_scale(m->prep) == sScale && RenderTc(sl, m->prep, 1) == 0 &&
       g07_compose_packed(sC7, sl->s, sl->pack, gpu_3d_tex(sCore), sOut, gpu_smaa_weights(sCore)) == 0) {
     tex = sHalf->picture(g07_frame_tex(sC7));
     *w = VC_W * sOut;
@@ -1414,6 +1496,32 @@ static unsigned GpuFrame(int *w, int *h) {
   sl->opt = (GpuOptions){SIM_GLRendererOption(0), SIM_GLRendererOption(1), SIM_GLRendererOption(2), SIM_GLRendererOption(3), sAA};
   sFastWant = SIM_GLRendererOption(4);
   sl->opt.fast = sFastWant && sFastOk > 0;
+  if (!sTcEnvRead) {
+    gpu_options_from_env(&sTcEnv), sTcEnvRead = 1; /* (ini keys: job J8) */
+    const char *ab = getenv("BWPORT_GPU_TCAB");
+    sTcAB = ab != NULL && ab[0] && strcmp(ab, "0") != 0;
+  }
+  sl->opt.texcache = sTcEnv.texcache, sl->opt.mips = sTcEnv.mips, sl->opt.aniso = sTcEnv.aniso;
+  sl->opt.texmag = sTcEnv.texmag, sl->opt.tcmb = sTcEnv.tcmb;
+  sl->opt.fog = sTcEnv.fog, sl->opt.color = sTcEnv.color; /* BWPORT_GPU_FOG, BWPORT_GPU_COLOR (above 1x only) */
+  { /* the settings (sim_config.ini TextureSmoothing, Filter2D, Fog, Color): the environment variables above still override them */
+    if (getenv("BWPORT_GPU_FOG") == NULL) sl->opt.fog = SIM_GLRendererOption(7);
+    if (getenv("BWPORT_GPU_COLOR") == NULL) sl->opt.color = SIM_GLRendererOption(8);
+    if (SIM_GLRendererOption(6) == 2 && scale > 1) { /* Mipmaps: the texture cache's trilinear sampling, above 1x (1x stays the DS's nearest) */
+      if (getenv("BWPORT_GPU_TEXCACHE") == NULL) sl->opt.texcache = GPU_TC_ON;
+      if (getenv("BWPORT_GPU_TEXMIPS") == NULL) sl->opt.mips = 1;
+      if (getenv("BWPORT_GPU_TEXMAG") == NULL) sl->opt.texmag = 1;
+    }
+    sl->opt.up2d = SIM_GLRendererOption(5); /* G07_UP_OFF, _SCALE2X, _MMPX = 0, 2, 3 */
+    sl->opt.up2d = sl->opt.up2d == 1 ? G07_UP_SCALE2X : sl->opt.up2d == 2 ? G07_UP_MMPX : G07_UP_OFF;
+    if (getenv("BWPORT_FILTER2D") != NULL) sl->opt.up2d = sTcEnv.up2d;
+    if (sC7 != NULL) g07_set_up2d(sC7, sl->opt.up2d);
+  }
+  if (sC7 != NULL) g07_set_hiprec(sC7, sl->opt.color);
+  if (sl->opt.texcache && sHalf->api != GPU_API_METAL) { /* (Metal: no layers yet, job J7) */
+    if (sTc == NULL) sTc = gpu_texcache_create(&sl->opt);
+    if (sl->tc == NULL) sl->tc = gpu_tcframe_create();
+  }
   if (Gather(sl) != 0) {
     sHalf->restore(&gs);
     return 0;

@@ -67,10 +67,29 @@ int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, 
  * 0 on failure). Right after g07_compose_packed with the same k (its uploads are reused). */
 unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa);
 
+/* the 2D filter (shaders/g11_up.glsl): a style that redraws the 2D layers at N x as a remap of DS pixels (the 3D layer is
+ * never filtered). Off = today's program, no extra work; it acts from the next g07_compose*, at N > 1, on GL (Metal: Off
+ * until its pipelines exist). A style whose programs fail to build logs one line and draws Off. */
+enum { G07_UP_OFF, G07_UP_IDENTITY, G07_UP_SCALE2X, G07_UP_MMPX, G07_UP_N };
+void g07_set_up2d(G07 *c, int style);
+/* Color=full (GpuOptions.color): the 3D layer's two fraction bits reach the picture where the 3D pixel shows as it is
+ * (a 3D layer at N > 1; with 0 or a 1x layer pass C is as before) */
+void g07_set_hiprec(G07 *c, int on);
+int g07_up2d_parse(const char *name); /* "off", "identity", "scale2x", "mmpx" -> the style, -1 when unknown */
+
 /* the output texture of the last g07_compose (256 N x 384 N, RGBA8) */
 unsigned g07_frame_tex(const G07 *c);
 /* the Metal core's: the last pass C's GPU milliseconds once its command buffer is done (gpu_render --time); 0 under GL */
 double g07_gpu_ms(const G07 *c);
+/* what tools/up2d_ref.c needs of the frame just drawn from pack k (g07_compose_packed, GL only; the 3D layer given as
+ * have3d, antialiasing off): pass C's scalar inputs, the plan (VC_W x VC_H x 2 words, zero when engine A is not composed)
+ * and the 1x lines (VC_W x VC_H x 2 words). 0 on success. */
+typedef struct G07UpIn {
+  int scale, compose, atop, have3d, hofs, evy;
+  uint32_t bright;
+} G07UpIn;
+int g07_up_inputs(G07 *c, VCoreState *s, const G07Pack *k, int sc, int have3d, G07UpIn *in, uint32_t *plan, uint32_t *src);
+
 /* the last output read back: (256 N) x (384 N) RGBA bytes, top row first (the top screen above the bottom one) */
 void g07_read_frame(G07 *c, uint8_t *rgba);
 

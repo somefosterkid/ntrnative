@@ -34,7 +34,7 @@ def t_plays():   # a play script is data for --play runs (the round's plays, pla
     r, _ = ran(['tools/plays/platinum/town-walk.txt'])
     assert r == set(), r
     r, _ = ran(['tools/play_script.py'])
-    assert 'switch' in r and 'port' in r, r
+    assert r == {'port'}, r   # (its switch test is nightly)
 
 
 def t_docs():
@@ -53,15 +53,33 @@ def t_tools():
 
 def t_port():
     r, _ = ran(['port/vcore/a.c'])
-    assert r == {'port', 'cores', 'switch', 'sweep', 'touch'}, r
-    r, _ = ran(['port/subprojects/packagefiles/libntr-x.patch'])
+    assert r == {'port', 'cores', 'sweep', 'touch'}, r
+    r, _ = ran(['port/subprojects/libntr/libraries/sim/src/sim_main.cpp'])
     assert 'apk' in r and 'cores' not in r, r
     r, _ = ran(['port/src/audio.c', 'port/bridge/vcore_bridge.c'])   # the cores' own projects only
-    assert 'cores' not in r and 'switch' in r, r
+    assert 'cores' not in r and 'sweep' in r, r
     r, _ = ran(['port/gpu/src/a.c'])
     assert 'cores' in r, r
     r, _ = ran(['tools/android/app/a.kt'])
     assert r == {'apk'}, r
+
+
+def t_android_ini_and_other_platforms():   # (ta3 A7) in no Linux build: no port build, no touch, no sweep (the apk build only for Android)
+    r, _ = ran(['port/machine/android-phone.ini'])
+    assert r == {'apk'}, r
+    r, _ = ran(['port/machine/win64-x.ini', 'port/src/win64_main.c', 'port/src/ios_main.m'])
+    assert r == set(), r
+    r, _ = ran(['port/include_hgss/x.h', 'third_party/pokeheartgold/src/a.c'])
+    assert r == set(), r
+    r, _ = ran(['port/machine/android-phone.ini', 'port/src/audio.c'])   # one Linux-build file and the tier is back
+    assert {'port', 'touch'} <= r, r
+
+
+def t_switch_is_nightly():   # (ta3 A9) the per-merge gate never runs the switch tests; FULL=1 (the nightly) does
+    r, _ = ran(['port/src/audio.c', 'tools/port_run.py'])
+    assert 'switch' not in r, r
+    r, _ = ran([], full=True)
+    assert 'switch' in r, r
 
 
 def t_plat_only():
@@ -69,7 +87,7 @@ def t_plat_only():
                 'port/include_plat/port_plat.h', 'port/include_gen4/nnsys_gen4.h'])
     assert r == set(), r
     r, _ = ran(['port/game/route_gen4.c', 'port/src/audio.c'])   # one shared file and the whole port tier is back
-    assert r == {'port', 'switch', 'sweep', 'touch', 'apk'}, r
+    assert r == {'port', 'sweep', 'touch', 'apk'}, r
     r, _ = ran(['port/game/game_table.c'])   # Gen 5's table too: not Platinum-only
     assert 'port' in r, r
 

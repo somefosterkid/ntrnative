@@ -27,6 +27,35 @@ _Static_assert(_Alignof(u64) == 4 && _Alignof(s64) == 4 && sizeof(u64) == 8, "u6
 void PortHg_WaitIrq(BOOL clear, OSIrqMask irqFlags);
 #define OS_WaitIrq(clear, irqFlags) PortHg_WaitIrq(clear, irqFlags)
 
+// A pointer that the DS keeps in saved data (a map object's movement data, the unkD8 buffer that MapObject_Save copies) is a 4-byte DS
+// address there; held as a host pointer it widens the struct and writes a host address into the save, which differs from build to
+// build. Such a field is a u32 holding the DS-style address (as Platinum's port_plat.h PortPlat_DsAddr): the game's heaps all lie in
+// s_HW_MAIN_MEM, so HW_MAIN_MEM + offset <-> 0x02000000 + offset, NULL <-> 0. pokeheartgold-saveptr.patch.
+#define PORT_HG_DS_MAIN_MEM 0x02000000u
+static inline u32 PortHg_DsAddr(const void *p)
+{
+    uintptr_t a = (uintptr_t)p;
+
+    if (p == NULL) {
+        return 0;
+    }
+    if (a < (uintptr_t)HW_MAIN_MEM || a >= (uintptr_t)HW_MAIN_MEM + HW_MAIN_MEM_SIZE) {
+        OS_Panic("PortHg_DsAddr: %p is not in the main memory", p);
+    }
+    return PORT_HG_DS_MAIN_MEM + (u32)(a - (uintptr_t)HW_MAIN_MEM);
+}
+
+static inline void *PortHg_HostAddr(u32 a)
+{
+    if (a == 0) {
+        return NULL;
+    }
+    if (a < PORT_HG_DS_MAIN_MEM || a - PORT_HG_DS_MAIN_MEM >= HW_MAIN_MEM_SIZE) {
+        OS_Panic("PortHg_HostAddr: 0x%08x is not a main memory address", a);
+    }
+    return (void *)((uintptr_t)HW_MAIN_MEM + (a - PORT_HG_DS_MAIN_MEM));
+}
+
 // HGSS's OS_ResetSystem (16 callers: main.c's L+R+START+SELECT soft reset, game_clear.c, error_message_reset.c, the Wi-Fi settings' return) is the port's in-process restart
 // (port/src/reset.c, machine.c: back to the title with save.bin as it is), as port/include/port_runtime.h makes it for
 // Black and White (only this one of its defines: that header is not the Gen 4 prefix). libntr's reloads the ROM

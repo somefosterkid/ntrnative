@@ -15,7 +15,7 @@ build.ninja
 .claude/worktrees/
 
 # Android signing keys and APKs (the maintainers' notes, "Android"): the release key lives outside the repo
-# (outside the repo); an APK holds bytes from the ROM
+# (outside the repo); built packages don't belong in the repo
 *.jks
 *.keystore
 *.p12

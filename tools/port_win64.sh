@@ -20,7 +20,9 @@
 #   tools/port_win64.sh gdb [GDB ARGS]    the exe under gdb: Windows' gdbserver in the run dir, gdb here
 #                                         (e.g. gdb -batch -ex c -ex bt)
 #   tools/port_win64.sh layout            struct layouts of the linux and win64 builds compared (tools/port_layout.py)
-#   tools/port_win64.sh zip [ZIP]         after a deploy: the folder's exe, DLLs, mesa\, bwport.bat and licenses\ (never run\ or a
+#   (deploy also writes bwport.exe.sha in the folder: the HEAD the exe was built from, "-dirty" appended when the tree had changes.)
+#   tools/port_win64.sh zip [ZIP]         needs a clean tree; builds and deploys HEAD into a temp folder itself (never an older deploy),
+#                                         then packs: the folder's exe, DLLs, mesa\, bwport.bat and licenses\ (never run\ or a
 #                                         ROM) as ZIP (default build/bwport-win64-<rev>.zip), only if tools/release_check.sh
 #                                         finds no ROM bytes in it: the package one may publish
 #
@@ -85,6 +87,9 @@ case "$GAME" in
     ''|black) ;;
     *) echo "port_win64: --game: platinum, heartgold, soulsilver, or none for the Gen 5 build"; exit 2 ;;
 esac
+# every game in the exe, said out loud: a build dir keeps the options it was made with, and one made before the default flip
+# (-Dplatinum=false) packed an exe without Platinum (v0.2.1 / v0.2.2)
+GAME_ARGS+=(-Dplatinum=true -Dhgss=true)
 EXE=$BUILD/bwport.exe
 
 # the worker slice when there is one (bw-port's WSL); interop can't start Windows programs inside it
@@ -213,6 +218,8 @@ deploy() {
             cp "$ROM" "$dest"
         fi
     fi
+    # the commit this folder's exe was built from (bwport.exe.sha; "-dirty" when the tree had changes): `zip` packs only an exe of HEAD
+    { git -C "$REPO" rev-parse HEAD | tr -d '\n'; [ -z "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] || printf -- -dirty; echo; } > "$OUT/bwport.exe.sha"
     echo "$OUT: $(cd "$OUT" && ls | tr '\n' ' ')"
     local also
     for also in "${ALSO[@]}"; do
@@ -320,7 +327,11 @@ gdb_run() {
 # The release package: the deployed folder's files a player needs, checked by the release gate before it exists
 release_zip() {
     local zip=${args[0]:-$REPO/build/bwport-win64-$(git -C "$REPO" rev-parse --short=9 HEAD).zip} stage
-    [ -f "$OUT/bwport.exe" ] || { echo "no $OUT/bwport.exe: deploy first"; exit 1; }
+    # a clean tree, and an exe of exactly HEAD: it deploys into a temp folder itself (11-19: v0.2.0's zip packed an 11-14 exe from C:\bwport)
+    [ -z "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] || { echo "port_win64: zip: the tree has uncommitted changes: commit first"; exit 1; }
+    OUT=$(mktemp -d); RUN=$OUT/run; ROM=; ALSO=()
+    deploy > /dev/null || { echo "port_win64: zip: the deploy (build) failed"; rm -rf "$OUT"; exit 1; }
+    [ "$(cat "$OUT/bwport.exe.sha" 2> /dev/null)" = "$(git -C "$REPO" rev-parse HEAD)" ] || { echo "port_win64: zip: $OUT/bwport.exe.sha is not HEAD"; rm -rf "$OUT"; exit 1; }
     stage=$(mktemp -d)
     mkdir -p "$stage/bwport"
     (cd "$OUT" && cp -r bwport.exe ./*.dll bwport.bat licenses "$stage/bwport/" && { [ ! -d mesa ] || cp -r mesa "$stage/bwport/"; })
@@ -328,7 +339,7 @@ release_zip() {
     x86_64-w64-mingw32-strip --strip-debug "$stage/bwport/bwport.exe"
     rm -f "$zip"
     (cd "$stage" && python3 -m zipfile -c "$zip" bwport)
-    rm -rf "$stage"
+    rm -rf "$stage" "$OUT"
     if ! bash "$REPO/tools/release_check.sh" "$zip"; then
         rm -f "$zip"
         echo "no zip: the release gate refused it"

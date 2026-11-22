@@ -632,6 +632,91 @@ def test_save_state_gen4_platinum_fixture():
     assert "money: 100 -> 3000" in d and "place:" in d and "party:" in d, d
 
 
+def test_leg_cache_stands_in_for_a_passed_leg():   # ROUTE_LEGCACHE (tools/legcache.py): a second run plays nothing
+    import io
+    from contextlib import redirect_stdout
+    from pathlib import Path
+    d = Path(tempfile.mkdtemp())
+    (d / "saves").mkdir()
+    route = [("a", "NEWGAME", "Pa", "s-a"), ("b", "s-a", "Pb", "-")]
+    runs = []
+
+    def legs(g):
+        return [{"name": n, "start": s, "pilot": p, "end": "zone 1 1,1", "save": sv, "flags": [], "line": f"{n} | {s} | {p} | zone 1 1,1 | {sv} | "}
+                for n, s, p, sv in route]
+
+    def fake_run(g, leg, args, produced, st=None, tag="", under_gdb=False):
+        runs.append(leg["name"])
+        st.update(v=100, secs=1.0, pos="zone 1 1,1", save=leg["pilot"], png=None)
+        if leg["save"] == "-":
+            return "ok", "zone 1 1,1", None
+        out = R.WORK / f"{g}-{leg['name']}.save.bin"
+        out.write_bytes(b"SAVE-" + leg["pilot"].encode())
+        produced[leg["save"]] = out
+        return "ok", "zone 1 1,1", out
+
+    def main(*extra):
+        runs.clear()
+        sys.argv, out = ["route.py", "b", "--chain", "--no-build", *extra], io.StringIO()
+        try:
+            with redirect_stdout(out):
+                R.main()
+        except SystemExit as e:
+            assert e.code == 0, out.getvalue()
+        return list(runs), out.getvalue()
+    saved = (R.read_legs, R.run_leg, R.base_root, R.zone_leg, R.SAVES, R.WORK, dict(os.environ))
+    R.read_legs, R.run_leg, R.base_root, R.zone_leg = legs, fake_run, lambda g: None, lambda g, leg, a, p: leg
+    R.SAVES, R.WORK = d / "saves", d / "work"
+    R.WORK.mkdir()
+    os.environ.update(ROUTE_LEGCACHE=str(d / "cache"), ROUTE_LEGCACHE_KLASS="t")
+    try:
+        assert main()[0] == ["a", "b"]
+        ran, out = main()
+        assert ran == [] and out.count(" CACHED v=100 ") == 2 and "2 leg(s) CACHED" in out, out
+        assert "b\t100\t1.0\tok" in out   # the table row is the stored one
+        assert main("--no-cache")[0] == ["a", "b"] and main("--repeat", "1")[0] == ["a", "a", "b", "b"]
+        route[0] = ("a", "NEWGAME", "Pa2", "s-a")   # another first leg: the leg after it misses too (its start save's id is a's key)
+        assert main()[0] == ["a", "b"]
+    finally:
+        R.read_legs, R.run_leg, R.base_root, R.zone_leg, R.SAVES, R.WORK = saved[:6]
+        os.environ.clear()
+        os.environ.update(saved[6])
+
+
+def test_prepare_run_dir_symlinks():
+    with tempfile.TemporaryDirectory() as t:
+        t = Path(t)
+        base = t / "base"
+        (base / "sub").mkdir(parents=True)
+        (base / "sub" / "f").write_text("x")
+        link = t / "baselink"
+        link.symlink_to(base)
+        victim = t / "victim"
+        victim.mkdir()
+        run = t / "work" / "run"
+        run.parent.mkdir()
+        run.symlink_to(victim)   # a leftover link: unlinked, its target untouched
+        R.prepare_run_dir(run, link)   # a symlinked base: contents copied, run is a real directory
+        assert not run.is_symlink() and (run / "sub" / "f").read_text() == "x"
+        assert not any(victim.iterdir())
+        R.prepare_run_dir(run, base)   # again over an existing copy
+        assert (run / "sub" / "f").exists()
+        inside = base / "run"   # resolves inside the base: refused
+        try:
+            R.prepare_run_dir(inside, base)
+            raise AssertionError("not refused")
+        except RuntimeError:
+            pass
+        via = t / "work2"
+        via.symlink_to(base)
+        try:
+            R.prepare_run_dir(via / "run", base)
+            raise AssertionError("not refused via a linked parent")
+        except RuntimeError:
+            pass
+        assert not (base / "run").exists()
+
+
 if __name__ == "__main__":
     bad = 0
     for name, fn in sorted(globals().items()):

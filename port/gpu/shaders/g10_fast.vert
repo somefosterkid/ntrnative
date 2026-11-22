@@ -12,6 +12,8 @@ layout(location = 4) flat out int vF;
 layout(location = 5) flat out vec3 vE0; // the fan triangle's polygon edges i - 1, i, i + 1 (none: never near)
 layout(location = 6) flat out vec3 vE1;
 layout(location = 7) flat out vec3 vE2;
+layout(location = 8) flat out vec3 vE3; // and edges 0 and nv - 1, out of the fan's shared vertex 0 (grown, they bound every triangle)
+layout(location = 9) flat out vec3 vE4;
 void main() {
   int i = gl_VertexID * 3;
   vec4 p = hv[i], a = hv[i + 1], b = hv[i + 2];
@@ -24,11 +26,13 @@ void main() {
   vK = int(b.y);
   vF = int(b.z);
   int nv = (vF >> 4) & 15, t = vF >> 8;
-  vE0 = vE1 = vE2 = vec3(0.0, 0.0, 1e9);
+  vE0 = vE1 = vE2 = vE3 = vE4 = vec3(0.0, 0.0, 1e9);
   if (nv > 0) {
     int k10 = vK * 10;
     vE0 = he[k10 + (t + nv - 1) % nv].xyz;
     vE1 = he[k10 + t].xyz;
     vE2 = he[k10 + (t + 1) % nv].xyz;
+    vE3 = he[k10].xyz;
+    vE4 = he[k10 + nv - 1].xyz;
   }
 }

@@ -3,6 +3,7 @@
 #include "g10_fast.h"
 #include "p16_raster.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,18 +40,21 @@ static void vert(float *o, float x, float y, const VC_Vertex *v, int k, int flag
  * its floored x, so where two polygons' edges nearly meet (vertices the clipper made on each side, a vertex mid-way along
  * another's edge) the DS leaves no gap and the GPU left single pixels between them: dots along the battle intro's mesh (the
  * encounter effect), a few in the field. So each top or left edge (those whose pixel centres on the line are drawn already,
- * so no pixel on the line itself is added) moves out along its minor axis, 7/8 of a pixel if X-major, 1/2 if Y-major, and the
+ * so no pixel on the line itself is added) moves out along its minor axis, 7/8 of a pixel if X-major, 63/64 if Y-major, and the
  * vertices go to where the moved edges meet (at most two pixels away at a sharp corner). These amounts close every gap in the
  * intro's captures with the least change against Exact over the 37 (gpu_fastdiff, AA off, with g10_fast.frag's part for the
  * grown pixels: 11.23 -> 11.22 %); moving every edge by 1/2 also drew a row or column more along right and bottom edges. With 4
- * samples there are no gaps (the samples are on the 2N grid): left as it was. */
+ * samples there are no gaps (the samples are on the 2N grid): left as it was. Y-major was 1/2 until 2026-11-19: a left edge's
+ * pixel is the DS's floored x, so with 1/2 a polygon's left silhouette (no neighbour on that side) lost its column wherever the
+ * edge's x had a fraction over 1/2: dark vertical slivers on Platinum's town ground (the black below the 3D layer). Just under 1
+ * takes the floored column and never the one left of it. */
 static void grow_poly(const int *px, const int *py, int nv, int cw, double *gx, double *gy) {
   double A[VC_POLY_MAXV], B[VC_POLY_MAXV], G[VC_POLY_MAXV];
   for (int i = 0; i < nv; i++) {
     int j = (i + 1) % nv, dx = px[j] - px[i], dy = py[j] - py[i], m = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
     double s = m == 0 ? 0 : (cw ? 1.0 : -1.0) / m;
     A[i] = -dy * s, B[i] = dx * s;
-    G[i] = m == 0 || !(A[i] > 0 || (A[i] == 0 && B[i] > 0)) ? 0 : abs(dx) > abs(dy) ? 0.875 : 0.5;
+    G[i] = m == 0 || !(A[i] > 0 || (A[i] == 0 && B[i] > 0)) ? 0 : abs(dx) > abs(dy) ? 0.875 : 0.984375;
   }
   for (int i = 0; i < nv; i++) {
     int h = (i + nv - 1) % nv; /* edge h into vertex i, edge i out of it: A d.x + B d.y = -G on both */
@@ -94,8 +98,11 @@ static void move_tri(float *o, double x0, double y0, double x1, double y1, doubl
 }
 
 /* a band m wide from grid point a to b (vertex attributes va, vb), its pixels every one an edge pixel: a parallelogram over the
- * columns (X-major) or rows (Y-major) a .. b, m more at the far end; corners on pixel boundaries (no half-pixel shift) */
-static void band(GpuFast *f, int ax, int ay, const VC_Vertex *va, int bx, int by, const VC_Vertex *vb, int m, int k, int flags) {
+ * columns (X-major) or rows (Y-major) a .. b, m more at the far end; corners on pixel boundaries (no half-pixel shift). Only its
+ * part from major coordinate lo to hi (grid coordinates, [lo, hi); INT_MIN, INT_MAX: all of it), its attributes as the whole
+ * band's there */
+static void band_part(GpuFast *f, int ax, int ay, const VC_Vertex *va, int bx, int by, const VC_Vertex *vb, int m, int k,
+                      int flags, int lo, int hi) {
   if (abs(bx - ax) >= abs(by - ay) ? bx < ax : by < ay) {
     int t = ax;
     ax = bx, bx = t, t = ay, ay = by, by = t;
@@ -116,6 +123,22 @@ static void band(GpuFast *f, int ax, int ay, const VC_Vertex *va, int bx, int by
   float *o = f->tri + (size_t)f->ntri * GPU_FAST_V;
   for (int i = 0; i < 6; i++) vert(o + i * GPU_FAST_V, c[tri[i]][0], c[tri[i]][1], cv[tri[i]], k, flags);
   f->ntri += 6;
+  int xm = bx - ax >= abs(by - ay);
+  double P0 = xm ? ax : ay, P1 = (xm ? bx : by) + m;
+  if ((lo > P0 || hi < P1) && P1 > P0) { /* the corners moved along the band's two long sides, the attributes from its planes */
+    double t0 = lo > P0 ? (lo - P0) / (P1 - P0) : 0.0, t1 = hi < P1 ? (hi - P0) / (P1 - P0) : 1.0, n[4][2];
+    const int A0 = 0, A1 = xm ? 1 : 3, B0 = xm ? 3 : 1, B1 = 2; /* side A from corner A0 to A1, side B from B0 to B1 */
+    for (int d = 0; d < 2; d++) {
+      n[A0][d] = c[A0][d] + t0 * (c[A1][d] - c[A0][d]), n[A1][d] = c[A0][d] + t1 * (c[A1][d] - c[A0][d]);
+      n[B0][d] = c[B0][d] + t0 * (c[B1][d] - c[B0][d]), n[B1][d] = c[B0][d] + t1 * (c[B1][d] - c[B0][d]);
+    }
+    move_tri(o, n[0][0], n[0][1], n[1][0], n[1][1], n[2][0], n[2][1]);
+    move_tri(o + 3 * GPU_FAST_V, n[0][0], n[0][1], n[2][0], n[2][1], n[3][0], n[3][1]);
+  }
+}
+
+static void band(GpuFast *f, int ax, int ay, const VC_Vertex *va, int bx, int by, const VC_Vertex *vb, int m, int k, int flags) {
+  band_part(f, ax, ay, va, bx, by, vb, m, k, flags, INT_MIN, INT_MAX);
 }
 
 int gpu_fast_build(GpuFast *f, GpuSpans *sp, const VCoreState *s, int scale) {
@@ -192,17 +215,41 @@ int gpu_fast_build(GpuFast *f, GpuSpans *sp, const VCoreState *s, int scale) {
           int j = (i + 1) % p->nv;
           band(f, qx[i], qy[i], v[i], qx[j], qy[j], v[j], m, (int)k, GPU_FAST_ALLEDGE);
         }
-      } else { /* collinear: the two far ends */
-        int lo = 0, hi = 0;
-        int xmaj = 0;
+      } else {
+        /* collinear: each edge's part of the line that no edge before it has, its values from that edge. vc_span_row takes a
+         * row's left and right edge from the first edge on it in the polygon's order, so a line whose edges go back and forth
+         * (Platinum's door outline: 65 -> 77 -> 74 -> 62) has each row's depth and colour from that edge, not from the two far
+         * ends (Fast drew the door's black lines in the wall's colour, 2026-11-21) */
+        int xmaj = 0, elo[VC_POLY_MAXV], ehi[VC_POLY_MAXV], nb = 0; /* nb: bands so far, at most VC_POLY_MAXV (the buffer's) */
         for (int i = 1; i < p->nv; i++) xmaj |= abs(qx[i] - qx[0]) >= abs(qy[i] - qy[0]) && qx[i] != qx[0];
-        for (int i = 1; i < p->nv; i++) {
-          int c = xmaj ? qx[i] : qy[i];
-          if (c < (xmaj ? qx[lo] : qy[lo])) lo = i;
-          if (c > (xmaj ? qx[hi] : qy[hi])) hi = i;
+        for (int i = 0; i < p->nv; i++) {
+          int j = (i + 1) % p->nv, a = xmaj ? qx[i] : qy[i], b = xmaj ? qx[j] : qy[j];
+          elo[i] = a < b ? a : b, ehi[i] = (a < b ? b : a) + m;
+          int plo[VC_POLY_MAXV], phi[VC_POLY_MAXV], np = 1;
+          plo[0] = elo[i], phi[0] = ehi[i];
+          for (int e = 0; e < i && np > 0; e++) { /* less the earlier edges' parts (at most i + 1 pieces) */
+            int tlo[VC_POLY_MAXV], thi[VC_POLY_MAXV], nn = 0;
+            for (int q = 0; q < np; q++) {
+              if (ehi[e] <= plo[q] || elo[e] >= phi[q]) { tlo[nn] = plo[q], thi[nn++] = phi[q]; continue; }
+              if (plo[q] < elo[e]) tlo[nn] = plo[q], thi[nn++] = elo[e];
+              if (ehi[e] < phi[q]) tlo[nn] = ehi[e], thi[nn++] = phi[q];
+            }
+            np = nn;
+            for (int q = 0; q < nn; q++) plo[q] = tlo[q], phi[q] = thi[q];
+          }
+          /* an edge along the other axis (a zero-length one; a near-collinear one on the N grid) is drawn whole or not at all */
+          int emaj = abs(qx[j] - qx[i]) >= abs(qy[j] - qy[i]);
+          for (int q = 0; q < np; q++) {
+            int whole = plo[q] == elo[i] && phi[q] == ehi[i];
+            if ((!whole && emaj != xmaj) || nb == VC_POLY_MAXV) continue;
+            nb++;
+
+            band_part(f, qx[i], qy[i], v[i], qx[j], qy[j], v[j], m, (int)k, GPU_FAST_ALLEDGE, whole ? INT_MIN : plo[q],
+                      whole ? INT_MAX : phi[q]);
+          }
         }
-        band(f, qx[lo], qy[lo], v[lo], qx[hi], qy[hi], v[hi], m, (int)k, GPU_FAST_ALLEDGE);
       }
+
       continue;
     }
     /* a filled polygon: a fan, and its edge functions; the interior is on the right of A->B (y down) when a2 > 0 */
@@ -211,8 +258,11 @@ int gpu_fast_build(GpuFast *f, GpuSpans *sp, const VCoreState *s, int scale) {
       int j = (i + 1) % p->nv;
       int dx = px[j] - px[i], dy = py[j] - py[i], m = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
       float *e = f->pe[k * VC_POLY_MAXV + i];
-      if (m == 0 || (dy == 0 && (dx > 0) == cw)) { /* two vertices on one point; a flat top: the DS's top row is not edge pixels
-                                                      * (only each row's edge runs and a flat bottom's last row are): never near */
+      if (m == 0) {
+        /* two vertices on one point: never near. A flat top's row is edge pixels on the DS (p16's flat edge's run, as a flat
+         * bottom's last row): with AA off, the coverage at the DS pixel's centre (g10_fast.frag) gives its row 31, with 4 samples
+         * g10_fast4.frag's coverage leaves flat edges out. It was never near until 2026-11-19 (fk2 AA off, fk3 4 samples): a top
+         * clipped at the screen's top row then had no edge marks there, only scattered dark specks */
         e[0] = e[1] = e[3] = 0, e[2] = 1e9f;
         continue;
       }

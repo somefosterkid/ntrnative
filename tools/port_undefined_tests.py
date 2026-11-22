@@ -62,6 +62,29 @@ def test_cache_matches_nm_and_skips_unchanged_objects():
         assert "f_a" not in defs and defs["f_a2"] == ["a.o"] and kinds["more"] == ("B", 400)
 
 
+def test_frozen_cache_needs_no_rom_dir():
+    with tempfile.TemporaryDirectory() as d:
+        rom, cache = Path(d, "rom"), Path(d, "cache.json")
+        rom.mkdir()
+        objects(rom)
+        cold = U.rom_definitions(rom, cache)
+        gone = Path(d, "no_rom_here")   # a slot job: no build/b_us at all
+        os.environ["BWPORT_ROM_DEFS_FROZEN"] = "1"
+        try:
+            with CountNm() as n:
+                frozen = U.rom_definitions(gone, cache)
+                assert n.asked == []
+            assert (dict(frozen[0]), frozen[1]) == (dict(cold[0]), cold[1])
+            cache.write_text("{not json")
+            try:
+                U.rom_definitions(gone, cache)
+                assert False
+            except SystemExit:
+                pass
+        finally:
+            del os.environ["BWPORT_ROM_DEFS_FROZEN"]
+
+
 def test_cache_of_another_rom_dir_or_garbage_is_ignored():
     with tempfile.TemporaryDirectory() as d:
         rom, cache = Path(d, "rom"), Path(d, "cache.json")

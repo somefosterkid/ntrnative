@@ -37,6 +37,15 @@ struct GpuCore {
   struct GpuMtl *mtl; /* the Metal core (gpu_mtl.m) when made with GPU_API_METAL, else NULL: the GL half's fields are unused */
   unsigned t_weights; /* Metal: SMAA's weights by texture name (gpu_mtl_texture), 0 without */
   struct GpuFastGL *fgl; /* GL: the fast 3D renderer's programs and data (g10_fast_gl.c), made at its first use */
+  /* G12, the texture cache (g12_tcgl.c): its GL half (made at the first frame with a cache), the cache and frame of the next
+   * call (gpu_use_tcframe), the core's own (gpu_render_3d with opt.texcache and no gpu_use_tcframe ever), pass R's programs */
+  struct G12Gl *tcgl;
+  GpuTexCache *tc_use, *own_tc;
+  const GpuTcFrame *tcf_use;
+  GpuTcFrame *own_tcf;
+  int tc_given; /* gpu_use_tcframe was called (the caller runs the cache) */
+  int tc_polys; /* the last gpu_render_prepared: its polygons that sampled a layer (gpu_tc_last_polys) */
+  GLuint prog_rc; /* "g00_raster.frag#Kc", made at its first use (raster_prog) */
 };
 
 /* k = 2: a sample of pass R as it is stored (RG32UI, shaders/g00_head.glsl) in k = 1's RGBA32UI form, as g_unpack does it (the

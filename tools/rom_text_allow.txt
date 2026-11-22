@@ -272,3 +272,43 @@
 @db2c7a9b66a2 # a comment in include/gfl/savedata.h (the code's own description): its words match HG/SS message text by chance (seen once HG/SS were indexed)
 @ef116d5f5a78 # a comment in third_party/pokebw2/include/field/gym_opelucid.h (the code's own description): its words match HG/SS message text by chance (seen once HG/SS were indexed)
 @f58857cdda2b # a comment in third_party/pokebw2/lib/dwc/include/dwc/nasfunc.h (the code's own description): its words match HG/SS message text by chance (seen once HG/SS were indexed)
+@fdbb9ec1bf96 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@83b9a63424f5 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@1e7ef091522f # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@eb4fe9539168 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@eab82bc38f56 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@fa39c4093843 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@55b56846eb1f # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@f12e89374f9a # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@e8c60f4bdad2 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@5c9a5f46252f # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@f979f7a4f542 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@eb43ec1d69af # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@2c088a42a13e # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@dc4954290436 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@19961169e06e # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@fff45fedfb6d # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@1e03f41a57c7 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@40b58ede1fd8 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@c78fd07edc4c # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@7577a66c33a3 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@dd4a9a4a175d # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@785586089b86 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@2f1df50ddf7d # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@6ec1c2a9df7b # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@5910d8151268 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@2325a72998ea # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@dfe1a331d791 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@653f25dd29c5 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@0b90dffca3ae # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@e9e003bad90d # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@27d9280c7625 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@42e3334e70d3 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@c4db94ad9c7a # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@aa388605cf4d # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@9259b51e14d7 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@845ccf340be6 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@9ffa1f486b05 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@0405f7eceb73 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@f44b074a0c5c # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text
+@38da102b6566 # Dear ImGui's own English UI text in libntr (port/subprojects/libntr, MIT upstream), not game text

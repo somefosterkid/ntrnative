@@ -1911,8 +1911,14 @@ static int TouchStep(const char *tok) {
 #include "route_teach.h"       // F:teach:ITEM:SPECIES[:FORGET] (TeachStep, called by FieldMoveStep)
 #include "route_fieldmove.h"   // the F: tokens (FieldMoveStep)
 
+static const char *sPilotNew;   // PortRoute_PilotRebase's string, taken at the next pilot step
+
+void PortRoute_PilotRebase(const char *full) {
+    sPilotNew = full != NULL ? full : "";
+}
+
 static void Pilot(const PortRouteState *st) {
-    static const char *sTok, *sAgeTok;
+    static const char *sTok, *sAgeTok, *sStart;
     static int sInit, sHold, sStuck, sIdle, sLastX, sLastZ, sTotalStuck, sZone = -1, sAge;
     static unsigned sHoldKeys;
     static int sMash, sMashZone = -1, sMashQuiet;
@@ -1932,6 +1938,23 @@ static void Pilot(const PortRouteState *st) {
         sTok = getenv("BWPORT_PILOT");
         if (sTok != NULL && *sTok == '\0') {
             sTok = NULL;
+        }
+        sStart = sTok;
+    }
+    if (sPilotNew != NULL) {   // the same pointers, moved into the new string (they all point at or before the token's end)
+        const char *n = sPilotNew;
+        size_t upto = sTok != NULL ? (size_t)(NextTok(sTok) - sStart) : 0;
+
+        sPilotNew = NULL;
+        if (sTok == NULL ? *n != '\0' : strlen(n) < upto || strncmp(n, sStart, upto) != 0) {
+            fprintf(stderr, "pilot: rebase: the leg's pilot differs from the snapshot's in its first %u characters\n", (unsigned)upto);
+            End(st, "rebase");
+        }
+        if (sTok != NULL) {
+            sTok = n + (sTok - sStart);
+            sAgeTok = sAgeTok != NULL ? n + (sAgeTok - sStart) : NULL;
+            sZoneTok = sZoneTok != NULL ? n + (sZoneTok - sStart) : NULL;
+            sStart = n;
         }
     }
     if (sTok == NULL) {

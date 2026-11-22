@@ -75,6 +75,8 @@ typedef struct VCTask {
 } VCTask;
 int vcore_task_start(VCTask *t, void *(*fn)(void *), void *arg);
 void vcore_task_join(VCTask *t);
+void vcore_task_forked(void); /* in a fork()'s child, no task running: the idle threads are gone, forget them */
+void vcore_forked(VCoreState *s); /* the same for a state's rasterizer threads (p20_frame.c), no frame drawing */
 int vcore_task_done(VCTask *t); /* the task has finished: a join returns at once (a thread of its own: never reported) */
 
 /* writes an RGBA8 picture as a PNG (no compression library needed). 0 on success */

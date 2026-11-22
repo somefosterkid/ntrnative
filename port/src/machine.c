@@ -19,8 +19,8 @@
 //
 // BWPORT_MACHINE_CHECK=FILE: one line per V-blank wait of the game's main loop, the V-blank count and a hash of each
 // machine range (only its pages in use), from power-on and again after each reset: two boots in one process compare line
-// by line (tools/mac_reset_check.py). Linux, Windows and Android have no sections yet (a linker script will gather the
-// same objects): there SIM_RunGame runs the game once and reset.c starts the program again.
+// by line (tools/mac_reset_check.py); every game (Black's PORT_WaitIrq, the Gen 4 games' PortPlat_WaitIrq). Linux, Windows and
+// Android gather the same objects with the linker script tools/port_overlays.py writes (a Platinum run on Linux: 14 ranges).
 #include <nitro.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -580,6 +580,9 @@ void SIM_RunGame(void) {
         const char *slash = strrchr(check, '/');
 
         sCheck = fopen(check, "w");
+        if (sCheck != NULL) {
+            setvbuf(sCheck, NULL, _IOLBF, 0);   // line by line: a leg ends in _exit or a kill (route.py, title_fork.c)
+        }
         if (dump != NULL && *dump && slash != NULL && (size_t)(slash - check) < sizeof(sDumpDir)) {
             sDumpAt = dump;
             memcpy(sDumpDir, check, (size_t)(slash - check));

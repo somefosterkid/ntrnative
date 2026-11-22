@@ -67,10 +67,14 @@ layout(std140) uniform GpuU {
   int uN;            // pass S's fragment form and kernel: the records
   int uR;            // pass S's fragment form: a band's rows
   float aLuma;       // SMAA edges: the luma step an edge needs (0..1)
+  uint uHiPrec;      // above 1x only (src/g00_frame.c, g07_compose.c): bit 0 Fog=smooth (pass P), bit 1 Color=full (P, C, SMAA)
 };
 
 // the pixel flags (vcore's VC_F3_*)
 const uint F_FOG = 1u, F_EDGE = 2u, F_TRANS = 4u, F_STENCIL = 8u, F_WRITTEN = 16u;
+// the fast 3D renderer's grown pixel (g10_fast.frag, g10_fast4.frag; never set by pass R): g06_post's antialiasing keeps its whole
+// colour where nothing lies behind it
+const uint F_GROWN = 32u;
 // the polygon table's flags (GPU_PF_*)
 const uint PF_TRANS = 1u, PF_FRONT = 2u, PF_WBUF = 4u, PF_WIRE = 8u, PF_WHOLE = 16u;
 // a record's row flags (GPU_ROW_*)

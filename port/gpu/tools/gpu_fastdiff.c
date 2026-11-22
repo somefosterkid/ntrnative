@@ -1,6 +1,7 @@
 /* port/gpu: the exact 3D renderer against the fast one (docs/gpu-hwraster.md) on one capture, Metal or GL.
  *
  *   gpu_fastdiff FILE.vcs OUTBASE [--api metal|gl|es] [--scale N] [--aa 1|2] [--time K] [--nopng] [--crop x,y,w,h] [--probe x,y,w,h]
+ *                [--polys]
  *
  * --api gl|es: a headless GL context (gpu_ctx_headless, as gpu_render's), the fast pass of src/g10_fast_gl.c (default metal).
  *
@@ -10,10 +11,16 @@
  * translucent write on either side; poly: another polygon won the pixel; interp: the same polygon, another colour/depth) and the
  * size of the colour difference (max channel step at 6 bits: 1, 2-3, 4-7, 8+), then the frame's polygons of the kinds the game's
  * captures lack (shadow masks and shadows, wire-frames, lines, dots: vcore_gen.py's scenes have them) and the gaps (pixels with a
- * polygon in Exact and none in Fast: the dots between polygons src/g10_fast.c grow_poly closes). --time K: K more
+ * polygon in Exact and none in Fast: the dots between polygons src/g10_fast.c grow_poly closes) and the extras (pixels Fast gives
+ * to a polygon Exact shows nowhere in the frame, or where Exact has none: specks; a few single pixels of depth ties are normal).
+ * Specks: pixels whose Fast colour (or emptiness) is 8+ steps from every Exact pixel in its 3 x 3 neighbourhood (a colour Exact
+ * shows nowhere near: green slivers on a sand path, a dark speck on the top row).
+ * --polys lists the extras' polygons (attributes, vertices), each gap pixel with Exact's polygon there, and each speck (both
+ * polygons and colours, Fast's / Exact's coverage, whether the raster colour words match, Fast's polygon). --time K: K more
  * renders of each, the min pass R (S inside) and pass P (E inside) GPU ms of each side. With 4 samples a second line: the pixels with an
  * edge-flagged sample and the "alike" pixels (pass P's fast draw) of each side. */
 #include "g00_frame.h"
+#include "g02_spans.h"
 #include "gpu.h"
 #include "vc_shared.h"
 
@@ -35,12 +42,13 @@ static void to_rgba(const uint32_t *px, uint8_t *rgba, int n) {
 
 int main(int argc, char **argv) {
   const char *in = NULL, *out = NULL;
-  int scale = 3, aa = 1, times = 0, png = 1, cx = -1, cy = 0, cw = 0, ch = 0, qx = -1, qy = 0, qw = 1, qh = 1, api = GPU_API_METAL;
+  int scale = 3, aa = 1, times = 0, png = 1, polys = 0, cx = -1, cy = 0, cw = 0, ch = 0, qx = -1, qy = 0, qw = 1, qh = 1, api = GPU_API_METAL;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--aa") && i + 1 < argc) aa = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--time") && i + 1 < argc) times = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--nopng")) png = 0;
+    else if (!strcmp(argv[i], "--polys")) polys = 1;
     else if (!strcmp(argv[i], "--api") && i + 1 < argc)
       i++, api = !strcmp(argv[i], "gl") ? GPU_API_GL : !strcmp(argv[i], "es") ? GPU_API_ES : GPU_API_METAL;
     else if (!strcmp(argv[i], "--crop") && i + 1 < argc) sscanf(argv[++i], "%d,%d,%d,%d", &cx, &cy, &cw, &ch);
@@ -162,11 +170,87 @@ int main(int argc, char **argv) {
     }
   long ngap = 0; /* the pixels Exact covers and Fast leaves empty (a gap between polygons) */
   for (size_t i = 0; i < np; i++) ngap += (int)axe[i * 4 + 3] >= 0 && (int)axh[i * 4 + 3] < 0;
+  /* the extras: pixels Fast gives to a polygon Exact shows nowhere in the frame, or where Exact leaves the clear (specks) */
+  u32 npo = s->geo.npoly < VC_MAX_POLYS ? s->geo.npoly : VC_MAX_POLYS;
+  int *pex = calloc(npo + 1, sizeof *pex), *pfa = calloc(npo + 1, sizeof *pfa);
+  if (!pex || !pfa) return 1;
+  for (size_t i = 0; i < np; i++) {
+    int le = (int)axe[i * 4 + 3], lh = (int)axh[i * 4 + 3];
+    if (le >= 0 && (u32)le < npo) pex[le]++;
+    if (lh >= 0 && (u32)lh < npo) pfa[lh]++;
+  }
+  long nextra = 0;
+  for (size_t i = 0; i < np; i++) {
+    int le = (int)axe[i * 4 + 3], lh = (int)axh[i * 4 + 3];
+    if (lh >= 0 && (le < 0 || ((u32)lh < npo && pex[lh] == 0))) nextra++;
+  }
+  /* the specks: pixels whose Fast colour (or emptiness) is 8+ steps (6 bits) from every Exact pixel in its 3 x 3 neighbourhood, a
+     colour Exact shows nowhere near (a grown pixel textured from past its polygon's UV edge: green on a dirt path) */
+  long nspeck = 0;
+  for (int y = 0; y < H; y++)
+    for (int x = 0; x < W; x++) {
+      uint32_t b = hw[(size_t)y * W + x];
+      int near = 0;
+      for (int ny = y - 1; ny <= y + 1 && !near; ny++)
+        for (int nx = x - 1; nx <= x + 1 && !near; nx++) {
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+          uint32_t a = ex[(size_t)ny * W + nx];
+          if ((VC_A5(a) != 0) != (VC_A5(b) != 0)) continue;
+          if (VC_A5(b) == 0) near = 1;
+          else {
+            int d = abs((int)VC_R6(a) - (int)VC_R6(b)), dg = abs((int)VC_G6(a) - (int)VC_G6(b)), db = abs((int)VC_B6(a) - (int)VC_B6(b));
+            near = d < 8 && dg < 8 && db < 8;
+          }
+        }
+      if (near) continue;
+      nspeck++;
+      if (polys) {
+        size_t i = (size_t)y * W + x;
+        printf("speck %d,%d: fast poly %d %02x%02x%02x exact poly %d %02x%02x%02x", x, y, (int)axh[i * 4 + 3], VC_R6(b), VC_G6(b),
+               VC_B6(b), (int)axe[i * 4 + 3], VC_R6(ex[i]), VC_G6(ex[i]), VC_B6(ex[i]));
+        printf(" cov %u/%u %s", axh[i * 4 + 1] >> 24, axe[i * 4 + 1] >> 24, axh[i * 4 + 2] == axe[i * 4 + 2] ? "samecol" : "othercol");
+        if ((int)axh[i * 4 + 3] >= 0 && axh[i * 4 + 3] < npo) { /* Fast's polygon there: attributes, vertices at this scale */
+          const VC_Poly *p = &s->geo.poly[s->geo.order[axh[i * 4 + 3]]];
+          printf(" | attr %08x tex %08x:", p->attr, p->texparam);
+          for (int j = 0; j < p->nv; j++) {
+            const VC_Vertex *v = &s->geo.vtx[p->v[j]];
+            int gx, gy;
+            gpu_vertex_pos(s, p, v, scale, &gx, &gy);
+            printf(" (%d,%d st %d,%d w%d)", gx, gy, v->tex[0], v->tex[1], v->clip[3]);
+          }
+        }
+        printf("\n");
+      }
+    }
+  for (u32 k = 0; polys && k < npo; k++) { /* --polys: the polygons Fast draws and Exact shows nowhere */
+    if (pfa[k] == 0 || pex[k] != 0) continue;
+    const VC_Poly *p = &s->geo.poly[s->geo.order[k]];
+    printf("extra poly %u: %d px, attr %08x tex %08x nv %d:", k, pfa[k], p->attr, p->texparam, p->nv);
+    for (int j = 0; j < p->nv; j++) {
+      const VC_Vertex *v = &s->geo.vtx[p->v[j]];
+      int gx, gy;
+      gpu_vertex_pos(s, p, v, scale, &gx, &gy);
+      printf(" (%d,%d at %dx: %d,%d z%u w%d st %d,%d)", v->sx, v->sy, scale, gx, gy, (unsigned)v->sz, v->clip[3], v->tex[0], v->tex[1]);
+    }
+    printf("\n");
+  }
+  for (size_t i = 0; polys && i < np; i++) /* --polys: the gaps' pixels too */
+    if ((int)axe[i * 4 + 3] >= 0 && (int)axh[i * 4 + 3] < 0) {
+      const VC_Poly *p = &s->geo.poly[s->geo.order[axe[i * 4 + 3]]];
+      printf("gap %zu,%zu: exact poly %u attr %08x nv %d:", i % W, i / W, axe[i * 4 + 3], p->attr, p->nv);
+      for (int j = 0; j < p->nv; j++) {
+        const VC_Vertex *v = &s->geo.vtx[p->v[j]];
+        printf(" (%d,%d z%u)", v->sx, v->sy, (unsigned)v->sz);
+      }
+      printf("\n");
+    }
+  free(pex);
+  free(pfa);
   printf("gpu_fastdiff: %s scale %d aa %d: %zu px, differ %ld (%.2f%%): colour %ld, alpha %ld; edge %ld trans %ld poly %ld interp %ld; "
          "steps 1: %ld 2-3: %ld 4-7: %ld 8+: %ld; polygons %u: shadow masks %d, "
-         "shadows %d, wire-frames %d, lines %d, dots %d; gaps %ld\n",
+         "shadows %d, wire-frames %d, lines %d, dots %d; gaps %ld; extras %ld; specks %ld\n",
          in, scale, aa, np, ndiff, 100.0 * ndiff / np, ncol, nalpha, cedge, ctrans, cpoly, cinterp, h1, h2, h4, h8, s->geo.npoly,
-         nmask, nshadow, nwire, nline, ndot, ngap);
+         nmask, nshadow, nwire, nline, ndot, ngap, nextra, nspeck);
   if (aa == 2) { /* pass P's two draws: the pixels with an edge-flagged sample (bit 30) and the alike ones (bit 31, the fast draw's) */
     long ae = 0, aa_ = 0, be = 0, ba = 0;
     for (size_t i = 0; i < np; i++) {

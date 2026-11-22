@@ -154,6 +154,9 @@ uvec4 g4_toon(uvec4 vc, uvec4 tx) {
   return uvec4(o, a);
 }
 
+#ifdef G_TEXCACHE // (the other programs' text has no G_TEXCACHE block: src/gpu_gl.c's assemble takes them out)
+bool g12_sample(int k, uint tp, ivec2 st, ivec2 pos, out uvec4 tx);
+#endif
 uvec4 g_texture(int k, GPx px, uvec4 col) {
   uvec4 P0 = g_poly(k, 0);
   uint attr = P0.x, tp = P0.y;
@@ -166,7 +169,12 @@ uvec4 g_texture(int k, GPx px, uvec4 col) {
   // g4_filtered's four more samples held registers that cost pass R 17% (M2 2026-11, town at 3x, Metal 0.72 -> 0.60 ms)
   uvec4 tx = (uFilter != 0u && uScale > uSnap) ? g4_filtered(tp, P0.z & 0x1FFFu, px.st) : g4_sample(tp, P0.z & 0x1FFFu, px.st);
 #else
+#ifdef G_TEXCACHE // the texture cache's programs (shaders/g12_texcache.glsl): its layer where the polygon's texture has one
+  uvec4 tx;
+  if (!g12_sample(k, tp, px.st, ivec2(px.x, px.row), tx)) tx = g4_sample(tp, P0.z & 0x1FFFu, px.st);
+#else
   uvec4 tx = g4_sample(tp, P0.z & 0x1FFFu, px.st);
+#endif
 #endif
   if ((uDisp3d & 1u) == 0u) return col;
   if (mode == 2u) return g4_toon(col, tx);

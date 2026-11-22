@@ -12,7 +12,9 @@
 vec4 smaa_col(highp usampler2D layer, ivec2 size, ivec2 q) {
   uvec4 t = texelFetch(layer, clamp(q, ivec2(0), size - 1), 0);
   float a = float(t.a & 31u) / 31.0;
-  return vec4(vec3(t.rgb & 63u) / 63.0 * a, a);
+  vec3 v = vec3(t.rgb & 63u);
+  if ((uHiPrec & 2u) != 0u) v += vec3((t.rgb >> 6) & 3u) * 0.25; // Color=full's fraction bits (g06_post.frag p_out)
+  return vec4(v / 63.0 * a, a);
 }
 
 // the layer at pixel p's centre moved by o (one axis, |o| < 1), bilinear; *cov: the drawn part (alpha > 0) there
@@ -44,7 +46,11 @@ uvec4 smaa_blend(highp usampler2D layer, sampler2D weights, ivec2 p) {
   vec4 c = w.x * smaa_at(layer, size, p, off.xy, c0) + w.y * smaa_at(layer, size, p, -off.zw, c1);
   uint al = uint(round(c.a * 31.0));
   if (al == 0u) return uvec4(0u);
-  vec3 rgb = clamp(round(c.rgb / c.a * 63.0), 0.0, 63.0);
   uint e = uint(min(round((1.0 - (w.x * c0 + w.y * c1)) * 8.0), 7.0)); // the empty part in eighths (g06_post.frag's p_resolve)
+  if ((uHiPrec & 2u) != 0u) { // Color=full: quarter steps, the fraction in bits 6-7
+    uvec3 v = uvec3(clamp(round(c.rgb / c.a * 252.0), 0.0, 252.0));
+    return uvec4((v >> 2) | ((v & 3u) << 6), al | e << 5);
+  }
+  vec3 rgb = clamp(round(c.rgb / c.a * 63.0), 0.0, 63.0);
   return uvec4(uvec3(rgb), al | e << 5);
 }

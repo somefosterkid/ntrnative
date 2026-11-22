@@ -51,8 +51,10 @@ void main() {
   ivec2 e1 = G[1] - G[0], e2 = G[2] - G[0];
   int D = e1.x * e2.y - e1.y * e2.x; // twice the area, positive: clockwise on screen (y down)
   float sg = D < 0 ? -1.0 : 1.0;
-  // the edges, positive inside; grown by 1.5 (|A| + |B|): three quarters of a 2N pixel either way
+  // the edges, positive inside; grown by 1.5 (|A| + |B|): three quarters of a 2N pixel either way; a filled polygon's top and left
+  // edges by 3 (|A| + |B|), so that g10_fast4.frag's grown samples (up to 63/64 of a 2N pixel out) get their fragments
   vec2 q = vec2(G[c]);
+  int fnv = (int(b[0].z) >> 4) & 15, fti = int(b[0].z) >> 8;
   ivec3 A, B, C;
   vec3 gA, gB, gC;
   for (int j = 0; j < 3; j++) {
@@ -63,7 +65,9 @@ void main() {
     C[j] = -(A[j] * (u.x - G[0].x) + B[j] * (u.y - G[0].y));
     gA[j] = float(A[j]);
     gB[j] = float(B[j]);
-    gC[j] = float(C[j]) + 1.5 * (abs(gA[j]) + abs(gB[j]));
+    bool pe = fnv > 0 && (j == 1 || (j == 0 && fti == 1) || (j == 2 && fti + 2 == fnv)); // a polygon edge, not the fan's inner one
+    bool tle = A[j] > 0 || (A[j] == 0 && B[j] > 0);
+    gC[j] = float(C[j]) + (pe && tle ? 3.0 : 1.5) * (abs(gA[j]) + abs(gB[j]));
   }
   if (D != 0) { // vertex c: where its two edges' grown lines meet (edge c - 1 into c, edge c out of it)
     int j0 = (c + 2) % 3, j1 = c;

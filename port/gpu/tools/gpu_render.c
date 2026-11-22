@@ -77,16 +77,18 @@ static double wall_ms(void) {
 
 static int usage(void) {
   fprintf(stderr, "usage: gpu_render FILE.vcs OUT.png [--3d L.png] [--scale N] [--hi H.png] [--dump-vram V.bin] "
-                  "[--api es|gl|metal] [--time K] [--gap MS] [--ablate MASK] [--compose gpu|vcore] [--3d-from gpu|vcore] [-q]\n");
+                  "[--api es|gl|metal] [--time K] [--gap MS] [--ablate MASK] [--compose gpu|vcore] [--3d-from gpu|vcore] "
+                  "[--filter2d off|identity|scale2x|mmpx] [-q]\n");
   return 2;
 }
 
 int main(int argc, char **argv) {
   const char *in = NULL, *out = NULL, *out3d = NULL, *outhi = NULL, *outv = NULL;
-  int scale = 1, aa = 1, quiet = 0, api = GPU_API_ES, times = 0, spans_check = 0, gap = 0, ablate = 0;
+  int scale = 1, aa = 1, quiet = 0, api = GPU_API_ES, times = 0, spans_check = 0, gap = 0, ablate = 0, filter2d = -1;
   /* G7: --compose gpu = engine A composited by the GPU (pass C), the screens at N x; --3d-from vcore = pass C's 3D
    * input is vcore's own 1x layer (the 1x byte-exact check). $GPU_COMPOSE / $GPU_3D_FROM set the defaults (vcore_check
    * runs the tool with a fixed command line). */
+  int warm = 0, ref = 0;
   const char *ev = getenv("GPU_COMPOSE"), *e3 = getenv("GPU_3D_FROM");
   int compose_gpu = ev != NULL && !strcmp(ev, "gpu"), from_vcore = e3 != NULL && !strcmp(e3, "vcore");
   for (int i = 1; i < argc; i++) {
@@ -101,9 +103,19 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--api") && i + 1 < argc)
       i++, api = !strcmp(argv[i], "gl") ? GPU_API_GL : !strcmp(argv[i], "metal") ? GPU_API_METAL : GPU_API_ES;
     else if (!strcmp(argv[i], "--compose") && i + 1 < argc) compose_gpu = !strcmp(argv[++i], "gpu");
+    else if (!strcmp(argv[i], "--filter2d") && i + 1 < argc) {
+      if ((filter2d = g07_up2d_parse(argv[++i])) < 0) return usage();
+    }
     else if (!strcmp(argv[i], "--3d-from") && i + 1 < argc) from_vcore = !strcmp(argv[++i], "vcore");
     else if (!strcmp(argv[i], "--spans") && i + 1 < argc) setenv("BWPORT_GPU_SPANS", argv[++i], 1);
     else if (!strcmp(argv[i], "--spans-check")) spans_check = 1;
+    else if (!strcmp(argv[i], "--texcache") && i + 1 < argc) setenv("BWPORT_GPU_TEXCACHE", argv[++i], 1); /* off|exact|on */
+    else if (!strcmp(argv[i], "--warm") && i + 1 < argc) warm = atoi(argv[++i]); /* K renders first (a texture cache fills) */
+    /* --ref-scale R: rendered at R x and box-downsampled to --scale's N (R a multiple of N): the supersampled reference */
+    else if (!strcmp(argv[i], "--ref-scale") && i + 1 < argc) ref = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--mips")) setenv("BWPORT_GPU_TEXMIPS", "1", 1);
+    else if (!strcmp(argv[i], "--aniso") && i + 1 < argc) setenv("BWPORT_GPU_ANISO", argv[++i], 1);
+    else if (!strcmp(argv[i], "--texmag") && i + 1 < argc) setenv("BWPORT_GPU_TEXMAG", argv[++i], 1); /* nearest|bilinear */
     else if (!strcmp(argv[i], "-q")) quiet = 1;
     else if (argv[i][0] == '-') return usage();
     else if (in == NULL) in = argv[i];
@@ -114,6 +126,7 @@ int main(int argc, char **argv) {
   /* --aa 2: multisampling, 2 x 2 samples per pixel (docs/gpu.md "Antialiasing"); the 3D layer (--3d, --hi) stays at N */
   aa = aa == GPU_AA_SMAA ? aa : aa >= 2 ? 2 : 1; /* --aa smaa: SMAA after pass P (N > 1) */
   const int out_scale = scale;
+  if (ref > scale && ref % scale == 0) scale = ref;
   char err[2048];
   VCoreState *s = vcore_create();
   if (s == NULL || vcore_load_vcs(s, in, err, sizeof err) != 0) {
@@ -141,6 +154,7 @@ int main(int argc, char **argv) {
   gpu_set_options(g, &gopt);
   static uint32_t vc3d[VC_W * VC_H];
   memcpy(vc3d, s->f3d.out, sizeof vc3d); /* vcore's own 3D layer (G7's 1x input, --3d-from vcore) */
+  for (int i = 0; i < warm; i++) gpu_render_3d(g, s);
   int rc = gpu_render_3d(g, s);
   if (rc != 0) {
     fprintf(stderr, "gpu_render: GL error 0x%x\n", -rc);
@@ -151,6 +165,21 @@ int main(int argc, char **argv) {
   uint8_t *rgba = malloc((size_t)W * H * 4 > VC_W * VC_H * 8 ? (size_t)W * H * 4 : VC_W * VC_H * 8);
   if (hi == NULL || lo == NULL || rgba == NULL) return 1;
   gpu_read_3d(g, hi, NULL);
+  if (scale != out_scale) { /* --ref-scale: each N x pixel the mean of its (R / N)^2 block */
+    int d = scale / out_scale, w2 = W / d, h2 = H / d;
+    for (int y = 0; y < h2; y++)
+      for (int x = 0; x < w2; x++) {
+        uint32_t sum[4] = {0, 0, 0, 0}, n = (uint32_t)(d * d);
+        for (int j = 0; j < d; j++)
+          for (int i = 0; i < d; i++) {
+            uint32_t c = hi[(size_t)(y * d + j) * W + x * d + i];
+            sum[0] += VC_R6(c), sum[1] += VC_G6(c), sum[2] += VC_B6(c), sum[3] += VC_A5(c);
+          }
+        hi[(size_t)y * w2 + x] = VC_RGB6((sum[0] + n / 2) / n, (sum[1] + n / 2) / n, (sum[2] + n / 2) / n) |
+                                 ((sum[3] + n / 2) / n) << 24;
+      }
+    W = w2, H = h2, scale = out_scale;
+  }
   if (spans_check) {
     int nd = gpu_spans_check(g, s, stdout);
     if (nd != 0) rc = 1;
@@ -208,6 +237,8 @@ int main(int argc, char **argv) {
       fprintf(stderr, "gpu_render: %s\n", err);
       return 1;
     }
+    g07_set_up2d(c, filter2d >= 0 ? filter2d : gopt.up2d); /* --filter2d, else $BWPORT_FILTER2D */
+    g07_set_hiprec(c, gopt.color);                         /* $BWPORT_GPU_COLOR=full */
     /* the GPU's layer: the core's own texture, as the game's bridge passes it (with SMAA pass C blends it: hi is blended
      * already; with 4 samples its alpha carries the edges' empty part, which the readback drops) */
     unsigned t3 = from_vcore ? g07_upload_3d(c, vc3d, 1) : gpu_3d_tex(g), smaa = from_vcore ? 0 : gpu_smaa_weights(g);

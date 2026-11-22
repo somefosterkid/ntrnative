@@ -14,6 +14,8 @@ flat out int vF;
 flat out vec3 vE0; // the fan triangle's polygon edges i - 1, i, i + 1 (none: never near)
 flat out vec3 vE1;
 flat out vec3 vE2;
+flat out vec3 vE3; // and edges 0 and nv - 1 (g10_fast.vert)
+flat out vec3 vE4;
 vec3 edge(int i) { return texelFetch(uFastE, ivec2(i & 1023, i >> 10), 0).xyz; }
 void main() {
   float w = aP.w;
@@ -25,11 +27,13 @@ void main() {
   vK = int(aB.y);
   vF = int(aB.z);
   int nv = (vF >> 4) & 15, t = vF >> 8;
-  vE0 = vE1 = vE2 = vec3(0.0, 0.0, 1e9);
+  vE0 = vE1 = vE2 = vE3 = vE4 = vec3(0.0, 0.0, 1e9);
   if (nv > 0) {
     int k10 = vK * 10;
     vE0 = edge(k10 + (t + nv - 1) % nv);
     vE1 = edge(k10 + t);
     vE2 = edge(k10 + (t + 1) % nv);
+    vE3 = edge(k10);
+    vE4 = edge(k10 + nv - 1);
   }
 }

@@ -6,6 +6,14 @@
 // The heap checker (BWPORT_HEAPCHECK, port/src/nnsys_heapcheck.c) hooks the same way: every call that makes, changes or
 // destroys an expanded heap goes through the wrappers below, which are one test of an int when it is off. The checker's
 // lock makes each operation and its record one step to the game's other threads.
+// Every block an expanded heap hands out (and the part a resize grows) starts zeroed on the PC, as if every heap were
+// made with NitroSystem's NNS_FND_HEAP_OPT_0_CLEAR (sv1, 11-19). The games read memory they never wrote and keep it:
+// Platinum's and HG/SS's Mail_Reset leaves each EasyChatSentence's id unset (EasyChatSentence_Init sets the type and
+// the words), and the party mon's mail carries it into every save. On the DS those bytes are whatever the block held
+// before, DS addresses, the same on every console; on the PC they are 64-bit host addresses (a freed block's header,
+// a pointer the last owner kept) that move with the exe's layout: the same leg gave other save bytes on another build or
+// machine (a 64 KB shift of s_HW_MAIN_MEM changed sentence 2's id, bits 16-31 of a pointer, by one), so a chain split
+// at a trusted save never matched. Zeroed, a block's unwritten bytes are the same on every build, machine and run.
 #pragma push_macro("NNS_FndFreeToExpHeap")
 #pragma push_macro("NNS_FndCreateExpHeapEx")
 #pragma push_macro("NNS_FndDestroyExpHeap")
@@ -71,15 +79,31 @@ void NNS_FndDestroyExpHeap(NNSFndHeapHandle heap) {
     NNS_FndDestroyExpHeap_nns(heap);
 }
 
+// The whole block (its size rounded up as the heap keeps it), not only the bytes asked for
+static void *ClearNewBlock(void *data) {
+    if (data != NULL) {
+        memset(data, 0, NNS_FndGetSizeForMBlockExpHeap(data));
+    }
+    return data;
+}
+
+// The bytes a resize added past the block's old size
+static u32 ClearGrownPart(void *memBlock, u32 old, u32 got) {
+    if (got > old) {
+        memset((u8 *)memBlock + old, 0, got - old);
+    }
+    return got;
+}
+
 void *NNS_FndAllocFromExpHeapEx(NNSFndHeapHandle heap, u32 size, int alignment) {
     void *data;
 
     if (!HeapCheckOn()) {
-        return NNS_FndAllocFromExpHeapEx_nns(heap, size, alignment);
+        return ClearNewBlock(NNS_FndAllocFromExpHeapEx_nns(heap, size, alignment));
     }
     PORT_HeapCheckLock();
     PORT_HeapCheckBefore(heap);
-    data = NNS_FndAllocFromExpHeapEx_nns(heap, size, alignment);
+    data = ClearNewBlock(NNS_FndAllocFromExpHeapEx_nns(heap, size, alignment));
     PORT_HeapCheckAllocated(heap, data, size, __builtin_return_address(0));
     PORT_HeapCheckUnlock();
     return data;
@@ -87,13 +111,14 @@ void *NNS_FndAllocFromExpHeapEx(NNSFndHeapHandle heap, u32 size, int alignment) 
 
 u32 NNS_FndResizeForMBlockExpHeap(NNSFndHeapHandle heap, void *memBlock, u32 size) {
     u32 got;
+    u32 old = NNS_FndGetSizeForMBlockExpHeap(memBlock);
 
     if (!HeapCheckOn()) {
-        return NNS_FndResizeForMBlockExpHeap_nns(heap, memBlock, size);
+        return ClearGrownPart(memBlock, old, NNS_FndResizeForMBlockExpHeap_nns(heap, memBlock, size));
     }
     PORT_HeapCheckLock();
     PORT_HeapCheckBefore(heap);
-    got = NNS_FndResizeForMBlockExpHeap_nns(heap, memBlock, size);
+    got = ClearGrownPart(memBlock, old, NNS_FndResizeForMBlockExpHeap_nns(heap, memBlock, size));
     PORT_HeapCheckResized(heap, memBlock, size, got);
     PORT_HeapCheckUnlock();
     return got;

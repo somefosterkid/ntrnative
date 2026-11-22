@@ -74,12 +74,15 @@ def main():
     ap.add_argument("--regen", action="store_true")
     ap.add_argument("--scale", type=int, default=1)
     ap.add_argument("--opts", default="")
+    ap.add_argument("--quick", action="store_true", help="every 8th scene only (the per-merge gate; the nightly run does all)")
     a = ap.parse_args()
     extra = (["--scale", str(a.scale)] if a.scale != 1 else []) + a.opts.split()
     if a.regen or not os.path.isdir(a.scenes):
         shutil.rmtree(a.scenes, ignore_errors=True)
         make_scenes(a.scenes, a.j)
     scenes = list_scenes(a.scenes)
+    if a.quick:
+        scenes = scenes[::8]
     tmp = tempfile.mkdtemp(prefix="vcore_same_")
     with Pool(a.j) as p:
         rs = p.map(one, [(a.ref, a.new, s, tmp, extra) for s in scenes], chunksize=4)

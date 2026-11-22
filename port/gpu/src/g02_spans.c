@@ -527,6 +527,52 @@ static void one_poly(GpuSpans *sp, const VCoreState *s, const VC_Poly *p, int sc
   walk(sp, &PN, kl, H, pr);
 }
 
+/* polygon p's planes at scale (GpuSpans.plane): its vertices' positions as gpu_vertex_pos places them, unrounded (computing them
+ * costs less than a memo lookup) */
+static void fit_planes(const VCoreState *s, const VC_Poly *p, int scale, float out[9], int16_t rng[4]) {
+  memset(out, 0, 9 * sizeof *out);
+  memset(rng, 0, 4 * sizeof *rng);
+  int nv = p->nv;
+  if (((p->texparam >> 26) & 7) == 0 || nv < 3 || nv > VC_POLY_MAXV) return;
+  double X[VC_POLY_MAXV], Y[VC_POLY_MAXV], F[3][VC_POLY_MAXV];
+  int x1 = (int)(p->viewport & 0xFF), y1 = (int)((p->viewport >> 8) & 0xFF);
+  int x2 = (int)((p->viewport >> 16) & 0xFF), y2 = (int)(p->viewport >> 24);
+  double vw = (double)((x2 - x1 + 1) & 0x1FF) * scale, vh = (double)((y2 - y1 + 1) & 0xFF) * scale;
+  double w0 = 0;
+  for (int i = 0; i < nv; i++) {
+    const VC_Vertex *v = &s->geo.vtx[p->v[i]];
+    for (int c = 0; c < 2; c++) {
+      int16_t t = (int16_t)v->tex[c];
+      if (i == 0 || t < rng[c * 2]) rng[c * 2] = t;
+      if (i == 0 || t > rng[c * 2 + 1]) rng[c * 2 + 1] = t;
+    }
+    double w = v->clip[3] > 0 ? (double)v->clip[3] : 1.0;
+    if (i == 0) w0 = w;
+    X[i] = ((double)v->clip[0] + w) * vw / (2 * w) + x1 * scale;
+    Y[i] = (w - (double)v->clip[1]) * vh / (2 * w) + (191 - y2) * scale;
+    F[2][i] = w0 / w;
+    F[0][i] = v->tex[0] / 16.0 * F[2][i];
+    F[1][i] = v->tex[1] / 16.0 * F[2][i];
+  }
+  int a = 0, b = 1, c = 2;
+  double best = 0;
+  for (int i = 0; i < nv; i++)
+    for (int j = i + 1; j < nv; j++)
+      for (int k = j + 1; k < nv; k++) {
+        double d = fabs((X[j] - X[i]) * (Y[k] - Y[i]) - (X[k] - X[i]) * (Y[j] - Y[i]));
+        if (d > best) best = d, a = i, b = j, c = k;
+      }
+  double det = (X[b] - X[a]) * (Y[c] - Y[a]) - (X[c] - X[a]) * (Y[b] - Y[a]);
+  if (fabs(det) < 0.25) return; /* (under an eighth of a pixel's area) */
+  for (int f = 0; f < 3; f++) {
+    double d1 = F[f][b] - F[f][a], d2 = F[f][c] - F[f][a];
+    double A = (d1 * (Y[c] - Y[a]) - d2 * (Y[b] - Y[a])) / det, B = (d2 * (X[b] - X[a]) - d1 * (X[c] - X[a])) / det;
+    out[f * 3 + 0] = (float)A;
+    out[f * 3 + 1] = (float)B;
+    out[f * 3 + 2] = (float)(F[f][a] - A * X[a] - B * Y[a]);
+  }
+}
+
 /* the memo (g02_spans.h, GpuMemo): polygon p's inputs to one_poly in k (returns the words) */
 static int memo_key(const VCoreState *s, const VC_Poly *p, uint32_t *k) {
   int n = 0;
@@ -650,6 +696,7 @@ void gpu_spans_build(GpuSpans *sp, const VCoreState *s, int scale) {
     pr->t[0][2] = p->pltt;
     pr->t[0][3] = fl;
     pr->t[1][3] = alpha == 0 ? 31 : alpha;
+    if (sp->planes) fit_planes(s, p, scale, sp->plane[k], sp->range[k]);
     sp->memo_of[k] = NULL;
     if (p->nv < 1 || p->nv > VC_POLY_MAXV) {
       pr->t[1][0] = 1;

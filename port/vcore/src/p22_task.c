@@ -112,6 +112,18 @@ void vcore_task_join(VCTask *t) {
   pthread_mutex_unlock(&sM);
 }
 
+/* In a child of fork() (port/src/title_fork.c, Linux): the child has only the forking thread, so the idle threads on the
+ * list are gone; a task given to one never ran and its join waited for ever (the title snapshot's legs hung at the first
+ * picture drawn after the fork, 2-3 legs in 10). No task may be running at the fork (the caller joined them): the list
+ * and the lock start empty again and the next task makes a new thread. */
+void vcore_task_forked(void) {
+  pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+  pthread_cond_t c = PTHREAD_COND_INITIALIZER;
+  sM = m;
+  sDone = c;
+  sIdle = NULL; /* (the lost threads' records leak: a few hundred bytes) */
+}
+
 int vcore_task_done(VCTask *t) {
   if (t->legacy != NULL) return 0;
   pthread_mutex_lock(&sM);

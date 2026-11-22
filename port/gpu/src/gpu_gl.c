@@ -194,6 +194,36 @@ typedef struct Asm {
   char kdef[96], fhead[400];
 } Asm;
 
+/* text without its `#ifdef G_TEXCACHE` blocks (whole lines; an `#else` part kept; no conditional inside such a block): the
+ * programs without the texture cache get the text they had before it (tools/gpu_msl.py's digests unchanged). Made once per
+ * source text and kept. */
+static const char *no_texcache(const char *text) {
+  static struct {
+    const char *in;
+    char *out;
+  } memo[16];
+  if (strstr(text, "G_TEXCACHE") == NULL) return text;
+  int i = 0;
+  for (; i < 16 && memo[i].in != NULL; i++)
+    if (memo[i].in == text) return memo[i].out;
+  char *out = malloc(strlen(text) + 1), *o = out;
+  if (out == NULL) return text;
+  int st = 0; /* 0 copy, 1 the G_TEXCACHE part (skipped), 2 its #else part */
+  for (const char *l = text; *l;) {
+    const char *nl = strchr(l, '\n');
+    size_t len = nl != NULL ? (size_t)(nl - l + 1) : strlen(l);
+    int drop = 0;
+    if (st == 0 && !strncmp(l, "#ifdef G_TEXCACHE", 17)) st = 1, drop = 1;
+    else if (st == 1 && !strncmp(l, "#else", 5)) st = 2, drop = 1;
+    else if (st != 0 && !strncmp(l, "#endif", 6)) st = 0, drop = 1;
+    if (!drop && st != 1) memcpy(o, l, len), o += len;
+    l += len;
+  }
+  *o = 0;
+  if (i < 16) memo[i].in = text, memo[i].out = out; /* (BWPORT_GPU_SHADERS' texts are new each time: leaked, as theirs) */
+  return out;
+}
+
 /* tf: a transform-feedback program (gpu_gl_program_tf): vs has the head before it, fs is ignored and an empty fragment
  * shader stands in */
 static int assemble(Asm *a, const char *vs, const char *fs, int tf, char *err, size_t errlen) {
@@ -202,9 +232,11 @@ static int assemble(Asm *a, const char *vs, const char *fs, int tf, char *err, s
   const char **parts = a->parts;
   int np = 0;
   const char *vtext = NULL, *ftext = NULL, *head = NULL;
-  /* "name.frag#K": the fragment shader with G_K defined as K (multisampling: shaders/g00_head.glsl); "#Kf" also defines G_FILTER
-   * (pass R's programs for Filter=bilinear, shaders/g04_texture.glsl); "#K+DEF" (or "#Kf+DEF") DEF as well (a second program
-   * from the file: shaders/g06_post.frag's P_FAST). tools/gpu_msl.py builds the same text for Metal. */
+  /* "name.frag#K": the fragment shader with G_K defined as K (multisampling: shaders/g00_head.glsl); letters after K: f defines
+   * G_FILTER (pass R's programs for Filter=bilinear, shaders/g04_texture.glsl), c G_TEXCACHE (the texture cache's: with
+   * shaders/g12_texcache.glsl, which the others leave out, and their G_TEXCACHE blocks); "#K+DEF" (or "#Kf+DEF") DEF as well (a
+   * second program from the file: shaders/g06_post.frag's P_FAST). tools/gpu_msl.py builds the same text for Metal. */
+  int tcache = 0;
   const char *hash = strchr(fs, '#'), *plus = strchr(fs, '+');
   size_t fsl = hash != NULL ? (size_t)(hash - fs) : strlen(fs);
   char *kdef = a->kdef;
@@ -212,7 +244,13 @@ static int assemble(Asm *a, const char *vs, const char *fs, int tf, char *err, s
   if (hash != NULL) {
     char *after;
     long kk = strtol(hash + 1, &after, 10);
-    snprintf(kdef, sizeof a->kdef, "#define G_K %ld\n%s", kk, *after == 'f' ? "#define G_FILTER 1\n" : "");
+    int filt = 0;
+    for (; *after == 'f' || *after == 'c'; after++) {
+      if (*after == 'f') filt = 1;
+      else tcache = 1;
+    }
+    snprintf(kdef, sizeof a->kdef, "#define G_K %ld\n%s%s", kk, filt ? "#define G_FILTER 1\n" : "",
+             tcache ? "#define G_TEXCACHE 1\n" : "");
     if (plus != NULL) snprintf(kdef + strlen(kdef), sizeof a->kdef - strlen(kdef), "#define %s 1\n", plus + 1);
   }
   /* a vertex shader's file as the fragment shader ("g02_setup.vert"): its body with S_FRAG defined, after the head only */
@@ -240,8 +278,12 @@ static int assemble(Asm *a, const char *vs, const char *fs, int tf, char *err, s
   parts[np++] = ext != NULL ? a->fhead : header();
   parts[np++] = kdef;
   if (!tf) parts[np++] = head;
+  /* the 2D filter's pieces (g11_*.glsl) only in its programs ("#1+UP_<STYLE>"): every other program's text stays as it was */
+  const int up = plus != NULL && !strncmp(plus + 1, "UP_", 3);
   for (int i = 0; i < n && np < 68 && !tf && !vbody; i++) /* the libraries, by name: a piece's functions are seen by later ones */
-    if (ends(src[i].name, ".glsl") && strcmp(src[i].name, "g00_head.glsl")) parts[np++] = src[i].text;
+    if (ends(src[i].name, ".glsl") && strcmp(src[i].name, "g00_head.glsl") && (tcache || strncmp(src[i].name, "g12_", 4)) &&
+        (up || strncmp(src[i].name, "g11_", 4)))
+      parts[np++] = tcache ? src[i].text : no_texcache(src[i].text);
   parts[np++] = ftext;
   a->np = np;
   return 1;

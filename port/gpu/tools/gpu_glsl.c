@@ -24,6 +24,8 @@ static const Prog kProgs[] = {
   {"g00_full.vert", "g00_raster.frag#2", 0, 3},
   {"g00_full.vert", "g00_raster.frag#1f", 0, 3},
   {"g00_full.vert", "g00_raster.frag#2f", 0, 3},
+  {"g00_full.vert", "g00_raster.frag#1c", 0, 3}, /* the texture cache's (raster_prog, shaders/g12_texcache.glsl) */
+  {"g00_full.vert", "g00_raster.frag#2c", 0, 3},
   /* pass P and the edge map (src/g00_frame.c, src/g06_post.c) */
   {"g00_full.vert", "g06_post.frag", 0, 3},
   {"g00_full.vert", "g06_post.frag#2", 0, 3},
@@ -36,6 +38,14 @@ static const Prog kProgs[] = {
   /* pass C (src/g07_compose.c) and its plan */
   {"g00_full.vert", "g07_compose.frag", 0, 3},
   {"g00_full.vert", "g07_compose.frag#1+C_PLAN", 0, 3},
+  /* the 2D filter (src/g07_compose.c, shaders/g11_up*.glsl): a style's analysis and pass C's N x program for it */
+  {"g00_full.vert", "g11_up.frag#1+UP_IDENTITY", 0, 3},
+  {"g00_full.vert", "g07_compose.frag#1+UP_IDENTITY", 0, 3},
+  {"g00_full.vert", "g11_up.frag#1+UP_SCALE2X", 0, 3},
+  {"g00_full.vert", "g07_compose.frag#1+UP_SCALE2X", 0, 3},
+  {"g00_full.vert", "g11_up.frag#1+UP_MMPX", 0, 3},
+  {"g00_full.vert", "g11_up.frag#1+UP_MMPX2", 0, 3},
+  {"g00_full.vert", "g07_compose.frag#1+UP_MMPX", 0, 3},
   /* display capture at N x (src/g07_capture.c) */
   {"g00_full.vert", "g07_capture.frag", 0, 3},
   {"g00_full.vert", "g07_capture.frag#1+K_SHOW", 0, 3},

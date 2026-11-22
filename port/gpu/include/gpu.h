@@ -40,8 +40,21 @@ typedef struct GpuOptions {
           * GPU_AA_SMAA: one sample per pixel and SMAA on the 3D layer after pass P (N > 1; docs/gpu.md "Antialiasing: SMAA") */
   int fast; /* the fast 3D renderer (docs/gpu-hwraster.md: the GPU's own rasterizer, close to the DS, not exact): no span records,
              * triangles (prep and core; a core without it draws exact: gpu_fast_supported). BWPORT_RENDERER3D=fast|exact */
+  /* G12, the texture cache (src/g12_*.c): texcache GPU_TC_* (BWPORT_GPU_TEXCACHE=off|exact|on; exact: the layers sampled at the
+   * DS's texel, nearest, so pictures equal off's; on: filtered, as exact until mips and anisotropy come), mips (BWPORT_GPU_TEXMIPS=1),
+   * aniso (BWPORT_GPU_ANISO=N, 1 = off), texmag (BWPORT_GPU_TEXMAG=nearest|bilinear: 0 | 1), tcmb (the layers' budget in MB,
+   * BWPORT_GPU_TEXCACHEMB, 0 = 128). Pass R only for now (Fast and Metal ignore them). */
+  int texcache, mips, aniso, texmag, tcmb;
+  /* above 1x only (N > 1; 1x stays the DS's bytes): fog (BWPORT_GPU_FOG=ds|smooth: 0 | 1) takes the fog density at the full
+   * 24-bit depth, interpolated per pixel (the DS: the 15-bit depth >> 9 into the table, integers); color
+   * (BWPORT_GPU_COLOR=ds|full: 0 | 1) keeps two fraction bits of the DS's 6-bit colour through pass P (fog, antialiasing,
+   * the resolve) and pass C's 3D pixel (docs/gpu.md "Precision") */
+  int fog, color;
+  int up2d; /* the 2D filter (g07_compose.h's G07_UP_*: pass C's, given to g07_set_up2d; the cores ignore it). BWPORT_FILTER2D=
+             * off|identity|scale2x|mmpx */
 } GpuOptions;
 enum { GPU_AA_SMAA = 3 };
+enum { GPU_TC_OFF = 0, GPU_TC_EXACT = 1, GPU_TC_ON = 2 };
 void gpu_options_from_env(GpuOptions *o);
 /* dot and line act in the CPU half (the prep), edge and filter in the GL half (the core): set both, per frame is fine */
 void gpu_set_options(GpuCore *g, const GpuOptions *o);
@@ -114,6 +127,28 @@ void gpu_set_timing(GpuCore *g, int on);
 enum { GPU_PASS_UPLOAD, GPU_PASS_R, GPU_PASS_E, GPU_PASS_P, GPU_PASS_C, GPU_PASS_N };
 typedef void (*GpuPassHook)(int pass, int begin);
 void gpu_set_pass_hook(GpuPassHook fn);
+
+/* ---- G12, the texture cache: the CPU half (any thread, no GL) and the frame it hands the GL half. One GpuTexCache for the
+ * stream of frames (the port's worker runs gpu_texcache_frame on each, in order, after gpu_texdata_build), one GpuTcFrame per
+ * frame in flight (as GpuPrep). The cache decodes the frame's textures into layers and queues their uploads, tagged with the
+ * frame; the render of a frame applies every queued upload up to it (frames never drawn included), so the GL side holds that
+ * frame's layers. A polygon whose texture is not ready (new, changing every frame, too large, no room) samples the texture
+ * slots as without the cache. Options: BWPORT_GPU_TCCHECK=1 (each kept entry decoded again and compared), BWPORT_GPU_TCLOG=N
+ * (the cache's numbers every N frames, stderr). ---- */
+typedef struct GpuTexCache GpuTexCache;
+typedef struct GpuTcFrame GpuTcFrame;
+GpuTexCache *gpu_texcache_create(const GpuOptions *o); /* o: mips, tcmb (NULL: the environment's) */
+void gpu_texcache_destroy(GpuTexCache *c);
+GpuTcFrame *gpu_tcframe_create(void);
+void gpu_tcframe_destroy(GpuTcFrame *f);
+/* the frame of s (s->geo as gpu_geometry left it) with td built from it (gpu_texdata_build) into f */
+void gpu_texcache_frame(GpuTexCache *c, const GpuTexData *td, const VCoreState *s, GpuTcFrame *f);
+/* the next gpu_render_prepared samples c's layers as f says (when g's options have texcache on; f's frame from c, the prep's
+ * frame or one of its in-between pictures). Good for one call, as gpu_use_texdata. A GL side (GpuCore) recreated takes over
+ * the cache when no other took from it, else the cache starts again (a new generation: the older frames draw without it). */
+void gpu_use_tcframe(GpuCore *g, GpuTexCache *c, const GpuTcFrame *f);
+/* the last gpu_render_prepared's polygons that sampled a cache layer (0: it drew without the cache) */
+int gpu_tc_last_polys(const GpuCore *g);
 
 /* milliseconds of the last gpu_render_3d: CPU side (spans, bands, uploads) and the whole call with glFinish */
 void gpu_last_times(const GpuCore *g, double *cpu_ms, double *total_ms);

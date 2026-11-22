@@ -1,0 +1,16 @@
+#!/bin/sh
+# The compiler launcher of linux-ccache.ini: `ccache COMPILER ARGS`, except that a precompiled header (an output named
+# *.pch: meson's `-o X.h.pch -c X.h`, or -emit-pch / -x c-header; not -include-pch X.pch, a use) is compiled without the cache. Clang writes the build dir's
+# absolute path, and the paths of its generated headers (<dir>/subprojects/libntr/gen/nitro/fx/fx_const.h), into a .pch; ccache
+# restores the first writer's .pch in any other dir, and once the writer's dir is deleted every compile using it fails
+# "malformed or corrupted precompiled file: could not find file '<deleted dir>/.../fx_const.h'" (11-21, twice). A generated header
+# in a deleted dir cannot be anchored, so the .pch is never taken from the cache. The objects that use it (-include-pch of the
+# dir's own .pch) are hashed with that .pch as before.
+prev=
+for a in "$@"; do
+  case $prev:$a in
+    -o:*.pch|*:-emit-pch|-x:c-header|-x:c++-header) exec "$@" ;;
+  esac
+  prev=$a
+done
+exec ccache "$@"

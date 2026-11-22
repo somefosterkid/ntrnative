@@ -506,8 +506,13 @@ int vc_span_row(const VC_SpanPoly *sp, int y, VC_Span *out) {
   r->xe = xe;
   r->dxs = dxs;
   r->dxe = dxe;
+  /* at least 1 (a 1-px vertical line: a steep left edge raises xe to Lhi while the vertical right edge's Rrd is xs - 1, so
+   * Rrd - xs + 1 = 0: 0 / 0 = NaN, (int)NaN = INT_MIN on x86, black. The DS gives such a span the left edge's values
+   * (melonDS's interpolator: xdiff 0 returns y0); den 1 does at x = xs, as the measured den = drawn pixels does for a 1-px span) */
   r->den_f = Rrd - xs + 1 + (rvert ? 0 : 1);
+  if (r->den_f < 1) r->den_f = 1;
   r->den_z = xe - xs + 2;
+  if (r->den_z < 1) r->den_z = 1;
   r->Llo = Llo;
   r->Lhi = Lhi;
   r->Rlo = Rlo;

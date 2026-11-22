@@ -34,6 +34,48 @@ directories; tools/port_run.py does it for Linux).
 `python3 tools/run_tests.py [-j N] [NAME ...]` runs every tools/*_tests.py from the repo root (a test that needs the
 ROMs, extract/ or a ~/ref checkout skips itself): one line per file, one summary line, exit 1 on any failure.
 
+## Precompiled prefix and per-game builds (tb3b, 2026-11-20)
+
+- `port/pch/bw_prefix.h` (`#include "port_prefix.h"`) is the precompiled prefix of the Black and White targets (nnsys, entry, game,
+  game_w, entry_w): meson `c_pch`, option `pch` (auto = clang on Linux; `-Dpch=disabled` = off). port_prefix.h is ~75k lines (libntr,
+  SDL2, libc) that every compile re-parsed (1.3 s of a 1.3-1.9 s compile). Cold, Black alone: 745 s CPU -> 55 s. Objects equal to the
+  no-PCH ones with debug info stripped (all Black/White ones checked: 0 differ). The `-fno-pch-timestamp -fno-validate-pch` of
+  port/machine/linux-ccache.ini keep the OBJECTS' ccache keys equal across checkouts. The .pch itself is never cached: the launcher
+  `port/machine/ccache-nopch` runs a `-o X.pch` / `-emit-pch` / `-x c-header` compile without ccache (a cached .pch names its
+  writer's build dir and generated headers, e.g. gen/nitro/fx/fx_const.h, and fails "could not find file" in every other dir once
+  that one is deleted: 11-21, twice). So each build dir makes its own .pch and its objects mostly miss across dirs (2 of 14 hit).
+- Black 2, White 2, Platinum, HeartGold, SoulSilver have a PCH too since tb3c (11-20), by a PROBE library, not c_pch (next bullet is why):
+  `pch/pch_probe.c` (an empty source) compiled as `b2_pchprobe`/`w2_pchprobe`/`pl_pchprobe`/`hg_pchprobe` with the target's flags minus the
+  section `-include` and `c_pch: pch/gen4_prefix.h` (an empty header: what goes into their .pch is their own `-include` list, port_plat.h ...;
+  Black's port_prefix.h is not theirs), a stamp custom_target (`depends: probe`) orders it before the real libraries, which pass
+  `-include-pch libX_pchprobe.a.p/gen4_prefix.h.pch` themselves, their section `-include` AFTER it: clang applies that pragma (it is not
+  among the includes the .pch was made with). Entry libraries and hg_online (other -D/-I) stay without. Every object of an all-games pch=on and
+  a pch=off build compared with `llvm-objcopy --strip-debug` (sha1): 16407 identical, the other 951 are the 4 probes (only in pch=on) and the
+  947 ovltab/ovlmark objects whose NAME and strings hold the build dir (compared by strings with the dir name mapped: 0 differ); section
+  names kept (.plovlbss, .b2machbss ...). Cold all-games build on one BD slot (5 jobs): pch ON wall 171 s, user 545 s, sys 409 s; pch OFF
+  wall 855 s, user 3469 s, sys 916 s (5x). ccache (private cache dir WITH the system config's sloppiness = pch_defines,time_macros copied
+  in: without it every PCH compile says could_not_use_precompiled_header, 17267 of 17405 in a first try), pch on, all games, job 1 on
+  slot6 (empty cache: wall 589 s, 17405 misses), job 2 on slot2 (another checkout path): 16244 hits of 17405 (93.3%), wall 109 s;
+  the 1161 misses are the objects with the build dir in their name (ovltab/ovlmark ...) and the probes.
+- (the old finding, why not c_pch) NOT through c_pch on Black 2, White 2, Platinum, HeartGold, SoulSilver (their c_args carry `-include gnu_*_section.h`, a `#pragma clang section`):
+  clang bakes the PCH-time `-include` list into the .pch and skips the same names when the .pch is used, and the pragma state is not
+  stored in a .pch, so 885 objects put their statics in .bss/.data instead of .plovlbss/.hgovldata (found by comparing every object of
+  a pch=on and a pch=off build with `llvm-objcopy --strip-debug`; the exes differed in .data/.bss by ~300/1000 bytes). Test case:
+  a.c with `static int x[2];`, `-include sec.h` (the pragma) on both the `-x c-header` and the `-include-pch` compile: .bss, not .ovlbss.
+  A way to get them a PCH too: a custom_target that builds the .pch with the target's flags minus the section `-include`, and the
+  compiles pass `-include-pch` themselves (not c_pch). Windows, macOS, Android: no PCH.
+- `-Dgames=black[,white,b2w2,platinum,hgss]` (default all): the exe holds only those games; `tools/port_run.py` with
+  `BWPORT_BUILD_GAMES=black` uses build/port/linux-black. `ninja game-black|game-white|game-b2w2|game-platinum|game-hgss` compiles one game
+  in a build dir that has several. The build dir must be inside the checkout (`asset_gen.process(preserve_path_from: repo)` raises
+  "is not in the subpath" otherwise: that was the "Unhandled python exception" at the all-games configure, not a bug in the option).
+- Pinned sysroot (opt-in, 11-21): `tools/port_sysroot.py make|install|check` (pin: port/machine/sysroot.txt, an 83 MB tar of the
+  Ubuntu 24.04 libc/libstdc++ 13/SDL2/ENet/X11 headers and libraries). `BWPORT_SYSROOT=DIR` makes tools/port_run.py add DIR/native(-ccache).ini
+  to a NEW build dir: clang and clang++ with `--sysroot`, so a 26.04 host compiles against the same headers as a 24.04 one.
+  The sysroot also brings one meson (DIR/bin/meson, the pinned PyPI wheel; port_run.py puts it first in PATH) and sets
+  `__clang_version__`/`__VERSION__` to the pinned clang version: 26.04's meson 1.10 adds -D_GLIBCXX_ASSERTIONS=1 to C++ (24.04's 1.3 doesn't),
+  and Ubuntu's and apt.llvm.org's clang 21.1.8 differ only in that build name (imgui_demo.cpp prints it). With both, one commit's
+  exe is identical (tools/elfhash.py) on a 26.04 and a 24.04 host (11-21). `install TAR DIR MESON_WHEEL`; `check DIR` also checks clang's version.
+
 ## Running
 
 `tools/port_run.py` builds the Linux exe, runs it headless and says in one line how far it got (the last line it
@@ -59,10 +101,9 @@ prints, also in `<out>/verdict.txt`):
 whose call it was, when the place is in libntr or port/src.
 
 - **Build**: `ninja -C build/port/linux bwport`; first `meson setup` when there is no build dir, `meson setup
-  --reconfigure` when port/src or port/exclude.txt changed (a file added or taken out), and `meson subprojects update
-  --reset` before that when a wrap or a packagefiles patch changed (meson applies a wrap's diff_files to a new
-  checkout only; this applies them again, and everything rebuilds: about 1.5 min). On the worker slice. tools/port_wraps.py does
-  this for both port_run.py and `port_win64.sh` (the two build dirs share the checkouts in port/subprojects/).
+  --reconfigure` when port/src or port/exclude.txt changed (a file added or taken out), and the old wrap checkout of libntr
+  is removed once (libntr is in the tree since 2026-11-21: docs/libntr/fold.md; a libntr edit is one file for ninja, no reset, no full
+  rebuild). On the worker slice. tools/port_wraps.py does this for both port_run.py and `port_win64.sh`.
 - **Run**: an Xvfb display of its own (the first free one from :300; the harness needs it for the screenshots and
   keys), the exe under gdb in the run dir (`--dir`, default build/port/run, kept between runs: the ROM is extracted
   once, save.bin stays; `--fresh` removes save.bin, sim_config.ini and imgui.ini), `BWPORT_ROM` (the environment's,
@@ -295,8 +336,7 @@ intro_particle.c:44, which the crash report gave with lines, as Linux did.
 ## The design
 
 - **port/** holds everything PC-only: port/meson.build (the meson project), port/meson.options, port/machine/*.ini,
-  port/subprojects/ (libntr.wrap, libntrsystem.wrap pinned to f6b3a69 and 97fa995; meson clones them at setup into
-  the git-ignored checkouts; packagefiles/ holds our patches), port/include/ (headers), port/src/*.c (each agent's
+  port/subprojects/ (libntr/: upstream f6b3a69 with our patches folded in, docs/libntr/fold.md; the pokebw2/pokeplatinum/pokeheartgold patches), port/include/ (headers), port/src/*.c (each agent's
   own files), port/exclude.txt.
 - **The sources** are tools/port_sources.py's: every C file under src/, lib/gfl, lib/poke_net and lib/spl (SPL, the
   particle library, isn't in libntrsystem) minus port/exclude.txt, plus every port/src/*.c. lib/nitro, lib/twl and
@@ -576,6 +616,11 @@ player's ROM before the game boots. The macOS binary and the IPA too since 2026-
   six legs 80,068; Platinum new-look 19,236), and its gate finds 744 KB (the C's own data: no fill without the ROMs). Black,
   town save, instructions a drawn frame: 12.06 M before (main 9f641177c), 12.07 M after. Pret's Platinum header generators
   need `brew install libpng arm-none-eabi-gcc` on a new Mac.
+- **No private paths in a package.** Every PC build maps the checkout root to `.` (`-ffile-prefix-map` in port/meson.build,
+  one global argument), so `__FILE__` strings and debug info hold `./src/...`, not the builder's absolute paths.
+  `tools/release_check.sh` first runs `tools/release_paths_check.py` (tests: release_paths_check_tests.py) over the
+  package: the builder's home, mount and Windows user-dir paths, build-machine names (its PATTERNS) and the account names in
+  `BWPORT_PRIVATE_NAMES` (comma list), in any member, nested zips too; exit 1 with the hits. A release whose gate lists hits is not published.
 - **The release gate.** `tools/release_check.sh PACKAGE...` runs `tools/rom_leak_check.py --package` (an apk/ipa/zip's
   members, a folder, plain files; every run of >= 48 ROM bytes counts) and exits 1 on any run that is not trivial (a short
   period, or since 11-07 a ramp of 8/16/32-bit elements: code point tables, arm64 jump tables of equal-sized cases) or

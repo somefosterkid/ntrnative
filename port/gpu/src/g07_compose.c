@@ -26,6 +26,15 @@ struct G07 {
   unsigned up;     /* the pack in t_stage / t_src (0: none) */
   uint8_t *rb;
   GpuMtlC *mtl; /* g07_create_metal's: the GL fields are unused */
+  /* the 2D filter (g07_set_up2d; shaders/g11_up.glsl): the style, its programs (analysis, pass C's N x variant; built on
+   * first use, failed = drawn Off), the info texture and what it was made from */
+  int up2d;
+  int hiprec; /* g07_set_hiprec */
+  GLuint up_prog[G07_UP_N][3], fbo_info, t_info; /* [2]: a second analysis stage (MMPX at N >= 3: into t_info from t_info1) */
+  GLuint fbo_info1, t_info1;                     /* the first stage's info when there are two */
+  int up_failed[G07_UP_N];
+  unsigned info_serial;
+  uint32_t info_key[3]; /* style, cCompose, cHave3d */
 };
 
 struct G07Pack {
@@ -168,7 +177,12 @@ void g07_destroy(G07 *c) {
   }
   gpu_gl_program_done(c->prog);
   gpu_gl_program_done(c->prog_plan);
-  GLuint tex[] = {c->t_out, c->t_stage, c->t_src, c->t_3d, c->t_none, c->t_plan, c->t_cap};
+  for (int i = 0; i < G07_UP_N; i++)
+    for (int j = 0; j < 3; j++)
+      if (c->up_prog[i][j]) gpu_gl_program_done(c->up_prog[i][j]);
+  if (c->fbo_info) GL(DeleteFramebuffers)(1, &c->fbo_info);
+  if (c->fbo_info1) GL(DeleteFramebuffers)(1, &c->fbo_info1);
+  GLuint tex[] = {c->t_out, c->t_stage, c->t_src, c->t_3d, c->t_none, c->t_plan, c->t_cap, c->t_info, c->t_info1};
   for (unsigned i = 0; i < sizeof tex / sizeof tex[0]; i++)
     if (tex[i]) GL(DeleteTextures)(1, &tex[i]);
   if (c->fbo) GL(DeleteFramebuffers)(1, &c->fbo);
@@ -227,7 +241,8 @@ static void tex_unit(GLuint prog, int unit, const char *name, GLuint tex) {
 }
 
 /* pass C's uniforms for the frame of s (have3d, smaa: a 3D layer is given, with SMAA's weights) */
-static void uni_compose(GpuU *u, VCoreState *s, int scale, int sc, int have3d, int smaa) {
+static void uni_compose(GpuU *u, const G07 *c, VCoreState *s, int sc, int have3d, int smaa) {
+  int scale = c->scale;
   u32 dispcnt = vc_eng32(s, VC_ENG_A, VC_REG_DISPCNT);
   u16 bld = vc_eng16(s, VC_ENG_A, VC_REG_BLDCNT), alpha = vc_eng16(s, VC_ENG_A, VC_REG_BLDALPHA);
   uint32_t prios = 0;
@@ -235,6 +250,7 @@ static void uni_compose(GpuU *u, VCoreState *s, int scale, int sc, int have3d, i
   int eva = alpha & 0x1F, evb = (alpha >> 8) & 0x1F, evy = vc_eng16(s, VC_ENG_A, VC_REG_BLDY) & 0x1F;
   memset(u, 0, sizeof *u);
   u->cSmaaOn = have3d && smaa;
+  u->uHiPrec = c->hiprec && have3d && sc > 1 ? 2u : 0u;
   u->cScale = scale;
   u->cScale3d = sc;
   u->cHave3d = have3d != 0;
@@ -275,9 +291,89 @@ static int plan_stale(G07 *c, const GpuU *u, unsigned serial) {
   return 1;
 }
 
+void g07_set_hiprec(G07 *c, int on) { c->hiprec = on != 0; }
+void g07_set_up2d(G07 *c, int style) { c->up2d = style > G07_UP_OFF && style < G07_UP_N ? style : G07_UP_OFF; }
+
+int g07_up2d_parse(const char *name) {
+  static const char *const names[G07_UP_N] = {"off", "identity", "scale2x", "mmpx"};
+  for (int i = 0; name != NULL && i < G07_UP_N; i++)
+    if (!strcmp(name, names[i])) return i;
+  return -1;
+}
+
+/* the 2D filter's style in force (0: Off: at 1x, Metal (not yet), or its programs failed), its programs built */
+static int up_style(G07 *c) {
+  int st = c->up2d;
+  if (st == G07_UP_OFF || c->scale == 1 || c->mtl != NULL || c->up_failed[st]) return G07_UP_OFF;
+  if (c->up_prog[st][1]) return st;
+  static const char *const defs[G07_UP_N] = {"", "UP_IDENTITY", "UP_SCALE2X", "UP_MMPX"};
+  char err[2048] = "";
+  /* (static: gpu_gl_program keeps the name pointers in its cache, so a style's names must outlive this call) */
+  static char fa[G07_UP_N][64], fc[G07_UP_N][64];
+  snprintf(fa[st], sizeof fa[st], "g11_up.frag#1+%s", defs[st]);
+  snprintf(fc[st], sizeof fc[st], "g07_compose.frag#1+%s", defs[st]);
+  c->up_prog[st][0] = gpu_gl_program("g00_full.vert", fa[st], err, sizeof err);
+  if (c->up_prog[st][0]) c->up_prog[st][1] = gpu_gl_program("g00_full.vert", fc[st], err, sizeof err);
+  /* MMPX at N >= 3 is MMPX twice (4x): a second 1x stage reads the first's info (shaders/g11_up_mmpx.glsl) */
+  int two = st == G07_UP_MMPX && c->scale >= 3;
+  if (two && c->up_prog[st][1]) c->up_prog[st][2] = gpu_gl_program("g00_full.vert", "g11_up.frag#1+UP_MMPX2", err, sizeof err);
+  for (int i = 0; i < 1 + two && c->up_prog[st][1] && (!two || c->up_prog[st][2]); i++) {
+    GLuint *t = i ? &c->t_info1 : &c->t_info, *fb = i ? &c->fbo_info1 : &c->fbo_info;
+    if (*t) continue;
+    *t = make_tex(GL_RGBA32UI, VC_W, VC_H * 2);
+    GL(TexImage2D)(GL_TEXTURE_2D, 0, GL_RGBA32UI, VC_W, VC_H * 2, 0, GL_RGBA_INTEGER, GL_UNSIGNED_INT, NULL);
+    GL(GenFramebuffers)(1, fb);
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, *fb);
+    GL(FramebufferTexture2D)(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, *t, 0);
+    if (GL(CheckFramebufferStatus)(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) snprintf(err, sizeof err, "info framebuffer");
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
+  }
+  if (two && !c->up_prog[st][2] && !err[0]) snprintf(err, sizeof err, "second stage");
+  if (!c->up_prog[st][1] || err[0]) {
+    fprintf(stderr, "gpu: 2D filter %s: %s (drawn Off)\n", defs[st], err);
+    c->up_failed[st] = 1;
+    return G07_UP_OFF;
+  }
+  return st;
+}
+
+/* pass C's N x program for the frame: Off's, or the style's after its analysis (made again when the plan was, the pack
+ * changed, or the style or what the key reads changed; in-betweens reuse it) */
+static GLuint up_prepare(G07 *c, const GpuU *u, unsigned serial, int plan) {
+  int st = up_style(c);
+
+  if (st == G07_UP_OFF) return c->prog;
+  uint32_t key[3] = {(uint32_t)st, u->cCompose, u->cHave3d};
+  if (plan || serial != c->info_serial || memcmp(key, c->info_key, sizeof key)) {
+    GLenum buf = GL_COLOR_ATTACHMENT0;
+    const int two = c->up_prog[st][2] != 0;
+    GL(BindFramebuffer)(GL_FRAMEBUFFER, two ? c->fbo_info1 : c->fbo_info);
+    GL(DrawBuffers)(1, &buf);
+    gpu_gl_invalidate(1);
+    GL(Viewport)(0, 0, VC_W, VC_H * 2);
+    GL(UseProgram)(c->up_prog[st][0]);
+    tex_unit(c->up_prog[st][0], 0, "uUpPlan", c->t_plan);
+    tex_unit(c->up_prog[st][0], 1, "uUpSrc", c->t_src);
+    gpu_gl_uniforms(u);
+    GL(DrawArrays)(GL_TRIANGLES, 0, 3);
+    if (two) { /* the second stage, from the first's info */
+      GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_info);
+      GL(DrawBuffers)(1, &buf);
+      gpu_gl_invalidate(1);
+      GL(UseProgram)(c->up_prog[st][2]);
+      tex_unit(c->up_prog[st][2], 2, "uUpInfo1", c->t_info1);
+      gpu_gl_uniforms(u);
+      GL(DrawArrays)(GL_TRIANGLES, 0, 3);
+    }
+    c->info_serial = serial;
+    memcpy(c->info_key, key, sizeof key);
+  }
+  return c->up_prog[st][1];
+}
+
 int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa) {
   GpuU u;
-  uni_compose(&u, s, c->scale, sc, tex3d != 0, smaa != 0);
+  uni_compose(&u, c, s, sc, tex3d != 0, smaa != 0);
   int plan = plan_stale(c, &u, k->aserial);
   if (c->mtl != NULL) return gpu_mtl_compose(c->mtl, k->stage, k->src, k->serial, plan, tex3d, smaa, &u);
   if (k->serial != c->up) { /* (the textures keep their size: sub-image uploads) */
@@ -317,15 +413,17 @@ int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, 
     gpu_gl_uniforms(&u);
     GL(DrawArrays)(GL_TRIANGLES, 0, 3);
   }
+  GLuint prog = up_prepare(c, &u, k->serial, plan);
   GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo);
   GL(DrawBuffers)(1, &buf);
   gpu_gl_invalidate(1); /* overwritten whole */
   GL(Viewport)(0, 0, VC_W * c->scale, VC_H * 2 * c->scale);
-  GL(UseProgram)(c->prog);
-  tex_unit(c->prog, 0, "cPlan", c->t_plan);
-  tex_unit(c->prog, 1, "cSrc1x", c->t_src);
-  tex_unit(c->prog, 2, "c3d", tex3d ? tex3d : c->t_stage); /* a bound texture even when unused */
-  tex_unit(c->prog, 3, "cSmaa", tex3d && smaa ? smaa : c->t_none);
+  GL(UseProgram)(prog);
+  tex_unit(prog, 0, "cPlan", c->t_plan);
+  tex_unit(prog, 1, "cSrc1x", c->t_src);
+  tex_unit(prog, 2, "c3d", tex3d ? tex3d : c->t_stage); /* a bound texture even when unused */
+  tex_unit(prog, 3, "cSmaa", tex3d && smaa ? smaa : c->t_none);
+  if (prog != c->prog) tex_unit(prog, 4, "cUpInfo", c->t_info);
   gpu_gl_uniforms(&u);
   GL(DrawArrays)(GL_TRIANGLES, 0, 3);
   GPU_PASS(GPU_PASS_C, 0);
@@ -339,7 +437,7 @@ unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned te
   const int h = VC_H * c->scale;
   if (c->mtl != NULL) {
     GpuU u;
-    uni_compose(&u, s, c->scale, sc, tex3d != 0, smaa != 0);
+    uni_compose(&u, c, s, sc, tex3d != 0, smaa != 0);
     u.cCompose = 1, u.cATop = 1, u.cBright = 0; /* (as below) */
     return gpu_mtl_capsrc(c->mtl, k->serial, plan_stale(c, &u, k->aserial), tex3d, smaa, &u);
   }
@@ -354,7 +452,7 @@ unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned te
     if (st != GL_FRAMEBUFFER_COMPLETE) return 0;
   }
   GpuU u;
-  uni_compose(&u, s, c->scale, sc, tex3d != 0, smaa != 0);
+  uni_compose(&u, c, s, sc, tex3d != 0, smaa != 0);
   u.cCompose = 1; /* the compositor's picture whatever engine A displays, on top (the output's first 192 N rows) */
   u.cATop = 1;
   u.cBright = 0; /* a capture is taken before master brightness */
@@ -373,15 +471,17 @@ unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned te
     gpu_gl_uniforms(&u);
     GL(DrawArrays)(GL_TRIANGLES, 0, 3);
   }
+  GLuint prog = up_prepare(c, &u, k->serial, plan); /* (the same style as the frame: a capture shows what the screen did) */
   GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_cap);
   GL(DrawBuffers)(1, &buf);
   gpu_gl_invalidate(1);
   GL(Viewport)(0, 0, c->w, h);
-  GL(UseProgram)(c->prog);
-  tex_unit(c->prog, 0, "cPlan", c->t_plan);
-  tex_unit(c->prog, 1, "cSrc1x", c->t_src);
-  tex_unit(c->prog, 2, "c3d", tex3d ? tex3d : c->t_stage);
-  tex_unit(c->prog, 3, "cSmaa", tex3d && smaa ? smaa : c->t_none);
+  GL(UseProgram)(prog);
+  tex_unit(prog, 0, "cPlan", c->t_plan);
+  tex_unit(prog, 1, "cSrc1x", c->t_src);
+  tex_unit(prog, 2, "c3d", tex3d ? tex3d : c->t_stage);
+  tex_unit(prog, 3, "cSmaa", tex3d && smaa ? smaa : c->t_none);
+  if (prog != c->prog) tex_unit(prog, 4, "cUpInfo", c->t_info);
   gpu_gl_uniforms(&u);
   GL(DrawArrays)(GL_TRIANGLES, 0, 3);
   GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
@@ -390,6 +490,27 @@ unsigned g07_compose_capsrc(G07 *c, VCoreState *s, const G07Pack *k, unsigned te
 
 unsigned g07_frame_tex(const G07 *c) { return c->mtl != NULL ? gpu_mtl_c_frame_tex(c->mtl) : c->t_out; }
 double g07_gpu_ms(const G07 *c) { return c->mtl != NULL ? gpu_mtl_c_gpu_ms(c->mtl) : 0; }
+
+int g07_up_inputs(G07 *c, VCoreState *s, const G07Pack *k, int sc, int have3d, G07UpIn *in, uint32_t *plan, uint32_t *src) {
+  if (c->mtl != NULL) return -1;
+  GpuU u;
+  uni_compose(&u, c, s, sc, have3d, 0);
+  in->scale = c->scale, in->compose = (int)u.cCompose, in->atop = (int)u.cATop, in->have3d = have3d != 0;
+  in->hofs = u.cHofs, in->evy = u.cEvy, in->bright = u.cBright;
+  memcpy(src, k->src, sizeof k->src);
+  memset(plan, 0, sizeof(uint32_t) * VC_W * VC_H * 2);
+  if (!u.cCompose) return 0;
+  uint32_t *t = malloc(sizeof(uint32_t) * VC_W * VC_H * 4);
+  if (t == NULL) return -1;
+  GL(PixelStorei)(GL_PACK_ALIGNMENT, 4);
+  GL(BindFramebuffer)(GL_FRAMEBUFFER, c->fbo_plan);
+  GL(ReadBuffer)(GL_COLOR_ATTACHMENT0);
+  GL(ReadPixels)(0, 0, VC_W, VC_H, GL_RGBA_INTEGER, GL_UNSIGNED_INT, t);
+  GL(BindFramebuffer)(GL_FRAMEBUFFER, 0);
+  for (int i = 0; i < VC_W * VC_H; i++) plan[2 * i] = t[4 * i], plan[2 * i + 1] = t[4 * i + 1];
+  free(t);
+  return GL(GetError)() == GL_NO_ERROR ? 0 : -1;
+}
 
 void g07_read_frame(G07 *c, uint8_t *rgba) {
   if (c->mtl != NULL) {

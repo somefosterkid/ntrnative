@@ -531,3 +531,152 @@ coverage-0 pixels under the DS's antialiasing (gpu_fastdiff did not see them in 
   MTL_DEBUG_LAYER=1 clean (gpu_fastdiff and the game); the GL forms of g10_fast.frag compile in glslang (ES 3.00 fetch, GL 4.50
   interlock); no GL here runs Fast.
 - **Not checked**: Smooth motion's in-betweens while walking (the T-junction dots docs/interp.md suspected), the phone.
+
+## Dark slivers on Platinum's town ground (2026-11-19): Fast with AA off
+
+Reported in Twinleaf Town (Renderer gpu, Resolution 1, AA off, Fast; iOS Metal and Windows Mesa Zink alike): small dark vertical
+slivers on the sand and grass, a few a screen, moving with the camera; Exact draws none. Captures: 43 frames of the play
+platinum/town-walk (BWPORT_VCAPTURE, every 40th frame of the walk), gpu_fastdiff on GL (Mesa llvmpipe, framebuffer fetch).
+
+Two causes in the grown pixels (section above), both shared code:
+1. **Gaps along left silhouettes** (most of it, and the vertical shape). A Y-major left edge grew 1/2 a pixel; the DS's left pixel is
+   the floored x, so where the edge's x had a fraction over 1/2 and no neighbour lay on that side, Fast left the column empty and the
+   black below the 3D layer showed (one capture: x 135, rows 46-75 at 1x, a ground polygon's nearly vertical left edge). Fix: grow_poly
+   moves Y-major top/left edges by 63/64 (X-major stays 7/8): any fraction takes the floored column, never the one left of it.
+2. **Specks from edge-on polygons** (props seen almost edge-on: 1 pixel wide, 10 tall, the depth steep across them). (a) Each fan
+   triangle tested only polygon edges i - 1, i, i + 1; the fan's shared vertex 0 grows out of edges 0 and nv - 1, so a quad's
+   second triangle reached past edge 0 without the grown-pixel rule (no + 256). g10_fast.vert / g10_fastgl.vert now pass edges 0
+   and nv - 1 too (vE3, vE4). (b) A grown pixel's depth came from extrapolating that steep plane, thousands of steps nearer than
+   the polygon at its edge, and it beat the ground behind. g10_fast.frag now takes the depth (z, or w with w-buffering) at the
+   nearest edge along its minor axis (the planes' screen derivatives, taken before any branch) when that is farther.
+
+Numbers (gpu_fastdiff, AA off, the 43 captures; gaps = Exact covers, Fast leaves empty; extras = Fast draws a polygon Exact shows
+nowhere, or where Exact has none, its new count) and the specks (fk2's count, below):
+
+| scale | before: gaps / extras / differ mean | after |
+| --- | --- | --- |
+| 1x | 111 / 631 / 8.69 % | 2 / 342 / 8.53 % |
+| 3x | 276 / 387 / 4.15 % | 0 / 192 / 4.00 % |
+
+The extras left are single pixels where two polygons' depths nearly tie (the "close" interpolation), not slivers. Exact: the
+exact pictures of gpu_fastdiff byte-identical before and after (3x, AA off and 4 samples); 4 samples' Fast unchanged (it does not
+grow). Not run here: the intro captures (none on this machine), Metal (the msl/ files must be regenerated:
+`tools/gpu_msl.py gen GLSLANG SPIRV_CROSS`, no SPIRV-Cross on Linux here), the GL interlock path (llvmpipe takes fetch).
+
+### Green and dark specks after the slivers (2026-11-19, fk2)
+
+Seen on the same Twinleaf screens (Windows, Fast, Resolution 1, AA off): thin green vertical slivers on the sand paths and sand
+coloured ones on the grass, dark specks along the top screen's top row, more of both while walking. Captures: 213 frames of
+town-walk, every 8th frame of f7500-9200 ("standing": 24-39 frames after a step's key, "walking": the rest). gpu_fastdiff counts
+**specks** now: a Fast pixel whose colour (or emptiness) is 8+ steps from every Exact pixel in its 3 x 3 neighbourhood (`--polys`
+lists each with both polygons, coverages and whether the raster colour words match). Three causes, all in Fast with AA off:
+1. **Grown pixels textured past the polygon** (the green slivers). A grown column's texture coordinates and colour were the planes
+   extrapolated past the edge: a sand tile's floored left column sampled the texel beyond its own S range, the grass column at
+   the texture's other side (wrap). g10_fast.frag now takes them just inside the nearest edge (1/64 of a pixel along its minor
+   axis, the planes' screen derivatives), as it does the depth.
+2. **Coverage half a pixel short** (the half-blended columns: a grey or sand edge with the ground below showing through). The
+   triangles sit half a pixel down and right of the DS's grid (vertices at px + 0.5: the GPU samples the DS's grid at the pixel's
+   top-left corner), but the coverage was 1/2 + the distance at the sample. The DS's (p16 aa_edge / gpu_s32_aa_covx) is 1/2 + the
+   distance at its pixel's centre, half a pixel on in both axes: a vertical left edge's column had 15 (DS: 31, no AA on vertical and
+   flat edges), a Y-major left edge's next column too little. The fragment takes the edges at gl_FragCoord + 1/2 for the coverage
+   (floor(32 (d + 1/2)), 0..31); a grown pixel gets that coverage too unless nothing is below it yet (then 31, the gaps' rule).
+3. **The top row's edge marks** (case 2). A flat top's row is edge pixels on the DS (p16 adds a flat edge's run), so Exact edge-marks
+   the row 0 of every polygon clipped at the screen's top (the dark line along the top). g10_fast.c gave flat tops no edge
+   function ("never near"), so only the pixels of sloped edges' runs got marks: scattered dark specks. With AA off a flat top is a
+   real edge now (its row has coverage 31 with 2.); 4 samples keeps the old rule (its pictures unchanged).
+
+Walking (case 3) adds no cause of its own: the same three, at other places as the camera moves (the counts below are per class).
+Building walls at grazing angles and trees (case 4): not separated here; the remaining specks are mostly "same coverage, other
+raster colour" (texture coordinate rounding on minified textures, trees) that Exact draws differently too.
+
+Numbers (gpu_fastdiff, AA off; gaps / extras / specks / differ mean):
+
+| 213 captures | before (aabb6a209) | after |
+| --- | --- | --- |
+| 1x standing (84) | 4 / 666 / 14089 / 8.51 % | 4 / 668 / 6369 / 7.10 % |
+| 1x walking (129) | 5 / 973 / 21683 / 8.54 % | 5 / 974 / 9731 / 7.12 % |
+| 3x standing | 0 / 370 / 116779 / 4.00 % | 0 / 358 / 17734 / 3.36 % |
+| 3x walking | 15 / 625 / 183360 / 4.03 % | 15 / 613 / 28434 / 3.39 % |
+
+At 1x the specks of the top row went 4162 -> 213, green-on-sand / sand-on-green (the slivers' colours) 3546 / 1149 -> 680 / 190.
+Exact: the exact pictures byte-identical before and after (4 captures, 1x and 3x, AA off and 4 samples); 4 samples' Fast pictures
+identical too. Not run: Metal (regenerate msl/: `tools/gpu_msl.py gen GLSLANG SPIRV_CROSS` on the Mac), the battle intro's mesh
+captures (the gap rule kept: a grown pixel over nothing keeps 31).
+Next: a pixel with coverage 0 (a right edge whose x fraction is near 0: the DS does not draw it with AA on, p16's `last = pp - 1`)
+is drawn by Fast and blended to the colour below (394 specks at 1x, "cov 0/31"): skip such pixels when DISP3DCNT's AA bit is set.
+
+### Dotted black lines with 4 samples (2026-11-19, fk3)
+
+Seen on Windows (Fast, Resolution 4, 4 samples, Twinleaf standing): vertical dotted black lines along tile edges beside the paths
+and fences. Exact with 4 samples draws none (gpu_fastdiff's pictures of the same captures). Cause: the same as AA off's gaps
+(section "The gaps between polygons" above), on the 2N grid. "No gaps with 4 samples" held only where two polygons share an edge
+exactly; where a vertex of one lies mid-way along the other's edge, the GPU's top-left rule left single samples empty between
+them, and with the game's edge marking on each empty sample (the clear's ID, far depth) marked its neighbours with the edge colour:
+a small dark cross every few rows. gpu_fastdiff's gaps count did not see it (it counts output pixels, and the other samples of the
+pixel were covered); its probe showed the empty sample (depth ffffff, the clear's word) beside the tile's edge.
+
+Fix, in g10_fast4.frag / g10_fast4.vert (shared Metal and GL text): a filled polygon's top and left edges grow on the 2N grid as
+AA off's on the N grid (7/8 of a 2N pixel X-major, 63/64 Y-major; the fan's inner edges do not grow). A sample outside the
+triangle but inside the grown polygon is a grown sample: its depth is the polygon's at the nearest edge if that is farther, + 256
+(it loses to a polygon at its depth drawn before or after it), and over a sample nothing has drawn yet it keeps coverage 31. The
+vertex shader grows a top or left polygon edge's triangle by 3 (|A| + |B|) instead of 1.5 so that those samples get fragments.
+Also a flat top is a real edge with 4 samples now (g10_fast.c; it was "never near", which also let the first form grow past it
+unbounded), and a flat edge leaves the coverage alone (31: the DS's AA does not act on flat edges): Exact edge-marks every
+polygon's top row clipped at the screen's top, Fast drew only scattered specks there (about 1900 specks a capture at 4x).
+
+Numbers (gpu_fastdiff, 4 samples, the 213 town-walk captures; specks / differ mean; gaps and extras 0 throughout):
+
+| 213 captures, 4 samples | before (61718be4a) | grown samples | and flat tops |
+| --- | --- | --- | --- |
+| 1x standing (84) | 28627 / 7.92 % | 24987 / 7.72 % | 15549 / 6.90 % |
+| 1x walking (129) | 43939 / 7.93 % | 39071 / 7.76 % | 23808 / 6.92 % |
+| 4x standing | 411488 / 2.86 % | 259708 / 2.59 % | 50495 / 2.14 % |
+| 4x walking | 636131 / 2.86 % | 406911 / 2.60 % | 78245 / 2.14 % |
+
+At 4x the dark specks (Fast near black where Exact is not) of two captures went 816 / 1226 -> 4 / 5, the top rows' 1895 / 2654 -> 0.
+Exact: the exact pictures byte-identical before and after (4 captures, 1x and 4x, AA off and 4 samples); AA off's Fast pictures
+identical too (the change acts on 4 samples only). Not run: Metal (regenerate msl/ on the Mac: `tools/gpu_msl.py gen GLSLANG
+SPIRV_CROSS`, the g10_fast4 forms), the GL interlock path (llvmpipe takes fetch), the battle intro's captures.
+Left (plan): fk2's coverage-0 pixels with AA off (g10_fast.frag near `oS = a;`: skip an edge pixel with px.cov == 0 when
+`(uDisp3d & 0x10u) != 0u`, measured with the speck count); a grown pixel over nothing keeping 31 (battle-intro captures from a
+route save to test the DS's coverage instead); the holder's wall garbling at grazing angles and tree shimmer (compare Exact first).
+
+### Coverage 0 and grown pixels over nothing (2026-11-19, fk4)
+
+Captures: the 213 town-walk ones and two new sets, Platinum's wild battle (play platinum/r202-wild from pt-catch: the grass
+transition and the battle field, f7900-8100, 27 captures; its 3D has no DS antialiasing, so neither change acts there) and
+Black's (play black/route1-battle, f400-700 every 4th, 76 captures: the encounter mesh's zoom at f484 and the battle field).
+1. **Coverage-0 edge pixels** (AA off, the DS's antialiasing on): p16 ends a right edge's span before a column of coverage 0;
+   g10_fast.frag drew it and blended it to the colour below. A filled polygon's real edge pixel (not grown, not a dot) with
+   coverage 0 now draws nothing. Town at 1x: specks 16100 -> 15567, extras 1642 -> 1354; 3x specks 46168 -> 45352.
+2. **A grown pixel over nothing kept coverage 31** (AA off). In Black's battle field a dark polygon's grown column stayed
+   opaque over the farther polygon drawn later, where the DS blends its edge pixel into that one: dark specks (1502 at 1x
+   over the 76). The DS's coverage alone brought the encounter mesh's black dotted line back (f484 at 2x: the grown pixel
+   over the clear, its neighbour never covering it). Now the grown pixel keeps the DS's coverage and is marked F_GROWN
+   (g00_head.glsl, flags bit 5, set only by g10_fast.frag); g06_post's antialiasing gives it alpha 31 when nothing lies behind
+   it (the farthest neighbour has alpha 0), so the gap case keeps its whole colour and the other blends as the DS does.
+   Black's 76 at 1x / 2x: specks 12228 / 89178 -> 10814 / 86371, dark specks 1502 / 3037 -> 144 / 246, no dotted line at
+   f484; town 1x specks 15567 -> 14821 (dark 9 -> 9), 3x 45352 -> 44568, differ mean 3.33 -> 3.30 %.
+   4 samples: g10_fast4.frag's grown sample over an unwritten one now keeps the DS's coverage too (no flag: the Metal direct
+   form has no spare bit, and the 4 samples leave no gaps): town 1x specks 39357 -> 39197, 4x 128740 -> 127739, Black's 1x
+   16852 -> 16398, dark 0 throughout.
+Exact: byte-identical before and after (6 captures, town and Black's battle, 1x and 4x, AA off and 4 samples). gpu_glsl_check
+PASS (GL ES fetch on Mesa, GL interlock in glslang). Not run: Metal (regenerate msl/ on the Mac: g00_head.glsl changes every
+program's text; g06_post, g10_fast, g10_fast4), the Windows exe (Zink, interlock).
+Item 4 (wall garbling at grazing angles, tree shimmer while walking) not reached: compare Fast and Exact with --crop on the
+walking captures at 4x, 4 samples, first.
+
+### Grazing building walls and tree shimmer: Exact does the same (2026-11-19, fk5)
+
+The holder's last two Twinleaf reports (Windows, Fast, Resolution 4, 4 samples): (a) the thin strip of a building's side wall at
+grazing angles looks garbled, (b) trees shimmer while walking. gpu_fastdiff --crop on fk2's town-walk captures (GL, Mesa llvmpipe,
+framebuffer fetch), consecutive walking frames f7540-7564 (the camera moving left: the west house's side wall and the east tree
+wall), f7700-7716 (a chimney's side) and f8508-8532, at 4x with 4 samples and at 1x with AA off. Fast's pictures are Exact's:
+the plank stripes of the side wall and the chimney's side break up into the same jagged runs in both (the DS's texture
+coordinates on a strip a few pixels wide that spans many texels: no mipmaps, one texel per sample), and the trees' texels jump
+the same way from frame to frame. Share of crop pixels where Fast differs (any / 8+ six-bit steps): side wall 4x 3.3-6.0 % /
+0.7-1.6 %, 1x 15-18 % / 1.5-4.4 %; trees 4x 1.6-1.8 % / 0.6-1.1 %, 1x 2.3-6.5 % / 1.3-3.0 %; the 4x differences are single
+samples where a texel boundary lands one sample over (texture coordinates in fp32 against the DS's integer steps) and, along a
+silhouette, Exact's dark outline is dashed where Fast's is solid. No change. Not seen here: the Windows exe's own GL path
+(Zink with fragment interlock: llvmpipe has no interlock, so gpu_fastdiff falls back to Exact when fetch is turned off); if the
+holder still sees garbling only with Fast there, capture the frame (BWPORT_VCAPTURE) on that machine and run gpu_fastdiff on it.

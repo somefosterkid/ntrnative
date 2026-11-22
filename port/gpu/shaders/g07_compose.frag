@@ -79,7 +79,8 @@ uint c_3d(ivec2 p) {
   uvec4 t = cSmaaOn != 0u ? smaa_blend(c3d, cSmaa, q) : texelFetch(c3d, q, 0);
   uint a = t.a & 31u;
   if (a == 0u) return 0u;
-  return (t.r & 63u) | ((t.g & 63u) << 8) | ((t.b & 63u) << 16) | (a << 24) | (((t.a >> 5) & 7u) << 29);
+  uint m = (uHiPrec & 2u) != 0u ? 255u : 63u; // Color=full: bits 6-7 of each are two fraction bits (g06_post.frag p_out)
+  return (t.r & m) | ((t.g & m) << 8) | ((t.b & m) << 16) | (a << 24) | (((t.a >> 5) & 7u) << 29);
 }
 #endif
 
@@ -194,6 +195,7 @@ uint c_planned(ivec2 d, ivec2 q) {
   return c;
 }
 
+#ifndef UP
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
   int N = cScale, sh = 192 * N;
@@ -206,6 +208,71 @@ void main() {
   uint c = isA && cCompose != 0u ? c_planned(d, q) : texelFetch(cSrc1x, ivec2(d.x, d.y + (isA ? 0 : 192)), 0).r;
   uint r = c & 63u, g = (c >> 8) & 63u, b = (c >> 16) & 63u;
   uvec3 v8 = uvec3((r << 2) | (r >> 4), (g << 2) | (g >> 4), (b << 2) | (b >> 4));
+  if ((uHiPrec & 2u) != 0u) v8 = min(v8 + ((uvec3(c, c >> 8, c >> 16) >> 6) & 3u), uvec3(255u)); // (c_v8)
   oColor = vec4(vec3(v8) / 255.0, 1.0);
 }
+#endif // UP
+#ifdef UP
+// A 2D filter's N x pass (g11_up.glsl): the style's up_pick says which DS pixel(s) the N x pixel shows; each is finished
+// as c_planned does, with the 3D layer read once, at the N x pixel q. (Off's program above stays as it was: tools/gpu_msl.py
+// leaves the UP blocks out of the non-UP programs' text.)
+uniform highp usampler2D cUpInfo; // 256 x 384 RGBA32UI: g11_up.frag's, engine order (rows 0-191 engine A, 192-383 B)
+
+// c_planned with the 3D layer's pixel given (l3d: c_3d(q), read once for both candidates; any value where the rank is 0)
+uint c_planned3(uvec2 pl, uint l3d) {
+  uint c0 = pl.x & 0xFFFFFFu, rank = (pl.x >> 24) & 3u;
+  if (rank == 0u) return c0;
+  int a = int((l3d >> 24) & 31u);
+  if (a == 0) return c0;
+  uint t = l3d & 0xFFFFFFu, s = pl.y & 0xFFFFFFu, e = (pl.y >> 24) & 3u;
+  if (rank == 2u) return e == 1u ? c_bright(c_blend_alpha(s, t, int(pl.y >> 26), int(pl.x >> 26))) : s;
+  if (e == 1u) return c_bright(c_blend_3d(t, s, a));
+  uint c = c_bright(e == 2u ? c_blend_bright(t, cEvy) : e == 3u ? c_blend_dark(t, cEvy) : t);
+  int k = int(l3d >> 29);
+  if (k != 0)
+    c = c_mk((c_r(c) * (8 - k) + c_r(c0) * k + 4) >> 3, (c_g(c) * (8 - k) + c_g(c0) * k + 4) >> 3,
+             (c_b(c) * (8 - k) + c_b(c0) * k + 4) >> 3);
+  return c;
+}
+
+uvec3 c_v8(uint c) {
+  uint r = c & 63u, g = (c >> 8) & 63u, b = (c >> 16) & 63u;
+  uvec3 v = uvec3((r << 2) | (r >> 4), (g << 2) | (g >> 4), (b << 2) | (b >> 4));
+  // Color=full: the 3D pixel's fraction bits (c_3d; only a 3D pixel shown as it is keeps them, the blends drop them) add their
+  // quarter steps; with none, the DS's 6-bit value as before
+  return (uHiPrec & 2u) != 0u ? min(v + ((uvec3(c, c >> 8, c >> 16) >> 6) & 3u), uvec3(255u)) : v;
+}
+
+// the N x pixel q (DS pixel d, sub-pixel centre f in 1 / 2N steps) of engine A (isA) or B: the pick's candidates, mixed in
+// 8 bits by w / 64 (deterministic integers)
+uvec3 up_apply(ivec2 d, ivec2 q, ivec2 f, bool isA) {
+  int y0 = isA ? 0 : 192;
+  UpPick k = up_pick(texelFetch(cUpInfo, ivec2(d.x, d.y + y0), 0), f, cScale);
+  ivec2 dA = clamp(d + k.dA, ivec2(0), ivec2(255, 191)), dB = clamp(d + k.dB, ivec2(0), ivec2(255, 191));
+  uint cA, cB;
+  if (isA && cCompose != 0u) {
+    uvec2 plA = texelFetch(cPlan, dA, 0).xy, plB = k.w != 0 ? texelFetch(cPlan, dB, 0).xy : plA;
+    uint l3d = ((plA.x | plB.x) & (3u << 24)) != 0u ? c_3d(q) : 0u; // (as c_planned: the 3D only where it can show)
+    cA = c_planned3(plA, l3d);
+    cB = k.w != 0 ? c_planned3(plB, l3d) : cA;
+  } else {
+    cA = texelFetch(cSrc1x, ivec2(dA.x, dA.y + y0), 0).r;
+    cB = k.w != 0 ? texelFetch(cSrc1x, ivec2(dB.x, dB.y + y0), 0).r : cA;
+  }
+  uvec3 v = c_v8(cA);
+  if (k.w != 0) v = (v * uint(64 - k.w) + c_v8(cB) * uint(k.w) + 32u) >> 6;
+  return v;
+}
+
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy);
+  int N = cScale, sh = 192 * N;
+  bool topHalf = p.y < sh;
+  ivec2 q = ivec2(p.x, topHalf ? p.y : p.y - sh);
+  ivec2 d = ivec2((vec2(q) + 0.5) / float(N)); // (as Off's main)
+  bool isA = topHalf == (cATop != 0u);
+  uvec3 v8 = up_apply(d, q, 2 * (q - d * N) + 1, isA);
+  oColor = vec4(vec3(v8) / 255.0, 1.0);
+}
+#endif // UP
 #endif

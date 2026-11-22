@@ -14,6 +14,10 @@ mkdir -p "$ROOT/build"
 PY=${BWPORT_PYTHON:-python3}
 [ -z "${BWPORT_PYTHON:-}" ] && ! python3 -c 'import numpy' 2> /dev/null && [ -x "$HOME/bw-cache/venv/bin/python3" ] && PY=$HOME/bw-cache/venv/bin/python3
 "$PY" -c 'import numpy' 2> /dev/null || { echo "release_check: REFUSED: $PY has no numpy (set BWPORT_PYTHON)"; exit 2; }
+# every game of the launcher's table is in each package (11-19: v0.2.1 / v0.2.2 shipped without Platinum): a missing game refuses it
+python3 "$ROOT/tools/release_games.py" "$@" || { echo "release_check: REFUSED: a game is missing from the package"; exit 1; }
+# no private build paths or machine names in the binaries (the builds map the checkout root to ".": port/meson.build)
+python3 "$ROOT/tools/release_paths_check.py" "$@" || { echo "release_check: REFUSED: the package holds private paths or names"; exit 1; }
 "$PY" "$ROOT/tools/rom_leak_check.py" --package "$@" --detail "$ROOT/build/release_check.tsv"
 rc=$?
 if [ $rc = 0 ]; then

@@ -1,4 +1,4 @@
-# the subprojects' checkouts (meson clones them from the wraps at setup); packagefiles/ holds our patches to them
+# the subproject checkouts meson makes (libntr: port/subprojects/libntr.wrap) are ignored
 /subprojects/*/
 !/subprojects/packagefiles/
 /subprojects/packagecache/

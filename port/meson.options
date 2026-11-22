@@ -9,6 +9,8 @@ option('tracy_enable', type: 'boolean', value: false, yield: true)
 # The PC build's own
 option('rom_dir', type: 'string', value: '',
        description: 'the folder of the base ROMs the link\'s ROM fill reads (tools/port_romfill.py); default <repo>/orig, Apple tools/mac_rom.sh\'s; an empty folder: a build with no ROM')
+option('dev_fast', type: 'boolean', value: false,
+       description: 'a dev/slot build\'s short relink (tools/port_run.py sets it for a new build dir; BWPORT_FULL_LINK=1 does not): no ROM fill (the exe holds the game data as compiled and takes the rows from the ROM at start, as a build with no ROM), the undefined set from the last link while the changed objects\' symbol names are unchanged (tools/port_undefined.py --cache), line-tables-only debug info. Gate and release builds leave it off')
 option('allow_undefined', type: 'boolean', value: true,
        description: 'link the exe even with undefined symbols (they resolve to address 0: a call to one faults)')
 option('platinum', type: 'boolean', value: true,
@@ -17,6 +19,12 @@ option('hgss_cov', type: 'boolean', value: false,
        description: 'HG/SS function coverage for the crash sweep (tools/hg_sweep.py): the module compiled with -fsanitize-coverage=func,inline-bool-flag,pc-table, port/game/hg_cov.c writes BWPORT_HG_COV')
 option('hgss', type: 'boolean', value: true,
        description: 'build Pokemon HeartGold\'s and SoulSilver\'s hg.o (docs/hgss.md; pret\'s C and data) into the exe (-Dhgss=false leaves it out). The ROMs (orig/baserom_hg_us.nds, baserom_ss_us.nds), when they are there, give its overlay addresses and fill its data')
+option('games', type: 'array', choices: ['black', 'white', 'b2w2', 'platinum', 'hgss'], value: ['black', 'white', 'b2w2', 'platinum', 'hgss'],
+       description: 'which games the exe holds (default: all). -Dgames=black builds Black alone: about a third of the compile steps and no HG/SS or Platinum generator at configure; it ANDs with the per-game options below (platinum, hgss, b2w2, white). Black is always built; the tools name it too (tools/port_run.py BWPORT_GAMES=black: build/port/linux-black)')
+option('pch', type: 'feature', value: 'auto',
+       description: 'a precompiled prefix header per game target (clang .pch from the target\'s own flags, port/pch/): auto = on for clang on Linux; -Dpch=disabled compiles the prefix in every file as before')
+option('nitro_header', type: 'boolean', value: false,
+       description: 'with -Db_pch=false (no libntr .pch): force libntr\'s include/pch/nitro_pch.h into every C compile, as the .pch did. For the sysroot builds (tools/port_sysroot.py): a .pch names the dir it was made in, and ccache then cannot preprocess the .c files that use a cached one')
 option('lld', type: 'feature', value: 'auto',
        description: 'link the Linux exe with lld (-fuse-ld=lld) instead of GNU ld: about half the link time; auto = when the compilers can (apt install lld)')
 option('b2w2', type: 'feature', value: 'auto',

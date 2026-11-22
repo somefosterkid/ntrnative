@@ -24,6 +24,8 @@ typedef struct {
     void (*frameHook)(void);                 // at each V-blank wait (Platinum's: BWPORT_PLATTRACE, port/game/game_table.c)
     unsigned char *(*sndHeapFn)(void);       // sndHeap for a game that keeps its sound heap in a struct, not a global (Platinum's
                                              // SoundSystem, port/game/game_table.c): where the heap is, once the program runs
+    void (*saveReload)(void);                // read save.bin again into the boot's save data (port/src/title_fork.c's forked
+                                             // leg, its own working directory); NULL: the game read it after the fork point
 } PortGame;
 
 extern const PortGame bwgame;       // Black: port/game/game_table.c

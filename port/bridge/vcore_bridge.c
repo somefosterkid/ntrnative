@@ -571,6 +571,22 @@ const unsigned char *bwport_render_now(void) {
   return BridgeFrame();
 }
 
+/* port/src/title_fork.c, before its fork(): the worker drawing the last frame joined (its thread is not in the child, and
+ * the child's next drawn frame would wait for it for ever); the frame it drew is shown next, as the skip path above does */
+void bwport_vcore_fork_prepare(void) {
+  if (sInflight) {
+    vcore_task_join(&sThread);
+    sInflight = 0;
+    sHeld = sShown = &sSlot[sCur ^ 1];
+  }
+}
+
+/* and in the child: the task pool's and both states' rasterizer threads were the parent's */
+void bwport_vcore_forked(void) {
+  vcore_task_forked();
+  for (int i = 0; i < 2; i++) vcore_forked(sSlot[i].s);
+}
+
 /* libntr (libntr-switchcheck.patch): Renderer or Resolution changed to the GPU path, which draws from now on: give back
  * the N x frames (~180 MB a slot at 8x) and the states. Runs on the render thread; a worker still drawing is joined. */
 static void BridgeIdle(void) {

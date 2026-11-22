@@ -47,7 +47,16 @@ static void PlatPinLC(void) {
 #include "screen_fade.h"
 #include "sound.h"
 #include "sound_playback.h"
+#include "savedata.h"
+#include "save_player.h"
+#include "game_options.h"
 u32 LCRNG_GetSeed(void);
+// title_fork.c's leg forked at the title: its own save.bin read into the boot's SaveData (main.c's SaveData_Init, before the
+// title), and the sound mode its options say (SoundSystem_Init took it from the boot's save)
+static void PlatSaveReload(void) {
+    SaveData_PortReload();
+    Sound_SetPlaybackMode(SaveData_GetOptions(SaveData_Ptr())->soundMode);
+}
 static void PlatFrameHook(void) {
     static FILE *f;
     static int state;
@@ -92,7 +101,7 @@ __attribute__((section(".bwhro"))) static const char plCode[] = "CPUE";
 #endif
 const PortGame pl_bwgame = {plCode, PlatMain, NULL, SOUND_SYSTEM_HEAP_SIZE, MTRNG_SetSeed, &bwovl_count, bwovl_ds, bwovl_dptr, bwovl_bptr,
     .ovlBattle = 16, .ovlEncFirst = 16, .ovlEncLast = 16, .ovlBag = 13, .ovlParty = 13, .pinLC = PlatPinLC, .sndHeapFn = PlatSndHeap,
-    .frameHook = PlatFrameHook};
+    .frameHook = PlatFrameHook, .saveReload = PlatSaveReload};
 #elif defined(HEARTGOLD)
 #include "sound.h"   // pret's: SND_HEAP_SIZE, GetSoundDataPointer
 void SetMTRNGSeed(u32 seed);   // pret's src/math_util.c (u32: unsigned long on win64's libntr types, not unsigned)
@@ -158,12 +167,21 @@ static void SsMain(void) {
     HG_SETENV("BWPORT_MUSICPLAYERS", "82");
     NitroMain();
 }
+// title_fork.c's leg forked at the title: its own save.bin read into the boot's SaveData (main.c's SaveData_New, before the
+// title; pokeheartgold-zsavereload.patch), and the mono flag its options say (InitSoundData took it from the boot's save)
+#include "save.h"
+#include "player_data.h"
+#include "sound.h"
+static void HgSaveReload(void) {
+    SaveData_PortReload();
+    GF_SndSetMonoFlag(Save_PlayerData_GetOptionsAddr(SaveData_Get())->soundMethod);
+}
 const PortGame hg_bwgame = {"IPKE", HgMain, NULL, SND_HEAP_SIZE, SetMTRNGSeed, &bwovl_count, bwovl_ds, bwovl_dptr, bwovl_bptr,
     .ovlBattle = 12, .ovlEncFirst = 12, .ovlEncLast = 12, .ovlBag = 11, .ovlParty = 11, .pinLC = HgPinLC, .sndHeapFn = HgSndHeap,
-    .frameHook = HgFrameHook};
+    .frameHook = HgFrameHook, .saveReload = HgSaveReload};
 const PortGame ss_bwgame = {"IPGE", SsMain, NULL, SND_HEAP_SIZE, SetMTRNGSeed, &bwovl_count, bwovl_ds, bwovl_dptr, bwovl_bptr,
     .ovlBattle = 12, .ovlEncFirst = 12, .ovlEncLast = 12, .ovlBag = 11, .ovlParty = 11, .pinLC = HgPinLC, .sndHeapFn = HgSndHeap,
-    .frameHook = HgFrameHook};
+    .frameHook = HgFrameHook, .saveReload = HgSaveReload};
 #else
 #if defined(BLACK2)
 const PortGame b2_bwgame = {"IREO",

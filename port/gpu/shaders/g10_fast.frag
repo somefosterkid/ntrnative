@@ -35,7 +35,13 @@ G10_VARY(4) flat in int vF;
 G10_VARY(5) flat in vec3 vE0; // the fan triangle's polygon edges (g10_fast.vert)
 G10_VARY(6) flat in vec3 vE1;
 G10_VARY(7) flat in vec3 vE2;
+G10_VARY(8) flat in vec3 vE3; // polygon edges 0 and nv - 1: grow_poly moves the fan's shared vertex 0 out of both, so every fan
+G10_VARY(9) flat in vec3 vE4; // triangle reaches past them (a quad's second triangle missed edge 0: no grown-pixel rule there)
 void main() {
+  // the planes' steps a pixel (before any branch: the 2 x 2 quad's derivatives), for a grown pixel's depth at its edge (below)
+  vec2 dz = vec2(dFdx(gl_FragCoord.z), dFdy(gl_FragCoord.z)), dw = vec2(dFdx(vW), dFdy(vW));
+  vec2 dsx = dFdx(vSt), dsy = dFdy(vSt);
+  vec3 dcx = dFdx(vCol), dcy = dFdy(vCol);
   uvec4 a = G10_LOAD;
   int k = vK;
   GPixel S;
@@ -58,25 +64,56 @@ void main() {
   // a filled polygon's edge pixel: a 4-neighbour outside (an edge less than a pixel away along its minor axis), its coverage the
   // part of the pixel inside along that axis (the DS's coverage is the covered fraction too; its formula is p16's)
   vec3 q = vec3(gl_FragCoord.xy, 1.0);
-  float d = min(min(dot(vE0, q), dot(vE1, q)), dot(vE2, q));
+  float d0 = dot(vE0, q), d1 = dot(vE1, q), d2 = dot(vE2, q), d3 = dot(vE3, q), d4 = dot(vE4, q);
+  float d = min(min(min(d0, d1), min(d2, d3)), d4);
+  // the nearest edge's normal: 1 a pixel along its minor axis
+  vec2 en = d == d0 ? vE0.xy : d == d1 ? vE1.xy : d == d2 ? vE2.xy : d == d3 ? vE3.xy : vE4.xy;
+  // the coverage: the DS's pixel x covers [x, x + 1) of its own grid, and the triangles sit half a pixel down and right of it (the
+  // GPU samples the DS's grid at the pixel's top-left corner), so its centre is half a pixel on in both axes; the DS's coverage is
+  // 1/2 + that centre's distance inside the edge (p16's aa_edge: Y-major 1 - the row centre's x fraction on the floored column,
+  // X-major 15 + 32 times the distance in N 16ths; a vertical or flat edge 31). d + 1/2 here was half a pixel short: a vertical
+  // left edge's column had 15 and showed the ground below it half through (slivers on Platinum's paths, 2026-11-19 fk2)
+  float dc = min(min(min(d0 + 0.5 * (vE0.x + vE0.y), d1 + 0.5 * (vE1.x + vE1.y)), min(d2 + 0.5 * (vE2.x + vE2.y), d3 + 0.5 * (vE3.x + vE3.y))),
+                 d4 + 0.5 * (vE4.x + vE4.y));
   if (d < 1.0) {
     px.edge = true;
-    px.cov = uint(clamp(d + 0.5, 0.0, 1.0) * 31.0 + 0.5);
+    px.cov = uint(clamp(floor((dc + 0.5) * 32.0), 0.0, 31.0));
   }
   // outside the polygon: a grown top or left edge's pixel (src/g10_fast.c grow_poly) filling a gap between two neighbours; it loses
-  // to a polygon at its depth drawn before or after it (as an edge pixel it would take the pixel at an equal depth) and keeps its
-  // whole colour (coverage 0 drew black dots under the DS's antialiasing)
-  if (d < -1.0 / 512.0) {
-    px.depth = min(px.depth + 256u, 16777215u);
-    px.cov = 31u;
+  // to a polygon at its depth drawn before or after it (as an edge pixel it would take the pixel at an equal depth). Its coverage is
+  // the DS's for that column (above), and it is marked F_GROWN: where nothing lies behind it in the end, g06_post's antialiasing
+  // keeps its whole colour (coverage 0 drew black dots where the neighbour drawn later does not cover it: Black's battle intro);
+  // with something behind it blends to that as the DS's edge pixel does (it kept coverage 31 over a pixel nothing had drawn yet
+  // until 2026-11-19, fk4: a dark polygon's grown column stayed opaque over the farther one drawn later, dark specks in Black's
+  // battle field). Its depth is never nearer than the polygon's at the
+  // edge (the point on the edge along its minor axis, as the DS takes an edge pixel's values from the edge): the plane of a
+  // polygon seen almost edge-on (1 pixel wide, its depth steep across) pulled the grown column thousands of steps nearer, and
+  // it covered the ground behind it as dark slivers (Platinum's town, 2026-11-19). Its texture coordinates and colour are the
+  // polygon's just inside that edge too: extrapolated past it they sampled the texel beyond the polygon's own (a sand tile's grown
+  // column showed the grass column at the other side of its texture: green slivers on the paths, 2026-11-19 fk2)
+  bool grown = d < -1.0 / 512.0;
+  if (grown) {
+    vec2 to = abs(en.x) >= abs(en.y) ? vec2(-d / en.x, 0.0) : vec2(0.0, -d / en.y);
+    uint ze = (uSwap & 2u) != 0u ? uint(clamp(vW + dot(dw, to) + 0.5, 0.0, 16777215.0))
+                                 : uint(clamp(gl_FragCoord.z + dot(dz, to), 0.0, 1.0) * 16777215.0 + 0.5);
+    px.depth = min(max(px.depth, ze) + 256u, 16777215u);
+    vec2 ti = abs(en.x) >= abs(en.y) ? vec2((1.0 / 64.0 - d) / en.x, 0.0) : vec2(0.0, (1.0 / 64.0 - d) / en.y);
+    px.st = ivec2(floor(vSt + dsx * ti.x + dsy * ti.y + 1e-3));
+    px.rgb = uvec3(clamp(ivec3(floor((vCol + dcx * ti.x + dcy * ti.y + 1e-3) / 8.0)), ivec3(0), ivec3(63)));
   }
   oS = a;
+  // an edge pixel of coverage 0 under the DS's antialiasing (DISP3DCNT bit 4): the DS does not draw it (p16's aa_edge: a right
+  // edge's column whose x fraction is near 0 ends the span one pixel before it), Fast blended it to the colour below (specks of
+  // the colour under the polygon along right edges, Platinum's town 2026-11-19 fk4). Filled polygons only (dots have coverage 0
+  // and are drawn); a grown pixel keeps its rule (above)
+  if ((uDisp3d & 0x10u) != 0u && (vF & 3) == 0 && px.edge && px.cov == 0u && d >= -1.0 / 512.0) return;
   if (!g_early(S, k, px)) return;
   uvec4 col = g_texture(k, px, uvec4(px.rgb, g_poly(k, 1).w));
   g_plot(S, k, px, col);
   uvec4 o = uvec4(S.depth, S.opaque_id | (S.trans_id << 8) | (S.flags << 16) | (S.cov << 24),
                   S.color.r | (S.color.g << 8) | (S.color.b << 16) | (S.color.a << 24), S.last);
   if (o != a) o = uvec4(o.x, (o.y & 0xFFFFFFu) | (px.cov << 24), o.z, uint(k)); // changed: this polygon's coverage and index
+  if (grown && o != a && ((o.y >> 16) & F_TRANS) == 0u) o.y |= F_GROWN << 16;
   oS = o;
 }
 #ifdef G10_IMAGE

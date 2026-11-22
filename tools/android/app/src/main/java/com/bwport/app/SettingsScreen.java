@@ -52,13 +52,14 @@ public final class SettingsScreen {
 
     // ---- the rows (ios_settings.m's BWRow) ----------------------------------------------------------------------------------------
 
-    private static final int MENU = 0, SWITCH = 1, SEGMENT = 2, SLIDER = 3, INFO = 4, ACTION = 5;
+    private static final int MENU = 0, SWITCH = 1, SEGMENT = 2, SLIDER = 3, INFO = 4, ACTION = 5, SUB = 6;
 
     private static final class Row {
         int kind;
         String key, title, detail;
         String[] options, subtitles;
         int[] values;
+        Section[] page;   // SUB: the sections of the sub-page this row opens
     }
 
     private static final class Section {
@@ -86,6 +87,12 @@ public final class SettingsScreen {
         Row r = row(SEGMENT, key, title);
         r.options = opts;
         r.values = new int[] {0, 1};
+        return r;
+    }
+
+    private static Row sub(String title, Section... page) {
+        Row r = row(SUB, null, title);
+        r.page = page;
         return r;
     }
 
@@ -119,19 +126,7 @@ public final class SettingsScreen {
             resv[n - 1] = n;
             ress[n - 1] = (256 * n) + " x " + (384 * n);
         }
-        return new Section[] {
-            section("Display",
-                menu("renderer", "Renderer", new String[] {"Auto", "CPU (vcore)", "GPU"}, new int[] {0, 1, 2}, null),
-                menu("resolution", "Resolution", res, resv, ress),
-                menu("antialias", "Antialiasing", new String[] {"Off", "4 samples", "SMAA"}, new int[] {0, 1, 2}, null),
-                menu("renderer3d", "3D renderer", new String[] {"Exact", "Fast"}, new int[] {0, 1},
-                     new String[] {"The DS's 3D bit for bit", "The GPU's own rasterizer: much cheaper, slightly off at polygon edges"}),
-                row(SWITCH, "smooth", "Smooth motion")),
-            section("Look at 2x and above",
-                menu("filter", "Texture filter", new String[] {"Nearest", "Bilinear"}, new int[] {0, 1}, null),
-                menu("line", "Lines", new String[] {"Wide", "Thin"}, new int[] {0, 1}, null),
-                menu("edge", "Edge marking", new String[] {"DS width", "Fine"}, new int[] {0, 1}, null)),
-            section("Speed",
+        Section speed = section("Speed",
                 menu("ffspeed", "Fast-forward speed", new String[] {"2x", "3x", "4x", "Max"}, new int[] {2, 3, 4, 5}, null),
                 menu("battlespeed", "Battle speed", new String[] {"Off", "2x", "3x", "4x"}, new int[] {1, 2, 3, 4}, null),
                 menu("textspeed", "Text speed", new String[] {"Game", "Faster", "Fastest", "Instant"}, new int[] {0, 1, 2, 3}, null),
@@ -140,18 +135,32 @@ public final class SettingsScreen {
                 menu("runspeed", "Run speed", new String[] {"Normal", "2x", "4x"}, new int[] {1, 2, 4}, null),
                 menu("surfspeed", "Surf speed", new String[] {"Normal", "2x", "4x"}, new int[] {1, 2, 4}, null),
                 menu("savespeed", "Save speed", new String[] {"Off", "2x", "4x"}, new int[] {1, 2, 4}, null),
-                row(SWITCH, "skipslow", "Skip frames when slow"),
-                row(SWITCH, "musicnormal", "Music at normal speed")),
+                row(SWITCH, "musicnormal", "Music at normal speed"));
+        Section rendering = section("Rendering",
+                menu("renderer", "Renderer", new String[] {"Auto", "CPU (vcore)", "GPU"}, new int[] {0, 1, 2}, null),
+                menu("resolution", "Resolution", res, resv, ress),
+                menu("antialias", "Antialiasing", new String[] {"Off", "4 samples", "SMAA"}, new int[] {0, 1, 2}, null),
+                menu("renderer3d", "3D renderer", new String[] {"Exact", "Fast"}, new int[] {0, 1},
+                     new String[] {"The DS's 3D bit for bit", "The GPU's own rasterizer: much cheaper, slightly off at polygon edges"}),
+                menu("texsmooth", "Texture smoothing", new String[] {"Off", "Bilinear", "Mipmaps"}, new int[] {0, 1, 2}, null),
+                menu("filter2d", "2D filter", new String[] {"Off", "Scale2x", "MMPX"}, new int[] {0, 1, 2}, null),
+                menu("line", "Lines", new String[] {"Wide", "Thin"}, new int[] {0, 1}, null),
+                menu("edge", "Edge marking", new String[] {"DS width", "Fine"}, new int[] {0, 1}, null),
+                row(SWITCH, "fog", "Fog"),
+                row(SWITCH, "color", "Colour"),
+                row(SWITCH, "smooth", "Smooth motion"),
+                row(SWITCH, "skipslow", "Skip frames when slow"));
+        return new Section[] {
+            section("", sub("Speed", speed), sub("Rendering", rendering)),
             section("Sound",
                 row(SLIDER, "volume", "Volume"),
                 menu("soundquality", "Sound quality", new String[] {"DS (exact)", "Enhanced"}, new int[] {0, 1},
                      new String[] {"Exactly the DS's output", "Smoother and cleaner"})),
             section("Controller",
                 row(SWITCH, "hidetouch", "Hide touch controls when a controller is connected")),
-            section("Performance overlay",
-                row(SWITCH, "overlay", "Show overlay"),
-                segment("corner", "Corner", new String[] {"Top left", "Top right"}),
-                segment("detail", "Detail", new String[] {"Compact", "Detailed"})),
+            section("Metrics",
+                menu("metrics", "Metrics", new String[] {"Off", "Compact", "Detailed"}, new int[] {0, 1, 2}, null),
+                segment("corner", "Corner", new String[] {"Top left", "Top right"})),
             section("About",
                 info("Build", versionName(mAct)),
                 info("Device", Build.MANUFACTURER + " " + Build.MODEL),
@@ -172,13 +181,15 @@ public final class SettingsScreen {
                 int r = nativeGet("renderer");
                 return r == 2 || (r == 0 && nativeGet("active") == 2);
             }
-            case "filter":
+            case "texsmooth":
+            case "filter2d":
+            case "fog":
+            case "color":
             case "line":
             case "edge":
                 return nativeGet("resolution") > 1;
             case "corner":
-            case "detail":
-                return nativeGet("overlay") != 0;
+                return nativeGet("metrics") != 0;
             default:
                 return true;
         }
@@ -186,20 +197,19 @@ public final class SettingsScreen {
 
     private static String footer(String section) {
         switch (section) {
-            case "Display": {
+            case "Rendering": {
                 String st = nativeStatus();
                 String note = enabled("antialias") ? "" : "\nAntialiasing and the 3D renderer need the GPU renderer.";
                 String why = nativeGet("renderer3d") == 1 ? nativeFast3DWhyNot() : null;
                 if (why != null) note += "\n3D renderer Fast: not on this GPU (" + why + "); the exact renderer draws.";
-                return "Drawing now: " + st + note + "\nSmooth motion draws the game's 30 fps 3D scenes at the screen's rate (up to 120) and backs off by itself "
+                return "Drawing now: " + st + note + "\nTexture smoothing, 2D filter, Lines, Edge marking, Fog and Colour act at Resolution 2x and above. "
+                    + "Smooth motion draws the game's 30 fps 3D scenes at the screen's rate (up to 120) and backs off by itself "
                     + "when the game falls behind. The picture rate is automatic: 60 with it off.";
             }
             case "Sound":
                 return "DS (exact) is the sound as the DS makes it: each sample held until the next and a 10-bit output, a little crunchy with "
                     + "its aliasing and noise floor. Enhanced interpolates the samples and keeps the mix at 16 bits: smoother, cleaner highs. "
                     + "The game itself plays the same.";
-            case "Look at 2x and above":
-                return nativeGet("resolution") > 1 ? null : "These act at Resolution 2x and above.";
             case "Speed":
                 return "Play is at normal speed. The fast-forward button next to the controls switches to this speed; Max runs as fast as the "
                     + "game can, showing at most the screen's rate. Skipping drops pictures, never game time. Sound effects follow the speed; "
@@ -223,6 +233,8 @@ public final class SettingsScreen {
     private ScrollView mScroll;
     private LinearLayout mList;
     private Section[] mSections;
+    private Row mPage;            // the open sub-page's row, null = the root
+    private TextView mTitle, mBack;
 
     private SettingsScreen(Activity a) {
         mAct = a;
@@ -272,7 +284,17 @@ public final class SettingsScreen {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setPadding(dp(20), dp(4), dp(8), dp(4));
+        mBack = text("‹ Back", 18, BLUE);
+        mBack.setTypeface(Typeface.DEFAULT_BOLD);
+        mBack.setGravity(Gravity.CENTER);
+        mBack.setMinHeight(dp(48));
+        mBack.setPadding(dp(8), 0, dp(12), 0);
+        mBack.setContentDescription("Back");
+        mBack.setOnClickListener(v -> goBack());
+        mBack.setVisibility(View.GONE);
+        bar.addView(mBack, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)));
         TextView title = text("Settings", 28, TEXT);
+        mTitle = title;
         title.setTypeface(Typeface.DEFAULT_BOLD);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         TextView done = text("Done", 18, BLUE);
@@ -295,6 +317,13 @@ public final class SettingsScreen {
 
         d.setContentView(root);
         d.setCanceledOnTouchOutside(false);
+        d.setOnKeyListener((dlg, code, ev) -> {
+            if (code == android.view.KeyEvent.KEYCODE_BACK && mPage != null) {
+                if (ev.getAction() == android.view.KeyEvent.ACTION_UP) goBack();
+                return true;
+            }
+            return false;
+        });
         d.setOnDismissListener(x -> {
             sCurrent = null;
             nativeClosed();
@@ -316,14 +345,26 @@ public final class SettingsScreen {
         return t;
     }
 
+    private void goBack() {
+        mPage = null;
+        mScroll.scrollTo(0, 0);
+        mList.post(this::render);
+    }
+
     /** Builds every section again from the native values (the rows that grey out others, the footers, the choices shown). */
     private void render() {
         final int keep = mScroll.getScrollY();
         mList.removeAllViews();
-        for (Section s : mSections) {
-            TextView h = text(s.title.toUpperCase(), 13, DIM);
-            h.setPadding(dp(16), dp(24), dp(16), dp(6));
-            mList.addView(h);
+        mTitle.setText(mPage == null ? "Settings" : mPage.title);
+        mBack.setVisibility(mPage == null ? View.GONE : View.VISIBLE);
+        for (Section s : mPage == null ? mSections : mPage.page) {
+            if (s.title.length() > 0 && mPage == null) {
+                TextView h = text(s.title.toUpperCase(), 13, DIM);
+                h.setPadding(dp(16), dp(24), dp(16), dp(6));
+                mList.addView(h);
+            } else {
+                mList.addView(new View(mCtx), new LinearLayout.LayoutParams(1, dp(16)));
+            }
 
             LinearLayout card = new LinearLayout(mCtx);
             card.setOrientation(LinearLayout.VERTICAL);
@@ -355,7 +396,7 @@ public final class SettingsScreen {
 
     private void change(String key, int v) {
         nativeSet(key, v);
-        if (key.equals("renderer") || key.equals("resolution") || key.equals("overlay") || key.equals("smooth")) {
+        if (key.equals("renderer") || key.equals("resolution") || key.equals("metrics") || key.equals("smooth")) {
             mList.post(this::render);
         }
     }
@@ -465,6 +506,18 @@ public final class SettingsScreen {
                 lp.leftMargin = dp(8);
                 row.addView(sb, lp);
                 row.addView(pct);
+                break;
+            }
+            case SUB: {
+                TextView ch = text("›", 24, DIM);
+                ch.setPadding(dp(12), 0, dp(4), 0);
+                row.addView(ch);
+                row.setTag("sub:" + r.title);
+                row.setOnClickListener(v -> {
+                    mPage = r;
+                    mScroll.scrollTo(0, 0);
+                    mList.post(this::render);
+                });
                 break;
             }
             case INFO: {

@@ -60,6 +60,10 @@ ROUTE_TRACE=1 (env, with -j 1) a table of each leg's phases and their seconds (r
 --remote [M]  (any command above: look, add, legs, --chain) the same run on a free slot of another machine M (auto, laptop, bd,
               local) with this worktree's uncommitted changes; its output, route-file edits, work files, saves and README lines come
               back here, and a last line names the machine (tools/route_remote.py, docs/route-writer.md)
+ROUTE_LEGCACHE=DIR (env; the merge rounds set their own) a leg whose result is in the leg cache (tools/legcache.py: the game's
+              inputs, the leg's line, its start save, these options and ROUTE_LEGCACHE_KLASS, default the host name) is not run:
+              its line says CACHED, its table row is the stored one, its end save comes from the cache; a leg that passed is stored.
+              Off with --no-cache, --repeat, --shot, --map, --learn, --store/--replace, --gdb, ROUTE_GDB, BWPORT_ROUTES_DIR
 --store       keep a leg's produced save in the saves library, under a NEW name only; --replace NAME may overwrite
               NAME when it is a b2-* or w2-* test save. Nothing else is ever overwritten (n-before.bin never)
 --shot N      a screenshot at V-blank N (also hashed in the line); N,N,...: one each, at least 9 frames apart (RUN_WORK/GAME-LEG-N.png)
@@ -89,10 +93,12 @@ G:zone:N      in a leg's tokens: expanded before the run into the G:warp:Z hops 
               write `zone 0 0,0`, run, read the line, check it is where the keys should end)
 """
 import argparse
+import atexit
 import hashlib
 import os
 import re
 import shutil
+import signal
 import struct
 import subprocess
 import sys
@@ -186,8 +192,24 @@ def read_legs(game):
         if len(f) < 4:
             sys.exit(f"{game}.txt:{n}: need name | start | pilot | end")
         f += ["-", ""][len(f) - 4:]
-        legs.append({"name": f[0], "start": f[1], "pilot": expand_repeats(f[2]), "end": f[3], "save": f[4], "flags": f[5].split()})
+        legs.append({"name": f[0], "start": f[1], "pilot": expand_repeats(f[2]), "end": f[3], "save": f[4], "flags": f[5].split(),
+                     "line": " | ".join(f)})   # (legcache.py's key)
     return legs
+
+
+def prepare_run_dir(run, base):
+    """A fresh copy of the route-cache base at run. A symlinked run (a leftover) is unlinked (rmtree refuses symlinks and
+    ignore_errors hid it: the copy then went into the link's target); the base's CONTENTS are copied (cp base/. run) so a
+    symlinked base can never make run a link; a run that resolves inside the base is refused (the copy would write the cache)."""
+    base = Path(base).resolve()
+    if run.is_symlink():
+        run.unlink()
+    shutil.rmtree(run, ignore_errors=True)
+    real = run.resolve()
+    if real == base or base in real.parents:
+        raise RuntimeError(f"route: run dir {run} resolves inside the route-cache base {base}: refusing to start the leg")
+    run.mkdir(parents=True)
+    subprocess.run(["cp", "-a" if LINUX else "-cR", str(base) + "/.", str(run)], check=True)
 
 
 def base_root(game):
@@ -202,7 +224,7 @@ def base_root(game):
         tmp = CACHE / f"routebase-{game}.tmp{os.getpid()}"
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.mkdir(parents=True)
-        env = dict(os.environ, BWPORT_LCTEST=f"importrom={ORIG / rom}", SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
+        env = dict(os.environ, BWPORT_LCTEST=f"importrom={ORIG / rom}", DBUS_SESSION_BUS_ADDRESS="disabled:", SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
         subprocess.run([game_build(game).EXE], cwd=tmp, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if not (tmp / folder / "header.bin").exists():
             shutil.rmtree(tmp, ignore_errors=True)
@@ -512,9 +534,8 @@ def run_leg(game, leg, args, produced, st=None, tag="", under_gdb=False):
     run = WORK / f"run-{game}-{leg['name']}"
     log = WORK / f"{game}-{name}.log"
     WORK.mkdir(parents=True, exist_ok=True)
-    shutil.rmtree(run, ignore_errors=True)
+    prepare_run_dir(run, base_root(game))
     trace("leg start")
-    subprocess.run(["cp", "-a" if LINUX else "-cR", str(base_root(game)), str(run)], check=True)
     trace("root copied")
     pin_mac(run)
     start = leg["start"]
@@ -599,6 +620,7 @@ def run_leg(game, leg, args, produced, st=None, tag="", under_gdb=False):
     env.pop("BWPORT_MAPDUMP_FULL", None)
     if getattr(args, "full_map", False):
         env["BWPORT_MAPDUMP_FULL"] = "1"
+    snapshot_env(game, start, pilot, env, cmd, run)
     t0 = time.time()
     with open(log, "w") as lf:
         subprocess.run(cmd, env=env, stdout=lf, stderr=subprocess.STDOUT)
@@ -724,7 +746,109 @@ def arg_parser():
                     help="frame skip: the picture one frame in N (default 8; a leg flagged noskip stays at 1). Linux")
     ap.add_argument("--gpu", action="store_true",
                     help="GALLIUM_DRIVER=d3d12: the game draws on the GPU through WSL's D3D12 (default: llvmpipe). Linux")
+    ap.add_argument("--no-cache", action="store_true", help="run every leg even with ROUTE_LEGCACHE set")
     return ap
+
+
+def leg_cache(args):
+    """the leg cache's settings for this run (ROUTE_LEGCACHE), or None: off for a run that wants the leg played"""
+    if not os.environ.get("ROUTE_LEGCACHE") or args.no_cache or args.repeat or args.shot or args.map or args.full_map or args.learn \
+            or args.store or args.replace or args.gdb or os.environ.get("ROUTE_GDB") or os.environ.get("BWPORT_ROUTES_DIR"):
+        return None
+    import legcache
+    import socket
+    return {"dir": os.environ["ROUTE_LEGCACHE"], "inp": legcache.inputs(ROOT), "klass": os.environ.get("ROUTE_LEGCACHE_KLASS") or socket.gethostname(),
+            "opt": legcache.opts(args.fast_opts, args.cheat, args.skip, args.cap, args.hang, args.gpu), "mod": legcache, "ids": {}}
+
+
+def cache_key(lc, g, leg, chained):
+    """the leg's key (None: no start save); CHAINED: a start save this run made counts (lc["ids"]: save name -> its id)"""
+    L, s = lc["mod"], leg["start"]
+    if s == "NEWGAME":
+        sid = L.start_id()
+    elif chained and s in lc["ids"]:
+        sid = lc["ids"][s]
+    elif (SAVES / f"{s}.bin").exists():
+        sid = L.start_id((SAVES / f"{s}.bin").read_bytes())
+    else:
+        return None
+    return L.key(lc["inp"], g, leg["line"], sid, lc["opt"], lc["klass"])
+
+
+def cache_hit(lc, g, leg, k, produced):
+    """a stored pass for key K (its end save written to WORK and put in PRODUCED): the entry, or None"""
+    L = lc["mod"]
+    e = L.get(lc["dir"], g, k) if k else None
+    if e is None or e["verdict"] not in L.PASS:
+        return None
+    if leg["save"] != "-":
+        b = L.save_bytes(lc["dir"], e["save"]) if e["save"] not in ("", "?") else None
+        if b is None:
+            return None
+        out = WORK / f"{g}-{leg['name']}.save.bin"
+        WORK.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b)
+        produced[leg["save"]] = out
+        lc["ids"][leg["save"]] = L.start_id(leg_key=k)
+    return e
+
+
+# The title snapshot (on by default, ROUTE_SNAPSHOT=0 turns it off; Linux; PLAN B2, port/src/title_fork.c): a leg from a save starts from a game parked at the title (a fork
+# server, one per game and set of boot-time options) instead of booting: the V-blank before the save start's first wait ends
+FORK_AT = {"pt": 6290, "hg": 7690, "ss": 7690}
+SNAP_LOCK = threading.Lock()
+SNAP_SERVERS = set()   # the servers' sockets: ended when route.py is (snapshot_stop)
+# each leg's own (the child takes the leg's): read after the fork point, or at each use (BWPORT_WARP_HINTS: route_map.c WarpHint)
+SNAP_PER_LEG = ("BWPORT_PILOT", "BWPORT_MAPDUMP", "BWPORT_FORK_PIDFILE", "DISPLAY", "BWPORT_WARP_HINTS", "BWPORT_FORK_CTL")
+atexit.register(lambda: snapshot_stop())
+for _sig in (signal.SIGTERM, signal.SIGHUP):   # atexit does not run on a signal's death: end the servers, then die by it
+    signal.signal(_sig, lambda n, f: (snapshot_stop(), signal.signal(n, signal.SIG_DFL), os.kill(os.getpid(), n)))
+
+
+def snapshot_env(game, start, pilot, env, cmd, run):
+    """The title snapshot (unless ROUTE_SNAPSHOT=0): env gets the fork server's socket for this leg (when it can use one): the key is everything the boot
+    can read that is not the leg's own (SNAP_PER_LEG, the run dir): the environment and port_run.py's options"""
+    if os.environ.get("ROUTE_SNAPSHOT") == "0" or not LINUX or game not in FORK_AT or start == "NEWGAME" \
+            or not pilot.startswith(SAVE_START[game] + " ") or under_gdb_cmd(cmd):
+        return
+    keep = sorted((k, v) for k, v in env.items() if k not in SNAP_PER_LEG)
+    per_leg = ("--dir", "--out", "--save")   # (--save: the child reads its own save again, PortGame.saveReload)
+    opts = [a for a, b in zip(cmd, [""] + cmd) if b not in per_leg and a not in per_leg]
+    key = hashlib.sha1(repr((str(WORK), game, keep, opts)).encode()).hexdigest()[:16]
+    sock = f"/tmp/bwsnap-{key}.sock"   # (a unix socket's path: at most 107 bytes)
+    sdir = WORK / f"snap-{game}-{key}"
+    with SNAP_LOCK:
+        if not sdir.exists():   # the server's own run dir: this leg's as it starts (route.py removes a leg's run dir)
+            subprocess.run(["cp", "-a", str(run), str(sdir) + ".tmp"], check=True)
+            os.rename(str(sdir) + ".tmp", sdir)
+            with open(WORK / f"snap-{key}.key", "w") as f:   # what the key is made of (two keys: diff their files)
+                f.write("".join(f"{k}={v}\n" for k, v in keep) + "opts " + " ".join(opts) + "\n")
+        SNAP_SERVERS.add(sock)
+    env.update(BWPORT_FORK_AT=str(FORK_AT[game]), BWPORT_FORK_SERVER=sock, BWPORT_FORK_SERVER_DIR=str(sdir))
+    env.setdefault("BWPORT_FORK_IDLE", "30")
+    env.setdefault("BWPORT_FORK_CTL", str(os.getpid()))
+
+
+def under_gdb_cmd(cmd):
+    return "--no-gdb" not in cmd   # a leg under gdb boots by itself (gdb sees the client only)
+
+
+def snapshot_stop():
+    for sock in sorted(SNAP_SERVERS):
+        try:
+            os.kill(int(open(sock + ".pid").read().split()[0]), 9)
+        except (OSError, ValueError, IndexError):
+            pass
+        try:   # the server's own log (its boot, one line per leg it forked) stays with the legs': RUN_WORK/snap-KEY.log
+            key = os.path.basename(sock)[len("bwsnap-"):-len(".sock")]
+            shutil.move(sock + ".log", str(WORK / f"snap-{key}.log"))
+        except OSError:
+            pass
+        for f in (sock, sock + ".pid", sock + ".lock"):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
 
 
 def main():
@@ -766,8 +890,10 @@ def main():
         return
     if LINUX and not args.no_build:
         ensure_exe(games[0])
+    lc, cached = leg_cache(args), []
     for g in sorted({g for g, _ in jobs}):
-        base_root(g)   # serial: the first run of a game imports its ROM
+        if not (lc and args.chain):   # (a cached chain: the first leg that runs imports it, serial too)
+            base_root(g)   # serial: the first run of a game imports its ROM
     produced, bad, t0 = {}, 0, time.time()
     summary, peaks = {}, []
     waits = save_waits(jobs, {p.stem for p in SAVES.glob("*.bin")})
@@ -786,6 +912,14 @@ def main():
 
     def run_one(g, leg):
         st = {}
+        k = cache_key(lc, g, leg, args.chain or leg.get("dep")) if lc else None
+        e = cache_hit(lc, g, leg, k, produced) if k else None
+        if e is not None:
+            print(f"{g} {leg['name']}: {e['verdict']} CACHED v={e['frames']} {e['secs']:.0f}s ({e['made']})", flush=True)
+            cached.append(leg["name"])
+            return g, e["verdict"], (leg["name"], e["frames"], e["secs"], e["verdict"]), None
+        if lc and args.chain:
+            base_root(g)
         try:
             leg = zone_leg(g, leg, args, produced)   # G:zone:N tokens, expanded once for every run of the leg
         except ValueError as e:
@@ -793,6 +927,11 @@ def main():
         else:
             verdict, where, out = run_leg(g, leg, args, produced, st)
         st["verdict"] = verdict
+        if k and verdict in lc["mod"].PASS:
+            lc["mod"].put(lc["dir"], g, k, leg["name"], verdict, st.get("v"), st.get("secs", 0.0),
+                          out.read_bytes() if out is not None else None if leg["save"] == "-" else "?", "route.py " + time.strftime("%F %T"))
+            if out is not None:
+                lc["ids"][leg["save"]] = lc["mod"].start_id(leg_key=k)
         note = ""
         if out is not None and (args.store or args.replace):
             note = " " + store(leg["save"], out, args.replace)
@@ -852,7 +991,7 @@ def main():
         peak, where = max((p, w) for p, w in peaks if p is not None)
         print(f"open files: peak {peak} at once ({where}), {len([1 for p, _ in peaks if p is not None])} legs")
     print(f"{ok}/{n} ok in {time.time() - t0:.0f} s; {frames} game frames in {legsecs:.0f} leg seconds"
-          + (f" ({frames / legsecs:.0f} frames/s)" if legsecs else ""))
+          + (f" ({frames / legsecs:.0f} frames/s)" if legsecs else "") + (f"; {len(cached)} leg(s) CACHED" if cached else ""))
     differ = [1 for _, _, _, same in results if same is False]
     if args.repeat:
         print(f"repeat x{args.repeat + 1}: {sum(1 for *_, same in results if same)}/{n} legs SAME" + (f", {len(differ)} DIFFERENT" if differ else ""))

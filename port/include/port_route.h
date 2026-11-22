@@ -135,5 +135,8 @@ int PortRoute_CheatFieldMove(const char *game, unsigned move);
 // BWPORT_PILOT="tokens" presses the keys (port/src/route_test.c's header has the tokens)
 void PortRoute_Frame(const PortRouteState *st);
 void PortRoute_VBlank(void);   // port/src/main_threads.c: the pilot before the field's first frame
+// port/src/title_fork.c's forked leg: the pilot goes on in the leg's own BWPORT_PILOT, at the same offset (the tokens before
+// the fork point are the same in every leg that shares the snapshot; a leg whose differ ends with "rebase")
+void PortRoute_PilotRebase(const char *full);
 
 #endif

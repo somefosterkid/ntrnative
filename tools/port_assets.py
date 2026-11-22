@@ -36,6 +36,7 @@ name a function or table of the game, as the ROM build's .inc does). Those names
 record, field, the C text: names only), which `ptrs` writes from a ROM build when tools/asset.py --move adds a row with a
 pointer field (White's .inc name the same symbols: `ptrs` checks it when White's ROM build is there).
 """
+import os
 import re
 import subprocess
 import sys
@@ -135,12 +136,31 @@ def inc_dirs(top):
 DIRS = inc_dirs(ROOT / "src")   # the source being rewritten's (write_src, list)
 
 
+LOCAL = {}    # local()'s answers: (dir of the includer, name, the include dirs) -> path or None (the same few headers, over and over)
+RESOLVED = {}   # Path.resolve()'s answers (a lstat per path component each time)
+
+
+def resolved(p):
+    r = RESOLVED.get(p)
+    if r is None:
+        r = RESOLVED[p] = Path(p).resolve()
+    return r
+
+
 def local(path, inc):
     """The file `#include "inc"` in path names: beside it, else in the game's include dirs (port/meson.build's order)."""
-    for d in [Path(path).parent] + DIRS:
-        if (d / inc).is_file():
-            return (d / inc).resolve()
-    return None
+    parent = Path(path).parent
+    key = (parent, inc, tuple(DIRS))
+    if key in LOCAL:
+        return LOCAL[key]
+    found = None
+    for d in [parent] + DIRS:   # (os.path on strings: pathlib's is_file costs 10x the stat for the many misses)
+        p = os.path.join(d, inc)
+        if os.path.isfile(p):
+            found = resolved(Path(p))
+            break
+    LOCAL[key] = found
+    return found
 
 
 HAS = {}   # includes_asset's answers (one DIRS per process): the sources share most headers
@@ -148,7 +168,7 @@ HAS = {}   # includes_asset's answers (one DIRS per process): the sources share 
 
 def includes_asset(path, seen=None):
     seen = set() if seen is None else seen
-    path = Path(path).resolve()
+    path = resolved(Path(path))
     if path in HAS:
         return HAS[path]
     if path in seen or not path.exists():
@@ -247,15 +267,17 @@ def ctype(spec):
     return words[-1] if words else ""
 
 
+OUTDIR = None   # write_src: the directory of the generated source (local headers are named relative to it)
+
+
 def shown(p):
     """A path as #line gives it: relative to the build dir meson runs the generator in, as its compile lines name sources."""
-    import os
     return os.path.relpath(p).replace(os.sep, '/')   # (Windows: a backslash in a #line string is an escape)
 
 
 def rewrite(path, deps, found, top=True):
     """The text of path for the build dir: asset declarations without const, .c includes inlined, local headers absolute."""
-    path = Path(path).resolve()
+    path = resolved(Path(path))
     deps.append(path)
     text = path.read_text(errors="replace")
     # the text with comments, strings and character constants blanked (same offsets), for finding declarations
@@ -362,7 +384,7 @@ def rewrite(path, deps, found, top=True):
             nl = text.count("\n", 0, line_end) + 2  # the line after the #include
             edits.append((m.start(), line_end, f'#line 1 "{shown(target)}"\n{body}\n#line {nl} "{shown(path)}"'))
         elif AFTER not in target.parents:   # (a header of an -idirafter dir stays: the system's of that name come first)
-            edits.append((m.start(1), m.end(), f'{m[1]}"{target}"'))
+            edits.append((m.start(1), m.end(), f'{m[1]}"{os.path.relpath(target, OUTDIR).replace(os.sep, "/")}"'))   # (relative to the generated file: no worktree path in the text, so ccache keys agree across worktrees)
     edits.sort()
     out, pos = [], 0
     for s, e, new in edits:
@@ -391,11 +413,13 @@ PREAMBLE = """#ifdef __APPLE__
 
 
 def write_src(src, out, depfile):
-    global DIRS
+    global DIRS, OUTDIR
     DIRS = inc_dirs(src)
+    OUTDIR = Path(out).resolve().parent
     deps, found = [], []
     text = rewrite(src, deps, found)
-    reg = ["", '#line 1 "tools/port_assets.py"',
+    reg = ["", f'#line 1 "{shown(Path(__file__).resolve())}"',   # (as the other markers: ccache lstat()s a #line file name from the build dir, and gave up on the repo-relative one: "could not read or parse input file", every asset source uncached)
+   
            "void PORT_AssetAdd(const char *game, const char *name, void *p, unsigned long size, const char *layout);"]
     # one block per version: the one the compile defines (pokebw2's C BLACK2 or WHITE2, White's WHITE, else Black's).
     # A row of no version of the block's is another game's, in an #if branch this compile skips (port/include's Black 2 /

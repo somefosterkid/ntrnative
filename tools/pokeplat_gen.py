@@ -91,6 +91,7 @@ def tree(force=False):
     st, sf = stamp(commit, patches), os.path.join(WORK, '.bwport-stamp')
     if not force and os.path.exists(sf) and open(sf).read() == st:
         return WORK
+    snap = G4.snapshot(WORK) if os.path.isdir(WORK) else {}  # (ar6: as pokehg_gen.py: unchanged files keep their mtime)
     checkout(WORK, sub, commit, patches)
     b = build(WORK)
     gen = os.path.join(WORK, 'gen')
@@ -99,6 +100,7 @@ def tree(force=False):
         os.makedirs(os.path.dirname(os.path.join(gen, p)), exist_ok=True)
         shutil.copyfile(os.path.join(b, p), os.path.join(gen, p))
     open(sf, 'w').write(st)
+    G4.keep_mtimes(WORK, snap)
     return WORK
 
 

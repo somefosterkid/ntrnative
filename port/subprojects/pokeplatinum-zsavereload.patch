@@ -1,0 +1,48 @@
+--- a/include/savedata.h
++++ b/include/savedata.h
+@@ -79,6 +79,7 @@
+ 
+ SaveData *SaveData_Init(void);
+ SaveData *SaveData_Ptr(void);
++void SaveData_PortReload(void);
+ void *SaveData_SaveTable(SaveData *saveData, int saveTableID);
+ const void *SaveData_SaveTableConst(const SaveData *saveData, int saveTableID);
+ BOOL SaveData_Erase(SaveData *saveData);
+--- a/src/savedata.c
++++ b/src/savedata.c
+@@ -36,11 +36,26 @@
+ static SaveData *sSaveDataPtr = NULL;
+ static BOOL sSaveComplete;
+ 
++static void SaveData_PortLoad(SaveData *saveData);
++
+ SaveData *SaveData_Init(void)
+ {
+     SaveData *saveData = Heap_Alloc(HEAP_ID_SAVE, sizeof(SaveData));
+     ;
+ 
++    SaveData_PortLoad(saveData);
++    return saveData;
++}
++
++// PC port (title_fork.c, a leg's process forked from a game parked at the title): read save.bin again (the working
++// directory is the leg's own) into the SaveData the boot made, as SaveData_Init did (port/game/game_table.c PlatSaveReload)
++void SaveData_PortReload(void)
++{
++    SaveData_PortLoad(SaveData_Ptr());
++}
++
++static void SaveData_PortLoad(SaveData *saveData)
++{
+     MI_CpuClearFast(saveData, sizeof(SaveData));
+ 
+     sSaveDataPtr = saveData;
+@@ -94,8 +109,6 @@
+         SaveData_Clear(saveData);
+         break;
+     }
+-
+-    return saveData;
+ }
+ 
+ SaveData *SaveData_Ptr(void)

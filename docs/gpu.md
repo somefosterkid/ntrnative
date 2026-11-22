@@ -344,6 +344,13 @@ Hi-res capture (GL and Metal, Resolution > 1; 2026-11-12, port/gpu/src/g07_captu
   the perspective form `k1 / (k0 + k1)`; a later step can do the fixed-point form in 32-bit pieces if the tolerance
   numbers ask for it.
 - Depth compare: uint 24-bit; the lerped depth rounds `+0.5` as vcore's clamp_depth.
+- Above 1x only (GpuOptions fog / color; BWPORT_GPU_FOG=ds|smooth, BWPORT_GPU_COLOR=ds|full; uHiPrec in the uniform block, 0 at 1x,
+  so 1x keeps vcore's bytes with either on): Fog=smooth takes the fog density at the full 24-bit depth (depth / 512 with its
+  fraction) and the colour by the density's fraction (the DS: depth >> 9 and integers); Color=full keeps pass P's colours in
+  quarter steps (fog, edge colour, antialiasing, the 4-sample resolve) and writes the two fraction bits into bits 6-7 of the
+  3D layer's r, g, b bytes; pass C (c_3d, the final 8-bit conversion) and SMAA read them, every other reader masks them off.
+  Only a 3D pixel shown as it is keeps them in pass C (the 2D blends and master brightness work in 6 bits). Not yet: pass R's
+  own fractions (vertex colours, modulation, toon), an ini key / Config window entry (env only, as the texture cache's).
 
 ## Testing by CPU
 
@@ -782,3 +789,31 @@ which drops these bits.
 
 How to cut the 3D's CPU and GPU cost for the phone (records built on the GPU in a setup pass, SMAA instead of 4 samples,
 PBO uploads, the in-betweens, the budget) and the work cut into pieces: docs/gpu-cost.md.
+
+## GPU loop: capture, edit, measure
+
+Real GPU in WSL, headless (tcj5b, 11-20): `GALLIUM_DRIVER=d3d12` with gpu_render / gpu_info / tools/tc_quality.py `--gpu d3d12` (EGL
+surfaceless, Mesa's d3d12 on /dev/dxg; gpu_info's renderer line reads "D3D12 (AMD Radeon RX 7900 GRE)"). Not byte-exact with llvmpipe
+(compare within one renderer); it crashes now and then on start (run again). The texture cache's filtered path clamps each repeating axis
+to the polygon's own s/t range (tcj5c): no tile-edge lines at 1x with mips or aniso.
+
+The loop for renderer and shader work, on the standalone build/gpu project (no game exe involved):
+
+1. Captures: `python3 tools/caps.py get town-walk 7500-9200/8` prints the directory of a shared capture set, recording it
+   first when it is missing (the Platinum town walk, 213 frames; `get route1-battle 300-3000/4` is the Black battle).
+   `python3 tools/caps.py seed` fetches both, `list` shows the cache. The cache is `$BW_CAPS` (default `~/bw-cache/caps`),
+   one directory per (game, play, spec, key); the key hashes the play script, tools/play_script.py and libntr's capture
+   writer and its patch, so a capture is recorded once for everyone until one of those changes. Game-code changes are not in
+   the key: add `--src` to key on the source trees too (a separate entry). Recording needs the Linux exe (the first time in
+   a worktree it builds it, minutes); never record twice, and never commit captures (they hold ROM data).
+2. Baseline: `python3 tools/gpu_fd.py run $(python3 tools/caps.py get town-walk 7500-9200/8) --scale 1 --save base.json`
+   (`--aa 2` for 4 samples, 1 is off; `--scale 3`/`4`; `--every K` takes each Kth capture for a quick look; `--filter` by name).
+3. Edit a shader (port/gpu/shaders/*) or src; `ninja -C build/gpu gpu_fastdiff` is about 1 s for a shader (the embedded
+   table and a relink of the two tools; gpu_fd.py builds it itself), then
+   `python3 tools/gpu_fd.py run CAPDIR --scale 1 --base base.json` prints the sums (gaps, extras, specks, dark specks, mean
+   differing) before -> after and the captures that changed most. `gpu_fd.py cmp A.json B.json` compares two saved runs.
+   Dark specks are the darkper count (Fast dark where Exact is lighter by 24+ in the channel sum).
+
+Times here (14 jobs, the shared pool): shader edit -> rebuild 1 s; the 213 captures at 1x about 12 s (3x about 17-27 s, 4x 22-30 s, 4 samples a bit more;
+the render grows with the pixels); recording a set takes minutes once the exe is built (a worktree's first exe build took 13 minutes).
+Tests: tools/gpu_fd_tests.py.

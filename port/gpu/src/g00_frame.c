@@ -7,8 +7,10 @@
 #include "g00_frame.h"
 #include "g02_setup.h"
 #include "g06_post.h"
+#include "g07_compose.h"
 #include "g08_smaa.h"
 #include "g04_texture.h"
+#include "g12_tcgl.h"
 #include "gpu_gl.h"
 #include "gpu_mtl.h"
 
@@ -56,7 +58,26 @@ void gpu_options_from_env(GpuOptions *o) {
   o->filter = env_is("BWPORT_GPU_FILTER", "bilinear");
   o->aa = 1;
   o->fast = env_is("BWPORT_RENDERER3D", "fast");
+  o->texcache = env_is("BWPORT_GPU_TEXCACHE", "exact") ? GPU_TC_EXACT : env_is("BWPORT_GPU_TEXCACHE", "on") ? GPU_TC_ON : GPU_TC_OFF;
+  const char *e = getenv("BWPORT_GPU_TEXMIPS");
+  o->mips = e != NULL && (!strcmp(e, "1") || !strcmp(e, "on"));
+  e = getenv("BWPORT_GPU_ANISO");
+  o->aniso = e != NULL && atoi(e) > 1 ? atoi(e) : 1;
+  o->texmag = env_is("BWPORT_GPU_TEXMAG", "bilinear");
+  e = getenv("BWPORT_GPU_TEXCACHEMB");
+  o->tcmb = e != NULL && atoi(e) > 0 ? atoi(e) : 0;
+  int up = g07_up2d_parse(getenv("BWPORT_FILTER2D"));
+  o->up2d = up > 0 ? up : 0;
+  o->fog = env_is("BWPORT_GPU_FOG", "smooth");
+  o->color = env_is("BWPORT_GPU_COLOR", "full");
 }
+
+void gpu_use_tcframe(GpuCore *g, GpuTexCache *c, const GpuTcFrame *f) {
+  g->tc_use = c, g->tcf_use = f;
+  g->tc_given = 1;
+}
+
+int gpu_tc_last_polys(const GpuCore *g) { return g->tc_polys; }
 
 void gpu_set_options(GpuCore *g, const GpuOptions *o) {
   g->opt = *o;
@@ -188,6 +209,10 @@ void gpu_destroy(GpuCore *g) {
     return;
   }
   gpu_gl_fast_release(g);
+  g12_gl_destroy(g->tcgl);
+  gpu_texcache_destroy(g->own_tc);
+  gpu_tcframe_destroy(g->own_tcf);
+  if (g->prog_rc != g->prog_r) gpu_gl_program_done(g->prog_rc);
   gpu_gl_program_done(g->prog_r);
   if (g->prog_rf != g->prog_r) gpu_gl_program_done(g->prog_rf);
   gpu_gl_program_done(g->prog_p);
@@ -356,6 +381,7 @@ void gpu_prepare(GpuPrep *p, const VCoreState *s) {
   p->sp.line_wide = !p->opt.line;
   p->sp.aa = p->opt.aa == 2 ? 2 : 1; /* GPU_AA_SMAA: one sample */
   p->sp.opt_set = 1;
+  p->sp.planes = p->opt.texcache == GPU_TC_ON; /* G12's filtered sampling: the gradients' planes */
   p->sp.setup = gpu_g02_env() != 1 && !sPassSOff; /* (pass S off after a failed self-check: the worker builds the records) */
   p->sp.records = !p->sp.setup || p->check;
   p->swap_param = s->geo.swap_param;
@@ -382,7 +408,18 @@ static void tex_unit(GLuint prog, int unit, const char *name, GLuint tex) {
   GL(Uniform1i)(gpu_gl_uniform(prog, name), unit);
 }
 /* pass R's program: Filter=bilinear where it applies (uFilter, N > 1) has its own (shaders/g04_texture.glsl's G_FILTER) */
-static GLuint raster_prog(GpuCore *g) {
+static GLuint raster_prog(GpuCore *g, int tcache) {
+  if (tcache && (!g->opt.filter || g->scale <= g->k)) { /* (Filter=bilinear keeps its own for now: the cache's sampling is exact) */
+    if (g->prog_rc == 0) {
+      char err[512];
+      g->prog_rc = gpu_gl_program("g00_full.vert", g->k == 2 ? "g00_raster.frag#2c" : "g00_raster.frag#1c", err, sizeof err);
+      if (g->prog_rc == 0) {
+        fprintf(stderr, "gpu: %s; drawn without the texture cache\n", err);
+        g->prog_rc = g->prog_r;
+      }
+    }
+    return g->prog_rc;
+  }
   if (!g->opt.filter || g->scale <= g->k) return g->prog_r;
   if (g->prog_rf == 0) {
     char err[512];
@@ -427,6 +464,7 @@ void gpu_uni_post(GpuU *u, const GpuCore *g, const VCoreState *s) {
   u->uSnap = g->k;
   u->uDisp3d = vc_io16(s, VC_REG_DISP3DCNT);
   gpu_g06_uni_post(u, s, g->opt.edge);
+  if (g->scale > g->k) u->uHiPrec = (g->opt.fog ? 1u : 0u) | (g->opt.color ? 2u : 0u); /* N > 1 only */
 }
 
 int gpu_edgemap_on(const GpuCore *g, const VCoreState *s) { return g->scale > 1 && (vc_io16(s, VC_REG_DISP3DCNT) & 0x20) != 0; }
@@ -435,6 +473,16 @@ int gpu_render_3d(GpuCore *g, VCoreState *s) {
   if (g->own == NULL && (g->own = gpu_prep_create(g->scale)) == NULL) return -1;
   gpu_prep_set_options(g->own, &g->opt);
   gpu_prepare(g->own, s);
+  /* the texture cache from the options alone (the tools): the core's own, when no caller runs one */
+  if (g->opt.texcache && !g->tc_given && g->mtl == NULL && !g->own->opt.fast) {
+    if (g->own_tc == NULL) g->own_tc = gpu_texcache_create(&g->opt), g->own_tcf = gpu_tcframe_create();
+    if (g->own_tc != NULL && g->own_tcf != NULL) {
+      const GpuTexData *td = g->td;
+      if (td == NULL) gpu_texdata_build(g->own_td, s), td = g->own_td, gpu_use_texdata(g, td);
+      gpu_texcache_frame(g->own_tc, td, s, g->own_tcf);
+      g->tc_use = g->own_tc, g->tcf_use = g->own_tcf;
+    }
+  }
   return gpu_render_prepared(g, s, g->own);
 }
 
@@ -442,6 +490,10 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
   double t0 = now_ms();
   const GpuTexData *td = g->td;
   g->td = NULL; /* for this call only */
+  GpuTexCache *tc = g->tc_use;
+  const GpuTcFrame *tcf = g->tcf_use;
+  g->tc_use = NULL, g->tcf_use = NULL; /* the same */
+  g->tc_polys = 0;
   if (p->scale != g->scale || p->nlist < 0) return -1;
   if (g->mtl != NULL) {
     if (td == NULL) gpu_texdata_build(g->own_td, s), td = g->own_td;
@@ -460,6 +512,14 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
   if (!fast) gpu_gl_data_tex(&g->t_list[ri], GL_RGBA32UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT, 16, p->list, nlist);
   if (td == NULL) gpu_texdata_build(g->own_td, s), td = g->own_td;
   gpu_g04_upload(g->t_tex, g->t_pal, g->td_up, &g->tr, td);
+  int tcache = 0; /* G12: the queue applied up to this frame, the per-polygon table; 1 = a polygon samples a layer */
+  if (!fast && tc != NULL && tcf != NULL && g->opt.texcache) {
+    if (g->tcgl == NULL) g->tcgl = g12_gl_create();
+    if (g->tcgl != NULL) {
+      g12_gl_filter(g->tcgl, g->opt.texcache == GPU_TC_ON, g->opt.texmag, g->opt.aniso);
+      tcache = g12_gl_prepare(g->tcgl, tc, tcf, p, ri);
+    }
+  }
   GPU_PASS(GPU_PASS_UPLOAD, 0);
   if (g->timing) GL(Finish)();
   double t1 = now_ms();
@@ -486,7 +546,7 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
     GL(Viewport)(0, 0, g->w, g->h);
     GL(Disable)(GL_DEPTH_TEST);
     GL(Disable)(GL_BLEND);
-    GLuint pr = raster_prog(g);
+    GLuint pr = raster_prog(g, tcache);
     GL(UseProgram)(pr);
     GL(BindVertexArray)(g->vao);
     tex_unit(pr, 0, "uPoly", g->t_poly[ri]);
@@ -494,6 +554,7 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
     tex_unit(pr, 2, "uBand", g->t_band[ri]);
     tex_unit(pr, 3, "uList", g->t_list[ri]);
     gpu_g04_bind(pr, 4, g->t_tex[g->tr], g->t_pal[g->tr]);
+    if (tcache && pr == g->prog_rc && pr != g->prog_r) g12_gl_bind(g->tcgl, pr, ri), g->tc_polys = tcache;
     gpu_g06_bind_raster(pr, s);
     gpu_uni_raster(&u, g, s, p);
     gpu_gl_uniforms(&u);

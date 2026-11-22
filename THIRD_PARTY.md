@@ -33,6 +33,7 @@ from another project says so in its header, with the project, the commit and the
 | [khdays-decomp](https://github.com/Yokimitsuro/khdays-decomp) | CC0-1.0 | `__strtoul`, `strtol` (`lib/msl/src/strtoul.c`) | header |
 | [kh-recoded-decomp](https://github.com/kh-recoded-decomp/kh-recoded-decomp) | MIT (`eu/`: CC0) | qsort (`eu/`, CC0); names and the layout of the card library's internals (`lib/nitro/src/card`, MIT) | `lib/nitro/LICENSE-kh-recoded-decomp` |
 | [SMAA](https://github.com/iryoku/smaa) (Jimenez et al.) | MIT | Edge, weight and blend passes ported to GLSL / C: `port/gpu/shaders/g08_smaa*`, `port/gpu/src/g08_smaa*` | file headers, `port/gpu/LICENSE-SMAA` |
+| [MMPX](https://casual-effects.com/research/McGuire2021PixelArt/) (McGuire and Gagiu) | MIT | The 2D filter's MMPX rules ported to GLSL / C: `port/gpu/shaders/g11_up_mmpx.glsl`, `port/gpu/tools/up2d_ref.c` | file headers, `licenses/MMPX-MIT.txt` |
 | [Dear ImGui](https://github.com/ocornut/imgui) | MIT | Metal backend: `port/src/imgui_impl_metal.{h,mm}` (unmodified but an include) | file headers, `port/src/LICENSE-imgui` |
 | [stb](https://github.com/nothings/stb) | MIT or public domain | `port/src/stb_image.h`, `stb_image_write.h` | in the files |
 | Khronos GL headers | MIT-style (Khronos) | `port/gpu/include/{GLES3,KHR}`, `port/bridge/glinc` | in the files |
@@ -50,7 +51,7 @@ Korth's GBATEK (the hardware reference for `port/vcore`, `port/gpu` and `port/ac
 | [ds-decomp (dsd)](https://github.com/fuddlesworth/ds-decomp), fork of [AetiasHax/ds-decomp](https://github.com/AetiasHax/ds-decomp) | MIT | Extracts, delinks and relinks the ROM (`configure.py` downloads it) |
 | [wibo](https://github.com/decompals/wibo) | MIT | Runs the Windows compiler under Linux (downloaded) |
 | Metrowerks CodeWarrior ARM tools (mwccarm) | proprietary | The original compiler; downloaded by `configure.py` from a third-party host, never stored here |
-| [libntr](https://github.com/cybervisi0n/libntr) | MIT | meson subprojects (`port/subprojects/*.wrap`, pinned commits) with our patches in `port/subprojects/packagefiles/` |
+| [libntr](https://github.com/cybervisi0n/libntr) | MIT | Not stored here: `port/subprojects/libntr.wrap` fetches upstream commit f6b3a69, then meson applies our changes to it (`port/subprojects/packagefiles/libntr-ours.patch`) |
 | [m2c](https://github.com/matt-kempster/m2c) (GPL-3.0), [decomp-permuter](https://github.com/simonlindholm/decomp-permuter) (MIT), [Ghidra](https://github.com/NationalSecurityAgency/ghidra) (Apache-2.0) | as listed | Optional helpers of the decompilation tools (`tools/`) |
 | Temurin JDK 17 (GPL-2.0 + Classpath Exception), Gradle (Apache-2.0), Android NDK / SDK | as listed | Build tools of the Android package only |
 | [meson](https://github.com/mesonbuild/meson) 1.12.0 (Apache-2.0), [metang](https://github.com/lhearachel/metang) (Apache-2.0), [yyjson](https://github.com/ibireme/yyjson) (MIT) | as listed | Run by pret's header generators when Platinum or HeartGold/SoulSilver is built (`tools/pokeplat_gen.py`, `tools/pokehg_gen.py`); nothing of them is in the binaries. The wrap files of pret's projects also name ntrtwl's NitroSDK and NitroSystem; the generators put empty stand-ins there and never fetch them |
@@ -73,6 +74,7 @@ What a Windows, Android or Apple build contains. libntr compiles its bundled sou
 | libwinpthread | MIT-style | `libwinpthread-1.dll` (Windows) | `licenses/winpthreads-COPYING.txt` |
 | LLVM libc++ | Apache-2.0 with LLVM exceptions | `libc++_shared.so` (Android) | `licenses/LLVM-libcxx-Apache-2.0-with-LLVM-exception.txt` |
 | SMAA | MIT | static (`port/gpu`) | `licenses/SMAA-MIT.txt` |
+| MMPX | MIT | static (`port/gpu`) | `licenses/MMPX-MIT.txt` |
 | kh-recoded-decomp (names and layout of the card library's internals) | MIT | static (`lib/nitro/src/card`) | `licenses/kh-recoded-decomp-MIT.txt` |
 | pret's pokeplatinum and pokeheartgold C (the Platinum and HeartGold/SoulSilver builds only) | none upstream | static, one module object per game, with our patches | none: pret has no license file to keep |
 

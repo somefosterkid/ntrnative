@@ -11,14 +11,17 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from change_map import PLAT_ONLY, HG_ONLY, OTHER_PLATFORM, WIN_ONLY   # the map shared with the round's selector (A7)
+
 CHECKS = ['rom', 'port', 'cores', 'switch', 'sweep', 'touch', 'apk']
 DECOMP = re.compile(r'^(src|lib|include|config|asm|extract)/|^(configure\.py|build\.ninja)$')
 HEADERS = re.compile(r'^(include|lib)/|\.h$')
 PORT = re.compile(r'^port/')
 CORES = re.compile(r'^port/(vcore|gpu|acore)/')
-# compiled only into the Platinum module build (meson -Dplatinum=true, docs/platinum.md): no Gen 5 check (build, run, GUI, APK)
-# looks at them; Platinum's own build, plays and route chain are the merge round's job, not the gate's
-PLAT_ONLY = re.compile(r'^port/(game/(route_gen4|plat_online)\.c|include_plat/|include_gen4/|subprojects/pokeplatinum[^/]*\.patch)')
+# PLAT_ONLY / HG_ONLY (tools/change_map.py): compiled only into the Platinum / HeartGold/SoulSilver module builds: no Gen 5 check (build,
+# run, GUI, APK) looks at them; their builds, plays and chains are the merge round's job, not the gate's.
+# OTHER_PLATFORM / WIN_ONLY: in no Linux build: no port build, run, switch, sweep or touch check; the APK build for Android's
 SHARED = re.compile(r'^port/(src|subprojects|extern|extern_b2w2|include|include_b2w2|include_nnsys|bridge|machine|game)/')
 ANDROID = re.compile(r'android|^port/src/.*(jni|sdl)', re.I)
 TOOL_CHECK = [  # tools whose change needs the live check they belong to
@@ -34,7 +37,11 @@ def select(files, full=False):
     if full:
         return {c: 'FULL=1' for c in CHECKS}, []
     for f in files:
-        if PLAT_ONLY.search(f):
+        if PLAT_ONLY.search(f) or HG_ONLY.search(f):
+            continue
+        if OTHER_PLATFORM.search(f) or WIN_ONLY.search(f):
+            if ANDROID.search(f):
+                why['apk'] = why['apk'] or f'android file {f}'
             continue
         if DECOMP.search(f):
             why['rom'] = why['rom'] or f'decomp file {f}'
@@ -56,6 +63,8 @@ def select(files, full=False):
                 why[c] = why[c] or f'tool {f}'
                 if c in ('touch', 'switch', 'sweep'):
                     why['port'] = why['port'] or f'tool {f} needs the build'
+    # owner 11-20 (A9): the switch tests moved to the nightly run (40 gate runs, 0 real catches, 100-190 s each); FULL=1 / --full keeps them
+    why['switch'] = None
     # owner 11-15: no Android build in merge gates until everything else is done (it cost up to ~35 min a round);
     # BWPORT_GATE_APK=1 turns it back on (and the Android publish path runs its own build anyway)
     if why['apk'] and os.environ.get('BWPORT_GATE_APK') != '1':

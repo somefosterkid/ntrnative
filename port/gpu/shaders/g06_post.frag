@@ -21,10 +21,20 @@ struct PPx {
   uint depth, id, flags, cov;
 };
 
+// Above 1x only (uHiPrec, src/g00_frame.c; 0 at 1x): Color=full keeps the colours in quarter steps of the DS's 6 bits through
+// this pass (p_sh 2: 0-252; the blends and the resolve are linear, so they take either), written as the 6 bits with the two
+// fraction bits above them (bits 6-7: pass C and SMAA read them with Color=full, every other reader masks them off)
+uint p_sh() { return (uHiPrec & 2u) != 0u ? 2u : 0u; }
+uvec4 p_out(uvec4 o) {
+  if ((uHiPrec & 2u) == 0u) return o;
+  uvec3 v = min(o.rgb, uvec3(252u));
+  return uvec4((v >> 2) | ((v & 3u) << 6), o.a);
+}
+
 PPx p_load(ivec2 q) {
   PPx s;
   uvec4 a = g_samp(q);
-  s.col = uvec4(a.z & 255u, (a.z >> 8) & 255u, (a.z >> 16) & 255u, a.z >> 24);
+  s.col = uvec4(uvec3(a.z & 255u, (a.z >> 8) & 255u, (a.z >> 16) & 255u) << p_sh(), a.z >> 24);
   s.depth = a.x;
   s.id = a.y & 63u; // the opaque ID
   s.flags = (a.y >> 16) & 255u;
@@ -100,12 +110,37 @@ int p_fog_density(uint d15) {
   return r == 127 ? 128 : r;
 }
 
+// Fog=smooth (above 1x): the density at the depth d in 15-bit units with its fraction (depth / 512), the table's entries
+// interpolated as the DS does between them but without the steps; 127 reaches 128 (full) continuously
+float p_fog_density_f(float d) {
+  float step = float(max(0x400 >> int((uDisp3d >> 8) & 15u), 1)), off = float(uFogOffset), r;
+  if (d < off + step) {
+    r = float(uFogTab[0]);
+  } else if (d >= off + step * 32.0) {
+    r = float(uFogTab[31]);
+  } else {
+    float u = (d - off) / step;
+    int n = clamp(int(u), 1, 31);
+    float a = float(uFogTab[n - 1]);
+    r = a + (float(uFogTab[n]) - a) * (u - float(n));
+  }
+  return r > 126.0 ? 126.0 + (r - 126.0) * 2.0 : r;
+}
+
 // fog on the pixel's colour o
 uvec4 p_fog(uvec4 o, PPx s) {
   if ((uDisp3d & 0x80u) != 0u && (s.flags & F_FOG) != 0u) {
     uint D = uint(p_fog_density(s.depth >> 9));
-    uvec3 fc = g_rgb6(uFogColor & 0x7FFFu);
+    uvec3 fc = g_rgb6(uFogColor & 0x7FFFu) << p_sh();
     uint fa = (uFogColor >> 16) & 31u;
+    if ((uHiPrec & 1u) != 0u) { // Fog=smooth: the colour by the density's fraction too (the alpha as the DS, D rounded)
+      float Df = p_fog_density_f(float(s.depth) / 512.0);
+      uint Di = uint(Df + 0.5);
+      uint a = (fa * Di + o.a * (128u - Di)) >> 7;
+      uvec3 c = o.rgb;
+      if ((uDisp3d & 0x40u) == 0u) c = uvec3(floor(vec3(c) + (vec3(fc) - vec3(c)) * (Df / 128.0) + 0.001));
+      return uvec4(c, a);
+    }
     uint a = (fa * D + o.a * (128u - D)) >> 7;
     uvec3 c = o.rgb;
     if ((uDisp3d & 0x40u) == 0u) c = (fc * D + c * (128u - D)) >> 7;
@@ -119,7 +154,7 @@ uvec4 p_base(ivec2 q, PPx s, out bool marked) {
   uvec4 o = s.col;
   marked = false;
   if ((uDisp3d & 0x20u) != 0u && p_edge_mark(q, s)) {
-    o = uvec4(g_rgb6(uEdgeCol[s.id >> 3]), 31u);
+    o = uvec4(g_rgb6(uEdgeCol[s.id >> 3]) << p_sh(), 31u);
     marked = true;
   }
   return p_fog(o, s);
@@ -151,7 +186,7 @@ uvec4 p_sample(ivec2 q) {
       under = p_base(best, p_load(best), m2);
     }
     if (under.a == 0u) {
-      o = uvec4(o.rgb, a);
+      o = uvec4(o.rgb, (s.flags & F_GROWN) != 0u ? 31u : a); // (a grown pixel filling a gap: coverage 0 showed black dots)
     } else {
       uvec3 c = ((a + 1u) * o.rgb + (31u - a) * under.rgb) / 32u;
       o = uvec4(c, max(a, under.a));
@@ -162,7 +197,7 @@ uvec4 p_sample(ivec2 q) {
 
 #if G_K == 1
 void main() {
-  oOut = p_sample(ivec2(gl_FragCoord.xy));
+  oOut = p_out(p_sample(ivec2(gl_FragCoord.xy)));
 #else
 // Multisampling: one fragment makes an output pixel from its four samples. Edge marking is one bit a sample (pass E's
 // stage 3, uMark), then the fog; a sample whose value needs its neighbours (an opaque edge-flagged one with antialiasing on)
@@ -215,7 +250,7 @@ uvec4 p_resolve(uvec4 o0, uvec4 o1, uvec4 o2, uvec4 o3) {
 }
 
 // a sample's base (p_base) given its edge mark m
-uvec4 p_base_m(PPx s, bool m) { return p_fog(m ? uvec4(g_rgb6(uEdgeCol[s.id >> 3]), 31u) : s.col, s); }
+uvec4 p_base_m(PPx s, bool m) { return p_fog(m ? uvec4(g_rgb6(uEdgeCol[s.id >> 3]) << p_sh(), 31u) : s.col, s); }
 
 void main() {
   ivec2 q = ivec2(gl_FragCoord.xy) * 2;
@@ -225,11 +260,11 @@ void main() {
     PPx s = p_load(q);
     uvec4 c = p_fog(s.col, s);
     if (mk == 0u) {
-      oOut = c;
+      oOut = p_out(c);
       return;
     }
     uvec4 e = p_base_m(s, true);
-    oOut = p_resolve((mk & 1u) != 0u ? e : c, (mk & 2u) != 0u ? e : c, (mk & 4u) != 0u ? e : c, (mk & 8u) != 0u ? e : c);
+    oOut = p_out(p_resolve((mk & 1u) != 0u ? e : c, (mk & 2u) != 0u ? e : c, (mk & 4u) != 0u ? e : c, (mk & 8u) != 0u ? e : c));
     return;
   }
   PPx s0 = p_load(q), s1 = p_load(q + ivec2(1, 0)), s2 = p_load(q + ivec2(0, 1)), s3 = p_load(q + ivec2(1, 1));
@@ -240,7 +275,7 @@ void main() {
   if ((uDisp3d & 0x10u) != 0u)
     aam = (p_aa_edge(s0) ? 1u : 0u) | (p_aa_edge(s1) ? 2u : 0u) | (p_aa_edge(s2) ? 4u : 0u) | (p_aa_edge(s3) ? 8u : 0u);
   if (aam == 0u) {
-    oOut = p_resolve(o0, o1, o2, o3);
+    oOut = p_out(p_resolve(o0, o1, o2, o3));
     return;
   }
 #ifdef P_FAST
@@ -284,6 +319,6 @@ void main() {
   if ((aam & 2u) != 0u) o1 = p_aa(o1, p_under(1, bk, b0, b1, b2, b3, u1), (mk & 2u) != 0u ? 16u : s1.cov);
   if ((aam & 4u) != 0u) o2 = p_aa(o2, p_under(2, bk, b0, b1, b2, b3, u2), (mk & 4u) != 0u ? 16u : s2.cov);
   if ((aam & 8u) != 0u) o3 = p_aa(o3, p_under(3, bk, b0, b1, b2, b3, u3), (mk & 8u) != 0u ? 16u : s3.cov);
-  oOut = p_resolve(o0, o1, o2, o3);
+  oOut = p_out(p_resolve(o0, o1, o2, o3));
 #endif
 }

@@ -101,6 +101,15 @@ typedef struct GpuSpans {
   int memo_off;       /* BWPORT_GPU_MEMO=0: no memo */
   int memo_env;       /* the two are read */
   unsigned memo_builds, memo_polys, memo_hits, memo_bad; /* counts for the check's log (every 600 builds) */
+  /* G12 (the texture cache's filtered sampling, shaders/g12_texcache.glsl): planes != 0 = each textured polygon's three planes
+   * A x + B y + C over its pixel positions on the build's grid (N k), s/w and t/w (s, t in texels) and 1/w, all scaled by its
+   * first vertex's w: plane[k] = A_s B_s C_s, A_t B_t C_t, A_w B_w C_w, fitted through the three vertices of largest area (all 0:
+   * untextured, or no area). They only choose the mip level and the anisotropy axis: the coordinate stays the DS's. */
+  int planes;
+  float plane[VC_MAX_POLYS][9];
+  /* each textured polygon's s and t range over its vertices (12.4): smin, smax, tmin, tmax (the shader keeps the filter's taps
+   * inside it on the repeating axes: no reading across a tile's edge into its neighbour's texels) */
+  int16_t range[VC_MAX_POLYS][4];
 } GpuSpans;
 
 /* the records of every polygon of s->geo in drawing order at scale n: rows 0..192n-1, columns 0..256n-1. The options

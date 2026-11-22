@@ -1141,3 +1141,154 @@ left*f180@f1550"), gpu Exact, gpu Fast at 4 samples and vcore, base against new:
 picsab2 444/444 (vcore empty md5 lines 0) and vcab 74/74 (port/gpu and port/vcore are not changed). The iOS device target builds.
 The file capture crashes under the Metal present (SIM_VCapFrameEnd reads the window with GL calls, before and after this patch): record
 .vcs files with BWPORT_PRESENT=gl.
+
+## Instructions per frame on Linux (2026-11-19, tools/perf_frame.py; first cut, repeatability NOT yet reached)
+
+`python3 tools/perf_frame.py platinum town-walk [--start F --window N --repeat R --env BWPORT_RENDERER=vcore BWPORT_RESOLUTION=3 --json out]`
+runs the Linux port headless (tools/port_run.py `--no-gdb --skip 1`, uncapped, the play's pinned clock and seed) twice, to V-blank
+START and START+WINDOW (`--frames`), counts instructions, core cycles and task clock (user space) from the exec on with
+perf_event_open through ctypes (no perf binary; `BWPORT_RUN_WRAP` in port_run puts the counting wrapper in front of the exe), and
+prints M instructions, M cycles and CPU ms per drawn frame of (B - A) / WINDOW: the whole process (an inherited counter, exact),
+each named thread (a counter opened on each tid by a 2 ms poll: `bwport` = the game thread, `llvmpipe-N` = the software GL's
+workers, `SDLAudioP1`, `PXI`), and `other` (short threads). Needs perf_event_paranoid <= 2 and a `cpu` PMU.
+
+Where it works: a desktop's WSL and a build server's WSL list the `cpu` PMU (paranoid 2; the counters read: tested here only, the build server
+only listed); the laptop's WSL (Core Ultra 7 256V) has no `cpu` PMU in /sys/bus/event_source/devices, so no instructions there.
+Windows-native counters are out of scope: they would need the ETW PMC provider (an elevated `xperf`/`wpr -start CPU` with
+InstructionRetired as a profile source, or the Intel/AMD driver route), a separate collector, and are not in the process.
+
+Findings (the town-walk, Platinum, this PC, load 3-23 from other agents):
+- the counters are exact: the same run to V-blank 2000 gives the game thread 9936 / 9941 / 9939 M instructions (0.05 %), the
+  whole process 14436 / 14313 / 14311 M (0.9 %: the llvmpipe workers' share moves with scheduling, 4.27-4.41 G).
+- up to V-blank 7600 the totals agree within 0.3 %, but after the walk starts (V-blank 7700-8100) the game thread's total moves
+  between runs: 7800: 78 / 85 / 52 G, 8100: 109 / 130 / 140 G, and its rate is a steady ~2 G instructions a second whatever the
+  frames done: the game thread burns instructions while it waits for something that depends on wall time or the other threads
+  (a spin, not work). So a window difference has a spread of 30-800 % here, and Black's route1-battle (400..1000) is as bad.
+  With `BWPORT_CFGSCRIPT=f1:ff=0` the totals agree (505-520 G) but are 5x larger (the paced wait spins). The instructions/frame
+  number is therefore only as stable as the game thread's waits: finding that wait (a sleep or a yield instead of a spin in the
+  port, the way the Mac bench avoids it by running at its real pace) is the open item; it is not found yet. gdb attached from
+  outside gave nothing in the time available.
+- the GPU line: llvmpipe is the GL here (software), the timer-query readout says 0-7 ms of CPU time that is already in the
+  threads above; no real GPU number on this PC.
+- `ff=1`/uncapped, Renderer gpu on llvmpipe: Exact and Fast are the same (Fast is Metal only); vcore and Resolution 1/3 are
+  `--env` settings, not measured because of the spread above. No docs/perf-ledger.jsonl rows were added for the same reason.
+
+Next: locate the game thread's wall-time-dependent wait (sample the game thread's PC in the wrapper with a perf_event
+PERF_SAMPLE_IP ring or by gdb at frame 7800), remove or account for it, then rerun `--repeat 3` idle and under load and record the
+baseline with `tools/perf_ledger.py add ... where=linux`.
+
+### The "spin" was fast forward's present limit (pf2, 2026-11-19)
+
+Not a spin: the per-thread counters (perf_frame's JSON now keeps each thread by tid, `tids`) and gdb samples showed the game thread
+blocked in GL waits and the extra instructions in llvmpipe's threads and the renderer's workers (vcore's p22/p20 pools). The cause is
+libntr-ios-pace.patch's fast-forward rule in SpPaceBegin (sim_main.cpp, the `!capped` branch, `limit = sFastForward`): with ff=1 a
+tick is drawn and presented only when 1/60 s of WALL time has passed since the last present. A play runs with ff=1, so the drawing
+cost per game frame followed the run's speed: ~1700 fps idle drew 1 tick in ~30, a loaded run at ~40 fps drew every tick. Same
+8100 frames of town-walk: total 73 G idle, 251 G with 26 busy loops beside it (llvmpipe 4.5 -> 30 G a thread, the workers 3.7 -> 21 G).
+pf1's ff=0 runs (Unlimited: every tick drawn) agreed for that reason, and were 5x larger because every tick was drawn, not because a
+wait spun. It is the intended player behaviour (fast forward costs at most 60 pictures a second) and stays.
+
+Fixes (tools only, no game or libntr change):
+- tools/perf_frame.py runs with `BWPORT_CFGSCRIPT=f1:ff=0` (every tick drawn and presented) and `BWPORT_PRESENTDROP=0` (LagSubmit
+  drops a present while two are waiting on the GPU: timing-dependent too) unless `--env` overrides them; each run's counters are kept
+  (build/perf_frame/aN.json, bN.json), the main thread is its own row (`bwport (main)`), `bwport` = the renderer's workers, and
+  `port (main + workers)` is their sum; each row prints its run-to-run spread.
+- tools/port_run.py: `--play NAME --realtime` set ff=1 anyway, so a "60 fps timing run" ran uncapped (route1-battle --realtime: 700
+  frames in 1 s). --realtime now keeps the cap (59 fps). Timing numbers taken with `--play --realtime` before this were uncapped.
+
+Real players at 60 fps (Linux): SpSleepUntil spins its last 150 us; `ablate=spin` (no spin) changed the total by 0.04 % (151.82 /
+151.76 M instructions a frame, route1-battle --realtime, 2 runs each, spread 0.06 / 0.18 %): nothing to win on Linux. Windows
+spins 600 us (2.5 ms without the high-resolution timer) a sleep, ~3.6 % of a core at 60 fps by that arithmetic; not measured (no
+Windows run here), the next candidate if battery on Windows laptops matters.
+
+Repeatability now (Black route1-battle, V-blank 400..700, Renderer auto (vcore on llvmpipe), Resolution 1, `--repeat 3`):
+
+| | total M instr/frame | spread | port (main + workers) | spread | main | workers |
+| --- | --- | --- | --- | --- | --- | --- |
+| load 15-16 (other agents) | 147.6 | 0.36 % | 81.6 | 0.37 % | 6.1 | 75.5 (0.03 %) |
+| + 26 busy loops (load 26-37) | 153.0 | 1.54 % | 85.5 | 0.38 % | 9.8 | 75.7 (0.16 %) |
+
+The workers are exact; the game thread grows under load (6.1 -> 9.8 M): it still holds wall-clock work, most likely the sound
+mixing that runs on it (acore's ac_mix / hw_sample were in its samples; the music keeps its real-time clock in uncapped runs,
+SIM_FastForwarding) and the GL fence polls (LagPoll). Next: count the game thread with the sound off or pinned to game frames
+(a bench switch in acore_glue: mix by V-blank, not by the callback's clock), then record the Platinum town-walk and Black
+route1-battle rows for Renderer gpu / vcore x Resolution 1 / 3 (`--env BWPORT_RENDERER=... BWPORT_RESOLUTION=...`; a Platinum
+pair of runs to 7600/7900 drawing every tick takes ~3 min here). Platinum town-walk with the new defaults (window 300, 2 runs,
+load ~38): the workers exact (405.75 / 405.75 G at 7600), llvmpipe 1.1 %, the main thread 0.5 %.
+
+### The main thread under load: the music bus and the GUI (pf3, 2026-11-20)
+
+`BWPORT_PERF_SAMPLE=PERIOD [BWPORT_PERF_SAMPLE_FROM=V-blank]` in perf_frame's wrapper samples the main thread's instructions with
+their user call chains (perf_event ring, no perf binary) and writes `profile` into the run's JSON: exe functions by addr2line,
+library samples as `lib <- the exe function that called it`. WSL caps samples at 2500 a second (perf_event_max_sample_rate): use a
+period of 1 M (100 k lost two thirds of the samples, unevenly). Black route1-battle 400..700, main thread, M instructions a frame:
+
+| | 246 / 180 fps (other agents' load) | 19-24 fps (+26 busy loops) |
+| --- | --- | --- |
+| music bus on (the default), all | 6.14 | 10.33 |
+| music bus on, hq_output (acore's channel output) | 0.58 | 1.91 |
+| BWPORT_MUSICBUS=off, all | 8.48 | 9.63 |
+| off, hq_output | 2.05 | 1.96 |
+| off, libgallium <- ImGui_ImplOpenGL3_RenderDrawData (+ its `?`) | 2.70 | 3.69 |
+
+1. The music bus (libntr-mu83.patch) runs in fast forward and Unlimited: the music is made as the device plays it, on the game
+   thread, so it followed the wall clock. perf_frame now sets `BWPORT_MUSICBUS=off` (the music in each V-blank's sound at Speed 1:
+   what a 60 fps player pays); its share then holds (2.05 / 1.96).
+2. The rest of the growth (+1.0 M) is the GUI's GL drawing (sim_gui.cpp's panel: FrameGraph, the perf text), whose content
+   follows the frame times. perf_frame now hides the panel (cfgscript `side=0`; pf4 below): the main thread holds.
+3. A new run dir's first start hashes the ROM on the main thread (launcher_core.c LC_Migrate, ~60 G instructions): it landed in
+   run a only and gave a negative main thread. perf_frame now does a warm-up run first, and keeps its files and run dir in
+   `--work DIR` (default build/perf_frame) so that two measurements can run side by side.
+
+Windows sleep spin: SpSleepUntil spins its last 600 us (2.5 ms without the high-resolution timer), calling LagPoll (a
+glClientWaitSync(0)) each turn while a present is in flight. Measured (pf4 below): kept as it is.
+
+### The bench without the side panel; the Windows sleep spin measured (pf4, 2026-11-20)
+
+perf_frame's settings are one dict, `BENCH_ENV` (--env's K=V over them): cfgscript `f1:ff=0,side=0` (every tick drawn; `side=0`,
+the existing measurement switch, draws no side panel), `BWPORT_PRESENTDROP=0`, `BWPORT_MUSICBUS=off`, `BWPORT_SYSBURST=frames`
+(new, port/src/sysmetrics.c: the sys line's GPU timer burst on 14 of every 60 frames, not of every wall second). Black
+route1-battle 400..700, Renderer vcore, BD (30 threads, load 3 idle), 3 + 3 runs, M instructions a frame:
+
+| | idle | + 26 busy loops |
+| --- | --- | --- |
+| side panel drawn (the old bench): main | 8.208 | 8.400 (+2.3 %) |
+| side panel drawn: port (main + workers) / total | 83.67 / 148.9 | 83.89 / 149.7 |
+| side=0: main | 5.195 | 5.196 (+0.02 %) |
+| side=0: port / total | 80.67 / 100.6 | 80.70 / 100.8 |
+
+The panel cost ~3 M on the main thread and ~48 M in all (llvmpipe drawing its frame graph and text): a frame-time-driven picture,
+not the game's. (BD's 30 threads take 26 loops better than the desktop: there the panel moved the main thread ~10 %.)
+
+Platinum town-walk 7600..7900 (pf3d's rows: main spread 52-98 %, negative cycles): with every run's counters and the sampler,
+Renderer gpu's main thread to 7900 went 131.5, 106.7, 100.3, 100.3 G in consecutive runs (its GL programs, Mesa's cache, settle
+over the first runs), while the window's own work was the same 6.38 G in each. So one warm-up run to frame 2 left a0..b0 at
+-39 M a frame and one to 7900 at 6.9 against the settled 21.3. perf_frame now warms up to the window's end until two runs agree
+on the main thread (0.5 %, at most 4: warm_up) and gives Mesa a cache dir under --work. The four rows (BD, 3 runs, ledger):
+
+| town-walk | total | port (spread) | main |
+| --- | --- | --- | --- |
+| vcore 1x | 105.88 | 85.99 (0.06 %) | 5.16 |
+| vcore 3x | 488.54 | 468.44 (0.08 %) | 5.32 |
+| gpu 1x | 175.32 | 27.70 (0.22 %) | 21.32 |
+| gpu 3x | 1118.91 | 58.61 (0.25 %) | 52.19 |
+
+Black's four rows (pf3d) predate side=0 and this warm-up: gpu 1x there had the same first-pair effect (a re-run: main -1.4 in
+run 0, 13.04 after); re-record them with the current perf_frame before comparing.
+
+Windows sleep spin, measured on the laptop's Windows (idle, tools/win_sleep_bench.c, 600 ticks at 60 Hz with 2 ms of work each, two
+runs): the high-resolution timer's own wake lateness (spin 0) is p50 390 us, p90 630, p99 930-950, max 1.1-1.2 ms.
+
+| spin (high-res timer) | CPU a tick beyond the work | tick late p50 / p90 / p99 |
+| --- | --- | --- |
+| 600 us (the game) | 276-282 us (1.7 % of a core) | 0 / 1 / 150-280 us |
+| 300 | 67-70 | 8 / 270 / 500-520 |
+| 150 | 27-36 | 220 / 460 / 730-780 |
+| 0 | 26 | 390 / 630 / 930-950 |
+| no high-res timer, 2500 | 1980-1990 (11.9 %) | 0 / 0 / 7-38 |
+| no high-res timer, 1500 | 970-980 | 0 / 0 / 16 |
+
+600 us is this timer's p90 here (the p99 would need ~950, more CPU), and a shorter spin makes most wakes late for ~1.5 % of a
+core; the desktop (pf3c, busy: p90 490-570) would gain at most ~100 us a tick from an adaptive clamp 100..600 (it sits at 600 on
+the laptop), so nothing was changed. The no-high-res path (Windows before 10 1803) could spin 1500 on an idle laptop, but pf3c's
+desktop had that timer's p90 at 1.0-1.6 ms under load: left at 2500.
