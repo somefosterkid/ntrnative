@@ -165,7 +165,7 @@ All in 2D textures 1024 texels wide (`texelFetch(t, ivec2(i & 1023, i >> 10), 0)
 
 | texture | format | content |
 |---|---|---|
-| uPoly | RGBA32UI, 2 texels per polygon (drawing order k) | t0: POLYGON_ATTR, TEXIMAGE_PARAM, PLTT_BASE, flags (bit 0 translucent, 1 front, 2 w-buffer, 3 wire-frame, 4 drawn whole); t1: first row, last row, first span record, 0 |
+| uPoly | RGBA32UI, 3 texels per polygon (drawing order k) | t0: POLYGON_ATTR, TEXIMAGE_PARAM, PLTT_BASE, flags (bit 0 translucent, 1 front, 2 w-buffer, 3 wire-frame, 4 drawn whole, 5 sprite); t1: first row, last row, first span record, alpha; t2: the polygon's s range, t range over its vertices (12.4, min \| max << 16; g4_filtered keeps its taps inside it on the repeating axes) |
 | uSpan | RGBA32UI holding floats (g_span: texel 12 r + t for record r's texel t, uintBitsToFloat), 12 texels per record (g02_spans.h's GpuSpan: the layout is documented there and is the authority over this summary); written by pass S, or uploaded (BWPORT_GPU_SPANS=cpu) | t0: xs, xe (the drawn run, inclusive), den_f (the attribute fraction's denominator), den_z (depth's); t1: L.w, R.w, L.z, R.z; t2: L.c0..2 (9-bit colour: 16 c5 + 15), L.s; t3: R.c0..2, R.s; t4: L.t, R.t, row flags, 0; t5: the left edge's run lo, hi and the right edge's lo, hi (edge flags); t6, t7: the two edges' (ax, ay, dx, dy) for the coverage (G5/G6) |
 | uBand | RG32UI, one per band | the band's first list entry, its count |
 | uList | R32UI | the bands' polygon lists, drawing order |
@@ -559,6 +559,12 @@ within tol, edges excluded (--noedge 1): 2x 99.94 -> 99.82 %, 4x 99.93 -> 99.81 
 untouched). AA at N x: regular polygons already got AA on the N x grid (the span walk runs vcore's AA windows on the N x grid: one blended
 N x pixel per edge row); what was missing was the DS-grid rows (lines walked on the DS grid and widened by N): `GPU_ROW_DSGRID`, the shader reads
 the windows at pixel x / N. Defaults unchanged at 1x (0 of 56 differ); at 4x 13 frames differ by a few pixels (lines).
+
+Filter=bilinear and the polygon edge (2026-11): the four taps used to wrap across a repeating texture's edge, so a polygon that ends at
+the texture's edge (the battle sky at the horizon, a lake's shore tile) blended in the texture's other side: a one-pixel dark line at 3x (the
+Mipmaps program never had it: g12_sample clamps its coordinate to the polygon's own s/t range). `g4_filtered` does the same now: uPoly's t2
+(`gpu_poly_st_range`) is the polygon's vertex range and the sample point stays half a texel inside it on the axes that repeat or mirror (a
+range under one texel: its middle). Clamp axes already clamped by g4_axis.
 
 ## Dependencies and waves
 

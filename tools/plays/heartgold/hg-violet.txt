@@ -1,0 +1,7 @@
+# game: heartgold
+# from: hg-violet
+# reaches: Violet City east from its west edge, a held walk through the city (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11600
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys right*f500@f11000

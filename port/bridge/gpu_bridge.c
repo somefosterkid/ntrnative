@@ -250,7 +250,7 @@ typedef struct Slot {
   int ipN;
   long long ipSerial, ipNominal, ipTick, ipOff[IP_MAXSLOT], ipNext;
   IpMid mid[IP_MAXSLOT];
-  /* G12, the texture cache (opt.texcache, not fast): this frame's layers as gpu_texcache_frame gave them (on the worker, after
+  /* G12, the texture cache (opt.texcache; Exact and Fast): this frame's layers as gpu_texcache_frame gave them (on the worker, after
    * td), drawn by the frame and its in-between pictures (gpu_use_tcframe before each gpu_render_prepared) */
   GpuTcFrame *tc;
   int tcOk; /* tc holds this frame's */
@@ -585,7 +585,7 @@ static int GeometryAgain(VCoreState *s) {
 
 /* G12 (a worker): the texture cache's frame of sl from s->geo and sl->td, when the frame wants the cache */
 static void TcFrame(Slot *sl) {
-  if (sl->tcOk || !sl->opt.texcache || sl->opt.fast || sTc == NULL || sl->tc == NULL || !sl->tdOk) return;
+  if (sl->tcOk || !sl->opt.texcache || sTc == NULL || sl->tc == NULL || !sl->tdOk) return;
   gpu_texcache_frame(sTc, sl->td, sl->s, sl->tc);
   sl->tcOk = 1;
 }
@@ -1511,6 +1511,9 @@ static unsigned GpuFrame(int *w, int *h) {
       if (getenv("BWPORT_GPU_TEXCACHE") == NULL) sl->opt.texcache = GPU_TC_ON;
       if (getenv("BWPORT_GPU_TEXMIPS") == NULL) sl->opt.mips = 1;
       if (getenv("BWPORT_GPU_TEXMAG") == NULL) sl->opt.texmag = 1;
+      /* Mipmaps is the cache's trilinear program, not the Bilinear one (raster_prog picks the cache only when opt.filter is off); the
+       * fast renderer and Metal have no cache yet: there Mipmaps stays the bilinear look (docs/settings-layout.md) */
+      if (!sl->opt.fast && sHalf->api != GPU_API_METAL) sl->opt.filter = 0;
     }
     sl->opt.up2d = SIM_GLRendererOption(5); /* G07_UP_OFF, _SCALE2X, _MMPX = 0, 2, 3 */
     sl->opt.up2d = sl->opt.up2d == 1 ? G07_UP_SCALE2X : sl->opt.up2d == 2 ? G07_UP_MMPX : G07_UP_OFF;

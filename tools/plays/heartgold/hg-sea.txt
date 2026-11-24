@@ -1,0 +1,7 @@
+# game: heartgold
+# from: hg-guide
+# reaches: Cherrygrove south-west: down along the shore (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11500
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys down*f330@f11000

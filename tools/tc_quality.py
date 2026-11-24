@@ -13,7 +13,8 @@
         --strip a 4-frame strip (off row over mips + aniso16 row) of consecutive captures from CAPDIR2.
 
 --gpu d3d12 runs the real GPU through Mesa's d3d12 driver (WSL: /dev/dxg; the renderer line names the card), --gpu llvmpipe
-(the default when absent) the software rasterizer. Pictures go to $TCQ_OUT (default ~/.cache/bwport/tcq). Pure Python (no PIL).
+(the default when absent) the software rasterizer. --renderer fast draws with the fast 3D renderer (BWPORT_RENDERER3D=fast;
+the reference stays Exact's). Pictures go to $TCQ_OUT (default ~/.cache/bwport/tcq). Pure Python (no PIL).
 The crops (CROPS) are boxes in 1x pixels of the 3D layer with the captures they belong to (Platinum town-walk)."""
 import argparse, hashlib, os, struct, subprocess, sys, zlib
 from multiprocessing import get_context
@@ -32,6 +33,7 @@ MODES = {'off': ['--texcache', 'off'], 'exact': ['--texcache', 'exact'], 'on': [
          'mips': ['--texcache', 'on', '--mips'], 'mips4': ['--texcache', 'on', '--mips', '--aniso', '4'],
          'mips16': ['--texcache', 'on', '--mips', '--aniso', '16'], 'aniso16': ['--texcache', 'on', '--aniso', '16']}
 GPU = {'llvmpipe': {'GALLIUM_DRIVER': 'llvmpipe'}, 'd3d12': {'GALLIUM_DRIVER': 'd3d12'}}
+RENDERER = 'exact'  # --renderer (set before the pool forks)
 
 
 def png(path):
@@ -110,10 +112,12 @@ def side(imgs, gap=4):
 
 def render(a):
     cap, mode, scale, ref, gpu = a
+    fast = RENDERER == 'fast' and not ref
     o = f'{OUT}/{gpu}_{os.path.basename(os.path.dirname(cap))[-6:]}_{os.path.basename(cap)[:-4]}_{mode}_{scale}' \
-        f'{"_r%d" % ref if ref else ""}.png'
+        f'{"_r%d" % ref if ref else ""}{"_fast" if fast else ""}.png'
     if not os.path.exists(o):
         e = dict(os.environ); e.update(GPU[gpu])
+        e['BWPORT_RENDERER3D'] = 'fast' if fast else 'exact'
         subprocess.run([R, cap, '/dev/null', '--hi', o + '.tmp', '-q', '--warm', '2', '--scale', str(scale)] + MODES[mode] +
                        (['--ref-scale', str(ref)] if ref else []), env=e, check=True,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -287,6 +291,7 @@ def main():
     ap.add_argument('what', choices=['exact', 'crops', 'gallery', 'diff', 'sheet'])
     ap.add_argument('capdir', nargs='+')
     ap.add_argument('--gpu', choices=list(GPU), default='llvmpipe')
+    ap.add_argument('--renderer', choices=['exact', 'fast'], default='exact', help='the 3D renderer of the modes (the reference: Exact)')
     ap.add_argument('--every', type=int, default=1)
     ap.add_argument('--scales', default='1,2,3')
     ap.add_argument('--modes', default='off,on,mips,mips4,mips16')
@@ -299,6 +304,8 @@ def main():
     ap.add_argument('--strip-frames', default='')
     ap.add_argument('--strip-crop', default='side wall left')
     o = ap.parse_args()
+    global RENDERER
+    RENDERER = o.renderer
     if o.what == 'gallery':
         o.outdir = o.capdir.pop()
     os.makedirs(OUT, exist_ok=True)

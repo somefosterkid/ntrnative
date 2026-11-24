@@ -1,0 +1,4 @@
+# game: w2
+# from: w2-town
+# reaches: Aspertia City: left, up to Hugh's door scene, back (Smooth motion sweep, tools/interp_sweep_set.txt)
+walk 300 40 left4 up1 w120 right6 down3

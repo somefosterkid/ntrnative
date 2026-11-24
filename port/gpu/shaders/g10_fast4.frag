@@ -138,6 +138,11 @@ void main() {
   px.depth = dep.x;
   px.edge = false;
   px.cov = 31u;
+#ifdef G_TEXCACHE // the cache's programs ("#1c", shaders/g12_texcache.glsl G12_HW): s and t's steps an output pixel (4 G), in texels
+  float gs = pl(vS, d0) * w0, gt = pl(vT, d0) * w0;
+  g12_hdx = vec2(vS.y - gs * vIW.y, vT.y - gt * vIW.y) * (w0 * 4.0 / 16.0);
+  g12_hdy = vec2(vS.z - gs * vIW.z, vT.z - gt * vIW.z) * (w0 * 4.0 / 16.0);
+#endif
   uvec4 col = g_texture(k, px, uvec4(px.rgb, g_poly(k, 1).w));
   // the samples' edge flag and coverage
   uvec4 edge, cov;

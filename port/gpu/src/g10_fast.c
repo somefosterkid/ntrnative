@@ -54,7 +54,13 @@ static void grow_poly(const int *px, const int *py, int nv, int cw, double *gx, 
     int j = (i + 1) % nv, dx = px[j] - px[i], dy = py[j] - py[i], m = abs(dx) > abs(dy) ? abs(dx) : abs(dy);
     double s = m == 0 ? 0 : (cw ? 1.0 : -1.0) / m;
     A[i] = -dy * s, B[i] = dx * s;
-    G[i] = m == 0 || !(A[i] > 0 || (A[i] == 0 && B[i] > 0)) ? 0 : abs(dx) > abs(dy) ? 0.875 : 0.984375;
+    /* top or left: a Y-major edge by the sign of A (a left edge), an X-major one by B (a top edge). A's sign on an X-major edge is
+     * only its slope's: a top edge sloping up to the right was "top" and one sloping down was not (and a bottom edge sloping the
+     * other way was grown), so a sloped edge shared by two polygons left single pixels between them, exactly where the line
+     * passes through a pixel's corner (Black's battle backdrop at 1x: 3850 black pixels over 676 captures, 10501 at 3x) */
+    int xmajor = abs(dx) > abs(dy);
+    G[i] = m == 0 || !(xmajor ? B[i] > 0 : A[i] > 0) ? 0 : xmajor ? 0.875 : 0.984375;
+
   }
   for (int i = 0; i < nv; i++) {
     int h = (i + nv - 1) % nv; /* edge h into vertex i, edge i out of it: A d.x + B d.y = -G on both */
@@ -166,13 +172,26 @@ int gpu_fast_build(GpuFast *f, GpuSpans *sp, const VCoreState *s, int scale) {
     u32 fl = (p->translucent ? GPU_PF_TRANS : 0) | (p->front ? GPU_PF_FRONT : 0) |
              ((g->swap_param & 2) ? GPU_PF_WBUF : 0) | (alpha == 0 ? GPU_PF_WIRE : 0);
     if (alpha == 0 || emark || aa || (alpha < 31 && blend)) fl |= GPU_PF_WHOLE;
+    if (gpu_poly_is_sprite(s, p)) fl |= GPU_PF_SPRITE;
     pr->t[0][0] = p->attr;
     pr->t[0][1] = p->texparam;
     pr->t[0][2] = p->pltt;
     pr->t[0][3] = fl;
     pr->t[1][0] = 1; /* no rows */
     pr->t[1][3] = alpha == 0 ? 31 : alpha;
+    gpu_poly_st_range(s, p, pr->t[2]);
     if (p->nv < 1 || p->nv > VC_POLY_MAXV) continue;
+    if (sp->planes) { /* G12's filtered sampling: the s/t range over the vertices (12.4) for the repeat-axis clamp; no planes (the
+                       * fast renderer's gradients are its fragments', shaders/g12_texcache.glsl G12_HW) */
+      int16_t *r = sp->range[k];
+      memset(sp->plane[k], 0, sizeof sp->plane[k]);
+      for (int i = 0; i < p->nv; i++)
+        for (int c = 0; c < 2; c++) {
+          int16_t t = (int16_t)g->vtx[p->v[i]].tex[c];
+          if (i == 0 || t < r[c * 2]) r[c * 2] = t;
+          if (i == 0 || t > r[c * 2 + 1]) r[c * 2 + 1] = t;
+        }
+    }
     const VC_Vertex *v[VC_POLY_MAXV];
     int dot = 1;
     long long ds2 = 0; /* twice the signed area on the DS grid */

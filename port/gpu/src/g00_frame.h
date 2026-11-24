@@ -78,7 +78,7 @@ void gpu_uni_raster(GpuU *u, const GpuCore *g, const VCoreState *s, const GpuPre
 /* the fast 3D renderer on GL (g10_fast_gl.c): _ok makes its programs at the first call (1: it can draw, else gpu_fast_how says
  * why), _r draws pass R's slot from p's triangles (ring entry ri: the polygon table and textures already uploaded) */
 int gpu_gl_fast_ok(GpuCore *g);
-void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri);
+void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri, int tcache); /* tcache: g12_gl_prepare's count */
 void gpu_gl_fast_release(GpuCore *g);
 const char *gpu_gl_fast_how(void);
 void gpu_uni_edge(GpuU *u, const GpuCore *g, const VCoreState *s);

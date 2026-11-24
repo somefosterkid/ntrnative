@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-r202
+# reaches: Jubilife City's south entrance, west then up the road (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f8300
+keys start@f6300 a@f6700
+keys left*f330@f7500
+keys up*f330@f7900

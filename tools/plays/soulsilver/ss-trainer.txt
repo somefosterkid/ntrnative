@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30e
+# reaches: Route 30 north: the first trainer's notice and the battle intro (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11700
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f330@f11000
+keys a@f11300 a@f11400 a@f11500

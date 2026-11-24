@@ -473,6 +473,8 @@ int vc_span_row(const VC_SpanPoly *sp, int y, VC_Span *out) {
   }
   edge_attr(&r->L, &ed[le], av, Llo, y, 0);
   edge_attr(&r->R, &ed[re], av, Rhi, y, 1);
+  r->lei = le;
+  r->rei = re;
   if (sp->wire) { /* only the edge pixels, alpha 31; the fraction runs from Llo to Rhi */
     r->flags = VC_SPAN_WIRE;
     r->xs = r->dxs = Llo;

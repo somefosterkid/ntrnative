@@ -1,0 +1,7 @@
+# game: heartgold
+# from: hg-r29
+# reaches: Route 29 west from its east edge, a held walk over map blocks (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11600
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f500@f11000

@@ -605,6 +605,21 @@ captures (the gap rule kept: a grown pixel over nothing keeps 31).
 Next: a pixel with coverage 0 (a right edge whose x fraction is near 0: the DS does not draw it with AA on, p16's `last = pp - 1`)
 is drawn by Fast and blended to the colour below (394 specks at 1x, "cov 0/31"): skip such pixels when DISP3DCNT's AA bit is set.
 
+### Black dots in Black's battles (2026-11-22, ib3): grow_poly's top edge test
+
+Owner (v0.2.3, iPhone, Metal, Fast, AA off): black dots in battles, none with Exact. Reproduced on PC (GL): the 676 captures of play
+black/route1-battle (f300-3000 every 4th), gpu_fastdiff at AA off: 3850 gaps (pixels Exact draws, Fast leaves empty = the black below the
+3D layer) at 1x, 10501 at 3x, 4701 / 10878 dark specks; e.g. f2000 at 1x: (108-110,31), (215,32), (94-95,44), (146-147,45), the backdrop's
+polygons' shared, nearly flat edges. Cause: grow_poly's "top or left edge" test was `A > 0 || (A == 0 && B > 0)`, right for a Y-major
+edge (A is +-1: a left edge) but on an X-major edge A is the slope, so a top edge sloping down to the right was not grown and a bottom
+edge sloping the other way was; where such an edge crosses a pixel's corner exactly (an integer slope fraction, 2/104 here) the
+rasterizer's tie went to neither polygon. Now an X-major edge is top by B > 0. Same shared C for Metal and GL (no msl change).
+Numbers (gpu_fastdiff, 676 battle captures; gaps / dark specks / specks / differ mean): 1x AA off 3850 / 4701 / 52376 / 21.59 % -> 1 / 457 /
+44221 / 21.24 %; 3x 10501 / 10878 / 404263 / 11.41 % -> 4 / 407 / 386623 / 11.26 %. Town walk (213): 1x specks 14275 -> 13721, differ 6.94 -> 6.83 %,
+gaps 9 -> 9; 3x specks 38829 -> 38635, extras 1017 -> 1139. 4 samples is untouched (g10_fast4.vert has the same test on the 2N grid but no
+gaps: 0 at 1x and 3x; its 33 / 120 dark specks are not gaps). Exact untouched. Left: 3x dark specks in the encounter mesh (f484-500: Fast
+black where Exact has a dark texel, texture sampling), 1x f2000 row 57 (a dark texel row).
+
 ### Dotted black lines with 4 samples (2026-11-19, fk3)
 
 Seen on Windows (Fast, Resolution 4, 4 samples, Twinleaf standing): vertical dotted black lines along tile edges beside the paths

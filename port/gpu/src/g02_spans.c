@@ -346,7 +346,7 @@ static uint32_t (*su_grow(GpuSetup *su, int n))[4] {
 
 /* pass S's setup of P's records first .. first + n - 1 (g02_spans.h, GpuSetup): a walk from row y0 (records of rows y0 + i / m),
  * or (dot) the 1-dot polygon at (x, y0). -1: out of memory */
-static int setup_poly(GpuSpans *sp, const VC_SpanPoly *P, int dot, int m, int first, int n, int y0, int x) {
+static int setup_poly(GpuSpans *sp, const VC_SpanPoly *P, int dot, int m, int first, int n, int y0, int x, const int *fy) {
   GpuSetup *su = &sp->su;
   int ne = dot ? 0 : P->ne, nv = dot ? 1 : P->nv, at = su->ntx;
   uint32_t(*t)[4] = su_grow(su, 3 + ne + 2 * nv);
@@ -355,7 +355,8 @@ static int setup_poly(GpuSpans *sp, const VC_SpanPoly *P, int dot, int m, int fi
   su->find[su->nfind][1] = (uint32_t)at;
   su->nfind++;
   uint32_t fl = (dot ? GPU_SU_DOT : 0) | (P->wire ? GPU_SU_WIRE : 0) | (P->full ? GPU_SU_FULL : 0) | (P->aa ? GPU_SU_AA : 0) |
-                (P->flatbot ? GPU_SU_FLATBOT : 0) | (uint32_t)m << 8 | (uint32_t)ne << 16 | (uint32_t)nv << 20;
+                (P->flatbot ? GPU_SU_FLATBOT : 0) | (fy != NULL ? GPU_SU_FINEZ : 0) | (uint32_t)m << 8 | (uint32_t)ne << 16 |
+                (uint32_t)nv << 20;
   memset(t, 0, (size_t)(3 + ne + 2 * nv) * sizeof *t);
   t[0][0] = fl;
   t[0][1] = (uint32_t)first;
@@ -381,8 +382,23 @@ static int setup_poly(GpuSpans *sp, const VC_SpanPoly *P, int dot, int m, int fi
     v0[2] = (uint32_t)(int32_t)a->st[0];
     v0[3] = (uint32_t)(int32_t)a->st[1];
     for (int c = 0; c < 3; c++) v1[c] = (uint32_t)(int32_t)a->c[c];
+    v1[3] = fy != NULL ? (uint32_t)fy[i] : 0;
   }
   return 0;
+}
+
+/* a line walked on the DS grid and widened to m (one_poly): the depth z of its edge e (VC_SpanPoly.ed) on row Y of the m x grid.
+ * The DS row's one depth on all m rows lost to the polygons around it on some rows and won on others (a wall's depth and edges are
+ * per m x row): a dashed or notched outline at N x where 1x drew it whole or not at all (the Platinum house doors). Along a Y-major
+ * edge the depth is taken at Y from the vertices' rows at m x (fy), exactly as p16's edge_attr gives a polygon's edge there (the
+ * shader's twin: g02_setup.vert s_fine_z); X-major edges keep the DS row's (their depth runs along the row). */
+static double fine_z(const VC_SpanPoly *P, int e, const int *fy, int Y, double z) {
+  const VC_SpanSeg *g = &P->ed[e];
+  int adx = g->dx < 0 ? -g->dx : g->dx, d = fy[g->ib] - fy[g->ia];
+  if (g->dy == 0 || adx > g->dy || d <= 0) return z;
+  int n = Y - fy[g->ia];
+  double f = (double)(n < 0 ? 0 : n > d ? d : n) / (double)d;
+  return P->av[g->ia].z + (P->av[g->ib].z - P->av[g->ia].z) * f;
 }
 
 void gpu_setup_extent(const GpuSetup *su, int f, int r0, int r1, int *x0, int *x1) {
@@ -423,8 +439,9 @@ void gpu_setup_extent(const GpuSetup *su, int f, int r0, int r1, int *x0, int *x
   *x1 = hi * m + m - 1;
 }
 
-/* the walk's rows of P at horizontal scale m and vertical replication m (m = 1: the grid of P itself) */
-static void walk(GpuSpans *sp, const VC_SpanPoly *P, int m, int H, GpuPolyRec *pr) {
+/* the walk's rows of P at horizontal scale m and vertical replication m (m = 1: the grid of P itself); fy: P's vertices' rows at
+ * m x for a line's depth per row (fine_z), or NULL */
+static void walk(GpuSpans *sp, const VC_SpanPoly *P, int m, int H, GpuPolyRec *pr, const int *fy) {
   int y0 = P->ymin < 0 ? 0 : P->ymin, y1 = P->yend;
   if (y1 > P->H - 1) y1 = P->H - 1;
   if (y0 > y1) return;
@@ -432,7 +449,7 @@ static void walk(GpuSpans *sp, const VC_SpanPoly *P, int m, int H, GpuPolyRec *p
   if (r1 > H - 1) r1 = H - 1;
   if (r0 > r1) return;
   int first = sp->nspan;
-  if (sp->setup && setup_poly(sp, P, 0, m, first, r1 - r0 + 1, y0, 0) != 0) return; /* out of memory: no rows */
+  if (sp->setup && setup_poly(sp, P, 0, m, first, r1 - r0 + 1, y0, 0, fy) != 0) return; /* out of memory: no rows */
   if (!sp->records) {
     sp->nspan += r1 - r0 + 1;
     set_rows(pr, r0, r1, first);
@@ -447,7 +464,12 @@ static void walk(GpuSpans *sp, const VC_SpanPoly *P, int m, int H, GpuPolyRec *p
         set_rows(pr, r0, y * m + j - 1, first);
         return;
       }
-      if (ok) gpu_span_pack(r, &v, m, 0, &sp->mask_overflow);
+      if (ok && fy != NULL) {
+        VC_Span u = v;
+        u.L.z = fine_z(P, v.lei, fy, y * m + j, v.L.z);
+        u.R.z = fine_z(P, v.rei, fy, y * m + j, v.R.z);
+        gpu_span_pack(r, &u, m, 0, &sp->mask_overflow);
+      } else if (ok) gpu_span_pack(r, &v, m, 0, &sp->mask_overflow);
       else r->t[0][0] = 1;
     }
   }
@@ -467,7 +489,7 @@ static void dot(GpuSpans *sp, const VC_SpanPoly *P, int x, int y, int m, GpuPoly
   v.run[0][0] = v.run[0][1] = x;
   v.L = v.R = P->av[0];
   int first = sp->nspan;
-  if (sp->setup && setup_poly(sp, P, 1, m, first, m, y, x) != 0) return;
+  if (sp->setup && setup_poly(sp, P, 1, m, first, m, y, x, NULL) != 0) return;
   if (!sp->records) {
     sp->nspan += m;
     set_rows(pr, y * m, y * m + m - 1, first);
@@ -505,12 +527,14 @@ static void one_poly(GpuSpans *sp, const VCoreState *s, const VC_Poly *p, int sc
     }
     return;
   }
-  if (scale > 1 && sp->line_wide && (P1.wire || all_collinear(&P1))) { /* DS-grid lines, N wide */
-    walk(sp, &P1, scale, H, pr);
+  if (scale > 1 && sp->line_wide && (P1.wire || all_collinear(&P1))) { /* DS-grid lines, N wide; their depth per N x row */
+    int fx, fy[VC_POLY_MAXV];
+    for (int i = 0; i < p->nv; i++) gpu_vertex_pos(s, p, &s->geo.vtx[p->v[i]], scale, &fx, &fy[i]);
+    walk(sp, &P1, scale, H, pr, fy);
     return;
   }
   if (scale == 1) {
-    walk(sp, &P1, 1, H, pr);
+    walk(sp, &P1, 1, H, pr, NULL);
     return;
   }
   const int kl = (P1.wire || all_collinear(&P1)) ? kk : 1; /* Line=thin: a line is one pixel of the N grid wide */
@@ -524,7 +548,7 @@ static void one_poly(GpuSpans *sp, const VCoreState *s, const VC_Poly *p, int sc
     dot(sp, &PN, px[0], py[0], kl, pr);
     return;
   }
-  walk(sp, &PN, kl, H, pr);
+  walk(sp, &PN, kl, H, pr, NULL);
 }
 
 /* polygon p's planes at scale (GpuSpans.plane): its vertices' positions as gpu_vertex_pos places them, unrounded (computing them
@@ -570,6 +594,33 @@ static void fit_planes(const VCoreState *s, const VC_Poly *p, int scale, float o
     out[f * 3 + 0] = (float)A;
     out[f * 3 + 1] = (float)B;
     out[f * 3 + 2] = (float)(F[f][a] - A * X[a] - B * Y[a]);
+  }
+}
+
+int gpu_poly_is_sprite(const VCoreState *s, const VC_Poly *p) {
+  static int off = -1;
+  if (off < 0) off = getenv("BWPORT_GPU_SPRITE") != NULL && getenv("BWPORT_GPU_SPRITE")[0] == '0'; /* =0: the old look (test aid) */
+  if (off || ((p->texparam >> 26) & 7) == 0 || p->nv < 3 || p->nv > VC_POLY_MAXV) return 0;
+  int w0 = s->geo.vtx[p->v[0]].clip[3];
+  if (w0 <= 0) return 0;
+  for (int i = 1; i < p->nv; i++)
+    if (s->geo.vtx[p->v[i]].clip[3] != w0) return 0;
+  return 1;
+}
+
+/* polygon p's s and t range over its vertices as uPoly's t2 (g02_spans.h GpuPolyRec): x = smin | smax << 16, y = tmin | tmax << 16 (12.4);
+ * 0, 0 when it is untextured */
+void gpu_poly_st_range(const VCoreState *s, const VC_Poly *p, uint32_t out[2]) {
+  out[0] = out[1] = 0;
+  if (((p->texparam >> 26) & 7) == 0 || p->nv < 1 || p->nv > VC_POLY_MAXV) return;
+  for (int c = 0; c < 2; c++) {
+    int16_t lo = 0, hi = 0;
+    for (int i = 0; i < p->nv; i++) {
+      int16_t t = (int16_t)s->geo.vtx[p->v[i]].tex[c];
+      if (i == 0 || t < lo) lo = t;
+      if (i == 0 || t > hi) hi = t;
+    }
+    out[c] = (uint32_t)(uint16_t)lo | (uint32_t)(uint16_t)hi << 16;
   }
 }
 
@@ -691,11 +742,13 @@ void gpu_spans_build(GpuSpans *sp, const VCoreState *s, int scale) {
     u32 fl = (p->translucent ? GPU_PF_TRANS : 0) | (p->front ? GPU_PF_FRONT : 0) |
              ((g->swap_param & 2) ? GPU_PF_WBUF : 0) | (alpha == 0 ? GPU_PF_WIRE : 0);
     if (alpha == 0 || emark || aa || (alpha < 31 && blend)) fl |= GPU_PF_WHOLE;
+    if (gpu_poly_is_sprite(s, p)) fl |= GPU_PF_SPRITE;
     pr->t[0][0] = p->attr;
     pr->t[0][1] = p->texparam;
     pr->t[0][2] = p->pltt;
     pr->t[0][3] = fl;
     pr->t[1][3] = alpha == 0 ? 31 : alpha;
+    gpu_poly_st_range(s, p, pr->t[2]);
     if (sp->planes) fit_planes(s, p, scale, sp->plane[k], sp->range[k]);
     sp->memo_of[k] = NULL;
     if (p->nv < 1 || p->nv > VC_POLY_MAXV) {

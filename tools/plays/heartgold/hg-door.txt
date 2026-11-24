@@ -1,0 +1,8 @@
+# game: heartgold
+# from: hg-out3
+# reaches: New Bark Town: up into the player's house door (map change, door camera), the interior (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11500
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f64@f11000
+keys down*f64@f11200

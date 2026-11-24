@@ -30,7 +30,7 @@
 
 #include "vc_shared.h"
 
-enum { GPU_SPAN_TEXELS = 12, GPU_POLY_TEXELS = 2 };
+enum { GPU_SPAN_TEXELS = 12, GPU_POLY_TEXELS = 3 };
 enum {
   GPU_ROW_ALLEDGE = 1, /* every pixel of the row is an edge pixel (a flat-bottomed polygon's last row, a 1-dot polygon) */
   GPU_ROW_WIRE = 2,    /* wire-frame: only the mask's pixels are drawn */
@@ -42,13 +42,20 @@ enum {
 };
 enum { GPU_ROW_M_SHIFT = 8 }; /* row flags >> 8 = the row's widening m (a DS-grid or N-grid span widened to m-wide blocks), 0 = none */
 /* the polygon table's flags (t0.w) */
-enum { GPU_PF_TRANS = 1, GPU_PF_FRONT = 2, GPU_PF_WBUF = 4, GPU_PF_WIRE = 8, GPU_PF_WHOLE = 16 };
+enum { GPU_PF_TRANS = 1, GPU_PF_FRONT = 2, GPU_PF_WBUF = 4, GPU_PF_WIRE = 8, GPU_PF_WHOLE = 16, GPU_PF_SPRITE = 32 };
+/* a textured polygon whose vertices all have one w: parallel to the screen, which is what every billboard (field characters, battle
+ * Pokemon, their reflections) is and no map polygon is (measured on Black town/battle, Platinum, HeartGold captures: 0 ground or
+ * building polygons with equal w; the nearest unequal ones differ by 1e-4 or more). Texture smoothing leaves these on the DS's texels */
+int gpu_poly_is_sprite(const VCoreState *s, const VC_Poly *p);
+void gpu_poly_st_range(const VCoreState *s, const VC_Poly *p, uint32_t out[2]); /* uPoly's t2 */
 
 typedef struct GpuSpan {
   float t[GPU_SPAN_TEXELS][4];
 } GpuSpan;
 
-/* t0: attr, texparam, pltt, flags; t1: first row, last row, first record, polygon alpha (wire-frame: 31) */
+/* t0: attr, texparam, pltt, flags; t1: first row, last row, first record, polygon alpha (wire-frame: 31); t2: the polygon's s and t
+ * range over its vertices (12.4: x = smin | smax << 16, y = tmin | tmax << 16; 0 = untextured; gpu_poly_st_range): Filter=bilinear keeps
+ * its taps inside it on the repeating axes (shaders/g04_texture.glsl g4_filtered) */
 typedef struct GpuPolyRec {
   uint32_t t[GPU_POLY_TEXELS][4];
 } GpuPolyRec;
@@ -59,8 +66,10 @@ typedef struct GpuPolyRec {
  *   h1: ymin, yend, y0 (the first row walked; a dot: its row), the dot's x (ints)
  *   h2: the edges' vertex indices, ia | ib << 4 a byte each: edges 0-3 in x, 4-7 in y, 8-9 in z
  *   ne texels: an edge's ax, ay, bx, by (p16's VC_SpanSeg)
- *   nv x 2 texels: a vertex's w, z, s, t and c0, c1, c2, 0 (p16's VC_SpanAttr: whole numbers) */
-enum { GPU_SU_DOT = 1, GPU_SU_WIRE = 2, GPU_SU_FULL = 4, GPU_SU_AA = 8, GPU_SU_FLATBOT = 16 };
+ *   nv x 2 texels: a vertex's w, z, s, t and c0, c1, c2, its row at N x (GPU_SU_FINEZ, else 0) (p16's VC_SpanAttr: whole numbers)
+ * GPU_SU_FINEZ: a line walked on the DS grid and widened to m (g02_spans.c fine_z): each of the m rows of a DS row takes its depth
+ * along a Y-major edge at its own row of the m x grid, from the vertices' rows there, as the polygons around it get theirs */
+enum { GPU_SU_DOT = 1, GPU_SU_WIRE = 2, GPU_SU_FULL = 4, GPU_SU_AA = 8, GPU_SU_FLATBOT = 16, GPU_SU_FINEZ = 32 };
 typedef struct GpuSetup {
   uint32_t (*tx)[4];
   int ntx, captx;

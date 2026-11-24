@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-oreburgh
+# reaches: Oreburgh City: a held walk right then down (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f8300
+keys start@f6300 a@f6700
+keys right*f330@f7500
+keys down*f200@f7900

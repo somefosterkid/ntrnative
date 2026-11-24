@@ -24,6 +24,9 @@
 // do it once anisotropy is on: D3D12 (and so Mesa's d3d12 on Windows' GPUs) has no anisotropic filter with point magnification,
 // and llvmpipe's anisotropic path filters magnified footprints too (both drew the magnified ground bilinear: a third of the
 // pixels of a 3x town frame changed and the grass tiles' edges showed lines, the bilinear tap reaching the wrapped texel).
+// G12_HW (the fast renderer's programs, shaders/g10_fast.frag and g10_fast4.frag: src/gpu_gl.c's assemble defines it there): the
+// screen gradients are g12_hdx and g12_hdy (s and t's steps an output pixel, in texels), which its main sets before g_texture from
+// the GPU's derivatives (AA off) or its own planes (4 samples); uTcPoly's planes are 0 there, its s/t range as above.
 
 uniform highp sampler2DArray uTc0;
 uniform highp sampler2DArray uTc1;
@@ -31,6 +34,9 @@ uniform highp sampler2DArray uTc2;
 uniform highp sampler2DArray uTc3;
 uniform highp sampler2DArray uTc4;
 uniform highp usampler2D uTcPoly;
+#ifdef G12_HW
+vec2 g12_hdx, g12_hdy;
+#endif
 
 vec3 g12_plane(int k, int i) { return uintBitsToFloat(texelFetch(uTcPoly, g_at(k * 4 + i), 0).xyz); }
 
@@ -49,8 +55,13 @@ bool g12_sample(int k, uint tp, ivec2 st, ivec2 pos, out uvec4 tx) {
     f = (vec2(st) + 0.5) * (1.0 / 16.0);
     if ((tp & 0x10000u) == 0u) f.x = clamp(f.x, 0.0, float(m.y) - 1.0 / 64.0);
     if ((tp & 0x20000u) == 0u) f.y = clamp(f.y, 0.0, float(m.z) - 1.0 / 64.0);
-    vec3 ps = g12_plane(k, 1), pt = g12_plane(k, 2), pw = g12_plane(k, 3);
     uint rs = texelFetch(uTcPoly, g_at(k * 4 + 2), 0).w, rt = texelFetch(uTcPoly, g_at(k * 4 + 3), 0).w;
+#ifdef G12_HW
+    float W = 1.0;
+    dx = g12_hdx * inv;
+    dy = g12_hdy * inv;
+#else
+    vec3 ps = g12_plane(k, 1), pt = g12_plane(k, 2), pw = g12_plane(k, 3);
     vec3 q = vec3(vec2(pos) + 0.5 * float(G_K), 1.0);
     float W = dot(pw, q);
     if (W > 0.0) {
@@ -58,6 +69,7 @@ bool g12_sample(int k, uint tp, ivec2 st, ivec2 pos, out uvec4 tx) {
       dx = vec2(ps.x - s * pw.x, pt.x - t * pw.x) * g;
       dy = vec2(ps.y - s * pw.y, pt.y - t * pw.y) * g;
     }
+#endif
     near = (m.x & 32u) != 0u && max(dot(dx, dx), dot(dy, dy)) <= inv * inv;
     // the polygon's own s/t range (its vertices'): the filter's taps stay inside it on the axes that don't clamp, else the
     // taps read the neighbouring tile's texels across the polygon's edge (the 1x lines at sand and grass tile edges)

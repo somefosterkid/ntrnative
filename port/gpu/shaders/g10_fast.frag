@@ -108,6 +108,10 @@ void main() {
   // and are drawn); a grown pixel keeps its rule (above)
   if ((uDisp3d & 0x10u) != 0u && (vF & 3) == 0 && px.edge && px.cov == 0u && d >= -1.0 / 512.0) return;
   if (!g_early(S, k, px)) return;
+#ifdef G_TEXCACHE // the texture cache's programs ("#1c": shaders/g12_texcache.glsl's G12_HW): s and t's steps a pixel, in texels
+  g12_hdx = dsx * (1.0 / 16.0);
+  g12_hdy = dsy * (1.0 / 16.0);
+#endif
   uvec4 col = g_texture(k, px, uvec4(px.rgb, g_poly(k, 1).w));
   g_plot(S, k, px, col);
   uvec4 o = uvec4(S.depth, S.opaque_id | (S.trans_id << 8) | (S.flags << 16) | (S.cov << 24),

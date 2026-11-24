@@ -22,6 +22,9 @@ static struct {
   VC_IpRec key, old, spare;
   int *map;
   u8 *texhold; /* per key list: its texcoords step (vc_ip_texhold), not blended */
+  int *step[2]; /* per list and axis: the cell step vc_ip_texhold saw (the key's: step[stepi], the old's: the other), for steady scrolls */
+  size_t stepcap;
+  int stepi;
   size_t mapcap;
   int have, haveOld, valid;
   long long serial, keyNs, oldNs;
@@ -103,13 +106,12 @@ static void IpBoxPrint(const IpBox *b) {
 static VC_IpVtx IpShown(const VC_IpVtx *a, const VC_IpVtx *d, s32 b, int texhold) {
   VC_IpVtx v = *a;
   for (int c = 0; c < 4; c++) v.clip[c] = IpLerp(a->clip[c], d->clip[c], b);
-  if (texhold) {
-    if (b >= 2048) v.tex[0] = d->tex[0], v.tex[1] = d->tex[1];
-    return v;
-  }
-  for (int c = 0; c < 2; c++) {
+  for (int c = 0; c < 2; c++) { /* texhold bit c: the axis steps a cell (vc_ip_texhold), the nearer keyframe's */
     int dt = d->tex[c] - a->tex[c];
-    if (dt > -2048 && dt < 2048) v.tex[c] = (s16)IpLerp(a->tex[c], d->tex[c], b);
+    if (texhold >> c & 1) {
+      if (b >= 2048) v.tex[c] = d->tex[c];
+    } else if (dt > -2048 && dt < 2048)
+      v.tex[c] = (s16)IpLerp(a->tex[c], d->tex[c], b);
   }
   return v;
 }
@@ -130,7 +132,7 @@ static void IpMetric(int idx, double f, int blend) {
     if (l->n == 0) continue;
     int m = sIp.valid && blend ? sIp.map[i] : -1;
     const VC_IpList *dl = m >= 0 ? &sIp.old.l[m] : NULL;
-    int hold = m >= 0 && sIp.texhold != NULL && sIp.texhold[i];
+    int hold = m >= 0 && sIp.texhold != NULL ? sIp.texhold[i] : 0;
     IpBox sh, kb, ob;
     IpBoxInit(&sh);
     IpBoxInit(&kb);
@@ -217,6 +219,12 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
     sIp.oldNs = sIp.keyNs;
     sIp.keyNs = nominal;
     sIp.valid = 0;
+    if (sIp.stepcap < 2 * (size_t)sIp.key.nl + 2) {
+      sIp.stepcap = 4 * (size_t)sIp.key.nl + 64;
+      for (int k = 0; k < 2; k++) sIp.step[k] = (int *)realloc(sIp.step[k], sIp.stepcap * sizeof(int));
+    }
+    sIp.stepi ^= 1;
+    memset(sIp.step[sIp.stepi], 0, 2 * (size_t)sIp.key.nl * sizeof(int));
     IC(keyframes, 1);
     if (sIp.haveOld && sIp.key.swapped && sIp.old.swapped && sIp.key.nl > 0 && sIp.old.nl > 0) {
       if (sIp.mapcap < sIp.key.nl + 1) {
@@ -230,10 +238,10 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
       IC(verts, sIp.key.nv);
       IC(vertsPaired, st.vt_paired);
       for (u32 i = 0; i < sIp.key.nl; i++) IC(listsPaired, sIp.map[i] >= 0);
-      vc_ip_texhold(&sIp.key, &sIp.old, sIp.map, sIp.texhold, IpTexHoldThr(), IP_TEXHOLD_PX);
+      vc_ip_texhold(&sIp.key, &sIp.old, sIp.map, sIp.texhold, IpTexHoldThr(), IP_TEXHOLD_PX, sIp.step[sIp.stepi ^ 1], sIp.step[sIp.stepi]);
       for (u32 i = 0; i < sIp.key.nl; i++) {
         if (sIp.map[i] < 0) continue;
-        IC(texHeld, sIp.texhold[i]);
+        IC(texHeld, sIp.texhold[i] != 0);
         const VC_IpList *p = &sIp.key.l[i], *q = &sIp.old.l[sIp.map[i]];
         int mx = 0;
         for (u32 j = 0; j < p->n && j < q->n; j++)
@@ -247,7 +255,7 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
         IC(texHist[bk], 1);
       }
       /* a cut (fewer than half the vertices pair) shows the new frame at once, as without interpolation */
-      if (st.vt_paired * 2 >= sIp.key.nv) {
+      if (st.vt_paired * 2 >= sIp.key.nv && !vc_ip_scene_cut(sIp.map, (int)sIp.key.nl, NULL)) {
         sIp.valid = 1;
         IC(pairs, 1);
       } else {

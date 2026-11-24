@@ -23,4 +23,7 @@ vcore_dep = declare_dependency(link_with: libvcore, include_directories: inc, de
 vcore_tests = executable('vcore_tests', tsrcs, dependencies: vcore_dep)
 executable('vcore_render', 'tools/vcore_render.c', dependencies: vcore_dep)
 executable('vcore_interp', 'tools/vcore_interp.c', dependencies: vcore_dep)
+executable('vcore_ipscan', 'tools/vcore_ipscan.c', dependencies: vcore_dep)
+executable('vcore_texscan', 'tools/vcore_texscan.c', dependencies: vcore_dep)
+executable('vcore_ipsweep', 'tools/vcore_ipsweep.c', dependencies: vcore_dep)
 test('vcore unit tests', vcore_tests, args: ['-q'])

@@ -1,0 +1,36 @@
+# tools/interp_sweep.py run --set: one `PLAY SPEC` per line (tools/plays NAME, BWPORT_VCAPTURE frame spec, every frame)
+# Gen 5: Black (Nuvema town, door + scene, Route 1 leaves and the wild battle), White, Black 2 / White 2 (town, route, docks, battle)
+town-lab 300-700/1
+town-walk 7500-7900/1
+lab-out 300-700/1
+route1-battle 300-760/1
+white-route1 300-760/1
+white-lab 300-700/1
+b2-town 300-700/1
+b2-r19 300-760/1
+b2-docks 300-700/1
+hugh-fight 260-760/1
+w2-town 300-700/1
+w2-r19 300-760/1
+w2-docks 300-700/1
+# HeartGold / SoulSilver: Cherrygrove (house door, block edge, both directions, shore), New Bark door, Routes 29 / 30, Violet, a trainer battle
+cherry-door-east 10990-11360/1
+cherry-door-west 10990-11360/1
+hg-door 11000-11400/1
+hg-r29 11000-11500/1
+hg-r30 11000-11500/1
+hg-violet 11000-11500/1
+hg-trainer 11000-11600/1
+hg-sea 11000-11400/1
+ss-door 11000-11400/1
+ss-r29 11000-11500/1
+ss-r30 11000-11500/1
+ss-violet 11000-11500/1
+ss-trainer 11000-11600/1
+# Platinum: Twinleaf (houses, door), Routes 201 / 202, Jubilife, Oreburgh, a lake, a wild battle
+pt-door 7500-7900/1
+pt-r201 7500-8000/1
+pt-r202 7500-8100/1
+pt-oreburgh 7500-8100/1
+pt-lake 7500-8100/1
+r202-wild 7500-7900/1

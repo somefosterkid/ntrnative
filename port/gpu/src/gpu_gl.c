@@ -249,8 +249,9 @@ static int assemble(Asm *a, const char *vs, const char *fs, int tf, char *err, s
       if (*after == 'f') filt = 1;
       else tcache = 1;
     }
-    snprintf(kdef, sizeof a->kdef, "#define G_K %ld\n%s%s", kk, filt ? "#define G_FILTER 1\n" : "",
-             tcache ? "#define G_TEXCACHE 1\n" : "");
+    /* (the fast renderer's texture cache programs take the screen gradients from their main: G12_HW, shaders/g12_texcache.glsl) */
+    snprintf(kdef, sizeof a->kdef, "#define G_K %ld\n%s%s%s", kk, filt ? "#define G_FILTER 1\n" : "",
+             tcache ? "#define G_TEXCACHE 1\n" : "", tcache && !strncmp(fs, "g10_fast", 8) ? "#define G12_HW 1\n" : "");
     if (plus != NULL) snprintf(kdef + strlen(kdef), sizeof a->kdef - strlen(kdef), "#define %s 1\n", plus + 1);
   }
   /* a vertex shader's file as the fragment shader ("g02_setup.vert"): its body with S_FRAG defined, after the head only */

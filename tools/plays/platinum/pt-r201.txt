@@ -1,0 +1,6 @@
+# game: platinum
+# from: pt-r201
+# reaches: Route 201 north, a held walk (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f8100
+keys start@f6300 a@f6700
+keys up*f500@f7500

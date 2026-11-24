@@ -1,0 +1,7 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: Route 30 north from its south end, a held walk (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f11600
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f500@f11000

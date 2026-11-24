@@ -1,0 +1,8 @@
+# game: heartgold
+# from: hg-guide
+# reaches: Cherrygrove City, the house whose door (547,399, zone 70) faces the road from Route 29: warped to 556,400 (557 is blocked), then held right->left along row 400 from x 556 past the door at x 547 to x 538 (the control) (Smooth motion study)
+# end: f11400
+env BWPORT_HG_WARP=67:556:400 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f330@f11000

@@ -79,6 +79,7 @@
 #include "port_route_map.h"
 
 void PortRoute4_Frame(FieldSystem *fieldSystem);
+void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
 void PortRoute4_StartMenu(const StartMenu *menu, int saveOption, int pokemonOption, int bagOption);
 void PortRoute4_YesNo(int row);
 void PortRoute4_Saved(void);
@@ -2032,6 +2033,8 @@ void PortRoute4_Frame(FieldSystem *fs) {
     Pr4_PoketchHook(fs, Pr4_FieldUp(fs) && !fs->processManager->pause && !FieldSystem_IsRunningTask(fs));
     if (Pr4_FieldUp(fs)) {
         sPr4Fs = fs;
+        PortSpeed4_MoveLog(PlayerAvatar_GetXPos(fs->playerAvatar), PlayerAvatar_GetZPos(fs->playerAvatar), PlayerAvatar_GetPos(fs->playerAvatar)->x >> FX32_SHIFT, PlayerAvatar_GetPos(fs->playerAvatar)->z >> FX32_SHIFT, -1, -1, -1,
+                           PlayerAvatar_GetPlayerMoveState(fs->playerAvatar));
         Pr4_FlySlot(fs);
         Pr4_PropDump(fs);
         Pr4_GymDump(fs);
@@ -2132,6 +2135,7 @@ void PortRoute4_Frame(FieldSystem *fs) {
 #include "port_route_map.h"
 
 void PortRoute4_Frame(FieldSystem *fieldSystem);
+void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
 void PortRoute4_StartMenu(FieldSystem *fieldSystem);
 void PortRoute4_SaveStart(void);
 void PortRoute4_SaveEnd(void);
@@ -2739,6 +2743,11 @@ int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const
     if (input >= 1 && input <= 4) {
         Pr4_IntBattle(100);
     }
+    if (input >= 1 && input <= 4 && getenv("BWPORT_HG_TESTLIST") != NULL) {
+        extern int PortRoute4_TestList(BattleSystem *, int);   // below (the sweep's case list)
+
+        return PortRoute4_TestList(battleSys, battler);
+    }
     if (input >= 1 && input <= 4 && getenv("BWPORT_HG_TESTSLOT") != NULL) {
         return Pr4_TestSlot(input, moves);
     }
@@ -2782,7 +2791,19 @@ int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const
 // BattleControllerPlayer_HpCalc (after the OHKO line) CheatDamage; battle_command.c BtlCmd_UpdateHealthbar /
 // BtlCmd_UpdateHealthbarValue CheatHpCalc (the HP a script takes outside a hit: burn, poison, weather, recoil; Platinum's comment);
 // overlay_12_0224E4FC.c CheckSortSpeed CheatSpeed; field_control.c FieldSystem_CheckWildEncounter (after the Pal Park branch) NoEncounter.
+// BWPORT_HG_TESTLIST (the battle sweep, Pr4_TestList below): both sides always hit and use no PP, no hit takes more than an eighth
+// of the defender's HP and no script loss (recoil, a self-KO) its last one: neither Pokemon faints.
+static int Pr4_SweepOn(void) {
+    return getenv("BWPORT_HG_TESTLIST") != NULL;
+}
+
 int PortRoute4_CheatSide(BattleSystem *battleSys, int battler) {
+    if (Pr4_SweepOn()) {
+        BattleContext *ctx = BattleSystem_GetBattleContext(battleSys);
+
+        fprintf(stderr, "sweep: exec battler %d move %u at V-blank %u\n", battler, (unsigned)ctx->moveNoCur, (unsigned)OS_GetVBlankCount());
+        return 1;
+    }
     return (PortRoute_CheatWin(Pr4_Game()) || getenv("BWPORT_HG_TESTHIT") != NULL) && BattleSystem_GetFieldSide(battleSys, battler) == 0;
 }
 
@@ -2797,6 +2818,11 @@ void PortRoute4_CheatSpeed(BattleSystem *battleSys, int battler1, int battler2, 
 int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, int damage, int defenderHP) {
     int n = damage;
 
+    if (Pr4_SweepOn()) {   // a loss is negative: at most an eighth of the defender's HP (at least 1)
+        int cap = defenderHP / 8 > 0 ? defenderHP / 8 : 1;
+
+        return damage < 0 && -damage > cap ? -cap : damage;
+    }
     if (damage == 0 || !PortRoute_CheatWin(Pr4_Game())) {
         return damage;
     }
@@ -2811,6 +2837,11 @@ int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, 
 
 // The HP change a battle script applies to `battler` (hpCalc: < 0 a loss): with the cheat on, a loss of the player's side is 0.
 int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc) {
+    if (Pr4_SweepOn()) {   // a loss never takes the last HP
+        int hp = BattleSystem_GetBattleContext(battleSys)->battleMons[battler].hp;
+
+        return hpCalc < 0 && -hpCalc >= hp ? (hp > 1 ? 1 - hp : 0) : hpCalc;
+    }
     if (hpCalc >= 0 || !PortRoute_CheatWin(Pr4_Game()) || BattleSystem_GetFieldSide(battleSys, battler) != 0) {
         return hpCalc;
     }
@@ -2887,6 +2918,67 @@ static int Pr4_TestSlot(int input, const u16 *moves) {
     return slot + 1;
 }
 
+extern void PORT_SweepCase(int k, const char *what);   // port/src/run_frames.c (the sweep's case lines)
+extern void PORT_SweepEnd(const char *why, int exitNow);
+
+// BWPORT_HG_TESTLIST=O:F,O:F,... (the battle sweep, tools/battle_sweep.py; needs BWPORT_HG_TESTBATTLE): one case per turn. At each
+// move menu the next pair is applied to the battle's own Pokemon (the BattleMons, as Transform or Mimic do): our first slot knows move
+// O, every slot of the foe move F (so the AI's pick is F), all PP 35, HP full, status cleared. The menu's answer is slot 1.
+// (The wild foe's AI picks after our menu's answer: F applies to the same turn.) Past the last pair: `sweep: end list`, exit 0
+// with BWPORT_HG_TESTEXIT. The first foe move is the battle's own spec. A battle that ends earlier
+// (a blown-away wild Pokemon) prints `sweep: end battle` from Pr4_TestFrame; the harness resumes after that case.
+static u16 sListOur[1024], sListFoe[1024];
+static int sListN = -1, sListPos;
+
+static void Pr4_ListParse(void) {
+    const char *p = getenv("BWPORT_HG_TESTLIST");
+    int o, f, n;
+
+    sListN = 0;
+    while (p != NULL && sListN < 1024 && sscanf(p, "%d:%d%n", &o, &f, &n) == 2) {
+        sListOur[sListN] = (u16)o;
+        sListFoe[sListN++] = (u16)f;
+        p += n;
+        if (*p == ',') {
+            p++;
+        }
+    }
+}
+
+int PortRoute4_TestList(BattleSystem *battleSys, int battler) {
+    BattleContext *ctx = BattleSystem_GetBattleContext(battleSys);
+    int k, b, i;
+    char what[48];
+
+    if (sListN < 0) {
+        Pr4_ListParse();
+    }
+    k = sListPos++;
+    if (k >= sListN) {
+        PORT_SweepEnd("list", getenv("BWPORT_HG_TESTEXIT") != NULL);
+        return 1;
+    }
+    for (b = 0; b < BattleSystem_GetMaxBattlers(battleSys); b++) {
+        BattleMon *m = &ctx->battleMons[b];
+
+        m->hp = (s32)m->maxHp;
+        m->status = 0;
+        m->status2 = 0;
+        if (BattleSystem_GetFieldSide(battleSys, b) != BattleSystem_GetFieldSide(battleSys, battler)) {
+            for (i = 0; i < 4; i++) {
+                m->moves[i] = sListFoe[k];
+                m->movePPCur[i] = m->movePP[i] = 35;
+            }
+        } else if (b == battler) {
+            m->moves[0] = sListOur[k];
+            m->movePPCur[0] = m->movePP[0] = 35;
+        }
+    }
+    snprintf(what, sizeof what, "our %u foe %u", (unsigned)sListOur[k], (unsigned)sListFoe[k]);
+    PORT_SweepCase(k, what);
+    return 1;
+}
+
 static void Pr4_TestBattle(FieldSystem *fs) {
     const char *e = getenv("BWPORT_HG_TESTBATTLE"), *p;
     int species = 0, level = 0, oppSpecies, oppLevel, n = 0, setOur = 0, setOpp = 0;
@@ -2949,6 +3041,9 @@ static void Pr4_TestFrame(FieldSystem *fs, int free) {
     } else if (sPr4TestState == 2 && free) {
         sPr4TestState = 3;
         fprintf(stderr, "test: battle over at V-blank %u\n", (unsigned)OS_GetVBlankCount());
+        if (Pr4_SweepOn()) {
+            PORT_SweepEnd("battle", getenv("BWPORT_HG_TESTEXIT") != NULL);
+        }
         if (getenv("BWPORT_HG_TESTEXIT") != NULL) {
             _exit(0);
         }
@@ -3679,6 +3774,10 @@ void PortRoute4_Frame(FieldSystem *fs) {
         const VecFx32 *p = PlayerAvatar_GetPositionVector(fs->playerAvatar);
 
         sPr4Fs = fs;
+        PortSpeed4_MoveLog((int)PlayerAvatar_GetXCoord(fs->playerAvatar), (int)PlayerAvatar_GetZCoord(fs->playerAvatar), p->x >> FX32_SHIFT, p->z >> FX32_SHIFT,
+                           fs->followMon.active ? (int)MapObject_GetXCoord(fs->followMon.mapObject) : -1,
+                           fs->followMon.active ? (int)MapObject_GetZCoord(fs->followMon.mapObject) : -1, (int)fs->followMon.unk1C,
+                           (int)PlayerAvatar_GetPlayerMoveState(fs->playerAvatar));
         Pr4_TouchYesNo(fs);
         Pr4_FlySlot(fs);
         rs.zone = (unsigned)fs->location->mapId;

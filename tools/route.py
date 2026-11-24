@@ -798,6 +798,7 @@ def cache_hit(lc, g, leg, k, produced):
 FORK_AT = {"pt": 6290, "hg": 7690, "ss": 7690}
 SNAP_LOCK = threading.Lock()
 SNAP_SERVERS = set()   # the servers' sockets: ended when route.py is (snapshot_stop)
+SNAP_DIRS = {}   # socket -> the server's run dir (WORK/snap-GAME-KEY, ~250 MB: a copy of a leg's run dir); removed with the server (dk5 11-22: 5 GB per BD slot)
 # each leg's own (the child takes the leg's): read after the fork point, or at each use (BWPORT_WARP_HINTS: route_map.c WarpHint)
 SNAP_PER_LEG = ("BWPORT_PILOT", "BWPORT_MAPDUMP", "BWPORT_FORK_PIDFILE", "DISPLAY", "BWPORT_WARP_HINTS", "BWPORT_FORK_CTL")
 atexit.register(lambda: snapshot_stop())
@@ -824,6 +825,7 @@ def snapshot_env(game, start, pilot, env, cmd, run):
             with open(WORK / f"snap-{key}.key", "w") as f:   # what the key is made of (two keys: diff their files)
                 f.write("".join(f"{k}={v}\n" for k, v in keep) + "opts " + " ".join(opts) + "\n")
         SNAP_SERVERS.add(sock)
+        SNAP_DIRS[sock] = sdir
     env.update(BWPORT_FORK_AT=str(FORK_AT[game]), BWPORT_FORK_SERVER=sock, BWPORT_FORK_SERVER_DIR=str(sdir))
     env.setdefault("BWPORT_FORK_IDLE", "30")
     env.setdefault("BWPORT_FORK_CTL", str(os.getpid()))
@@ -849,6 +851,8 @@ def snapshot_stop():
                 os.remove(f)
             except OSError:
                 pass
+        if sock in SNAP_DIRS:   # nothing reads it after the server (the key holds the invocation id: a later run never finds it again)
+            shutil.rmtree(SNAP_DIRS[sock], ignore_errors=True)
 
 
 def main():

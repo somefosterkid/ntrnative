@@ -1,0 +1,4 @@
+# game: white
+# from: w-route1
+# reaches: Route 1's grass, walked up and down until a wild battle (the leaves, the encounter) (Smooth motion sweep, tools/interp_sweep_set.txt)
+walk 300 40 up6 down6 up6 down6 up6 down6

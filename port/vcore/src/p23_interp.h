@@ -89,6 +89,8 @@ typedef struct VC_IpStats {
   u32 vt_paired, vt_removed, vt_added; /* vertices in the paired lists of a, the removed lists, the added lists */
   int ch_alpha, ch_attr, ch_tex, ch_pltt, ch_viewport; /* loose pairs by what differs */
   int same;                    /* every list paired and every vertex identical */
+  int repaired;                /* a's lists whose partner the run re-pairing (vc_ip_repair_runs) changed */
+  int reordered;               /* lists the order passes left alone, paired by key and position (vc_ip_reorder) */
   double disp_mean, disp_max;  /* screen pixels (256 wide), over paired vertices */
   int swapped_a, swapped_b;
 } VC_IpStats;
@@ -107,10 +109,23 @@ void vc_ip_record(struct VCoreState *s);
 void vc_ip_take(struct VCoreState *s, VC_IpRec *into);  /* moves s->p23.rec into *into */
 /* pairs a's lists with b's: map[i] = b's list for a's list i or -1; limit = the most a paired list may move (px, 256 wide) */
 void vc_ip_pair(const VC_IpRec *a, const VC_IpRec *b, int *map, double limit, VC_IpStats *st);
-/* texhold[i] = 1 when a's list i, paired with b's list map[i], is at most maxpx (screen pixels, 256 wide) in size in both frames and changes a
+/* vc_ip_pair re-pairs runs of lists with one key by position (a particle emitter's quads: p23_interp.c repair_runs): 1 on, 0 off,
+ * -1 = from BWPORT_INTERP_REPAIR (0 = off; default on: HeartGold's footprint runs, docs/interp-sweep.md) */
+extern int vc_ip_repair_runs;
+/* vc_ip_pair pairs the lists the order passes left alone by key and nearest position (after the median camera motion of the paired
+ * lists): the same lists drawn in another order (Black 2 / White 2 battles: ~170 of ~470 lists every keyframe). 1 on, 0 off,
+ * -1 = from BWPORT_INTERP_REORDER (0 = off; default on) */
+extern int vc_ip_reorder;
+/* a SCENE cut: the pair vc_ip_pair made (map, nl lists of a) leaves many lists alone (>= 30 and >= 1/12 of them: a transition, a cutscene,
+ * the battle intro's swirl), so some of the screen would glide and the rest jump: show the new frame at once. *unpaired = how many */
+int vc_ip_scene_cut(const int *map, int nl, int *unpaired);
+/* texhold[i] = 3 (both axes; bit 0 = s, bit 1 = t; a big list: only an axis that jumps by whole multiples of 8 texels) when a's list i, paired with b's list map[i], is at most maxpx (screen pixels, 256 wide) in size in both frames and changes a
  * texcoord by `thr` (1/16 texel) or more between them: a walking sprite's texture is an atlas of cells picked by texcoords, and blending two
  * cells' coordinates shows a strip of both. (A big surface that scrolls fast, the battle's floor, keeps its blend.) */
-void vc_ip_texhold(const VC_IpRec *a, const VC_IpRec *b, const int *map, u8 *texhold, int thr, double maxpx);
+/* pstep: the pair before's nstep (2 ints per list of b, or NULL), nstep: out, 2 ints per list of a (zeroed by the caller): a big list's
+ * axis step that is the same as in the pair before is a steady scroll and is not held */
+void vc_ip_texhold(const VC_IpRec *a, const VC_IpRec *b, const int *map, u8 *texhold, int thr, double maxpx, const int *pstep,
+                   int *nstep);
 /* RECORD: append to s->p23.tape (p14, p18) */
 void vc_ip_tape_op(struct VCoreState *s, int op, int b, u32 a);
 void vc_ip_tape_vtx(struct VCoreState *s, const VC_Vertex *v);

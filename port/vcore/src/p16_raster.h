@@ -57,6 +57,7 @@ typedef struct VC_Span {
   int xmax;                    /* the screen's last column */
   int Llo, Lhi, Rlo, Rhi;      /* the left and right edges' pixel runs (the coverage of an edge pixel in them) */
   VC_SpanEdge le, re;          /* the left and right edges */
+  int lei, rei;                /* their indices in VC_SpanPoly.ed (the L and R attributes' edges; wire-frame rows too) */
   VC_SpanAA al, ar;
   int nrun;                    /* the edge-flag mask: sorted disjoint runs, clamped to the screen */
   int run[VC_SPAN_MAXRUN][2];

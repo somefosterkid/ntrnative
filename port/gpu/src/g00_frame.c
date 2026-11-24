@@ -474,7 +474,7 @@ int gpu_render_3d(GpuCore *g, VCoreState *s) {
   gpu_prep_set_options(g->own, &g->opt);
   gpu_prepare(g->own, s);
   /* the texture cache from the options alone (the tools): the core's own, when no caller runs one */
-  if (g->opt.texcache && !g->tc_given && g->mtl == NULL && !g->own->opt.fast) {
+  if (g->opt.texcache && !g->tc_given && g->mtl == NULL) {
     if (g->own_tc == NULL) g->own_tc = gpu_texcache_create(&g->opt), g->own_tcf = gpu_tcframe_create();
     if (g->own_tc != NULL && g->own_tcf != NULL) {
       const GpuTexData *td = g->td;
@@ -513,7 +513,7 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
   if (td == NULL) gpu_texdata_build(g->own_td, s), td = g->own_td;
   gpu_g04_upload(g->t_tex, g->t_pal, g->td_up, &g->tr, td);
   int tcache = 0; /* G12: the queue applied up to this frame, the per-polygon table; 1 = a polygon samples a layer */
-  if (!fast && tc != NULL && tcf != NULL && g->opt.texcache) {
+  if (tc != NULL && tcf != NULL && g->opt.texcache) { /* (the fast renderer's programs too: g10_fast_gl.c) */
     if (g->tcgl == NULL) g->tcgl = g12_gl_create();
     if (g->tcgl != NULL) {
       g12_gl_filter(g->tcgl, g->opt.texcache == GPU_TC_ON, g->opt.texmag, g->opt.aniso);
@@ -538,7 +538,7 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
   GLenum bufs[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
   GpuU u;
   if (fast) {
-    gpu_gl_fast_r(g, s, p, ri);
+    gpu_gl_fast_r(g, s, p, ri, tcache);
   } else {
     GL(BindFramebuffer)(GL_FRAMEBUFFER, g->fbo_r);
     GL(DrawBuffers)(g->k * g->k, bufs);

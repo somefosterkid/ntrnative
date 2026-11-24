@@ -106,8 +106,19 @@ uvec4 g4_sample(uint tp, uint pb, ivec2 st) {
 // hard: a transparent nearest texel stays transparent and an opaque one stays opaque (alpha 31), and transparent
 // neighbours take no part in the colour (no dark fringe from their palette entry); A3I5 / A5I3 interpolate their alpha
 // and weight the colour by it.
-uvec4 g4_filtered(uint tp, uint pb, ivec2 st) {
+// rg = the polygon's own s and t range (uPoly's t2, as the texture cache's g12_sample uses it): on the axes that repeat or mirror
+// (not clamp) the sample point stays half a texel inside it, so the taps never read across the polygon's edge into the texture's
+// other side or the neighbouring tile (a dark or wrong-coloured line along the sky's horizon, a lake's shore).
+int g4_inrange(int v, uint r) {
+  int lo = int(r << 16u) >> 16, hi = int(r) >> 16;
+  return hi - lo < 16 ? (lo + hi) >> 1 : clamp(v, lo + 8, hi - 8);
+}
+uvec4 g4_filtered(uint tp, uint pb, ivec2 st, uvec2 rg) {
   uvec4 nr = g4_sample(tp, pb, st);
+  if ((rg.x | rg.y) != 0u) {
+    if ((tp & 0x10000u) != 0u) st.x = g4_inrange(st.x, rg.x);
+    if ((tp & 0x20000u) != 0u) st.y = g4_inrange(st.y, rg.y);
+  }
   uint fmt = (tp >> 26u) & 7u;
   bool smooth_a = fmt == 1u || fmt == 6u;
   if (!smooth_a && nr.a == 0u) return nr;
@@ -167,11 +178,12 @@ uvec4 g_texture(int k, GPx px, uvec4 col) {
   }
 #ifdef G_FILTER // Filter=bilinear has pass R programs of its own (src/g00_frame.c picks them when it applies): in the plain ones
   // g4_filtered's four more samples held registers that cost pass R 17% (M2 2026-11, town at 3x, Metal 0.72 -> 0.60 ms)
-  uvec4 tx = (uFilter != 0u && uScale > uSnap) ? g4_filtered(tp, P0.z & 0x1FFFu, px.st) : g4_sample(tp, P0.z & 0x1FFFu, px.st);
+  // a sprite (PF_SPRITE: a billboard, src/g02_spans.c gpu_poly_is_sprite) keeps the DS's texels: smoothing is for the map
+  uvec4 tx = (uFilter != 0u && uScale > uSnap && (P0.w & PF_SPRITE) == 0u) ? g4_filtered(tp, P0.z & 0x1FFFu, px.st, g_poly(k, 2).xy) : g4_sample(tp, P0.z & 0x1FFFu, px.st);
 #else
 #ifdef G_TEXCACHE // the texture cache's programs (shaders/g12_texcache.glsl): its layer where the polygon's texture has one
   uvec4 tx;
-  if (!g12_sample(k, tp, px.st, ivec2(px.x, px.row), tx)) tx = g4_sample(tp, P0.z & 0x1FFFu, px.st);
+  if ((P0.w & PF_SPRITE) != 0u || !g12_sample(k, tp, px.st, ivec2(px.x, px.row), tx)) tx = g4_sample(tp, P0.z & 0x1FFFu, px.st);
 #else
   uvec4 tx = g4_sample(tp, P0.z & 0x1FFFu, px.st);
 #endif

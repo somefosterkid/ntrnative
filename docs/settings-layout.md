@@ -25,6 +25,10 @@ Keys are `SIM_UISettingGet/Set` keys (phones) and sim_config.ini keys (all). Old
 | Display and metrics | Metrics Off/Compact/Detailed (one row; today overlay + detail), position (corner) | overlay, detail, corner | | Compact, left |
 | Game / About | Pause, Restart, Games, Quit; Debug last | | | |
 
+Texture smoothing is for the map only (ic2, 11-22): billboard polygons (field characters, battle Pokemon, reflections: every vertex at one w,
+port/gpu/src/g02_spans.c gpu_poly_is_sprite, GPU_PF_SPRITE) keep the DS's texels in Bilinear and Mipmaps; `BWPORT_GPU_SPRITE=0` is the old look.
+Mipmaps is now the texture cache's trilinear program (it was the Bilinear one: both set opt.filter); on Metal and with the fast 3D renderer, which
+have no texture cache yet, Mipmaps stays the Bilinear look (map-only bilinear).
 Notes: 2D filter, Texture smoothing, Fog and Colour act at Resolution 2x and above (1x stays the DS picture). The old `Filter=bilinear`
 key loads as Texture smoothing = Bilinear (`Filter=nearest` was the default and is ignored, so old configs get the new default);
 `SIM_UISettingGet/Set("filter")` still means "bilinear or more". Environment variables (BWPORT_FILTER2D, BWPORT_GPU_TEXCACHE/

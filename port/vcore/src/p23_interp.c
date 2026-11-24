@@ -79,7 +79,7 @@ int vc_ip_blend_list(VCoreState *s, const VC_Vertex *in, VC_Vertex *out, u32 n) 
   if (n > dl->n - k) n = dl->n - k;
   const VC_IpVtx *d = &p->dst->v[dl->first + k];
   const s32 f = p->f;
-  const int hold = p->texhold != NULL && p->texhold[p->list], take = f >= 2048;
+  const int hold = p->texhold != NULL ? p->texhold[p->list] : 0, take = f >= 2048; /* bit 0: s held, bit 1: t held */
   int same = 1;
   for (u32 j = 0; j < n; j++, d++) {
     VC_Vertex *v = &out[j];
@@ -90,13 +90,12 @@ int vc_ip_blend_list(VCoreState *s, const VC_Vertex *in, VC_Vertex *out, u32 n) 
     VC_Vertex o = *v;
     for (int i = 0; i < 4; i++) v->clip[i] = lerp_s32(v->clip[i], d->clip[i], f);
     for (int i = 0; i < 3; i++) v->color[i] = (u8)lerp_s32(v->color[i], d->color[i], f);
-    if (hold) {
-      if (take) v->tex[0] = d->tex[0], v->tex[1] = d->tex[1];
-    } else {
-      for (int i = 0; i < 2; i++) {
-        int dt = d->tex[i] - v->tex[i];
-        if (dt > -2048 && dt < 2048) v->tex[i] = (s16)lerp_s32(v->tex[i], d->tex[i], f);
-      }
+    for (int i = 0; i < 2; i++) {
+      int dt = d->tex[i] - v->tex[i];
+      if (hold >> i & 1) {
+        if (take) v->tex[i] = d->tex[i];
+      } else if (dt > -2048 && dt < 2048)
+        v->tex[i] = (s16)lerp_s32(v->tex[i], d->tex[i], f);
     }
     same &= v->clip[0] == o.clip[0] && v->clip[1] == o.clip[1] && v->clip[2] == o.clip[2] && v->clip[3] == o.clip[3] &&
             v->color[0] == o.color[0] && v->color[1] == o.color[1] && v->color[2] == o.color[2] && v->tex[0] == o.tex[0] &&
@@ -239,16 +238,32 @@ static double list_extent(const VC_IpRec *r, const VC_IpList *l) {
   return l->n ? (x1 - x0 > y1 - y0 ? x1 - x0 : y1 - y0) : 0;
 }
 
-void vc_ip_texhold(const VC_IpRec *a, const VC_IpRec *b, const int *map, u8 *texhold, int thr, double maxpx) {
+void vc_ip_texhold(const VC_IpRec *a, const VC_IpRec *b, const int *map, u8 *texhold, int thr, double maxpx, const int *pstep,
+                   int *nstep) {
   for (u32 i = 0; i < a->nl; i++) {
     texhold[i] = 0;
     if (map[i] < 0) continue;
     const VC_IpList *p = &a->l[i], *q = &b->l[map[i]];
-    if (list_extent(a, p) > maxpx || list_extent(b, q) > maxpx) continue; /* a big surface that scrolls keeps its blended scroll */
+    if (list_extent(a, p) > maxpx || list_extent(b, q) > maxpx) {
+      /* a big surface that scrolls keeps its blended scroll, but an axis whose texcoords all jump by one whole multiple of 8 texels
+       * steps a cell of an atlas (Black's Route 1 leaves: 128x64 strips scroll s by ~2 texels a keyframe and step t by 16 to the next
+       * row, -64 back to the first): that axis alone is held, the other still blends */
+      if (thr <= 0 || p->n != q->n || p->n == 0) continue;
+      for (int c = 0; c < 2; c++) {
+        int d0 = a->v[p->first].tex[c] - b->v[q->first].tex[c], one = 1;
+        for (u32 j = 1; j < p->n && one; j++) one = a->v[p->first + j].tex[c] - b->v[q->first + j].tex[c] == d0;
+        if (one && d0 != 0 && (d0 >= thr || d0 <= -thr) && d0 % 128 == 0) {
+          /* the same step as this list's in the pair before = a steady scroll (HeartGold's water: 8 texels every keyframe): blended */
+          if (nstep) nstep[2 * i + c] = d0;
+          if (!pstep || pstep[2 * map[i] + c] != d0) texhold[i] |= (u8)(1 << c);
+        }
+      }
+      continue;
+    }
     for (u32 j = 0; j < p->n && j < q->n && !texhold[i]; j++)
       for (int c = 0; c < 2; c++) {
         int d = a->v[p->first + j].tex[c] - b->v[q->first + j].tex[c];
-        if (d >= thr || d <= -thr) texhold[i] = 1;
+        if (d >= thr || d <= -thr) texhold[i] = 3;
       }
   }
 }
@@ -265,8 +280,240 @@ static u32 key_of(const VC_IpList *l) {
   h = mix(h, l->type);
   return mix(h, l->n);
 }
+/* a run key: key_of without the texture, for runs of particles whose texture cell steps with their age (a footprint's puff
+ * draws a new cell every few frames, so neighbours in the run have different keys) */
+static u32 rkey_of(const VC_IpList *l) {
+  u32 h = 2166136261u;
+  h = mix(h, l->attr & ~0x001F0000u);
+  h = mix(h, l->pltt);
+  h = mix(h, l->viewport);
+  h = mix(h, l->type);
+  return mix(h, l->n);
+}
 static u32 shape_of(const VC_IpList *l) { return mix(mix(2166136261u, l->type), l->n); }
 static double clampd(double x, double m) { return x < -m ? -m : x > m ? m : x; }
+
+/* the mean screen distance (px, 256 wide) between two lists' vertices taken in order, measured as the displacement filter in
+ * vc_ip_pair does; -1 when no vertex is in front of the camera in both */
+static double list_disp(const VC_IpRec *a, const VC_IpList *p, const VC_IpRec *b, const VC_IpList *q) {
+  double s = 0;
+  int nd = 0;
+  for (u32 k = 0; k < p->n && k < q->n; k++) {
+    const VC_IpVtx *u = &a->v[p->first + k], *w = &b->v[q->first + k];
+    if (u->clip[3] <= 0 || w->clip[3] <= 0) continue;
+    double ax = clampd(128.0 * u->clip[0] / u->clip[3], 256), ay = clampd(96.0 * u->clip[1] / u->clip[3], 192);
+    double bx = clampd(128.0 * w->clip[0] / w->clip[3], 256), by = clampd(96.0 * w->clip[1] / w->clip[3], 192);
+    s += sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by));
+    nd++;
+  }
+  return nd ? s / nd : -1;
+}
+
+int vc_ip_reorder = -1;
+#define IP_REORDER_PX 16.0 /* a reordered list may be this far (px, 256 wide) from where the camera motion puts it */
+#define IP_REORDER_MAXCAND 250000L
+
+/* the mean screen motion (px, 256 wide) of a's list p to b's list q, vertices in order; 0 when no vertex is in front in both */
+static int list_shift(const VC_IpRec *a, const VC_IpList *p, const VC_IpRec *b, const VC_IpList *q, double *dx, double *dy) {
+  double sx = 0, sy = 0;
+  int nd = 0;
+  for (u32 k = 0; k < p->n && k < q->n; k++) {
+    const VC_IpVtx *u = &a->v[p->first + k], *w = &b->v[q->first + k];
+    if (u->clip[3] <= 0 || w->clip[3] <= 0) continue;
+    sx += clampd(128.0 * w->clip[0] / w->clip[3], 256) - clampd(128.0 * u->clip[0] / u->clip[3], 256);
+    sy += clampd(96.0 * w->clip[1] / w->clip[3], 192) - clampd(96.0 * u->clip[1] / u->clip[3], 192);
+    nd++;
+  }
+  if (!nd) return 0;
+  *dx = sx / nd;
+  *dy = sy / nd;
+  return 1;
+}
+
+typedef struct ReCand {
+  double err;
+  int i, j;
+} ReCand;
+static int recand_cmp(const void *x, const void *y) {
+  const ReCand *p = (const ReCand *)x, *q = (const ReCand *)y;
+  return p->err < q->err ? -1 : p->err > q->err ? 1 : p->i != q->i ? p->i - q->i : p->j - q->j;
+}
+static int dbl_cmp(const void *x, const void *y) {
+  double p = *(const double *)x, q = *(const double *)y;
+  return p < q ? -1 : p > q;
+}
+
+/* The lists neither the order passes nor the run re-pairing paired, taken by key and position: a draw order that changes between the
+ * keyframes (translucent / depth-sorted lists) leaves the same lists in another order, and the LCS pairs only the longest in-order
+ * part. The camera motion is the median shift of the lists already paired (the map pieces); a key's lists pair nearest first, a list
+ * further than IP_REORDER_PX from where that motion puts it stays alone. Returns the pairs made. */
+static int pair_reordered(const VC_IpRec *a, const VC_IpRec *b, const u32 *ka, const u32 *kb, int *map, int *mb) {
+  const int na = (int)a->nl, nb = (int)b->nl;
+  int ua = 0, ub = 0, np = 0;
+  for (int i = 0; i < na; i++) ua += map[i] < 0;
+  for (int j = 0; j < nb; j++) ub += mb[j] < 0;
+  if (!ua || !ub || (long)ua * ub > IP_REORDER_MAXCAND) return 0;
+  double *sx = (double *)malloc(sizeof(double) * 2 * (size_t)(na + 1)), *sy = sx + na + 1;
+  int ns = 0;
+  for (int i = 0; i < na; i++) {
+    double dx, dy;
+    if (map[i] >= 0 && list_shift(a, &a->l[i], b, &b->l[map[i]], &dx, &dy)) {
+      sx[ns] = dx;
+      sy[ns++] = dy;
+    }
+  }
+  double cx = 0, cy = 0;
+  if (ns >= 3) {
+    qsort(sx, (size_t)ns, sizeof(double), dbl_cmp);
+    qsort(sy, (size_t)ns, sizeof(double), dbl_cmp);
+    cx = sx[ns / 2];
+    cy = sy[ns / 2];
+  }
+  free(sx);
+  ReCand *c = (ReCand *)malloc(sizeof(ReCand) * (size_t)ua * (size_t)ub);
+  int nc = 0;
+  for (int i = 0; i < na; i++) {
+    if (map[i] >= 0) continue;
+    for (int j = 0; j < nb; j++) {
+      double dx, dy;
+      if (mb[j] >= 0 || ka[i] != kb[j] || !list_shift(a, &a->l[i], b, &b->l[j], &dx, &dy)) continue;
+      double e = sqrt((dx - cx) * (dx - cx) + (dy - cy) * (dy - cy));
+      if (e <= IP_REORDER_PX) {
+        c[nc].err = e;
+        c[nc].i = i;
+        c[nc++].j = j;
+      }
+    }
+  }
+  qsort(c, (size_t)nc, sizeof(ReCand), recand_cmp);
+  for (int k = 0; k < nc; k++)
+    if (map[c[k].i] < 0 && mb[c[k].j] < 0) {
+      map[c[k].i] = c[k].j;
+      mb[c[k].j] = c[k].i;
+      np++;
+    }
+  free(c);
+  /* lists with no vertex in front of the camera in both frames have no position to compare (a battle's 3D scene draws hundreds of
+   * them, nothing of them on the screen): same key, in draw order */
+  for (int i = 0; i < na; i++) {
+    if (map[i] >= 0) continue;
+    for (int j = 0; j < nb; j++) {
+      double dx, dy;
+      if (mb[j] >= 0 || ka[i] != kb[j] || list_shift(a, &a->l[i], b, &b->l[j], &dx, &dy)) continue;
+      map[i] = j;
+      mb[j] = i;
+      np++;
+      break;
+    }
+  }
+  return np;
+}
+
+int vc_ip_scene_cut(const int *map, int nl, int *unpaired) {
+  int n = 0;
+  for (int i = 0; i < nl; i++) n += map[i] < 0;
+  if (unpaired != NULL) *unpaired = n;
+  return n >= 30 && n * 12 >= nl;
+}
+
+int vc_ip_repair_runs = -1;
+#define IP_RUN_MAXPX 64.0 /* the biggest list (screen px, 256 wide) of a particle run */
+
+/* (The run key is rkey_of, the key without the texture: a particle's texture cell steps with its age. A list left alone costs
+ * min(half the limit, half its size): a 32 px puff is not worth a 24 px detour.)
+ * A run of consecutive lists with one key is a particle emitter (lib/spl draws each particle as its own 4-vertex quad, the newest
+ * first, spl_list.c): a particle born or dead between the keyframes shifts the order, and pairing by order (the passes above) pairs
+ * every particle with its neighbour, so in the in-betweens a particle would sweep toward another's place. (Route 1's falling leaves
+ * are not such a run: they are four static 12-vertex quad strips whose texture image changes; vcore_ipscan found no mispaired run.)
+ * Inside such a run (a's run and the run of b's lists with the same key its partners lie in) the pairing is made again as the
+ * order-keeping alignment of least cost: a pair costs its displacement (never more than the limit), a list left alone half the
+ * limit (a pair at the limit = two lists left alone). Taken only when it costs less than the pairing by order; a run of map pieces
+ * that all move with the camera keeps its pairing (it is already the cheapest). Returns how many of a's lists changed partner. */
+static int repair_runs(const VC_IpRec *a, const VC_IpRec *b, const u32 *ka, const u32 *kb, int *map, int *mb, double limit) {
+  const int na = (int)a->nl, nb = (int)b->nl;
+  const double G = limit * 0.5;
+  int changed = 0;
+  for (int i0 = 0, i1; i0 < na; i0 = i1) {
+    const u32 key = ka[i0];
+    for (i1 = i0 + 1; i1 < na && ka[i1] == key; i1++) {
+    }
+    int j0 = nb, j1 = -1, ok = 1;
+    for (int i = i0; i < i1 && ok; i++) {
+      if (map[i] < 0) continue;
+      if (kb[map[i]] != key) ok = 0;
+      if (map[i] < j0) j0 = map[i];
+      if (map[i] + 1 > j1) j1 = map[i] + 1;
+    }
+    if (!ok || j1 < 0) continue;
+    while (j0 > 0 && kb[j0 - 1] == key && mb[j0 - 1] < 0) j0--;
+    while (j1 < nb && kb[j1] == key && mb[j1] < 0) j1++;
+    for (int j = j0; j < j1 && ok; j++)
+      if (kb[j] != key || (mb[j] >= 0 && (mb[j] < i0 || mb[j] >= i1))) ok = 0;
+    const int m = i1 - i0, n = j1 - j0;
+    if (!ok || m + n < 3 || (long)m * n > 65536) continue;
+    /* a run of particles is small quads: a run of big lists (Black's battle-intro swirl: nine 34-vertex rings 150-350 px big, each
+     * ring one step from the next) is a scene whose order is the pairing, and re-pairing it blended a ring with its neighbour (a gray
+     * band in an in-between that is in neither keyframe) */
+    for (int i = 0; i < m && ok; i++) ok = list_extent(a, &a->l[i0 + i]) <= IP_RUN_MAXPX;
+    for (int j = 0; j < n && ok; j++) ok = list_extent(b, &b->l[j0 + j]) <= IP_RUN_MAXPX;
+    if (!ok) continue;
+    double *d = (double *)malloc(sizeof(double) * (size_t)m * (size_t)n);
+    double *c = (double *)malloc(sizeof(double) * (size_t)(m + 1) * (size_t)(n + 1));
+    double *ga = (double *)malloc(sizeof(double) * (size_t)(m + n + 2)), *gb = ga + m + 1; /* what leaving each list alone costs */
+    for (int i = 0; i < m; i++) ga[i] = fmin(G, 0.5 * list_extent(a, &a->l[i0 + i]));
+    for (int j = 0; j < n; j++) gb[j] = fmin(G, 0.5 * list_extent(b, &b->l[j0 + j]));
+    const size_t w = (size_t)n + 1;
+    for (int i = 0; i < m; i++)
+      for (int j = 0; j < n; j++) {
+        double x = list_disp(a, &a->l[i0 + i], b, &b->l[j0 + j]);
+        d[i * n + j] = x < 0 || x > limit ? -1 : x;
+      }
+    double now = 0; /* the pairing by order: a pair beyond the limit is dropped later (two lists alone) */
+    for (int i = 0; i < m; i++) {
+      int j = map[i0 + i];
+      now += j < 0 ? ga[i] : d[i * n + (j - j0)] < 0 ? ga[i] + gb[j - j0] : d[i * n + (j - j0)];
+    }
+    for (int j = 0; j < n; j++) now += mb[j0 + j] < 0 ? gb[j] : 0;
+    for (int i = m; i >= 0; i--)
+      for (int j = n; j >= 0; j--) {
+        double v;
+        if (i == m && j == n) v = 0;
+        else if (i == m) v = c[i * w + j + 1] + gb[j];
+        else if (j == n) v = c[(i + 1) * w + j] + ga[i];
+        else {
+          v = c[(i + 1) * w + j] + ga[i];
+          if (c[i * w + j + 1] + gb[j] < v) v = c[i * w + j + 1] + gb[j];
+          if (d[i * n + j] >= 0 && c[(i + 1) * w + j + 1] + d[i * n + j] < v) v = c[(i + 1) * w + j + 1] + d[i * n + j];
+        }
+        c[i * w + j] = v;
+      }
+    if (c[0] < now - 1.0) {
+      int *old = (int *)malloc(sizeof(int) * (size_t)m);
+      for (int i = 0; i < m; i++) old[i] = map[i0 + i], map[i0 + i] = -1;
+      for (int j = 0; j < n; j++) mb[j0 + j] = -1;
+      int i = 0, j = 0;
+      while (i < m && j < n) {
+        double here = c[i * w + j];
+        if (d[i * n + j] >= 0 && c[(i + 1) * w + j + 1] + d[i * n + j] <= here + 1e-9) {
+          map[i0 + i] = j0 + j;
+          mb[j0 + j] = i0 + i;
+          i++;
+          j++;
+        } else if (c[(i + 1) * w + j] + ga[i] <= here + 1e-9) {
+          i++;
+        } else {
+          j++;
+        }
+      }
+      for (int k = 0; k < m; k++) changed += map[i0 + k] != old[k];
+      free(old);
+    }
+    free(d);
+    free(c);
+    free(ga);
+  }
+  return changed;
+}
 
 void vc_ip_pair(const VC_IpRec *a, const VC_IpRec *b, int *map, double limit, VC_IpStats *st) {
   memset(st, 0, sizeof *st);
@@ -357,6 +604,25 @@ void vc_ip_pair(const VC_IpRec *a, const VC_IpRec *b, int *map, double limit, VC
     ia = ea + 1;
     ib = eb + 1;
   }
+  if (vc_ip_repair_runs < 0) {
+    const char *e = getenv("BWPORT_INTERP_REPAIR");
+    /* on by default since the in-between sweep (docs/interp-sweep.md): HeartGold's sand footprints behind a player walking
+     * east (a run of identical fading quads whose oldest dies) paired one tile off, 6 A_MISPAIR in-betweens of 12 px -> 0 */
+    vc_ip_repair_runs = e == NULL || e[0] != '0';
+  }
+  if (vc_ip_repair_runs) {
+    u32 *ra = (u32 *)malloc(sizeof(u32) * (size_t)na), *rb = (u32 *)malloc(sizeof(u32) * (size_t)nb);
+    for (int i = 0; i < na; i++) ra[i] = rkey_of(&a->l[i]);
+    for (int i = 0; i < nb; i++) rb[i] = rkey_of(&b->l[i]);
+    st->repaired = repair_runs(a, b, ra, rb, map, mb, limit);
+    free(ra);
+    free(rb);
+  }
+  if (vc_ip_reorder < 0) {
+    const char *e = getenv("BWPORT_INTERP_REORDER");
+    vc_ip_reorder = e == NULL || e[0] != '0';
+  }
+  if (vc_ip_reorder) st->reordered = pair_reordered(a, b, ka, kb, map, mb);
   /* displacement of the paired lists; drop the ones that jump. A list's vertices are measured on the screen clamped to a band one
    * half screen beyond each edge, and a vertex behind the camera in either frame is left out: the map's ground pieces reach under
    * the camera, where a tiny w throws the projection thousands of pixels out or w crosses 0, and dropping such a piece drew it
@@ -406,7 +672,7 @@ void vc_ip_pair(const VC_IpRec *a, const VC_IpRec *b, int *map, double limit, VC
   int used = 0;
   for (int i = 0; i < na; i++) used += map[i] >= 0;
   /* removed / added: lists with no pairing before the displacement filter */
-  int paired_all = st->strict + st->loose;
+  int paired_all = st->strict + st->loose + st->reordered;
   st->removed = na - paired_all;
   st->added = nb - paired_all;
   u32 vr = 0, va = 0;

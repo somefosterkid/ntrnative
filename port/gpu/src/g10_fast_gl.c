@@ -17,6 +17,7 @@
 #include "g00_frame.h"
 #include "g04_texture.h"
 #include "g06_post.h"
+#include "g12_tcgl.h"
 #include "gpu_gl.h"
 
 #include <stdio.h>
@@ -40,7 +41,7 @@ enum { FAST_E_UNIT = 6 }; /* the edge functions' texture (pass R's units: 0-5 it
 struct GpuFastGL {
   int ok;   /* 1: made; -1: it cannot draw (why) */
   int mode; /* FAST_* */
-  GLuint clr, tri, trif, pack; /* trif: Filter=bilinear, made at its first use */
+  GLuint clr, tri, trif, tric, pack; /* trif: Filter=bilinear, tric: the texture cache's (G12), each made at its first use */
   GLuint vao, vbo[GPU_RING], t_pe[GPU_RING];
   GLuint t_v[GPU_RING];  /* k = 2: the vertices as a data texture (g10_fast4.vert reads a triangle's three) */
   GLuint grid, fbo_grid; /* k = 2: the four samples (RGBA32UI, a 2D array of 4 layers at w x h) and its framebuffer */
@@ -87,6 +88,8 @@ static const char *const kTri[] = {"", "g10_fast.frag#1+G10_FETCH", "g10_fast.fr
 static const char *const kTriF[] = {"", "g10_fast.frag#1f+G10_FETCH", "g10_fast.frag#1f+G10_ILOCK", "g10_fast.frag#1f+G10_IORDER"};
 static const char *const kTri4[] = {"", "g10_fast4.frag#1+G10_FETCH", "g10_fast4.frag#1+G10_ILOCK", "g10_fast4.frag#1+G10_IORDER"};
 static const char *const kTriF4[] = {"", "g10_fast4.frag#1f+G10_FETCH", "g10_fast4.frag#1f+G10_ILOCK", "g10_fast4.frag#1f+G10_IORDER"};
+static const char *const kTriC[] = {"", "g10_fast.frag#1c+G10_FETCH", "g10_fast.frag#1c+G10_ILOCK", "g10_fast.frag#1c+G10_IORDER"};
+static const char *const kTriC4[] = {"", "g10_fast4.frag#1c+G10_FETCH", "g10_fast4.frag#1c+G10_ILOCK", "g10_fast4.frag#1c+G10_IORDER"};
 enum { FAST_V_UNIT = 9 }; /* k = 2: the vertices' texture */
 
 static GLuint fast_target(GLenum ifmt, int w, int h) {
@@ -250,6 +253,7 @@ void gpu_gl_fast_release(GpuCore *g) {
   gpu_gl_program_done(f->clr);
   gpu_gl_program_done(f->tri);
   if (f->trif != f->tri) gpu_gl_program_done(f->trif);
+  if (f->tric != f->tri) gpu_gl_program_done(f->tric);
   gpu_gl_program_done(f->pack);
   for (int i = 0; i < GPU_RING; i++) {
     if (f->t_pe[i]) gpu_gl_data_forget(f->t_pe[i]), GL(DeleteTextures)(1, &f->t_pe[i]);
@@ -285,7 +289,7 @@ static void tri_bind(GpuCore *g, const VCoreState *s, GLuint pr, int ri) {
   gpu_g06_bind_raster(pr, s);
 }
 
-void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri) {
+void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri, int tcache) {
   struct GpuFastGL *f = g->fgl;
   const GpuFast *fv = &p->fast;
   GLuint tri = f->tri;
@@ -300,6 +304,17 @@ void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri) {
       }
     }
     tri = f->trif;
+  } else if (tcache) { /* G12 (g12_gl_prepare gave polygons that sample a layer): the cache's program, as pass R's "#1c" */
+    if (f->tric == 0) {
+      char err[512];
+      f->tric = g->k == 2 ? gpu_gl_program("g10_fast4.vert", kTriC4[f->mode], err, sizeof err)
+                          : gpu_gl_program("g10_fastgl.vert", kTriC[f->mode], err, sizeof err);
+      if (f->tric == 0) {
+        fprintf(stderr, "gpu: %s; drawn without the texture cache\n", err);
+        f->tric = f->tri;
+      }
+    }
+    tri = f->tric;
   }
   const int k2 = g->k == 2, tw = g->w, th = g->h;
   /* the edge functions (a data texture) and the vertices (ring entry ri: never what a frame in flight reads): attributes, or with
@@ -338,6 +353,7 @@ void gpu_gl_fast_r(GpuCore *g, const VCoreState *s, const GpuPrep *p, int ri) {
       gpu_gl.BindImageTexture(0, k2 ? f->grid : g->t_samp, 0, k2 ? GL_TRUE : GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32UI);
     }
     tri_bind(g, s, tri, ri);
+    if (tcache && tri == f->tric && tri != f->tri) g12_gl_bind(g->tcgl, tri, ri), g->tc_polys = tcache;
     GL(BindVertexArray)(k2 ? g->vao : f->vao); /* (4 samples: no attributes, the vertices by gl_VertexID) */
     GL(DrawArrays)(GL_TRIANGLES, 0, fv->ntri);
     GL(BindVertexArray)(g->vao);

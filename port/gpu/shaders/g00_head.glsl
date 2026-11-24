@@ -9,7 +9,7 @@
 #endif
 const int G_S = G_K * G_K;
 
-uniform highp usampler2D uPoly; // GpuPolyRec (src/g02_spans.h), 2 texels per polygon in drawing order
+uniform highp usampler2D uPoly; // GpuPolyRec (src/g02_spans.h), 3 texels per polygon in drawing order
 #ifdef GPU_SPAN_BUF
 // the Metal core: pass S's kernel writes the records into a buffer pass R reads as it is (src/gpu_mtl.m)
 layout(std430, binding = 1) readonly buffer GpuSpanIn { uvec4 uSpanBuf[]; };
@@ -76,14 +76,15 @@ const uint F_FOG = 1u, F_EDGE = 2u, F_TRANS = 4u, F_STENCIL = 8u, F_WRITTEN = 16
 // colour where nothing lies behind it
 const uint F_GROWN = 32u;
 // the polygon table's flags (GPU_PF_*)
-const uint PF_TRANS = 1u, PF_FRONT = 2u, PF_WBUF = 4u, PF_WIRE = 8u, PF_WHOLE = 16u;
+const uint PF_TRANS = 1u, PF_FRONT = 2u, PF_WBUF = 4u, PF_WIRE = 8u, PF_WHOLE = 16u, PF_SPRITE = 32u;
 // a record's row flags (GPU_ROW_*)
 const uint ROW_ALLEDGE = 1u, ROW_WIRE = 2u, ROW_AA = 4u, ROW_VERTL = 8u, ROW_COV0 = 16u, ROW_DSGRID = 32u, ROW_MASK2 = 64u;
 
 const int GPU_LIST_BIAS = 1048576; // the list's first-record word is first record - first row + this (src/g00_frame.c)
 ivec2 g_at(int i) { return ivec2(i & 1023, i >> 10); }
-// polygon k's texel t: t0 = attr, texparam, pltt, flags; t1 = first row, last row, first record, alpha
-uvec4 g_poly(int k, int t) { return texelFetch(uPoly, g_at(k * 2 + t), 0); }
+// polygon k's texel t: t0 = attr, texparam, pltt, flags; t1 = first row, last row, first record, alpha; t2 = s range, t range (12.4:
+// x = smin | smax << 16, y = tmin | tmax << 16)
+uvec4 g_poly(int k, int t) { return texelFetch(uPoly, g_at(k * 3 + t), 0); }
 #ifdef GPU_SPAN_BUF
 vec4 g_span(int rec, int t) { return uintBitsToFloat(uSpanBuf[rec * 12 + t]); }
 #else

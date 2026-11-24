@@ -1,0 +1,4 @@
+# game: white
+# from: w-bianca
+# reaches: Juniper's lab door and the room (bianca-lab's walk) (Smooth motion sweep, tools/interp_sweep_set.txt)
+walk 300 48 right6 up9 left5 up7

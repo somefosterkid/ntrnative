@@ -4,14 +4,66 @@ Text speed and their own patch files). The player's step pick (sub_0205D4B4 in u
 0x58 run, 0x10 Surf) swaps the walk action 0xc (8 frames a tile) for 0x10 (2x) or 0x14 (4x) and the Surf action 0x10 (4 frames) for
 0x14 (2x and 4x: 0x54's 1-frame step stops Platinum's Surf legs), through PortSpeed4_WalkCode / PortSpeed4_SurfCode, which ask
 port/game/speed_gen4.c (the WalkSpeed / SurfSpeed settings, Black's). The following Pokemon copies the action the pick gives
-(ov01_02205990), but its follow code (one request per player step, one held) drops requests when the player's step is shorter than 4
-frames and the Pokemon then stays tiles behind (route hg cherry at Walk 4x): while a follower is active (FollowMon.active) the pick
-tells port/game/speed_gen4.c (PortSpeed4_SetFollower), which holds Walk to 2x (4 frames, the game's own run pace) and Run to the
-game's. Run speed: the run command (cmds 88-91, 4 px a frame for 4 frames, the run animation) is remade by
+(ov01_02205990), but its follow code (one request per player step, one held; a wait frame in state 1 and one after each of its
+steps) dropped requests when the player's step was 2 frames and the Pokemon then stayed tiles behind (route hg cherry at Walk 4x).
+While a faster Walk or Run is set and a follower is active (the pick tells port/game/speed_gen4.c: PortSpeed4_SetFollower,
+PortSpeed4_FollowFast) the follow code steps at once (sub_02065A4C's state 1, sub_02065C2C's step end) and a Pokemon whose step
+ended away from the player's last tile steps again. Run speed: the run command (cmds 88-91, 4 px a frame for 4 frames, the run animation) is remade by
 unk_02062108_020626AC.c's own Step0s (PortSpeed4_InitRun) for the player's object only: 8 px for 2 frames at 2x and 4x; no new command
 rows (the follower and the checks that read the action code still see 0x58; the follower copies the run as the walk 0x10, or at a
-faster Run speed as 0x14: unk_020658D4_02065D78_02065D78.c, unk_020658D4_02065DB4.c). NPCs, scripts, the bike and jumps keep the
+faster Run speed as 0x14: unk_020658D4_02065D78_02065D78.c, unk_020658D4_02065DB4.c). Run 4x = Run 2x until the 1-frame step's end
+is reported (docs/speed-options.md). NPCs, scripts, the bike and jumps keep the
 game's. At every default setting each hunk is exactly the game's own code path. The DS build never sees the patch.
+diff --git a/src/map_object.c b/src/map_object.c
+index 339d9ab..ea2990f 100644
+--- a/src/map_object.c
++++ b/src/map_object.c
+@@ -1179,6 +1179,11 @@ void sub_0205F328(LocalMapObject *object, u32 param1) {
+ }
+ 
++// bw-port: Run speed 4x: a 1-frame step sets its animation (the run's 9) and back to 0 in the same map-object update, so the
++// sprite callbacks that read it here would draw the player standing; in the field frame of such a step they read the step's
++// animation (port/game/speed_gen4.c PortSpeed4_Step1FAnim; the stored value itself at every other frame and setting).
++u32 PortSpeed4_Step1FAnim(const void *mapObj, u32 anim);
++
+ u32 sub_0205F330(LocalMapObject *object) {
+-    return object->unkA0;
++    return PortSpeed4_Step1FAnim(object, object->unkA0);
+ }
+ 
+diff --git a/src/unk_0205CB48_0205CBEC_0205CC94_0205CE68.c b/src/unk_0205CB48_0205CBEC_0205CC94_0205CE68.c
+index 0481804..d1cda13 100644
+--- a/src/unk_0205CB48_0205CBEC_0205CC94_0205CE68.c
++++ b/src/unk_0205CB48_0205CBEC_0205CC94_0205CE68.c
+@@ -352,8 +352,16 @@ u32 PlayerAvatar_GetMoveState(PlayerAvatar *avatar);
+ void PlayerAvatar_UpdateMovement(PlayerAvatar *playerAvatar);
+ 
++// bw-port: Run speed 4x (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): the player's run at 4x is a 1-frame step
++// (unk_02062108_020626AC.c PortSpeed4_InitRun), which starts and ends inside one map-object update, so this observer only ever sees
++// it finished: from NONE or END it stays NONE and the step's end (wild encounters, step counters, the follower) is never seen
++// after the first tile. PortSpeed4_TakeStep1F says such a step was taken since the last call; its finished frame reports END,
++// as a longer step's does (Black's port/extern/src/ov021/field_player_core.c). FALSE at every other setting: the game's path.
++int PortSpeed4_TakeStep1F(void);
++
+ void PlayerAvatar_UpdateMovement(PlayerAvatar *playerAvatar) {
+     int avatarMoveState = PlayerAvatar_GetMoveState(playerAvatar);
+     int playerMoveState = PlayerAvatar_GetPlayerMoveState(playerAvatar);
+     const MapObject *mapObj = PlayerAvatar_GetMapObject(playerAvatar);
++    int portStep1F = PortSpeed4_TakeStep1F();
+ 
+     PlayerAvatar_SetPlayerMoveState(playerAvatar, PLAYER_MOVE_STATE_NONE);
+@@ -398,7 +406,10 @@ void PlayerAvatar_UpdateMovement(PlayerAvatar *playerAvatar) {
+             switch (playerMoveState) {
+             case PLAYER_MOVE_STATE_NONE:
++                if (portStep1F) {
++                    PlayerAvatar_SetPlayerMoveState(playerAvatar, PLAYER_MOVE_STATE_END);
++                }
+                 break;
+             case PLAYER_MOVE_STATE_END:
+-                PlayerAvatar_SetPlayerMoveState(playerAvatar, PLAYER_MOVE_STATE_NONE);
++                PlayerAvatar_SetPlayerMoveState(playerAvatar, portStep1F ? PLAYER_MOVE_STATE_END : PLAYER_MOVE_STATE_NONE);
+                 break;
+             default:
 diff --git a/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c b/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c
 index bad026f..e7badf5 100644
 --- a/src/unk_0205CB48_0205D450_0205D4B4_0205D4B4.c
@@ -71,19 +123,20 @@ index bad026f..e7badf5 100644
              sub_0205E048(param_1);
              PlayerAvatar_SetFlag6(param_1);
 diff --git a/src/unk_02062108_020626AC.c b/src/unk_02062108_020626AC.c
-index c4206bb..bea6f84 100644
+index c4206bb..b708425 100644
 --- a/src/unk_02062108_020626AC.c
 +++ b/src/unk_02062108_020626AC.c
-@@ -236,8 +236,29 @@ s32 MapObjectMovementCmd087_Step0(void *arg0) {
+@@ -236,8 +236,33 @@ s32 MapObjectMovementCmd087_Step0(void *arg0) {
  }
  
 +// bw-port: Run speed (the port's RunSpeed setting; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The run action
-+// (cmds 88-91) is 4 px a frame for 4 frames with the run animation; for the player's own object at 2x and 4x it is 8 px for 2
-+// frames (a 1-frame step breaks a step's end logic, as the Surf 0x54 does in Platinum; the new movement rows this would otherwise
-+// need are this action with its own numbers: an NPC's run is the game's; the following Pokemon copies the player's run as a walk,
-+// and at a faster Run speed the follower is held to the game's run, in the step pick). At the default setting it is exactly the
-+// game's run.
++// (cmds 88-91) is 4 px a frame for 4 frames with the run animation; for the player's own object it is 8 px for 2 frames at 2x and
++// 16 px for 1 at 4x (the new movement rows this would otherwise need are this action with its own numbers: an NPC's run is the
++// game's; the following Pokemon copies the player's run as a faster walk, unk_020658D4_02065D78_02065D78.c). The 1-frame step
++// starts and ends in one update, so it is noted (PortSpeed4_NoteStep1F): PlayerAvatar_UpdateMovement reports its end and
++// sub_0205F330 keeps its run animation for the frame. At the default setting it is exactly the game's run.
 +int PortSpeed4_RunSteps(void);
++void PortSpeed4_NoteStep1F(void *mapObj, u32 anim);
 +void *MapObject_GetFieldSystem(void *mapObj);
 +void *FieldSystem_GetPlayerAvatar(void *fieldSystem);
 +void *PlayerAvatar_GetMapObject(void *avatar);
@@ -93,6 +146,9 @@ index c4206bb..bea6f84 100644
 +
 +    if (steps != 0 && PlayerAvatar_GetMapObject(FieldSystem_GetPlayerAvatar(MapObject_GetFieldSystem(mapObj))) == mapObj) {
 +        sub_020624CC(mapObj, dir, 0x4000 << steps, 4 >> steps, 9);
++        if ((4 >> steps) == 1) {
++            PortSpeed4_NoteStep1F(mapObj, 9);   // 4x: its end and its animation (PlayerAvatar_UpdateMovement, sub_0205F330)
++        }
 +    } else {
 +        sub_020624CC(mapObj, dir, 0x4000, 4, 9);
 +    }
@@ -105,27 +161,84 @@ index c4206bb..bea6f84 100644
 +    PortSpeed4_InitRun(arg0, 0);
      return 1;
  }
-@@ -246,5 +267,5 @@ s32 MapObjectMovementCmd089_Step0(void *arg0);
+@@ -246,5 +271,5 @@ s32 MapObjectMovementCmd089_Step0(void *arg0);
  
  s32 MapObjectMovementCmd089_Step0(void *arg0) {
 -    sub_020624CC(arg0, 1, 0x4000, 4, 9);
 +    PortSpeed4_InitRun(arg0, 1);
      return 1;
  }
-@@ -253,5 +274,5 @@ s32 MapObjectMovementCmd090_Step0(void *arg0);
+@@ -253,5 +278,5 @@ s32 MapObjectMovementCmd090_Step0(void *arg0);
  
  s32 MapObjectMovementCmd090_Step0(void *arg0) {
 -    sub_020624CC(arg0, 2, 0x4000, 4, 9);
 +    PortSpeed4_InitRun(arg0, 2);
      return 1;
  }
-@@ -260,5 +281,5 @@ s32 MapObjectMovementCmd091_Step0(void *arg0);
+@@ -260,5 +285,5 @@ s32 MapObjectMovementCmd091_Step0(void *arg0);
  
  s32 MapObjectMovementCmd091_Step0(void *arg0) {
 -    sub_020624CC(arg0, 3, 0x4000, 4, 9);
 +    PortSpeed4_InitRun(arg0, 3);
      return 1;
  }
+diff --git a/src/unk_020658D4_020659CC_02065A4C.c b/src/unk_020658D4_020659CC_02065A4C.c
+index 394e5c3..c8ece86 100644
+--- a/src/unk_020658D4_020659CC_02065A4C.c
++++ b/src/unk_020658D4_020659CC_02065A4C.c
+@@ -798,4 +798,18 @@ s32 sub_020664D8(LocalMapObject *);
+ s32 sub_02065A4C(LocalMapObject *arg0, void *arg1);
+ 
++// bw-port: Walk and Run speed with the following Pokemon (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The
++// player's step pick asks for one follow step (state 0 -> 1, or 3 -> 2 while it steps); state 1 waits a frame before the step
++// starts, so a player step of 2 frames asked faster than the Pokemon could step and it fell tiles behind. While a faster Walk or
++// Run is set (PortSpeed4_FollowFast) state 1 steps at once, and a Pokemon whose step ended away from the player's last tile steps
++// again (it was idle there for good). At the game's speeds it is the game's own code path.
++int PortSpeed4_FollowFast(void);
++
++static int PortSpeed4_FollowBehind(LocalMapObject *mapObj) {
++    PlayerAvatar *avatar = FieldSystem_GetPlayerAvatar(MapObject_GetFieldSystem(mapObj));
++
++    return PortSpeed4_FollowFast() && (MapObject_GetXCoord(mapObj) != (u32)PlayerAvatar_GetPreviousXCoord(avatar) ||
++                                       MapObject_GetZCoord(mapObj) != (u32)PlayerAvatar_GetPreviousZCoord(avatar));
++}
++
+ s32 sub_02065A4C(LocalMapObject *arg0, void *arg1) {
+     FieldSystem *temp_r4;
+@@ -807,6 +821,12 @@ s32 sub_02065A4C(LocalMapObject *arg0, void *arg1) {
+     if (temp_r1 == 1) {
+         temp_r4->followMon.unk1C = 2;
+-        return 0;
+-    } else if (temp_r1 == 2) {
++        if (!PortSpeed4_FollowFast()) {
++            return 0;
++        }
++        temp_r1 = 2;
++    } else if (temp_r1 == 3 && PortSpeed4_FollowBehind(arg0)) {
++        temp_r4->followMon.unk1C = temp_r1 = 2;
++    }
++    if (temp_r1 == 2) {
+         sub_02065D58(arg0, arg1);
+         if ((temp_r4->followMon.unk8 == MapObject_GetXCoord(arg0)) && (temp_r4->followMon.unkC == MapObject_GetZCoord(arg0))) {
+diff --git a/src/unk_020658D4_02065C2C.c b/src/unk_020658D4_02065C2C.c
+index db1c821..68e4450 100644
+--- a/src/unk_020658D4_02065C2C.c
++++ b/src/unk_020658D4_02065C2C.c
+@@ -8,4 +8,8 @@ s32 sub_02062428(LocalMapObject *mapObj);
+ u32 sub_02065C2C(LocalMapObject *param_1, u8 *param_2);
+ 
++// bw-port: with a faster Walk or Run (PortSpeed4_FollowFast) the follower's next step is picked in the frame its step ends, not
++// the frame after (see sub_02065A4C). The game's own return at its speeds.
++int PortSpeed4_FollowFast(void);
++
+ u32 sub_02065C2C(LocalMapObject *param_1, u8 *param_2) {
+     s32 iVar1;
+@@ -15,4 +19,5 @@ u32 sub_02065C2C(LocalMapObject *param_1, u8 *param_2) {
+         MapObject_ClearSingleMovement(param_1);
+         *param_2 = 0;
++        return PortSpeed4_FollowFast();
+     }
+     return 0;
 diff --git a/src/unk_020658D4_02065D78_02065D78.c b/src/unk_020658D4_02065D78_02065D78.c
 index dd0a0df..9247522 100644
 --- a/src/unk_020658D4_02065D78_02065D78.c

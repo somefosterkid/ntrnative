@@ -62,14 +62,20 @@ static const Prog kProgs[] = {
   {"g10_fastgl.vert", "g10_fast.frag#1f+G10_FETCH", 0, 3},
   {"g10_fast4.vert", "g10_fast4.frag#1+G10_FETCH", 0, 3},
   {"g10_fast4.vert", "g10_fast4.frag#1f+G10_FETCH", 0, 3},
+  {"g10_fastgl.vert", "g10_fast.frag#1c+G10_FETCH", 0, 3}, /* the texture cache's (G12: shaders/g12_texcache.glsl's G12_HW) */
+  {"g10_fast4.vert", "g10_fast4.frag#1c+G10_FETCH", 0, 3},
   {"g10_fastgl.vert", "g10_fast.frag#1+G10_ILOCK", 0, 2},
   {"g10_fastgl.vert", "g10_fast.frag#1f+G10_ILOCK", 0, 2},
   {"g10_fast4.vert", "g10_fast4.frag#1+G10_ILOCK", 0, 2},
   {"g10_fast4.vert", "g10_fast4.frag#1f+G10_ILOCK", 0, 2},
+  {"g10_fastgl.vert", "g10_fast.frag#1c+G10_ILOCK", 0, 2},
+  {"g10_fast4.vert", "g10_fast4.frag#1c+G10_ILOCK", 0, 2},
   {"g10_fastgl.vert", "g10_fast.frag#1+G10_IORDER", 0, 2},
   {"g10_fastgl.vert", "g10_fast.frag#1f+G10_IORDER", 0, 2},
   {"g10_fast4.vert", "g10_fast4.frag#1+G10_IORDER", 0, 2},
   {"g10_fast4.vert", "g10_fast4.frag#1f+G10_IORDER", 0, 2},
+  {"g10_fastgl.vert", "g10_fast.frag#1c+G10_IORDER", 0, 2},
+  {"g10_fast4.vert", "g10_fast4.frag#1c+G10_IORDER", 0, 2},
 };
 
 static void fname(char *out, size_t n, const char *name, const char *api, const char *stage, int tf) {

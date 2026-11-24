@@ -1,0 +1,4 @@
+# game: b2
+# from: b2-route19
+# reaches: Route 19: right, up into the grass and back (a wild battle may start) (Smooth motion sweep, tools/interp_sweep_set.txt)
+walk 300 40 right3 up3 down3 up3 down3 up3

@@ -717,6 +717,22 @@ def test_prepare_run_dir_symlinks():
         assert not (base / "run").exists()
 
 
+def test_snapshot_stop_removes_the_server_run_dir():   # dk5 11-22: the ~250 MB copy of a leg's run dir stayed on every slot
+    with tempfile.TemporaryDirectory() as td:
+        sock = os.path.join(td, "bwsnap-abc.sock")
+        sdir = R.Path(td) / "snap-hg-abc"
+        (sdir / "Pokemon HeartGold").mkdir(parents=True)
+        (sdir / "Pokemon HeartGold" / "x.narc").write_bytes(b"x")
+        R.SNAP_SERVERS.add(sock)
+        R.SNAP_DIRS[sock] = sdir
+        try:
+            R.snapshot_stop()
+        finally:
+            R.SNAP_SERVERS.discard(sock)
+            R.SNAP_DIRS.pop(sock, None)
+        assert not sdir.exists()
+
+
 if __name__ == "__main__":
     bad = 0
     for name, fn in sorted(globals().items()):

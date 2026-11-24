@@ -23,7 +23,7 @@ uniform highp usampler2D uFind;  // per polygon with records: its first record, 
 // uNFind, uZero, uFirst, uPart, uN, uR: g00_head.glsl's block
 
 const int S_MAXE = 10, S_MAXRUN = 12, S_BIG = 1073741824;
-const uint SU_DOT = 1u, SU_WIRE = 2u, SU_FULL = 4u, SU_AA = 8u, SU_FLATBOT = 16u;
+const uint SU_DOT = 1u, SU_WIRE = 2u, SU_FULL = 4u, SU_AA = 8u, SU_FLATBOT = 16u, SU_FINEZ = 32u;
 
 ivec4 s_tx(int i) { return ivec4(texelFetch(uSetup, g_at(i), 0)); }
 
@@ -242,6 +242,15 @@ SAttr s_edge_attr(int va, int vb, int ax, int ay, int dx, int dy, int xe, int y,
   return r;
 }
 
+// g02_spans.c fine_z: a DS-grid line's depth z on row Y of the m x grid along a Y-major edge (dx, dy on the DS grid) from vertex
+// a to b, from the vertices' rows at m x (their second texel's w), as s_edge_attr gives a polygon's edge there
+vec2 s_fine_z(int va, int vb, int dx, int dy, int Y, vec2 z) {
+  int ya = s_tx(va + 1).w, d = s_tx(vb + 1).w - ya;
+  if (dy == 0 || abs(dx) > dy || d <= 0) return z;
+  vec2 za = s_vertex(va).z, f = ff_div(vec2(float(clamp(Y - ya, 0, d)), 0.0), vec2(float(d), 0.0));
+  return ff_add(za, ff_mul(f, ff_add(s_vertex(vb).z, -za)));
+}
+
 // record rec's twelve texels into s0-s11
 void s_build(int rec) {
   if (uNFind < 1) {
@@ -440,6 +449,11 @@ void s_build(int rec) {
     int bl = (h2[le >> 2] >> (8 * (le & 3))) & 255, br = (h2[re >> 2] >> (8 * (re & 3))) & 255;
     L = s_edge_attr(vat + 2 * (bl & 15), vat + 2 * (bl >> 4), lax, lay, ldx, ldy, Llo, y, false);
     R = s_edge_attr(vat + 2 * (br & 15), vat + 2 * (br >> 4), rax, ray, rdx, rdy, Rhi, y, true);
+    if ((fl & SU_FINEZ) != 0u) { // a DS-grid line's depth on its own row of the m x grid
+      int Y = h1.z * m + ri;
+      L.z = s_fine_z(vat + 2 * (bl & 15), vat + 2 * (bl >> 4), ldx, ldy, Y, L.z);
+      R.z = s_fine_z(vat + 2 * (br & 15), vat + 2 * (br >> 4), rdx, rdy, Y, R.z);
+    }
   }
   s0 = s_f(vec4(float(px0), float(px1), float(den_f * m), float(den_z * m)));
   s1 = s_f(vec4(L.w.x, R.w.x, L.z.x, R.z.x));

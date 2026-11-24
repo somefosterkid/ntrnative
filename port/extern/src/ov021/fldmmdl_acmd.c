@@ -43,10 +43,22 @@ static const FieldActorFunc *const *PortAcmdTablesRail(void);
 // A 1-frame step began this frame (and has ended with it); PortAcmd_TakeStep1F reads and clears it
 static BOOL sPortStep1F;
 
+// The latest 1-frame step: its actor, its animation state (10: the run, 5: the walk) and the V-blank it was taken in.
+// Its init sets the animation state and its end sets it back to 0 in the same actor update, so the billboard update
+// (port/extern/src/ov021/field_rail_loader.c) reads these instead to keep the legs moving.
+FieldActor *gPortStep1FActor;
+u16 gPortStep1FAnim;
+u32 gPortStep1FVBlank;
+
 #define PORT_STEP(name, dir, speed, frames, anim)                       \
     static u32 name(FieldActor *actor) {                                \
         func_ov021_02197fc0(actor, dir, speed, frames, anim);           \
         sPortStep1F = (frames == 1);                                    \
+        if (frames == 1) {                                              \
+            gPortStep1FActor = actor;                                   \
+            gPortStep1FAnim = anim;                                     \
+            gPortStep1FVBlank = OS_GetVBlankCount();                    \
+        }                                                               \
         return 1;                                                       \
     }                                                                   \
     static const FieldActorFunc name##_row[] = { name, func_ov021_0219800c, func_ov021_02197f5c };

@@ -1,7 +1,7 @@
 /* vcore_interp: the midpoint of two consecutive captured frames (docs/interp.md, p23). Offline; not wired into the player.
  *   vcore_interp A.vcs B.vcs OUTPREFIX [--f 0.5] [--scale N] [--limit PX]
  * Writes OUTPREFIX_t.png (frame A), OUTPREFIX_mid.png (A's scene with its vertices blended toward B's by f, 2D held at A) and
- * OUTPREFIX_t1.png (frame B), and prints how the two frames' lists paired. */
+ * OUTPREFIX_t1.png (frame B), and prints how the two frames' lists paired. The texcoord hold is the live one (vc_ip_texhold). */
 #include "vc_shared.h"
 #include "vcore.h"
 
@@ -31,12 +31,13 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[i], "--f") && i + 1 < argc) f = atof(argv[++i]);
     else if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--limit") && i + 1 < argc) limit = atof(argv[++i]);
+    else if (!strcmp(argv[i], "--repair") && i + 1 < argc) vc_ip_repair_runs = atoi(argv[++i]);
     else if (!a) a = argv[i];
     else if (!b) b = argv[i];
     else if (!pre) pre = argv[i];
   }
   if (!a || !b || !pre) {
-    fprintf(stderr, "usage: vcore_interp A.vcs B.vcs OUTPREFIX [--f 0.5] [--scale N] [--limit PX]\n");
+    fprintf(stderr, "usage: vcore_interp A.vcs B.vcs OUTPREFIX [--f 0.5] [--scale N] [--limit PX] [--repair 0|1]\n");
     return 2;
   }
   VCoreState *sa = vcore_create(), *sb = vcore_create();
@@ -65,7 +66,9 @@ int main(int argc, char **argv) {
   shot(sa, path);
   snprintf(path, sizeof path, "%s_t1.png", pre);
   shot(sb, path);
-  vc_ip_apply_begin(sa, &rb, map, NULL, (s32)(f * 4096.0));
+  u8 *th = (u8 *)malloc(ra.nl + 1); /* the live texcoord hold (ip_common.h: 8 texels, 64 px) */
+  vc_ip_texhold(&ra, &rb, map, th, 128, 64.0, NULL, NULL);
+  vc_ip_apply_begin(sa, &rb, map, th, (s32)(f * 4096.0));
   snprintf(path, sizeof path, "%s_mid.png", pre);
   shot(sa, path);
   vc_ip_apply_end(sa);

@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-lake
+# reaches: the lake shore: a held walk (Smooth motion sweep, tools/interp_sweep_set.txt)
+# end: f8200
+keys start@f6300 a@f6700
+keys left*f330@f7500
+keys down*f200@f7900

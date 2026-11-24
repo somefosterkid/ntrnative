@@ -73,6 +73,41 @@ static void PORT_OpenFilesFrame(void) {
 
 void PORT_ForkFrame(void);   // title_fork.c (BWPORT_FORK_AT)
 
+// The battle sweep's case protocol (tools/battle_sweep.py, docs/battle-sweep.md): a game's test hook calls PORT_SweepCase(k, what)
+// when case k starts (the previous case is closed: `sweep: case K done ...`) and PORT_SweepEnd when the list is used up or the
+// battle ended. Lines on stderr, every one with the V-blank count: `sweep: case K <what> start at V-blank N`, `sweep: case K done
+// at V-blank N (F frames)`, `sweep: end <why> at V-blank N`. BWPORT_SWEEP_CASE_FRAMES=F: a case that runs more than F V-blanks
+// is a hang: `sweep: case K cap F frames at V-blank N` + the state line, the exe exits 0 (the harness judges the log). Game frames
+// only; nothing here runs unless a game's sweep switch calls PORT_SweepCase.
+static int sSweepCase = -1;
+static u32 sSweepFrom;
+
+static void PORT_SweepClose(void) {
+    if (sSweepCase >= 0) {
+        fprintf(stderr, "sweep: case %d done at V-blank %u (%u frames)\n", sSweepCase, (unsigned)OS_GetVBlankCount(),
+                (unsigned)(OS_GetVBlankCount() - sSweepFrom));
+        sSweepCase = -1;
+    }
+}
+
+void PORT_SweepCase(int k, const char *what) {
+    PORT_SweepClose();
+    sSweepCase = k;
+    sSweepFrom = OS_GetVBlankCount();
+    fprintf(stderr, "sweep: case %d %s start at V-blank %u\n", k, what, (unsigned)OS_GetVBlankCount());
+}
+
+void PORT_SweepEnd(const char *why, int exitNow) {
+    PORT_SweepClose();
+    fprintf(stderr, "sweep: end %s at V-blank %u\n", why, (unsigned)OS_GetVBlankCount());
+    if (exitNow) {
+        acapture_close();
+        ab_wav_close();
+        fflush(NULL);
+        _exit(0);
+    }
+}
+
 void PORT_ExitFrame(void) {
     static int sState;   // 0: not read yet, 1: on, -1: off
     static u32 sFrame;
@@ -80,6 +115,23 @@ void PORT_ExitFrame(void) {
     PORT_ForkFrame();
     PORT_HeapCheckFrame();   // (a heap hit since the last wait is said at this V-blank, the exit frame's too)
     PORT_OpenFilesFrame();
+    if (sSweepCase >= 0) {
+        static u32 sCaseCap;   // BWPORT_SWEEP_CASE_FRAMES, read once
+
+        if (sCaseCap == 0) {
+            const char *c = getenv("BWPORT_SWEEP_CASE_FRAMES");
+
+            sCaseCap = c != NULL && strtoul(c, NULL, 10) > 0 ? (u32)strtoul(c, NULL, 10) : 0xFFFFFFFFu;
+        }
+        if (OS_GetVBlankCount() - sSweepFrom >= sCaseCap) {
+            PORT_StateLine();
+            fprintf(stderr, "sweep: case %d cap %u frames at V-blank %u\n", sSweepCase, (unsigned)sCaseCap, (unsigned)OS_GetVBlankCount());
+            acapture_close();
+            ab_wav_close();
+            fflush(NULL);
+            _exit(0);
+        }
+    }
     if (sState == 0) {
         const char *e = getenv("BWPORT_EXIT_FRAME");
 
