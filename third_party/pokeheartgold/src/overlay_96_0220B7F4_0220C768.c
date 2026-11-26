@@ -46,7 +46,7 @@ void ov96_0220C7FC(void *arg0) {
     *((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x5)) = (s32)(*((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x5)) & 0xFFFFFEFF);
     *((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x1)) = (s32)((0xFFFFFEFFU >> 0xB) & *((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x1)));
     *((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x5)) = (s32)(*((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x5)) & ~0xFF);
-    v1 = arg0 + 0x34;
+    v1 = &((UnkStruct_ov96_0220B9A8 *)arg0)->unk_34;
     v0 = ((u32)(*((s32 *)((u8 *)&((UnkStruct_ov96_0220B9A8 *)arg0)->pad_38[7] + 0x1)) << 0x1E) >> 0x1E) * 4;
     *(s32 *)(v1 + v0) = 0x280000 | (*(s32 *)(v1 + v0) & 0xFC03FFFF);
     ManagedSprite_SetDrawFlag(((UnkStruct_ov96_0220B9A8 *)arg0)->spr14, 0);

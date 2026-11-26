@@ -10,6 +10,9 @@
 #include "overlay_41_unk_struct_ov22_02257964.h"
 #include "pokepic.h"
 #include "overlay_41_unk_struct_ov22_0225b1bc.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct BgConfig;
 struct NARC;
@@ -30,7 +33,7 @@ enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
-void ov41_022465CC(void *arg0);
+void ov41_022465CC(UnkStruct_ov22_0225B1BC *arg0);
 typedef struct SoftwareSpriteChars SoftwareSpriteChars;
 typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
@@ -239,52 +242,6 @@ typedef struct SpriteAnimFrame {
     s8 yOffset;
 } SpriteAnimFrame;
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
-typedef struct {
-    UnkStruct_ov22_02259484 *unk_00;
-    UnkStruct_ov22_02259560 unk_04;
-    UnkStruct_ov22_02259560 unk_14;
-    int unk_24;
-    int unk_28;
-} UnkStruct_ov22_02257964_sub1;
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-    u8 unk_02;
-    u8 unk_03;
-} UnkStruct_ov22_022596B0;
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
-typedef struct {
-    Pokepic *unk_00;
-    TouchscreenHitbox unk_04;
-    UnkStruct_ov22_022596B0 unk_08;
-    Pokemon *unk_0C;
-} UnkStruct_020298D8;
-typedef struct {
-    SoftwareSpriteManager *unk_00;
-    SoftwareSpriteChars **unk_04;
-    SoftwareSpritePalette **unk_08;
-    u8 *unk_0C;
-    PokepicManager *unk_10;
-    BgConfig *unk_14;
-    UnkStruct_ov22_02254DE0 *unk_18;
-    UnkStruct_ov22_022597BC unk_1C;
-    int unk_48;
-    UnkStruct_020298D8 unk_4C;
-} UnkStruct_ov22_02257964_sub2;
 void ov41_02248120(UnkStruct_ov22_02257964 *param0, int param1, int param2, int param3, int param4);
 
 void ov41_0224B5C8(void *arg0);

@@ -6,7 +6,11 @@
 
 u8 ov96_021F65D8(UnkStruct_ov96_021F5018_Ball *arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+#else
 void ov96_021E8228(PokeathlonCourseData *, u32, u8, s32, s32);
+#endif
 
 void ov96_021EAF78(void *, s32, s32, s32 *, s32 *, s32 *);
 
@@ -18,11 +22,23 @@ void ov96_021F6798(PokeathlonCourseData *, UnkStruct_ov96_021F5018 *, s32);
 
 void ov96_021F75BC(UnkStruct_ov96_021F74A4 *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+VecFx32 *ov96_021F75D4(UnkStruct_ov96_021F74A4 *, s32);
+#else
 VecFx32 *ov96_021F75D4(UnkStruct_ov96_021F74A4 *, u8);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov96_021F75E0(UnkStruct_ov96_021F74A4 *, s32);
+#else
 u32 ov96_021F75E0(UnkStruct_ov96_021F74A4 *, u8);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021F75E8(UnkStruct_ov96_021F74A4 *, s32, s32);
+#else
 void ov96_021F75E8(UnkStruct_ov96_021F74A4 *, u8, u8);
+#endif
 
 s32 sub_02005944(s32, u16, s32);
 

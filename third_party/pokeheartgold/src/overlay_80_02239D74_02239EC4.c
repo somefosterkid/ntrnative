@@ -4,6 +4,7 @@
 #include "sys_task_api.h"
 #include "constants/heap.h"
 #include "bg_window.h"
+#include "overlay_80_02239F48.h"
 #include "palette.h"
 #include "sys_task.h"
 
@@ -11,7 +12,7 @@ void ov80_02239EC4(SysTask **arg0);
 
 void ov80_02239ED8(SysTask *task, void *param);
 void ov80_02239FA8(SysTask *task, void *param);
-u32 *ov80_02239F48(PaletteData *param_1);
+UnkStruct_ov80_02239F48 *ov80_02239F48(PaletteData *param_1);
 
 struct UnkStruct_ov17_0224DF54_t;
 typedef struct {
@@ -56,19 +57,19 @@ void ov80_02239ED8(SysTask *task, void *param) {
     return;
 }
 
-u32 *ov80_02239F48(PaletteData *param_1) {
-    u32 *dest;
+UnkStruct_ov80_02239F48 *ov80_02239F48(PaletteData *param_1) {
+    UnkStruct_ov80_02239F48 *dest;
     u16 *puVar1;
     SysTask *pSVar2;
 
-    dest = Heap_Alloc(HEAP_ID_101, 0x6c);
-    MI_CpuFill8(dest, 0, 0x6c);
-    dest[1] = (u32)(param_1);
-    *(u8 *)(dest + 0x1a) = 2;
+    dest = Heap_Alloc(HEAP_ID_101, sizeof(UnkStruct_ov80_02239F48));
+    MI_CpuFill8(dest, 0, sizeof(UnkStruct_ov80_02239F48));
+    dest->unk_04 = param_1;
+    dest->unk_68 = 2;
     puVar1 = PaletteData_GetUnfadedBuf(param_1, PLTTBUF_MAIN_BG);
-    MIi_CpuCopy16(puVar1 + 0x50, dest + 2, 0x60);
+    MIi_CpuCopy16(puVar1 + 0x50, dest->unk_08, 0x60);
     pSVar2 = SysTask_CreateOnMainQueue(ov80_02239FA8, dest, 0x1368d);
-    *dest = (u32)(pSVar2);
+    dest->unk_00 = pSVar2;
     return dest;
 }
 

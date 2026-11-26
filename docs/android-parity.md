@@ -13,6 +13,8 @@ Transitions, Walk / Run / Surf / Save speed, Skip frames when slow, Music at nor
 The Java compiles (Gradle, both ABIs) and the libntr chain compiles for arm64-v8a and x86_64 (the note "never compiled" in
 the follow-up is closed). changes: the 3D renderer row's two subtitles and the performance test's alert text as on iOS.
 Not on Android, on purpose: the Graphics API row (iOS: OpenGL ES or Metal; Android has ES only), Games (al90's launcher).
+2026-11-25: Antialiasing's "4 samples (lite)" is on both sheets (the same key and index; GL draws it as Metal does, docs/gpu-cost.md
+"4 samples (lite)").
 
 ## Platform layer
 
@@ -147,3 +149,9 @@ arm64-v8a)`). `--abi x86_64` switches back over the same install.
 6. Stuck-input checks (touch ends held by gesture recognizers): UIKit specific; Android sends ACTION_CANCEL to SDL, which libntr treats as a lift.
    No known issue; nothing to port until a phone shows one.
 7. Vulkan or a Metal-like second API: not planned.
+8. Haptics (S; a phone to feel it). iOS (2026-11-25, docs/settings-layout.md "Haptics"): the Controls group's first row, Haptics
+   (`haptics`, ini Haptics=on|off, default on; the shared config reads and writes it on every platform already), and a light tap
+   from the touch layer (sim_touch.cpp Haptic, iOS only) when a touch button or a D-pad direction goes down. Android: the row in
+   SettingsScreen.java (its group Controller becomes Controls, Haptics first) and, in Haptic, a call to a JNI hook (android_settings.c
+   has the pattern) that runs `View.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)` on the UI thread (no VIBRATE
+   permission needed).

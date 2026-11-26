@@ -4,17 +4,7 @@
 #include "sprite.h"
 #include "system.h"
 #include "overlay_90_unk_struct_ov114_0225cdb4.h"
-
-typedef struct {
-    Sprite *unk_00[2];
-    s16 unk_08;
-    s16 unk_0A;
-    u8 unk_0C[2][192];
-    SysTask *unk_18C;
-    GXWndPlane unk_190;
-    GXWndPlane battlerType;
-    int unk_194;
-} UnkStruct_ov114_0225FAB8;
+#include "overlay_90_unk_struct_ov114_0225fab8.h"
 
 Sprite *ov90_02258EB4(UnkStruct_ov114_0225CDB4 *param0, SpriteList *param1, s32 param2, s32 param3, u16 param4, u32 param5);
 

@@ -27,13 +27,13 @@ static void ov01_021EE5D0(FieldMenuManager *arg0, s32 strno, u32 textSpeed) {
     String_Delete(v1);
 }
 
-void ov01_021EE634(void *arg0);
+void ov01_021EE634(FieldMenuManager *arg0);
 
-void ov01_021EE634(void *arg0) {
+void ov01_021EE634(FieldMenuManager *arg0) {
     u16 v0;
 
-    ListMenuGetCurrentItemArrayId(((FieldMenuManager *)arg0)->listMenu, arg0 + 0x1C2);
-    v0 = *((u16 *)&((FieldMenuManager *)arg0)->choicesAltTextStringIDs[(((FieldMenuManager *)arg0)->listMenuAltTextIndex)]);
+    ListMenuGetCurrentItemArrayId(arg0->listMenu, &arg0->listMenuAltTextIndex);
+    v0 = *((u16 *)&arg0->choicesAltTextStringIDs[(arg0->listMenuAltTextIndex)]);
     if (v0 != 0xFF) {
         ov01_021EE5D0(arg0, v0, 0);
     }

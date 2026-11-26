@@ -3,6 +3,8 @@
 
 #include "unk_02014DA0.h"
 
-ParticleSystem *ov80_02239A60(u32 a0, u32 a1);
+struct FrontierParticleSystem;
+
+ParticleSystem *ov80_02239A60(struct FrontierParticleSystem *fps, int index);
 
 #endif

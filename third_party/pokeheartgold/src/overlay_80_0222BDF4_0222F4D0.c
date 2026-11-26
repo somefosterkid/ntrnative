@@ -130,7 +130,11 @@ void ov80_0222F5D0(FrontierMenuManager *menuManager, BOOL anchorRight);
 void ov80_0222F5EC(FrontierMenuManager *menuManager, BOOL anchorBottom);
 
 s32 ov80_0222F4D0(void **arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    if (TextPrinterCheckActive(((FrontierScriptManager *)(*arg0))->printerID) == 0) {
+#else
     if (TextPrinterCheckActive(*(u8 *)((u8 *)(*arg0) + 0x50)) == 0) {
+#endif
         TextFlags_SetCanTouchSpeedUpPrint(0);
         return 1;
     }

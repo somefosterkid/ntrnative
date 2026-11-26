@@ -8,8 +8,8 @@ void ov103_021EEAA0(MailBoxWork *arg0);
 
 void ov103_021EEAB0(void);
 void ov103_021EEAB4(void);
-s32 ov103_021EEAC8();
-void ov103_021EEAB8(void);
+void ov103_021EEAC8(MailBoxWork *arg0, s32 target);
+void ov103_021EEAB8(MailBoxWork *arg0, s32 target);
 
 void ov103_021EEAA0(MailBoxWork *arg0) {
     GridInputHandler_Free(arg0->view->gridInput);
@@ -21,6 +21,6 @@ void ov103_021EEAB0(void) {
 void ov103_021EEAB4(void) {
 }
 
-void ov103_021EEAB8(void) {
-    ov103_021EEAC8();
+void ov103_021EEAB8(MailBoxWork *arg0, s32 target) {
+    ov103_021EEAC8(arg0, target);
 }

@@ -7,8 +7,6 @@
 #include "pokewalker.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021EE920(Ov112PokewalkerApp *param_1);
-
 void ov112_021EE920(Ov112PokewalkerApp *param_1) {
     u32 uVar1;
     param_1->unk_1F376 = 0;

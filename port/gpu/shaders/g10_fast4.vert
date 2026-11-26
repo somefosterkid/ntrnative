@@ -22,7 +22,7 @@ uniform vec4 hu;
 G10_VARY(0) flat out ivec3 vA; // the triangle's edges j (vertex j to j + 1) in G relative to vertex 0: A x + B y + C,
 G10_VARY(1) flat out ivec3 vB; // positive inside
 G10_VARY(2) flat out ivec3 vC;
-G10_VARY(3) flat out ivec2 vO; // vertex 0 in G
+G10_VARY(3) flat out ivec4 vO; // vertex 0 in G; the polygon's box in G from it (x lo | x hi << 16, y lo | y hi << 16), below
 G10_VARY(4) flat out vec3 vZ;  // planes over G - vO: (value at vO, d/dx, d/dy): z
 G10_VARY(5) flat out vec3 vIW; // 1 / w
 G10_VARY(6) flat out vec3 vR;  // colour / w
@@ -55,6 +55,7 @@ void main() {
   // edges by 3 (|A| + |B|), so that g10_fast4.frag's grown samples (up to 63/64 of a 2N pixel out) get their fragments
   vec2 q = vec2(G[c]);
   int fnv = (int(b[0].z) >> 4) & 15, fti = int(b[0].z) >> 8;
+  bool sl = (int(b[0].z) & 4) != 0; // a sliver (src/g10_fast.c): no grown samples, so no polygon edge grown by 3
   ivec3 A, B, C;
   vec3 gA, gB, gC;
   for (int j = 0; j < 3; j++) {
@@ -65,7 +66,7 @@ void main() {
     C[j] = -(A[j] * (u.x - G[0].x) + B[j] * (u.y - G[0].y));
     gA[j] = float(A[j]);
     gB[j] = float(B[j]);
-    bool pe = fnv > 0 && (j == 1 || (j == 0 && fti == 1) || (j == 2 && fti + 2 == fnv)); // a polygon edge, not the fan's inner one
+    bool pe = !sl && fnv > 0 && (j == 1 || (j == 0 && fti == 1) || (j == 2 && fti + 2 == fnv)); // a polygon edge, not the fan's inner one
     bool tle = A[j] > 0 || (A[j] == 0 && B[j] > 0);
     gC[j] = float(C[j]) + (pe && tle ? 3.0 : 1.5) * (abs(gA[j]) + abs(gB[j]));
   }
@@ -78,7 +79,13 @@ void main() {
   vA = A;
   vB = B;
   vC = C;
-  vO = G[0];
+  // the polygon's box (src/g10_fast.c: b.w of vertices 0 and 1, x + 4096 y on the 2N grid, each clamped to 0..4095) in G from vertex 0,
+  // widened by the grow (under one sample, 2 G: by 1): g10_fast4.frag's grown samples lie in it. The grown lines of an edge-on
+  // polygon's triangles (all its corners near one line) meet far out along that line, and its edges, all on that line too, bound
+  // nothing along it: a column of its grown samples was drawn up the screen
+  int bl = int(b[0].w), bh = int(b[1].w);
+  ivec2 lo = ivec2(bl & 4095, bl >> 12) * 2 - G[0], hi = ivec2(bh & 4095, bh >> 12) * 2 + 2 - G[0];
+  vO = ivec4(G[0], (lo.x & 0xFFFF) | (hi.x << 16), (lo.y & 0xFFFF) | (hi.y << 16));
   vec2 d1 = vec2(e1), d2 = vec2(e2);
   float Df = float(D == 0 ? 1 : D);
   vec3 iw = vec3(1.0 / p[0].w, 1.0 / p[1].w, 1.0 / p[2].w);

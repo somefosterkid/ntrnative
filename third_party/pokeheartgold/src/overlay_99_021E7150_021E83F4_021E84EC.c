@@ -6,7 +6,11 @@ void ov98_0221EFE8(u32, u32, u32);
 
 u32 ov99_021E945C(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov99_021E94CC(void *, u16, u32, u32);
+#else
 u32 ov99_021E94CC(void *, u32, u32, u32);
+#endif
 
 void ov99_021E84EC(u32 *param_1, u32 param_2);
 

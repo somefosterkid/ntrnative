@@ -2517,7 +2517,11 @@ typedef struct FieldWildBattleMetadata {
 
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx1(BgConfig *bgConfig, u32 bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#else
 void LoadUserFrameGfx1(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#endif
 
 void DrawFrameAndWindow1(Window *window, u8 skipTransfer, u16 tile, u8 palette);
 

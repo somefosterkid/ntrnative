@@ -24,7 +24,7 @@ typedef struct UnkStruct_ov71_022478C8_Heap_Alloc {
     PokepicManager *unk_C;
     s32 unk_10;
     u8 unk_14[0x40];
-    s32 unk_54;
+    struct BgConfig *unk_54;
     u8 unk_58[0x10];
     String *unk_68;
     String *unk_6C;
@@ -51,7 +51,7 @@ static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *param0);
 static inline void inline_ov61_0222C3B0_sub(SysTask *param0, void *param1);
 
 void ov71_022478B8(Camera **arg0);
-s32 ov71_02247384(void *);
+struct BgConfig *ov71_02247384(void *);
 void *ov71_022478C8(void *arg0);
 s32 ov71_02247498(Trade3DScene *);
 s32 ov71_0224809C(void *);
@@ -195,7 +195,7 @@ void ov71_02247924(void *ptr) {
         FreeBgTilemapBuffer(((TradeSendPhase *)ptr)->bgConfig, 1U);
         FreeBgTilemapBuffer(((TradeSendPhase *)ptr)->bgConfig, 2U);
         FreeBgTilemapBuffer(((TradeSendPhase *)ptr)->bgConfig, 6U);
-        RemoveWindow(ptr + 0x58);
+        RemoveWindow(&((TradeSendPhase *)ptr)->window);
         NARC_Delete(((TradeSendPhase *)ptr)->pokeDataNarc);
         pokepic = ((Pokepic *)((TradeSendPhase *)ptr)->pokemonSprite);
         if (pokepic != NULL) {

@@ -7,6 +7,7 @@
 #include "text.h"
 #include "touch_hitbox_controller.h"
 #include "overlay_49_unk_struct_ov70_0225_e4_ec.h"
+#include "player_data.h"
 
 struct G3DPipelineBuffers;
 

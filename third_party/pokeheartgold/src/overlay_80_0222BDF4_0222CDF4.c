@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "frontier/overlay_80.h"
 #include "constants/heap.h"
 #include "bag_cursor.h"
@@ -83,7 +85,6 @@ struct FrontierScriptManager {
 };
 u16 *FrontierScript_ReadVarPtr(FrontierScriptContext *ctx);
 typedef struct JournalEntry JournalEntry;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 BOOL sub_0202FD28(SaveData *saveData, int param1, int *param2, int param3);
 BOOL FrtCmd_112(FrontierScriptContext *ctx);
 

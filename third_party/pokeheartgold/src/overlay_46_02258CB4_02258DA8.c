@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_46_unk_struct_ov67_0225d154.h"
 #include "constants/heap.h"
 #include "overlay_manager.h"
 #include "sys_task.h"
@@ -10,6 +11,10 @@
 #include "msgdata.h"
 #include "list_menu_items.h"
 #include "overlay_46_unk_struct_ov67_0225d210.h"
+#include "overlay_73_wifi_battle_tower_app_state.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "field_types_def.h"
+#include "screen_fade.h"
 
 struct OverlayManager;
 
@@ -49,7 +54,7 @@ struct StringTemplateArgHeader;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct UnkStruct_ov66_0222DFF8_t;
 
@@ -58,31 +63,6 @@ struct Window;
 void *OverlayManager_GetData(OverlayManager *appMan);
 
 void *OverlayManager_GetArgs(OverlayManager *appMan);
-
-typedef struct SysTaskManager SysTaskManager;
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
-
-typedef struct {
-    SysTask *unk_00;
-    BOOL unk_04;
-    u16 unk_08[4][16];
-    u16 unk_88[21][16];
-    s16 unk_328;
-    s8 unk_32A;
-    u8 unk_32B;
-} UnkStruct_ov61_0222C3B0;
-
-typedef struct UnkStruct_ov66_0222DFF8_t WiFiPlazaSystem;
 
 enum SaveBlockID {
     SAVE_BLOCK_ID_NORMAL = 0,
@@ -760,20 +740,12 @@ typedef struct StringTemplateArg {
     String *string;
 } StringTemplateArg;
 
-typedef struct Location {
-    enum MapHeaderID mapHeaderID;
-    int warpId;
-    int x;
-    int z;
-    int faceDirection;
-} Location;
-
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {
-    location->mapHeaderID = mapHeaderID;
+    location->mapId = mapHeaderID;
     location->warpId = warpId;
     location->x = x;
-    location->z = z;
-    location->faceDirection = faceDirection;
+    location->y = z;
+    location->direction = faceDirection;
 }
 
 typedef struct MessageBankEntry {
@@ -906,76 +878,9 @@ static inline void inline_ov61_0222C3B0_sub(SysTask *param0, void *param1) {
     }
 }
 
-enum FadeType {
-    FADE_TYPE_BRIGHTNESS_OUT = 0,
-    FADE_TYPE_BRIGHTNESS_IN = 1,
-    FADE_TYPE_DOWNWARD_OUT = 2,
-    FADE_TYPE_DOWNWARD_IN = 3,
-    FADE_TYPE_UPWARD_OUT = 4,
-    FADE_TYPE_UNK_5 = 5,
-    FADE_TYPE_UNK_6 = 6,
-    FADE_TYPE_UNK_7 = 7,
-    FADE_TYPE_UNK_8 = 8,
-    FADE_TYPE_UNK_9 = 9,
-    FADE_TYPE_UNK_10 = 10,
-    FADE_TYPE_UNK_11 = 11,
-    FADE_TYPE_UNK_12 = 12,
-    FADE_TYPE_UNK_13 = 13,
-    FADE_TYPE_UNK_14 = 14,
-    FADE_TYPE_UNK_15 = 15,
-    FADE_TYPE_CIRCLE_OUT = 16,
-    FADE_TYPE_CIRCLE_IN = 17,
-    FADE_TYPE_TOP_HALF_CIRCLE_OUT = 18,
-    FADE_TYPE_TOP_HALF_CIRCLE_IN = 19,
-    FADE_TYPE_UNK_20 = 20,
-    FADE_TYPE_UNK_21 = 21,
-    FADE_TYPE_UNK_22 = 22,
-    FADE_TYPE_UNK_23 = 23,
-    FADE_TYPE_UNK_24 = 24,
-    FADE_TYPE_UNK_25 = 25,
-    FADE_TYPE_UNK_26 = 26,
-    FADE_TYPE_UNK_27 = 27,
-    FADE_TYPE_UNK_28 = 28,
-    FADE_TYPE_UNK_29 = 29,
-    FADE_TYPE_UNK_30 = 30,
-    FADE_TYPE_UNK_31 = 31,
-    FADE_TYPE_UNK_32 = 32,
-    FADE_TYPE_UNK_33 = 33,
-    FADE_TYPE_UNK_34 = 34,
-    FADE_TYPE_UNK_35 = 35,
-    FADE_TYPE_UNK_36 = 36,
-    FADE_TYPE_UNK_37 = 37,
-    FADE_TYPE_UNK_38 = 38,
-    FADE_TYPE_UNK_39 = 39,
-    FADE_TYPE_CLAMP_OUT = 40,
-    FADE_TYPE_CLAMP_IN = 41,
-    FADE_TYPE_MAX = 42,
-};
-
-enum FadeMode {
-    FADE_BOTH_SCREENS = 0,
-    FADE_MAIN_THEN_SUB,
-    FADE_SUB_THEN_MAIN,
-    FADE_MAIN_ONLY,
-    FADE_SUB_ONLY,
-};
-
 void BeginNormalPaletteFade(enum FadeMode mode, enum FadeType typeMain, enum FadeType typeSub, u16 color, int steps, int framesPerStep, enum HeapID heapID);
 
 BOOL IsPaletteFadeFinished(void);
-
-typedef struct {
-    SaveData *saveData;
-    u32 unk_04;
-    u32 unk_08;
-    BgConfig *unk_0C;
-    UnkStruct_ov67_0225D210 unk_10;
-    UnkStruct_ov67_0225D210 unk_40;
-    UnkStruct_ov67_0225D210 unk_70;
-    UnkStruct_ov67_0225D210 unk_A0;
-    ListMenu2D *unk_D0;
-    UnkStruct_ov61_0222C3B0 unk_D4;
-} UnkStruct_ov67_0225D154;
 
 void ov46_02259374(UnkStruct_ov67_0225D210 *param0, u32 param1);
 

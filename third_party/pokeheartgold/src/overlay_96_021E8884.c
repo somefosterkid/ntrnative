@@ -1,35 +1,36 @@
 #include "global.h"
 #include "heap.h"
 #include "sys_task_api.h"
+#include "pokeathlon/pokeathlon.h"
 
 void ov96_021E8884(SysTask *task, void *param);
 
-void ov96_021E88FC(void *arg0);
+void ov96_021E88FC(Ov96Handlers *handlers);
 
 void ov96_021E8884(SysTask *task, void *param) {
-    s32 *param_2 = param;
-    s32 iVar1;
-    s32 *piVar2;
-    s32 iStack_20;
-    iStack_20 = 0;
-    piVar2 = param_2;
+    Ov96Handlers *handlers = param;
+    s32 i;
+    s32 size;
+    Ov96Msg *msg;
+
+    i = 0;
+    msg = handlers->msgs;
     do {
-        if ((*piVar2) == 1) {
-            iVar1 = piVar2[0xc];
-            if (piVar2[0xc] <= (0x27 - 1)) {
-                (*(*((void (**)())(param_2[0x70] + (piVar2[1] * 0xc)))))(0, piVar2[0xc], piVar2 + 2, param_2[0x72]);
+        if (msg->active == 1) {
+            size = msg->size;
+            if (size <= 0x26) {
+                handlers->cmdTable[msg->cmd].unk_00(0, size, msg->data, handlers->userData);
             } else {
-                (*(*((void (**)())(param_2[0x70] + (piVar2[1] * 0xc)))))(0, iVar1, piVar2[0xd], param_2[0x72]);
+                handlers->cmdTable[msg->cmd].unk_00(0, size, msg->ptr, handlers->userData);
             }
-            memset(piVar2, 0, 0x38);
+            memset(msg, 0, sizeof(Ov96Msg));
         }
-        piVar2 = piVar2 + 0xe;
-        iStack_20 = iStack_20 + 1;
-    } while (iStack_20 < 8);
-    return;
+        msg++;
+        i++;
+    } while (i < 8);
 }
 
-void ov96_021E88FC(void *ptr) {
-    SysTask_Destroy(*(SysTask **)((u8 *)ptr + 0x1CC));
-    Heap_Free(ptr);
+void ov96_021E88FC(Ov96Handlers *handlers) {
+    SysTask_Destroy(handlers->task);
+    Heap_Free(handlers);
 }

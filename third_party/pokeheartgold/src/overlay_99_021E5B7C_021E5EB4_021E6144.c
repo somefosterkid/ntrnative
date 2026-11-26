@@ -2,7 +2,11 @@
 #include "overlay_99_pokeathlon_course_record.h"
 #include "overlay_98_ov98text_sys.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_99_021E5C20.c (tools/pokehg_abi.py)
+u16 ov99_021E5C4C(s32 *, u8, u32);
+#else
 u16 ov99_021E5C4C(s32 *, u8, u8);
+#endif
 
 void ov99_021E6144(void *arg0, s32 arg1);
 

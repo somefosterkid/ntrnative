@@ -1,5 +1,7 @@
 #include "global.h"
 #include "overlay_96_unk_struct_ov96_021e9a78.h"
+#include "sprite.h"
+#include "unk_02009D48.h"
 
 s32 ov96_021E61D8(void *, s32, UnkStruct_ov96_021E9A78 *, s32);
 

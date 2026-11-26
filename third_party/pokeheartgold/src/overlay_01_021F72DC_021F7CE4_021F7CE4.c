@@ -5,7 +5,7 @@
 #include "overlay_01_021F944C.h"
 #include "sprite.h"
 
-s32 ov01_021F8C88(LocalMapObject *, Billboard *);
+void ov01_021F8C88(LocalMapObject *, Billboard *);
 
 void sub_02023EE0(Billboard *billboard, int animNum);
 

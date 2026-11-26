@@ -102,7 +102,11 @@ BOOL ov87_021E5B48(ScratchOffCardApp *app);
 
 void ov87_021E7FE0(ScratchOffCardsAppSprite *appSprite, u32 priority);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov87_021E8134(Window *window, u8 frame);
+#else
 void ov87_021E8134(Window *window, int frame);
+#endif
 
 BOOL ov87_021E5B48(ScratchOffCardApp *app) {
     switch (app->subState) {

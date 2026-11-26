@@ -1364,7 +1364,11 @@ void ov40_0222E9B8(UnkStruct_ov62_02233310 *param0, UnkStruct_0208C06C *param1, 
     ScheduleWindowCopyToVram(v1);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void GetSpeciesNameIntoArray(u16 species, u32 heapID, charcode_t *dst);
+#else
 void GetSpeciesNameIntoArray(u32 species, u32 heapID, charcode_t *dst);
+#endif
 
 void MessageFormat_Delete(MessageFormat *template);
 

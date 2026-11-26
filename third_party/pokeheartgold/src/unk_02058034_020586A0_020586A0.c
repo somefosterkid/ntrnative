@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "field_communication_manager.h"
+#include "party.h"
 #include "unk_02035900.h"
 #include "unk_02058034.h"
 
@@ -8,9 +9,9 @@ s32 sub_02057F58(void);
 
 s32 sub_020582F4(s32 *, u16);
 
-s32 sub_02059538(FieldSystem *, s32 *);
+void sub_02059538(FieldSystem *, void (*)(s32, Party *));
 
-extern s32 sub_02058640;
+void sub_02058640(s32 arg0, Party *arg1);
 
 extern s32 sub_02058690;
 
@@ -26,7 +27,7 @@ void sub_020586A0(void) {
             return;
         }
         sub_02057F58();
-        sub_02059538(_021D41C8->fieldSystem, &sub_02058640);
+        sub_02059538(_021D41C8->fieldSystem, sub_02058640);
         sub_020582F4(&sub_02058690, 0);
     }
 }

@@ -6,9 +6,17 @@
 
 u16 ov83_02240F48(struct BattleCastleSelfApp *, u32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247264(struct BattleCastleAppSpriteManager *, u32, u16);
+#else
 void ov83_02247264(struct BattleCastleAppSpriteManager *, u32, u32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_022472A0(struct BattleCastleAppSpriteManager *, u32, u16);
+#else
 void ov83_022472A0(struct BattleCastleAppSpriteManager *, u32, u32);
+#endif
 
 void ov83_0224755C(void *, u32);
 

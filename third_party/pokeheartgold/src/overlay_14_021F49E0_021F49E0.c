@@ -1,12 +1,12 @@
 #include "global.h"
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_box_funcs.h"
+#include "overlay_14_unk_struct_ov14_boxsys.h"
 
 void ov14_021F49E0(struct UnkStruct_ov14_boxapp *arg0);
 struct UnkStruct_ov14_boxapp;
 
 void ov14_021F49E0(UnkStruct_ov14_boxapp *arg0) {
-    u8 *temp_r0;
     s32 var_r4;
     s32 var_r5;
     u32 var_r6;
@@ -16,8 +16,7 @@ void ov14_021F49E0(UnkStruct_ov14_boxapp *arg0) {
     var_r6 = 0;
     var_r5 <<= 0xA;
     do {
-        temp_r0 = *((u8 **)&arg0->sys);
-        ov14_021F2C1C(temp_r0, var_r4, temp_r0 + 0x40C8 + var_r5, 0x400);
+        ov14_021F2C1C(arg0->sys, var_r4, &arg0->sys->unk_40C8[var_r5], 0x400);
         var_r4 += 1;
         var_r5 += 0x400;
         var_r6 += 1;

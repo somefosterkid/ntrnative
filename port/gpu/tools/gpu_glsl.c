@@ -26,6 +26,9 @@ static const Prog kProgs[] = {
   {"g00_full.vert", "g00_raster.frag#2f", 0, 3},
   {"g00_full.vert", "g00_raster.frag#1c", 0, 3}, /* the texture cache's (raster_prog, shaders/g12_texcache.glsl) */
   {"g00_full.vert", "g00_raster.frag#2c", 0, 3},
+  {"g00_full.vert", "g00_raster.frag#2+R_LITE", 0, 3}, /* Antialiasing=4 samples (lite): pass R without the DS's coverage windows */
+  {"g00_full.vert", "g00_raster.frag#2f+R_LITE", 0, 3},
+  {"g00_full.vert", "g00_raster.frag#2c+R_LITE", 0, 3},
   /* pass P and the edge map (src/g00_frame.c, src/g06_post.c) */
   {"g00_full.vert", "g06_post.frag", 0, 3},
   {"g00_full.vert", "g06_post.frag#2", 0, 3},

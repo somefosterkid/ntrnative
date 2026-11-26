@@ -1,4 +1,4 @@
-/* PORTOK hk39 */
+/* PORTOK hk645 header types */
 #include "global.h"
 #include "bg_window.h"
 #include "filesystem.h"
@@ -9,45 +9,10 @@
 #include "pokemon_storage_system.h"
 #include "text.h"
 #include "unk_0201956C.h"
-struct Background;
-struct BgConfig;
-struct BoxPokemon;
-struct MsgData;
-struct NARC;
-struct PC_Box;
-struct PokemonStorageSystem;
-struct String;
-struct UnkStruct_0201956C;
-struct UnkStruct_ov14_args;
-struct UnkStruct_ov14_boxapp;
-struct UnkStruct_ov14_boxsys;
-struct Window;
-struct _MAT;
-struct _MAT_ENTRY;
-typedef struct UnkStruct_ov14_args {
-    u8 unk0[8];
-    int unk8;
-} UnkStruct_ov14_args;
-typedef struct UnkStruct_ov14_boxsys {
-    u8 unk0[0x14];
-    BgConfig *bgConfig;
-    u8 unk18[8];
-    MsgData *msgData;
-    u8 unk24[0xC];
-    Window windows[0x2C];
-    UnkStruct_0201956C *unk2F0;
-    u8 unk2F4[0x44D - 0x2F4];
-    u8 unk44D;
-} UnkStruct_ov14_boxsys;
-typedef struct UnkStruct_ov14_boxapp {
-    UnkStruct_ov14_args *args;
-    PCStorage *storage;
-    u8 unk8[0x2C];
-    UnkStruct_ov14_boxsys *sys;
-} UnkStruct_ov14_boxapp;
+#include "overlay_14_unk_struct_ov14_boxapp.h"
+#include "overlay_14_unk_struct_ov14_boxsys.h"
 void ov14_021F4F24(Window *window, String *str, int x, int y, int fontId, u32 color, int align);
 
-void ov14_021F5950(UnkStruct_ov14_boxapp *work, int winIdx, int msgId, int flag);
 void ov14_021F5950(UnkStruct_ov14_boxapp *work, int winIdx, int msgId, int flag) {
     Window *windows = work->sys->windows;
     Window *window = &windows[winIdx];
@@ -98,7 +63,7 @@ void ov14_021F5950(UnkStruct_ov14_boxapp *work, int winIdx, int msgId, int flag)
         BlitBitmapRect(window, pixels + (off + 0x140), 0, 0, 8, 8, i * 8, rowY, 8, 8, 0xFF);
     }
     Heap_Free(data);
-    str = NewString_ReadMsgData(work->sys->msgData, msgId);
+    str = NewString_ReadMsgData(work->sys->unk_20, msgId);
     ov14_021F4F24(window, str, width * 8 / 2, 4, 4, color, 2);
     String_Delete(str);
     CopyWindowPixelsToVram_TextMode(window);

@@ -2,9 +2,17 @@
 
 #include "field_types_def.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in port/nonmatching/ov02_0224E828.c (tools/pokehg_abi.py)
+u32 ov02_0224E828(FieldSystem *param_1, s32 param_2, s32 param_3, s32 param_4, s32 param_5, s16 *param_6, s16 *param_7, s32 arg7);
+#else
 u32 ov02_0224E828(FieldSystem *param_1, s16 param_2, s32 param_3, s32 param_4, s32 param_5, s16 *param_6, s16 *param_7, s32 arg7);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in port/nonmatching/ov02_0224EB48.c (tools/pokehg_abi.py)
+u32 ov02_0224EB48(FieldSystem *param_1, s32 param_2, s16 param_3, s32 param_4, s32 param_5, s16 *param_6, s16 *param_7, int param_8);
+#else
 u32 ov02_0224EB48(FieldSystem *param_1, s32 param_2, s16 param_3, s32 param_4, s32 param_5, s16 *param_6, s16 *param_7, u8 param_8);
+#endif
 
 extern u8 ov02_02253A4C[];
 

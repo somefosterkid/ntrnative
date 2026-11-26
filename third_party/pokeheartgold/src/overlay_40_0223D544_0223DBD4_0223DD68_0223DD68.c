@@ -570,7 +570,11 @@ typedef struct MsgData MsgData;
 
 String *NewString_ReadMsgData(const MsgData *loader, u32 entryID);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void GetSpeciesNameIntoArray(u16 species, u32 heapID, charcode_t *dst);
+#else
 void GetSpeciesNameIntoArray(u32 species, u32 heapID, charcode_t *dst);
+#endif
 
 typedef struct {
     SaveData *saveData;

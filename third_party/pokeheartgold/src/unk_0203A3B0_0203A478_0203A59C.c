@@ -4,14 +4,14 @@
 #include "network_icon.h"
 #include "sys_task.h"
 
-void *sub_0203A534(s32, s32, enum HeapID, void *);
+NNSG2dCharacterData *sub_0203A534(s32, s32, enum HeapID, void *);
 
 void sub_0203A59C(s32 arg0, s32 arg1, enum HeapID arg2);
 
 void sub_0203A59C(s32 arg0, s32 arg1, enum HeapID arg2) {
     s32 var_r6;
     s32 var_r4;
-    void *temp_r5;
+    NNSG2dCharacterData *temp_r5;
     void *sp4;
     s32 sp0;
 
@@ -63,19 +63,19 @@ void sub_0203A59C(s32 arg0, s32 arg1, enum HeapID arg2) {
         }
         if (arg0 == 1) {
             if (var_r4 != 0x300010) {
-                DC_FlushRange(*(void **)((u8 *)temp_r5 + 0x14), 0x200U);
-                GX_LoadOBJ(*(void **)((u8 *)temp_r5 + 0x14), var_r6, 0x200U);
+                DC_FlushRange(temp_r5->pRawData, 0x200U);
+                GX_LoadOBJ(temp_r5->pRawData, var_r6, 0x200U);
             } else {
-                DC_FlushRange(*(void **)((u8 *)temp_r5 + 0x14), 0x400U);
-                GX_LoadOBJ(*(void **)((u8 *)temp_r5 + 0x14), var_r6, 0x400U);
+                DC_FlushRange(temp_r5->pRawData, 0x400U);
+                GX_LoadOBJ(temp_r5->pRawData, var_r6, 0x400U);
             }
         } else {
             if (var_r4 != 0x300010) {
-                DC_FlushRange(*(void **)((u8 *)temp_r5 + 0x14), 0x200U);
-                GXS_LoadOBJ(*(void **)((u8 *)temp_r5 + 0x14), var_r6, 0x200U);
+                DC_FlushRange(temp_r5->pRawData, 0x200U);
+                GXS_LoadOBJ(temp_r5->pRawData, var_r6, 0x200U);
             } else {
-                DC_FlushRange(*(void **)((u8 *)temp_r5 + 0x14), 0x400U);
-                GXS_LoadOBJ(*(void **)((u8 *)temp_r5 + 0x14), 0x3C00U, 0x400U);
+                DC_FlushRange(temp_r5->pRawData, 0x400U);
+                GXS_LoadOBJ(temp_r5->pRawData, 0x3C00U, 0x400U);
             }
         }
         Heap_Free(sp4);

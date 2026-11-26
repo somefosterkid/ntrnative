@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "constants/heap.h"
 #include "bg_window.h"
@@ -427,7 +429,6 @@ enum ObjectEventGfx {
 typedef struct Options Options;
 typedef struct BagCursor BagCursor;
 typedef struct JournalEntry JournalEntry;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 PlayerProfile *Save_PlayerData_GetProfile(SaveData *saveData);
 
 BOOL ov80_0222DCF0(FrontierScriptContext *ctx);

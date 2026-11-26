@@ -2,7 +2,11 @@
 
 #include "overlay_48.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov48_02259B10(u8 *, u16, u16);
+#else
 s32 ov48_02259B10(u8 *, s32, s32);
+#endif
 
 s32 ov48_02259B3C(u8 *, s32, s32);
 

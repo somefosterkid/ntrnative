@@ -20,17 +20,11 @@ void ConvertRSStringToDPStringInternational(const u8 *, u16 *, u32, u32);
 
 u16 PmAgbCartridge_GetLanguage(void);
 
-void ov74_02231A1C(s32 *, s32 *, u32);
-
-void ov74_02232B18(s32 *);
-
-void ov74_02232F5C(u8 *param_1);
 
 void *ov74_02233F84(void);
 
 extern u32 ov74_0223C980;
 
-void ov74_02232F9C(s32 *param_1);
 
 struct SpriteList;
 struct SpriteResourceCollection;
@@ -223,7 +217,12 @@ typedef struct {
 } GBAMigrator;
 void ov74_02233024(void *param0);
 
-void ov74_02232F9C(s32 *param_1) {
+void ov74_02231A1C(GBAMigrator *migrator, UnkStruct_ov97_02233DAC *param1, int param2);
+void ov74_02232B18(GBAMigrator *migrator);
+void ov74_02232F5C(GBAMigrator *param_1);
+void ov74_02232F9C(GBAMigrator *param_1);
+
+void ov74_02232F9C(GBAMigrator *param_1) {
     void *uVar1;
     u32 uVar2;
     MessageFormat *messageFormat;
@@ -238,12 +237,12 @@ void ov74_02232F9C(s32 *param_1) {
     CopyU16ArrayToString(string, auStack_20);
     BufferString(messageFormat, 1, string, 0, 1, 2);
     ov74_02232B18(param_1);
-    param_1[0x118] = *(s32 *)(&ov74_0223C980 + *param_1);
-    param_1[0x11b] = (s32)messageFormat;
-    ov74_02231A1C(param_1, param_1 + 0x10b, 0x18);
+    param_1->unk_490.messageEntryID = *(s32 *)(&ov74_0223C980 + param_1->gbaVersion);
+    param_1->unk_490.unk_40 = messageFormat;
+    ov74_02231A1C(param_1, &param_1->unk_490, 0x18);
     String_Delete(string);
     MessageFormat_Delete(messageFormat);
-    ov74_02232F5C((u8 *)param_1);
+    ov74_02232F5C(param_1);
     return;
 }
 

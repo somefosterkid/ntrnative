@@ -31,7 +31,11 @@ s32 ov49_0225D494(void *, s32);
 
 s32 ov49_0225EB00(void *, void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225EE4C(void *);
+#else
 s32 ov49_0225EE4C(void *);
+#endif
 
 extern s32 ov49_02269A88;
 

@@ -5,7 +5,11 @@
 #include "overlay_111.h"
 #include "pokemon.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov111_021E5D2C(Window *, u8, u8);
+#else
 void ov111_021E5D2C(Window *, u16, u16);
+#endif
 
 void ov111_021E64C8(SwapMonPanel *panel, SwapMonText *text) {
     u32 v0;

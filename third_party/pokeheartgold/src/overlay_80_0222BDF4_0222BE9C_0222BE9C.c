@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "constants/heap.h"
 #include "bg_window.h"
@@ -8,7 +9,6 @@
 
 struct BattleFrontier;
 
-struct FrontierAnimCmd;
 
 struct FrontierMenuManager;
 
@@ -81,7 +81,6 @@ u16 *ov80_0222BE24(FrontierScriptContext *ctx, u16 varID);
 
 typedef struct UnkStruct_ov63_0222D77C_t UnkStruct_ov63_0222D77C;
 
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 
 void ov80_0222C7B0(s16 localID, UnkStruct_ov104_0223C634 *object, const FrontierAnimCmd *animCmd, UnkStruct_ov63_0222D77C *param3, u8 *movementCount, enum HeapID heapID);
 

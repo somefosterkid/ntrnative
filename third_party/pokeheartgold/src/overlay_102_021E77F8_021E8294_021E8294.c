@@ -51,7 +51,7 @@ void ov102_021E8294(void *arg0, s32 *arg1) {
         }
         if (ov102_021E85A8(*((void **)&((PMSInputWork *)arg0)->dwk), ((PMSInputWork *)arg0)->categoryMode, arg2) != 0) {
             PlaySE(0x5DCU);
-            ov102_021E874C(arg0 + 0x54, arg0);
+            ov102_021E874C(&((PMSInputWork *)arg0)->wordWin, arg0);
             *((s32 **)&((PMSInputWork *)arg0)->mainProc) = &ov102_021E87B4;
             ov102_021E940C(*((void **)&((PMSInputWork *)arg0)->vwk), 0xB);
             *arg1 = 1;

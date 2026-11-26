@@ -2,13 +2,13 @@
 
 #include "pokeathlon/pokeathlon.h"
 
-s32 ov96_021E87EC(s32, PokeathlonParticipantData *, s32, void *);
+s32 ov96_021E87EC(s32, PokeathlonParticipantData *, s32, Ov96System *);
 
-s32 ov96_021E99FC(void);
+u32 ov96_021E99FC(void);
 
-s32 ov96_021E6990(PokeathlonCourseData *arg0);
+BOOL ov96_021E6990(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6990(PokeathlonCourseData *data) {
+BOOL ov96_021E6990(PokeathlonCourseData *data, u8 *unused) {
     PokeathlonParticipantData *v0;
     s32 v1;
 

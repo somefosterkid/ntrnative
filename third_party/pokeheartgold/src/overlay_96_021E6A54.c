@@ -4,27 +4,37 @@
 
 #include "sound_02004A44.h"
 
-extern s32 ov96_0221A808;
+extern const PokeathlonEventHandlers ov96_0221A808;
 
-extern s32 ov96_0221DA50;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov96_021EB678(struct PokeathlonCourseData *, int);
+BOOL ov96_021EB680(struct PokeathlonCourseData *, int);
+BOOL ov96_021EB688(struct PokeathlonCourseData *, int);
 
-s32 ov96_021E6A54(PokeathlonCourseData *arg0);
+const PokeathlonEventHandlers ov96_0221A808 = {
+    .funcs = { ov96_021EB678, ov96_021EB680, NULL, ov96_021EB688 },
+    .flag = 0,
+};
+#endif
 
-s32 ov96_021E6A54(PokeathlonCourseData *data) {
+extern const PokeathlonStateFunc ov96_0221DA50[];
+
+BOOL ov96_021E6A54(PokeathlonCourseData *arg0, u8 *unused);
+
+BOOL ov96_021E6A54(PokeathlonCourseData *data, u8 *unused) {
     data->counterEnabled = 1;
     PokeathlonCourse_ResetDataCopyArea(data);
-    data->state = (u32)&ov96_0221A808;
+    data->state = &ov96_0221A808;
     data->field_1ED = 0;
-    PokeathlonCourse_InitStateInfo(&ov96_0221DA50, (PokeathlonStateInfo *)data->filler_3CC);
+    PokeathlonCourse_InitStateInfo(ov96_0221DA50, &data->subStateInfo);
     PokeathlonCourse_SetStateField07(data, 8U);
     return 0;
 }
 
-s32 ov96_021E87B0(void *, s32);
 
-s32 ov96_021E6A94(PokeathlonCourseData *arg0);
+BOOL ov96_021E6A94(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6A94(PokeathlonCourseData *data) {
+BOOL ov96_021E6A94(PokeathlonCourseData *data, u8 *unused) {
     u8 *v0;
 
     if (PokeathlonCourse_RunSubStateLoop(data) != 0) {

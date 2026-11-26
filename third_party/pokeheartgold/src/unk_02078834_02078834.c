@@ -191,7 +191,11 @@ void sub_02078B9C(Work *work, FieldSystem *fieldSystem, enum HeapID heapId, s8 a
 
 int sub_02078BD8(Work *work);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+UnkAppArgs3C *sub_02078C18(FieldSystem *fieldSystem, enum HeapID heapId, s8 a2);
+#else
 UnkAppArgs3C *sub_02078C18(FieldSystem *fieldSystem, enum HeapID heapId, int a2);
+#endif
 
 void sub_02078C60(void *a0);
 
@@ -199,7 +203,11 @@ UnkAppArgs40 *sub_02078C74(FieldSystem *fieldSystem, enum HeapID heapId, int a2)
 
 void sub_02078CB4(void *a0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+UnkAppArgs3C *sub_02078CC8(FieldSystem *fieldSystem, enum HeapID heapId, s8 a2);
+#else
 UnkAppArgs3C *sub_02078CC8(FieldSystem *fieldSystem, enum HeapID heapId, int a2);
+#endif
 
 void sub_02078D10(void *a0);
 

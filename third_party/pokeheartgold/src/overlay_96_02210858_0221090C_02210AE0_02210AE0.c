@@ -19,17 +19,33 @@ typedef struct UnkStruct_ov96_02210AE0 {
     u8 countdown;
 } UnkStruct_ov96_02210AE0;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E70C.c (tools/pokehg_abi.py)
+BOOL ov96_0220E70C(UnkStruct_ov96_0220E3F0 *data, u8 a, u32 b);
+#else
 BOOL ov96_0220E70C(UnkStruct_ov96_0220E3F0 *data, u8 a, u8 b);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E70C.c (tools/pokehg_abi.py)
+void ov96_0220E770(UnkStruct_ov96_0220E3F0 *data, u32 a, u32 b, u16 *out1, u32 *out2);
+#else
 void ov96_0220E770(UnkStruct_ov96_0220E3F0 *data, u8 a, u8 b, u16 *out1, u32 *out2);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E818.c (tools/pokehg_abi.py)
+void ov96_0220E834(UnkStruct_ov96_0220E3F0 *data, s32 a, s32 b);
+#else
 void ov96_0220E834(UnkStruct_ov96_0220E3F0 *data, u8 a, u8 b);
+#endif
 
 void ov96_0221090C(UnkStruct_ov96_02210AE0 *s);
 
 void ov96_022109D8(UnkStruct_ov96_02210AE0 *s);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov96_02210BD0(UnkStruct_ov96_02210AE0 *s, u16 a, u32 b);
+#else
 BOOL ov96_02210BD0(UnkStruct_ov96_02210AE0 *s, u32 a, u32 b);
+#endif
 
 extern const s32 ov96_0221D1B8[];
 

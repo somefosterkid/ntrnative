@@ -5,11 +5,16 @@
 #include "render_text.h"
 #include "screen_fade.h"
 #include "text.h"
+#include "frontier/frontier_script_manager.h"
 
 s32 ov80_0222C17C(void **arg0);
 
 s32 ov80_0222C17C(void **arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    if (TextPrinterCheckActive(((FrontierScriptManager *)(*arg0))->printerID) == 0) {
+#else
     if (TextPrinterCheckActive(*(u8 *)((u8 *)(*arg0) + 0x50)) == 0) {
+#endif
         TextFlags_SetCanTouchSpeedUpPrint(0);
         return 1;
     }

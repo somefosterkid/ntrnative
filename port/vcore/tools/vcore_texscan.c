@@ -2,7 +2,7 @@
  * and each distinct (texparam, palette) of the lists that pass the filter (by default the quad strips of 12+ vertices; --tp HEX picks
  * one texparam), the texture is decoded (vc_tex_sample over every texel) and compared with the same texture in the capture before:
  * the texels that differ, and the shift (dx, dy, wrapping) that maps the earlier image onto this one with the fewest differences.
- * Route 1's falling leaves (Black) are strips whose geometry never changes: the leaves move inside the texture (lv2, vcore_ipscan).
+ * Route 1's falling leaves (Black) are strips whose geometry never changes: the leaves move inside the texture (lv2).
  *
  *   vcore_texscan [--tp HEX] [--minv N] [--shift R] [--minpx TEXELS] A.vcs B.vcs ...
  * One line per capture and texture: "fNNNNNN tp pltt id changed-texels best-dx best-dy differ-at-best"; id counts the distinct images

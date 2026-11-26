@@ -10,18 +10,7 @@
 #include "pokewalker.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021EA838(Ov112PokewalkerApp *);
-
-void ov112_021EAAE4(Ov112PokewalkerApp *, void *);
-
-u32 ov112_021EDF08(Ov112PokewalkerApp *param_1);
-
 s32 ov112_021E7464(void);
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-void *ov112_021ED610(void *);
-s32 ov112_021EDF4C(Ov112PokewalkerApp *arg0);
-
-s32 ov112_021EDFE8(Ov112PokewalkerApp *arg0);
 
 u32 ov112_021EDF08(Ov112PokewalkerApp *param_1) {
     u8 uVar1;

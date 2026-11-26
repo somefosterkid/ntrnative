@@ -134,4 +134,6 @@ typedef struct BillboardLists {
 
 extern BillboardLists _021D2208;
 
+const VecFx32 *sub_02023E68(const Billboard *billboard);
+
 #endif // POKEHEARTGOLD_BILLBOARD_H

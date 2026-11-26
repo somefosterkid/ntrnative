@@ -6,9 +6,9 @@
 
 void ov96_021EB5BC(void *);
 
-s32 ov96_021F08E4(PokeathlonCourseData *arg0);
+BOOL ov96_021F08E4(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_021F08E4(PokeathlonCourseData *data) {
+BOOL ov96_021F08E4(PokeathlonCourseData *data, int unused) {
     Ov96ArenaWork *work = PokeathlonCourse_GetHeapAllocPtr4(data);
 
     ov96_021EB5BC(work->unk_18);

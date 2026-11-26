@@ -830,7 +830,7 @@ typedef struct FieldWildBattleMetadata {
 
 
 
-void ov01_021F630C(const u8 index, const MapLoadManager *landDataMan, MapPropManager **mapPropMan);
+void ov01_021F630C(const int index, const MapLoadManager *landDataMan, MapPropManager **mapPropMan);
 
 
 BOOL sub_02054AE4(const FieldSystem *fieldSystem, const int targetMapPropModelID, const TerrainCollisionHitbox *hitbox, MapProp **mapPropOut);

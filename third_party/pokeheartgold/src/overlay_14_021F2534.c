@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 struct UnkStruct_ov14_boxapp;
 
 #include "sys_task.h"
@@ -7,14 +8,14 @@ struct UnkStruct_ov14_boxapp;
 
 s32 ov14_021F3488(void *, s32, s32);
 
-s32 ov14_021F43F4(s32, s32);
+void ov14_021F43F4(void *arg0, s32 arg1);
 
 static void ov14_021F2534(void *arg0);
 
 static void ov14_021F2534(void *arg0) {
     u32 v0;
 
-    v0 = *(u32 *)((u8 *)(*(void **)arg0) + 8);
+    v0 = ((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8;
     switch (v0) {
     case 0:
         ov14_021F3488(arg0, 2, 1);
@@ -22,7 +23,7 @@ static void ov14_021F2534(void *arg0) {
     case 1:
     case 2:
     case 3:
-        ov14_021F43F4(*((s32 *)&((UnkStruct_ov14_boxapp *)arg0)->sys), 0);
+        ov14_021F43F4(((UnkStruct_ov14_boxapp *)arg0)->sys, 0);
         ov14_021F3488(arg0, 1, 1);
     default:
         return;
@@ -31,14 +32,14 @@ static void ov14_021F2534(void *arg0) {
 
 s32 ov14_021F0254(void *, s16);
 
-s32 ov14_021F2A18(u8 *, s32, s32);
+void ov14_021F2A18(struct UnkStruct_ov14_boxsys *param_1, s32 param_2, s32 param_3);
 
 s32 ov14_021F66E8(void *, s32, s32);
 
 void ov14_021F2574(struct UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F2574(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F2A18(*((void **)&arg0->sys), 9, 0);
+    ov14_021F2A18(arg0->sys, 9, 0);
     ov14_021F66E8(arg0, 0x25, 1);
     ov14_021F2534(arg0);
     ov14_021F0254(arg0, 3);
@@ -47,20 +48,20 @@ void ov14_021F2574(UnkStruct_ov14_boxapp *arg0) {
 void ov14_021F259C(struct UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F259C(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F2A18(*((void **)&arg0->sys), 9, 0);
+    ov14_021F2A18(arg0->sys, 9, 0);
     ov14_021F66E8(arg0, 0x25, 0);
     ov14_021F2534(arg0);
     ov14_021F0254(arg0, 4);
 }
 
-s32 ov14_021E76B8();
+void ov14_021E76B8(void *);
 
 s32 ov14_021F0AD8(UnkStruct_ov14_boxapp *);
 
 void ov14_021F25C4(void *arg0);
 
 void ov14_021F25C4(void *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F0AD8(arg0);
 }
 
@@ -69,7 +70,7 @@ s32 ov14_021F0C88(UnkStruct_ov14_boxapp *);
 void ov14_021F25D4(UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F25D4(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F0C88(arg0);
 }
 
@@ -83,7 +84,7 @@ void ov14_021F25E4(UnkStruct_ov14_boxapp *param_1) {
     ov14_021F40E8(param_1, 0);
     *((u8 *)&param_1->unk23[1]) = 1;
     *((u8 *)&param_1->unk26[3]) = 0;
-    ov14_021F2A18(*((void **)&param_1->sys), 9, 0);
+    ov14_021F2A18(param_1->sys, 9, 0);
     ov14_021F1100(param_1, 0x2f);
     return;
 }

@@ -96,6 +96,8 @@ static GLuint bank_tex(G07Cap *k, int b) {
   return k->t_bank[b];
 }
 
+unsigned g07cap_bank(G07Cap *k, int bank) { return k->mtl != NULL ? gpu_mtl_k_bank(k->mtl, bank) : bank_tex(k, bank); }
+
 static void tex_unit(GLuint prog, int unit, const char *name, GLuint tex) {
   GL(ActiveTexture)(GL_TEXTURE0 + unit);
   GL(BindTexture)(GL_TEXTURE_2D, tex);

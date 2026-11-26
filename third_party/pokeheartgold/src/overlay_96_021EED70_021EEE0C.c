@@ -19,9 +19,9 @@ void ov96_021EE994(Ov96TextBox *box);
 
 void ov96_021EEFAC(PokeathlonCourseData *param_1);
 
-u32 ov96_021EEE0C(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 param_4);
+BOOL ov96_021EEE0C(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_021EEE0C(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 param_4) {
+BOOL ov96_021EEE0C(PokeathlonCourseData *param_1, int unused) {
     u8 uVar1;
     Ov96App_021EEFAC *pHVar2;
     BOOL BVar3;

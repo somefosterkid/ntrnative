@@ -1,4 +1,7 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
+
+#include "frontier_launch.h"
 #include "sprite_resources_header.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
@@ -28,7 +31,6 @@ struct BattleFrontier;
 struct BgConfig;
 struct CameraPositionHistory;
 struct FieldFrontierDTO;
-struct FrontierAnimCmd;
 struct FrontierGraphics;
 struct FrontierMenuManager;
 struct FrontierParticleSystem;
@@ -132,8 +134,6 @@ u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 typedef struct UnkStruct_ov63_0222D77C_t UnkStruct_ov63_0222D77C;
 typedef struct JournalEntry JournalEntry;
 u16 FrontierScriptContext_ReadHalfWord(FrontierScriptContext *ctx);
-typedef struct FrontierAnimCmd FrontierAnimCmd;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 SaveVarsFlags *Save_VarsFlags_Get(SaveData *saveData);
 u16 *Save_VarsFlags_GetVarAddr(SaveVarsFlags *varsFlags, u16 varID);
 void ov80_0222C7B0(s16 localID, UnkStruct_ov104_0223C634 *object, const FrontierAnimCmd *animCmd, UnkStruct_ov63_0222D77C *param3, u8 *movementCount, enum HeapID heapID);
@@ -494,10 +494,6 @@ typedef struct G3DPipelineBuffers {
     void *paletteBuffer;
     void *textureBuffer;
 } G3DPipelineBuffers;
-struct FrontierAnimCmd {
-    u16 action;
-    u16 count;
-};
 UnkStruct_ov104_0223EBD0 *ov80_0223AF30(enum HeapID heapID);
 void ov80_0223AF60(UnkStruct_ov104_0223EBD0 *param0);
 void ov80_0223AF80(UnkStruct_ov104_0223EBD0 *param0, u8 param1, u8 param2, Window *param3, u8 param4);

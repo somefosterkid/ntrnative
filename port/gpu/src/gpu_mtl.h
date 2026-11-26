@@ -56,22 +56,26 @@ int gpu_mtl_fast_ok(GpuCore *g); /* the fast 3D renderer's pipelines are made (a
 GpuMtlC *gpu_mtl_c_create(int scale, char *err, size_t errlen);
 void gpu_mtl_c_destroy(GpuMtlC *c);
 /* pass C from G07Pack's stage (VC_H x VC_W x 4 words) and src (VC_H x 2 x VC_W words), pack serial (not uploaded again when it is
- * the last one's), plan: the plan made from the stage first (else the last one's is used), the 3D layer and SMAA's weights by
- * texture name (gpu_mtl_texture), the uniforms */
+ * the last one's), plan: the plan made from the stage first (else the last one's is used), the 3D layer, SMAA's weights and the
+ * captured bank a BG shows (cCapBank, 0: none) by texture name (gpu_mtl_texture), the uniforms; rows: the output's halves drawn
+ * (bit 0 the top, bit 1 the bottom; one: the other keeps its pixels) */
 int gpu_mtl_compose(GpuMtlC *c, const uint32_t *stage, const uint32_t *src, unsigned serial, int plan, unsigned tex3d, unsigned smaa,
-                    const GpuU *u);
+                    unsigned capbank, const GpuU *u, int rows);
 unsigned gpu_mtl_c_upload_3d(GpuMtlC *c, const uint8_t *rgba8ui, int w, int h);
 unsigned gpu_mtl_c_frame_tex(const GpuMtlC *c);
 void gpu_mtl_c_read(GpuMtlC *c, uint8_t *rgba);
 double gpu_mtl_c_gpu_ms(const GpuMtlC *c); /* the last pass C's command buffer GPU ms, once it is done (0 before) */
-/* g07_compose_capsrc on Metal: pass C again into c's capture source (texture name returned; 0 when serial's pack is not up) */
-unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, unsigned smaa, const GpuU *u);
+/* g07_compose_capsrc on Metal: pass C again into c's capture source (texture name returned; 0 on failure), pack serial
+ * (stage, src) uploaded first when pass C did not (reused) */
+unsigned gpu_mtl_capsrc(GpuMtlC *c, const uint32_t *stage, const uint32_t *src, unsigned serial, int plan, unsigned tex3d,
+                        unsigned smaa, unsigned capbank, const GpuU *u);
 /* include/g07_capture.h's steps on Metal (texture names as gpu_mtl_texture's); bank1x NULL: no source B upload */
 GpuMtlK *gpu_mtl_k_create(int scale, char *err, size_t errlen);
 void gpu_mtl_k_destroy(GpuMtlK *k);
 int gpu_mtl_k_capture(GpuMtlK *k, const GpuK *u, int bank, int bankB, unsigned texA, unsigned tex3d, const uint8_t *bank1x,
                       int h, int woff);
 int gpu_mtl_k_show(GpuMtlK *k, unsigned out, const GpuK *u, int bank);
+unsigned gpu_mtl_k_bank(GpuMtlK *k, int bank); /* the bank's N x texture by name (made on first use) */
 #else
 static inline void gpu_mtl_ablate(unsigned mask) { (void)mask; }
 static inline int gpu_mtl_init(GpuCore *g, int smaa, char *err, size_t errlen) {
@@ -97,8 +101,8 @@ static inline GpuMtlC *gpu_mtl_c_create(int scale, char *err, size_t errlen) {
 }
 static inline void gpu_mtl_c_destroy(GpuMtlC *c) { (void)c; }
 static inline int gpu_mtl_compose(GpuMtlC *c, const uint32_t *stage, const uint32_t *src, unsigned serial, int plan,
-                                  unsigned tex3d, unsigned smaa, const GpuU *u) {
-  (void)c, (void)stage, (void)src, (void)serial, (void)plan, (void)tex3d, (void)smaa, (void)u;
+                                  unsigned tex3d, unsigned smaa, unsigned capbank, const GpuU *u, int rows) {
+  (void)c, (void)stage, (void)src, (void)serial, (void)plan, (void)tex3d, (void)smaa, (void)capbank, (void)u, (void)rows;
   return -1;
 }
 static inline unsigned gpu_mtl_c_upload_3d(GpuMtlC *c, const uint8_t *rgba8ui, int w, int h) {
@@ -108,8 +112,9 @@ static inline unsigned gpu_mtl_c_upload_3d(GpuMtlC *c, const uint8_t *rgba8ui, i
 static inline unsigned gpu_mtl_c_frame_tex(const GpuMtlC *c) { return (void)c, 0u; }
 static inline void gpu_mtl_c_read(GpuMtlC *c, uint8_t *rgba) { (void)c, (void)rgba; }
 static inline double gpu_mtl_c_gpu_ms(const GpuMtlC *c) { return (void)c, 0.0; }
-static inline unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, unsigned smaa, const GpuU *u) {
-  (void)c, (void)serial, (void)plan, (void)tex3d, (void)smaa, (void)u;
+static inline unsigned gpu_mtl_capsrc(GpuMtlC *c, const uint32_t *stage, const uint32_t *src, unsigned serial, int plan,
+                                      unsigned tex3d, unsigned smaa, unsigned capbank, const GpuU *u) {
+  (void)c, (void)stage, (void)src, (void)serial, (void)plan, (void)tex3d, (void)smaa, (void)capbank, (void)u;
   return 0;
 }
 static inline GpuMtlK *gpu_mtl_k_create(int scale, char *err, size_t errlen) {
@@ -127,6 +132,7 @@ static inline int gpu_mtl_k_show(GpuMtlK *k, unsigned out, const GpuK *u, int ba
   (void)k, (void)out, (void)u, (void)bank;
   return -1;
 }
+static inline unsigned gpu_mtl_k_bank(GpuMtlK *k, int bank) { return (void)k, (void)bank, 0u; }
 #endif
 
 #endif

@@ -26,7 +26,11 @@ s32 ov14_021F5FBC(void *, s32);
 void ov14_021F18B0(struct UnkStruct_ov14_boxapp *arg0, u8 arg1);
 struct UnkStruct_ov14_boxapp;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EA4C8(UnkStruct_ov14_boxapp *app);
 
@@ -34,8 +38,8 @@ void ov14_021F18B0(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     s16 sp0[2];
     u16 temp_r0;
     u16 temp_r4;
-    void *temp_r0_2;
-    void *temp_r0_3;
+    UnkStruct_ov14_boxsys *temp_r0_2;
+    UnkStruct_ov14_boxsys *temp_r0_3;
     void *temp_r1;
 
     temp_r4 = arg0->sys->unk_88C8;
@@ -53,12 +57,12 @@ void ov14_021F18B0(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
         ov14_021E8314(*(void **)&arg0->sys->unk_2F0);
     }
     ov14_021F5FBC(arg0, arg0->sys->unk_88C8);
-    temp_r0_2 = ((void *)arg0->sys);
-    if (((UnkStruct_ov14_boxsys *)temp_r0_2)->unk_88C8 != 0) {
+    temp_r0_2 = arg0->sys;
+    if (temp_r0_2->unk_88C8 != 0) {
         ov14_021F2A18(temp_r0_2, 0xB, 0);
         ov14_021F396C(((void *)arg0->sys), arg0->unk21, 0);
-        temp_r0_3 = ((void *)arg0->sys);
-        ov14_021F3844(temp_r0_3, ((UnkStruct_ov14_boxsys *)temp_r0_3)->unk_88C8);
+        temp_r0_3 = arg0->sys;
+        ov14_021F3844(temp_r0_3, temp_r0_3->unk_88C8);
         ov14_021F39D0(((void *)arg0->sys));
         ov14_021F34C8(((void *)arg0->sys), arg0->unk21, 1);
         ov14_021E88BC(*(void **)&arg0->sys->unk_2F0);

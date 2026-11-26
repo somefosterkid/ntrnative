@@ -1,0 +1,34 @@
+DS division by zero in lib/spl/src/spl_emit.c (port/src/ds_divide.c): the DS returns the dividend as the quotient (MWCC calls _s32_div_f, which
+returns at once with r0 untouched), x86-64 traps (the handler gives the same result) and arm64 gives 0. A particle resource with a life time of 1 makes
+each child particle's loop time factor 0xffff / (lifeTime / 2) = 0xffff / 0 (Black's Elesa battle, route leg b gym4-e); the other three
+factors (loopTime, lifeTime) divide by a resource field the same way. SPL_DIV(n, d) is n when d is 0, else n / d: the same result on every host.
+diff --git a/lib/spl/src/spl_emit.c b/lib/spl/src/spl_emit.c
+--- a/lib/spl/src/spl_emit.c
++++ b/lib/spl/src/spl_emit.c
+@@ -4,4 +4,8 @@
+ #include "spl/spl.h"
+ #include "spl_internal.h"
++
++// The DS's divide by zero returns the dividend (_s32_div_f: r0 stays the dividend, r1 = 0) and x86 traps (port/src/ds_divide.c
++// catches it); arm64's sdiv gives 0. A particle resource with a life time of 1 makes a child's loop time (life / 2) 0.
++#define SPL_DIV(n, d) ((d) == 0 ? (n) : (n) / (d))
+ 
+ // The emission of particles: where they start, and their velocities, scales, colors, rotations and life times
+@@ -271,6 +275,6 @@
+         }
+ 
+-        particle->loopTimeFactor = 0xffff / resource->header->loopTime;
+-        particle->lifeTimeFactor = 0xffff / particle->lifeTime;
++        particle->loopTimeFactor = SPL_DIV(0xffff, resource->header->loopTime);
++        particle->lifeTimeFactor = SPL_DIV(0xffff, particle->lifeTime);
+         particle->lifeRateOffset = 0;
+         if (header->flags.randomLoopOffset) {
+@@ -334,6 +338,6 @@
+         particle->texture = child->texture;
+         // From the parent's life time, not the child's
+-        particle->loopTimeFactor = 0xffff / (parent->lifeTime / 2);
+-        particle->lifeTimeFactor = 0xffff / parent->lifeTime;
++        particle->loopTimeFactor = SPL_DIV(0xffff, parent->lifeTime / 2);
++        particle->lifeTimeFactor = SPL_DIV(0xffff, parent->lifeTime);
+         particle->lifeRateOffset = 0;
+     }

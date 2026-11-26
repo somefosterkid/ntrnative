@@ -14,6 +14,12 @@
 #include "overlay_41_unk_struct_ov22_0225_a0_e4.h"
 #include "overlay_41_unk_struct_ov22_0225ab54.h"
 #include "overlay_41_unk_struct_ov22_02258ee4.h"
+#include "overlay_41_unk_struct_ov22_0225899C.h"
+#include "overlay_41_unk_struct_ov22_0225af68.h"
+#include "overlay_41_unk_struct_ov22_02258A48.h"
+#include "overlay_41_unk_struct_ov22_0225A428.h"
+#include "touchscreen.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct BgConfig;
 struct FashionCase;
@@ -156,75 +162,13 @@ enum Backdrop {
     BACKDROP_THEATER = 17,
     BACKDROP_COUNT = 18,
 };
-typedef struct {
-    u32 accessoryCounts[ACCESSORY_COUNT];
-    u32 backdropCounts[BACKDROP_COUNT];
-} UnkStruct_ov22_0225899C;
 u32 sub_0202BA70(const FashionCase *fashionCase, u32 accessoryID);
 u32 sub_0202BAB0(const FashionCase *fashionCase, u32 backdropID);
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
 typedef struct SoftwareSpriteChars SoftwareSpriteChars;
 typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
-typedef struct {
-    BgConfig *unk_00;
-    enum NarcId narcID;
-    int unk_08;
-    int unk_0C;
-    int unk_10;
-    int unk_14;
-    int unk_18;
-    int unk_1C;
-    int unk_20;
-    int unk_24;
-    int unk_28;
-} UnkStruct_ov22_022597BC;
-typedef struct UnkStruct_ov22_02258A48_t {
-    void *unk_00;
-    void (*unk_04)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_08)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_0C)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_10)(struct UnkStruct_ov22_02258A48_t *param0);
-    s16 unk_14;
-    s16 unk_16;
-    u8 unk_18;
-    u8 padding[3];
-} UnkStruct_ov22_02258A48;
-typedef struct {
-    SpriteResource *unk_00[4];
-    Sprite *unk_10[20];
-    int unk_60;
-    int unk_64;
-} UnkStruct_ov22_0225A914;
-typedef struct {
-    UnkStruct_ov22_022597BC unk_00;
-    Window *unk_2C;
-    SpriteList *unk_30;
-    SpriteResourceCollection **unk_34;
-    UnkStruct_ov22_0225A914 unk_38;
-    UnkStruct_ov22_0225AB54 unk_A0;
-    Window *unk_134;
-    int unk_138;
-    int unk_13C;
-    u32 unk_140;
-    String *unk_144;
-} UnkStruct_ov22_0225A428;
 void ov41_02248F6C(UnkStruct_ov22_02258A48 *param0);
 void ov41_02248E28(UnkStruct_ov22_02258A48 *param0);
 void ov41_02248F80(UnkStruct_ov22_02258A48 *param0);

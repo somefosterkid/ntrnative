@@ -8,19 +8,17 @@
 
 s32 ov112_021E7CA4(void *, s32, s32);
 
-s32 ov112_021E9A78(void *, u8);
-
-s32 ov112_021E9C10(void *, s32, s32, s32);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32, s32, s32);
 
 u8 ov112_021E9FA4(void *, s32, String *, s32, s32);
 
 u8 ov112_021E9FD8(Ov112PokewalkerApp *, s32, String *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021EFD24(u16 *, s16);
+#else
 s32 ov112_021EFD24(u16 *, u16);
-
-s32 ov112_021EFD4C(Ov112PokewalkerApp *);
-
-s32 ov112_021EFDA8(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2, s32 arg3);
+#endif
 
 s32 ov112_021EFDA8(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2, s32 arg3) {
     u16 sp10[13];

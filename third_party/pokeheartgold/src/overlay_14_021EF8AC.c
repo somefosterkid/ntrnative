@@ -18,7 +18,7 @@ s32 ov14_021EF8AC(UnkStruct_ov14_boxapp *arg0) {
     void *v4;
     u8 v3;
     UnkStruct_ov14_boxsys *v0;
-    void *v1;
+    UnkStruct_ov14_boxsys *v1;
     u32 v2;
 
     v0 = arg0->sys;
@@ -28,9 +28,9 @@ s32 ov14_021EF8AC(UnkStruct_ov14_boxapp *arg0) {
     v2 = *(u16 *)((u8 *)v4 + 2);
     arg0->unk21 = (u8) * (u16 *)v4;
     ov14_021F1F38(arg0);
-    v1 = *((void * *)&arg0->sys);
-    itemId = ((UnkStruct_ov14_boxsys *)v1)->unk_88C8;
-    ((UnkStruct_ov14_boxsys *)v1)->unk_88C8 = 0U;
+    v1 = arg0->sys;
+    itemId = v1->unk_88C8;
+    v1->unk_88C8 = 0U;
     if ((ItemIdIsMail(itemId) == 1) && (v2 != v3)) {
         PlaySE(0x5F3U);
         GridInputHandler_SetButtonInputMode(arg0->sys->unk_2C, 0);

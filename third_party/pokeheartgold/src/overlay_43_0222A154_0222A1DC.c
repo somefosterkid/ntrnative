@@ -2,12 +2,11 @@
 
 #include "system.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
 void ov43_0222A520(PalPadGfx *);
 
 s32 ov43_0222B1D8(PalPadMenu *, PalPadShared *, PalPadGfx *);
-
-s32 ov43_0222BAB8(PalPadRoster *, PalPadShared *, PalPadGfx *);
 
 s32 ov43_0222CD40(PalPadNaming *, PalPadShared *, PalPadGfx *);
 

@@ -9,12 +9,12 @@ u8 ov65_0221FB90(void *, s32, s32, void *, void *);
 
 extern s32 ov65_0221EBF8;
 
-s32 ov65_0221EB9C(void *arg0);
+s32 ov65_0221EB9C(TradeRoom *arg0);
 
-s32 ov65_0221EB9C(void *arg0) {
-    FillBgTilemapRect(*(BgConfig **)((u8 *)arg0 + 0x180), 0U, 0U, 0U, 0U, 0x20U, 0x18U, 0U);
-    ov65_0221FB90(arg0 + 0x5B4, 0x14, 1, *((void **)&((TradeRoom *)arg0)->msgLoader), *((void **)&((TradeRoom *)arg0)->strTemplate));
+s32 ov65_0221EB9C(TradeRoom *arg0) {
+    FillBgTilemapRect(arg0->bgConfig, 0U, 0U, 0U, 0U, 0x20U, 0x18U, 0U);
+    ov65_0221FB90(&arg0->windows[23], 0x14, 1, arg0->msgLoader, arg0->strTemplate);
     ov65_0221DE24(arg0, 0x18, 2);
-    *((s32 **)&((TradeRoom *)arg0)->subStepCallback) = &ov65_0221EBF8;
+    arg0->subStepCallback = &ov65_0221EBF8;
     return 0;
 }

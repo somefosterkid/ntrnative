@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "error_handling.h"
+#include "overlay_96_ov96_digit_work.h"
 
 u32 ov96_02219940(s32 param_1, u32 param_2);
 

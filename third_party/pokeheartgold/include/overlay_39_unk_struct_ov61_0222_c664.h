@@ -4,6 +4,8 @@
 // UnkStruct_ov61_0222C664: merged by tools/hg/promote.py from 5 m2c local copies (2 variants, base
 // src/overlay_39_thumb_02227FEC_022285CC_022285CC.c) and 32 accesses; fields at every accessed offset, pads elsewhere.
 
+#include "bg_window.h"
+
 struct BgConfig;
 struct ListMenu;
 struct Menu;
@@ -31,9 +33,9 @@ typedef struct UnkStruct_ov61_0222C664 {
     struct String *unk_38;
     struct String *unk_3C;
     int unk_40;
-    struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } unk_44;
+    Window unk_44;
     struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } unk_54;
-    struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } unk_64;
+    Window unk_64;
     struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } unk_74;
     struct Menu *unk_84;
     void *unk_88;

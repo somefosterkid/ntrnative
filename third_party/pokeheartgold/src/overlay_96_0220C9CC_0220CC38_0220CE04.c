@@ -75,7 +75,7 @@ block_12:
     ov96_021E8228(var_r5->course, (u8)(var_r5->unk_18 >> 0x1E), (u8)(var_r5->unk_14 >> 0x1E), 4, 1);
 }
 #else
-s32 ov96_021E8228();
+void ov96_021E8228();
 
 s32 ov96_0220CD84(s32 *, s32);
 

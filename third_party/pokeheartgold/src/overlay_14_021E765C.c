@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 struct UnkStruct_ov14_boxapp;
 #include "bg_window.h"
 #include "gf_gfx_loader.h"
@@ -26,7 +27,7 @@ void ov14_021E765C(void *arg0) {
     ov14_021F53C0(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys));
     ov14_021E895C(arg0, 0);
     v0 = ((void *)((UnkStruct_ov14_boxapp *)arg0)->sys);
-    if (*(s32 *)((u8 *)(*(void **)arg0) + 8) == 3) {
+    if (((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 == 3) {
         ov14_021E8944(((void *)((UnkStruct_ov14_boxsys *)v0)->unk_2F0));
         return;
     }

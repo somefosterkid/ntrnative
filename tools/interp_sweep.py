@@ -24,9 +24,9 @@ import tempfile
 import zlib
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLASSES = ['A_MISPAIR', 'A_OFFMOTION', 'B_TEXSTEP', 'B_TEXSCROLL', 'B_HELD', 'B_HELDRUN', 'C_MISSED', 'C_APPEAR', 'C_VANISH',
-           'E_SPEED', 'E_CUT']
-STRIP_CLASSES = ['A_MISPAIR', 'A_OFFMOTION', 'B_TEXSTEP', 'B_HELDRUN', 'C_MISSED', 'C_APPEAR', 'C_VANISH']
+CLASSES = ['A_MISPAIR', 'A_OFFMOTION', 'B_TEXSTEP', 'B_TEXSCROLL', 'B_HELD', 'B_HELDRUN', 'C_MISSED', 'C_APPEAR', 'C_VANISH', 'C_NEW', 'C_BLINK',
+           'C_KEPT', 'E_SPEED', 'E_CUT', 'O_DISAGREE', 'O_MISSED', 'V_NONE', 'V_TWICE', 'V_STALE', 'P_NONE', 'P_TWICE', 'P_CROSS']  # O_ / V_ / P_: --oracle
+STRIP_CLASSES = ['A_MISPAIR', 'A_OFFMOTION', 'B_TEXSTEP', 'B_HELDRUN', 'C_MISSED', 'C_APPEAR', 'C_VANISH', 'O_DISAGREE', 'V_NONE', 'V_TWICE']
 Ev = collections.namedtuple('Ev', 'cls frame old list key n cx cy size err v120 v60 info')
 
 
@@ -131,9 +131,24 @@ def worst(evs, cls, n):
 
 
 def read_set(path, shard):
-    rows = [ln.split()[:2] for ln in open(path) if ln.strip() and not ln.startswith('#')]
-    i, n = (int(x) for x in shard.split('/')) if shard else (1, 1)
-    return [r for k, r in enumerate(rows) if k % n == i - 1]
+    rows = []
+    for no, ln in enumerate(open(path), 1):
+        if not ln.strip() or ln.startswith('#'):
+            continue
+        t = ln.split()
+        if len(t) < 2:
+            sys.exit('interp_sweep: %s:%d: a row is `PLAY SPEC`, got %r' % (path, no, ln.strip()))
+        rows.append(t[:2])
+    try:
+        i, n = (int(x) for x in shard.split('/')) if shard else (1, 1)
+    except ValueError:
+        sys.exit('interp_sweep: --shard is I/N (two integers), got %r' % shard)
+    if n < 1 or not 1 <= i <= n:
+        sys.exit('interp_sweep: --shard I/N needs N >= 1 and 1 <= I <= N, got %s' % shard)
+    out = [r for k, r in enumerate(rows) if k % n == i - 1]
+    if not out:
+        sys.exit('interp_sweep: %s has no rows for shard %s (%d rows)' % (path, shard or '1/1', len(rows)))
+    return out
 
 
 def cmd_run(a):
@@ -166,19 +181,16 @@ def run_one(a, play, spec):
     name = f'{game}-{play}'
     # the default run, then each --variants run on the same captures (written to OUT_<variant>)
     for v in [''] + [x for x in (a.variants or '').split(',') if x] + (['vsbuild'] if a.vsbuild else []):
-        env, rep = dict(os.environ), a.repair
+        env = dict(os.environ)
         tl = os.path.join(REPO, a.vsbuild, 'vcore', 'vcore_ipsweep') if v == 'vsbuild' else tool  # another build's scorer: before / after
         if v == 'vsbuild':
             pass
         elif v == 'nohold':
             env['BWPORT_INTERP_TEXHOLD'] = '0'
-        elif v == 'norep':
-            rep = '0'
-        elif v == 'noreorder':
-            env['BWPORT_INTERP_REORDER'] = '0'
         elif v:
-            sys.exit(f'interp_sweep: unknown variant {v} (nohold, norep, noreorder)')
-        r = subprocess.run([tl, '--thr', str(a.thr), '--events'] + (['--repair', rep] if rep else []) + files,
+            sys.exit(f'interp_sweep: unknown variant {v} (nohold)')
+        orc = ['--oracle'] if v != 'vsbuild' else []  # (an older build's scorer may not have it)
+        r = subprocess.run([tl, '--thr', str(a.thr), '--events'] + orc + files,
                            capture_output=True, text=True, env=env)
         if r.returncode:
             sys.exit(f'interp_sweep: vcore_ipsweep failed ({r.returncode}): {r.stderr[-400:]}')
@@ -295,10 +307,9 @@ def main(argv=None):
     r.add_argument('--out', required=True)
     r.add_argument('--thr', type=float, default=6.0)
     r.add_argument('--strips', type=int, default=0)
-    r.add_argument('--repair', choices=['0', '1'], help='vc_ip_repair_runs off / on (default: BWPORT_INTERP_REPAIR)')
     r.add_argument('--drop', action='store_true')
     r.add_argument('--caps', help='capture cache directory; each shard uses its own subdirectory')
-    r.add_argument('--variants', help='also score the same captures as nohold (BWPORT_INTERP_TEXHOLD=0) and/or norep (--repair 0) into OUT_nohold / OUT_norep')
+    r.add_argument('--variants', help='also score the same captures as nohold (BWPORT_INTERP_TEXHOLD=0) into OUT_<variant>')
     r.add_argument('--build', default='build')
     r.add_argument('--vsbuild', help='a second build dir (its vcore/vcore_ipsweep, e.g. of an older commit): the same captures scored into OUT_vsbuild')
     p = sub.add_parser('report')

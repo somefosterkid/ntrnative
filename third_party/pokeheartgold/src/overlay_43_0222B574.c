@@ -1,8 +1,8 @@
 #include "global.h"
 #include "options.h"
 #include "player_data.h"
-#include "overlay_43_unk_struct_ov64_0222_f0_c4.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
 struct AppTaskMenu;
 
@@ -150,8 +150,6 @@ typedef struct {
 
 BOOL ov43_0222B574(WifiNoteModeSelect *select, WifiNoteData *data);
 
-s32 ov43_0222B944(void *, void *, s32, s32);
-void ov43_0222B5A8(struct PalPadRoster *arg0, PalPadShared *shared, s32 arg2, s32 arg3);
 
 BOOL ov43_0222B574(WifiNoteModeSelect *select, WifiNoteData *data) {
     if (select->cursor == MODE_SELECT_CODE_IN) {
@@ -169,7 +167,7 @@ BOOL ov43_0222B574(WifiNoteModeSelect *select, WifiNoteData *data) {
     return 0;
 }
 
-void ov43_0222B5A8(PalPadRoster *arg0, PalPadShared *shared, s32 arg2, s32 arg3) {
-    arg0->textSpeed = Options_GetTextFrameDelay(Save_PlayerData_GetOptionsAddr(shared->saveData));
-    ov43_0222B944(arg0, shared, arg2, arg3);
+void ov43_0222B5A8(PalPadRoster *roster, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID) {
+    roster->textSpeed = Options_GetTextFrameDelay(Save_PlayerData_GetOptionsAddr(shared->saveData));
+    ov43_0222B944(roster, shared, gfx, heapID);
 }

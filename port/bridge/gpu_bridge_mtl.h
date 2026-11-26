@@ -16,5 +16,6 @@ void br_mtl_counted(double ms);        /* a command buffer the core committed an
 unsigned br_mtl_take(double *ms);      /* ms[GPU_PASS_N + 1]: the GPU ms finished since the last call; the command buffers' count */
 void br_mtl_upload(const uint8_t *rgba, int w, int h); /* a CPU picture to the present (bwport_mtl_upload) */
 void *br_mtl_tex_of(unsigned name);    /* libntr's name back to the id<MTLTexture> (NULL: the picture uploaded last) */
+void br_mtl_pt_frame(int want);        /* once a frame: the GPU passes' times on or off (gpu.h gpu_mtl_pt_on), their lines and log */
 
 #endif

@@ -16,7 +16,11 @@
 #include "unk_02009D48.h"
 #include "overlay_96_ov96_0220_data.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E8318(void *param_1, s16 param_2);
+#else
 void ov96_021E8318(void *param_1, u16 param_2);
+#endif
 
 void ov96_0220A5DC(PokeathlonCourseData *param_1, u8 param_2);
 

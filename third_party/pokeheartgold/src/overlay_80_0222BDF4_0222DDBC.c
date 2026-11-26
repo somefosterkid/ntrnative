@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "library/spl_emitter.h"
@@ -225,7 +227,6 @@ typedef struct FrontierGraphics {
     u8 pad_C3[1];
 } FrontierGraphics;
 
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 
 BOOL FrtCmd_067(FrontierScriptContext *ctx);
 

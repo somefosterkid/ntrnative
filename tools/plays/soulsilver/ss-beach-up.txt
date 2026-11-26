@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove City's western beach, warped into the shallow water at 536,405 facing north: two steps north with the follower behind, east out, a turn south, west in, south, north three tiles, east (Smooth motion: walking north in the water the player is paired with the follower's ring, 15 px off, 11181-11237)
+# end: f11280
+env BWPORT_HG_WARP=67:536:405 BWPORT_HG_WARP_DIR=0
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f32@f11000 right*f16@f11040 down*f4@f11070 left*f16@f11090 down*f32@f11120 up*f48@f11170 right*f16@f11230

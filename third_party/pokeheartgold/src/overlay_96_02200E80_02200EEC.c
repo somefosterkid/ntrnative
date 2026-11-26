@@ -11,7 +11,7 @@ void ov96_02200EEC(void *ptr) {
     Heap_Free(ptr);
 }
 
-s32 ov96_02200F84(void *, void *, u8, s32);
+s32 ov96_02200F84(void *, void *, u32, s32);
 
 u8 ov96_02200EF4(void *arg0, void *arg1, s32 arg2);
 

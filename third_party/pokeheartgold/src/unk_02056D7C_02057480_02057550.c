@@ -12,7 +12,11 @@ u8 sub_020374AC(s32);
 
 u16 sub_020374C0(s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02057454(u16, u16);
+#else
 s32 sub_02057454(u32, u32);
+#endif
 
 s32 sub_020574C4(s32, s32, s32);
 

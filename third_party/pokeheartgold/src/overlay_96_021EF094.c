@@ -20,7 +20,7 @@ void ov96_021EE944(Ov96TextBox *box);
 
 void ov96_021EE9BC(Ov96TextBox *box);
 
-s32 ov96_021EF094(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EF094(PokeathlonCourseData *arg0, u8 *arg1);
 
 void *ov96_021EE5B4(s32, s32);
 s32 ov96_021EE60C(void *, void *);
@@ -30,14 +30,14 @@ s32 ov96_021EF4D0(BgConfig *, s32);
 s32 ov96_021EF54C(void *);
 s32 ov96_021EF818(void *);
 s32 ov96_021EFA28(void *);
-s32 ov96_021EF0FC(PokeathlonCourseData *arg0);
-s32 ov96_021EF18C(PokeathlonCourseData *arg0);
+BOOL ov96_021EF0FC(PokeathlonCourseData *arg0, int unused);
+BOOL ov96_021EF18C(PokeathlonCourseData *arg0, int unused);
 s32 ov96_021EE5E0(void *);
 FS_EXTERN_OVERLAY(OVY_98);
 extern u8 ov96_0221BA18;
-s32 ov96_021EF19C(PokeathlonCourseData *arg0);
+BOOL ov96_021EF19C(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_021EF094(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EF094(PokeathlonCourseData *data, u8 *arg1) {
     s32 v1;
     u8 v0;
     Ov96App_021EEFAC *v2;
@@ -67,7 +67,7 @@ s32 ov96_021EF094(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021EF0FC(PokeathlonCourseData *data) {
+BOOL ov96_021EF0FC(PokeathlonCourseData *data, int unused) {
     void *v1;
     u8 v0;
     void *v2;
@@ -101,12 +101,12 @@ s32 ov96_021EF0FC(PokeathlonCourseData *data) {
     return 0;
 }
 
-s32 ov96_021EF18C(PokeathlonCourseData *data) {
+BOOL ov96_021EF18C(PokeathlonCourseData *data, int unused) {
     SpriteSystem_DrawSprites(*(SpriteManager **)((u8 *)(PokeathlonCourse_GetHeapAllocPtr4(data)) + 0x14));
     return 1;
 }
 
-s32 ov96_021EF19C(PokeathlonCourseData *data) {
+BOOL ov96_021EF19C(PokeathlonCourseData *data, int unused) {
     PokeathlonCourseData *pokeathlonCourseData;
     ManagedSprite *managedSprite;
     PokeathlonCourseData *new_var2;

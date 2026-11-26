@@ -2,24 +2,16 @@
 
 #include "system.h"
 #include "unk_02005D10.h"
-#include "overlay_112_unk_struct_ov112_021_eb28_c.h"
 #include "overlay_112_hitbox.h"
+#include "overlay_112_pokewalker_app.h"
 
 s32 ov112_021EB9C0(void);
 
 s32 ov112_021EB9E4(void);
 
-s32 ov112_021EA51C(UnkStruct_ov112_021EB28C *, s32);
+s32 ov112_021EB28C(Ov112PokewalkerApp *arg0, s32 arg1);
 
-s32 ov112_021EB90C(UnkStruct_ov112_021EB28C *, s32);
-
-s32 ov112_021EB950(UnkStruct_ov112_021EB28C *, s32);
-
-s32 ov112_021EC440(UnkStruct_ov112_021EB28C *, s32, s32, s32);
-
-s32 ov112_021EB28C(UnkStruct_ov112_021EB28C *arg0, s32 arg1);
-
-s32 ov112_021EB28C(UnkStruct_ov112_021EB28C *arg0, s32 arg1) {
+s32 ov112_021EB28C(Ov112PokewalkerApp *arg0, s32 arg1) {
     s32 temp_r0;
     s32 temp_r1;
     temp_r0 = ov112_021E9888(1);
@@ -29,20 +21,20 @@ s32 ov112_021EB28C(UnkStruct_ov112_021EB28C *arg0, s32 arg1) {
         return 0x19;
     }
     if (0x40 & gSystem.newKeys) {
-        if (arg0->sel != 0) {
+        if (arg0->unk_1EC50 != 0) {
             PlaySE(0x5DCU);
         }
         ov112_021EA51C(arg0, 2);
-        arg0->sel = 0;
+        arg0->unk_1EC50 = 0;
     } else if (0x80 & gSystem.newKeys) {
-        if (arg0->sel != 1) {
+        if (arg0->unk_1EC50 != 1) {
             PlaySE(0x5DCU);
         }
         ov112_021EA51C(arg0, 3);
-        arg0->sel = 1;
+        arg0->unk_1EC50 = 1;
     } else if (1 & gSystem.newKeys) {
         PlaySE(0x5DDU);
-        temp_r1 = arg0->sel;
+        temp_r1 = arg0->unk_1EC50;
         ov112_021EC440(arg0, temp_r1, temp_r1 + 2, 9);
         return 0x19;
     } else if (gSystem.newKeys & 2) {

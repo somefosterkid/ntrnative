@@ -1,7 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 /* port/gpu: the crack check (G9). OWNED BY G9.
  *
- *   gpu_crack FILE.vcs [N] [--png OUT.png] [-q]
+ *   gpu_crack FILE.vcs [N] [--png OUT.png] [--api es|gl|metal] [-q]
  *
  * Polygon cracks at N x: the pixels no polygon covers (GPU_FLAT: pass R's "last polygon" is none) inside the frame's silhouette.
  * The silhouette is vcore's 1x coverage (the GPU at 1x covers exactly vcore's pixels, gpu_cover) eroded by two DS pixels,
@@ -17,7 +17,7 @@
 enum { ER = 2 }; /* the silhouette's erosion in DS pixels */
 
 static int render(GpuCtx *ctx, VCoreState *s, int api, int n, uint32_t *aux, char *err, size_t el) {
-  GpuCore *g = gpu_create(gpu_ctx_getproc(ctx), api, n, 1, err, el);
+  GpuCore *g = gpu_create(ctx ? gpu_ctx_getproc(ctx) : NULL, api, n, 1, err, el);
   if (g == NULL) return -1;
   if (gpu_render_3d(g, s) != 0) {
     snprintf(err, el, "GL error");
@@ -37,11 +37,13 @@ int main(int argc, char **argv) {
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-q")) quiet = 1;
     else if (!strcmp(argv[i], "--png") && i + 1 < argc) png = argv[++i];
+    else if (!strcmp(argv[i], "--api") && i + 1 < argc)
+      i++, api = !strcmp(argv[i], "gl") ? GPU_API_GL : !strcmp(argv[i], "metal") ? GPU_API_METAL : GPU_API_ES;
     else if (pos++ == 0) in = argv[i];
     else n = atoi(argv[i]);
   }
   if (in == NULL || n < 1) {
-    fprintf(stderr, "usage: gpu_crack FILE.vcs [N] [--png OUT.png] [-q]\n");
+    fprintf(stderr, "usage: gpu_crack FILE.vcs [N] [--png OUT.png] [--api es|gl|metal] [-q]\n");
     return 2;
   }
   char err[2048];
@@ -71,8 +73,8 @@ int main(int argc, char **argv) {
     s->geo.npoly = m; /* NOTE: order[] indexes poly[]; npoly counts the drawn ones from here on */
   }
   setenv("GPU_FLAT", "1", 1); /* pass R writes every covered pixel (no depth test, no alpha test): "last" = covered */
-  GpuCtx *ctx = gpu_ctx_headless(api, err, sizeof err);
-  if (ctx == NULL) {
+  GpuCtx *ctx = api == GPU_API_METAL ? NULL : gpu_ctx_headless(api, err, sizeof err); /* Metal: no GL context */
+  if (ctx == NULL && api != GPU_API_METAL) {
     fprintf(stderr, "gpu_crack: %s\n", err);
     return 1;
   }

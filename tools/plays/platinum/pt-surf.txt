@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-cel13
+# reaches: Route 218's lake at the peninsula's east shore (105,750): A at the water, Yes, Surf starts (the party knows Surf by the test cheat), a ride east over the water and back to the shore (Surf start and end)
+# end: f8500
+env BWPORT_PT_WARP=388:105:750 BWPORT_TESTCHEAT=win
+keys start@f6300 a@f6700
+keys right*f4@f7000 a*f6@f7100 a*f6@f7300 a*f6@f7500 a*f6@f7700 right*f40@f8100 left*f60@f8350

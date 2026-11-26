@@ -15,6 +15,7 @@
 #include "unk_02009D48.h"
 #include "unk_02013534.h"
 #include "unk_0202C034.h"
+#include "overlay_44_0222a758_args.h"
 #include "yes_no_prompt.h"
 
 typedef struct UnkStruct_ov44_02232E80 {
@@ -229,11 +230,6 @@ struct UnkStruct_ov44_022319EC {
     u16 unk10BE;
 };
 
-typedef struct UnkStruct_ov44_0222A758_args {
-    SaveData *unk0;
-    u32 unk4;
-    u32 unk8;
-} UnkStruct_ov44_0222A758_args;
 
 s32 ov44_02229EE0(UnkStruct_ov44_022319EC *arg0);
 s32 ov44_02229EF8(UnkStruct_ov44_022319EC *arg0);

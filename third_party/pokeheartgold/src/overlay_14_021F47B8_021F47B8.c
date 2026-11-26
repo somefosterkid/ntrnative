@@ -20,7 +20,7 @@ void ov14_021F47B8(void *arg0, s32 arg1) {
         var_r6 += 1;
         var_r4 += 4;
     } while (var_r6 <= 8U);
-    ov14_021F46F4(*((void **)&((UnkStruct_ov14_boxapp *)arg0)->sys));
+    ov14_021F46F4(((UnkStruct_ov14_boxapp *)arg0)->sys);
     var_r6_2 = 0;
     var_r4_2 = 0;
     do {

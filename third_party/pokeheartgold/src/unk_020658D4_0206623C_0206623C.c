@@ -140,7 +140,7 @@ struct StrengthRockSave {
 
 void MapObject_ForceSetHeldMovement(FieldActor *actor, u32 acmd);
 
-u16 sub_0206234C(u16 dir, u16 acmd);
+u16 sub_0206234C(int dir, int acmd);
 
 typedef struct {
     s16 x;

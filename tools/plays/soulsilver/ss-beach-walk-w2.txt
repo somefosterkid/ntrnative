@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: as ss-beach-walk at Walk 2x (WalkSpeed=2, the test phone's setting): the same keys from f11000 at half the frames (a step takes 8 frames), turn taps (4 frames or less) as they were. ss-beach-walk: Cherrygrove City's western beach, warped to 539,403 facing west; held walks of three tiles west into the shallow water, north along it, east out onto the sand, south, west in again, and on (Smooth motion: captured every 4th frame, the player vanishes stepping in (11523 / 11519) and shows twice stepping out (11395 / 11391, 11403 / 11399))
+# end: f11280
+env BWPORT_HG_WARP=67:539:403 BWPORT_HG_WARP_DIR=2 BWPORT_WALKSPEED=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f24@f11000 up*f24@f11030 right*f24@f11060 down*f24@f11090 left*f24@f11120 down*f16@f11150 right*f24@f11180 up*f16@f11210 left*f24@f11240

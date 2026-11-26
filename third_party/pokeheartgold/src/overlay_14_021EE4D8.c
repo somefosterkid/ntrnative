@@ -28,8 +28,8 @@ void ov14_021EE4E4(void *arg0) {
 
 s32 ov14_021EE4FC(UnkStruct_ov14_boxapp *arg0) {
     ov14_021F6AC0(arg0, 0, 7);
-    ov14_021F29E4(*((void * *)&arg0->sys), 9, 8);
-    ov14_021F2A18(*((void * *)&arg0->sys), 9, 0);
+    ov14_021F29E4(arg0->sys, 9, 8);
+    ov14_021F2A18(arg0->sys, 9, 0);
     ov14_021F3F6C(arg0);
     ov14_021F40E8(arg0, 1);
     ov14_021F3488(arg0, 2, 0);

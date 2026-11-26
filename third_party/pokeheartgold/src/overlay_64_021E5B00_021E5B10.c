@@ -32,9 +32,17 @@ void NARC_Delete(NARC *narc);
 
 void GfGfxLoader_GXLoadPalFromOpenNarc(NARC *narc, u32 memberIdx, u32 arg2, u32 arg3, u32 size, u32 heapID);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void GfGfxLoader_LoadCharDataFromOpenNarc(NARC *narc, u32 memberIdx, BgConfig *bgConfig, GFBgLayer bgLayer, u32 offset, u32 size, BOOL compressed, u32 heapID);
+#else
 void GfGfxLoader_LoadCharDataFromOpenNarc(NARC *narc, u32 memberIdx, BgConfig *bgConfig, u8 bgLayer, u32 offset, u32 size, BOOL compressed, u32 heapID);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void GfGfxLoader_LoadScrnDataFromOpenNarc(NARC *narc, u32 memberIdx, BgConfig *bgConfig, GFBgLayer bgLayer, u32 offset, u32 size, BOOL compressed, u32 heapID);
+#else
 void GfGfxLoader_LoadScrnDataFromOpenNarc(NARC *narc, u32 memberIdx, BgConfig *bgConfig, u8 bgLayer, u32 offset, u32 size, BOOL compressed, u32 heapID);
+#endif
 
 void LoadFontPal0(u32 arg0, u32 arg1, u32 heapID);
 

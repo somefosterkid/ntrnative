@@ -91,6 +91,7 @@ enum UnionRoomPendingConnection {
     UR_PENDING_CONNECTION_UNION,
     UR_PENDING_CONNECTION_DRAW,
 };
+BOOL sub_020376F8(void);
 typedef void (*UnionRoomTask)(UnionRoomManager *);
 enum MapHeaderID {
     MAP_HEADER_EVERYWHERE,
@@ -700,7 +701,6 @@ static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID
 typedef struct Menu Menu;
 int sub_02037F94(void);
 void sub_02034434(void);
-SysTask *sub_020376F8(void);
 void sub_0205A034(UnionRoomManager *manager, UnionRoomTask task, int timer);
 void sub_02059F78(UnionRoomManager *manager);
 static void sub_0205A144(UnionRoomManager *manager);
@@ -869,7 +869,7 @@ static void sub_0205A114(UnionRoomManager *manager);
 static void sub_0205A144(UnionRoomManager *manager);
 static void sub_0205A1AC(UnionRoomManager *manager);
 void sub_0205A1D4(UnionRoomManager *manager);
-enum ChoiceStep sub_0205A1F0(ChooseStarterApp *app);
+FieldSystem *sub_0205A1F0(UnionRoomManager *manager);
 WMBssDesc *sub_0205A1F4(UnionRoomManager *manager, int index);
 
 void sub_0205A0B4(UnionRoomManager *manager) {
@@ -941,8 +941,8 @@ void sub_0205A1D4(UnionRoomManager *manager) {
     }
 }
 
-enum ChoiceStep sub_0205A1F0(ChooseStarterApp *app) {
-    return app->choiceStep;
+FieldSystem *sub_0205A1F0(UnionRoomManager *manager) {
+    return manager->fieldSystem;
 }
 
 WMBssDesc *sub_0205A1F4(UnionRoomManager *manager, int index) {

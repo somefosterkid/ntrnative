@@ -129,7 +129,11 @@ void ov75_02246C8C(UnkStruct_ov98_02246E88 *param0) {
     sub_02031780(param0->saveData, 3, param0->unk_108);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov75_02246CD8(UnkStruct_ov98_02246E88 *param0, s16 param1);
+#else
 void ov75_02246CD8(UnkStruct_ov98_02246E88 *param0, u32 param1);
+#endif
 
 u32 sub_0203186C(SaveData *saveData, WorldExchangeTrainer *param1);
 

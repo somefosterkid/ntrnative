@@ -20,11 +20,11 @@ u32 ov40_0223B5B0(UnkStruct_0208C06C *param_1) {
     param_1->unk_860 = pvVar1;
     iVar2 = param_1->unk_86C;
     if (iVar2 == 300) {
-        *(u32 *)((s32)pvVar1 + 0xc) = 0;
+        ((u32 *)pvVar1)[3] = 0;
     } else if (iVar2 == 0x12d) {
-        *(u32 *)((s32)pvVar1 + 0xc) = 1;
+        ((u32 *)pvVar1)[3] = 1;
     } else if (iVar2 == 200) {
-        *(u32 *)((s32)pvVar1 + 0xc) = 2;
+        ((u32 *)pvVar1)[3] = 2;
     }
     BgClearTilemapBufferAndCommit(param_1->unk_14.unk_10, 2);
     BgClearTilemapBufferAndCommit(param_1->unk_14.unk_10, 3);

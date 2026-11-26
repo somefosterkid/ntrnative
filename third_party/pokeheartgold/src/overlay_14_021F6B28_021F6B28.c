@@ -17,7 +17,7 @@ void ov14_021F6B28(UnkStruct_ov14_boxapp *arg0, s32 target) {
     DpadMenuBox *dpadBoxes;
 
     dpadBoxes = (struct DpadMenuBox *)(GridInputHandler_GetDpadBox(arg0->sys->unk_2C, target));
-    ov14_021F2A18(*((void * *)&arg0->sys), 9, 1);
+    ov14_021F2A18(arg0->sys, 9, 1);
     DpadMenuBox_GetPosition(dpadBoxes, &py[1], &py[0]);
     ManagedSprite_SetPositionXY(arg0->sys->sprites[9], (s16) py[1], (s16) py[0]);
 }

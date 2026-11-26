@@ -4,8 +4,6 @@
 #include "sprite.h"
 #include "sprite_system.h"
 
-s32 ov112_021EA984(Ov112PokewalkerApp *app);
-
 extern u8 ov112_021FEC88[];
 
 extern ManagedSpriteTemplate ov112_021FED1C[];
@@ -13,8 +11,6 @@ extern ManagedSpriteTemplate ov112_021FED1C[];
 extern ManagedSpriteTemplate ov112_021FF028;
 
 extern ManagedSpriteTemplate ov112_021FF05C;
-
-void ov112_021EA3C0(Ov112PokewalkerApp *app);
 
 void ov112_021EA3C0(Ov112PokewalkerApp *app) {
     u32 i;

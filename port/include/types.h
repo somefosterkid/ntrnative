@@ -39,6 +39,16 @@ typedef double f64;
 // uintptr_t and intptr_t, for a pointer that carries a number and back
 #include <stdint.h>
 
+// Widths the DS's C relies on, checked once here for every game file (the PC targets are 64-bit: win64 LLP64, Linux, Mac,
+// Android and iOS LP64): the integer types are libntr's (nitro/types.h asserts them too, before the u64/s64 aligned
+// redefinition above), a pointer is 8 bytes, and a plain char is signed as MWCC's is (-fsigned-char: Android arm64's
+// default is unsigned; the same assert is in port_prefix.h for the compiled-in setting)
+#ifdef __cplusplus
+static_assert(sizeof(u32) == 4 && sizeof(s32) == 4 && sizeof(u64) == 8 && sizeof(s64) == 8 && sizeof(void *) == 8, "PC target widths");
+#else
+_Static_assert(sizeof(u32) == 4 && sizeof(s32) == 4 && sizeof(u64) == 8 && sizeof(s64) == 8 && sizeof(void *) == 8, "PC target widths");
+#endif
+
 #define NELEMS(array) (sizeof(array) / sizeof((array)[0]))
 
 #ifndef ATTRIBUTE_ALIGN

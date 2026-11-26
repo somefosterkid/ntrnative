@@ -2,7 +2,6 @@
 #include "overlay_14_box_unk_0201956C.h"
 #include "overlay_14_box_funcs.h"
 
-void sub_02019B1C(UnkStruct_0201956C *, s32, s8 *, s8 *);
 
 s32 ov14_021E8544(UnkStruct_0201956C *arg0) {
     s8 sp0[4];

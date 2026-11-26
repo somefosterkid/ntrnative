@@ -20,9 +20,7 @@ typedef struct {
     } unk_04;
 } UnkStruct_ov70_0226D2A0;
 
-void ov49_02269474(UnkStruct_ov70_0226D2A0 *param0, UnkStruct_ov70_02261E10 *param1, u32 param2);
 
-void ov49_02269494(UnkStruct_ov70_0226D2A0 *param0, UnkStruct_ov70_02261E10 *param1, u32 param2);
 
 BOOL ov49_022693F8(UnkStruct_ov70_0226D2A0 *param0, u32 param1, UnkStruct_ov70_02261E10 *param2, u32 param3);
 

@@ -4,6 +4,7 @@
 
 #include "overlay_manager.h"
 #include "screen_fade.h"
+#include "overlay_01_021F1348.h"
 
 s32 ov45_0222A330(void *);
 

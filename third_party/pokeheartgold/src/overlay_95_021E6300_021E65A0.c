@@ -40,7 +40,11 @@ void ov95_021E5EF8(EggHatchCutscene *eggHatch);
 
 void ov95_021E623C(EggHatchCutscene *eggHatch);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov95_021E5BBC(BgConfig *, PaletteData *, u8);
+#else
 void ov95_021E5BBC(BgConfig *, PaletteData *, s32);
+#endif
 
 void ov95_021E5C44(BgConfig *, Window *, u32, u32, u32, u32, u32, u32, u32);
 

@@ -627,7 +627,7 @@ enum MapHeaderID {
     MAP_HEADER_DYNAMIC = 4095,
 };
 
-void ov01_021EDD68(void *arg0, s32 strno, s32 arg2);
+void ov01_021EDD68(FieldMenuManager *arg0, s32 strno, s32 arg2);
 void ov01_021EDC7C(void *arg0, s32 strno, s32 arg2);
 
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {

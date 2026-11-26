@@ -9,7 +9,7 @@ s32 ov90_02258CF0(void *, s32, s32, s32, s32);
 s32 ov90_02259FC8(void *, s32);
 
 void ov90_02259F44(void *arg0, s16 arg1) {
-    ov90_02258CF0(arg0 + 0x1C, *((s32 *)&((UnkStruct_ov114_0225DAC0 *)arg0)->unk_1C.unk_00), 0xFFF01000, 0, 8);
+    ov90_02258CF0(&((UnkStruct_ov114_0225DAC0 *)arg0)->unk_1C, *((s32 *)&((UnkStruct_ov114_0225DAC0 *)arg0)->unk_1C.unk_00), 0xFFF01000, 0, 8);
     ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_30 = 0;
     ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_32 = arg1;
     ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_34 = 0x57F;
@@ -30,7 +30,7 @@ s32 ov90_02259F7C(void *arg0) {
             PlaySE((u16) ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_34);
         }
         ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_30 = (s16)(((UnkStruct_ov114_0225DAC0 *)arg0)->unk_30 + 1);
-        v1 = ov90_02258D4C(arg0 + 0x1C, ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_30);
+        v1 = ov90_02258D4C(&((UnkStruct_ov114_0225DAC0 *)arg0)->unk_1C, ((UnkStruct_ov114_0225DAC0 *)arg0)->unk_30);
         ov90_02259FC8(arg0, 0 - ((s32) *((s32 *)&((UnkStruct_ov114_0225DAC0 *)arg0)->unk_1C.unk_00) >> 0xC));
         return v1;
     }

@@ -22,7 +22,7 @@
 #include "overlay_40_unk_struct_ov62_0223118c.h"
 #include "overlay_40_unk_struct_ov62_02246bf4.h"
 
-void ov40_022439B8(void *arg0);
+void ov40_022439B8(UnkStruct_ov62_02246BF4 *arg0);
 
 struct FontOAM;
 struct G3DPipelineBuffers;
@@ -592,10 +592,10 @@ static inline void inline_ov61_0222C3B0_sub(SysTask *, void *);
 int ov40_022439CC(UnkStruct_ov62_02246BF4 *param0, int param1);
 int ov40_022439F4(UnkStruct_ov62_02246BF4 *param0, int param1);
 
-void ov40_022439B8(void *arg0) {
-    *(s32 *)((u8 *)arg0 + 0x29C) = 0;
-    *(s32 *)((u8 *)arg0 + 0x2A0) = 0;
-    *(s32 *)((u8 *)arg0 + 0x2A4) = 0;
+void ov40_022439B8(UnkStruct_ov62_02246BF4 *arg0) {
+    arg0->unk_29C.unk_00 = 0;
+    arg0->unk_29C.unk_04 = 0;
+    arg0->unk_29C.unk_08 = 0;
 }
 
 static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *param0) {

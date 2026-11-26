@@ -14,6 +14,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_manager.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -117,12 +118,6 @@ enum TaskState {
 };
 
 
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
-
-
 void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dPaletteData **outPaletteData, enum HeapID heapID);
 
 enum TradeType {
@@ -188,7 +183,6 @@ enum GTSWFCInitScreenStates {
     GTSWFCINIT_RESTART_CONNECTION
 };
 
-int ov73_021E8440(GTSApplicationState *);
 
 SysTask *SysTask_ExecuteOnVBlank(SysTaskFunc callback, void *param, u32 priority);
 

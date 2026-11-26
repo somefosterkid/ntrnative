@@ -24,7 +24,11 @@ typedef struct UnkStruct_ov70_022610B8_t UnkStruct_ov70_022610B8;
 
 typedef struct UnkStruct_ov70_02260E8C_t UnkStruct_ov70_02260E8C;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225D214(UnkStruct_ov70_02260BB8 *param0, UnkStruct_ov70_022610B8 *param1, u8 param2, int param3);
+#else
 void ov49_0225D214(UnkStruct_ov70_02260BB8 *param0, UnkStruct_ov70_022610B8 *param1, int param2, int param3);
+#endif
 
 typedef struct {
     UnkStruct_ov70_022610B8 *unk_00[3];

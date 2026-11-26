@@ -203,7 +203,7 @@ void SetBgPriority(u8 bgLayer, u8 priority);
 
 void ToggleBgLayer(u8 bgLayer, u8 enable);
 
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 void BG_LoadCharTilesData(BgConfig *bgConfig, u8 bgLayer, void *src, u32 size, u32 tileStart);
 

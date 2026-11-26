@@ -3,6 +3,7 @@
 #include "constants/heap.h"
 #include "sprite_resources_header.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "unk_0202C034.h"
 #include "options.h"
 #include "filesystem.h"
@@ -417,8 +418,6 @@ void ov43_0222AB5C(PalPadGfx *param0, SaveData *saveData, u32 param2, enum HeapI
 
 void ov64_0222EA68(PalPadMenu *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
-void ov43_0222B5A8(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
-
 int ov64_0222F0C4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
 void ov43_0222BB20(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
@@ -431,7 +430,6 @@ BOOL ov64_0222FBA4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2
 
 void ov64_0222FC1C(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
-void ov43_0222C378(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, s16 param3, u32 param4, u32 param5, enum HeapID heapID);
 
 void ov43_0222C550(PalPadRoster *param0, PalPadGfx *param1, u32 param2, enum HeapID heapID);
 
@@ -483,7 +481,6 @@ void ov43_0222B55C(PalPadMenu *);
 
 void ov43_0222B408(PalPadMenu *, PalPadGfx *);
 
-void ov43_0222ADB8(PalPadShared *param0, PalPadGfx *param1, u32 param2);
 
 int ov43_0222AE2C(PalPadShared *param0, PalPadGfx *param1);
 

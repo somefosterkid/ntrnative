@@ -9,7 +9,11 @@
 #include "text.h"
 #include "overlay_40_unk_struct_0208_c06_c.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov40_0222C6C8(void *, s32);
+#else
 s32 ov40_0222C6C8(void *, s32);
+#endif
 
 MessageFormat *ov40_0222DAB0(s32);
 

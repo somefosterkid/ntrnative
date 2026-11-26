@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: as ss-grass-east at Walk 2x (WalkSpeed=2, the test phone's setting): the same keys from f11000 at half the frames (a step takes 8 frames), turn taps (4 frames or less) as they were. ss-grass-east: Route 29, warped to 664,400 facing west: a held walk west through the tall grass to 652,400, turns north and south in it, a held walk east back out with the follower behind, turns, west again (Smooth motion: captured every 4th frame, the player vanishes at every step east through the grass, 11307-11355)
+# end: f11340
+env BWPORT_HG_WARP=33:664:400 BWPORT_HG_WARP_DIR=2 BWPORT_WALKSPEED=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f95@f11000 up*f3@f11110 down*f3@f11125 right*f95@f11140 left*f3@f11250 right*f3@f11265 left*f50@f11280

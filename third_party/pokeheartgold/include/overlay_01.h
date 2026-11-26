@@ -100,12 +100,12 @@ void ov01_021E9BDC(FieldSystem *fieldSystem, u8 a1);
 SysTask *Field_PlayerMovementSavingSet(FieldSystem *fieldSystem);
 void Field_PlayerMovementSavingClear(SysTask *task);
 
-struct SaveStatsPrinter;
+struct SaveInfoWindow;
 
-struct SaveStatsPrinter *Field_SaveStatsPrinter_New(FieldSystem *fieldSystem, enum HeapID x, int y);
-void Field_SaveStatsPrinter_Print(struct SaveStatsPrinter *printer);
-void Field_SaveStatsPrinter_RemoveFromScreen(struct SaveStatsPrinter *printer);
-void Field_SaveStatsPrinter_Delete(struct SaveStatsPrinter *printer);
+struct SaveInfoWindow *Field_SaveStatsPrinter_New(FieldSystem *fieldSystem, enum HeapID x, int y);
+void Field_SaveStatsPrinter_Print(struct SaveInfoWindow *printer);
+void Field_SaveStatsPrinter_RemoveFromScreen(struct SaveInfoWindow *printer);
+void Field_SaveStatsPrinter_Delete(struct SaveInfoWindow *printer);
 void ov01_02203AB4(FieldSystem *fieldSystem, LocalMapObject *partnerPokeObj, int a2);
 void ov01_02205AEC(FieldSystem *fieldSystem);
 void ov01_02205720(LocalMapObject *playerObj, LocalMapObject *tsurePokeObj, int a2, int a3);

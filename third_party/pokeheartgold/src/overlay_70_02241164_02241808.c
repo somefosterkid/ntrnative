@@ -16,15 +16,15 @@ s32 ov70_02241808(GTSApplicationState *arg0) {
     return 1;
 }
 
-PlayerProfile *ov70_0224182C(void *arg0);
+PlayerProfile *ov70_0224182C(GTSPokemonListing *arg0);
 
-PlayerProfile *ov70_0224182C(void *arg0) {
+PlayerProfile *ov70_0224182C(GTSPokemonListing *arg0) {
     PlayerProfile *profile;
 
     profile = PlayerProfile_New(HEAP_ID_61);
     PlayerProfile_Init(profile);
-    Save_Profile_PlayerName_Set(profile, arg0 + 0x10C);
-    PlayerProfile_SetVersion(profile, *(u8 *)((u8 *)arg0 + 0x122));
-    PlayerProfile_SetLanguage(profile, *(u8 *)((u8 *)arg0 + 0x123));
+    Save_Profile_PlayerName_Set(profile, arg0->trainerNames);
+    PlayerProfile_SetVersion(profile, arg0->gameVersion);
+    PlayerProfile_SetLanguage(profile, arg0->trainerLanguage);
     return profile;
 }

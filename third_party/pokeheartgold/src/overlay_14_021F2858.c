@@ -9,7 +9,7 @@ struct UnkStruct_ov70_022630A4_t_14;
 #include "overlay_14_box_unk_0201956C.h"
 #include "overlay_14_box_funcs.h"
 
-s32 ov14_021E76B8();
+void ov14_021E76B8(void *);
 void ov14_021F0AD8(UnkStruct_ov14_boxapp *arg0);
 s32 ov14_021F3488(void *, s32, s32);
 void ov14_021F2858(UnkStruct_ov14_boxapp *arg0);
@@ -24,13 +24,13 @@ s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 void ov14_021F2914(struct UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F2858(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F3488(arg0, 0x82, 1);
     ov14_021F0AD8(arg0);
 }
 
 void ov14_021F2874(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F3488(arg0, 0x82, 1);
     ov14_021F0C88(arg0);
 }
@@ -39,7 +39,11 @@ void ov14_021F2890(void *param_1) {
     ov14_021F1EB8(param_1);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EA674(UnkStruct_ov14_boxapp *app);
 
@@ -64,7 +68,7 @@ void ov14_021F28FC(UnkStruct_ov70_022630A4_t_14 *arg0) {
 }
 
 void ov14_021F2914(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021E76B8();
-    ov14_021F2A18(*((void **)&arg0->sys), 0xB, 0);
+    ov14_021E76B8(arg0);
+    ov14_021F2A18(arg0->sys, 0xB, 0);
     ov14_021F0C0C(arg0);
 }

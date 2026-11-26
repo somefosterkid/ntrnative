@@ -4,7 +4,11 @@ struct MapMatrix;
 
 typedef struct MapMatrix MapMatrix;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 MapMatrix_GetMapAltitude(const MapMatrix *mapMatrix, u8 param1, u16 x, u16 y, const int width);
+#else
 u8 MapMatrix_GetMapAltitude(const MapMatrix *mapMatrix, const int param1, const int x, const int y, const int width);
+#endif
 
 u8 MapMatrix_GetWidth(const MapMatrix *mapMatrix);
 

@@ -15,16 +15,16 @@ void ov00_021E7300(void) {
     } while (v0 < 4);
 }
 
-extern void *_0221A680;
+extern NintendoWFCManager *_0221A680;
 
 s32 ov00_021E7314(void);
 
 s32 ov00_021E7314(void) {
-    return (s32) ((NintendoWFCManager *)_0221A680)->needsGameSave;
+    return (s32) _0221A680->needsGameSave;
 }
 
 void ov00_021E7328(void);
 
 void ov00_021E7328(void) {
-    *((s8 *)&((NintendoWFCManager *)_0221A680)->needsGameSave) = 0;
+    *((s8 *)&_0221A680->needsGameSave) = 0;
 }

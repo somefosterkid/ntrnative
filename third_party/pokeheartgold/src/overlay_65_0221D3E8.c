@@ -10,17 +10,17 @@
 #include "unk_02013FDC.h"
 #include "overlay_65_trade_room.h"
 
-void ov65_0221D3E8(void *arg0, NARC *arg1);
+void ov65_0221D3E8(TradeRoom *arg0, NARC *arg1);
 
 s32 ov65_0221D57C(s32 arg0, Pokemon *arg1, void *arg2, PokepicTemplate *arg3);
 
-void ov65_0221D3E8(void *arg0, NARC *narc) {
+void ov65_0221D3E8(TradeRoom *arg0, NARC *narc) {
     GfGfxResType type;
     struct SpriteResourceCollection **v0;
 
     NNS_G2dInitOamManagerModule();
     OamManager_Create(0, 0x64, 0, 0x20, 0, 0x64, 0, 0x20, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteList = G2dRenderer_Init(0x2D, arg0 + 0x1A4, HEAP_ID_26);
+    arg0->spriteList = G2dRenderer_Init(0x2D, &arg0->spriteRenderer, HEAP_ID_26);
     type = GF_GFX_RES_TYPE_CHAR;
     v0 = (struct SpriteResourceCollection **)arg0;
     do {
@@ -28,18 +28,18 @@ void ov65_0221D3E8(void *arg0, NARC *narc) {
         v0 += 1;
         type += 1;
     } while (type < 4);
-    ((TradeRoom *)arg0)->spriteResources[0][0] = AddCharResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[0]), narc, 7, 1, 0, 1, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[0][1] = AddPlttResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[1]), narc, 0, 0, 0, 1, 9, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[1][0] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[2]), narc, 8, 1, 0, GF_GFX_RES_TYPE_CELL, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[1][1] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[3]), narc, 9, 1, 0, GF_GFX_RES_TYPE_ANIM, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[2][0] = AddCharResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[0]), narc, 0xA, 1, 1, 2, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[2][1] = AddPlttResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[1]), narc, 0, 0, 1, 2, 0xA, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[3][0] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[2]), narc, 0xB, 1, 1, GF_GFX_RES_TYPE_CELL, HEAP_ID_26);
-    ((TradeRoom *)arg0)->spriteResources[3][1] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)((TradeRoom *)arg0)->spriteResourceCollections[3]), narc, 0xC, 1, 1, GF_GFX_RES_TYPE_ANIM, HEAP_ID_26);
-    SpriteTransfer_CreateCharTransferTask(((TradeRoom *)arg0)->spriteResources[0][0]);
-    SpriteTransfer_CreateCharTransferTask(((TradeRoom *)arg0)->spriteResources[2][0]);
-    SpriteTransfer_CreateExtPlttTransferTask(((TradeRoom *)arg0)->spriteResources[0][1]);
-    SpriteTransfer_CreateExtPlttTransferTask(((TradeRoom *)arg0)->spriteResources[2][1]);
+    arg0->spriteResources[0][0] = AddCharResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[0]), narc, 7, 1, 0, 1, HEAP_ID_26);
+    arg0->spriteResources[0][1] = AddPlttResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[1]), narc, 0, 0, 0, 1, 9, HEAP_ID_26);
+    arg0->spriteResources[1][0] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[2]), narc, 8, 1, 0, GF_GFX_RES_TYPE_CELL, HEAP_ID_26);
+    arg0->spriteResources[1][1] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[3]), narc, 9, 1, 0, GF_GFX_RES_TYPE_ANIM, HEAP_ID_26);
+    arg0->spriteResources[2][0] = AddCharResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[0]), narc, 0xA, 1, 1, 2, HEAP_ID_26);
+    arg0->spriteResources[2][1] = AddPlttResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[1]), narc, 0, 0, 1, 2, 0xA, HEAP_ID_26);
+    arg0->spriteResources[3][0] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[2]), narc, 0xB, 1, 1, GF_GFX_RES_TYPE_CELL, HEAP_ID_26);
+    arg0->spriteResources[3][1] = AddCellOrAnimResObjFromOpenNarc(((GF_2DGfxResMan *)arg0->spriteResourceCollections[3]), narc, 0xC, 1, 1, GF_GFX_RES_TYPE_ANIM, HEAP_ID_26);
+    SpriteTransfer_CreateCharTransferTask(arg0->spriteResources[0][0]);
+    SpriteTransfer_CreateCharTransferTask(arg0->spriteResources[2][0]);
+    SpriteTransfer_CreateExtPlttTransferTask(arg0->spriteResources[0][1]);
+    SpriteTransfer_CreateExtPlttTransferTask(arg0->spriteResources[2][1]);
     GfGfxLoader_GXLoadPal(NARC_poketool_icongra_poke_icon, (s32)sub_02074490(), GF_PAL_LOCATION_MAIN_OBJ, GF_PAL_SLOT_10_OFFSET, 0x80U, HEAP_ID_26);
 }
 

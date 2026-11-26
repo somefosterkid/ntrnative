@@ -1,5 +1,9 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
+#include "overlay_49_getters.h"
+
 #include "overlay_49_unk_struct_ov49_02264cf8.h"
 
 #include "overlay_42.h"
@@ -39,11 +43,8 @@ typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
 typedef struct UnkStruct_ov70_02263344_t UnkStruct_ov70_02263344;
 
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 
-WiFiPlazaProfile *ov45_0222A5C0(WiFiPlazaSystem *param0);
 
-void ov45_0222A5E8(WiFiPlazaSystem *param0, int param1);
 
 void ov45_0222A704(WiFiPlazaSystem *param0, int param1, s32 param2);
 
@@ -111,11 +112,8 @@ typedef void (*CursorCallback)(ListMenu *menu, u32 index, u8 onInit);
 
 typedef void (*PrintCallback)(ListMenu *menu, u32 index, u8 yOffset);
 
-WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 
-UnkStruct_ov70_022630A4 *ov49_0225A010(UnkStruct_ov70_0225DEE8 *param0);
 
 void ov49_0225A08C(UnkStruct_ov70_0225DEE8 *param0, const String *param1);
 
@@ -157,7 +155,11 @@ String *ov49_02264C04(UnkStruct_ov70_0225DEE8 *param0, u32 param1, u32 param2);
 
 String *ov49_02264C50(UnkStruct_ov70_0225DEE8 *param0, u32 param1, u32 param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov49_02264CA8(UnkStruct_ov49_02264CF8 *param0, WiFiPlazaSystem *param1, u8 param2);
+#else
 BOOL ov49_02264CA8(UnkStruct_ov49_02264CF8 *param0, WiFiPlazaSystem *param1, u32 param2);
+#endif
 
 void ov49_02264CF8(UnkStruct_ov49_02264CF8 *param0);
 
@@ -193,7 +195,11 @@ void ov49_02265260(UnkStruct_ov70_02268E44 *param0, UnkStruct_ov70_0225DEE8 *par
 
 void ov49_0226526C(UnkStruct_ov70_02269114 *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_02265274(UnkStruct_ov70_02269114 *param0, const WiFiPlazaSystem *param1, s16 param2, s16 param3);
+#else
 void ov49_02265274(UnkStruct_ov70_02269114 *param0, const WiFiPlazaSystem *param1, u16 param2, u16 param3);
+#endif
 
 void ov49_0226529C(UnkStruct_ov70_02269114 *param0, WiFiPlazaSystem *param1);
 

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
 #include "sprite_resources_header.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "constants/heap.h"
@@ -25,7 +26,6 @@ struct CameraPerspective;
 
 struct CameraPositionHistory;
 
-struct FrontierAnimCmd;
 
 struct FrontierGraphics;
 
@@ -323,10 +323,6 @@ typedef struct G3DPipelineBuffers {
     void *textureBuffer;
 } G3DPipelineBuffers;
 
-typedef struct FrontierAnimCmd {
-    u16 action;
-    u16 count;
-} FrontierAnimCmd;
 
 typedef struct UnkStruct_ov104_0223EBD0_t UnkStruct_ov104_0223EBD0;
 

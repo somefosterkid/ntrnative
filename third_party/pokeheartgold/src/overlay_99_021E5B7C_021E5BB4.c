@@ -1,13 +1,10 @@
 #include "global.h"
 
 #include "error_handling.h"
+#include "overlay_99.h"
 
-u16 ov99_021E5B90(s32, s32);
-
-s32 ov99_021E5BB4(s32 arg0, s32 arg1);
-
-s32 ov99_021E5BB4(s32 arg0, s32 arg1) {
-    if (arg0 == 0) {
+s32 ov99_021E5BB4(PokeathlonCourseRecordArgs *arg0, s32 arg1) {
+    if (arg0 == NULL) {
         GF_AssertFail();
     }
     if (ov99_021E5B90(arg0, arg1) != 0) {

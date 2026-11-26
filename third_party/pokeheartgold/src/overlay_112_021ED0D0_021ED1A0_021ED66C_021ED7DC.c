@@ -35,8 +35,6 @@ s32 ov112_021F3140(void *, UnkStruct_ov112_021ED7DC_Bits *);
 
 s32 ov112_021F31BC(void *);
 
-void ov112_021ED7DC(Ov112PokewalkerApp *arg0);
-
 #if defined(SDK_PORT) || defined(NONMATCHING)
 void ov112_021ED7DC(Ov112PokewalkerApp *arg0) {
     UnkStruct_ov112_021ED7DC_Bits bits;

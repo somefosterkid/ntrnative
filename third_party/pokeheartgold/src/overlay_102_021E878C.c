@@ -107,25 +107,7 @@ struct ColoredArrow {
     TextColor color;
     String *string;
 };
-typedef int (*EasyChatMainFunc)(EasyChatApp *easyChatApp, int *state);
 typedef void (*EasyChatTaskFunc)(EasyChatApp *easyChatApp, int *state);
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-} UnkStruct_ov20_021D1F34;
-typedef struct {
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u8 unk_06;
-    u8 unk_07;
-    int unk_08;
-} UnkStruct_ov20_021D18BC;
-typedef struct {
-    s16 unk_00;
-    s8 unk_02;
-    s8 unk_03;
-} UnkStruct_ov20_021D0F64;
 typedef struct {
     BgConfig *unk_00;
     u32 unk_04;
@@ -203,7 +185,6 @@ struct UnkStruct_ov20_021D4210_t {
     int unk_90;
 };
 void ov102_021E940C(UnkStruct_ov20_021D2128 *param0, int param1);
-s32 ov102_021E7A4C(void *, void *);
 s32 ov102_021E8B18(void *, u32 *);
 s32 ov102_021E9464(UnkStruct_ov20_021D2128 *);
 s32 ov102_021E947C(UnkStruct_ov20_021D2128 *, s32);
@@ -252,7 +233,7 @@ s32 ov102_021E87B4(EasyChatApp *arg0, u32 *arg1) {
         break;
     case 3:
         if (ov102_021E9464(arg0->unk_14) != 0) {
-            ov102_021E7A4C(arg0, *((void **)&arg0->nextMainFunc));
+            ov102_021E7A4C(arg0, arg0->nextMainFunc);
             *arg1 = 0;
         }
         break;

@@ -274,7 +274,6 @@ typedef struct BattleHallApp {
     u32 unused5;
 } BattleHallApp;
 
-u8 ov81_0224086C(BattleHallApp *app, int messageID, u8 fontID);
 
 void ov82_0223F90C(BattleHallApp *app);
 
@@ -298,13 +297,17 @@ void BattleArcadeGameBoard_SetState(BattleHallApp *app, int *state, enum BattleH
 
 BOOL ov82_0223E5D4(BattleHallApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223FD78(Window *window, u8 frame);
+#else
 void ov82_0223FD78(Window *window, int frame);
+#endif
 
 void ov80_0222A7CC(MessageFormat *template, u32 idx);
 
 u8 ov82_0223EF7C(BattleHallApp *app, int messageID, u8 fontID);
 
-void ov82_0223F84C(void *arg0);
+void ov82_0223F84C(BattleHallApp *arg0);
 
 void ov82_0223F834(BattleHallApp *app);
 

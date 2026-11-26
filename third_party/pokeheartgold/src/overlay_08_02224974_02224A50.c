@@ -4,7 +4,11 @@
 
 u16 ov08_02223CD4(void *, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov08_022247E4(void *, u8, u8, u8);
+#else
 s32 ov08_022247E4(void *, u8, s32, s32);
+#endif
 
 void ov08_02224A50(void *arg0, s32 arg1);
 

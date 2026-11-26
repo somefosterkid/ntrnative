@@ -39,7 +39,11 @@ typedef struct UnkStruct_ov70_0225C894_t UnkStruct_ov70_0225C894;
 struct UnkStruct_ov70_0225C894_t {
     UnkStruct_ov63_0222BCE8 *unk_00;
 };
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov42_02227FA4(Sprite *gfxElem);
+#else
 void ov42_02227FA4(Sprite *gfxElem);
+#endif
 typedef struct ChooseStarterRotation {
     fx32 verticalOffset;
     fx32 verticalOffsetMultiplier;

@@ -172,29 +172,7 @@ struct TouchScreenActions {
     TouchScreenHitTableActionStateInternal *actionStates;
 };
 
-typedef int (*EasyChatMainFunc)(EasyChatApp *easyChatApp, int *state);
-
 typedef void (*EasyChatTaskFunc)(EasyChatApp *easyChatApp, int *state);
-
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-} UnkStruct_ov20_021D1F34;
-
-typedef struct {
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u8 unk_06;
-    u8 unk_07;
-    int unk_08;
-} UnkStruct_ov20_021D18BC;
-
-typedef struct {
-    s16 unk_00;
-    s8 unk_02;
-    s8 unk_03;
-} UnkStruct_ov20_021D0F64;
 
 typedef struct {
     BgConfig *unk_00;
@@ -281,62 +259,62 @@ struct UnkStruct_ov20_021D4210_t {
 
 void ov102_021E940C(UnkStruct_ov20_021D2128 *param0, int param1);
 
-s32 ov102_021E7968(void *, void *);
+void ov102_021E7968(void *, MailMessage *);
 
-s32 ov102_021E79A0(void *, void *);
+void ov102_021E79A0(void *, MailMessage *);
 
 s32 ov102_021E7D30(void *, u32);
 
-s32 ov102_021E7DBC(void *arg0);
+s32 ov102_021E7DBC(EasyChatApp *arg0);
 
-s32 ov102_021E7DBC(void *arg0) {
+s32 ov102_021E7DBC(EasyChatApp *arg0) {
     u16 temp_r2;
     u16 temp_r2_2;
     u16 temp_r2_3;
 
-    temp_r2 = ((EasyChatApp *)arg0)->pressedKeys;
+    temp_r2 = arg0->pressedKeys;
     if (temp_r2 & 2) {
-        ((EasyChatApp *)arg0)->unk_4C = 2U;
-        ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 0xF);
+        arg0->unk_4C = 2U;
+        ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 0xF);
         return ov102_021E7D30(arg0, 2U);
     }
     if (temp_r2 & 1) {
-        return ov102_021E7D30(arg0, ((EasyChatApp *)arg0)->unk_4C);
+        return ov102_021E7D30(arg0, arg0->unk_4C);
     }
     if (0x40 & temp_r2) {
-        if (((EasyChatApp *)arg0)->unk_4C != 0) {
-            ((EasyChatApp *)arg0)->unk_4C -= 1;
+        if (arg0->unk_4C != 0) {
+            arg0->unk_4C -= 1;
             return ov102_021E7D30(arg0, 3U);
         }
-        if ((*((u8 *)&((EasyChatApp *)arg0)->pad_65[5]) != 0) && (((EasyChatApp *)arg0)->currentWordSlot != 0)) {
-            ((EasyChatApp *)arg0)->currentWordSlot -= 1;
+        if ((arg0->unk_6A != 0) && (arg0->currentWordSlot != 0)) {
+            arg0->currentWordSlot -= 1;
             return ov102_021E7D30(arg0, 3U);
         }
         return 1;
     }
     if (temp_r2 & 0x80) {
-        temp_r2_2 = *((s16 *)&((EasyChatApp *)arg0)->unk_4C);
+        temp_r2_2 = *((s16 *)&arg0->unk_4C);
         if (temp_r2_2 == 0) {
-            if ((*((u8 *)&((EasyChatApp *)arg0)->pad_65[5]) == 2) && (((EasyChatApp *)arg0)->currentWordSlot == 0)) {
-                ((EasyChatApp *)arg0)->currentWordSlot += 1;
+            if ((arg0->unk_6A == 2) && (arg0->currentWordSlot == 0)) {
+                arg0->currentWordSlot += 1;
                 return ov102_021E7D30(arg0, 3U);
             }
-            ((EasyChatApp *)arg0)->unk_4C += 1;
+            arg0->unk_4C += 1;
             return ov102_021E7D30(arg0, 3U);
         }
         if (temp_r2_2 == 1) {
-            ((EasyChatApp *)arg0)->unk_4C += 1;
+            arg0->unk_4C += 1;
             return ov102_021E7D30(arg0, 3U);
         }
         return 1;
     }
-    temp_r2_3 = ((EasyChatApp *)arg0)->pressedKeysRepeatable;
+    temp_r2_3 = arg0->pressedKeysRepeatable;
     if (0x20 & temp_r2_3) {
-        ov102_021E79A0(arg0 + 0x64, arg0 + 8);
+        ov102_021E79A0(&arg0->unk_64, &arg0->sentence);
         return ov102_021E7D30(arg0, 4U);
     }
     if (0x10 & temp_r2_3) {
-        ov102_021E7968(arg0 + 0x64, arg0 + 8);
+        ov102_021E7968(&arg0->unk_64, &arg0->sentence);
         return ov102_021E7D30(arg0, 4U);
     }
     return 1;

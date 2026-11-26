@@ -17,7 +17,11 @@ s32 ov96_02215478(Ov96App_02210C98_Unit *unit, Ov96App_02210C98_Cpu *cpu, u8 ski
 
 u32 ov96_02215614(s32 param_1, s32 param_2, s32 param_3, s32 param_4);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov96_02215650(s32 param_1, s32 param_2, s32 param_3, s32 param_4, u8 param_5, u8 param_6);
+#else
 u32 ov96_02215650(s32 param_1, s32 param_2, s32 param_3, s32 param_4, u32 param_5, u32 param_6);
+#endif
 
 u32 ov96_022156E8(VecFx32 *param_1, s32 param_2, VecFx32 *param_3, s32 param_4);
 

@@ -2,6 +2,7 @@
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
+#include "work.h"
 
 #include "constants/heap.h"
 
@@ -777,50 +778,36 @@ typedef struct FieldWildBattleMetadata {
     u16 encounterAttempts;
     u16 wildMonDefeated;
 } FieldWildBattleMetadata;
-typedef struct {
-    SaveData *saveData;
-    int unk_04;
-    int unk_08;
-} UnkStruct_ov98_02247168;
-typedef struct {
-    UnkStruct_ov98_02247168 *unk_00;
-    int unk_04;
-    u16 *unk_08;
-    u8 unk_0C;
-    u8 unk_0D;
-    void *unk_10;
-    u32 unk_14;
-} UnkStruct_0207DE40;
 FieldTask *TaskManager_Call(FieldTask *task, FieldTaskFunc taskFunc, void *taskEnv);
 BOOL sub_02078834(FieldTask *param0);
 BOOL sub_02078834(FieldTask *task);
-static UnkStruct_0207DE40 *sub_02078B2C(void);
+static Work *sub_02078B2C(void);
 
-static UnkStruct_0207DE40 *sub_02078B2C(void);
+static Work *sub_02078B2C(void);
 void sub_02078B58(FieldTask *param0);
 void sub_02078B78(FieldTask *param0, u16 *param1);
 
-static UnkStruct_0207DE40 *sub_02078B2C(void) {
-    UnkStruct_0207DE40 *v0 = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(UnkStruct_0207DE40));
+static Work *sub_02078B2C(void) {
+    Work *v0 = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(Work));
 
-    MI_CpuClear8(v0, sizeof(UnkStruct_0207DE40));
-    v0->unk_00 = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(UnkStruct_ov98_02247168));
-    MI_CpuClear8(v0->unk_00, sizeof(UnkStruct_ov98_02247168));
+    MI_CpuClear8(v0, sizeof(Work));
+    v0->unk0 = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(UnkStruct_ov44_0222A758_args));
+    MI_CpuClear8(v0->unk0, sizeof(UnkStruct_ov44_0222A758_args));
     return v0;
 }
 
 void sub_02078B58(FieldTask *param0) {
-    UnkStruct_0207DE40 *v0 = sub_02078B2C();
+    Work *v0 = sub_02078B2C();
 
-    v0->unk_00->unk_04 = 2;
+    v0->unk0->unk4 = 2;
     TaskManager_Call(param0, sub_02078834, v0);
 }
 
 void sub_02078B78(FieldTask *param0, u16 *param1) {
-    UnkStruct_0207DE40 *v0 = sub_02078B2C();
+    Work *v0 = sub_02078B2C();
 
-    v0->unk_00->unk_04 = 1;
-    v0->unk_08 = param1;
+    v0->unk0->unk4 = 1;
+    v0->unk8 = param1;
 
     TaskManager_Call(param0, sub_02078834, v0);
 }

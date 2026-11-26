@@ -35,7 +35,11 @@ u8 sub_02035FF0(void);
 
 void sub_020367B0(u16 param0, u16 *param1, u16 param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8 param0);
+#else
 s32 sub_0203772C(u16 param0);
+#endif
 
 
 void sub_02033AF0(CommRing *ring, u8 *buffer, int size, int unused);

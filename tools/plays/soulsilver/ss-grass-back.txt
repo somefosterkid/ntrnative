@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: Route 29, warped to 664,400 facing west: held walks west into the tall grass (to 656,400), east out of it and west again (Smooth motion: captured every 4th frame, the player shows twice stepping out of the grass, 11207 / 11203)
+# end: f11440
+env BWPORT_HG_WARP=33:664:400 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f128@f11000 right*f128@f11150 left*f128@f11300

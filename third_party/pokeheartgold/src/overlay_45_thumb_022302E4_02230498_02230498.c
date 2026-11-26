@@ -8,6 +8,7 @@
 #include "gf_gfx_loader.h"
 #include "heap.h"
 #include "unk_02023694.h"
+#include "billboard.h"
 
 void ov45_0222D740(NNSG3dResFileHeader *);
 

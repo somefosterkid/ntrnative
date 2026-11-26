@@ -21,7 +21,11 @@ BOOL ov103_021EC940(OverlayManager *man, int *state) {
     return 1;
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov103_021ED2D4(void *, s32 *);
+#else
 s32 ov103_021ED2D4(void *, s32 *);
+#endif
 
 BOOL ov103_021EC988(OverlayManager *man, int *state) {
     if (ov103_021ED2D4(OverlayManager_GetData(man), state) == 0) {

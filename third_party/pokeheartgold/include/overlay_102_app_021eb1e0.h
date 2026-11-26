@@ -16,8 +16,9 @@ typedef struct Ov102App_021EB1E0 {
     Window unk_24[3];
     void *unk_54;
     void *unk_58;
-    void *unk_5C;
-    u8 unk_60[0x28];
+    struct NNSG2dScreenData *unk_5C;
+    struct NNSG2dScreenData *unk_60;
+    u8 unk_64[0x24];
     Window unk_88;
     u8 unk_98[0xC];
 } Ov102App_021EB1E0;

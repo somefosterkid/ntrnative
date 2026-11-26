@@ -30,7 +30,6 @@ static inline void inline_0201035C_sub(int param0, int param1, int param2, int p
     }
 }
 void sub_02010F34(int param0, HardwareWindowSettings *param1, enum DSScreen screen);
-void sub_02010F84(HardwareWindowSettings *param0, int param1, int param2, int param3, enum DSScreen screen, int param5, int param6, int param7, int param8, int param9);
 void sub_02010710(HardwareWindowSettings *param0, int param1, enum DSScreen screen, int param3);
 void sub_02010728(UnkStruct_0201076C *param0, enum DSScreen screen, int param2, int param3, int param4);
 static inline void inline_020107D8_sub(int param0, BOOL param1, enum DSScreen screen) {
@@ -74,7 +73,6 @@ void sub_02011494(UnkStruct_02011568 *param0, const UnkStruct_0200FD34 *param1, 
 void sub_02011738(UnkStruct_0201184C *param0, const UnkStruct_02011738 *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02011D34(UnkStruct_02011E04 *param0, UnkStruct_0200FF30 *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02011FE8(UnkStruct_020120D4 *param0, UnkStruct_0200FE6C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
-void sub_02012290(UnkStruct_02012290 *param0, UnkStruct_0201006C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, int param7);
 void sub_02012384(UnkStruct_02012290 *param0, UnkStruct_0201006C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void Heap_Free(void *ptr);
 void sub_02010EC8(UnkStruct_02010588 *param0);

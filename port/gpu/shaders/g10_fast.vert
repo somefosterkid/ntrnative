@@ -29,10 +29,14 @@ void main() {
   vE0 = vE1 = vE2 = vE3 = vE4 = vec3(0.0, 0.0, 1e9);
   if (nv > 0) {
     int k10 = vK * 10;
-    vE0 = he[k10 + (t + nv - 1) % nv].xyz;
-    vE1 = he[k10 + t].xyz;
-    vE2 = he[k10 + (t + 1) % nv].xyz;
-    vE3 = he[k10].xyz;
-    vE4 = he[k10 + nv - 1].xyz;
+    vec4 h0 = he[k10 + (t + nv - 1) % nv], h1 = he[k10 + t], h2 = he[k10 + (t + 1) % nv], h3 = he[k10], h4 = he[k10 + nv - 1];
+    vE0 = h0.xyz;
+    vE1 = h1.xyz;
+    vE2 = h2.xyz;
+    vE3 = h3.xyz;
+    vE4 = h4.xyz;
+    // which of them are inner (shared with a neighbour, src/g10_fast.c fast_seams): bits 16-20 of vF, for g10_fast.frag's rules
+    vF |= (h0.w != 0.0 ? 1 : 0) << 16 | (h1.w != 0.0 ? 1 : 0) << 17 | (h2.w != 0.0 ? 1 : 0) << 18 | (h3.w != 0.0 ? 1 : 0) << 19 |
+          (h4.w != 0.0 ? 1 : 0) << 20;
   }
 }

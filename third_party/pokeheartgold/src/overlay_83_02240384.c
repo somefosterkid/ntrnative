@@ -21,7 +21,7 @@ s32 ov83_02242CAC(BattleCastleSelfApp *);
 
 s32 ov83_02242E88(void *);
 
-s32 ov83_02247944(void *, u32);
+s32 ov83_02247944(Window *window, u32);
 
 void ov83_02240384(BattleCastleSelfApp *arg0);
 

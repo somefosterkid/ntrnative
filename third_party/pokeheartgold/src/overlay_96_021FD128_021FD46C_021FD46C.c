@@ -5,9 +5,9 @@
 #include "screen_fade.h"
 #include "overlay_96_ov96_rower_work.h"
 
-u32 ov96_021FD46C(PokeathlonCourseData *param_1, u8 *param_2);
+BOOL ov96_021FD46C(PokeathlonCourseData *param_1, u8 *param_2);
 
-u32 ov96_021FD46C(PokeathlonCourseData *param_1, u8 *param_2) {
+BOOL ov96_021FD46C(PokeathlonCourseData *param_1, u8 *param_2) {
     Ov96RowerWork *work;
     BOOL BVar2;
     u32 uVar3;

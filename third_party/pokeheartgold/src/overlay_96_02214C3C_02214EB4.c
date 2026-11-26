@@ -10,7 +10,11 @@ s32 ov96_02215058(Ov96App_02210C98_Unit *unit, Ov96App_02210C98_Mover *mover, u3
 
 u32 ov96_02215614(s32 param_1, s32 param_2, s32 param_3, s32 param_4);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov96_0221567C(s32 param_1, s32 param_2, s32 param_3, s32 param_4, u8 param_5, u8 param_6);
+#else
 u32 ov96_0221567C(s32 param_1, s32 param_2, s32 param_3, s32 param_4, u32 param_5, u32 param_6);
+#endif
 
 u32 ov96_02214EB4(PokeathlonCourseData *param_1, u8 param_2, u8 param_3, Ov96App_02210C98_Unit *param_4, Ov96App_02210C98_Mover *param_5);
 

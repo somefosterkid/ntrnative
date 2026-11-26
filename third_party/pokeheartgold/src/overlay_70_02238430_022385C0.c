@@ -2,6 +2,7 @@
 #include "sprite_resources_header.h"
 #include "overlay_70_gtsapplication_state.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "gts_player_data.h"
 
 struct AffineSpriteListTemplate;
 
@@ -260,7 +261,6 @@ typedef struct SaveDataState {
     volatile BOOL locked;
 } SaveDataState;
 
-typedef struct SaveData SaveData;
 
 typedef struct BagItem {
     u16 item;
@@ -801,9 +801,6 @@ typedef struct BallSeal {
     u8 y;
 } BallSeal;
 
-typedef struct BallCapsule {
-    BallSeal seals[8];
-} BallCapsule;
 
 typedef u16 charcode_t;
 
@@ -814,11 +811,6 @@ typedef struct String {
     u16 data[0];
 } String;
 
-typedef struct MailMessage {
-    u16 type;
-    u16 id;
-    u16 words[2];
-} MailMessage;
 
 typedef union MailIconData {
     struct {
@@ -828,127 +820,13 @@ typedef union MailIconData {
     u16 asValue;
 } MailIconData;
 
-typedef struct Mail {
-    u32 trainerID;
-    u8 trainerGender;
-    u8 language;
-    u8 gameVersion;
-    u8 mailType;
-    charcode_t trainerName[7 + 1];
-    MailIconData iconData[3];
-    u16 platExclusiveFormIcons;
-    MailMessage sentences[3];
-} Mail;
 
-typedef struct PokemonDataBlockA {
-    u16 species;
-    u16 heldItem;
 
-    u32 otID;
-    u32 exp;
 
-    u8 friendship;
-    u8 ability;
-    u8 markings;
-    u8 originLanguage;
 
-    u8 hpEV;
-    u8 atkEV;
-    u8 defEV;
-    u8 speedEV;
-    u8 spAtkEV;
-    u8 spDefEV;
 
-    u8 cool;
-    u8 beauty;
-    u8 cute;
-    u8 smart;
-    u8 tough;
-    u8 sheen;
 
-    u32 ribbonsDS1;
-} PokemonDataBlockA;
 
-typedef struct PokemonDataBlockB {
-    u16 moves[4];
-    u8 moveCurrentPPs[4];
-    u8 movePPUps[4];
-    u32 hpIV : 5;
-    u32 atkIV : 5;
-    u32 defIV : 5;
-    u32 speedIV : 5;
-    u32 spAtkIV : 5;
-    u32 spDefIV : 5;
-    u32 isEgg : 1;
-    u32 hasNickname : 1;
-    u32 ribbonsGBA;
-    u8 fatefulEncounter : 1;
-    u8 gender : 2;
-    u8 form : 5;
-    u8 HGSS_shinyLeaves : 6;
-    u8 unused1 : 2;
-    u16 unused2;
-    u16 EggLocation_PtHGSS;
-    u16 MetLocation_PtHGSS;
-} PokemonDataBlockB;
-
-typedef struct PokemonDataBlockC {
-    charcode_t nickname[10 + 1];
-
-    u8 unused;
-    u8 originGame;
-
-    u64 ribbonsDS2;
-} PokemonDataBlockC;
-
-typedef struct PokemonDataBlockD {
-    u16 otName[7 + 1];
-    u8 eggYear;
-    u8 eggMonth;
-    u8 eggDay;
-    u8 metYear;
-    u8 metMonth;
-    u8 metDay;
-    u16 EggLocation_DP;
-    u16 MetLocation_DP;
-    u8 pokerus;
-    u8 pokeball;
-    u8 metLevel : 7;
-    u8 otGender : 1;
-    u8 metTerrain;
-    u8 HGSS_Pokeball;
-    s8 mood;
-} PokemonDataBlockD;
-
-typedef struct BoxPokemon {
-    u32 personality;
-    u16 partyDecrypted : 1;
-    u16 boxDecrypted : 1;
-    u16 checksumFailed : 1;
-    u16 unused : 13;
-    u16 checksum;
-    union { PokemonDataBlockA blockA; PokemonDataBlockB blockB; PokemonDataBlockC blockC; PokemonDataBlockD blockD; } dataBlocks[4];
-} BoxPokemon;
-
-typedef struct PartyPokemon {
-    u32 status;
-    u8 level;
-    u8 ballCapsuleID;
-    u16 hp;
-    u16 maxHP;
-    u16 attack;
-    u16 defense;
-    u16 speed;
-    u16 spAtk;
-    u16 spDef;
-    Mail mail;
-    BallCapsule ballCapsule;
-} PartyPokemon;
-
-typedef struct Pokemon {
-    BoxPokemon box;
-    PartyPokemon party;
-} Pokemon;
 
 typedef struct SpriteAnimFrame {
     s8 spriteFrame;
@@ -989,10 +867,6 @@ typedef struct PaletteData {
 
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
-typedef struct Party {
-    struct { int maxCount; int curCount; Pokemon mons[6]; } core;
-    struct { struct { u8 unk_00[5]; } aprijuiceModifiers[6]; } extra;
-} Party;
 
 typedef struct Pokepic Pokepic;
 
@@ -1000,16 +874,6 @@ typedef struct PokemonSpriteTransforms PokemonSpriteTransforms;
 
 typedef void(PokemonSpriteCallback)(Pokepic *, PokemonSpriteTransforms *);
 
-typedef struct PokepicTemplate {
-    u16 narcID;
-    u16 character;
-    u16 palette;
-    u16 spindaSpots;
-
-    u8 dummy;
-
-    u32 personality;
-} PokepicTemplate;
 
 struct PokemonSpriteTransforms {
     s16 xCenter;
@@ -1367,26 +1231,6 @@ typedef struct SysInfo {
     s32 dwcProfileId;
     u32 unused_50[3];
 } SysInfo;
-
-typedef struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameStats *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
-} GTSPlayerData;
 
 typedef struct CameraAngle {
     u16 x;
@@ -2108,9 +1952,7 @@ int GTSApplication_NetworkHandler_Main(GTSApplicationState *appState, int unused
 
 int GTSApplication_NetworkHandler_Exit(GTSApplicationState *appState, int unused);
 
-int ov70_022413AC(GTSApplicationState *appState, int unused);
 
-int ov70_02241468(GTSApplicationState *appState, int unused);
 
 int GTSApplication_PokemonSummary_Exit(GTSApplicationState *appState, int unused);
 
@@ -2140,9 +1982,8 @@ int GTSApplication_Trade_Exit(GTSApplicationState *appState, int unused);
 
 int GTSApplication_WFC_Init(GTSApplicationState *appState, int unused);
 
-int ov70_02244124(GTSApplicationState *appState, int unused);
+int ov70_02244124(GTSApplicationState *appState, int unused, s32 arg2);
 
-int ov70_02244154(GTSApplicationState *appState, int unused);
 
 enum MapHeaderID {
     MAP_HEADER_EVERYWHERE,
@@ -2874,7 +2715,7 @@ void ov70_02239CF8(void *arg0);
 
 BOOL ov70_022385C0(OverlayManager *appMan, int *loopState);
 
-void ov70_02238880(GTSApplicationState *appState);
+void ov70_02238880(void);
 
 void ov70_02240D74(GTSApplicationState *appState, int gender);
 
@@ -2894,7 +2735,7 @@ BOOL ov70_022385C0(OverlayManager *appMan, int *loopState) {
         break;
     case GTS_LOOP_STATE_INIT:
         *loopState = (*ov70_022463EC[appState->screenId][0])(appState, *loopState);
-        ov70_02238880((GTSApplicationState *)*loopState);
+        ov70_02238880();
         if (appState->appManActive) {
             ov70_02238E98(appState);
         }

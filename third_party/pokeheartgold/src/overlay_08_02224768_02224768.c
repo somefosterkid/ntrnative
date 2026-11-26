@@ -4,7 +4,11 @@
 
 u16 *ov08_022245DC(BattleBag *battleBag, u32 button, s32 buttonState, u32 unused);
 
-s16 ov08_02224684(BattleBag *battleBag, s32 button, u32 buttonState, u8 screen);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u16 ov08_02224684(BattleBag *battleBag, s32 button, u32 buttonState, int screen);
+#else
+s16 ov08_02224684(BattleBag *battleBag, s32 button, u32 buttonState, int screen);
+#endif
 
 void ov08_022246F4(BattleBag *battleBag, u16 *buttonData, s32 button, u32 buttonState);
 

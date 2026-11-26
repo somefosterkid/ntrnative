@@ -8,7 +8,11 @@
 
 void sub_0205724C(s32 param_1, s32 param_2, s32 param_3);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02037498(u8);
+#else
 s32 sub_02037498(s32);
+#endif
 void sub_020572AC(FieldSystem *arg0);
 
 void sub_0205724C(s32 param_1, s32 param_2, s32 param_3) {

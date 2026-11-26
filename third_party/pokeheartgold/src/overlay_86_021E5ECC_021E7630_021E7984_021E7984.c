@@ -6,16 +6,6 @@
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
 
-void ov86_021E71C0(FrontierRecordsApp *arg0);
-
-void ov86_021E78B8(FrontierRecordsApp *, u32);
-
-void ov86_021E792C(FrontierRecordsApp *, s8, s8);
-
-void ov86_021E7B68(FrontierRecordsApp *);
-
-void ov86_021E7CF8(FrontierRecordsApp *);
-
 extern u32 ov86_021E7E9C;
 
 u32 ov86_021E7984(FrontierRecordsApp *p);

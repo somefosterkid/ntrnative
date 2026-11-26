@@ -42,6 +42,9 @@ def real_layout(build, tmp):
     open(src, 'w').write('#include "global.h"\n#include "field_system.h"\nstruct FieldSystem *hgfs_probe;\n')
     c = cmd.split(' -o ')[0].replace(' -c ', ' ')
     c = re.sub(r'\S*pokeheartgold/src/field_system\.c', '', c)
+    # without the build's precompiled prefix (port/pch/gen4_prefix.h is empty, the -include list stays): the re-pin runs this
+    # after its generators touched gen/ headers, and clang refuses a PCH older than them (rp3: "mtime changed", exit 1)
+    c = re.sub(r'\s-include-pch\s+\S+', '', c)
     subprocess.check_call(c + f' -g -c -Wno-everything -o {obj} {src}', shell=True, cwd=cwd)
     out = subprocess.check_output(['gdb', '-q', '-batch', '-ex', 'ptype/o struct FieldSystem', obj], text=True)
     lay, ds = [], 0

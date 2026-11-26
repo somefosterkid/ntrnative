@@ -101,29 +101,7 @@ struct ColoredArrow {
     String *string;
 };
 
-typedef int (*EasyChatMainFunc)(EasyChatApp *easyChatApp, int *state);
-
 typedef void (*EasyChatTaskFunc)(EasyChatApp *easyChatApp, int *state);
-
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-} UnkStruct_ov20_021D1F34;
-
-typedef struct {
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u8 unk_06;
-    u8 unk_07;
-    int unk_08;
-} UnkStruct_ov20_021D18BC;
-
-typedef struct {
-    s16 unk_00;
-    s8 unk_02;
-    s8 unk_03;
-} UnkStruct_ov20_021D0F64;
 
 typedef struct {
     BgConfig *unk_00;

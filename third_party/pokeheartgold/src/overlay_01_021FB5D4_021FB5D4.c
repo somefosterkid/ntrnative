@@ -6,6 +6,7 @@
 #include "unk_02005D10.h"
 #include "field/hblank_system_priv.h"
 #include "overlay_07_bg_scroll_context.h"
+#include "overlay_01_unk_struct_ov5_021ef4f8.h"
 
 struct BufferManager;
 
@@ -13,26 +14,7 @@ struct HBlankSystem;
 
 struct HBlankTask;
 
-struct UnkStruct_ov5_021EF4F8_t;
-
-typedef struct UnkStruct_ov5_021EF4F8_t UnkStruct_ov5_021EF4F8;
-
 void sub_02014A38(BufferManager *bufferManager);
-
-struct UnkStruct_ov5_021EF4F8_t {
-    u32 unk_00;
-    int unk_04;
-    int unk_08;
-    u16 unk_0C[192];
-    u16 unk_18C[192];
-    BufferManager *bufferManager;
-    HBlankSystem *unk_310;
-    HBlankTask *unk_314;
-    BOOL unk_318;
-    SysTask *unk_31C;
-    SysTask *unk_320;
-    SysTask *unk_324;
-};
 
 void ov01_021FB82C(UnkStruct_ov5_021EF4F8 *param0);
 

@@ -4,7 +4,6 @@
 
 
 u8 sub_02019B10(UnkStruct_0201956C *arg0, s32 arg1);
-void sub_02019B1C(UnkStruct_0201956C *arg0, s32 arg1, s8 *arg2, s8 *arg3);
 
 u16 *sub_02019B08(UnkStruct_0201956C *a0, int a1) {
     return a0->entries[a1].screen;

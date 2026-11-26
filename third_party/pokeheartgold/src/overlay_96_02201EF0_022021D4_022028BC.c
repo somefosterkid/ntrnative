@@ -6,7 +6,7 @@
 #include "touchscreen.h"
 #include "overlay_96_ov96_02203468work.h"
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
 
 s32 ov96_021E8324(PokeathlonCourseData *, s32 *);
 

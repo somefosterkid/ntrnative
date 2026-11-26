@@ -16,40 +16,40 @@ void ov71_022499A4(void *, void *);
 
 s32 ov71_02249A50(void *);
 
-u32 ov71_022495A0(u8 *param_1, s32 *param_2);
+u32 ov71_022495A0(TradeBallFlybyPhase *param_1, s32 *param_2);
 
 void ov71_022497C8(void *arg0);
 
-u32 ov71_022495A0(u8 *param_1, s32 *param_2) {
+u32 ov71_022495A0(TradeBallFlybyPhase *param_1, s32 *param_2) {
     s32 iVar1;
     BOOL BVar2;
 
     switch (*param_2) {
     case 0:
-        *((u32 *)&((TradeBallFlybyPhase *)param_1)->timer) = 0;
+        *((u32 *)&param_1->timer) = 0;
         *param_2 = *param_2 + 1;
         break;
     case 1:
-        iVar1 = *((s32 *)&((TradeBallFlybyPhase *)param_1)->timer) + 1;
-        *((s32 *)&((TradeBallFlybyPhase *)param_1)->timer) = iVar1;
+        iVar1 = *((s32 *)&param_1->timer) + 1;
+        *((s32 *)&param_1->timer) = iVar1;
         if (10 < iVar1) {
             PlaySE(0x6ab);
-            ov71_022499A4(param_1, param_1 + 0x34);
-            ov71_02247704(((void *)((TradeBallFlybyPhase *)param_1)->model), 1);
+            ov71_022499A4(param_1, &param_1->ballOrbit);
+            ov71_02247704(((void *)param_1->model), 1);
             *param_2 = *param_2 + 1;
         }
         break;
     case 2:
-        iVar1 = ov71_02249A50(param_1 + 0x34);
+        iVar1 = ov71_02249A50(&param_1->ballOrbit);
         if (iVar1 != 0) {
             PlaySE(0x6ac);
-            Sprite_SetAnimCtrlSeq(((TradeBallFlybyPhase *)param_1)->sprite, 3);
-            Sprite_SetDrawFlag(((TradeBallFlybyPhase *)param_1)->sprite, 1);
+            Sprite_SetAnimCtrlSeq(param_1->sprite, 3);
+            Sprite_SetDrawFlag(param_1->sprite, 1);
             *param_2 = *param_2 + 1;
         }
         break;
     case 3:
-        iVar1 = Sprite_IsAnimated(((TradeBallFlybyPhase *)param_1)->sprite);
+        iVar1 = Sprite_IsAnimated(param_1->sprite);
         if (iVar1 == 0) {
             BeginNormalPaletteFade(FADE_BOTH_SCREENS, FADE_TYPE_BRIGHTNESS_OUT, FADE_TYPE_BRIGHTNESS_OUT, 0x7fff, 0x10, 1, HEAP_ID_57);
             *param_2 = *param_2 + 1;

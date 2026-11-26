@@ -61,6 +61,7 @@ typedef struct PortSndAlarm {
 } PortSndAlarm;
 extern PortSndAlarm win_snd_alarms[32];
 extern int SIM_procPxiThread(void *arg);
+extern struct SDL_Thread *SIM_CreateHostThread(int (*fn)(void *), const char *name, void *data);   // libntr os_thread.c: 8 MB stack
 extern int SIM_procPxi7to9Thread(void *arg);
 extern void *SIM_sndAlarm(void *arg);
 extern void SIM_PxiDrain(void);
@@ -140,8 +141,8 @@ static void ChildThreads(void) {
         }
     }
     bwport_vcore_forked();   // (the renderer's worker threads were the server's: a frame given to one never ended)
-    SDL_CreateThread(SIM_procPxiThread, "PXI", NULL);
-    SDL_CreateThread(SIM_procPxi7to9Thread, "PXI7to9", NULL);
+    SIM_CreateHostThread(SIM_procPxiThread, "PXI", NULL);
+    SIM_CreateHostThread(SIM_procPxi7to9Thread, "PXI7to9", NULL);
     for (i = 0; i < 32; i++) {
         if (win_snd_alarms[i].isRunning) {
             pthread_create(&win_snd_alarms[i].thread, NULL, SIM_sndAlarm, &win_snd_alarms[i]);

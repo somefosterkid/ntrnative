@@ -22,7 +22,9 @@ PIN the old commit), made again from the clone at HASH by the commit step. Exit 
    widen --tsv; clang's analysis compile (pokehg_cc's args) of only the C a changed file reaches (the last build's
    `ninja -t deps`; all of it without one) and widen --casts on those logs; meson reconfigure; protos --write --chains.
    What they change goes into wideprotos.
-4. zhostfix per file on the result (git apply --check).
+4. zhostfix per file on the result (git apply --check). Then zzabi made again (pokehg_abi.py) with the patches that sort
+   after it aside (post_abi()); those are made again on the stack through zzabi (zzzdecl: hg_declscan.py --emit-fixes)
+   or put back as they are.
 5. pokehg_gen.py with the mtimes of before step 2 kept on the files whose content is the same (ninja rebuilds only what
    changed; ccache has the rest); the typedef check; ninja.
 6. The boot run (tools/port_run.py, tools/hgss_repin_keys.txt, BWPORT_HGTRACE) against the baseline, the test battle
@@ -38,6 +40,7 @@ import argparse, glob, json, os, re, shutil, signal, subprocess, sys, time, trac
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pokegen4 as G4  # noqa: E402
+import hg_unitcache as UC  # noqa: E402
 
 ROOT = G4.ROOT
 SUB = 'third_party/pokeheartgold'
@@ -49,6 +52,8 @@ DECOMP = os.path.abspath(os.environ.get('HGSS_DECOMP', os.path.join(ROOT, 'build
 HAND = 'zhostfix'
 FSVIEW = 'zfsview'      # tools/pokehg_fsview.py's diff on the tree with every other patch (hg23)
 LATE = [HAND, FSVIEW]   # aside while the stack moves and the generators run (with late_names()'s hand patches)
+ABI = 'zzabi'           # tools/pokehg_abi.py's patch; the ones that sort after it are made against it (post_abi())
+REGEN = {'zzzdecl': 'declscan'}   # post-abi patches made again by a tool (Repin.<method>), the others are re-applied
 KEYS = os.path.join(ROOT, 'tools/hgss_repin_keys.txt')
 JOBS = os.environ.get('BW_JOBS', '8')
 FAILED_FILE = re.compile(r'^error: (\S+): ', re.M)      # git apply's "error: PATH: patch does not apply" and the like
@@ -80,6 +85,14 @@ def late_names():
     heap.c and zversion's files were folded in, then zheapalign no longer applied after them)."""
     names = sorted(os.path.basename(f)[len('pokeheartgold-'):-len('.patch')] for f in glob.glob(patch_path('*')))
     return [n for n in names if n in LATE or n > max(GENERATED)]
+
+
+def post_abi():
+    """The patches that sort after zzabi (made against the pin + every patch before them, zzabi included): aside while
+    abi() makes zzabi again, then made again (REGEN) or put back, and the tree generated with them (rp3: zzzdecl stayed in
+    place, pokehg_abi.py's checkout applied it without zzabi and 150 of its 156 files failed)."""
+    names = {os.path.basename(f)[len('pokeheartgold-'):-len('.patch')] for f in glob.glob(patch_path('*'))}
+    return sorted(n for n in names | set(REGEN) if n > ABI)
 
 
 def patch_path(n):
@@ -392,8 +405,13 @@ class Repin:
     def boot(self, d, frames):
         """The boot run to V-blank `frames` (port_run --frames), --secs the watchdog; the verdict line."""
         d = os.path.join(OUT, d)
-        shutil.rmtree(d, ignore_errors=True)
-        os.makedirs(d)
+        # not rmtree(d): the test battle runs at the same time and keeps its own files in d/battle (rp15: its makedirs came
+        # between this rmtree and the makedirs below: FileExistsError, or the battle's run dir deleted under it)
+        shutil.rmtree(os.path.join(d, 'run'), ignore_errors=True)
+        for f in ('trace.txt', 'run.txt', 'verdict.txt'):
+            if os.path.exists(os.path.join(d, f)):
+                os.remove(os.path.join(d, f))
+        os.makedirs(d, exist_ok=True)
         keys = open(KEYS).read().replace('\r', '').replace('\n', '')
         env = dict(os.environ, BWPORT_HGTRACE=os.path.join(d, 'trace.txt'))
         r = self.sh([sys.executable, 'tools/port_run.py', '--game', 'heartgold', '--no-build', '--fresh', '--skip', '4',
@@ -419,9 +437,10 @@ class Repin:
         for k in ('BWPORT_PILOT', 'BWPORT_TESTCHEAT', 'BWPORT_HGTRACE'):
             env.pop(k, None)
         out = os.path.join(d, 'battle')
+        # a run dir of its own: the boot run (concurrent with this one) and this one each remove and write save.bin there
         r = self.sh([sys.executable, 'tools/port_run.py', '--game', 'heartgold', '--no-build', '--fresh', '--skip', '4',
                      '--shots', '0', '--frames', str(self.battle_frames), '-t', str(self.secs), '--out', out,
-                     '--keys', keys], check=False, env=env)
+                     '--dir', os.path.join(ROOT, 'build/port/run-heartgold-battle'), '--keys', keys], check=False, env=env)
         v = ([x for x in r.stdout.splitlines() if x.strip()] or ['no output'])[-1]
         log = open(os.path.join(out, 'log.txt'), errors='replace').read() if os.path.exists(
             os.path.join(out, 'log.txt')) else ''
@@ -544,7 +563,7 @@ class Repin:
         gone = []
         for p in sorted(glob.glob(patch_path('*'))):
             n = os.path.basename(p)[len('pokeheartgold-'):-len('.patch')]
-            if n in GENERATED:
+            if n in GENERATED or n in REGEN:    # REGEN: made again after abi() from the new tree
                 continue
             text = open(p).read()
             new, got = drop_landed(text, landed)
@@ -677,18 +696,58 @@ class Repin:
         deps = parse_deps(r.stdout, os.path.join(ROOT, BUILD), W) if not r.returncode else {}
         srcs = [os.path.relpath(s, W) for s in C.sources()]
         todo = affected(changed, deps, srcs) if deps else srcs
+        # the cache only when few units are reached (hg_unitcache.cache_wanted): otherwise the old path, no -M keys
+        use_cache = bool(deps) and UC.cache_wanted(len(todo), len(srcs))
+        open(os.path.join(OUT, 'unitcache.txt'), 'w').write('%d\n' % use_cache)
+        skip = os.path.join(OUT, 'unitcache_skip.txt')
+        open(skip, 'w').write('\n'.join(sorted(c for c in changed if c.endswith('.c'))) + '\n')
         cc = os.path.join(OUT, 'cc')
-        shutil.rmtree(cc, ignore_errors=True)
+        reuse = os.environ.get('HGSS_REPIN_REUSE_CC')   # a re-run at the same pin and base after exit 2 (rp2): the first run's analysis logs
+        if reuse and os.path.exists(os.path.join(reuse, 'summary.txt')) and not os.path.exists(os.path.join(cc, 'summary.txt')):
+            shutil.rmtree(cc, ignore_errors=True)
+            shutil.copytree(reuse, cc)
+            # the logs name the analysed files by the checkout they ran in (<slot checkout>/build/pokeheartgold/...):
+            # pokehg_widen.py --casts keeps only paths under this checkout's W, so another slot's logs widened nothing
+            # (rp6: "widened 0 files" where the first run widened 3). Their checkout root becomes ours.
+            src_root = None
+            for dp, _, fn in os.walk(os.path.join(cc, 'log')):
+                for f in fn:
+                    m = re.search(r'(/\S*?)/build/pokeheartgold/', open(os.path.join(dp, f), errors='replace').read())
+                    if m:
+                        src_root = m.group(1)
+                        break
+                if src_root:
+                    break
+            if src_root and src_root != ROOT:
+                for dp, _, fn in os.walk(os.path.join(cc, 'log')):
+                    for f in fn:
+                        q = os.path.join(dp, f)
+                        t = open(q, errors='surrogateescape').read()
+                        if src_root + '/' in t:
+                            open(q, 'w', errors='surrogateescape').write(t.replace(src_root + '/', ROOT + '/'))
+                self.say('casts: HGSS_REPIN_REUSE_CC logs moved from %s to %s' % (src_root, ROOT))
         t1 = time.time()
-        res = G4.compile_all(W, C.hg_args(), [os.path.join(W, s) for s in todo], cc)
+        hits = 0
+        if os.path.exists(os.path.join(cc, 'summary.txt')) and reuse:
+            res = [(s, 0, '') for s in todo]
+            m = re.search(r'failed (\d+)', open(os.path.join(cc, 'summary.txt')).read())
+            res = [(s, 1 if i < int(m.group(1) if m else 0) else 0, '') for i, s in enumerate(todo)]
+        else:
+            shutil.rmtree(cc, ignore_errors=True)
+            if use_cache:
+                os.environ['BWPORT_UNITCACHE_SKIP'] = skip
+                res, hits = UC.compile_all(W, C.hg_args(), [os.path.join(W, s) for s in todo], cc, ROOT)
+                UC.prune()
+            else:
+                res = G4.compile_all(W, C.hg_args(), [os.path.join(W, s) for s in todo], cc)
         failed = sum(1 for x in res if x[1])
         if todo and failed == len(todo):
             raise RuntimeError('the analysis compile failed for all %d files: build/hgss_repin/cc/summary.txt' % failed)
         t2 = time.time()
         self.sh([sys.executable, 'tools/pokehg_widen.py', '--casts', cc], log='widen_casts.log')
         n = self.fold()
-        return '%d changed files reach %d of %d C files (%.0f s); compiled in %.0f s (%d failed), widened %d files' % (
-            len(changed), len(todo), len(srcs), t1 - t, t2 - t1, failed, len(n))
+        return '%d changed files reach %d of %d C files (%.0f s); compiled in %.0f s (%d failed; unit cache %s, %d hits), widened %d files' % (
+            len(changed), len(todo), len(srcs), t1 - t, t2 - t1, failed, 'on' if use_cache else 'off: reach too wide', hits, len(n))
 
     def meson(self):
         self.sh(['meson', 'setup', '--reconfigure', BUILD, 'port'], log='meson.log')
@@ -757,6 +816,48 @@ class Repin:
             raise RuntimeError('pokehg_abi.py could not rewrite every declaration (build/hgss_repin/abi.log: its NOT '
                                'REWRITTEN lines): fix tools/pokehg_abi.py or list them in tools/hg_abi_exceptions.txt')
         return [x for x in r.stdout.splitlines() if 'declared as defined' in x][-1]
+
+    def declscan(self, n, old):
+        """pokeheartgold-zzzdecl.patch made again on W (the pin + every patch through zzabi): tools/hg_declscan.py's parse of
+        the build's compile_commands.json (--facts), then --from-facts --emit-fixes (each edit verified by a re-parse);
+        DIR/port.patch under the old patch's header comment (less the Handover-ID lines whose handover landed). No fix
+        left: the patch is deleted."""
+        d = os.path.join(OUT, 'declscan')
+        shutil.rmtree(d, ignore_errors=True)
+        os.makedirs(os.path.join(d, 'tmp'))
+        cc = os.path.join(ROOT, BUILD, 'compile_commands.json')
+        env = dict(os.environ, TMPDIR=os.path.join(d, 'tmp'))     # its PCH of the prefix: never one of an older tree
+        try:        # the casts step's verdict (reach of the changed files); unknown: the old path
+            use_cache = open(os.path.join(OUT, 'unitcache.txt')).read().strip() == '1'
+        except OSError:
+            use_cache = False
+        if use_cache:
+            env['BWPORT_UNITCACHE_SKIP'] = os.path.join(OUT, 'unitcache_skip.txt')
+        else:
+            env['BWPORT_UNITCACHE'] = 'off'
+        facts = os.path.join(d, 'facts.jsonl')
+        tool = [sys.executable, 'tools/hg_declscan.py', '--cc', cc, '-j', JOBS]
+        self.sh(tool + ['--facts', facts, '--out', os.path.join(d, 'scan.txt')], log='declscan.log', env=env)
+        r = self.sh(tool + ['--from-facts', facts, '--emit-fixes', os.path.join(d, 'fix'), '--out',
+                            os.path.join(d, 'rank.txt')], log='declscan_fix.log', env=env)
+        shutil.rmtree(os.path.join(d, 'tmp'), ignore_errors=True)
+        body = open(os.path.join(d, 'fix', 'port.patch')).read()
+        landed = getattr(self, 'landed', {})
+        head = old[:old.find('diff --git ')] if 'diff --git ' in old else old
+        head = ''.join(x for x in head.splitlines(True)
+                       if not (re.match(r'Handover-ID:\s*(\S+)', x) and re.match(r'Handover-ID:\s*(\S+)', x).group(1) in landed))
+        before, after = split_patch(old)[1] if old else {}, split_patch(body)[1] if body else {}
+        if body.strip():
+            open(patch_path(n), 'w').write(head + body)
+            self.hdrop[n] = 'kept'
+        else:
+            if os.path.exists(patch_path(n)):
+                os.remove(patch_path(n))
+            self.hdrop[n] = 'deleted'
+        fixed = [x for x in r.stdout.splitlines() if x.startswith('files edited')]
+        return '%d files (before: %d; %d the same)%s; %s' % (
+            len(after), len(before), sum(1 for f in after if before.get(f) == after[f]),
+            '' if after else ': no fix left, the patch is deleted', (fixed or [''])[-1][:160])
 
     def final(self):
         self.sh([sys.executable, 'tools/pokehg_gen.py', '--mtimes', os.path.join(OUT, 'mtimes.json')], log='gen2.log')
@@ -843,7 +944,25 @@ class Repin:
             return 2
         if FSVIEW in late:
             self.step('fsview', self.fsview)
-        self.step('abi', self.abi)
+        post, kept, put = post_abi(), {}, set()
+        for n in post:      # aside: zzabi is made without them, the tree for REGEN's tools is the stack through zzabi
+            if os.path.exists(patch_path(n)):
+                kept[n] = open(patch_path(n)).read()
+                open(os.path.join(OUT, n + '.aside.patch'), 'w').write(kept[n])
+                os.remove(patch_path(n))
+        try:
+            self.step('abi', self.abi)
+            if post:
+                self.step('gen+check', self.final)
+            for n in post:
+                if n in REGEN:
+                    self.step(n, getattr(self, REGEN[n]), n, kept.get(n, ''))
+                elif n in kept:
+                    open(patch_path(n), 'w').write(kept[n])
+                put.add(n)
+        finally:
+            for n in set(kept) - put:
+                open(patch_path(n), 'w').write(kept[n])
         self.step('gen+check', self.final)
         if self.typedefs:
             self.say('\n'.join('  ' + x for x in self.typedefs[:20]))
@@ -857,7 +976,16 @@ class Repin:
         have = os.path.exists(os.path.join(base, 'verdict.txt'))
         # the same game frame as the baseline's end, or the default if that is later: the baseline may have ended
         # at a crash (or a wall cap, an old one) before it
-        v = self.step('boot', self.boot, 'new', max(self.frames, end_frame(rd(base, 'verdict.txt')[0]) if have else 0))
+        # the battle run does not depend on the boot run (and has its own run dir): both at once, ~1 min off the wall time
+        import concurrent.futures as cf
+        pool = cf.ThreadPoolExecutor(1)
+        btf = pool.submit(self.step, 'battle', self.battle, 'new')     # port_run's Xvfb display pick is atomic (flock)
+        try:
+            v = self.step('boot', self.boot, 'new', max(self.frames, end_frame(rd(base, 'verdict.txt')[0]) if have else 0))
+        except BaseException:
+            btf.cancel()
+            pool.shutdown(wait=False)
+            raise
         if slow(v):
             raise RuntimeError('the boot run hit the --secs watchdog (%s): no result (a slow host or a stuck run); run '
                                'again with a bigger --secs' % v)
@@ -867,7 +995,8 @@ class Repin:
             worse, why = compare(rd(base, 'verdict.txt')[0], v, rd(base, 'trace.txt'),
                                  rd(os.path.join(OUT, 'new'), 'trace.txt'))
         self.say('boot run: ' + why)
-        bt = self.step('battle', self.battle, 'new')
+        bt = btf.result()
+        pool.shutdown()
         base_bt = (rd(base, 'battle.txt') or [''])[0]
         if bt:
             self.say('battle run: %s (before: %s)' % (bt, base_bt or 'none'))

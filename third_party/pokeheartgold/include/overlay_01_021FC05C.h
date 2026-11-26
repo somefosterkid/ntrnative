@@ -3,6 +3,7 @@
 
 #include "global.h"
 #include "field/field_3d_object_task.h"
+#include "linear_interpolation_task.h"
 #include "sys_task.h"
 
 // Work of the honey / sweet scent field effect (GetHoneySweetScentWorkSize bytes, 0xC on the DS: the task is a pointer).
@@ -13,7 +14,13 @@ typedef struct HoneyScentTaskEnv {
     s16 timer;
 } HoneyScentTaskEnv;
 
-void ov01_021FC05C(u32 param_1, s32 param_2, u8 *param_3);
+// Data of the honey / sweet scent screen fade task (0x18 bytes, Field3dObjectTask data).
+typedef struct HoneyScentFadeData {
+    LinearInterpolationTaskS32 lerp; // 0x00
+    BOOL done;                       // 0x14
+} HoneyScentFadeData;
+
+void ov01_021FC05C(Field3dObjectTask *task, struct FieldSystem *fieldSystem, void *data);
 
 void ov01_021FC0DC(Field3dObjectTask *task, struct FieldSystem *fieldSystem, void *data);
 
@@ -23,8 +30,8 @@ void ov01_021FC124(Field3dObjectTask *task);
 
 s32 ov01_021FC12C(Field3dObjectTask *arg0);
 
-void ov01_021FC1FC(void *arg0);
-void ov01_021FC260(void *arg0);
+void ov01_021FC1FC(struct FieldSystem *arg0);
+void ov01_021FC260(struct FieldSystem *arg0);
 
 u32 ov01_021FC2C8(struct FieldSystem *fieldSystem);
 

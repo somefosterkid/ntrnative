@@ -6,7 +6,11 @@
 
 s32 ov70_02238F9C(Sprite *, int, int);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov70_0223F904(ListMenuItem **, MsgData *, s32);
+#else
 s32 ov70_0223F904(ListMenuItem **, MsgData *, s32);
+#endif
 
 s32 ov70_0224190C(void *, s32);
 

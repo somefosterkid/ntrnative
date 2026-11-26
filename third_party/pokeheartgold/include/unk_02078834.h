@@ -3,14 +3,9 @@
 
 #include "task.h"
 
-struct SaveData;
-
-typedef struct UnkAppArgs3C {
-    u8 filler0[0x34];
-    struct SaveData *unk34;
-    s8 unk38;
-    s8 unk39;
-} UnkAppArgs3C;
+// Field-side name of the Wi-Fi Plaza minigame launch args (overlay_91_unk_struct_ov115_02260440.h).
+struct UnkStruct_ov115_02260440;
+typedef struct UnkStruct_ov115_02260440 UnkAppArgs3C;
 
 BOOL sub_02078D24(s32 a0);
 void sub_02078B58(TaskManager *taskManager);

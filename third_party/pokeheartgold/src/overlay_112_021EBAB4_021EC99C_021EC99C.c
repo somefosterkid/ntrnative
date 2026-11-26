@@ -3,21 +3,9 @@
 #include "bg_window.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021EC950(void *arg0);
-
 s32 ov112_021E7CA4(void *, s32, s32);
 
-s32 ov112_021E9F40(void *, s32);
-
-s32 ov112_021EA51C(void *, s32);
-
-s32 ov112_021EC7D0(void *);
-
-s32 ov112_021ECA18(void *, s32);
-
 extern void *ov112_021FF0C4;
-
-s32 ov112_021EC99C(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EC99C(Ov112PokewalkerApp *arg0) {
     FillBgTilemapRect(arg0->bgConfig, 1U, 0U, 0U, 0x10U, 0x20U, 8U, 0x10U);

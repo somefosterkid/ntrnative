@@ -7,7 +7,7 @@ HG's FieldSystem (decomp: admin-79).
 Handover-ID: none (port-only)
 
 diff --git a/port/nonmatching/ov115_0225F978.c b/port/nonmatching/ov115_0225F978.c
-index 7308719f7b..4ba5154aad 100644
+index 7308719f7bc..4ba5154aada 100644
 --- a/port/nonmatching/ov115_0225F978.c
 +++ b/port/nonmatching/ov115_0225F978.c
 @@ -3448,56 +3448,110 @@ typedef struct MapObjectsToPreload {

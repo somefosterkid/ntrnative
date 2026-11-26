@@ -3,6 +3,8 @@
 #include "bg_window.h"
 #include "options.h"
 #include "render_window.h"
+#include "overlay_41_sprite_resource_collection.h"
+#include "unk_02009D48.h"
 
 void ov41_0224ACA4(void *, u32);
 

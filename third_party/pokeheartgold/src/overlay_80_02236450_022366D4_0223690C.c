@@ -26,7 +26,7 @@ BattleSetup *ov80_0223690C(void *arg0, FieldFrontierDTO *arg1) {
 
     temp_r7 = BattleSetup_New(*(enum HeapID *)((u8 *)arg0 + 4), ov80_02236A88(*(u8 *)((u8 *)arg0 + 0xF)));
     sp8 = SaveArray_Party_Get(arg1->saveData);
-    sub_02051D18(temp_r7, NULL, arg1->saveData, *((u32 *)&arg1->unk_18), *((BagCursor * *)&arg1->journalEntry), *((void * *)&arg1->mapHeaderID));
+    sub_02051D18(temp_r7, NULL, arg1->saveData, arg1->mapHeaderID, arg1->bagCursor, arg1->subscreenCursorOn);
     temp_r7->battleBg = BATTLE_BG_BATTLE_TOWER;
     temp_r7->terrain = TERRAIN_BATTLE_TOWER;
     temp_r4 = AllocMonZeroed(*(enum HeapID *)((u8 *)arg0 + 4));
@@ -52,7 +52,7 @@ BattleSetup *ov80_0223690C(void *arg0, FieldFrontierDTO *arg1) {
     do {
         var_r2 += 1;
         var_r1->trainer[0].data.aiFlags = 7;
-        var_r1 = (void *)((u8 *)var_r1 + (0x34));
+        var_r1 = (void *)((u8 *)var_r1 + sizeof(var_r1->trainer[0]));
     } while (var_r2 < 4);
     temp_r0 = *(u8 *)((u8 *)arg0 + 0xF);
     switch (temp_r0) {

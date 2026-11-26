@@ -3513,7 +3513,7 @@ PlayerProfile *sub_02035798(int param0);
 
 enum UnionRoomInteraction sub_0205A200(UnionRoomManager *manager, int localID);
 
-enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, enum UnionRoomInteraction interaction);
+enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, u16 interaction);
 
 void sub_0205AA9C(StringTemplate *strTemplate, BOOL useConnectedPlayer, int localID, PlayerProfile *playerTrainerInfo, UnlockedEasyChatWords *unlockedWords);
 

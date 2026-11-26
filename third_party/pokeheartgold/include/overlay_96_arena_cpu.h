@@ -62,7 +62,11 @@ Ov96ArenaCpu *ov96_021F3390(enum HeapID heapId, u8 count, BOOL flag);
 void ov96_021F33E0(Ov96ArenaCpu *cpu, s32 idx, s32 arg2, u16 *arg3, VecFx32 *pos, s32 *state, VecFx32 *target, struct Ov96SpriteSetElem *spr);
 void ov96_021F3424(Ov96ArenaCpu *cpu);
 u8 ov96_021F342C(Ov96ArenaCpu *cpu, s32 arg1);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in port/nonmatching/ov96_021F350C.c (tools/pokehg_abi.py)
+void ov96_021F350C(Ov96ArenaCpu *cpu, s32 idx, s32 arg2);
+#else
 void ov96_021F350C(Ov96ArenaCpu *cpu, u8 idx, s32 arg2);
+#endif
 s32 ov96_021F333C(s32 table, Ov96ArenaCpuItem *items);
 void ov96_021F380C(u8 n, Ov96ArenaCpuCell **cells);
 void ov96_021F3888(Ov96ArenaCpu *cpu, u8 n, Ov96ArenaCpuItem *items, Ov96ArenaCpuMon *mon, Ov96ArenaCpuCell **cells);

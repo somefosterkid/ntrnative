@@ -1,19 +1,20 @@
 #include "global.h"
 
 #include "overlay_manager.h"
+#include "pokeathlon/pokeathlon.h"
 
 struct OverlayManager;
 
-BOOL ov96_021EEEBC(OverlayManager *appMan, int *state);
+BOOL ov96_021EEEBC(PokeathlonCourseData *data, int unused);
 
-s32 ov96_021EF05C();
-s32 ov96_021EEEC0(void);
+void ov96_021EF05C(PokeathlonCourseData *data);
+BOOL ov96_021EEEC0(PokeathlonCourseData *data, int unused);
 
-BOOL ov96_021EEEBC(OverlayManager *appMan, int *state) {
+BOOL ov96_021EEEBC(PokeathlonCourseData *data, int unused) {
     return TRUE;
 }
 
-s32 ov96_021EEEC0(void) {
-    ov96_021EF05C();
+BOOL ov96_021EEEC0(PokeathlonCourseData *data, int unused) {
+    ov96_021EF05C(data);
     return 1;
 }

@@ -118,6 +118,66 @@ static unsigned PortOvl_Ms(void) {
 static BOOL sCheck;
 static void PortOvl_Load(void);
 
+// The overlays' .data and .bss are one region each between linker-defined symbols (__bwovl_data ..), holding every overlay's
+// globals back to back. The snapshot, the reset at a load and the checks read and write the region as bytes, not as the
+// globals they hold: an AddressSanitizer build puts a poisoned redzone after each global, so memcpy/memset/memcmp over the
+// region (their interceptors check the whole range) reported a global-buffer-overflow in PortOvl_Load at boot, and a
+// byte loop in this file would too. These helpers are the deliberate bulk access: no instrumentation, volatile bytes so the
+// compiler cannot turn the loops back into memcpy/memset calls. Without the sanitizer they are plain memcpy/memset/memcmp.
+#if defined(__SANITIZE_ADDRESS__)   // gcc
+#define PORT_OVL_ASAN 1
+#elif defined(__has_feature)        // clang (a nested #if: gcc cannot parse __has_feature(x) even behind defined())
+#if __has_feature(address_sanitizer)
+#define PORT_OVL_ASAN 1
+#endif
+#endif
+#ifdef PORT_OVL_ASAN
+#define PORT_OVL_NOASAN __attribute__((no_sanitize("address"), noinline, unused))
+static PORT_OVL_NOASAN void PortOvl_Copy(void *d, const void *s, size_t n) {
+    volatile u8 *dp = d;
+    const volatile u8 *sp = s;
+
+    while (n-- != 0) {
+        *dp++ = *sp++;
+    }
+}
+static PORT_OVL_NOASAN void PortOvl_Fill(void *d, u8 v, size_t n) {
+    volatile u8 *dp = d;
+
+    while (n-- != 0) {
+        *dp++ = v;
+    }
+}
+// the number of bytes of a that differ from b (b NULL: from zero)
+static PORT_OVL_NOASAN u32 PortOvl_Diff(const void *a, const void *b, size_t n) {
+    const volatile u8 *ap = a;
+    const volatile u8 *bp = b;
+    u32 c = 0;
+
+    for (size_t i = 0; i < n; i++) {
+        c += ap[i] != (bp != NULL ? bp[i] : 0);
+    }
+    return c;
+}
+#else
+__attribute__((unused)) static void PortOvl_Copy(void *d, const void *s, size_t n) {
+    memcpy(d, s, n);
+}
+__attribute__((unused)) static void PortOvl_Fill(void *d, u8 v, size_t n) {
+    memset(d, v, n);
+}
+__attribute__((unused)) static u32 PortOvl_Diff(const void *a, const void *b, size_t n) {
+    const u8 *ap = a;
+    const u8 *bp = b;
+    u32 c = 0;
+
+    for (size_t i = 0; i < n; i++) {
+        c += ap[i] != (bp != NULL ? bp[i] : 0);
+    }
+    return c;
+}
+#endif
+
 static BOOL PortOvl_EnvOn(const char *name) {
     const char *v = getenv(name);
     return v != NULL && v[0] != '\0' && strcmp(v, "0") != 0;
@@ -259,7 +319,7 @@ static void PortOvl_Load(void) {
             sTable = NULL;
             return;
         }
-        memcpy(sSnapshot, __bwovl_data, sTable->dataTotal);
+        PortOvl_Copy(sSnapshot, __bwovl_data, sTable->dataTotal);
     }
     if (sLog) {
         PortOvl_Print("ovl: %u overlays, %u bytes of .data (snapshot), %u of .bss\n", (unsigned)sTable->count,
@@ -279,7 +339,7 @@ void PortOvl_Keep(const void *p, size_t n) {
     const u8 *b = p;
 
     if (sSnapshot != NULL && sTable != NULL && b >= __bwovl_data && b + n <= __bwovl_data + sTable->dataTotal) {
-        memcpy(sSnapshot + (b - __bwovl_data), b, n);
+        PortOvl_Copy(sSnapshot + (b - __bwovl_data), b, n);
     }
 #else
     (void)p;
@@ -395,27 +455,20 @@ BOOL FS_LoadOverlay(MIProcessor target, FSOverlayID id) {
     }
     e = PortOvl_Entry(target, id);
 #ifdef BWPORT_OVL_SCRIPT
-    u32 dirtyData = 0, dirtyBss = 0, i;
+    u32 dirtyData = 0, dirtyBss = 0;
 
     if (sCheck && e != NULL) {
         // what the overlay's statics held before this load (nonzero: the reset below is doing something)
-        for (i = 0; i < e->dataSize; i++) {
-            dirtyData += __bwovl_data[e->dataOffset + i] != sSnapshot[e->dataOffset + i];
-        }
-        for (i = 0; i < e->bssSize; i++) {
-            dirtyBss += __bwovl_bss[e->bssOffset + i] != 0;
-        }
+        dirtyData = PortOvl_Diff(__bwovl_data + e->dataOffset, sSnapshot + e->dataOffset, e->dataSize);
+        dirtyBss = PortOvl_Diff(__bwovl_bss + e->bssOffset, NULL, e->bssSize);
     }
-    memcpy(__bwovl_data + e->dataOffset, sSnapshot + e->dataOffset, e->dataSize);
-    memset(__bwovl_bss + e->bssOffset, 0, e->bssSize);
+    PortOvl_Copy(__bwovl_data + e->dataOffset, sSnapshot + e->dataOffset, e->dataSize);
+    PortOvl_Fill(__bwovl_bss + e->bssOffset, 0, e->bssSize);
     if (sCheck) {
         // right after the load: .data is the start-of-game snapshot and .bss is zero
-        u32 badData = memcmp(__bwovl_data + e->dataOffset, sSnapshot + e->dataOffset, e->dataSize) != 0;
-        u32 badBss = 0;
+        u32 badData = PortOvl_Diff(__bwovl_data + e->dataOffset, sSnapshot + e->dataOffset, e->dataSize) != 0;
+        u32 badBss = PortOvl_Diff(__bwovl_bss + e->bssOffset, NULL, e->bssSize);
 
-        for (i = 0; i < e->bssSize; i++) {
-            badBss += __bwovl_bss[e->bssOffset + i] != 0;
-        }
         PortOvl_Print("ovl-check: ov%03u%s data %u bytes (%u were dirty) bss %u bytes (%u were dirty): %s\n",
                 (unsigned)id, sLoaded[id] ? " (again)" : "", (unsigned)e->dataSize, (unsigned)dirtyData,
                 (unsigned)e->bssSize, (unsigned)dirtyBss, badData || badBss ? "FAIL" : "ok");
@@ -439,8 +492,8 @@ BOOL FS_UnloadOverlay(MIProcessor target, FSOverlayID id) {
     e = PortOvl_Entry(target, id);
 #ifdef BWPORT_OVL_SCRIPT
     if (sPoison) {
-        memset(__bwovl_data + e->dataOffset, 0xa5, e->dataSize);
-        memset(__bwovl_bss + e->bssOffset, 0xa5, e->bssSize);
+        PortOvl_Fill(__bwovl_data + e->dataOffset, 0xa5, e->dataSize);
+        PortOvl_Fill(__bwovl_bss + e->bssOffset, 0xa5, e->bssSize);
     }
 #endif
     if (sLog) {

@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_49_getters.h"
 #include "sys_task.h"
 #include "screen_fade_internal.h"
 
@@ -12,9 +14,7 @@ typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
 typedef struct UnkStruct_ov70_022630A4_t UnkStruct_ov70_022630A4;
 
-UnkStruct_ov70_022630A4 *ov49_0225A010(UnkStruct_ov70_0225DEE8 *param0);
 
-u8 ov49_0225A02C(const UnkStruct_ov70_0225DEE8 *param0);
 
 typedef struct UnkStruct_ov70_02263344_t UnkStruct_ov70_02263344;
 

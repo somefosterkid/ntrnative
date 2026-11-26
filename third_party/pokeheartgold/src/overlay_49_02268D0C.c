@@ -1,4 +1,8 @@
 #include "global.h"
+
+#include "overlay_45_wifi_plaza_api.h"
+
+#include "overlay_49_getters.h"
 struct UnkStruct_ov70_0226C914_t;
 
 #include "error_handling.h"
@@ -34,7 +38,6 @@ struct UnkStruct_ov70_02263344_t;
 typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 typedef struct UnkStruct_ov70_02263344_t UnkStruct_ov70_02263344;
 BOOL ov45_0222A2E0(const WiFiPlazaSystem *param0);
-BOOL ov45_0222A330(const WiFiPlazaSystem *param0);
 BOOL ov45_0222A3A0(const WiFiPlazaSystem *param0);
 typedef struct UnkStruct_ov70_0225CA20_t UnkStruct_ov70_0225CA20;
 typedef struct UnkStruct_ov70_0225CC54_t UnkStruct_ov70_0225CC54;
@@ -45,8 +48,6 @@ void ov49_02258EAC(UnkStruct_ov70_0225CA20 *param0, const UnkStruct_ov70_0225CC5
 void ov49_02258EEC(UnkStruct_ov70_0225CA20 *param0, UnkStruct_ov70_0225CC54 *param1, int param2);
 void ov49_02259130(UnkStruct_ov70_0225CC54 *param0, BOOL param1);
 void ov49_02259160(UnkStruct_ov70_0225CC54 *param0, int param1);
-WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 void ov49_0225A08C(UnkStruct_ov70_0225DEE8 *param0, const String *param1);
 BOOL ov49_0225A0AC(const UnkStruct_ov70_0225DEE8 *param0);
 void ov49_0225A0EC(UnkStruct_ov70_0225DEE8 *param0);

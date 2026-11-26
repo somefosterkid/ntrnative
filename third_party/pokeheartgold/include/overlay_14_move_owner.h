@@ -25,6 +25,10 @@ typedef struct MoveSet {
     s32 frame;
     u32 from;
     u32 to;
+    s32 unk_EC; // never written by ov14_021F08BC (0xF0 alloc); ov14_021ECDA8 compares it with the cursor slot
 } MoveSet;
+#ifdef __MWERKS__
+LAYOUT_CHECK(MoveSet_size, sizeof(MoveSet) == 0xF0);
+#endif
 
 #endif // POKEHEARTGOLD_OVERLAY_14_MOVE_OWNER_H

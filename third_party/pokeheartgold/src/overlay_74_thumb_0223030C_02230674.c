@@ -14,7 +14,7 @@ u8 ov74_02231094(void);
 
 void *ov74_0223115C(void);
 
-s32 ov74_022314DC();
+BOOL ov74_022314DC(u32 param0);
 
 s32 ov74_02231560(void);
 
@@ -27,8 +27,7 @@ void ov74_02230674(void) {
     switch (v0) {
     case 2:
         if (ov74_0222FF28() != 0) {
-            ov74_0222FEC8();
-            if (ov74_022314DC() != 0) {
+            if (ov74_022314DC(ov74_0222FEC8()) != 0) {
                 *(s8 *)((u8 *)(ov74_0223115C()) + 0x60) = 1;
                 ov74_02231070(3);
                 return;

@@ -39,7 +39,11 @@ s32 sub_02005464(s32, s32);
 
 u8 sub_02005BFC(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02006C14(s32, s32, s32, s32, u16, u8);
+#else
 s32 sub_02006C14(s32, s32, s32, s32, s32, s32);
+#endif
 
 static s32 sub_020060BC(s32 arg0, s32 arg1, s32 arg2, s32 arg3, s32 unk) {
     s32 v0;

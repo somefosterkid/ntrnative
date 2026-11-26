@@ -23,7 +23,7 @@ enum RotationAxis {
 void ov45_0223093C(UnkStruct_ov66_02234798 *param0, int param1);
 
 void ov45_02230968(void *arg0);
-void ov45_02230974(void *arg0, s8 arg1);
+void ov45_02230974(UnkStruct_ov66_02234798 *arg0, s8 arg1);
 
 void ov45_0223093C(UnkStruct_ov66_02234798 *param0, int param1) {
     param0->unk_01_0 = 1;
@@ -36,6 +36,6 @@ void ov45_02230968(void *arg0) {
     *(u8 *)((u8 *)arg0 + 1) = (u8)(*(u8 *)((u8 *)arg0 + 1) & ~1);
 }
 
-void ov45_02230974(void *arg0, s8 arg1) {
-    *(s8 *)((u8 *)arg0 + 3) = arg1;
+void ov45_02230974(UnkStruct_ov66_02234798 *arg0, s8 arg1) {
+    arg0->unk_03 = arg1;
 }

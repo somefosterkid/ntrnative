@@ -50,7 +50,6 @@ typedef struct AxisRotAnimator {
     u16 framesRemaining;
 } AxisRotAnimator;
 
-int ov71_02248408(TradeTubePhase *ttPhase, int *unused);
 
 int ov71_0224843C(TradeTubePhase *ttPhase, int *subStepCounter);
 

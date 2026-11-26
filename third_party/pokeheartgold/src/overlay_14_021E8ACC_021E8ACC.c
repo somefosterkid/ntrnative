@@ -15,6 +15,10 @@
 #include "unk_02013534.h"
 #include "overlay_41_unk_struct_ov22_0225a154.h"
 #include "overlay_14_box_funcs.h"
+#include "overlay_41_unk_struct_ov22_02258A48.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct CharTransferAllocation;
 
@@ -88,33 +92,6 @@ typedef struct SoftwareSprite SoftwareSprite;
 
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
 
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
-
-typedef struct UnkStruct_ov22_02258A48_t {
-    void *unk_00;
-    void (*unk_04)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_08)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_0C)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_10)(struct UnkStruct_ov22_02258A48_t *param0);
-    s16 unk_14;
-    s16 unk_16;
-    u8 unk_18;
-    u8 padding[3];
-} UnkStruct_ov22_02258A48;
 
 typedef struct UnkStruct_ov22_02259C58_tag {
     Sprite *unk_00;
@@ -134,7 +111,6 @@ typedef struct {
     TouchscreenHitbox unk_6C[5];
 } UnkStruct_ov22_02259D2C;
 
-void ov41_0224A27C(UnkStruct_ov22_02259D2C *param0, UnkStruct_ov22_0225A0E4 *param1, u8 *, s32);
 
 void ov41_0224A5D4(u8 *arg0, s32 arg1, s32 arg2, u8 *arg3, s32 arg4);
 

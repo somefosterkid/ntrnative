@@ -23,7 +23,132 @@ extern BOOL GF_heap_c_dummy_return_true(enum HeapID heapId);
 // Data tables in assembly
 extern const OverlayManagerTemplate subOverlayTemplate;
 extern const u8 ov96_0221A934[40];
-extern const void *sPokeathlonStateInfoFuncTable;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov96_021E67C4(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6814(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6870(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E695C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6990(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E69C4(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6A00(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6A54(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6A94(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6AE8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6BC0(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6BEC(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6C20(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6C40(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6CB8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6CE4(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6D54(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6DE8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6E38(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6F18(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6F2C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E6FFC(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7030(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7080(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E70F0(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E711C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7150(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7190(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7268(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E74AC(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E74E0(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7294(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E72CC(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7320(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E73F8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7514(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7544(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E7590(PokeathlonCourseData *, u8 *);
+BOOL ov96_021E75B8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EB6C8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EB730(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EBA98(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EBAFC(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EBB64(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EC1B0(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EF094(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EFD9C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EFEB8(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EFF3C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021EFFE4(PokeathlonCourseData *, u8 *);
+BOOL ov96_021F008C(PokeathlonCourseData *, u8 *);
+BOOL ov96_021F7E74(PokeathlonCourseData *, u8 *);
+
+const PokeathlonStateFunc sPokeathlonStateInfoFuncTable[] = {
+    ov96_021E67C4,
+    ov96_021E6814,
+    ov96_021E6870,
+    ov96_021E695C,
+    ov96_021E6990,
+    ov96_021E69C4,
+    ov96_021E6A00,
+    ov96_021E6A54,
+    ov96_021E6A94,
+    ov96_021E6AE8,
+    ov96_021E6BC0,
+    ov96_021E6BEC,
+    ov96_021E6C20,
+    ov96_021E6C40,
+    ov96_021E6CB8,
+    ov96_021E6CE4,
+    ov96_021E6D54,
+    ov96_021E6DE8,
+    ov96_021E6E38,
+    ov96_021E6F18,
+    ov96_021E6F2C,
+    ov96_021E6FFC,
+    ov96_021E7030,
+    ov96_021E7080,
+    ov96_021E70F0,
+    ov96_021E711C,
+    ov96_021E7150,
+    ov96_021E7190,
+    ov96_021E7268,
+    ov96_021E74AC,
+    ov96_021E74E0,
+    ov96_021E7294,
+    ov96_021E72CC,
+    ov96_021E7320,
+    ov96_021E73F8,
+    ov96_021E7514,
+    ov96_021E7544,
+    ov96_021E7590,
+    ov96_021E75B8,
+};
+
+const PokeathlonStateFunc ov96_0221DA50[] = {
+    ov96_021EB6C8,
+    ov96_021EB730,
+    ov96_021EBA98,
+};
+
+const PokeathlonStateFunc ov96_0221DA5C[] = {
+    ov96_021EBAFC,
+    ov96_021EBB64,
+    ov96_021EC1B0,
+};
+
+const PokeathlonStateFunc ov96_0221DA68[] = {
+    ov96_021EF094,
+};
+
+const PokeathlonStateFunc ov96_0221DA6C[] = {
+    ov96_021EFD9C,
+    ov96_021EFEB8,
+    ov96_021EFF3C,
+    ov96_021EFFE4,
+    ov96_021F008C,
+};
+
+const PokeathlonStateFunc ov96_0221DC24[] = {
+    ov96_021F7E74,
+};
+#else
+extern const PokeathlonStateFunc sPokeathlonStateInfoFuncTable[];
+#endif
 
 BOOL PokeathlonCourse_Init(OverlayManager *manager, int *state) {
     PokeathlonCourseData *data;
@@ -49,7 +174,7 @@ BOOL PokeathlonCourse_Init(OverlayManager *manager, int *state) {
     data->subOverlay = subOverlay;
 
     specialMode = FALSE;
-    data->state = specialMode;
+    data->state = NULL;
     args = data->args;
 
     if (args->mode == 1) {
@@ -64,7 +189,7 @@ BOOL PokeathlonCourse_Init(OverlayManager *manager, int *state) {
     system = ov96_021E8770(ov96_021E8A24(), ov96_021E8A2C(), data, specialMode, data->heapId);
     data->system = system;
 
-    PokeathlonCourse_InitStateInfo(&sPokeathlonStateInfoFuncTable, &data->stateInfo);
+    PokeathlonCourse_InitStateInfo(sPokeathlonStateInfoFuncTable, &data->stateInfo);
 
     data->stateInfo.stateIndex = 0;
     data->courseState.argsPtr = &data->stateInfo;
@@ -157,14 +282,14 @@ BOOL PokeathlonCourse_Main(OverlayManager *manager, int *state) {
 
             // Copy data between buffers
             {
-                void *src;
+                s32 src;
                 u8 *dest1;
                 u8 *dest2;
                 u32 copyCount;
 
                 src = ov96_021E9A14();
                 dest1 = data->dataCopyBuffer1; // Destination buffer 1
-                ov96_021E87B4(0x1B, dest1, src, (int)data->system);
+                ov96_021E87B4(0x1B, dest1, src, data->system);
 
                 dest1 = ov96_021E8A20(data->dataCopyBuffer2); // Destination buffer 2
                 dest2 = ov96_021E8A20(data->dataCopySource);  // Source buffer
@@ -233,9 +358,9 @@ BOOL PokeathlonCourse_Exit(OverlayManager *manager, int *state) {
 }
 
 BOOL PokeathlonCourse_RunStateFunc(PokeathlonCourseData *data) {
-    void **stateDataPtr = (void **)&data->stateInfo.stateArgsBase;
+    u8 *stateDataPtr = &data->stateInfo.stateArgsBase;
     u8 index = data->stateInfo.stateIndex;
-    PokeathlonStateFunc *functionTable = (PokeathlonStateFunc *)data->stateInfo.ptr;
+    const PokeathlonStateFunc *functionTable = data->stateInfo.ptr;
     PokeathlonStateFunc func = functionTable[index];
     BOOL result = func(data, stateDataPtr);
 
@@ -243,13 +368,13 @@ BOOL PokeathlonCourse_RunStateFunc(PokeathlonCourseData *data) {
 }
 
 BOOL PokeathlonCourse_RunSubStateLoop(PokeathlonCourseData *data) {
-    PokeathlonStateHandlerFunc *statePtr;
+    const PokeathlonEventHandlers *statePtr;
     PokeathlonStateHandlerFunc func;
     BOOL result;
 
     do {
-        statePtr = (PokeathlonStateHandlerFunc *)data->state;
-        func = statePtr[0];
+        statePtr = data->state;
+        func = statePtr->funcs[0];
         result = func(data, 0);
 
         if (result == 1) {
@@ -264,8 +389,8 @@ BOOL PokeathlonCourse_RunSubStateLoop(PokeathlonCourseData *data) {
     return FALSE;
 }
 
-void PokeathlonCourse_InitStateInfo(const void *funcTable, PokeathlonStateInfo *stateInfo) {
-    stateInfo->ptr = (void *)funcTable;
+void PokeathlonCourse_InitStateInfo(const PokeathlonStateFunc *funcTable, PokeathlonStateInfo *stateInfo) {
+    stateInfo->ptr = funcTable;
     stateInfo->field_04 = 1;
     stateInfo->stateArgsBase = 0;
     stateInfo->stateIndex = 0;
@@ -422,7 +547,7 @@ void PokeathlonCourse_ResetField1EF(PokeathlonCourseData *data) {
     data->field_1EF = 0;
 }
 
-void *PokeathlonCourse_GetSystem(PokeathlonCourseData *data) {
+Ov96System *PokeathlonCourse_GetSystem(PokeathlonCourseData *data) {
     return data->system;
 }
 
@@ -444,25 +569,25 @@ u8 *PokeathlonCourse_GetDataCopyArea(PokeathlonCourseData *data) {
 
 void PokeathlonCourse_ResetDataCopyArea(PokeathlonCourseData *data) {
     // Look like it's filling dataCopySource + dataCopyBuffer1 + dataCopyBuffer2 + filler_304 + field_3A4
-    MI_CpuFill8(data->dataCopySource, 0, 296);
+    MI_CpuFill8(data->dataCopySource, 0, offsetof(PokeathlonCourseData, courseState) - offsetof(PokeathlonCourseData, dataCopySource));
 }
 
-void PokeathlonCourse_SetField3A4(PokeathlonCourseData *data, u32 a0, u32 a1, u32 a2) {
-    data->field_3A4[0] = a0;
-    data->field_3A4[1] = a1;
-    data->field_3A4[2] = a2;
-    data->field_3A4[3] = 1;
+void PokeathlonCourse_SetField3A4(PokeathlonCourseData *data, u8 *a0, u8 *a1, s32 a2) {
+    data->field_3A4.sendData = a0;
+    data->field_3A4.recvData = a1;
+    data->field_3A4.size = a2;
+    data->field_3A4.active = 1;
 }
 
 void PokeathlonCourse_ResetField3A4(PokeathlonCourseData *data) {
-    data->field_3A4[0] = 0;
-    data->field_3A4[1] = 0;
-    data->field_3A4[2] = 0;
-    data->field_3A4[3] = 0;
+    data->field_3A4.sendData = NULL;
+    data->field_3A4.recvData = NULL;
+    data->field_3A4.size = 0;
+    data->field_3A4.active = 0;
 }
 
-u32 PokeathlonCourse_GetField3A4(PokeathlonCourseData *data) {
-    return data->field_3A4[1];
+u8 *PokeathlonCourse_GetField3A4(PokeathlonCourseData *data) {
+    return data->field_3A4.recvData;
 }
 
 u32 PokeathlonCourse_GetUnkConstant4(void *data) {

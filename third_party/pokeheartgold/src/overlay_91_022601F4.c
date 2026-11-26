@@ -3,7 +3,11 @@
 #include "math_util.h"
 #include "overlay_91_unk_struct_ov115_02261_c18.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_020182E0(u8 *, s16, s32);
+#else
 s32 sub_020182E0(u8 *, u16, s32);
+#endif
 
 void ov91_022601F4(void *arg0, void *arg1);
 

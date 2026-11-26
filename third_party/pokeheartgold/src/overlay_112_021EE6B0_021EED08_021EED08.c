@@ -8,21 +8,9 @@ struct POKEWALKER;
 
 extern void ov112_021EE7A8(Ov112PokewalkerApp *work);
 
-extern void ov112_021EEAF0(Ov112PokewalkerApp *work, int a1);
-
-extern void ov112_021EEA7C(Ov112PokewalkerApp *work);
-
-extern void ov112_021EE920(Ov112PokewalkerApp *work);
-
 extern void ov112_021E9290(void *a0, void *a1, void *a2, int a3);
 
-extern void ov112_021ED0C8(Ov112PokewalkerApp *work);
-
 extern void ov112_021EAA10(Ov112PokewalkerApp *work);
-
-extern void ov112_021E95A0(Ov112PokewalkerApp *work);
-
-int ov112_021EED08(Ov112PokewalkerApp *work);
 
 int ov112_021EED08(Ov112PokewalkerApp *work) {
     int state;

@@ -17,7 +17,11 @@ void ov74_02231448(WMErrCode param0);
 #else
 void ov74_02231448();
 #endif
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov74_0223144C(WMStateCode);
+#else
 s32 ov74_0223144C(u16);
+#endif
 void ov74_0222FFFC(void *arg0);
 void ov74_02230018(void *arg0);
 s32 ov74_02231070(s8);

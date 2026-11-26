@@ -146,8 +146,6 @@ WindowTemplate * ov112_021FF684[16] = {
 };
 #endif
 
-void ov112_021E9A78(Ov112PokewalkerApp *param_1, u8 param_2);
-
 void ov112_021E9A78(Ov112PokewalkerApp *param_1, u8 param_2) {
     u8 uVar1;
     u32 unaff_r4;

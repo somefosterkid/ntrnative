@@ -37,7 +37,7 @@ void ov83_0224791C(Window *windows, u8 isOpponentApp) {
     }
 }
 
-void ov83_02247944(Window *arg0, u8 arg1);
+void ov83_02247944(Window *window, u8 arg1);
 
 void ov83_02247944(Window *window, u8 frame) {
     LoadUserFrameGfx2(window->bgConfig, (enum GFBgLayer)GetWindowBgId(window), 0x3D9U, 0xAU, (u8)(s32)frame, HEAP_ID_107);

@@ -1,0 +1,4 @@
+# game: black
+# from: town
+# reaches: Nuvema Town walked in a loop (left5 up8 right5 down8, three times): a steady scroll for the pacing check (tools/pace_run.sh, tools/pace_report.py)
+walk 300 40 left5 up8 right5 down8 left5 up8 right5 down8 left5 up8 right5 down8

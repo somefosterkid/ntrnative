@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_49_getters.h"
 #include "overlay_49_unk_struct_ov70_02266af0.h"
 
 #include "error_handling.h"
@@ -10,7 +12,6 @@ struct UnkStruct_ov70_0225CC54_t *ov49_02258DAC(struct UnkStruct_ov70_0225CA20_t
 
 void ov49_02258EEC(struct UnkStruct_ov70_0225CA20_t *param0, struct UnkStruct_ov70_0225CC54_t *param1, int param2);
 
-struct UnkStruct_ov70_0225CA20_t *ov49_02259FF0(void *param0);
 
 s32 ov49_0225A040(void *);
 

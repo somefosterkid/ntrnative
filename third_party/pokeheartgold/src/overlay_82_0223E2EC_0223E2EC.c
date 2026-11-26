@@ -201,7 +201,7 @@ struct BattleHallApp {
 
 u8 ov80_02237920(u8 param0);
 
-void ov82_0223E8C4(void *arg0);
+void ov82_0223E8C4(BattleHallApp *arg0);
 
 void ov82_0223F224(void *arg0);
 
@@ -211,9 +211,9 @@ void ov82_0223F580(BattleHallApp *app, BgConfig *bgConfig);
 
 void ov82_0223F834(void *arg0);
 
-void ov82_0223F84C(void *arg0);
+void ov82_0223F84C(BattleHallApp *arg0);
 
-void ov82_0223F8E4(void *arg0);
+void ov82_0223F8E4(BattleHallApp *arg0);
 
 void ov82_0223F90C(void *arg0);
 
@@ -241,15 +241,27 @@ s32 ov82_0223F6CC(BattleHallApp *);
 
 s32 ov82_0223F6E4(BattleHallApp *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223FCBC(SpriteResource *, u16, u16);
+#else
 void ov82_0223FCBC(SpriteResource *, u32, u32);
+#endif
 
 void ov82_0223FCFC(SpriteResource *, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223FD78(Window *, u8);
+#else
 void ov82_0223FD78(Window *, u32);
+#endif
 
 s32 ov82_0223FE18(ListMenuItem *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 sub_02030BD0(u8, SpriteResource *);
+#else
 u8 sub_02030BD0(u32, SpriteResource *);
+#endif
 
 u32 ov82_0223E2EC(BattleHallApp *param_1, s32 arg1, s32 arg2);
 

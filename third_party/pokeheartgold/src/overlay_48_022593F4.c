@@ -16,6 +16,7 @@
 #include "vram_transfer_manager.h"
 #include "unk_0200B150.h"
 #include "overlay_48_unk_struct_ov69_0225_d35_c.h"
+#include "overlay_48_unk_struct_ov69_0225ddc8.h"
 
 struct G3DPipelineBuffers;
 
@@ -278,15 +279,6 @@ typedef struct {
     int unk_18;
     Window unk_1C;
 } UnkStruct_ov69_0225DC48;
-
-typedef struct {
-    u32 unk_00;
-    u32 unk_04;
-    u32 unk_08;
-    String *unk_0C;
-    Window unk_10;
-    YesNoTouchMenu *unk_20;
-} UnkStruct_ov69_0225DDC8;
 
 typedef struct {
     MessageLoader *unk_00;

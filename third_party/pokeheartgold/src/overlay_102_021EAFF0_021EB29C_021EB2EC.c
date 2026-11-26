@@ -57,14 +57,14 @@ void ov102_021EB3B4(void *arg0, s32 arg1) {
     temp_r6 = temp_r0;
     if (arg1 == 0) {
         FillBgTilemapRect(temp_r0, 0U, 0U, 0x18U, 0x14U, 8U, 4U, 0x11U);
-        ClearWindowTilemapAndCopyToVram(arg0 + 0x44);
+        ClearWindowTilemapAndCopyToVram(&((Ov102App_021EB1E0 *)arg0)->unk_24[2]);
         ScheduleBgTilemapBufferTransfer(temp_r6, 0U);
         return;
     }
     temp_r2 = ((Ov102App_021EB1E0 *)arg0)->unk_5C;
     CopyToBgTilemapRect(temp_r0, 0U, 0x18U, 0x14U, 8U, 4U, temp_r2 + 0xC, 0U, 7U, (u8)((u32) * (u16 *)temp_r2 >> 3), (u8)((u32) * (u16 *)((u8 *)temp_r2 + 2) >> 3));
-    FillWindowPixelBuffer(arg0 + 0x44, 0xEU);
+    FillWindowPixelBuffer(&((Ov102App_021EB1E0 *)arg0)->unk_24[2], 0xEU);
     temp_r3 = 0x30 - FontID_String_GetWidth(FONT_UNK_4, ((Ov102App_021EB1E0 *)arg0)->unk_18[2], 0U);
-    AddTextPrinterParameterizedWithColor(arg0 + 0x44, FONT_UNK_4, ((Ov102App_021EB1E0 *)arg0)->unk_18[2], (u32)((s32)temp_r3 / 2), 0U, 0U, 0x3010EU, NULL);
+    AddTextPrinterParameterizedWithColor(&((Ov102App_021EB1E0 *)arg0)->unk_24[2], FONT_UNK_4, ((Ov102App_021EB1E0 *)arg0)->unk_18[2], (u32)((s32)temp_r3 / 2), 0U, 0U, 0x3010EU, NULL);
     ScheduleBgTilemapBufferTransfer(temp_r6, 0U);
 }

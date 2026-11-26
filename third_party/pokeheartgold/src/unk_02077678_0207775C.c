@@ -25,7 +25,11 @@ struct ManagedSprite;
 BOOL SpriteManager_UnloadCharObjById(SpriteManager *spriteManager, u32 character);
 BOOL SpriteManager_UnloadPlttObjById(SpriteManager *spriteManager, u32 pal);
 ManagedSprite *SpriteSystem_NewSprite(SpriteSystem *spriteSys, SpriteManager *spriteMan, const ManagedSpriteTemplate *template);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 TypeIconGfx_GetPlttOverride(u16 param0);
+#else
 u8 TypeIconGfx_GetPlttOverride(int param0);
+#endif
 void Sprite_DeleteAndFreeResources(ManagedSprite *managedSprite);
 BOOL SpriteManager_UnloadMoveTypeIconCharResObjByTag(SpriteManager *spriteManager, u32 character);
 BOOL SpriteManager_UnloadMoveTypeAndCategoryIconPlttResObjByTag(SpriteManager *spriteManager, u32 pal);

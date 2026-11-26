@@ -11,7 +11,11 @@ s32 ov14_021E9554(void *arg0);
 void ov14_021F0BF4(void *arg0);
 void ov14_021F4720(void *arg0);
 s32 ov14_021E7588(void *, s32, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021EA1F0(void *);
+#else
 s32 ov14_021EA1F0(void *);
+#endif
 s32 ov14_021F01D8(void *, s32);
 s32 ov14_021F3488(void *, s32, s32);
 s32 ov14_021F3F6C(void *);

@@ -9,9 +9,8 @@
 
 void ov96_0220EAC4(UnkStruct_ov96_0220E3F0 *arg0);
 
-s32 ov96_021E65A4(PokeathlonCourseData *);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
 
 s32 ov96_0220E2A8(PokeathlonCourseData *);
 

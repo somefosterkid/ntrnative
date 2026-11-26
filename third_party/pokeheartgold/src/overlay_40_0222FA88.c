@@ -60,7 +60,11 @@ typedef struct {
     int unk_00;
     BOOL unk_04;
 } UnkStruct_ov62_02233750;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov40_0222BC44(u8 param0);
+#else
 void ov40_0222BC44(int param0);
+#endif
 void sub_0203A86C(void);
 typedef struct UnkStruct_0202F41C_t UnkStruct_0202F41C;
 typedef struct {

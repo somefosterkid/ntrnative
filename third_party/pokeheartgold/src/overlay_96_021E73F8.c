@@ -10,13 +10,13 @@
 
 s32 sub_02031B10(void);
 
-s32 ov96_021E73F8(PokeathlonCourseData *arg0);
+BOOL ov96_021E73F8(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E87EC(s32, u8 *, s32, void *);
-s32 ov96_021E9A18(void);
-s32 ov96_021E74AC(PokeathlonCourseData *arg0);
+s32 ov96_021E87EC(s32, u8 *, s32, Ov96System *);
+u32 ov96_021E9A18(void);
+BOOL ov96_021E74AC(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E73F8(PokeathlonCourseData *data) {
+BOOL ov96_021E73F8(PokeathlonCourseData *data, u8 *unused) {
     PlayerProfile *playerProfile;
     Pokeathlon_UnkSubStruct_B00 *v0;
     SaveApricornBox *saveApricornBox;
@@ -42,7 +42,7 @@ s32 ov96_021E73F8(PokeathlonCourseData *data) {
     return 0;
 }
 
-s32 ov96_021E74AC(PokeathlonCourseData *data) {
+BOOL ov96_021E74AC(PokeathlonCourseData *data, u8 *unused) {
     ov96_021E5F24(data);
     if (ov96_021E87EC(0x1F, data->filler_B44, ov96_021E9A18(), data->system) != 0) {
         PokeathlonCourse_SetStateField07(data, 0x26U);

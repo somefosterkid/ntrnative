@@ -8,7 +8,7 @@ extern u8 ov01_02209B70[4][0xF000];
 
 MapLoadBuffers *ov01_021FAC44(const BOOL allocBDHCFiles);
 
-void ov01_021FACF8(const u8 index, const int mapModelFileSize, const int bdhcFileSize, MapLoadBuffers *buffers);
+void ov01_021FACF8(const unsigned int index, const int mapModelFileSize, const int bdhcFileSize, MapLoadBuffers *buffers);
 
 MapLoadBuffers *ov01_021FAC44(const BOOL allocBDHCFiles) {
     u8 i;

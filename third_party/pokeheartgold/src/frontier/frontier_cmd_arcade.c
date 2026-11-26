@@ -31,7 +31,7 @@ BOOL FrtCmd_ArcadeAlloc(FrontierScriptContext *ctx) {
     u32 r7 = FrontierScript_ReadVar(ctx);
     u16 *sp14 = FrontierScript_ReadVarPtr(ctx);
 
-    FrontierLaunchArgs *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     Frontier_SetData(ctx->frontierSystem->unk0, BattleArcadeData_Alloc(args->saveData, spC, r4, sp10, r6, r7, sp14));
 
     return FALSE;
@@ -52,7 +52,7 @@ BOOL FrtCmd_ArcadeFree(FrontierScriptContext *ctx) {
 extern OverlayManagerTemplate gOverlayTemplate_BattleArcadeGameBoard;
 
 BOOL FrtCmd_LaunchGameBoard(FrontierScriptContext *ctx) {
-    FrontierLaunchArgs *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     ArcadeContext *data = Frontier_GetData(ctx->frontierSystem->unk0);
     GAME_BOARD_ARGS *boardArgs = Heap_Alloc(HEAP_ID_FIELD2, sizeof(GAME_BOARD_ARGS));
     MI_CpuFill8(boardArgs, 0, sizeof(GAME_BOARD_ARGS));
@@ -129,7 +129,7 @@ BOOL FrtCmd_187(FrontierScriptContext *ctx) {
 }
 
 BOOL FrtCmd_ArcadeStartBattle(FrontierScriptContext *ctx) {
-    FrontierLaunchArgs *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     ArcadeContext *arcadeData = Frontier_GetData(ctx->frontierSystem->unk0);
     BattleSetup *setup = BattleArcade_NewBattleSetup(arcadeData, args);
 
@@ -204,7 +204,7 @@ BOOL FrtCmd_ArcadeAction(FrontierScriptContext *ctx) {
     u8 var1 = FrontierScript_ReadVar(ctx);
     u16 *out = FrontierScript_ReadVarPtr(ctx);
     ArcadeContext *arcadeCtx = Frontier_GetData(ctx->frontierSystem->unk0);
-    FrontierLaunchArgs *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     FrontierMap *frontierMap = FrontierSystem_GetFrontierMap(ctx->frontierSystem);
 
     switch (action) {
@@ -489,7 +489,7 @@ static BOOL ov80_02234028(FrontierScriptContext *ctx) {
 }
 
 BOOL FrtCmd_ArcadePrintMsg(FrontierScriptContext *ctx) {
-    FrontierLaunchArgs *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *args = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     u8 index = FrontierScript_ReadShort(ctx);
     ArcadeContext *arcadeCtx = Frontier_GetData(ctx->frontierSystem->unk0);
 

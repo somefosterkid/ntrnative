@@ -7,9 +7,9 @@
 
 #include "overlay_96_ov96_rd_work.h"
 
-u32 ov96_02215A70(PokeathlonCourseData *param_1, u8 *param_2);
+s32 ov96_02215A70(PokeathlonCourseData *param_1, u8 *param_2);
 
-u32 ov96_02215A70(PokeathlonCourseData *param_1, u8 *param_2) {
+s32 ov96_02215A70(PokeathlonCourseData *param_1, u8 *param_2) {
     Ov96RdWork *pvVar1;
     BOOL BVar2;
     u32 uVar3;

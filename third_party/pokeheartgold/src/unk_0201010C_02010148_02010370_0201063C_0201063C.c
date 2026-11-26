@@ -71,9 +71,7 @@ static inline void inline_0201035C_sub(int param0, int param1, int param2, int p
     }
 }
 
-void sub_02010F34(int param0, HardwareWindowSettings *param1, enum DSScreen screen);
 
-void sub_02010F84(HardwareWindowSettings *param0, int param1, int param2, int param3, enum DSScreen screen, int param5, int param6, int param7, int param8, int param9);
 
 void sub_02011068(HardwareWindowSettings *param0, int param1, enum DSScreen screen, int param3);
 

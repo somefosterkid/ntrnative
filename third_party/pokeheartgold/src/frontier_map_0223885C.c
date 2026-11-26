@@ -20,7 +20,7 @@
 #include "frontier_graphics.h"
 #include "overlay_45_unk_struct_ov66_02234798.h"
 
-s32 ov80_0222ADB4(void *, void *, u8);
+s32 ov80_0222ADB4(void *, void *, int);
 
 s32 ov80_0223927C(void *);
 
@@ -116,7 +116,6 @@ typedef struct {
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
 s32 ov42_02228188(const UnkStruct_ov63_0222BEC0 *param0, int param1);
 BOOL ov42_022291F4(const UnkStruct_ov63_0222CE44 *param0);
-UnkStruct_ov104_0223C634 *sub_0209686C(BattleFrontier *frontier, int param1);
 void ov80_02239740(FrontierGraphics *param0);
 void ov80_022389C4(FrontierGraphics *param0);
 

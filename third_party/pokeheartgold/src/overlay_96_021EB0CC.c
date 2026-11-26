@@ -4,7 +4,11 @@
 
 u32 ov96_021EB0CC(Ov96SpriteSetElem *elem, fx32 param_2, fx32 param_3, s32 param_4, s32 param_5);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E9204(void *param_1, f32 x, f32 y);
+#else
 void ov96_021E9204(void *param_1, u32 param_2, u32 param_3);
+#endif
 void ov96_021EB10C(Ov96SpriteSetElem *elem, u32 param_2, u32 param_3);
 s32 ov96_021EB120(Ov96SpriteSetElem *elem);
 

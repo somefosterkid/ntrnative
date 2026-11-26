@@ -31,22 +31,22 @@ void ov14_021F0660(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
     int new_var;
     Pokemon *temp_r4;
     u32 var_r4;
-    void *temp_r0;
+    UnkStruct_ov14_boxsys *temp_r0;
     sp0 = arg1;
     arg0->unk21 = (u8)sp0;
     var_r4 = 0x1E;
     do {
-        temp_r0 = *((void * *)&arg0->sys);
+        temp_r0 = arg0->sys;
         if (var_r4 == (arg0->unk21)) {
-            ov14_021F3190(*((void * *)&arg0->sys), var_r4, 0);
+            ov14_021F3190(arg0->sys, var_r4, 0);
         } else {
-            ov14_021F3190(*((void * *)&arg0->sys), var_r4, 1);
+            ov14_021F3190(arg0->sys, var_r4, 1);
         }
         var_r4 += 1;
     } while (var_r4 < 0x24U);
     ov14_021F3F6C(arg0);
     ov14_021F3488(arg0, 2, 1);
-    ov14_021F34C8(*((void * *)&arg0->sys), arg0->unk21, 0);
+    ov14_021F34C8(arg0->sys, arg0->unk21, 0);
     ov14_021F685C(arg0, arg0->unk21, 1, 0x27);
     temp_r4 = Party_GetMonByIndex(arg0->party, sp0 - 0x1E);
     sp0 -= 0x1E;
@@ -56,7 +56,7 @@ void ov14_021F0660(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
         ov14_021F6928(arg0, 0x28, new_var);
     } else if (GetMonData(temp_r4, 0xA2, 0L) != 0) {
         ov14_021F6928(arg0, 0x28, 7);
-    } else if (PCStorage_CountEmptySpotsInBox(*((PCStorage * *)&arg0->storage), (u32)(arg0->unk1F)) == 0) {
+    } else if (PCStorage_CountEmptySpotsInBox(arg0->storage, (u32)(arg0->unk1F)) == 0) {
         ov14_021F6928(arg0, 0x28, 2);
     } else {
         ov14_021F6928(arg0, 0x28, 0);

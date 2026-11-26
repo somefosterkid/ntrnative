@@ -1,0 +1,7 @@
+# game: black
+# from: route1
+# reaches: a wild battle at Route 1's grass edge (the first step: encounter at about f380): the send-out (to about f1000), Fight and the first move with A presses, the wild Pokemon fainting to a one-shot (BWPORT_TESTCHEAT=win), the messages
+# end: f1800
+env BWPORT_TESTCHEAT=win
+walk 300 20 up6
+keys a@f1000 a@f1060 a@f1120 a@f1180 a@f1240 a@f1300 a@f1360 a@f1420 a@f1480 a@f1540 a@f1600 a@f1660 a@f1720 a@f1780 a@f1840

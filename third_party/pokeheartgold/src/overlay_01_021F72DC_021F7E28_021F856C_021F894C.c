@@ -3,7 +3,7 @@
 #include "map_object.h"
 #include "overlay_01_021F944C.h"
 
-s32 ov01_021F8C88(LocalMapObject *, Billboard *);
+void ov01_021F8C88(LocalMapObject *, Billboard *);
 
 s32 sub_02023EE0(Billboard *, s32);
 

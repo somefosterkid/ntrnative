@@ -2,6 +2,7 @@
 #include "sprite_resources_header.h"
 #include "overlay_70_gtsapplication_state.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -258,7 +259,6 @@ typedef struct SaveDataState {
     volatile BOOL locked;
 } SaveDataState;
 
-typedef struct SaveData SaveData;
 
 typedef struct BagItem {
     u16 item;
@@ -788,188 +788,6 @@ enum Species {
 
 void Heap_Free(void *ptr);
 
-enum PokemonDataParam {
-    MON_DATA_PERSONALITY = 0,
-    MON_DATA_IS_PARTY_DECRYPTED = 1,
-    MON_DATA_IS_BOX_DECRYPTED = 2,
-    MON_DATA_CHECKSUM_FAILED = 3,
-    MON_DATA_CHECKSUM = 4,
-    MON_DATA_SPECIES = 5,
-    MON_DATA_HELD_ITEM = 6,
-    MON_DATA_OT_ID = 7,
-    MON_DATA_EXPERIENCE = 8,
-    MON_DATA_FRIENDSHIP = 9,
-    MON_DATA_ABILITY = 10,
-    MON_DATA_MARKINGS = 11,
-    MON_DATA_LANGUAGE = 12,
-    MON_DATA_HP_EV = 13,
-    MON_DATA_ATK_EV = 14,
-    MON_DATA_DEF_EV = 15,
-    MON_DATA_SPEED_EV = 16,
-    MON_DATA_SPATK_EV = 17,
-    MON_DATA_SPDEF_EV = 18,
-    MON_DATA_COOL = 19,
-    MON_DATA_BEAUTY = 20,
-    MON_DATA_CUTE = 21,
-    MON_DATA_SMART = 22,
-    MON_DATA_TOUGH = 23,
-    MON_DATA_SHEEN = 24,
-    MON_DATA_SINNOH_CHAMP_RIBBON = 25,
-    MON_DATA_ABILITY_RIBBON = 26,
-    MON_DATA_GREAT_ABILITY_RIBBON = 27,
-    MON_DATA_DOUBLE_ABILITY_RIBBON = 28,
-    MON_DATA_MULTI_ABILITY_RIBBON = 29,
-    MON_DATA_PAIR_ABILITY_RIBBON = 30,
-    MON_DATA_WORLD_ABILITY_RIBBON = 31,
-    MON_DATA_ALERT_RIBBON = 32,
-    MON_DATA_SHOCK_RIBBON = 33,
-    MON_DATA_DOWNCAST_RIBBON = 34,
-    MON_DATA_CARELESS_RIBBON = 35,
-    MON_DATA_RELAX_RIBBON = 36,
-    MON_DATA_SNOOZE_RIBBON = 37,
-    MON_DATA_SMILE_RIBBON = 38,
-    MON_DATA_GORGEOUS_RIBBON = 39,
-    MON_DATA_ROYAL_RIBBON = 40,
-    MON_DATA_GORGEOUS_ROYAL_RIBBON = 41,
-    MON_DATA_FOOTPRINT_RIBBON = 42,
-    MON_DATA_RECORD_RIBBON = 43,
-    MON_DATA_HISTORY_RIBBON = 44,
-    MON_DATA_LEGEND_RIBBON = 45,
-    MON_DATA_RED_RIBBON = 46,
-    MON_DATA_GREEN_RIBBON = 47,
-    MON_DATA_BLUE_RIBBON = 48,
-    MON_DATA_FESTIVAL_RIBBON = 49,
-    MON_DATA_CARNIVAL_RIBBON = 50,
-    MON_DATA_CLASSIC_RIBBON = 51,
-    MON_DATA_PREMIER_RIBBON = 52,
-    MON_DATA_UNUSED_RIBBON_53 = 53,
-    MON_DATA_MOVE1 = 54,
-    MON_DATA_MOVE2 = 55,
-    MON_DATA_MOVE3 = 56,
-    MON_DATA_MOVE4 = 57,
-    MON_DATA_MOVE1_PP = 58,
-    MON_DATA_MOVE2_PP = 59,
-    MON_DATA_MOVE3_PP = 60,
-    MON_DATA_MOVE4_PP = 61,
-    MON_DATA_MOVE1_PP_UPS = 62,
-    MON_DATA_MOVE2_PP_UPS = 63,
-    MON_DATA_MOVE3_PP_UPS = 64,
-    MON_DATA_MOVE4_PP_UPS = 65,
-    MON_DATA_MOVE1_MAX_PP = 66,
-    MON_DATA_MOVE2_MAX_PP = 67,
-    MON_DATA_MOVE3_MAX_PP = 68,
-    MON_DATA_MOVE4_MAX_PP = 69,
-    MON_DATA_HP_IV = 70,
-    MON_DATA_ATK_IV = 71,
-    MON_DATA_DEF_IV = 72,
-    MON_DATA_SPEED_IV = 73,
-    MON_DATA_SPATK_IV = 74,
-    MON_DATA_SPDEF_IV = 75,
-    MON_DATA_IS_EGG = 76,
-    MON_DATA_HAS_NICKNAME = 77,
-    MON_DATA_COOL_RIBBON = 78,
-    MON_DATA_COOL_RIBBON_SUPER = 79,
-    MON_DATA_COOL_RIBBON_HYPER = 80,
-    MON_DATA_COOL_RIBBON_MASTER = 81,
-    MON_DATA_BEAUTY_RIBBON = 82,
-    MON_DATA_BEAUTY_RIBBON_SUPER = 83,
-    MON_DATA_BEAUTY_RIBBON_HYPER = 84,
-    MON_DATA_BEAUTY_RIBBON_MASTER = 85,
-    MON_DATA_CUTE_RIBBON = 86,
-    MON_DATA_CUTE_RIBBON_SUPER = 87,
-    MON_DATA_CUTE_RIBBON_HYPER = 88,
-    MON_DATA_CUTE_RIBBON_MASTER = 89,
-    MON_DATA_SMART_RIBBON = 90,
-    MON_DATA_SMART_RIBBON_SUPER = 91,
-    MON_DATA_SMART_RIBBON_HYPER = 92,
-    MON_DATA_SMART_RIBBON_MASTER = 93,
-    MON_DATA_TOUGH_RIBBON = 94,
-    MON_DATA_TOUGH_RIBBON_SUPER = 95,
-    MON_DATA_TOUGH_RIBBON_HYPER = 96,
-    MON_DATA_TOUGH_RIBBON_MASTER = 97,
-    MON_DATA_CHAMPION_RIBBON = 98,
-    MON_DATA_WINNING_RIBBON = 99,
-    MON_DATA_VICTORY_RIBBON = 100,
-    MON_DATA_ARTIST_RIBBON = 101,
-    MON_DATA_EFFORT_RIBBON = 102,
-    MON_DATA_MARINE_RIBBON = 103,
-    MON_DATA_LAND_RIBBON = 104,
-    MON_DATA_SKY_RIBBON = 105,
-    MON_DATA_COUNTRY_RIBBON = 106,
-    MON_DATA_NATIONAL_RIBBON = 107,
-    MON_DATA_EARTH_RIBBON = 108,
-    MON_DATA_WORLD_RIBBON = 109,
-    MON_DATA_FATEFUL_ENCOUNTER = 110,
-    MON_DATA_GENDER = 111,
-    MON_DATA_FORM = 112,
-    MON_DATA_UNUSED_113 = 113,
-    MON_DATA_UNUSED_114 = 114,
-    MON_DATA_EGG_LOCATION_PTHGSS = 115,
-    MON_DATA_MET_LOCATION_PTHGSS = 116,
-    MON_DATA_NICKNAME = 117,
-    MON_DATA_NICKNAME_AND_FLAG = 118,
-    MON_DATA_NICKNAME_STRING = 119,
-    MON_DATA_NICKNAME_STRING_AND_FLAG = 120,
-    MON_DATA_UNUSED_121 = 121,
-    MON_DATA_MET_GAME = 122,
-    MON_DATA_SUPER_COOL_RIBBON = 123,
-    MON_DATA_SUPER_COOL_RIBBON_GREAT = 124,
-    MON_DATA_SUPER_COOL_RIBBON_ULTRA = 125,
-    MON_DATA_SUPER_COOL_RIBBON_MASTER = 126,
-    MON_DATA_SUPER_BEAUTY_RIBBON = 127,
-    MON_DATA_SUPER_BEAUTY_RIBBON_GREAT = 128,
-    MON_DATA_SUPER_BEAUTY_RIBBON_ULTRA = 129,
-    MON_DATA_SUPER_BEAUTY_RIBBON_MASTER = 130,
-    MON_DATA_SUPER_CUTE_RIBBON = 131,
-    MON_DATA_SUPER_CUTE_RIBBON_GREAT = 132,
-    MON_DATA_SUPER_CUTE_RIBBON_ULTRA = 133,
-    MON_DATA_SUPER_CUTE_RIBBON_MASTER = 134,
-    MON_DATA_SUPER_SMART_RIBBON = 135,
-    MON_DATA_SUPER_SMART_RIBBON_GREAT = 136,
-    MON_DATA_SUPER_SMART_RIBBON_ULTRA = 137,
-    MON_DATA_SUPER_SMART_RIBBON_MASTER = 138,
-    MON_DATA_SUPER_TOUGH_RIBBON = 139,
-    MON_DATA_SUPER_TOUGH_RIBBON_GREAT = 140,
-    MON_DATA_SUPER_TOUGH_RIBBON_ULTRA = 141,
-    MON_DATA_SUPER_TOUGH_RIBBON_MASTER = 142,
-    MON_DATA_UNUSED_RIBBON_143 = 143,
-    MON_DATA_OT_NAME = 144,
-    MON_DATA_OT_NAME_STRING = 145,
-    MON_DATA_EGG_YEAR = 146,
-    MON_DATA_EGG_MONTH = 147,
-    MON_DATA_EGG_DAY = 148,
-    MON_DATA_MET_YEAR = 149,
-    MON_DATA_MET_MONTH = 150,
-    MON_DATA_MET_DAY = 151,
-    MON_DATA_EGG_LOCATION = 152,
-    MON_DATA_MET_LOCATION = 153,
-    MON_DATA_POKERUS = 154,
-    MON_DATA_POKEBALL = 155,
-    MON_DATA_MET_LEVEL = 156,
-    MON_DATA_OT_GENDER = 157,
-    MON_DATA_MET_TERRAIN = 158,
-    MON_DATA_UNUSED_159 = 159,
-    MON_DATA_STATUS = 160,
-    MON_DATA_LEVEL = 161,
-    MON_DATA_BALL_CAPSULE_ID = 162,
-    MON_DATA_HP = 163,
-    MON_DATA_MAX_HP = 164,
-    MON_DATA_ATK = 165,
-    MON_DATA_DEF = 166,
-    MON_DATA_SPEED = 167,
-    MON_DATA_SP_ATK = 168,
-    MON_DATA_SP_DEF = 169,
-    MON_DATA_MAIL = 170,
-    MON_DATA_BALL_CAPSULE = 171,
-    MON_DATA_SPECIES_EXISTS = 172,
-    MON_DATA_SANITY_IS_EGG = 173,
-    MON_DATA_SPECIES_OR_EGG = 174,
-    MON_DATA_COMBINED_IVS = 175,
-    MON_DATA_PRINT_GENDER = 176,
-    MON_DATA_TYPE_1 = 177,
-    MON_DATA_TYPE_2 = 178,
-    MON_DATA_SPECIES_NAME = 179,
-};
 
 typedef struct ChatotCry {
     BOOL valid;
@@ -982,9 +800,6 @@ typedef struct BallSeal {
     u8 y;
 } BallSeal;
 
-typedef struct BallCapsule {
-    BallSeal seals[8];
-} BallCapsule;
 
 typedef u16 charcode_t;
 
@@ -995,11 +810,6 @@ typedef struct String {
     u16 data[0];
 } String;
 
-typedef struct MailMessage {
-    u16 type;
-    u16 id;
-    u16 words[2];
-} MailMessage;
 
 typedef union MailIconData {
     struct {
@@ -1009,127 +819,13 @@ typedef union MailIconData {
     u16 asValue;
 } MailIconData;
 
-typedef struct Mail {
-    u32 trainerID;
-    u8 trainerGender;
-    u8 language;
-    u8 gameVersion;
-    u8 mailType;
-    charcode_t trainerName[7 + 1];
-    MailIconData iconData[3];
-    u16 platExclusiveFormIcons;
-    MailMessage sentences[3];
-} Mail;
 
-typedef struct PokemonDataBlockA {
-    u16 species;
-    u16 heldItem;
 
-    u32 otID;
-    u32 exp;
 
-    u8 friendship;
-    u8 ability;
-    u8 markings;
-    u8 originLanguage;
 
-    u8 hpEV;
-    u8 atkEV;
-    u8 defEV;
-    u8 speedEV;
-    u8 spAtkEV;
-    u8 spDefEV;
 
-    u8 cool;
-    u8 beauty;
-    u8 cute;
-    u8 smart;
-    u8 tough;
-    u8 sheen;
 
-    u32 ribbonsDS1;
-} PokemonDataBlockA;
 
-typedef struct PokemonDataBlockB {
-    u16 moves[4];
-    u8 moveCurrentPPs[4];
-    u8 movePPUps[4];
-    u32 hpIV : 5;
-    u32 atkIV : 5;
-    u32 defIV : 5;
-    u32 speedIV : 5;
-    u32 spAtkIV : 5;
-    u32 spDefIV : 5;
-    u32 isEgg : 1;
-    u32 hasNickname : 1;
-    u32 ribbonsGBA;
-    u8 fatefulEncounter : 1;
-    u8 gender : 2;
-    u8 form : 5;
-    u8 HGSS_shinyLeaves : 6;
-    u8 unused1 : 2;
-    u16 unused2;
-    u16 EggLocation_PtHGSS;
-    u16 MetLocation_PtHGSS;
-} PokemonDataBlockB;
-
-typedef struct PokemonDataBlockC {
-    charcode_t nickname[10 + 1];
-
-    u8 unused;
-    u8 originGame;
-
-    u64 ribbonsDS2;
-} PokemonDataBlockC;
-
-typedef struct PokemonDataBlockD {
-    u16 otName[7 + 1];
-    u8 eggYear;
-    u8 eggMonth;
-    u8 eggDay;
-    u8 metYear;
-    u8 metMonth;
-    u8 metDay;
-    u16 EggLocation_DP;
-    u16 MetLocation_DP;
-    u8 pokerus;
-    u8 pokeball;
-    u8 metLevel : 7;
-    u8 otGender : 1;
-    u8 metTerrain;
-    u8 HGSS_Pokeball;
-    s8 mood;
-} PokemonDataBlockD;
-
-typedef struct BoxPokemon {
-    u32 personality;
-    u16 partyDecrypted : 1;
-    u16 boxDecrypted : 1;
-    u16 checksumFailed : 1;
-    u16 unused : 13;
-    u16 checksum;
-    union { PokemonDataBlockA blockA; PokemonDataBlockB blockB; PokemonDataBlockC blockC; PokemonDataBlockD blockD; } dataBlocks[4];
-} BoxPokemon;
-
-typedef struct PartyPokemon {
-    u32 status;
-    u8 level;
-    u8 ballCapsuleID;
-    u16 hp;
-    u16 maxHP;
-    u16 attack;
-    u16 defense;
-    u16 speed;
-    u16 spAtk;
-    u16 spDef;
-    Mail mail;
-    BallCapsule ballCapsule;
-} PartyPokemon;
-
-typedef struct Pokemon {
-    BoxPokemon box;
-    PartyPokemon party;
-} Pokemon;
 
 typedef struct SpriteAnimFrame {
     s8 spriteFrame;
@@ -1170,10 +866,6 @@ typedef struct PaletteData {
 
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
-typedef struct Party {
-    struct { int maxCount; int curCount; Pokemon mons[6]; } core;
-    struct { struct { u8 unk_00[5]; } aprijuiceModifiers[6]; } extra;
-} Party;
 
 BOOL Party_AddMon(Party *party, Pokemon *mon);
 
@@ -1185,16 +877,6 @@ typedef struct PokemonSpriteTransforms PokemonSpriteTransforms;
 
 typedef void(PokemonSpriteCallback)(Pokepic *, PokemonSpriteTransforms *);
 
-typedef struct PokepicTemplate {
-    u16 narcID;
-    u16 character;
-    u16 palette;
-    u16 spindaSpots;
-
-    u8 dummy;
-
-    u32 personality;
-} PokepicTemplate;
 
 struct PokemonSpriteTransforms {
     s16 xCenter;
@@ -1434,9 +1116,9 @@ typedef struct PlayerProfile {
     u8 : 6;
 } PlayerProfile;
 
-u32 GetMonData(Pokemon *mon, enum PokemonDataParam param, void *dest);
+u32 GetMonData(Pokemon *mon, int attr, void *dest);
 
-void SetMonData(Pokemon *mon, enum PokemonDataParam param, const void *value);
+void SetMonData(Pokemon *mon, int attr, const void *value);
 
 BoxPokemon *Mon_GetBoxMon(Pokemon *mon);
 
@@ -1549,26 +1231,6 @@ typedef struct SysInfo {
     s32 dwcProfileId;
     u32 unused_50[3];
 } SysInfo;
-
-typedef struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameStats *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
-} GTSPlayerData;
 
 typedef struct CameraAngle {
     u16 x;

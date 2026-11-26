@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "overlay_49_unk_struct_ov49_02264cf8.h"
 
 #include "bg_window.h"
@@ -18,9 +20,7 @@ struct WiFiPlazaProfile;
 
 typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 
-WiFiPlazaProfile *ov45_0222A5C0(WiFiPlazaSystem *param0);
 
 BOOL ov45_0222AA28(const WiFiPlazaProfile *profile);
 

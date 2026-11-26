@@ -238,6 +238,9 @@ def chains(tree, builddir, rounds=8, only=None):
         cmd = re.sub(r' -w(?= )', ' ', cmd)    # the module builds with -w: no warning would show
         cmd = re.sub(r' -o \S+', ' ', cmd)
         cmd = re.sub(r' -M[DF]? ?\S*| -MQ \S+', ' ', cmd)
+        # not the build's precompiled prefix (empty port/pch/gen4_prefix.h; the -include list stays): a re-pin's generators
+        # touch gen/ headers first and clang refuses the older PCH; the error printed no warning (rp3: 0 locals widened, 3 before)
+        cmd = re.sub(r' -include-pch \S+', ' ', cmd)
         cmd += ' -fsyntax-only -fno-color-diagnostics -Wno-everything -Wshorten-64-to-32'
         jobs[rel] = (cmd, e['directory'])
     todo = sorted(r for r in jobs if only is None or r in only)

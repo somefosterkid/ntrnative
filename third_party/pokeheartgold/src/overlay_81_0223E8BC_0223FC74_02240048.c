@@ -5,9 +5,9 @@ struct BattleFactoryApp;
 #include "overlay_81.h"
 #include "overlay_81_battle_factory_app.h"
 
-s32 ov81_02240048(struct BattleFactoryApp *arg0, s32 arg1, s32 arg2);
+s32 ov81_02240048(struct BattleFactoryApp *arg0);
 
-s32 ov81_02240048(BattleFactoryApp *arg0, s32 arg1, s32 arg2) {
+s32 ov81_02240048(BattleFactoryApp *arg0) {
     u8 temp_r1;
 
     temp_r1 = arg0->subState;

@@ -17,7 +17,7 @@ s32 ov01_02206088(u32 spriteId);
 
 s32 sub_02023FB0(void *arg0);
 
-u32 ov01_021F771C(MapObjectManager *);
+Billboard *ov01_021F771C(MapObjectManager *);
 
 void sub_02023E78(void *, u32 *);
 

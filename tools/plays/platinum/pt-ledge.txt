@@ -1,0 +1,7 @@
+# game: platinum
+# from: pt-r202
+# reaches: Jubilife City's south ledge row (170,810): down over the ledge (the hop and its shadow), then a step on (ledge jump)
+# end: f7400
+env BWPORT_PT_WARP=3:170:809
+keys start@f6300 a@f6700
+keys down*f20@f7000 down*f20@f7200

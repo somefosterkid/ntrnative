@@ -4,7 +4,6 @@
 #include "bg_window.h"
 #include "filesystem.h"
 
-void ov41_0224BCA4(void *arg0);
 
 struct DressUpPhoto;
 struct PokemonSpriteManager;
@@ -110,11 +109,12 @@ typedef struct {
     Window *unk_200;
 } UnkStruct_ov22_0225B85C;
 void ov41_0224BCF0(UnkStruct_ov22_0225B85C *param0);
+void ov41_0224BCA4(UnkStruct_ov22_0225B85C *arg0);
 
-void ov41_0224BCA4(void *arg0) {
+void ov41_0224BCA4(UnkStruct_ov22_0225B85C *arg0) {
     GfGfxLoader_GXLoadPal(NARC_a_2_3_7, 0, GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_0_OFFSET, 0U, HEAP_ID_14);
-    GfGfxLoader_LoadScrnData(NARC_a_2_3_7, 9, *(BgConfig **)((u8 *)arg0 + 0x54), GF_BG_LYR_SUB_2_F, 0U, 0U, 0, HEAP_ID_14);
-    GfGfxLoader_LoadCharData(NARC_a_2_3_7, 1, *(BgConfig **)((u8 *)arg0 + 0x54), GF_BG_LYR_SUB_2_F, 0U, 0U, 0, HEAP_ID_14);
+    GfGfxLoader_LoadScrnData(NARC_a_2_3_7, 9, arg0->unk_14.unk_40, GF_BG_LYR_SUB_2_F, 0U, 0U, 0, HEAP_ID_14);
+    GfGfxLoader_LoadCharData(NARC_a_2_3_7, 1, arg0->unk_14.unk_40, GF_BG_LYR_SUB_2_F, 0U, 0U, 0, HEAP_ID_14);
 }
 
 void ov41_0224BCF0(UnkStruct_ov22_0225B85C *param0) {

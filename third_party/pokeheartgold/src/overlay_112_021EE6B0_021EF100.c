@@ -9,13 +9,9 @@ struct UnkStruct_ov112_021EA230;
 #include "overlay_112_unk_struct_ov112_021_ea230.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021E7768(void *);
-
 s32 ov112_021F051C(void *);
 
 s32 sub_02093354(void *);
-
-s32 ov112_021EF100(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EF100(Ov112PokewalkerApp *arg0) {
     s32 v0;

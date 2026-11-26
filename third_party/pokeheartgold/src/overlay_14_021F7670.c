@@ -8,14 +8,18 @@
 #include "overlay_14_box_funcs.h"
 
 void ov14_021E5A50(UnkStruct_ov14_boxsys *sys, UnkFuncPtr_ov14_boxtask task);
-s32 ov14_021F7AC4(void *);
-void ov14_021F7670(UnkStruct_ov14_boxapp *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F7AC4(UnkStruct_ov14_boxsys *arg0, s32 target, s32 arg2);
+#else
+void ov14_021F7AC4(UnkStruct_ov14_boxsys *arg0, s32 target, s32 arg2);
+#endif
+void ov14_021F7670(UnkStruct_ov14_boxapp *arg0, s32 target, s32 arg2);
 s32 ov14_021F29E4(UnkStruct_ov14_boxsys *, s32, s32);
 
 s32 ov14_021E9F20(UnkStruct_ov14_boxapp *app);
 
-void ov14_021F7670(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F7AC4(arg0->sys);
+void ov14_021F7670(UnkStruct_ov14_boxapp *arg0, s32 target, s32 arg2) {
+    ov14_021F7AC4(arg0->sys, target, arg2);
     ov14_021E5A50(arg0->sys, ov14_021E9F20);
 }
 

@@ -16,7 +16,11 @@ void ov83_02242BAC(BattleCastleSelfApp *app);
 
 void ov83_02242DAC(BattleCastleSelfApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247944(Window *window, u8 frame);
+#else
 void ov83_02247944(Window *window, u32 frame);
+#endif
 
 void ov83_02240300(BattleCastleSelfApp *app);
 

@@ -5,7 +5,11 @@
 
 s32 ov96_021EDD64(Ov96App_021ED1D0 *arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021EC1B0.c (tools/pokehg_abi.py)
+void ov96_021EC298(Ov96App_021ED1D0 *, s32);
+#else
 s32 ov96_021EC298(Ov96App_021ED1D0 *, u8);
+#endif
 s32 ov96_021ECC38(Ov96PlayerSlot *, s32, s32);
 s32 ov96_021ED5AC(PokeathlonCourseData *, s32, s32);
 s32 ov96_021EDDA4(PokeathlonCourseData *arg0, s32 (*arg1)(PokeathlonCourseData *, u8, u8), u32 arg2);

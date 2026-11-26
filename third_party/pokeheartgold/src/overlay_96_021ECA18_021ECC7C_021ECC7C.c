@@ -7,7 +7,11 @@ typedef struct {
     u32 extra : 4;
 } UnkStruct_ov96_021ECC7C;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021ECA18_021ECBF4.c (tools/pokehg_abi.py)
+s32 ov96_021ECC4C(void *, s32);
+#else
 s32 ov96_021ECC4C(void *, u8);
+#endif
 
 s32 ov96_021ECC58(void *elem1, void *elem2);
 

@@ -6,6 +6,9 @@
 #include "filesystem_files_def.h"
 #include "overlay_41_unk_struct_ov22_02257_f50.h"
 #include "overlay_41_unk_struct_ov22_0225500c.h"
+#include "overlay_41_unk_struct_ov22_0225899C.h"
+#include "overlay_41_unk_struct_ov22_02259484.h"
+#include "overlay_41_unk_struct_ov22_02254de0.h"
 
 struct SoftwareSprite;
 struct SoftwareSpriteChars;
@@ -136,24 +139,12 @@ enum Backdrop {
     BACKDROP_THEATER = 17,
     BACKDROP_COUNT = 18,
 };
-typedef struct {
-    u32 accessoryCounts[ACCESSORY_COUNT];
-    u32 backdropCounts[BACKDROP_COUNT];
-} UnkStruct_ov22_0225899C;
 u32 ov41_02248EF4(const UnkStruct_ov22_0225899C *param0, u32 param1);
 void ov41_02248B48(int param0, int *param1, int *param2);
-typedef struct {
-    UnkStruct_ov22_02259560 *unk_00;
-    int unk_04;
-} UnkStruct_ov22_02259484;
 typedef struct SoftwareSpriteChars SoftwareSpriteChars;
 typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
-typedef struct {
-    int unk_00;
-    SoftwareSprite *unk_04;
-} UnkStruct_ov22_02255040;
 int ov41_022484E8(int param0, int param1, UnkStruct_ov22_0225899C *param2);
 static void ov41_02248584(int param0, int param1, int *param2, int *param3, int param4, int param5, UnkStruct_ov22_0225899C *param6);
 UnkStruct_ov22_02255040 *ov41_02245EE0(UnkStruct_ov22_0225500C *param0);

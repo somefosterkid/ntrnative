@@ -177,15 +177,15 @@ static DpadMenuBox _0210144C[8] __attribute__((section(BWPORT_DATA_SECTION))) = 
     { 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
-static const DpadMenuBox _0210148C[8] = {
-    { 0x40, 0x19, 0x00, 0x00, 0x07, 0x02, 0x07, 0x01 },
-    { 0xC0, 0x21, 0x00, 0x00, 0x07, 0x03, 0x00, 0x02 },
-    { 0x40, 0x49, 0x00, 0x00, 0x00, 0x04, 0x01, 0x03 },
-    { 0xC0, 0x51, 0x00, 0x00, 0x01, 0x05, 0x02, 0x04 },
-    { 0x40, 0x79, 0x00, 0x00, 0x02, 0x06, 0x03, 0x05 },
-    { 0xC0, 0x81, 0x00, 0x00, 0x03, 0x06, 0x04, 0x06 },
-    { 0xE0, 0xA8, 0x00, 0x00, 0x05, 0x07, 0x05, 0x07 },
-    { 0xE0, 0xB8, 0x00, 0x00, 0x06, 0x01, 0x06, 0x00 },
+static DpadMenuBox _0210148C[8] __attribute__((section(BWPORT_DATA_SECTION))) = {
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
+    { 0, 0, 0, 0, 0, 0, 0, 0 },
 };
 
 static DpadMenuBox _021014CC[8] __attribute__((section(BWPORT_DATA_SECTION))) = {
@@ -2747,4 +2747,11 @@ __attribute__((constructor)) static void hgasset_register_src_party_menu_c_0(voi
     PORT_AssetAdd("IPGE", "src/party_menu.c:_021014CC", (void *)&_021014CC, sizeof(_021014CC), "u8");
     PORT_AssetAdd("IPKE", "src/party_menu.c:_0210150C", (void *)&_0210150C, sizeof(_0210150C), "u8");
     PORT_AssetAdd("IPGE", "src/party_menu.c:_0210150C", (void *)&_0210150C, sizeof(_0210150C), "u8");
+}
+
+// tools/hg_assets.py: the tables above are blanks, port/src/asset_load.c fills them from the ROM at start
+void PORT_AssetAdd(const char *game, const char *name, void *p, unsigned long size, const char *layout);
+__attribute__((constructor)) static void hgasset_register_src_party_menu_c_1(void) {
+    PORT_AssetAdd("IPKE", "src/party_menu.c:_0210148C", (void *)&_0210148C, sizeof(_0210148C), "u8");
+    PORT_AssetAdd("IPGE", "src/party_menu.c:_0210148C", (void *)&_0210148C, sizeof(_0210148C), "u8");
 }

@@ -2,7 +2,11 @@
 
 #include "application/pokedex/pokedex_internal.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov18_021F1294(PokedexAppData *, u32, s16, s16, u32);
+#else
 void ov18_021F1294(PokedexAppData *, u32, s32, s32, u32);
+#endif
 
 void ov18_021F12C8(PokedexAppData *, u32, s16 *, s16 *, u32);
 

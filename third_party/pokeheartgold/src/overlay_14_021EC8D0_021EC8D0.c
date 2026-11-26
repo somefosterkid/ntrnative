@@ -16,19 +16,25 @@ u32 ov14_021F6A14(void);
 s32 ov14_021E6070(void *, s32, s32, void *);
 s32 ov14_021E7588(void *arg0, s32 arg1);
 s32 ov14_021E765C(void *);
-s32 ov14_021E76B8(void *);
+void ov14_021E76B8(void *);
 s32 ov14_021F0244(void *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F083C(void *, u8);
+#else
 s32 ov14_021F083C(void *, s32);
+#endif
 s32 ov14_021F0D34(void *, s32);
 s32 ov14_021F0D58(void *, s32);
 s32 ov14_021F0EE8(void *, s32);
 s32 ov14_021F1004(void *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F1580(void *, u8);
+#else
 s32 ov14_021F1580(void *, u32);
+#endif
 s32 ov14_021F2270(void *, s32, s32);
 s32 ov14_021F29E4(UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
-s32 ov14_021F6408(void *, s32);
-s32 ov14_021F6A34(FieldSystem *fieldSystem);
 u32 ov14_021F70C0(void *);
 s32 ov14_021F7B7C(void *);
 
@@ -40,7 +46,7 @@ s32 ov14_021F7B7C(void *);
 
 #define NEXT(p) GridInputHandler_SetNextInput(GH(p), (u8)(*((u8 *)(p) + 0x25) % 6 + 0x25))
 
-s32 ov14_021EC8D0(void *arg0) {
+s32 ov14_021EC8D0(UnkStruct_ov14_boxapp *arg0) {
     s32 r5;
     u32 r1;
     u32 r6;
@@ -93,8 +99,8 @@ s32 ov14_021EC8D0(void *arg0) {
         r1 = GridInputHandler_GetNextInput(GH(arg0));
         if (ov14_021E6070(arg0, r1, 0xAC, 0) != 0) {
             PlaySE(0x5DD);
-            *((u8 *)arg0 + 0x21) = r1;
-            *((u8 *)arg0 + 0x26) = 1;
+            arg0->unk21 = r1;
+            arg0->unk26[0] = 1;
             return ov14_021F2330(arg0, 0xF, 0x97);
         }
         return 0x29;
@@ -173,7 +179,7 @@ s32 ov14_021EC8D0(void *arg0) {
             }
         }
         PlaySE(0x5DC);
-        if (((UnkStruct_ov14_boxapp *)arg0)->sys->unk_8 != NULL) {
+        if (arg0->sys->unk_8 != NULL) {
             return ov14_021F0244(arg0, 0x4B);
         }
         break;

@@ -132,7 +132,7 @@ BOOL ov01_021E90E4(FieldSystem *fieldSystem, FieldEnvSubUnk18 *base) {
             if ((BVar7 != 0) && (BVar7 = ov01_022057C4(fieldSystem), BVar7 == 0)) {
                 x = MapObject_GetPreviousXCoord(pLVar8);
                 z = MapObject_GetPreviousZCoord(pLVar8);
-                ov01_02205990(0xc, x, z, (FollowMon *)((u8 *)fieldSystem + 228));
+                ov01_02205990(0xc, x, z, &fieldSystem->followMon);
             }
             a1->base.state = a1->base.state + 1;
             break;

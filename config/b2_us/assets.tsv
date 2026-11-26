@@ -698,3 +698,6 @@ nhttp_rap_sUrlWorldbattleDownload	ov189	0x021acb1c	0x021acb88	u8
 nhttp_rap_sUrlAccountCreateUpload	ov189	0x021acb88	0x021acbf4	u8
 nhttp_rap_sUrlSavedataDownloadFinish	ov189	0x021acbf4	0x021acc64	u8
 poke_net_ssl_sPOKE_NET_SSL_CaDn	ov201	0x021b7bb4	0x021b7c0c	u8
+bsubway_scr_sBattlePointRewards	ov033	0x0217c570	0x0217c5b6	u8*10
+pokedex_list_ui_sPokedexListTouchHabitat	ov299	0x021a296c	0x021a29b0	u8*4
+pokedex_list_ui_sPokedexListTouchNoHabitat	ov299	0x021a29b0	0x021a29f4	u8*4

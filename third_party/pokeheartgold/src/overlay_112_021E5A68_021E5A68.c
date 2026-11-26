@@ -2,7 +2,11 @@
 
 #include "overlay_112_ir_state.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov112_021E59B4(void *, u8, s8, s8, s32);
+#else
 void ov112_021E59B4(void *, s32, s32, s32, s32);
+#endif
 
 
 void ov112_021E5A68(void *arg0, s32 arg1, s32 arg2, s32 arg3);

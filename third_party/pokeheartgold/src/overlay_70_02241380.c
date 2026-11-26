@@ -19,8 +19,8 @@ extern u8 ov70_02245D48;
 s32 ov70_022413AC(GTSApplicationState *arg0);
 s32 ov70_02238E50(void *, s32, s32);
 s32 ov70_02241468(GTSApplicationState *arg0);
-s32 ov70_02238E58();
-s32 ov70_02241494(void);
+void ov70_02238E58(GTSApplicationState *arg0);
+s32 ov70_02241494(GTSApplicationState *arg0);
 
 void ov70_02241380(GTSApplicationState *arg0) {
     s32 v0;
@@ -66,7 +66,7 @@ s32 ov70_02241468(GTSApplicationState *arg0) {
     return v0;
 }
 
-s32 ov70_02241494(void) {
-    ov70_02238E58();
+s32 ov70_02241494(GTSApplicationState *arg0) {
+    ov70_02238E58(arg0);
     return 1;
 }

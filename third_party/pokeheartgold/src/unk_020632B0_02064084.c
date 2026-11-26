@@ -14,7 +14,7 @@ void *sub_02064084(LocalMapObject *arg0) {
         GF_AssertFail();
         return 0;
     }
-    return *(void **)((u8 *)(sub_0205F40C(arg0)) + 8);
+    return ((MapObjectBillboardWorkD *)sub_0205F40C(arg0))->billboard;
 }
 
 s32 sub_020640A4(s32 arg0, s32 arg1) {

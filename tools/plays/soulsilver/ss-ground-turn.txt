@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove City, warped to 541,402 (plain ground east of the beach) facing west: turns in place, a held walk west onto the sand, turns there, a step west (a control: no player vanishing or doubling at any capture stride)
+# end: f11680
+env BWPORT_HG_WARP=67:541:402 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f3@f11000 right*f3@f11030 down*f3@f11060 left*f3@f11090 up*f3@f11120 down*f3@f11150 right*f3@f11180 left*f3@f11210 left*f48@f11240 up*f3@f11270 down*f3@f11300 right*f3@f11330 left*f3@f11360 left*f16@f11390 up*f3@f11420 down*f3@f11450 right*f3@f11480 left*f3@f11510 up*f3@f11540 right*f3@f11570 down*f3@f11600 left*f3@f11630

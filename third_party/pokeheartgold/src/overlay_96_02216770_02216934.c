@@ -5,7 +5,11 @@
 
 #include "overlay_96_ov96_rd_work.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_022193CC(s32, s32);
+#else
 s32 ov96_022193CC(s32, s32);
+#endif
 
 
 void ov96_02216934(Ov96RdSlot *slot, s16 *arg1, void *arg2, u32 arg3, void *arg4, s32 arg5, s32 arg6);

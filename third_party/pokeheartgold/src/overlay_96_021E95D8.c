@@ -72,20 +72,20 @@ void ov96_021E966C(PokeathlonCourseData *param_1, s32 *param_2, s32 param_3, s32
     return;
 }
 
-void ov96_021E96F8(u32 param_1, u32 param_2, u8 *param_3, PokeathlonCourseData *param_4);
+void ov96_021E96F8(int param_1, int param_2, void *param_3, void *param_4);
 
-void ov96_021E96F8(u32 param_1, u32 param_2, u8 *param_3, PokeathlonCourseData *param_4) {
+void ov96_021E96F8(int param_1, int param_2, void *param_3, void *param_4) {
     ov96_021E5E04(param_4, param_3);
     PokeathlonCourse_SetStateTransitionType(param_4, 1);
     PokeathlonCourse_SetStateField07(param_4, 1);
     return;
 }
 
-s32 ov96_021E8484(PokeathlonCourseData *, u8);
+s32 ov96_021E8484(PokeathlonCourseData *, s32);
 
-void ov96_021E9718(s32 arg0, u32 arg1, void *arg2, PokeathlonCourseData *arg3);
+void ov96_021E9718(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E9718(s32 index, u32 arg1, void *arg2, PokeathlonCourseData *data) {
+void ov96_021E9718(int index, int arg1, void *arg2, void *data) {
     unsigned int new_var;
     u8 v0;
     if (ov96_021E5F24(data) == 0) {
@@ -105,18 +105,18 @@ void ov96_021E9718(s32 index, u32 arg1, void *arg2, PokeathlonCourseData *data) 
 
 s32 ov96_021E604C(PokeathlonCourseData *);
 
-void ov96_021E9784(s32 arg0, u32 arg1, void *arg2, PokeathlonCourseData *arg3);
+void ov96_021E9784(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E9784(s32 index, u32 arg1, void *arg2, PokeathlonCourseData *data) {
+void ov96_021E9784(int index, int arg1, void *arg2, void *data) {
     memcpy(PokeathlonCourse_GetParticipantData(data, index), arg2, arg1);
     ov96_021E604C(data);
     PokeathlonCourse_SetStateTransitionType(data, 3U);
     PokeathlonCourse_SetStateField07(data, 5U);
 }
 
-void ov96_021E97B8(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseData *param_4);
+void ov96_021E97B8(int param_1, int param_2, void *param_3, void *param_4);
 
-void ov96_021E97B8(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseData *param_4) {
+void ov96_021E97B8(int param_1, int param_2, void *param_3, void *param_4) {
     BOOL BVar1;
     PlayerProfile *pPVar2;
 

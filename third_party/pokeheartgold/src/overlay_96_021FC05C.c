@@ -13,8 +13,8 @@ void ov96_021FBE4C(u32, void *, void *);
 void ov96_021FC07C(u32 *param_1, void *param_2);
 
 s32 ov96_021FC0D0(void *arg0, u32 arg1);
-s32 ov96_021FC0E4(s32 param_1);
-s32 ov96_021FC0E8(s32 param_1);
+u8 *ov96_021FC0E4(u8 *param_1);
+u8 *ov96_021FC0E8(u8 *param_1);
 u32 ov96_021FC0F4(void *);
 
 void ov96_021FC05C(s32 *ptr) {
@@ -63,11 +63,11 @@ s32 ov96_021FC0D0(void *arg0, u32 arg1) {
     return *(s32 *)(arg0 + (arg1 * 8));
 }
 
-s32 ov96_021FC0E4(s32 param_1) {
+u8 *ov96_021FC0E4(u8 *param_1) {
     return param_1 + 0x18;
 }
 
-s32 ov96_021FC0E8(s32 param_1) {
+u8 *ov96_021FC0E8(u8 *param_1) {
     return param_1 + 0x618;
 }
 

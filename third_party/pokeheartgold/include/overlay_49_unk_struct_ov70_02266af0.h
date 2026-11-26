@@ -7,6 +7,7 @@
 #include "sys_task.h"
 
 struct UnkStruct_ov70_0225DEE8_t;
+struct UnkStruct_ov70_02263344_t;
 
 // Countdown display state of the Wi-Fi Plaza menus (ov49_02262D70 .. ov49_02262E10): 8 bytes,
 // allocated alone by ov49_02262B14 (ov49_0225EF40 slot) or embedded at 0x3C of UnkStruct_ov70_02266AF0.
@@ -48,11 +49,11 @@ LAYOUT_CHECK(UnkStruct_ov70_02266C68_size, sizeof(UnkStruct_ov70_02266C68) == 0x
 LAYOUT_CHECK(UnkStruct_ov70_02266AF0_size, sizeof(UnkStruct_ov70_02266AF0) == 0x44);
 #endif
 
-void ov49_02262BF8(UnkStruct_ov70_02266AF0 *work, s32 slotMgr, struct UnkStruct_ov70_0225DEE8_t *plaza, s32 msgId, s32 state);
-void ov49_02262C20(UnkStruct_ov70_02266AF0 *work, s32 slotMgr, s8 state, s8 arg3);
+void ov49_02262BF8(UnkStruct_ov70_02266AF0 *work, struct UnkStruct_ov70_02263344_t * slotMgr, struct UnkStruct_ov70_0225DEE8_t *plaza, s32 msgId, s32 state);
+void ov49_02262C20(UnkStruct_ov70_02266AF0 *work, struct UnkStruct_ov70_02263344_t * slotMgr, s8 state, s8 arg3);
 void ov49_02262C38(UnkStruct_ov70_02266AF0 *work, struct UnkStruct_ov70_0225DEE8_t *plaza, u32 count, u32 firstMsg);
 void ov49_02262CA8(UnkStruct_ov70_02266AF0 *work, void *plaza);
-s32 ov49_02262CB4(UnkStruct_ov70_02266AF0 *work, struct UnkStruct_ov70_0225DEE8_t *plaza, void *arg2, s32 slotMgr, s32 arg4);
+s32 ov49_02262CB4(UnkStruct_ov70_02266AF0 *work, struct UnkStruct_ov70_0225DEE8_t *plaza, void *arg2, struct UnkStruct_ov70_02263344_t * slotMgr, s32 arg4);
 void ov49_02262D70(UnkStruct_ov70_02266C68 *countdown, struct UnkStruct_ov70_0225DEE8_t *plaza, u32 arg2, u32 arg3, s32 frames);
 void ov49_02262DB8(UnkStruct_ov70_02266C68 *countdown, struct UnkStruct_ov70_0225DEE8_t *plaza);
 void ov49_02262DD4(UnkStruct_ov70_02266C68 *countdown, s32 frames);

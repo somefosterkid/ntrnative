@@ -73,7 +73,7 @@ block_11:
             } else {
                 var_r1 = 5;
             }
-            sum = (u8 *)arg0 + 0xAC;
+            sum = (u8 *)&((PokeathlonEventRecord *)arg0)->cursor;
             *(s8 *)(sum) = (s8)(*(s8 *)(sum)-var_r1);
         }
         var_r2 = ((PokeathlonEventRecord *)arg0)->cursor;

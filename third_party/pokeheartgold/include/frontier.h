@@ -12,6 +12,5 @@ void Frontier_LaunchApplication(void *a0, OverlayManagerTemplate *ovyTemp, void 
 
 void sub_02096854(void *arg0, s8 arg1, s16 arg2);
 
-s32 sub_0209686C(s32 arg0, s32 arg1);
 
 #endif // POKEHEARTGOLD_FRONTIER_H

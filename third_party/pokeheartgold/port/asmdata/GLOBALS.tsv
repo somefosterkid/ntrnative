@@ -191,11 +191,3 @@ ov85_021EA548	overlay_85.s	rodata	0x58
 ov85_021EA5F4	overlay_85.s	rodata	0x104	
 ov85_021EA698	overlay_85.s	rodata	0x1A8	
 ov85_021EA6D8	overlay_85.s	rodata	0x1E8	
-ov96_0221DB50	overlay_96.s	data	0x150	
-ov96_0221DC1C	overlay_96.s	data	0x21C	
-ov96_0221DC30	overlay_96.s	data	0x230	
-ov96_0221DC3C	overlay_96.s	data	0x23C	
-ov96_0221DC48	overlay_96.s	data	0x248	
-ov96_0221DC50	overlay_96.s	data	0x250	
-ov96_0221DC5C	overlay_96.s	data	0x25C	
-ov96_0221DC74	overlay_96.s	data	0x274	

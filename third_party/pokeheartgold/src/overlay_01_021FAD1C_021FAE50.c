@@ -41,9 +41,17 @@ BOOL ov01_021FAD1C(const MeshPoint *a, const MeshPoint *b, const MeshPoint *p);
 
 void ov01_021FAD6C(const Mesh *mesh, u16 faceIdx, MeshPoint *out);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov01_021FAD9C(const Mesh *mesh, u16 faceIdx, VecFx32 *out);
+#else
 void ov01_021FAD9C(const Mesh *mesh, int faceIdx, VecFx32 *out);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov01_021FADBC(const Mesh *mesh, u16 faceIdx, fx32 *out);
+#else
 void ov01_021FADBC(const Mesh *mesh, int faceIdx, fx32 *out);
+#endif
 
 void ov01_021FADD4(MeshHit *hits);
 

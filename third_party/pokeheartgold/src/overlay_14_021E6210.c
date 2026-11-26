@@ -39,19 +39,19 @@ void ov14_021E6210(UnkStruct_ov14_boxapp *param_1, u32 *param_2) {
     return;
 }
 
-void ov14_021E627C(void *arg0, void *arg1) {
+void ov14_021E627C(UnkStruct_ov14_boxapp *arg0, void *arg1) {
     u8 *new_var;
     PartyExtraSub v0;
     s32 slot;
     int new_var2;
     new_var = ((u8 *)arg0) + 0x1F;
     slot = (*((s32 *)(((u8 *)arg1) + 4))) - 0x1E;
-    CopyPokemonToPokemon(Party_GetMonByIndex(((UnkStruct_ov14_boxapp *)arg0)->party, slot), *((Pokemon **)arg1));
-    Party_GetMonAprijuiceModifiers(((UnkStruct_ov14_boxapp *)arg0)->party, &v0, slot);
+    CopyPokemonToPokemon(Party_GetMonByIndex(arg0->party, slot), *((Pokemon **)arg1));
+    Party_GetMonAprijuiceModifiers(arg0->party, &v0, slot);
     ov14_021E6100(arg0, *((u8 *)new_var), *((s32 *)(((u8 *)arg1) + 4)));
-    Party_AddMon(((UnkStruct_ov14_boxapp *)arg0)->party, *((Pokemon **)arg1));
-    new_var2 = Party_GetCount(((UnkStruct_ov14_boxapp *)arg0)->party) - 1;
-    Party_SetMonAprijuiceModifiers(((UnkStruct_ov14_boxapp *)arg0)->party, &v0, new_var2);
+    Party_AddMon(arg0->party, *((Pokemon **)arg1));
+    new_var2 = Party_GetCount(arg0->party) - 1;
+    Party_SetMonAprijuiceModifiers(arg0->party, &v0, new_var2);
 }
 
 void ov14_021E62C8(UnkStruct_ov14_boxapp *param_1, s32 param_2) {

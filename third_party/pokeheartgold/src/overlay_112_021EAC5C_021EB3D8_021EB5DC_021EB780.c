@@ -3,9 +3,7 @@
 #include "error_handling.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021EA570(void *arg0, s32);
-
-u32 ov112_021EB780(Ov112PokewalkerApp *param_1, s32 arg1);
+void ov112_021EA570(Ov112PokewalkerApp *arg0, s32);
 
 u32 ov112_021EB780(Ov112PokewalkerApp *param_1, s32 arg1) {
     Ov112PokewalkerApp *new_var;

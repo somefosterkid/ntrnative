@@ -1373,11 +1373,19 @@ u8 ov80_02236DF8(u8 challengeType, BOOL param1);
 
 enum BattleFrontierStatsIndex sub_0205BFF0(u8 isOpenLevel, u8 challengeType);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0205C01C(s32 isOpenLevel, u32 challengeType);
+#else
 enum BattleFrontierStatsIndex sub_0205C01C(s32 isOpenLevel, u32 challengeType);
+#endif
 
 enum BattleFrontierStatsIndex sub_0205C048(u8 isOpenLevel, u8 challengeType);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0205C074(s32 isOpenLevel, u32 challengeType);
+#else
 enum BattleFrontierStatsIndex sub_0205C074(s32 isOpenLevel, u32 challengeType);
+#endif
 
 int sub_0205C268(u32 statIndex);
 

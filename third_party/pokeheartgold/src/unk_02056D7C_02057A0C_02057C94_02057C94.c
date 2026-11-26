@@ -5,7 +5,11 @@ u16 sub_0203769C(void);
 
 extern int sub_0203774C(int param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+extern void sub_02037894(s8 param0, int param1);
+#else
 extern void sub_02037894(int param0, int param1);
+#endif
 
 extern u16 sub_02057A34(int netId);
 

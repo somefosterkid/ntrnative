@@ -15,7 +15,7 @@ typedef struct UnkStruct_ov71_0224A920_Heap_Alloc {
     void *unk_0;
     s32 unk_4;
     u8 unk_8[0x4];
-    s32 unk_C;
+    struct BgConfig *unk_C;
     s32 unk_10;
     s32 unk_14;
     s32 unk_18;
@@ -27,9 +27,9 @@ typedef struct UnkStruct_ov71_0224A920_Heap_Alloc {
     s32 unk_38;
 } UnkStruct_ov71_0224A920_Heap_Alloc;
 
-void ov71_0224A8A8(void *arg0);
+void ov71_0224A8A8(TradeBallArrivalPhase *arg0);
 
-s32 ov71_02247384(void *);
+struct BgConfig *ov71_02247384(void *);
 void *ov71_0224A920(void *arg0);
 s32 ov71_0224ADB0(void *arg0);
 s32 ov71_0224AEF4(void *);
@@ -38,8 +38,8 @@ s32 ov71_0224B068();
 s32 ov71_0224B11C();
 void ov71_0224A954(void *arg0);
 
-void ov71_0224A8A8(void *arg0) {
-    *(s32 *)((u8 *)arg0 + 0xC) = 1;
+void ov71_0224A8A8(TradeBallArrivalPhase *arg0) {
+    arg0->screenSwapPending = 1;
 }
 
 struct SysTask;

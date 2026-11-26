@@ -2,8 +2,6 @@
 
 #include "overlay_86_frontier_records_app.h"
 
-void ov86_021E792C(FrontierRecordsApp *app, s8 x, s8 y);
-
 void ov86_021E792C(FrontierRecordsApp *app, s8 x, s8 y) {
     app->flash.isBg = 1;
     app->flash.index = 2;

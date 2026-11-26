@@ -10,14 +10,16 @@
 #include "filesystem_files_def.h"
 #include "palette.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "pm_string.h"
+#include "message_format.h"
+#include "msgdata.h"
+#include "pokepic.h"
+#include "touch_hitbox_controller.h"
+#include "overlay_40_unk_struct_ov62_02241204.h"
 
 struct String;
 
 struct MessageFormat;
-
-typedef struct String String;
-
-typedef struct MessageFormat MessageFormat;
 
 extern const int ov40_02244FF0[16][4];
 
@@ -64,7 +66,7 @@ struct SpriteSystem;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct TouchHitboxController;
 
@@ -107,19 +109,6 @@ void ManagedSprite_SetAnim(ManagedSprite *managedSprite, u32 animID);
 
 BOOL SpriteSystem_LoadCharResObjAtEndWithHardwareMappingType(SpriteSystem *spriteSys, SpriteManager *spriteMan, enum NarcId narcID, int memberIdx, BOOL compressed, enum NNS_G2D_VRAM_TYPE vramType, int resourceID);
 
-typedef struct SysTaskManager SysTaskManager;
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
-
 typedef struct UnkStruct_02030A80_t UnkStruct_02030A80;
 
 typedef struct UnkStruct_020F3DCC_t UnkStruct_020F3DCC;
@@ -138,43 +127,7 @@ struct UnkStruct_020F3DCC_t {
 
 typedef struct TextOBJ TextOBJ;
 
-typedef struct MailMessage {
-    u16 type;
-    u16 id;
-    u16 words[2];
-} MailMessage;
-
-typedef struct SaveData SaveData;
-
-typedef struct MsgData MsgData;
-
-typedef struct PokepicManager PokepicManager;
-
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
-
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
-
-typedef struct TouchHitboxController TouchHitboxController;
-
-typedef struct {
-    UnkStruct_02030A80 *unk_00;
-    ManagedSprite *unk_04;
-    ManagedSprite *unk_08;
-    Window unk_0C[8];
-} UnkStruct_ov62_022323B8;
 
 typedef struct {
     u16 unk_00;

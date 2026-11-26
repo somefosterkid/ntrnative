@@ -4,75 +4,76 @@
 
 #include "party.h"
 #include "pokemon_types_def.h"
+#include "overlay_83_battle_castle_opponent_app.h"
+#include "battle_castle_app_sprite.h"
 
-void ov83_02246114(void *, u32);
+void ov83_02246114(BattleCastleOpponentApp *arg0, s32 arg1);
 
-u32 ov83_02247454(void *, u32, u32, u32, u32, s32, u32, u32, void *);
+struct BattleCastleAppSprite *ov83_02247454(BattleCastleAppSpriteManager *spriteMan, u32 param_2, u32 param_3, u32 param_4, u32 param_5, s16 param_6, s16 param_7, u32 param_8, const u8 *unused);
 
-void ov83_0224753C(void *);
+void *ov83_0224753C(struct BattleCastleAppSprite *sprite);
 
-s32 ov83_02247624(void *);
+BOOL ov83_02247624(struct BattleCastleAppSprite *sprite);
 
 u8 ov83_02247768(u8, u32, u32);
 
-u32 ov83_02244E24(void *param_1, u32 param_2, u32 param_3);
+u32 ov83_02244E24(BattleCastleOpponentApp *param_1, u32 param_2, u32 param_3);
 
-u32 ov83_02244E24(void *param_1, u32 param_2, u32 param_3) {
+u32 ov83_02244E24(BattleCastleOpponentApp *param_1, u32 param_2, u32 param_3) {
     s32 iVar1;
     s32 iVar2;
     u32 uVar3;
 
-    iVar1 = ov83_02247768(*(u8 *)(param_1 + 0x14), param_2, param_3);
-    Party_GetMonByIndex(*(Party **)(param_1 + 0x55c), iVar1);
+    iVar1 = ov83_02247768(param_1->numSlots, param_2, param_3);
+    Party_GetMonByIndex(param_1->opponentsParty, iVar1);
     switch (param_3) {
     case 0:
-        *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+        param_1->arrowSpriteVisible = FALSE;
         return 1;
     case 1:
-        if (((u32)(*(u8 *)(param_1 + 0xf) << 0x1f) >> 0x1f) == 0) {
-            *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1 | 1;
-            if (*(u8 *)(param_1 + 0x12) == 1) {
+        if (param_1->arrowSpriteVisible == FALSE) {
+            param_1->arrowSpriteVisible = TRUE;
+            if (param_1->selectedLevelAdjustment == 1) {
                 uVar3 = 9;
             } else {
                 uVar3 = 10;
             }
-            iVar2 = ov80_02237D8C(*(u8 *)(param_1 + 9));
+            iVar2 = ov80_02237D8C(param_1->challengeType);
             if (iVar2 == 0) {
                 iVar2 = 0x50;
             } else {
                 iVar2 = 0x30;
             }
-            uVar3 = ov83_02247454(param_1 + 0x2c8, 0, 0, 0, uVar3, (iVar2 + iVar1 * 0x40) * 0x10000 >> 0x10, 0x32, 0, 0);
-            *(u32 *)(param_1 + 0x504) = uVar3;
+            param_1->arrowSprite = ov83_02247454(&param_1->spriteMan, 0, 0, 0, uVar3, iVar2 + iVar1 * 0x40, 0x32, 0, NULL);
         }
-        iVar1 = ov83_02247624(*(void **)(param_1 + 0x504));
+        iVar1 = ov83_02247624(param_1->arrowSprite);
         if (iVar1 == 0) {
-            ov83_0224753C(*(void **)(param_1 + 0x504));
-            *(u32 *)(param_1 + 0x504) = 0;
-            *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+            ov83_0224753C(param_1->arrowSprite);
+            param_1->arrowSprite = NULL;
+            param_1->arrowSpriteVisible = FALSE;
             return 1;
         }
         break;
     case 3:
-        iVar1 = ov80_02237D8C(*(u8 *)(param_1 + 9));
+        iVar1 = ov80_02237D8C(param_1->challengeType);
         if (iVar1 == 0) {
             ov83_02246114(param_1, 0);
-            *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+            param_1->arrowSpriteVisible = FALSE;
             return 1;
         }
-        *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+        param_1->arrowSpriteVisible = FALSE;
         return 1;
     case 4:
-        iVar1 = ov80_02237D8C(*(u8 *)(param_1 + 9));
+        iVar1 = ov80_02237D8C(param_1->challengeType);
         if (iVar1 == 0) {
             ov83_02246114(param_1, 0);
-            *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+            param_1->arrowSpriteVisible = FALSE;
             return 1;
         }
-        *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+        param_1->arrowSpriteVisible = FALSE;
         return 1;
     case 5:
-        *(u8 *)(param_1 + 0xf) = *(u8 *)(param_1 + 0xf) & ~1;
+        param_1->arrowSpriteVisible = FALSE;
         return 1;
     }
     return 0;

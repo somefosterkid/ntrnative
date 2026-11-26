@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
@@ -40,7 +41,6 @@ struct FieldProcessManager;
 struct FieldTask;
 struct FieldTextureManager_t;
 struct FogManager;
-struct FrontierAnimCmd;
 struct FrontierGraphics;
 struct FrontierMenuManager;
 struct FrontierParticleSystem;
@@ -575,18 +575,25 @@ typedef struct BagCursor BagCursor;
 typedef struct JournalEntry JournalEntry;
 enum ObjectEventGfx ov80_0222A7EC(const TrainerInfo *playerInfo);
 u32 FrontierScriptContext_ReadWord(FrontierScriptContext *ctx);
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 TrainerInfo *sub_02034818(int netId);
 int sub_02037454(void);
 BOOL sub_02037474(void);
 TrainerInfo *Save_PlayerData_GetProfile(SaveData *saveData);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov80_0222C7B0(s16 localID, UnkStruct_ov104_0223C634 *object, const FrontierAnimCmd *animCmd, UnkStruct_ov63_0222D77C *param3, u8 *movementCount, enum HeapID heapID);
+#else
 void ov80_0222C7B0(u16 localID, UnkStruct_ov104_0223C634 *object, const FrontierAnimCmd *animCmd, UnkStruct_ov63_0222D77C *param3, u8 *movementCount, enum HeapID heapID);
+#endif
 void ov80_022394D8(FrontierGraphics *param0, int param1);
 UnkStruct_ov63_0222BEC0 *ov80_02239510(FrontierGraphics *param0, const UnkStruct_ov104_0223D570 *param1, int param2);
 u16 FrontierScriptContext_ReadHalfWord(FrontierScriptContext *ctx);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+UnkStruct_ov63_0222BEC0 *ov42_02228110(UnkStruct_ov63_0222BE18 *param0, u8 param1);
+#else
 UnkStruct_ov63_0222BEC0 *ov42_02228110(UnkStruct_ov63_0222BE18 *param0, u16 param1);
+#endif
 void ov80_02239590(FrontierGraphics *param0, UnkStruct_ov63_0222BEC0 *param1);
 void ov42_02229200(UnkStruct_ov63_0222CE44 *param0, u16 param1);
 void ov80_022395E8(FrontierGraphics *param0, s32 param1, UnkStruct_ov63_0222BEC0 **param2, UnkStruct_ov63_0222CE44 **param3);
@@ -1724,10 +1731,6 @@ static inline void inline_ov61_0222C3B0_sub(SysTask *param0, void *param1) {
     }
 }
 UnkStruct_ov104_0223C634 *ov80_02239938(BattleFrontier *param0, int param1);
-struct FrontierAnimCmd {
-    u16 action;
-    u16 count;
-};
 
 BOOL FrtCmd_034(FrontierScriptContext *ctx);
 BOOL FrtCmd_035(FrontierScriptContext *ctx);

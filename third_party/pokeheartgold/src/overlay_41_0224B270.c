@@ -11,7 +11,7 @@
 
 s32 ov41_0224B374(void *, void *);
 
-void ov41_0224B270(void *arg0);
+void ov41_0224B270(UnkStruct_ov22_0225AB54 *arg0);
 
 typedef struct {
     u32 unk_00;
@@ -44,14 +44,14 @@ typedef struct {
 } UnkStruct_ov22_0225AE9C;
 void ov41_0224B298(UnkStruct_ov22_0225AB54 *param0);
 
-void ov41_0224B270(void *arg0) {
+void ov41_0224B270(UnkStruct_ov22_0225AB54 *arg0) {
     s32 v0;
 
-    v0 = *((s32 *)((UnkStruct_ov22_0225AB54 *)arg0)->unk_2C);
-    if (*((s32 *)&((UnkStruct_ov22_0225AB54 *)arg0)->unk_1C) != v0) {
-        *((s32 *)&((UnkStruct_ov22_0225AB54 *)arg0)->unk_1C) = v0;
+    v0 = *((s32 *)arg0->unk_2C);
+    if (arg0->unk_1C != v0) {
+        arg0->unk_1C = v0;
         if (v0 <= 0xA) {
-            ov41_0224B374(arg0, arg0 + 0x30);
+            ov41_0224B374(arg0, &arg0->unk_30);
             PlaySE(0x682U);
         }
     }

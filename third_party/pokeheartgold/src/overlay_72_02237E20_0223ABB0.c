@@ -65,12 +65,12 @@ s32 ov72_0223AC2C(NintendoWfcConnect *arg0) {
     return 0;
 }
 
-s32 ov72_0223AE6C();
+s32 ov72_0223AE6C(NintendoWfcConnect *arg0, s32 arg1, s32 arg2, s32 arg3);
 
-s32 ov72_0223AC6C(NintendoWfcConnect *arg0);
+s32 ov72_0223AC6C(NintendoWfcConnect *arg0, s32 arg1, s32 arg2, s32 arg3);
 
-s32 ov72_0223AC6C(NintendoWfcConnect *arg0) {
-    if (ov72_0223AE6C() == 0) {
+s32 ov72_0223AC6C(NintendoWfcConnect *arg0, s32 arg1, s32 arg2, s32 arg3) {
+    if (ov72_0223AE6C(arg0, arg1, arg2, arg3) == 0) {
         arg0->numberInput.state = (u8) arg0->numberInput.nextState;
     }
     return 0;

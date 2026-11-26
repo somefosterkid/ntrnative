@@ -59,6 +59,8 @@ int vcore_aa_limit(int n, int k);
 void vcore_set_options(VCoreState *s, int dot_fine, int line_thin, int edge_fine);
 /* Filter=bilinear (N > 1; port/gpu's g4_filtered rule): 1 = textures bilinear on the decoded texels, 0 = nearest (the DS) */
 void vcore_set_filter(VCoreState *s, int bilinear);
+/* Antialiasing=Smooth edges (N > 1, aa 1; port/gpu's pass P rule): 1 = the edge-marking outline drawn with its coverage, 0 = the DS's */
+void vcore_set_edge_aa(VCoreState *s, int on);
 /* the last vcore_render's picture when it ran at N > 1: RGBA8, 256 N x 384 N (*w, *h), the top screen first, valid until
  * the next render; NULL when the frame was drawn at 1x (use vcore_frame_rgba) */
 const uint8_t *vcore_picture(const VCoreState *s, int *w, int *h);

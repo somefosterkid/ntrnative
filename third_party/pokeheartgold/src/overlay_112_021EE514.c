@@ -24,10 +24,6 @@
 #include "msgdata.h"
 #include "unk_struct_0209_c194.h"
 
-s32 ov112_021EC460(Ov112PokewalkerApp *, s32, s32, s32);
-
-s32 ov112_021EE514(void *arg0);
-
 struct GameStats;
 struct JournalEntry;
 struct MsgData;
@@ -40,7 +36,7 @@ typedef struct UnkStruct_0205C22C_t UnkStruct_0205C22C;
 typedef struct JournalEntry JournalEntry;
 int ov112_021EE604(UnkStruct_ov109_021D0F70 *param0);
 
-s32 ov112_021EE514(void *arg0) {
+s32 ov112_021EE514(Ov112PokewalkerApp *arg0) {
     ov112_021EC460(arg0, 2, 0x1B, 0x39);
     return 0x40;
 }
@@ -59,20 +55,16 @@ s32 ov112_021EE52C(void) {
     return 0x3F;
 }
 
-s32 ov112_021EAA10(void *);
+s32 ov112_021EAA10(Ov112PokewalkerApp *);
 
-s32 ov112_021EE550(void *arg0);
-
-s32 ov112_021EE550(void *arg0) {
+s32 ov112_021EE550(Ov112PokewalkerApp *arg0) {
     if (IsPaletteFadeFinished() == 1) {
         ov112_021EAA10(arg0);
-        *(s32 *)((u8 *)arg0 + 4) = 0;
+        arg0->unk_4 = 0;
         return 0x42;
     }
     return 0x3F;
 }
-
-s32 ov112_021EE570(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EE570(Ov112PokewalkerApp *arg0) {
     s32 v0;
@@ -85,9 +77,7 @@ s32 ov112_021EE570(Ov112PokewalkerApp *arg0) {
     return 0x40;
 }
 
-s32 ov112_021EA570(void *);
-
-s32 ov112_021EE594(Ov112PokewalkerApp *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *);
 
 s32 ov112_021EE594(Ov112PokewalkerApp *arg0) {
     s32 v0;
@@ -100,12 +90,6 @@ s32 ov112_021EE594(Ov112PokewalkerApp *arg0) {
     }
     return 0x41;
 }
-
-s32 ov112_021EA64C(void *arg0);
-
-s32 ov112_021EA688(void *, s32);
-
-s32 ov112_021EE5B8(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EE5B8(Ov112PokewalkerApp *arg0) {
     ov112_021EA64C(arg0);

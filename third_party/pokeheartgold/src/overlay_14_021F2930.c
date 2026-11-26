@@ -15,7 +15,11 @@ s32 ov14_021E88F8(void *);
 
 s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 nextState);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EA674(UnkStruct_ov14_boxapp *app);
 
@@ -47,17 +51,17 @@ void ov14_021F297C(struct UnkStruct_ov14_boxapp *arg0);
 void ov14_021F297C(UnkStruct_ov14_boxapp *arg0) {
     GfGfx_EngineATogglePlanes(0x10U, 1U);
     GfGfx_EngineBTogglePlanes(0x10U, 1U);
-    ov14_021F2AC8(*((void **)&arg0->sys));
-    ov14_021F2B88(*((void **)&arg0->sys));
+    ov14_021F2AC8(arg0->sys);
+    ov14_021F2B88(arg0->sys);
     ov14_021F2BB8(arg0);
-    ov14_021F4D10(*((void **)&arg0->sys));
+    ov14_021F4D10(arg0->sys);
 }
 
 s32 ov14_021F2B68(void *);
 
 s32 ov14_021F2C04(void *);
 
-s32 ov14_021F4E68(void *param_1);
+void ov14_021F4E68(UnkStruct_ov14_boxsys *param_1);
 
 void ov14_021F29AC(void *arg0);
 

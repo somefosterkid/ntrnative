@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "constants/heap.h"
 #include "filesystem_files_def.h"
 
@@ -306,7 +308,6 @@ u32 FrontierScriptContext_ReadWord(FrontierScriptContext *ctx);
 
 void ov80_02239AF8(SpriteSystem *param0, SpriteManager *param1, NARC *param2, PaletteData *param3, u16 param4);
 
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 
 BOOL FrtCmd_042(FrontierScriptContext *ctx);
 

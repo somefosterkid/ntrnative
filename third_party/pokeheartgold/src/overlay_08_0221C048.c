@@ -52,17 +52,17 @@ s32 ov08_0221CDF8(BattleParty *);
 
 s32 ov08_0221CF38(BattleParty *);
 
-s32 ov08_0221D6CC(BattleParty *, u8);
+s32 ov08_0221D6CC(BattleParty *, int);
 
 s32 ov08_0221DB24(BattleParty *, u8);
 
 s32 ov08_0221DD70(BattleParty *, u32);
 
-s32 ov08_02220C5C(BattleParty *, u8);
+s32 ov08_02220C5C(BattleParty *, int);
 
-s32 ov08_022221CC(BattleParty *, u8);
+s32 ov08_022221CC(BattleParty *, int);
 
-s32 ov08_02222524(BattleParty *, u8);
+s32 ov08_02222524(BattleParty *, int);
 
 BattleSubMenuCursor *ov08_02224B64(enum HeapID);
 

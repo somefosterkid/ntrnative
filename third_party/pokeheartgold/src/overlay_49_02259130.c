@@ -62,10 +62,10 @@ struct UnkStruct_ov70_0225CC54_t {
 void ov45_022308C0(UnkStruct_ov66_02234548 *param0);
 void ov45_022308E4(UnkStruct_ov66_02234548 *param0);
 void ov45_02230908(UnkStruct_ov66_02234548 *param0);
-void ov45_02230920(UnkStruct_ov66_02234548 *param0);
+void ov45_02230920(void *arg0, s32 arg1);
 void ov45_0223093C(UnkStruct_ov66_02234798 *param0, int param1);
 void ov45_02230968(UnkStruct_ov66_02234798 *param0);
-void ov45_022308B0(UnkStruct_ov66_02234548 *param0);
+void ov45_022308B0(void *arg0, s32 arg1);
 void ov45_02230978(UnkStruct_ov66_02234548 *param0);
 void ov45_02230994(UnkStruct_ov66_02234548 *param0);
 
@@ -73,11 +73,11 @@ void ov49_02259130(UnkStruct_ov70_0225CA20 *param0);
 void ov49_0225913C(UnkStruct_ov70_0225CA20 *param0);
 void ov49_02259148(UnkStruct_ov70_0225CA20 *param0);
 void ov49_02259154(UnkStruct_ov70_0225CA20 *param0);
-void ov49_02259160(UnkStruct_ov70_0225CA20 *param0);
+void ov49_02259160(UnkStruct_ov70_0225CA20 *param0, s32 arg1);
 void ov49_0225916C(UnkStruct_ov70_0225CC54 *param0, BOOL param1);
 void ov49_02259184(UnkStruct_ov70_0225CC54 *param0, BOOL param1);
 void ov49_0225919C(UnkStruct_ov70_0225CC54 *param0, BOOL param1);
-void ov49_022591B4(UnkStruct_ov70_0225CA20 *param0);
+void ov49_022591B4(UnkStruct_ov70_0225CA20 *param0, s32 arg1);
 void ov49_022591C0(UnkStruct_ov70_0225CA20 *param0);
 void ov49_022591CC(UnkStruct_ov70_0225CA20 *param0);
 
@@ -97,8 +97,8 @@ void ov49_02259154(UnkStruct_ov70_0225CA20 *param0) {
     ov45_02230908(param0->unk_04);
 }
 
-void ov49_02259160(UnkStruct_ov70_0225CA20 *param0) {
-    ov45_02230920(param0->unk_04);
+void ov49_02259160(UnkStruct_ov70_0225CA20 *param0, s32 arg1) {
+    ov45_02230920(param0->unk_04, arg1);
 }
 
 void ov49_0225916C(UnkStruct_ov70_0225CC54 *param0, BOOL param1) {
@@ -125,8 +125,8 @@ void ov49_0225919C(UnkStruct_ov70_0225CC54 *param0, BOOL param1) {
     }
 }
 
-void ov49_022591B4(UnkStruct_ov70_0225CA20 *param0) {
-    ov45_022308B0(param0->unk_04);
+void ov49_022591B4(UnkStruct_ov70_0225CA20 *param0, s32 arg1) {
+    ov45_022308B0(param0->unk_04, arg1);
 }
 
 void ov49_022591C0(UnkStruct_ov70_0225CA20 *param0) {

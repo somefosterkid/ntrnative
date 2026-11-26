@@ -6,9 +6,9 @@
 #include "overlay_96_unk_struct_ov96_0220e3f0.h"
 #include "screen_fade.h"
 
-u32 ov96_0220E394(PokeathlonCourseData *param_1, u8 *param_2);
+BOOL ov96_0220E394(PokeathlonCourseData *param_1, u8 *param_2);
 
-u32 ov96_0220E394(PokeathlonCourseData *param_1, u8 *param_2) {
+BOOL ov96_0220E394(PokeathlonCourseData *param_1, u8 *param_2) {
     BOOL BVar1;
     UnkStruct_ov96_0220E3F0 *pvVar2;
     u32 uVar3;

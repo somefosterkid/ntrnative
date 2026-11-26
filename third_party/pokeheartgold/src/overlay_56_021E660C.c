@@ -365,9 +365,17 @@ enum StandardWindowType {
     STANDARD_WINDOW_UNDERGROUND,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx1(BgConfig *bgConfig, GFBgLayer bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#else
 void LoadUserFrameGfx1(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx2(BgConfig *bgConfig, GFBgLayer bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#else
 void LoadUserFrameGfx2(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#endif
 
 SysTask * SysTask_CreateOnMainQueue(SysTaskFunc func, void *data, u32 priority);
 

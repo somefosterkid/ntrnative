@@ -46,6 +46,7 @@ struct GpuCore {
   int tc_given; /* gpu_use_tcframe was called (the caller runs the cache) */
   int tc_polys; /* the last gpu_render_prepared: its polygons that sampled a layer (gpu_tc_last_polys) */
   GLuint prog_rc; /* "g00_raster.frag#Kc", made at its first use (raster_prog) */
+  GLuint prog_rl, prog_rlf, prog_rlc; /* 4 samples (lite): "g00_raster.frag#2+R_LITE", "#2f+R_LITE", "#2c+R_LITE", made at their first use */
 };
 
 /* k = 2: a sample of pass R as it is stored (RG32UI, shaders/g00_head.glsl) in k = 1's RGBA32UI form, as g_unpack does it (the

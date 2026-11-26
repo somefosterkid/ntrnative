@@ -7,7 +7,11 @@
 
 s32 ov83_02240290(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_02240FAC(void *, u8, u8);
+#else
 s32 ov83_02240FAC(void *, s32, u8);
+#endif
 
 s32 ov83_02241354(void *);
 
@@ -15,7 +19,11 @@ s32 ov83_02241368(BattleCastleSelfApp *, u16, u16);
 
 s32 ov83_022418E8(BattleCastleSelfApp *, u32, s32 arg2);
 
-s32 ov83_02241BC4(void *, u8);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02241BC4(BattleCastleSelfApp *app, u8 slot, u8 menuOption);
+#else
+void ov83_02241BC4(BattleCastleSelfApp *app, u8 slot, u8 menuOption);
+#endif
 
 s32 ov83_0224776C(u32, u32);
 
@@ -42,7 +50,7 @@ s32 ov83_0223EEA0(BattleCastleSelfApp *arg0, s32 arg1, s32 arg2, s32 arg3) {
             *((s8 *)&arg0->msgsReceived) = 0;
             temp_r2 = arg0->selectedMenuEntry;
             if ((temp_r2 == 4) || (temp_r2 == 8)) {
-                ov83_02241BC4(arg0, arg0->slotID);
+                ov83_02241BC4(arg0, arg0->slotID, temp_r2);
             } else {
                 ov83_022418E8(arg0, arg0->slotID, temp_r2);
             }

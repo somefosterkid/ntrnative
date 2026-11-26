@@ -9,8 +9,6 @@
 
 s32 ov112_021EF1F0(PCStorage *, u32, s32, s32 *);
 
-void ov112_021EF31C(void *arg0, Ov112PokewalkerApp *arg1);
-
 void ov112_021EF31C(void *arg0, Ov112PokewalkerApp *arg1) {
     u16 sp18[11];
     s32 sp0[6];

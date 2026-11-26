@@ -46,8 +46,6 @@ struct CommQueueMan;
 
 s32 sub_02033D28(void *, void *, void *, s32);
 
-void *sub_02033E88(void *);
-
 s32 sub_02033EA8(void *);
 
 s32 sub_02033ECC(struct CommQueueMan *arg0, void *arg1, s32 arg2);

@@ -1,5 +1,6 @@
 #include "global.h"
 #include "overlay_41_unk_struct_ov22_02259560.h"
+#include "overlay_41_unk_struct_ov22_0225af8c.h"
 #include "constants/heap.h"
 #include "filesystem_files_def.h"
 #include "bg_window.h"
@@ -13,6 +14,8 @@
 #include "overlay_41_unk_struct_ov22_02257964.h"
 #include "overlay_41_unk_struct_ov22_0225b4e4.h"
 #include "overlay_41_unk_struct_ov22_0225b1bc.h"
+#include "touchscreen.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct BgConfig;
 
@@ -51,12 +54,6 @@ typedef struct PhotoPokemon PhotoPokemon;
 
 typedef struct DressUpPhoto DressUpPhoto;
 
-typedef struct {
-    BgConfig *unk_00;
-    int unk_04;
-    int unk_08;
-    enum HeapID heapID;
-} UnkStruct_ov22_0225AF8C;
 
 
 typedef struct SoftwareSpriteChars SoftwareSpriteChars;
@@ -83,21 +80,6 @@ typedef struct SpriteAnimFrame {
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
 
 
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
 
 
 

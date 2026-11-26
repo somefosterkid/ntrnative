@@ -18,7 +18,11 @@ extern const s32 ov49_02269A74[2];
 
 void ov49_0225EE4C(UnkStruct_ov70_022610B8 *param0, u32 param1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov49_0225F068(void *, s8, s16);
+#else
 s32 ov49_0225F068(void *, s32, enum HeapID);
+#endif
 void *ov49_0225EEAC(void *arg0, enum HeapID arg1);
 
 void ov49_0225EE4C(UnkStruct_ov70_022610B8 *param0, u32 param1) {

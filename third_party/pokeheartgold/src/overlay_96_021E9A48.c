@@ -2,9 +2,8 @@
 
 #include "pokeathlon/pokeathlon.h"
 
-void ov96_021E9A48(u32 param_1, PokeathlonCourseData *param_2);
+void *ov96_021E9A48(int idx, void *data, int size);
 
-void ov96_021E9A48(u32 param_1, PokeathlonCourseData *param_2) {
-    PokeathlonCourse_GetFieldData_AtIndex(param_2, 0);
-    return;
+void *ov96_021E9A48(int idx, void *data, int size) {
+    return PokeathlonCourse_GetFieldData_AtIndex(data, 0);
 }

@@ -7,7 +7,7 @@
 #include "billboard.h"
 #include "billboard_gfx_sequence.h"
 
-s32 ov01_021F8C88(LocalMapObject *, Sprite *);
+void ov01_021F8C88(LocalMapObject *, Sprite *);
 
 s32 ov01_02205808(s32, LocalMapObject *, Sprite *);
 

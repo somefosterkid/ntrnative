@@ -34,7 +34,7 @@ s32 ov40_02235994(void);
 
 s32 ov40_02235C7C(void *, s32);
 
-s32 ov40_02236130();
+void ov40_02236130(UnkStruct_0208C06C *param0);
 
 void *ov41_0224B530(void *, void *);
 
@@ -52,7 +52,7 @@ s32 ov40_02235434(UnkStruct_0208C06C *arg0) {
     switch (v0) {
     case 0:
         if (*(s32 *)((u8 *)v2 + 0xC) == 0) {
-            ov40_02236130();
+            ov40_02236130(arg0);
             BgClearTilemapBufferAndCommit(arg0->unk_14.unk_10, 2U);
         } else {
             ov40_02230964(arg0, 1);
@@ -138,7 +138,7 @@ s32 ov40_02235644(UnkStruct_0208C06C *arg0) {
     switch (v0) {
     case 0:
         if (*(s32 *)((u8 *)v1 + 0xC) == 0) {
-            ov40_02236130();
+            ov40_02236130(arg0);
             BgClearTilemapBufferAndCommit(arg0->unk_14.unk_10, 2U);
         } else {
             ov40_02230964(arg0, 1);

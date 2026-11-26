@@ -12,7 +12,7 @@ void ov41_022464AC(void *arg0, s32 arg1);
 
 int ov41_022464BC(NNSG2dCharacterData *param0, int param1, int param2, int param3);
 
-s32 ov41_022467E4();
+s32 ov41_022467E4(UnkStruct_ov22_0225A0E4 *param0, const void *param1);
 s32 ov41_02246C90(void *, s32);
 s32 ov41_02246CC0(void *, s32, s32, s32);
 void ov41_02246518(struct UnkStruct_ov22_0225A0E4 *arg0, void *arg1, s32 arg2);
@@ -49,7 +49,7 @@ int ov41_022464BC(NNSG2dCharacterData *param0, int param1, int param2, int param
 }
 
 void ov41_02246518(UnkStruct_ov22_0225A0E4 *arg0, void *arg1, s32 arg2) {
-    ov41_022467E4();
+    ov41_022467E4(arg0, arg1);
     ov41_02246CC0(arg0, arg2, 0x2800, 0x20);
     PokepicManager_SetNeedG3IdentityFlag(*((PokepicManager * *)&arg0->unk_20), 1);
     ov41_02246C90(arg0, arg2);

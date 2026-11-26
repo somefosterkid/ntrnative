@@ -2,7 +2,6 @@
 
 #include "system.h"
 #include "unk_02005D10.h"
-#include "overlay_112_unk_struct_ov112_021_eb28_c.h"
 #include "overlay_112_pokewalker_app.h"
 #include "overlay_112_hitbox.h"
 
@@ -10,17 +9,7 @@ s32 ov112_021EB9C0(void);
 
 s32 ov112_021EB9E4(void);
 
-s32 ov112_021EA51C(void *, s32);
-
-s32 ov112_021EB90C(void *, s32);
-
-s32 ov112_021EB950(void *, s32);
-
-s32 ov112_021EC440(void *, s32, s32, s32);
-
 extern s32 ov112_021FF090[];
-
-s32 ov112_021EB44C(Ov112PokewalkerApp *arg0, s32 arg1);
 
 s32 ov112_021EB44C(Ov112PokewalkerApp *arg0, s32 arg1) {
     s32 temp_r0;
@@ -32,13 +21,13 @@ s32 ov112_021EB44C(Ov112PokewalkerApp *arg0, s32 arg1) {
         return 0x19;
     }
     if (0x40 & gSystem.newKeys) {
-        if ((((UnkStruct_ov112_021EB28C *)arg0)->sel) != 0) {
+        if ((arg0->unk_1EC50) != 0) {
             PlaySE(0x5DCU);
             arg0->unk_1EC50 -= 1;
         }
         ov112_021EA51C(arg0, ov112_021FF090[arg0->unk_1EC50]);
     } else if (0x80 & gSystem.newKeys) {
-        if (((s32)(((UnkStruct_ov112_021EB28C *)arg0)->sel)) < 2) {
+        if (((s32)(arg0->unk_1EC50)) < 2) {
             PlaySE(0x5DCU);
             arg0->unk_1EC50 += 1;
         }
@@ -46,7 +35,7 @@ s32 ov112_021EB44C(Ov112PokewalkerApp *arg0, s32 arg1) {
     } else {
         if (1 & gSystem.newKeys) {
             PlaySE(0x5DDU);
-            temp_r1 = ((UnkStruct_ov112_021EB28C *)arg0)->sel;
+            temp_r1 = arg0->unk_1EC50;
             ov112_021EC440(arg0, temp_r1, ov112_021FF090[temp_r1], 0xE);
             return 0x19;
         }

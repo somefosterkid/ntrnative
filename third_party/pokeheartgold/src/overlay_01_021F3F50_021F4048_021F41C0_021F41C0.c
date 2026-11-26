@@ -9,41 +9,27 @@
 #include "message_format.h"
 #include "msgdata.h"
 #include "overlay_01_021F3F50.h"
+#include "overlay_01_save_info.h"
 
-struct SaveStatsPrinter {
-    FieldSystem *unk_0;
-    enum HeapID unk_4;
-    s8 unk_8;
-    u8 unk_9[0x3];
-    BgConfig *unk_C;
-    u8 unk_10[0x4];
-    MessageFormat *unk_14;
-    MsgData *unk_18;
-    u8 unk_1C;
-    u8 unk_1D[0xF];
-    s32 unk_2C;
-    s32 unk_30;
-};
+void ov01_021F3F50(SaveInfo *, const FieldSystem *);
 
-s32 ov01_021F3F50(void *, FieldSystem *);
+void ov01_021F3F9C(MessageFormat *, SaveInfo *);
 
-s32 ov01_021F3F9C(MessageFormat *, void *);
+int ov01_021F4044(SaveInfo *);
 
-s32 ov01_021F4044(void *);
+SaveInfoWindow *Field_SaveStatsPrinter_New(FieldSystem *fieldSystem, enum HeapID x, s32 y) {
+    SaveInfoWindow *saveInfoWin;
 
-struct SaveStatsPrinter *Field_SaveStatsPrinter_New(FieldSystem *fieldSystem, enum HeapID x, s32 y) {
-    struct SaveStatsPrinter *saveStatsPrinter;
-
-    saveStatsPrinter = Heap_Alloc(x, sizeof(struct SaveStatsPrinter));
-    saveStatsPrinter->unk_0 = fieldSystem;
-    saveStatsPrinter->unk_4 = x;
-    saveStatsPrinter->unk_8 = (s8)y;
-    saveStatsPrinter->unk_C = (BgConfig *)fieldSystem->bgConfig;
-    saveStatsPrinter->unk_14 = MessageFormat_New(x);
-    saveStatsPrinter->unk_18 = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, 0x1A7, x);
-    ov01_021F3F50((u8 *)&saveStatsPrinter->unk_1C, saveStatsPrinter->unk_0);
-    ov01_021F3F9C(saveStatsPrinter->unk_14, (u8 *)&saveStatsPrinter->unk_1C);
-    saveStatsPrinter->unk_2C = 0xD;
-    saveStatsPrinter->unk_30 = ov01_021F4044((u8 *)&saveStatsPrinter->unk_1C);
-    return saveStatsPrinter;
+    saveInfoWin = Heap_Alloc(x, sizeof(SaveInfoWindow));
+    saveInfoWin->fieldSystem = fieldSystem;
+    saveInfoWin->heapID = x;
+    saveInfoWin->bgLayer = (s8)y;
+    saveInfoWin->bgConfig = fieldSystem->bgConfig;
+    saveInfoWin->strTemplate = MessageFormat_New(x);
+    saveInfoWin->msgLoader = NewMsgDataFromNarc(MSGDATA_LOAD_LAZY, NARC_msgdata_msg, 0x1A7, x);
+    ov01_021F3F50(&saveInfoWin->saveInfo, saveInfoWin->fieldSystem);
+    ov01_021F3F9C(saveInfoWin->strTemplate, &saveInfoWin->saveInfo);
+    saveInfoWin->width = 0xD;
+    saveInfoWin->height = ov01_021F4044(&saveInfoWin->saveInfo);
+    return saveInfoWin;
 }

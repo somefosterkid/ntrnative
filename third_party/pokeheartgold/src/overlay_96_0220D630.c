@@ -4,7 +4,7 @@
 
 u16 ov96_0220F3B4(UnkStruct_ov96_0220E3F0_Cell *arg0);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
 
 UnkStruct_ov96_0220E3F0_Cell *ov96_0220F378(PokeathlonCourseData *, u32, u32);
 

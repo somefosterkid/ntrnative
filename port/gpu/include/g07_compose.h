@@ -62,6 +62,20 @@ int g07_pack_differs(const G07Pack *a, const G07Pack *b, VCoreState *s, int mask
  * frame's in-between pictures and the frame itself) */
 int g07_compose_packed(G07 *c, VCoreState *s, const G07Pack *k, unsigned tex3d, int sc, unsigned smaa);
 
+/* the screens' reuse: pass C draws only the screens (the halves of its output) whose inputs changed since they were drawn: the
+ * engine's 2D (the pack's serials), the uniforms, the 3D layer (by the number g07_set_3d_id gives for the next compose; none:
+ * the screen that shows a 3D layer is drawn), the 2D filter. mode 0 off (the default), 1 on, 2 check: drawn whole, and a
+ * screen the reuse would have kept compared with what it kept. g07_forget: another pass drew into the output (g07cap_show),
+ * both screens are drawn next time. Counts (n[5]): composes, those that drew one screen, none, screens checked, differing */
+void g07_set_reuse(G07 *c, int mode);
+void g07_set_3d_id(G07 *c, unsigned id);
+void g07_forget(G07 *c);
+/* a number that changes whenever the output is drawn into (a compose that drew, g07_forget) and is never given to two contents
+ * (one count for every G07; 0: nothing drawn yet): the present compares it to keep a picture it sent (docs/perf.md "The same
+ * picture not sent again") */
+unsigned long long g07_out_gen(const G07 *c);
+void g07_reuse_counts(const G07 *c, unsigned long long n[5]);
+
 /* a display capture's source A at N x (docs/gpu.md "Display capture"): pass C again for engine A as if it showed the
  * compositor's picture (display mode 1), without master brightness, into a texture of c's (256 N x 192 N RGBA8, returned;
  * 0 on failure). Right after g07_compose_packed with the same k (its uploads are reused). */
@@ -75,6 +89,10 @@ void g07_set_up2d(G07 *c, int style);
 /* Color=full (GpuOptions.color): the 3D layer's two fraction bits reach the picture where the 3D pixel shows as it is
  * (a 3D layer at N > 1; with 0 or a 1x layer pass C is as before) */
 void g07_set_hiprec(G07 *c, int on);
+/* a captured bank shown as engine A's BG bg (2 or 3; 0 none) drawn at N x from the bank's N x texture (docs/gpu.md "Display
+ * capture"), from the next g07_compose* on: tex is that texture (g07cap_bank), DS pixel (x, y) of the BG its texel (x + ox) & 255
+ * of bank row y + oy, the rows y0 .. y1 - 1 read from it (it holds them); ser: the captures drawn into it so far */
+void g07_set_capbg(G07 *c, unsigned tex, int bg, int ox, int oy, int y0, int y1, unsigned ser);
 int g07_up2d_parse(const char *name); /* "off", "identity", "scale2x", "mmpx" -> the style, -1 when unknown */
 
 /* the output texture of the last g07_compose (256 N x 384 N, RGBA8) */

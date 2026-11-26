@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "player_data.h"
 
 #include "constants/heap.h"
@@ -14,7 +16,6 @@ struct UnkStruct_ov66_0222DFF8_t;
 struct UnkStruct_ov66_0223177C_t;
 typedef struct UnkStruct_ov66_0223177C_t UnkStruct_ov66_0223177C;
 typedef u16 charcode_t;
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 void ov45_0222A844(const WiFiPlazaProfile *profile, PlayerProfile *param1, enum HeapID heapID);
 typedef struct UnkStruct_0207E060_t UnkStruct_0207E060;
 typedef struct {

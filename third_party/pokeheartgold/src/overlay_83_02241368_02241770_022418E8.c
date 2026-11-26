@@ -37,7 +37,7 @@ void ov83_022477C4(void *, s32 arg1);
 
 void ov83_022477EC(u32, u32, void *);
 
-void ov83_02247944(void *, u32);
+void ov83_02247944(Window *window, u32);
 
 extern u32 ov83_02247D18;
 

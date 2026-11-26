@@ -42,10 +42,13 @@ static void to_rgba(const uint32_t *px, uint8_t *rgba, int n) {
 
 int main(int argc, char **argv) {
   const char *in = NULL, *out = NULL;
-  int scale = 3, aa = 1, times = 0, png = 1, polys = 0, cx = -1, cy = 0, cw = 0, ch = 0, qx = -1, qy = 0, qw = 1, qh = 1, api = GPU_API_METAL;
+  int scale = 3, aa = 1, aalite = 0, times = 0, png = 1, polys = 0, cx = -1, cy = 0, cw = 0, ch = 0, qx = -1, qy = 0, qw = 1, qh = 1, api = GPU_API_METAL;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) aa = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) {
+      aalite = !strcmp(argv[i + 1], "lite"); /* 4 samples (lite): 4 samples without the DS's antialiasing */
+      aa = aalite ? 2 : atoi(argv[i + 1]), i++;
+    }
     else if (!strcmp(argv[i], "--time") && i + 1 < argc) times = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--nopng")) png = 0;
     else if (!strcmp(argv[i], "--polys")) polys = 1;
@@ -92,6 +95,7 @@ int main(int argc, char **argv) {
   gpu_set_timing(g, 1);
   GpuOptions gopt;
   gpu_options_from_env(&gopt);
+  gopt.aalite = aalite;
   gpu_set_options(g, &gopt);
   int W = VC_W * scale, H = VC_H * scale;
   size_t np = (size_t)W * H;

@@ -52,6 +52,11 @@ void gpu_texdata_build(GpuTexData *t, const VCoreState *s) {
   t->serial = __atomic_add_fetch(&serial, 1, __ATOMIC_RELAXED);
 }
 
+unsigned gpu_texdata_serial(const GpuTexData *t) { return t->serial; }
+int gpu_texdata_same(const GpuTexData *a, const GpuTexData *b) {
+  return memcmp(a->tex, b->tex, sizeof a->tex) == 0 && memcmp(a->pal, b->pal, sizeof a->pal) == 0;
+}
+
 void gpu_g04_upload(GLuint *t_tex, GLuint *t_pal, unsigned *up, int *cur, const GpuTexData *t) {
   int i = *cur;
   if (t_tex[i] != 0 && t_pal[i] != 0 && t->serial == up[i]) return; /* this build is up (an in-between picture of its frame) */

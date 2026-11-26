@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "constants/heap.h"
 
 #include "struct_defs/resdat_narc_structs.h"
@@ -330,7 +332,6 @@ s32 ov49_0225B8FC(void *arg0);
 
 void ov49_0225BEA0(UnkStruct_ov70_0225F350 *param0, UnkStruct_ov70_0225FA84 *param1, UnkStruct_ov70_0225E4EC *param2, u32 heapID, const WiFiPlazaProfile *param4);
 
-WiFiPlazaProfile *ov45_0222A578(WiFiPlazaSystem *, u32);
 
 void ov49_0225A490(UnkStruct_ov70_0225DEE8 *param0);
 

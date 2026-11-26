@@ -38,13 +38,13 @@ u32 ov71_0224A1C4(u8 *param_1, s32 *param_2) {
         iVar1 = Sprite_IsAnimated(((TradeBallArrivalPhase *)param_1)->sprite);
         if (iVar1 == 0) {
             PlaySE(0x6aa);
-            ov71_0224A5C4(param_1, param_1 + 0x34);
+            ov71_0224A5C4(param_1, &((TradeBallArrivalPhase *)param_1)->bapState);
             ov71_02247704(((void *)((TradeBallArrivalPhase *)param_1)->model), 1);
             *param_2 = *param_2 + 1;
         }
         break;
     case 2:
-        iVar1 = ov71_0224A684(param_1 + 0x34);
+        iVar1 = ov71_0224A684(&((TradeBallArrivalPhase *)param_1)->bapState);
         if (iVar1 != 0) {
             BeginNormalPaletteFade(FADE_BOTH_SCREENS, FADE_TYPE_BRIGHTNESS_OUT, FADE_TYPE_BRIGHTNESS_OUT, 0x7fff, 0x10, 1, HEAP_ID_57);
             *param_2 = *param_2 + 1;

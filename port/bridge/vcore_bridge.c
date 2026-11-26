@@ -63,12 +63,13 @@ int SIM_RenderScale(void); /* the Resolution 1..8 (sim_config.ini Resolution=, B
 void SIM_SetRendererIdle(int which, void (*fn)(void)); /* libntr-switchcheck.patch: fn runs when the other renderer is wanted */
 uint64_t SIM_FrameLogNow(void); /* libntr-vs70.patch: BWPORT_FRAMELOG's clock (0 when the log is off) and its extra columns */
 void SIM_FrameLogExtra(int i, uint64_t ns);
-int SIM_AntialiasWanted(void); /* libntr-aa70.patch, libntr-ios-msaa.patch: Antialiasing off|4 samples as k = 1, 2; 3 SMAA (libntr-ios-smaa.patch) */
+int SIM_AntialiasWanted(void); /* libntr-aa70.patch, libntr-ios-msaa.patch: Antialiasing off|4 samples as k = 1, 2; 3 SMAA (libntr-ios-smaa.patch); 4 Smooth edges */
 void SIM_RendererAAUsed(int k); /* the k vcore draws with (lowered when Resolution x k is over the 8x cap) */
 int SIM_FrameSkipping(void); /* libntr-frameskip.patch: this frame is not to be drawn (BWPORT_FRAMESKIP, sim_config.ini FrameSkip) */
 /* libntr-ib78.patch: in-between pictures (docs/interp.md) */
 int SIM_InterpWanted(void);
 int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next);
+int SIM_InterpLeadOn(void); /* 0: BWPORT_INTERPLEAD=0, a blend at f 0 shows the newer keyframe as before the lead */
 void SIM_InterpLate(void); /* libntr-ios-smoothdrop.patch: this slot's in-between was not ready in time */
 void SIM_SetInterpPicture(const unsigned char *(*fn)(int slot, int *w, int *h));
 /* libntr-pf82.patch: the per-stage timing readout (the Metrics window's Breakdown, Debug > Save performance log): time the
@@ -233,8 +234,11 @@ static void IpRender(Slot *sl, int first) {
 }
 
 static void IpRenderBlend(Slot *sl, double f, int first) {
-  s32 b = (s32)((1.0 - f) * 4096.0 + 0.5);
+  const double fc = !(f > 0.0) ? 0.0 : f > 1.0 ? 1.0 : f; /* (clamped before the s32 conversion: a huge or NaN f is undefined there) */
+  s32 b = (s32)((1.0 - fc) * 4096.0 + 0.5);
   vc_ip_apply_begin(sl->s, &sIp.old, sIp.map, sIp.texhold, b < 0 ? 0 : b > 4096 ? 4096 : b);
+  vc_ip_apply_keep(sl->s, sIp.keep, sIp.nkeep);
+  vc_ip_apply_enter(sl->s, (const double (*)[16])sIp.enter);
   IpRender(sl, first);
   vc_ip_apply_end(sl->s);
 }
@@ -262,7 +266,7 @@ static void IpDraw(Slot *sl) {
   for (int idx = 1; idx <= sl->ipN; idx++) {
     long long off = idx < sl->ipN ? sl->ipOff[idx] : sl->ipNext;
     double f = sIp.valid ? (double)(sl->ipNominal + off - sIp.keyNs) / (double)gap : 2.0;
-    int blend = f > 0.0 && f < 1.0;
+    int blend = sIp.valid && f < 1.0 && (f > 0.0 || SIM_InterpLeadOn()); /* (f at or below 0: the older keyframe, b 4096) */
     IpMetric(idx, f, blend);
     long long t0 = NowNs();
     if (idx < sl->ipN) {
@@ -467,7 +471,9 @@ static const uint8_t *FrameSized(int *pw, int *ph) {
   VCoreState *s = sl->s;
   vcore_set_scale(s, WantScale());
   vcore_set_aa(s, getenv("BWPORT_LSTEP") != NULL || SIM_AntialiasWanted() != 2 ? 1 : 2); /* SMAA: off here (the gpu renderer's) */
-  SIM_RendererAAUsed(vcore_get_aa(s));
+  int edgeaa = getenv("BWPORT_LSTEP") == NULL && SIM_AntialiasWanted() == 4; /* Smooth edges: p21's outline with its coverage */
+  vcore_set_edge_aa(s, edgeaa);
+  SIM_RendererAAUsed(edgeaa ? (vcore_get_scale(s) > 1 ? 4 : 1) : vcore_get_aa(s));
   vcore_set_options(s, SIM_GLRendererOption(0), SIM_GLRendererOption(1), SIM_GLRendererOption(2));
   vcore_set_filter(s, SIM_GLRendererOption(3));
   s->gx_words = SIM_VCapGather(s->io9, s->io9b, s->vram, s->pltt, s->oam, &s->gx, &sl->gxcap);
@@ -480,6 +486,7 @@ static const uint8_t *FrameSized(int *pw, int *ph) {
   u32 cap = vc_io32(s, VC_REG_DISPCAPCNT);
   uint64_t tB = SIM_FrameLogNow();
   sl->ipN = 0;
+  IpTagsWanted();
   if (sPipe && !(cap & 0x80000000u) && sIpLog == NULL && SIM_InterpWanted() && getenv("BWPORT_LSTEP") == NULL) {
     long long off[IP_MAXSLOT];
     int n = SIM_InterpPace(&sl->ipSerial, &sl->ipNominal, &sl->ipTick, IP_MAXSLOT, off, &sl->ipNext);
@@ -610,7 +617,7 @@ static void BridgeIdle(void) {
   sCur = 0;
   sHeld = sShown = NULL;
   sIpTick = NULL;
-  sIp.have = sIp.haveOld = sIp.valid = 0;
+  sIp.have = sIp.haveOld = sIp.valid = sIp.mapOk = 0;
   if (bwport_last_rgba != NULL) bwport_last_rgba = sSlot[0].rgba; /* not into a freed N x picture */
 }
 

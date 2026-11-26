@@ -103,7 +103,11 @@ s32 ov72_022396E8(NintendoWfcConnect *arg0) {
 
 s32 ov72_0223A41C(void *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov72_0223A520(NintendoWfcConnect *, s8, s8);
+#else
 s32 ov72_0223A520(NintendoWfcConnect *, s32, s32);
+#endif
 
 s32 ov72_02239760(NintendoWfcConnect *arg0);
 

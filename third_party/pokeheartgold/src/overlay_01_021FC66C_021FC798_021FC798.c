@@ -954,7 +954,6 @@ BOOL FishingTask_FishGotAway(FishingTask *fishingTask, PlayerAvatar *playerAvata
 
 BOOL ov01_021FC9DC(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObject *playerMapObject);
 
-BOOL ov01_021FC9E8(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObject *playerMapObject);
 
 BOOL ov01_021FCA2C(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObject *playerMapObject);
 

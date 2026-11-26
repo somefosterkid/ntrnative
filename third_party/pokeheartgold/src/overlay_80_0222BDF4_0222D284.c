@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -84,7 +86,6 @@ struct FrontierScriptManager {
     u16 *unk_B8;
 };
 typedef struct JournalEntry JournalEntry;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 typedef struct ItemFieldUseContext ItemFieldUseContext;
 void *ov80_0222D2AC(void *fieldSystem);
 void FrontierScriptContext_Pause(ItemFieldUseContext *usageContext, void *param1);

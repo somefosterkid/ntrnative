@@ -12,17 +12,8 @@
 #include "text.h"
 #include "unk_0203A3B0.h"
 #include "overlay_97_course_sub_screen.h"
+#include "overlay_97_reception.h"
 
-typedef struct UnkStruct_ov97_0221E700_OverlayManager_CreateAndGetData {
-    BgConfig *unk_0;
-    s32 unk_4;
-    void *unk_8;
-    Ov97CourseSubScreen *unk_C;
-    u8 unk_10;
-    u8 unk_11[0x1B];
-    SaveData *unk_2C;
-    s32 unk_30;
-} UnkStruct_ov97_0221E700_OverlayManager_CreateAndGetData;
 
 s32 ov97_0221F020(void *);
 
@@ -92,13 +83,13 @@ s32 ov97_0221E700(OverlayManager *arg0) {
     PCStorage *temp_r7_2;
     s32 var_r6;
     void **temp_r7;
-    UnkStruct_ov97_0221E700_OverlayManager_CreateAndGetData *temp_r0;
+    Ov97Reception *temp_r0;
     void *temp_r5;
 
     temp_r7 = OverlayManager_GetArgs(arg0);
     temp_r5 = *(void **)temp_r7;
-    temp_r0 = OverlayManager_CreateAndGetData(arg0, sizeof(UnkStruct_ov97_0221E700_OverlayManager_CreateAndGetData), HEAP_ID_POKEATHLON);
-    memset(temp_r0, 0, sizeof(UnkStruct_ov97_0221E700_OverlayManager_CreateAndGetData));
+    temp_r0 = OverlayManager_CreateAndGetData(arg0, sizeof(Ov97Reception), HEAP_ID_POKEATHLON);
+    memset(temp_r0, 0, sizeof(Ov97Reception));
     temp_r0->unk_0 = BgConfig_Alloc(HEAP_ID_POKEATHLON);
     temp_r0->unk_2C = (SaveData *) *(SaveData **)temp_r5;
     temp_r0->unk_30 = (s32) *(s32 *)((u8 *)temp_r7 + 0x84);

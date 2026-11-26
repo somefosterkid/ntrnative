@@ -2299,7 +2299,7 @@ typedef struct UnkStruct_unk_02058AEC_02058B84_E8E0 {
     LinkBattleRuleset *battleRegulation;
     FieldMoveContext *fieldMoveContext;
     FieldSystem *fieldSystem;
-    u8 pad_20[4];
+    MenuInputStateMgr *menuInputStatePtr;
     u8 mode;
     u8 type;
     u8 selectedMonSlot;
@@ -3522,7 +3522,7 @@ void sub_02058B84(UnkStruct_0205A0D8 *param0, enum HeapID heapID) {
     partyMenu->battleRegulation = (void *)param0->fieldSystem->linkBattleRuleset;
     partyMenu->party = SaveArray_Party_Get(param0->fieldSystem->saveData);
     partyMenu->bag = Save_Bag_Get(param0->fieldSystem->saveData);
-    *(u8 **)partyMenu->pad_20 = (u8 *)param0->fieldSystem + 0x10C;
+    partyMenu->menuInputStatePtr = &param0->fieldSystem->menuInputState;
     partyMenu->type = PARTY_MENU_TYPE_BASIC;
     partyMenu->mode = PARTY_MENU_MODE_SELECT_CONFIRM;
 

@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "field_system_def.h"
 
 #include "constants/heap.h"
@@ -787,7 +789,6 @@ typedef struct PalPad {
 typedef struct BattleFactorySave BattleFactorySave;
 BattleFactory *ov80_0222FD08(SaveData *saveData, u16 resumingFromSave, u8 challengeType, u8 isOpenLevel);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void Frontier_SetData(BattleFrontier *frontier, void *facilityData);
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {
     location->mapId = mapHeaderID;

@@ -10,10 +10,16 @@
   docs/libntr/fold.md): a change to it is a normal commit, and ninja rebuilds what it reaches.
 - White's assets (build/w_us/asset) there but the dir configured without White (no libgame_w.a in build.ninja): meson setup
   --reconfigure (port/meson.build looks for the assets at configure time only).
+- a dir made before port/machine/linux-ccache.ini named the ccache-nopch launcher (11-21) still compiles with plain `ccache clang`:
+  meson keeps a dir's compilers and does not watch the native files, so its .pch went through the shared cache and a second
+  checkout got a .pch naming the first one's generated headers ("file ... has been modified since the precompiled header ... was
+  built" / "could not find file", 11-25: slot2 and slot3 of the desktop). `meson setup --wipe` once (options and native file
+  paths are kept; the objects come back from ccache: ~2 min).
 Prints the error output and exits 1 when a step fails.
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -51,6 +57,59 @@ def slice_cmd(cmd):
     return ['systemd-run', '--scope', '-q', '--slice=bwworkers.slice'] + cmd if SLICE else cmd
 
 
+STALE_MARK = '.stale_launcher_wiped'   # in the build dir: it was wiped once for a missing ccache-nopch (never again: pfx1 11-25)
+
+
+def native_files(setup_args):
+    """the --native-file paths of a meson setup argument list, in order"""
+    args = list(setup_args)
+    return [a.split('=', 1)[1] if a.startswith('--native-file=') else args[i + 1]
+            for i, a in enumerate(args) if a.startswith('--native-file=') or (a == '--native-file' and i + 1 < len(args))]
+
+
+def stale_launcher(build, setup_args):
+    """True when the compiler the native files of setup_args end up with names the ccache-nopch launcher (port/machine/linux-ccache.ini)
+    but this build dir was configured without it: its build.ninja runs the compiler without `ccache-nopch`.
+    Only the LAST native file that defines [binaries] c counts (meson: the later file wins): with BWPORT_SYSROOT the sysroot's native-ccache.ini
+    comes after linux-ccache.ini and names plain `ccache clang`, so no dir ever has the launcher and the old check wiped it on every run (25 min each)."""
+    last = None
+    try:
+        for p in native_files(setup_args):
+            with open(os.path.join(REPO, p), errors='replace') as f:
+                lines = [ln for ln in f if not ln.lstrip().startswith('#')]
+            if any(re.match(r'\s*c\s*=', ln) for ln in lines):
+                last = any('ccache-nopch' in ln for ln in lines)
+        if last:
+            with open(os.path.join(build, 'build.ninja'), errors='replace') as f:
+                return 'ccache-nopch' not in f.read(2000000)   # the compiler rules are at the top
+    except OSError:
+        pass
+    return False
+
+
+def pch_sums(build, say=lambda msg: None):
+    """ccx2 11-26: a build dir made before ccache-nopch wrote X.pch.sum has none, so its objects hash the dir's own .pch: a miss in every
+    other dir (CCACHE_PCH_EXTSUM, port/machine/ccache-nopch). For each *.pch without a .sum: the last line of `ninja -t commands <pch>`
+    is the .pch's own compile; the launcher run with CCACHE_NOPCH_SUMONLY=1 writes the sum and compiles nothing, so ninja sees no change."""
+    try:
+        with open(os.path.join(build, 'build.ninja'), errors='replace') as f:
+            if 'ccache-nopch' not in f.read(2000000):
+                return
+    except OSError:
+        return
+    for d, _, files in os.walk(build):
+        for n in files:
+            if not n.endswith('.pch') or os.path.exists(os.path.join(d, n + '.sum')):
+                continue
+            rel = os.path.relpath(os.path.join(d, n), build)
+            r = sh(['ninja', '-C', build, '-t', 'commands', rel])
+            lines = r.stdout.strip().splitlines() if r.returncode == 0 else []
+            if not lines or 'ccache-nopch' not in lines[-1]:
+                continue
+            say('writing ' + rel + '.sum')
+            sh(['sh', '-c', lines[-1]], cwd=build, env=dict(os.environ, CCACHE_NOPCH_SUMONLY='1'))
+
+
 def white_pending(build):
     """True when White's assets exist now but this build dir was configured without them: port/meson.build decides
     build_white once, at configure time (`fs.is_dir(<rom build>/w_us/asset)`), and nothing in meson makes it look again, so a
@@ -72,7 +131,7 @@ def white_pending(build):
 def refresh(build, setup_args=(), log=None):
     """meson setup / subprojects reset / reconfigure as the state needs; the error output, or None"""
     ninja = os.path.join(build, 'build.ninja')
-    mtime = lambda paths: max(os.path.getmtime(os.path.join(REPO, p)) for p in paths)
+    mtime = lambda paths: max(os.path.getmtime(os.path.join(REPO, p)) for p in paths if os.path.exists(os.path.join(REPO, p)))   # (port/gpu/msl is not in the public export)
     # port/extern's stand-ins for game files (tools/port_sources.py), in subdirectories: a file added there changes its own dir
     extern_dirs = [os.path.relpath(d, REPO) for d, _, _ in os.walk(os.path.join(REPO, 'port/extern'))]
     say = log or (lambda msg: None)
@@ -87,6 +146,16 @@ def refresh(build, setup_args=(), log=None):
     if not os.path.exists(ninja):
         say('meson setup')
         r = sh(slice_cmd(['meson', 'setup', build, 'port'] + list(setup_args)), cwd=REPO)
+    elif stale_launcher(build, setup_args) and not os.path.exists(os.path.join(build, STALE_MARK)):
+        say('compiled without ccache-nopch: meson setup --wipe')
+        # the new native files go with the wipe (meson replaces the dir's recorded ones): a dir first set up without linux-ccache.ini stays stale otherwise
+        r = sh(slice_cmd(['meson', 'setup', '--wipe', build, 'port'] + [x for f in native_files(setup_args) for x in ('--native-file', f)]), cwd=REPO)
+        if r.returncode == 0:
+            try:
+                with open(os.path.join(build, STALE_MARK), 'w') as f:
+                    f.write('wiped once for a missing ccache-nopch launcher'+chr(10))
+            except OSError:
+                pass
     elif mtime(['port/src', 'port/exclude.txt', 'port/gpu/src', 'port/gpu/shaders', 'port/gpu/msl'] + extern_dirs) > os.path.getmtime(ninja):   # a file added or taken out
         say('sources changed: reconfigure')
         r = sh(slice_cmd(['meson', 'setup', '--reconfigure', build, 'port']), cwd=REPO)
@@ -95,6 +164,10 @@ def refresh(build, setup_args=(), log=None):
         r = sh(slice_cmd(['meson', 'setup', '--reconfigure', build, 'port']), cwd=REPO)
     if r is not None and r.returncode != 0:
         return r.stdout
+    if r is None:
+        pch_sums(build, say)
+    if r is None and os.path.exists(os.path.join(build, STALE_MARK)) and stale_launcher(build, setup_args):
+        say('warning: still compiled without ccache-nopch after the one wipe (not wiping again; delete the build dir to rebuild it with the launcher)')
     return None
 
 

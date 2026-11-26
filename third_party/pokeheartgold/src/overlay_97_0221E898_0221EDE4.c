@@ -7,7 +7,11 @@
 #include "pm_string.h"
 #include "overlay_97_course_sub_screen.h"
 
-s32 sub_0208B85C(void *, u8, u8, u32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0208B85C(void *, s32, s32, s8, s32);
+#else
+s32 sub_0208B85C(void *, s32, s32, u32, s32);
+#endif
 
 void ov97_0221EDE4(void *arg0, void *arg1, void *arg2, void *arg3);
 

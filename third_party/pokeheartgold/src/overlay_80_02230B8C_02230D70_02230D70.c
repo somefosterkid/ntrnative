@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
@@ -1596,7 +1598,6 @@ typedef struct Camera Camera;
 
 typedef struct BattleRegulation BattleRegulation;
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 void *Frontier_GetData(BattleFrontier *frontier);
 

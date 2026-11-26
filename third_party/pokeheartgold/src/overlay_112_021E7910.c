@@ -23,11 +23,7 @@ struct UnkStruct_ov112_021EA230;
 #include "overlay_112_pokewalker_app.h"
 #include "pokemon_summary_app.h"
 
-s32 ov112_021E77E4(void *);
-
 s32 ov112_021E7910(OverlayManager *arg0);
-
-void ov112_021E795C(Ov112PokewalkerApp *arg0);
 
 struct OverlayManager;
 struct SOUND_CHATOT;

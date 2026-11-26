@@ -15,7 +15,7 @@ typedef struct MsgBankMsgNo {
     u16 msgNo;
 } MsgBankMsgNo;
 
-typedef struct {
+typedef struct EasyChatArgs {
     u8 unk0;
     u8 unk1;
     u8 unk2;
@@ -64,8 +64,8 @@ SaveEasyChat *sub_02090D80(EasyChatArgs *args);
 u8 sub_02090D84(EasyChatArgs *args);
 u8 sub_02090D88(EasyChatArgs *args);
 void sub_02090D8C(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2);
-BOOL sub_02090DC0(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2);
-void sub_02090E04(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2);
+BOOL sub_02090DC0(const EasyChatArgs *args, const u16 *words, const MailMessage *sentence);
+void sub_02090E04(EasyChatArgs *args, const u16 *words, const MailMessage *sentence);
 int sub_02090E44(EasyChatArgs *args);
 void sub_02090E5C(EasyChatArgs *args, MenuInputState menuInputState);
 UseMailArgs *sub_02090E68(SaveData *saveData, u16 a1, u8 partyIdx, u8 mailType, enum HeapID heapID);

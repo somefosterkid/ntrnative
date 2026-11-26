@@ -4128,7 +4128,7 @@ BOOL ScrCmd_GetTrcardStars(ScriptContext *ctx) {
 
 BOOL ScrCmd_ShowSaveStats(ScriptContext *ctx) {
     FieldSystem *fieldSystem = ctx->fieldSystem;
-    struct SaveStatsPrinter **saveStatsPrinter = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_SAVE_STATS_PRINTER);
+    struct SaveInfoWindow **saveStatsPrinter = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_SAVE_STATS_PRINTER);
     if (!Save_FileDoesNotBelongToPlayer(fieldSystem->saveData)) {
         *saveStatsPrinter = Field_SaveStatsPrinter_New(fieldSystem, HEAP_ID_FIELD1, 3);
         Field_SaveStatsPrinter_Print(*saveStatsPrinter);
@@ -4138,7 +4138,7 @@ BOOL ScrCmd_ShowSaveStats(ScriptContext *ctx) {
 
 BOOL ScrCmd_HideSaveStats(ScriptContext *ctx) {
     FieldSystem *fieldSystem = ctx->fieldSystem;
-    struct SaveStatsPrinter **saveStatsPrinter = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_SAVE_STATS_PRINTER);
+    struct SaveInfoWindow **saveStatsPrinter = FieldSysGetAttrAddr(fieldSystem, SCRIPTENV_SAVE_STATS_PRINTER);
     if (!Save_FileDoesNotBelongToPlayer(fieldSystem->saveData)) {
         Field_SaveStatsPrinter_RemoveFromScreen(*saveStatsPrinter);
         Field_SaveStatsPrinter_Delete(*saveStatsPrinter);
@@ -4153,22 +4153,22 @@ BOOL ScrCmd_595(ScriptContext *ctx) {
 }
 
 BOOL ScrCmd_627(ScriptContext *ctx) {
-    FrontierLaunchArgs **pArgs = FieldSysGetAttrAddr(ctx->fieldSystem, SCRIPTENV_RUNNING_APP_DATA);
+    FieldFrontierDTO **pArgs = FieldSysGetAttrAddr(ctx->fieldSystem, SCRIPTENV_RUNNING_APP_DATA);
     u8 r6 = ScriptReadByte(ctx);
-    FrontierLaunchArgs *args = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(FrontierLaunchArgs));
-    MI_CpuClear8(args, sizeof(FrontierLaunchArgs));
+    FieldFrontierDTO *args = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(FieldFrontierDTO));
+    MI_CpuClear8(args, sizeof(FieldFrontierDTO));
     *pArgs = args;
     if (r6 == 5 || r6 == 6) {
-        args->unk0 = ctx->fieldSystem->frontierFsys;
+        args->facilityData = ctx->fieldSystem->frontierFsys;
     } else {
-        args->unk0 = NULL;
+        args->facilityData = NULL;
     }
     args->options = Save_PlayerData_GetOptionsAddr(ctx->fieldSystem->saveData);
-    args->unk20 = r6;
+    args->sceneID = r6;
     args->saveData = ctx->fieldSystem->saveData;
-    args->mapId = ctx->fieldSystem->location->mapId;
+    args->mapHeaderID = ctx->fieldSystem->location->mapId;
     args->bagCursor = ctx->fieldSystem->bagCursor;
-    args->unk1C = ctx->fieldSystem->unkB0;
+    args->subscreenCursorOn = ctx->fieldSystem->unkB0;
     CallApplicationAsTask(ctx->taskman, &gOverlayTemplate_Frontier, args);
     SetupNativeScript(ctx, ScrNative_WaitApplication_DestroyTaskData);
     return TRUE;

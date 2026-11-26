@@ -67,49 +67,51 @@ void ov96_021E7C94(PokeathlonCourseData *param_1, u16 *param_2, u16 *param_3);
 
 extern u8 _0221A7D8[];
 
-void ov96_021E7938(PokeathlonCourseData *param_1, void *param_2);
+void ov96_021E7938(PokeathlonCourseData *param_1, Pokeathlon_RecordsSolo *param_2);
 
-void ov96_021E7938(PokeathlonCourseData *param_1, void *param_2) {
+void ov96_021E7938(PokeathlonCourseData *param_1, Pokeathlon_RecordsSolo *param_2) {
+    u32 bVar1;
     u8 i;
     u8 j;
     u8 k;
     u32 id;
-    u32 bVar1;
-    u8 *e;
-    u16 *src;
-    u8 *pp;
+    Pokeathlon_RecordsSolo *e;
+    PokeathlonMonEntry *pp;
     u16 sub[16];
     u16 buf[5][16];
 
     i = 0;
     do {
-        id = *(u32 *)((u8 *)param_1 + 0x3d8 + i * 4) & 0xff;
-        e = (u8 *)param_2 + id * 0x2c;
-        if (*(u32 *)(e + 0x28) < 9999999) {
-            *(u32 *)(e + 0x28) = *(u32 *)(e + 0x28) + 1;
+        id = param_1->field_3D8[i] & 0xff;
+        e = &param_2[id];
+        if (e->unk_28 < 9999999) {
+            e->unk_28 = e->unk_28 + 1;
         }
         bVar1 = _0221A7D8[id];
         j = 0;
         do {
-            src = (u16 *)(e + j * 8);
-            buf[j][0] = src[0];
+            buf[j][0] = e->entries[j].unk_0;
             k = 0;
             do {
-                buf[j][k + 1] = src[k + 1];
+                buf[j][k + 1] = e->entries[j].unk_2[k];
                 k++;
             } while (k < 3);
             j++;
         } while (j < 5);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+        sub[0] = ((u16 *)(param_1->fieldData[4].data + 0x28 + (ov96_021E5F24(param_1) & 0xff) * 8))[i];
+#else
         sub[0] = *(u16 *)((u8 *)param_1 + (ov96_021E5F24(param_1) & 0xff) * 8 + i * 2 + 0x8d4);
+#endif
         id = ov96_021E5F24(param_1) & 0xff;
-        pp = (u8 *)param_1 + 0x3f0 + id * 0x7c;
+        pp = param_1->participants[id].mons;
         k = 0;
         do {
-            sub[k + 1] = (*(u16 *)(pp + k * 0x28 + 2) << 10) + *(u16 *)(pp + k * 0x28);
+            sub[k + 1] = (pp[k].unk_2 << 10) + pp[k].species;
             k++;
         } while (k < 3);
         ov96_021E7C04(bVar1, (u32 *)sub, (u8 *)buf);
-        ov96_021E7C94(param_1, (u16 *)e, buf[0]);
+        ov96_021E7C94(param_1, &e->entries[0].unk_0, buf[0]);
         i++;
     } while (i < 3);
 }

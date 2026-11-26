@@ -3,9 +3,17 @@
 #include "bg_window.h"
 #include "render_text.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0200E6B4(BgConfig *, u8, u8, u8, u8, u8, u8, u16);
+#else
 void sub_0200E6B4(BgConfig *, u8, u8, u8, u8, u8, u8, u32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0200ECBC(BgConfig *, u8, u8, u8, u8, u8, u8, u16);
+#else
 void sub_0200ECBC(BgConfig *, u8, u8, u8, u8, u8, u8, u32);
+#endif
 
 void sub_0200EF84(Window *, u16, u8);
 

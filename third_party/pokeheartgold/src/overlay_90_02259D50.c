@@ -27,7 +27,7 @@ void ov90_02259350(UnkStruct_ov114_0225D084 *param0, u32 param1, Window *param2,
 
 void ov90_02259D50(UnkStruct_ov114_0225DAC0 *param0, UnkStruct_ov114_0225D084 *param1, const PlayerProfile *param2, s16 param3, s16 param4, u32 param5);
 
-void ov90_02259E18(void *arg0, s32 arg1);
+void ov90_02259E18(UnkStruct_ov114_0225DAC0 *arg0, s32 arg1);
 
 void ov90_02259D50(UnkStruct_ov114_0225DAC0 *param0, UnkStruct_ov114_0225D084 *param1, const PlayerProfile *param2, s16 param3, s16 param4, u32 param5) {
     ov90_02259200(param1, param2);
@@ -63,8 +63,8 @@ void ov90_02259DAC(UnkStruct_ov114_0225DAC0 *param0, UnkStruct_ov114_0225D084 *p
     }
 }
 
-void ov90_02259E18(void *arg0, s32 arg1) {
-    Sprite_SetDrawFlag(*(Sprite **)((u8 *)arg0 + 0x14), 1);
-    Sprite_SetAnimCtrlSeq(*(Sprite **)((u8 *)arg0 + 0x14), arg1 + 4);
-    Sprite_SetAnimActiveFlag(*(Sprite **)((u8 *)arg0 + 0x14), 1);
+void ov90_02259E18(UnkStruct_ov114_0225DAC0 *arg0, s32 arg1) {
+    Sprite_SetDrawFlag(arg0->unk_14, 1);
+    Sprite_SetAnimCtrlSeq(arg0->unk_14, arg1 + 4);
+    Sprite_SetAnimActiveFlag(arg0->unk_14, 1);
 }

@@ -9,7 +9,7 @@
 #include "pokemon_summary_app.h"
 #include "unk_02088288.h"
 
-Pokemon *sub_0208A520();
+Pokemon *sub_0208A520(PokemonSummary *summaryScreen);
 
 void sub_0208BE00(PokemonSummary *, void *, s32);
 
@@ -24,7 +24,7 @@ void sub_0208BECC(PokemonSummary *arg0) {
     void *v3;
     void *v4;
 
-    v7 = sub_0208A520();
+    v7 = sub_0208A520(arg0);
     v3 = ((void *)arg0->args);
     v1 = ((PokemonSummaryArgs *)v3)->unk11;
     switch (v1) {

@@ -33,7 +33,7 @@ void ov71_0224809C(void *arg0) {
         }
         v0 += 1;
     } while (v0 < 2);
-    ov71_022472FC(arg0 + 0x44);
+    ov71_022472FC(&((TradeSendPhase *)arg0)->animResources);
 }
 
 void ov71_02248140(SysTask *task, void *data);
@@ -68,7 +68,7 @@ s32 ov71_02248110(TradeSendPhase *arg0) {
     return 0;
 }
 
-s32 ov71_02247424();
+void ov71_02247424(void *arg0);
 
 void ov71_02248120(struct TradeReceivePhase *arg0);
 
@@ -77,8 +77,7 @@ void ov71_02248120(TradeReceivePhase *arg0) {
 
     sysTask = *((SysTask * *)&arg0->model);
     if (sysTask != NULL) {
-        SysTask_GetData(sysTask);
-        ov71_02247424();
+        ov71_02247424(SysTask_GetData(sysTask));
         SysTask_Destroy(*((SysTask * *)&arg0->model));
         *((SysTask * *)&arg0->model) = NULL;
     }

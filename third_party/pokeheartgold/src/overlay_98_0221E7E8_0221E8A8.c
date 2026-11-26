@@ -3,10 +3,11 @@
 #include "overlay_98.h"
 #include "pokemon_icon_idx.h"
 #include "sprite_system.h"
+#include "overlay_98_sprite_ctx.h"
 
 extern s32 _0221F194;
 
-void ov98_0221E8A8(void *arg0, void *arg1, s32 arg2, s32 arg3, s32 arg4) {
+void ov98_0221E8A8(PokeathlonSpriteContext *arg0, void *arg1, s32 arg2, s32 arg3, s32 arg4) {
     u32 v4;
     u32 v3;
     s32 vram;
@@ -19,8 +20,8 @@ void ov98_0221E8A8(void *arg0, void *arg1, s32 arg2, s32 arg3, s32 arg4) {
     s32 v5;
 
     v0 = arg0;
-    spriteSystem = *(SpriteSystem **)((u8 *)arg0 + 4);
-    spriteManager = *(SpriteManager **)((u8 *)arg0 + 8);
+    spriteSystem = arg0->spriteSystem;
+    spriteManager = arg0->spriteManager;
     v1 = arg2;
     v2 = arg3;
     if (arg4 != 0) {

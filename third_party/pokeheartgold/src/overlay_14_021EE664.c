@@ -3,6 +3,7 @@ struct UnkStruct_ov14_boxapp;
 #include "heap.h"
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
+#include "overlay_14_move_owner.h"
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 #include "overlay_14_box_unk_0201956C.h"
@@ -27,18 +28,18 @@ s32 ov14_021E954C(UnkStruct_ov14_boxapp *app);
 s32 ov14_021E95B4(UnkStruct_ov14_boxapp *app);
 
 void ov14_021EE664(void *arg0) {
-    *(s8 *)((u8 *)arg0 + 0x22) = 2;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk22 = 2;
     ov14_021F08BC(arg0);
     ov14_021F0234(arg0, ov14_021E9234, 0x6B);
 }
 
 void ov14_021EE684(UnkStruct_ov14_boxapp *arg0) {
-    void *v0;
+    MoveSet *v0;
 
     v0 = arg0->sys->unk_C;
     PlaySE(0x5EAU);
     ov14_021E637C(arg0);
-    ov14_021E6548(arg0, *(s32 *)((u8 *)v0 + 0xE4), *(s32 *)((u8 *)v0 + 0xE8));
+    ov14_021E6548(arg0, v0->from, v0->to);
     ov14_021F08F0(arg0);
     ov14_021E8094(((u8 *)arg0->sys->unk_2F0));
     ov14_021F0234(arg0, ov14_021E954C, 0x6C);
@@ -54,20 +55,20 @@ s32 ov14_021EE6F8(UnkStruct_ov14_boxapp *arg0) {
     ov14_021F6AC0(arg0, 0, 0);
     ov14_021F685C(arg0, 0, 0, 0x27);
     ov14_021E7588(arg0, 0x1E);
-    ov14_021F29E4(*((void **)&arg0->sys), 9, 8);
+    ov14_021F29E4(arg0->sys, 9, 8);
     return 0x5B;
 }
 
 s32 ov14_021EE728(UnkStruct_ov14_boxapp *arg0) {
     u8 v0;
-    void *v1;
+    MoveSet *v1;
 
     v1 = arg0->sys->unk_C;
     PlaySE(0x5EAU);
     ov14_021E637C(arg0);
-    ov14_021E6548(arg0, *(s32 *)((u8 *)v1 + 0xE4), *(s32 *)((u8 *)v1 + 0xE8));
+    ov14_021E6548(arg0, v1->from, v1->to);
     ov14_021F08F0(arg0);
-    ov14_021F6678(*((void * *)&arg0->sys), 0x28);
+    ov14_021F6678(arg0->sys, 0x28);
     v0 = arg0->unk21;
     if (v0 == 0xFF) {
         ov14_021F685C(arg0, 0U, 0, 0x27);

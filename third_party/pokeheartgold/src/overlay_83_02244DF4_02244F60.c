@@ -44,7 +44,6 @@ typedef struct BallSeal {
 
 Pokemon *Party_GetMonByIndex(const Party *party, int slot);
 
-s32 ov44_0222E5DC(u8 numSlots, s32 slot, u8);
 
 enum TextAlignment {
     TEXT_ALIGN_LEFT,
@@ -85,13 +84,12 @@ void ShowMovesList(BattleCastleOpponentApp *app, u8 slot);
 
 void LoadMainBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-void ov83_02244704(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
+void ov83_02244704(BattleCastleOpponentApp *arg0, enum GFBgLayer bgLayer);
 
 void LoadMovesListBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
 void ov82_0223EE6C(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
@@ -103,7 +101,7 @@ u8 ov83_02247768(u8 numSlots, u8 slot, u8, s32);
 
 BOOL ov83_02244F60(BattleCastleOpponentApp *app, u8 selectedSlot, u8 menuOption, s32 arg3);
 
-void ov83_02246114(BattleCastleOpponentApp *app, int);
+void ov83_02246114(BattleCastleOpponentApp *arg0, s32 arg1);
 
 BOOL ov83_02244F60(BattleCastleOpponentApp *app, u8 selectedSlot, u8 menuOption, s32 arg3) {
     u8 exitSlot = app->exitSlot;

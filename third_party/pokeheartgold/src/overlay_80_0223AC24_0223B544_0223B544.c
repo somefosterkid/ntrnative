@@ -2,6 +2,7 @@
 
 #include "error_handling.h"
 #include "heap.h"
+#include "overlay_07_bg_scroll_context.h"
 
 s32 ov80_0223B4A0(void *, void *, s32 *, s32 *);
 

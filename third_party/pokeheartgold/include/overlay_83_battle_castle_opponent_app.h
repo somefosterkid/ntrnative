@@ -2,17 +2,23 @@
 #define POKEHEARTGOLD_OVERLAY_83_BATTLE_CASTLE_OPPONENT_APP_H
 
 #include "battle_castle_app_sprite_manager.h"
+#include "bg_window.h"
+#include "overlay_83_battle_castle_yes_no_prompt.h"
 #include "g2d_renderer.h"
 
 // BattleCastleOpponentApp: merged by tools/hg/promote.py from 11 m2c local copies (6 variants, base
 // src/overlay_83_02244DF4_02244F60.c) and 470 accesses; fields at every accessed offset, pads elsewhere.
 
 struct ApplicationManager;
+struct GridInputHandler;
+struct ListMenuItem;
+struct TouchscreenListMenu;
+struct TouchscreenListMenuSpawner;
 struct BattleCastleAppSprite;
 struct BattleCastlePersistentSave;
 struct BattleCastleSave;
 struct BoxPokemon;
-struct BattleFrontierSave;
+struct FrontierSave;
 struct BgConfig;
 struct FontSpecialCharsContext;
 struct ListMenu;
@@ -34,12 +40,12 @@ struct SpriteResource;
 struct SpriteResourceCollection;
 struct String;
 struct StringList;
+struct MessageFormat;
 struct StringTemplate;
-struct Window;
 
 typedef struct BattleCastleOpponentApp {
     struct ApplicationManager *appMan;
-    struct BattleFrontierSave *frontier;
+    struct FrontierSave *frontier;
     u8 subState;
     u8 challengeType;
     u8 printerID;
@@ -64,27 +70,16 @@ typedef struct BattleCastleOpponentApp {
     u16 monMenuListPos;
     u16 monMenuCursorPos;
     struct MsgData *msgLoader;
-    struct StringTemplate *strTemplate;
+    struct MessageFormat *strTemplate;
     struct String *displayStr;
     struct String *fmtStr;
     struct String *simpleMenuStr[3];
     u16 unused3[8];
     struct BgConfig *bgConfig;
-    struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } windows[12];
-    struct { struct StringList *choices; struct Window *window; u8 fontID; u8 xSize; u8 ySize; u8 lineSpacing : 4; u8 suppressCursor : 2; u8 loopAround : 2; } simpleMenuTemplate;
-    struct Menu *simpleMenu;
-    struct { void *entry; u8 unk_4_anon[0x4]; } simpleStrList[3];
-    struct ListMenu *listMenu;
-    struct StringList *listMenuStrList;
+    Window windows[36];
+    u8 pad_290[0x20];
     struct PaletteData *plttData;
-    struct FontSpecialCharsContext *unk_144_;
-    struct Options *unk_148;
-    struct SaveData *unk_14C;
-    struct BattleCastleSave *unk_150;
-    struct BattleCastlePersistentSave *unk_154;
-    u8 pad_158[0x158];
-    u32 unk_2B0;
-    struct FontSpecialCharsContext *specialChars;
+    struct MessagePrinter *msgPrinter;
     struct Options *options;
     struct SaveData *saveData;
     struct BattleCastleSave *castleSave;
@@ -117,24 +112,23 @@ typedef struct BattleCastleOpponentApp {
     u16 species;
     u8 gender : 7;
     u8 noPrintGender : 1;
-    s8 unk_5C7;
-    s8 unk_5C8;
+    u8 level;
+    u8 ability;
     u8 nature;
-    s16 unk_5CA;
+    u16 heldItem;
     u32 personality;
-    s16 stats[7];
+    u16 stats[7];
     s8 unk_5DE;
     u16 moves[4];
-    s8 movePP[4];
+    u8 movePP[4];
     u8 moveMaxPP[4];
-    u32 unk_5F0;
-    u32 unk_5F4;
-    u32 unk_5F8;
-    u32 unk_5FC;
-    u32 unk_600;
-    u32 unk_604;
-    u32 unk_608;
-    u8 pad_60C[0x8];
+    struct GridInputHandler *partyGridInput;
+    struct TouchscreenListMenuSpawner *touchMenuSpawner;
+    struct TouchscreenListMenu *touchMenu;
+    struct ListMenuItem *listMenuItems;
+    s32 listSelection;
+    BattleCastleYesNoPrompt yesNoPrompt;
+    u8 pad_610[0x4];
 } BattleCastleOpponentApp;
 
 // sizeof(BattleCastleOpponentApp) == 0x614

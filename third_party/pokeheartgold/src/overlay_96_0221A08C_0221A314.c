@@ -20,11 +20,23 @@ typedef struct Ov96A314Obj {
     u32 unk8_6 : 26;
 } Ov96A314Obj;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_02215DEC.c (tools/pokehg_abi.py)
+void ov96_02215DEC(PokeathlonCourseData *data, s32 idx, VecFx32 *out);
+#else
 void ov96_02215DEC(PokeathlonCourseData *data, u8 idx, VecFx32 *out);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_02215ECC_02215F64_02215F64.c (tools/pokehg_abi.py)
+s32 ov96_02215F64(PokeathlonCourseData *data, s32 idx);
+#else
 s32 ov96_02215F64(PokeathlonCourseData *data, u8 idx);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_02215ECC_02215F64_02215F80.c (tools/pokehg_abi.py)
+void ov96_02215F80(PokeathlonCourseData *data, s32 idx, const Ov96Pos16 *pos);
+#else
 void ov96_02215F80(PokeathlonCourseData *data, u8 idx, const Ov96Pos16 *pos);
+#endif
 
 BOOL ov96_0221A034(VecFx32 *a, VecFx32 *b, fx32 dist);
 

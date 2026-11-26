@@ -21,6 +21,7 @@
 #include "overlay_43_unk_struct_ov64_0222_e060.h"
 #include "overlay_43_unk_struct_ov64_0222_e21_c.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "sprite.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
 
@@ -63,23 +64,21 @@ void ov43_0222C550(void *arg0, struct PalPadGfx *arg1, s32 arg2, enum HeapID arg
 void ov43_0222C550(void *arg0, PalPadGfx *arg1, s32 strno, enum HeapID heapID) {
     String *string;
 
-    FillWindowPixelBuffer(arg0 + 0xC8, 0xFU);
+    FillWindowPixelBuffer(&((PalPadRoster *)arg0)->msgWindow, 0xFU);
     string = String_New(0x80U, heapID);
     ReadMsgDataIntoString(*((MsgData * *)&arg1->msgData), strno, string);
     StringExpandPlaceholders(*((MessageFormat * *)&arg1->msgFormat), ((PalPadRoster *)arg0)->msgText, string);
     TextFlags_SetCanTouchSpeedUpPrint(1);
-    *((s32 *)&((PalPadRoster *)arg0)->printerId) = (s32)AddTextPrinterParameterizedWithColor(arg0 + 0xC8, FONT_MESSAGE, ((PalPadRoster *)arg0)->msgText, 0U, 0U, ((PalPadRoster *)arg0)->textSpeed, 0x10200U, NULL);
-    DrawFrameAndWindow2(arg0 + 0xC8, 1, 0x46U, 0xCU);
-    ScheduleWindowCopyToVram(arg0 + 0xC8);
+    *((s32 *)&((PalPadRoster *)arg0)->printerId) = (s32)AddTextPrinterParameterizedWithColor(&((PalPadRoster *)arg0)->msgWindow, FONT_MESSAGE, ((PalPadRoster *)arg0)->msgText, 0U, 0U, ((PalPadRoster *)arg0)->textSpeed, 0x10200U, NULL);
+    DrawFrameAndWindow2(&((PalPadRoster *)arg0)->msgWindow, 1, 0x46U, 0xCU);
+    ScheduleWindowCopyToVram(&((PalPadRoster *)arg0)->msgWindow);
     String_Delete(string);
 }
 
-s32 ov43_0222C5D8(void *arg0, s32 *arg1);
-
-s32 ov43_0222C5D8(void *arg0, s32 *arg1) {
-    if (TextPrinterCheckActive((u8) *((s32 *)&((PalPadRoster *)arg0)->printerId)) == 0) {
+BOOL ov43_0222C5D8(const PalPadRoster *arg0, PalPadShared *arg1) {
+    if (TextPrinterCheckActive((u8)arg0->printerId) == 0) {
         TextFlags_SetCanTouchSpeedUpPrint(0);
-        *arg1 = TextFlags_GetIsTouchSpeedingUpPrint();
+        arg1->inputState = TextFlags_GetIsTouchSpeedingUpPrint();
         return 1;
     }
     return 0;

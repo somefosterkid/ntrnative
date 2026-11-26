@@ -36,7 +36,7 @@ void ov14_021F40E8(void *arg0, s32 flag) {
                     v1 = ((UnkStruct_ov14_boxapp *)arg0)->sys;
                     v3 = v1->unk_4094[v2];
                     v0 = v3;
-                    ov14_021F2A74(*((void **)&((UnkStruct_ov14_boxapp *)arg0)->sys), v5 + 0x3D, ManagedSprite_GetDrawPriority(v1->sprites[v3]) + 1);
+                    ov14_021F2A74(((UnkStruct_ov14_boxapp *)arg0)->sys, v5 + 0x3D, ManagedSprite_GetDrawPriority(v1->sprites[v3]) + 1);
                     ManagedSprite_SetPriority(((UnkStruct_ov14_boxapp *)arg0)->sys->sprites[0x3D + v5], ManagedSprite_GetPriority(((UnkStruct_ov14_boxapp *)arg0)->sys->sprites[v0]));
                 }
             }

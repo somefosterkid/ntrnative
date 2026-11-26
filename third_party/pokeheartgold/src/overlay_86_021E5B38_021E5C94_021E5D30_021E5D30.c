@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_86_frontier_records_app.h"
 #include "constants/heap.h"
 #include "gf_gfx_planes.h"
 #include "bg_window.h"
@@ -22,8 +24,6 @@ void InitBgFromTemplate(BgConfig *bgConfig, u8 bgLayer, const BgTemplate *bgTemp
 void BG_ClearCharDataRange(u8 bgLayer, u32 size, u32 offset, enum HeapID heapID);
 
 void BgClearTilemapBufferAndCommit(BgConfig *bgConfig, u8 bgLayer);
-
-void ov86_021E5D30(BgConfig *bgConfig);
 
 extern const GraphicsModes ov86_021E7EC8;
 

@@ -21,7 +21,6 @@ void ov14_021E88F8(UnkStruct_0201956C *arg0);
 void ov14_021E895C(struct UnkStruct_ov14_boxapp *arg0, s32 arg1);
 void ov14_021E875C(UnkStruct_0201956C *arg0);
 
-s32 sub_02019B1C(UnkStruct_0201956C *, s32, s8 *, s8 *);
 
 void ov14_021E8740(UnkStruct_ov14_boxapp *arg0) {
     ov14_021E8664(arg0);

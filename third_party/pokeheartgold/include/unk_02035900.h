@@ -38,7 +38,7 @@ BOOL sub_02037184(int arg0, u8 *arg1);
 void sub_02035FE4(void);
 int sub_02035F14(int arg0, int arg1, int arg2);
 int sub_020360E4(int arg0);
-int sub_020376F8(void);
+BOOL sub_020376F8(void);
 void sub_0203624C(void);
 void sub_02036024(void);
 void sub_02036274(void);

@@ -2,6 +2,7 @@
 
 #include "pokeathlon/pokeathlon_save.h"
 
+#include "overlay_97_reception.h"
 #include "party.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -10,12 +11,6 @@
 #include "save_arrays.h"
 #include "string_util.h"
 
-typedef struct UnkStruct_ov97_0221EC14_arg2 {
-    u8 unk_0[0xC];
-    void *unk_C;
-    u8 unk_10[0x1C];
-    SaveData *unk_2C;
-} UnkStruct_ov97_0221EC14_arg2;
 
 s32 ov97_0221E898(PCStorage *, u32, s32, s32 *);
 
@@ -47,9 +42,9 @@ typedef struct Sp70 {
     u8 pad[0x2B];
 } Sp70;
 
-void ov97_0221EC14(u32 arg0, s32 arg1, UnkStruct_ov97_0221EC14_arg2 *arg2);
+void ov97_0221EC14(u32 arg0, s32 arg1, Ov97Reception *arg2);
 
-void ov97_0221EC14(u32 arg0, s32 arg1, UnkStruct_ov97_0221EC14_arg2 *arg2) {
+void ov97_0221EC14(u32 arg0, s32 arg1, Ov97Reception *arg2) {
     Sp70 sp70;
     UnkStruct_ov97_0221EC14 words;
     u16 sp44[12];

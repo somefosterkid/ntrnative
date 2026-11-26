@@ -5,7 +5,11 @@
 
 void ov96_021F6424(s32 (*arg0)[0x80]);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov96_021E8318(PokeathlonCourseData *, s16);
+#else
 s32 ov96_021E8318(PokeathlonCourseData *, u16);
+#endif
 
 s32 ov96_021EB144(void *, s32);
 

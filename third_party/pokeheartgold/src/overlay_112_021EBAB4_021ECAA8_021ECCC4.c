@@ -4,19 +4,11 @@
 #include "error_handling.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021EA570(void *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *arg0);
 
-s8 ov112_021ECA88(void *arg0);
-
-void ov112_021E9A78(void *, u8);
-
-void ov112_021E9C10(void *, u32);
-
-void ov112_021EA51C(void *, u32);
+void ov112_021E9C10(Ov112PokewalkerApp *, u32);
 
 extern void *ov112_021FF0C4;
-
-u32 ov112_021ECCC4(Ov112PokewalkerApp *param_1);
 
 u32 ov112_021ECCC4(Ov112PokewalkerApp *param_1) {
     s8 sVar1;

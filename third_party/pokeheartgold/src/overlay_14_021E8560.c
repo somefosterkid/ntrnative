@@ -45,7 +45,6 @@ void ov14_021E85D0(UnkStruct_0201956C *a0) {
     sub_020198FC(a0, 0xE, 0, 1, 3);
 }
 
-void sub_02019B1C(UnkStruct_0201956C *, s32, s8 *, s8 *);
 
 s32 ov14_021E85E4(UnkStruct_0201956C *arg0) {
     s8 v0[2];

@@ -412,7 +412,7 @@ enum BgOffsetUpdateOp {
     BG_OFFSET_UPDATE_SUB_Y,
 };
 
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 void ov07_022227A8(XYTransformContext *ctx, s16 extentX, s16 extentY, u32 interval, u32 amount);
 

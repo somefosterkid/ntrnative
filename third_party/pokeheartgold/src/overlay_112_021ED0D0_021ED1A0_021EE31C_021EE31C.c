@@ -5,12 +5,6 @@
 #include "overlay_112_pokewalker_app.h"
 #include "overlay_112_hitbox.h"
 
-s32 ov112_021EA51C(void *, s32);
-
-s32 ov112_021EC440(void *, s32, s32, s32);
-
-s32 ov112_021EE31C(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2);
-
 s32 ov112_021EE31C(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2) {
     int temp_r0;
     Ov112PokewalkerApp *new_var;

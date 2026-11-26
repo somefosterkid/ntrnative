@@ -55,9 +55,9 @@ void sub_0200FC20(u16);
 
 extern u32 ov96_0221B088[];
 
-u32 ov96_021EB730(PokeathlonCourseData *param_1);
+BOOL ov96_021EB730(PokeathlonCourseData *param_1, u8 *unused);
 
-u32 ov96_021EB730(PokeathlonCourseData *param_1) {
+BOOL ov96_021EB730(PokeathlonCourseData *param_1, u8 *unused) {
     Ov96App_021ED1D0 *work;
     u32 uVar2;
     u32 uVar3;

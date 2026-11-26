@@ -10,7 +10,11 @@ s32 ov18_021F111C(PokedexAppData *, s32, void *, s32, s32);
 
 s32 ov18_021F967C(s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov18_021F9688(u8);
+#else
 u8 ov18_021F9688(s32);
+#endif
 
 void ov18_021F21FC(PokedexAppData *arg0, s32 arg1, s32 arg2);
 

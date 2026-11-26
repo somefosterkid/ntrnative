@@ -43,7 +43,11 @@ void ov80_0222A7CC(MessageFormat *template, u32 idx);
 
 void *ov83_0224753C(BattleCastleAppSprite *sprite);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247944(Window *window, u8 frame);
+#else
 void ov83_02247944(Window *window, int frame);
+#endif
 
 enum TextAlignment {
     TEXT_ALIGN_LEFT,
@@ -80,7 +84,11 @@ BOOL ov83_0223E008(BattleCastleSelfApp *app);
 
 BOOL ov83_0223E14C(BattleCastleSelfApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_0223EEA0(BattleCastleSelfApp *app);
+#else
 BOOL ov83_0223EEA0(BattleCastleSelfApp *app);
+#endif
 
 BOOL ov83_0223EFA4(BattleCastleSelfApp *app);
 
@@ -104,7 +112,6 @@ void LoadItemSelectBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
 void LoadSubScreenBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

@@ -3,7 +3,6 @@
 #include "billboard.h"
 #include "overlay_01_021F1348.h"
 
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3, s32 id, s32 arg5, void *arg6);
 
 void ov01_021F18D4(FieldEffectManager *fieldEffMan, u32 id, u32 memberIndex);
 

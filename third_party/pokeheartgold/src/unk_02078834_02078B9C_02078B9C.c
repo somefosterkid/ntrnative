@@ -2,23 +2,25 @@
 
 #include "field_system.h"
 #include "heap.h"
+#include "overlay_44.h"
+#include "work.h"
 
-extern s32 _0210125C;
+extern u8 _0210125C[];
 
 extern OverlayManagerTemplate _02101280;
 
-void sub_02078B9C(void *arg0, FieldSystem *arg1, enum HeapID arg2, s8 arg3);
+void sub_02078B9C(Work *work, FieldSystem *fieldSystem, enum HeapID heapID, s8 a3);
 
-void sub_02078B9C(void *arg0, FieldSystem *arg1, enum HeapID arg2, s8 arg3) {
-    void *temp_r0;
+void sub_02078B9C(Work *work, FieldSystem *fieldSystem, enum HeapID heapID, s8 a3) {
+    UnkStruct_ov44_args *args;
 
-    temp_r0 = Heap_Alloc(arg2, 0xCU);
-    *(s8 *)temp_r0 = arg3;
-    *(s8 *)((u8 *)temp_r0 + 1) = 2;
-    *(u8 *)((u8 *)temp_r0 + 2) = (u8) * (u8 *)(((u8 *)&_0210125C) + arg3);
-    *(s8 *)((u8 *)temp_r0 + 3) = 0;
-    *(s8 *)((u8 *)temp_r0 + 4) = 0;
-    *(void **)((u8 *)temp_r0 + 8) = arg1->saveData;
-    *(void **)((u8 *)arg0 + 0x10) = temp_r0;
-    FieldSystem_LaunchApplication(arg1, &_02101280, temp_r0);
+    args = Heap_Alloc(heapID, sizeof(UnkStruct_ov44_args));
+    args->unk0 = a3;
+    args->unk1 = 2;
+    args->unk2 = _0210125C[a3];
+    args->unk3 = 0;
+    args->unk4 = 0;
+    args->unk8 = fieldSystem->saveData;
+    work->unk10 = args;
+    FieldSystem_LaunchApplication(fieldSystem, &_02101280, args);
 }

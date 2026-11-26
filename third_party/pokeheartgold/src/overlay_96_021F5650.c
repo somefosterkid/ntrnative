@@ -16,12 +16,16 @@ s32 ov96_021F5B60(PokeathlonCourseData *);
 
 s32 ov96_021F5BA0(PokeathlonCourseData *);
 
-s32 ov96_021F5650(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F5650(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
-s32 ov96_021F5730(PokeathlonCourseData *arg0, u8 *arg1);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+#else
+void ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
+#endif
+BOOL ov96_021F5730(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F5650(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F5650(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
     UnkStruct_ov96_021F5018 *v1;
 
@@ -66,7 +70,7 @@ s32 ov96_021F5650(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021F5730(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F5730(PokeathlonCourseData *data, u8 *arg1) {
     s32 index;
     s32 value;
     s32 v1;

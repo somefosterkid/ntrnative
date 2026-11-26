@@ -11,6 +11,8 @@
 #include "overlay_41_sprite_resource_collection.h"
 #include "battle_castle_app_sprite.h"
 #include "battle_castle_save.h"
+#include "overlay_83_battle_castle_opponent_app.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
 struct ApplicationManager;
 
@@ -303,7 +305,11 @@ enum BattleCastleOpponentAppWindow {
     NUM_OPPONENT_APP_WINDOWS,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247944(Window *window, u8 frame);
+#else
 void ov83_02247944(Window *window, int frame);
+#endif
 
 enum Font {
     FONT_SYSTEM = 0,
@@ -349,7 +355,7 @@ typedef struct MenuTemplate {
 
 typedef struct Menu Menu;
 
-void ov80_02237FA4(BattleFrontierSave *frontier, u8 challengeType, int castlePoints);
+void ov80_02237FA4(struct FrontierSave *frontier, u8 challengeType, int castlePoints);
 
 typedef struct FontSpecialCharsContext FontSpecialCharsContext;
 
@@ -361,94 +367,6 @@ enum BattleCastleAppState {
     STATE_FADE_OUT
 };
 
-typedef struct BattleCastleOpponentApp {
-    ApplicationManager *appMan;
-    BattleFrontierSave *frontier;
-    u8 subState;
-    u8 challengeType;
-    u8 printerID;
-    u8 unused;
-    u8 previousSlot;
-    u8 selectedMonSlot;
-    u8 levelAdjustment;
-    u8 arrowSpriteVisible : 1;
-    u8 listMenuIsOpen : 1;
-    u8 simpleMenuIsOpen : 1;
-    u8 syncPurchaseState : 5;
-    u8 syncPurchaseAction;
-    u8 slotID;
-    u8 selectedLevelAdjustment;
-    u8 selectedMenuEntry;
-    u8 numSlots;
-    u8 exitSlot;
-    u8 syncDelay;
-    u8 msgsReceived;
-    u16 menuPos;
-    u16 unused2;
-    u16 monMenuListPos;
-    u16 monMenuCursorPos;
-    MessageLoader *msgLoader;
-    StringTemplate *strTemplate;
-    String *displayStr;
-    String *fmtStr;
-    String *simpleMenuStr[3];
-    u16 unused3[8];
-    BgConfig *bgConfig;
-    Window windows[NUM_OPPONENT_APP_WINDOWS];
-    MenuTemplate simpleMenuTemplate;
-    Menu *simpleMenu;
-    struct { void *entry; u8 unk_4_anon[4]; } simpleStrList[3];
-    ListMenu *listMenu;
-    StringList *listMenuStrList;
-    PaletteData *plttData;
-    FontSpecialCharsContext *unk_144_;
-    struct Options *unk_148;
-    struct SaveData *unk_14C;
-    struct BattleCastleSave *unk_150;
-    struct BattleCastlePersistentSave *unk_154;
-    u8 pad_158[344];
-    u32 unk_2B0;
-    struct FontSpecialCharsContext *specialChars;
-    Options *options;
-    SaveData *saveData;
-    BattleCastleSave *castleSave;
-    BattleCastlePersistentSave *persistentSave;
-    BattleCastleAppSpriteManager spriteMan;
-    BattleCastleAppSprite *monSprites[4];
-    BattleCastleAppSprite *ballSprites[4];
-    BattleCastleAppSprite *arrowSprite;
-    BattleCastleAppSprite *cursorSprite;
-    BattleCastleAppSprite *partnerCursorSprite;
-    struct BattleCastleAppSprite *barSprites[4];
-    struct BattleCastleAppSprite *flagSprites[2][4];
-    struct BattleCastleAppSprite *sparklesSprite;
-    BattleCastleAppSprite *selectedMonSprite;
-    u16 *selectedMonSlotOut;
-    u8 *identityUnlocked;
-    u8 *levelAdjustments;
-    u8 *statsUnlocked;
-    u8 *movesUnlocked;
-    struct Party *opponentsParty;
-    struct NARC *narc;
-    u16 commPayload[40];
-    u8 partnersSelectedSlot;
-    u8 partnerSlot;
-    u8 partnerIsExiting;
-    u8 partnersRanks[3];
-    u16 partnersCP;
-    u32 unused4;
-    u32 unk_5C0;
-    u16 unk_5C4;
-    u8 pad_5C6[6];
-    u32 unk_5CC;
-    u8 pad_5D0[32];
-    u32 unk_5F0;
-    u32 unk_5F4;
-    u32 unk_5F8;
-    u32 unk_5FC;
-    u32 unk_600;
-    u32 unk_604;
-} BattleCastleOpponentApp;
 
 u8 PrintMessageAndCopyToVRAM(BattleCastleOpponentApp *app, int entryID, u8 font);
 
@@ -466,13 +384,11 @@ void LoadMovesListBackground(BattleCastleOpponentApp *app, enum BgLayer bgLayer)
 
 void LoadSubScreenBackground(BattleCastleOpponentApp *app, enum BgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 void PrintStaticMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u16 xOffset, u16 yOffset, enum TextAlignment alignment);
 
-void ov82_0223EFB4(BattleCastleOpponentApp *app, u32 idx, s32 num, u32 maxDigits, enum PaddingMode paddingMode);
 
 void ChangeState(BattleCastleOpponentApp *app, int *state, enum BattleCastleAppState newState);
 
@@ -482,15 +398,15 @@ void ov83_02245ACC(BattleCastleOpponentApp *app, u8 slot, u8 menuOption);
 
 u32 ov83_0224776C(u32 exitSlot, u32 slotID);
 
-void ov83_02244ABC(BattleCastleOpponentApp *app, u32 idx);
+void ov83_02244ABC(BattleCastleOpponentApp *arg0, u32 idx);
 
-void ov83_022477C4(StringTemplate *template, u32 idx);
+void ov83_022477C4(struct MessageFormat *template, u32 idx);
 
-void ov83_02245390(BattleCastleOpponentApp *app);
+void ov83_02245390(BattleCastleOpponentApp *arg0);
 
-void ov83_022453DC(BattleCastleOpponentApp *app, Window *window);
+void ov83_022453DC(BattleCastleOpponentApp *arg0, Window *arg1);
 
-u8 ov83_022448AC(BattleCastleOpponentApp *app, int entryID, u8 font);
+u8 ov83_022448AC(BattleCastleOpponentApp *param_1, int entryID, u8 font);
 
 void ov83_02245ACC(BattleCastleOpponentApp *app, u8 slot, u8 menuOption) {
     u8 unused = ov80_02237B24(app->challengeType, 0);

@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_49_getters.h"
+
 #include "heap.h"
 #include "overlay_93_unk_struct_ov117_02261280_t.h"
 
@@ -32,7 +34,6 @@ BOOL ov49_022589D8(const UnkStruct_ov70_0225C894 *param0, u32 param1, u16 *param
 
 typedef struct UnkStruct_ov70_02261E10_t UnkStruct_ov70_02261E10;
 
-WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
 
 UnkStruct_ov70_02261E10 *ov49_02259FF8(UnkStruct_ov70_0225DEE8 *param0);
 

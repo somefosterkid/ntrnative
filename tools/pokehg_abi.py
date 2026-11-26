@@ -131,7 +131,8 @@ def write(tree, exc=None):
 def checkout():
     """WORK: the pinned tree with every patch but ours applied, all of it in the index (git diff = our rewrite only)"""
     import pokehg_gen as G
-    patches = [p for p in sorted(glob.glob(G.PATCHES)) if os.path.basename(p) != os.path.basename(PATCH)]
+    # the patches before ours: the ones that sort after it (zzzdecl) are made against it and do not apply without it
+    patches = [p for p in sorted(glob.glob(G.PATCHES)) if os.path.basename(p) < os.path.basename(PATCH)]
     src = os.environ.get('HGSS_SRC')   # tools/hgss_repin.py from its rebase on: the new pin, not vendored yet
     if src:
         rev = subprocess.check_output(['git', '-C', src, 'rev-parse', os.environ.get('HGSS_REV', 'HEAD') + '^{commit}'],

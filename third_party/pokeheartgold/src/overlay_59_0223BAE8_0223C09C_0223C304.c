@@ -7,9 +7,9 @@
 #include "heap.h"
 #include "unk_struct_ov59_0223c5b0.h"
 
-void ov59_0223C304(void *arg0);
+void ov59_0223C304(UnkStruct_ov59_0223C5B0 *arg0);
 
-void ov59_0223C304(void *arg0) {
+void ov59_0223C304(UnkStruct_ov59_0223C5B0 *arg0) {
     Thunk_G3X_Reset();
     sub_0201543C();
     Thunk_G3X_Reset();
@@ -21,7 +21,7 @@ void ov59_0223C304(void *arg0) {
     reg_G3_MTX_IDENTITY = 0;
     NNS_G3dGlbFlushP();
     NNS_G2dSetupSoftwareSpriteCamera();
-    PokepicManager_DrawAll(*(PokepicManager **)((u8 *)arg0 + 0xC));
+    PokepicManager_DrawAll(arg0->unk_C);
     sub_02015460();
     reg_G3_SWAP_BUFFERS = 1;
 }

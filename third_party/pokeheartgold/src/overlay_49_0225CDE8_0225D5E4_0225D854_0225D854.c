@@ -63,7 +63,7 @@ void ov49_0225D854(UnkStruct_ov70_022618C8 *param0, NARC *param1, NNSFndAllocato
         for (v0 = 0; v0 < 2; v0++) {
             for (v1 = 0; v1 < 4; v1++) {
                 if (param3->unk_120[0] != param3->unk_140[v0][v1]) {
-                    sub_020180BC((struct Field3DModelAnimation *)((const struct Field3dModel *)(&param0->unk_38[v0][v1])), (const struct Field3dModel *)((struct NARC *)(&param0->unk_00[v0])), (struct NARC *)((enum HeapID)(param1)), param3->unk_140[v0][v1], (enum HeapID)(heapID), param2);
+                    sub_020180BC(&param0->unk_38[v0][v1], &param0->unk_00[v0], param1, param3->unk_140[v0][v1], (enum HeapID)(heapID), param2);
 
                     if (v1 >= 1) {
                         for (v2 = 0; v2 < param3->unk_160[v0]; v2++) {

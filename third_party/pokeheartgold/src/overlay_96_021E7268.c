@@ -5,10 +5,10 @@
 #include "error_handling.h"
 #include "sound_02004A44.h"
 
-s32 ov96_021E7268(PokeathlonCourseData *arg0);
+BOOL ov96_021E7268(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E7268(PokeathlonCourseData *data) {
-    (*(s32(**)(PokeathlonCourseData *, s32))((u8 *)data->state + 0xC))(data, 0);
+BOOL ov96_021E7268(PokeathlonCourseData *data, u8 *unused) {
+    data->state->funcs[3](data, 0);
     if (data->heapAllocPtr4 != NULL) {
         GF_AssertFail();
     }
@@ -16,26 +16,36 @@ s32 ov96_021E7268(PokeathlonCourseData *data) {
     return 0;
 }
 
-extern s32 ov96_0221A844;
+extern const PokeathlonEventHandlers ov96_0221A844;
 
-extern s32 ov96_0221DA5C;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov96_021EB690(struct PokeathlonCourseData *, int);
+BOOL ov96_021EB698(struct PokeathlonCourseData *, int);
+BOOL ov96_021EB6A0(struct PokeathlonCourseData *, int);
 
-s32 ov96_021E7294(PokeathlonCourseData *arg0);
+const PokeathlonEventHandlers ov96_0221A844 = {
+    .funcs = { ov96_021EB690, ov96_021EB698, NULL, ov96_021EB6A0 },
+    .flag = 0,
+};
+#endif
 
-s32 ov96_021E7294(PokeathlonCourseData *data) {
+extern const PokeathlonStateFunc ov96_0221DA5C[];
+
+BOOL ov96_021E7294(PokeathlonCourseData *arg0, u8 *unused);
+
+BOOL ov96_021E7294(PokeathlonCourseData *data, u8 *unused) {
     PokeathlonCourse_ResetDataCopyArea(data);
-    data->state = (u32)&ov96_0221A844;
+    data->state = &ov96_0221A844;
     data->field_1ED = 0;
-    PokeathlonCourse_InitStateInfo(&ov96_0221DA5C, (PokeathlonStateInfo *)data->filler_3CC);
+    PokeathlonCourse_InitStateInfo(ov96_0221DA5C, &data->subStateInfo);
     PokeathlonCourse_SetStateField07(data, 0x20U);
     return 0;
 }
 
-s32 ov96_021E87B0(void *, s32);
 
-s32 ov96_021E72CC(PokeathlonCourseData *arg0);
+BOOL ov96_021E72CC(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E72CC(PokeathlonCourseData *data) {
+BOOL ov96_021E72CC(PokeathlonCourseData *data, u8 *unused) {
     u8 *v0;
 
     if (PokeathlonCourse_RunSubStateLoop(data) != 0) {

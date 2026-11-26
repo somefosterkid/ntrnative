@@ -6,7 +6,11 @@ s32 ov10_0221EEF0(BattleContext *);
 
 s32 ov10_0221EF24(BattleContext *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov10_0221F084(BattleSystem *, BattleContext *, u16, u16, s8 *, s32, s32, u32, u8);
+#else
 u32 ov10_0221F084(BattleSystem *, BattleContext *, u16, u16, s8 *, s32, s32, u32, s32);
+#endif
 
 extern const u16 ov10_0222B080[];
 

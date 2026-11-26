@@ -19,17 +19,19 @@ s32 ov14_021E65C4(UnkStruct_ov14_boxapp *arg0) {
     u32 temp_r1;
     u32 var_r7;
     u8 temp_r4;
-    void *var_r4;
-    void *var_r6;
+    MoveEntry *var_r4;
+    MoveSet *var_r6;
+    MoveEntry *e;
 
-    var_r6 = ((UnkStruct_ov14_boxsys *)arg0->sys)->unk_C;
-    if (*(s32 *)((u8 *)var_r6 + 0xE0) == 8) {
+    var_r6 = arg0->sys->unk_C;
+    if (var_r6->frame == 8) {
         var_r7 = 0;
+        e = var_r6->e;
         do {
-            if (*(s32 *)((u8 *)var_r6 + 0xC) != 0) {
-                temp_r1 = *(u32 *)((u8 *)var_r6 + 4);
-                temp_r4 = *(u8 *)((u8 *)(*((void * *)&arg0->sys) + temp_r1) + 0x4094);
-                temp_r0 = *(u32 *)((u8 *)var_r6 + 8);
+            if (e->active != 0) {
+                temp_r1 = e->idx;
+                temp_r4 = arg0->sys->unk_4094[temp_r1];
+                temp_r0 = e->arg;
                 if (!(0x80 & temp_r0)) {
                     ov14_021F2F88(temp_r0, &sp4[2], (s32 *)sp4, arg0->unk22);
                 } else {
@@ -38,27 +40,27 @@ s32 ov14_021E65C4(UnkStruct_ov14_boxapp *arg0) {
                     } else {
                         ov14_021F2F88(temp_r1, &sp4[2], (s32 *)sp4, arg0->unk22);
                     }
-                    ov14_021F2A18(*((void * *)&arg0->sys), temp_r4, 0);
+                    ov14_021F2A18(arg0->sys, temp_r4, 0);
                 }
-                ManagedSprite_SetPositionXY(*(ManagedSprite **)((u8 *)(*((void * *)&arg0->sys) + (temp_r4 * 4)) + 0x2FC), *(s16 *)((u8 *)((s32 *)sp4) + 2), *(s16 *)((s32 *)sp4));
+                ManagedSprite_SetPositionXY(arg0->sys->sprites[temp_r4], *(s16 *)((u8 *)((s32 *)sp4) + 2), *(s16 *)((s32 *)sp4));
             }
             var_r7 += 1;
-            var_r6 += 0x20;
+            e++;
         } while (var_r7 < 7U);
         return 0;
     }
-    *(s32 *)((u8 *)var_r6 + 0xE0) += 1;
-    var_r4 = var_r6;
+    var_r6->frame += 1;
+    var_r4 = var_r6->e;
     sp0 = 0;
     do {
-        if (*(s32 *)((u8 *)var_r4 + 0xC) != 0) {
-            temp_r4 = *(u8 *)((u8 *)(*((void * *)&arg0->sys) + *(s32 *)((u8 *)var_r4 + 4)) + 0x4094);
-            *(s16 *)((u8 *)((s32 *)sp4) + 2) = (s16)(*(s16 *)((u8 *)var_r4 + 0x1C) + *(s16 *)((u8 *)var_r4 + 0x18) * ((u32)(*(s32 *)((u8 *)var_r6 + 0xE0) * *(s32 *)((u8 *)var_r4 + 0x10)) >> 0x10));
-            *(s16 *)((s32 *)sp4) = (s16)(*(s16 *)((u8 *)var_r4 + 0x1E) + *(s16 *)((u8 *)var_r4 + 0x1A) * ((u32)(*(s32 *)((u8 *)var_r6 + 0xE0) * *(s32 *)((u8 *)var_r4 + 0x14)) >> 0x10));
-            ManagedSprite_SetPositionXY(*(ManagedSprite **)((u8 *)(*((void * *)&arg0->sys) + (temp_r4 * 4)) + 0x2FC), *(s16 *)((u8 *)((s32 *)sp4) + 2), *(s16 *)((s32 *)sp4));
-            ov14_021F3190(*((void * *)&arg0->sys), *(s32 *)((u8 *)var_r4 + 4), 0);
+        if (var_r4->active != 0) {
+            temp_r4 = arg0->sys->unk_4094[var_r4->idx];
+            *(s16 *)((u8 *)((s32 *)sp4) + 2) = (s16)(var_r4->x0 + var_r4->dx * ((u32)(var_r6->frame * var_r4->mulX) >> 0x10));
+            *(s16 *)((s32 *)sp4) = (s16)(var_r4->y0 + var_r4->dy * ((u32)(var_r6->frame * var_r4->mulY) >> 0x10));
+            ManagedSprite_SetPositionXY(arg0->sys->sprites[temp_r4], *(s16 *)((u8 *)((s32 *)sp4) + 2), *(s16 *)((s32 *)sp4));
+            ov14_021F3190(arg0->sys, var_r4->idx, 0);
         }
-        var_r4 += 0x20;
+        var_r4++;
         temp_r0_2 = sp0 + 1;
         sp0 = temp_r0_2;
     } while (temp_r0_2 < 7U);

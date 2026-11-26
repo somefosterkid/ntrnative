@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: Cherrygrove City at night, warped to 553,403 and held right at Walk 2x along the road below the house with the mailbox and the flower box (to about x 567): a house, then a flower box of the same models culled at the screen's left edge (Smooth motion: docs/interp-sweep.md)
+# end: f11140
+env BWPORT_HG_WARP=67:553:403 BWPORT_HG_WARP_DIR=3 BWPORT_WALKSPEED=2 BWPORT_RUNSPEED=1 BWPORT_BENCH_CLOCK=2026-11-24T00:26:00
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys right*f200@f11000

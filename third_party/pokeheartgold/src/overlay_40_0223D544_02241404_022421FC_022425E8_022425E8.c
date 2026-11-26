@@ -643,7 +643,11 @@ typedef struct {
     u8 unk_40E;
 } UnkStruct_ov62_022349A8;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov39_0222774C(UnkStruct_ov62_022349A8 *param0, u64 param1);
+#else
 int ov39_0222774C(UnkStruct_ov62_022349A8 *param0, u64 param1);
+#endif
 
 BOOL ov39_02227D44(UnkStruct_ov62_022349A8 *param0, UnkStruct_ov62_0223CAA4 **param1);
 

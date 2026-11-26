@@ -12,7 +12,11 @@ void sub_0203690C(s32 param0, u8 *_buffer, u16 param2);
 
 void sub_02036AA0(s32 arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8 arg0);
+#else
 s32 sub_0203772C(u16 arg0);
+#endif
 
 s32 sub_02033800(void *, s32, s32, void (*)(s32));
 

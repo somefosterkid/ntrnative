@@ -38,7 +38,11 @@ NNSG2dImagePaletteProxy *Sprite_GetPaletteProxy(Sprite *paletteProxy);
 
 enum HeapID ov07_0221BFD0(BattleAnimSystem *system);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, u8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#else
 PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, s8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#endif
 
 void ov07_022323FC(BattleAnimSystem *system, int pokemon, BattleAnimSpriteInfo *sprites, int *count);
 

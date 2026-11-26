@@ -923,7 +923,7 @@ int sub_0205A730(int activityIndex, int gender, MessageFormat *strTemplate);
 
 enum UnionRoomInteraction sub_0205A200(UnionRoomManager *manager, int localID);
 
-enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, enum UnionRoomInteraction interaction);
+enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, u16 interaction);
 
 extern const int _020FC7D4[2];
 

@@ -36,12 +36,20 @@ struct UnkStruct_02012B20_t {
     int unk_14;
 };
 void Sprite_SetDrawFlag(Sprite *sprite, BOOL draw);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void Sprite_SetPriority(Sprite *sprite, u8 draw);
+#else
 void Sprite_SetPriority(Sprite *sprite, BOOL draw);
+#endif
 void Sprite_SetDrawPriority(Sprite *sprite, BOOL draw);
 void Sprite_SetPaletteOverride(Sprite *sprite, BOOL draw);
 void Sprite_SetPalIndexRespectVramOffset(Sprite *sprite, BOOL draw);
 void Sprite_SetPalOffset(Sprite *sprite, BOOL draw);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void Sprite_SetPalOffsetRespectVramOffset(Sprite *sprite, u8 draw);
+#else
 void Sprite_SetPalOffsetRespectVramOffset(Sprite *sprite, BOOL draw);
+#endif
 typedef struct BgConfig BgConfig;
 struct Window {
     BgConfig *bgConfig;

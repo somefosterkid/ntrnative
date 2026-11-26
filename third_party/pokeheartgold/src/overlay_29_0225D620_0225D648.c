@@ -24,9 +24,7 @@ void BG_ClearCharDataRange(u8 bgId, u32 size, u32 offset, enum HeapID heapID);
 
 void BgClearTilemapBufferAndCommit(BgConfig *bgConfig, u8 bgId);
 
-void ov29_0225DC44(void *data, int newTarget, int prevTarget);
 
-void ov29_0225DC48(void *data, int newTarget, int prevTarget);
 
 typedef struct NumberEntryRodata {
     u8 xOffsets1[1];

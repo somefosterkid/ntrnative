@@ -29,7 +29,11 @@ void ov85_021E8530(fx32 *param0, fx32 param1) {
     (*param0) %= (FX32_ONE * 360);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov85_021E7644(void *);
+#else
 s32 ov85_021E7644(void *);
+#endif
 
 s32 ov85_021E78A4(u8 *, s32);
 

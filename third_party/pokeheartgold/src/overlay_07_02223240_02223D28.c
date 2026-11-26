@@ -4,7 +4,7 @@ struct SwaggerSpriteContext;
 
 s32 ov07_02223CAC(void *, s16, s16);
 
-s32 ov07_02223CE4();
+BOOL ov07_02223CE4(SwaggerSpriteContext *ctx);
 
 s32 ov07_02223D28(struct SwaggerSpriteContext *arg0);
 
@@ -21,7 +21,7 @@ s32 ov07_02223D28(SwaggerSpriteContext *arg0) {
         *((u32 *)&arg0->popState) = (u32)(*((u32 *)&arg0->popState) + 1);
         break;
     case 1:
-        if (ov07_02223CE4() != 0) {
+        if (ov07_02223CE4(arg0) != 0) {
             *((u32 *)&arg0->popState) = (u32)(*((u32 *)&arg0->popState) + 1);
         }
         break;
@@ -34,7 +34,7 @@ s32 ov07_02223D28(SwaggerSpriteContext *arg0) {
         }
         break;
     case 3:
-        if (ov07_02223CE4() != 0) {
+        if (ov07_02223CE4(arg0) != 0) {
             *((u32 *)&arg0->popState) = (u32)(*((u32 *)&arg0->popState) + 1);
         }
         break;

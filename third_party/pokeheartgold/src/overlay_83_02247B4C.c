@@ -1,7 +1,8 @@
 #include "global.h"
 #include "unk_02019BA4.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
-s32 ov83_022469D8(void *, s32, s32);
+s32 ov83_022469D8(BattleCastleOpponentApp *arg0, s32, s32);
 
 extern s32 ov83_02248544;
 

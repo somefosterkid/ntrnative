@@ -18,7 +18,11 @@ typedef struct UnkStruct_ov96_0220C680 {
 
 s32 ov96_0220C7FC(UnkStruct_ov96_0220C680 *);
 
-s32 ov96_0220C8B8(ManagedSprite *, u16, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220C844.c (tools/pokehg_abi.py)
+void ov96_0220C8B8(ManagedSprite *, s32, s32);
+#else
+void ov96_0220C8B8(ManagedSprite *, u16, s32);
+#endif
 
 void ov96_0220C680(UnkStruct_ov96_0220C680 *arg0);
 

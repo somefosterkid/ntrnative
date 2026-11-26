@@ -53,7 +53,6 @@ static inline void *ParticleSystem_AllocMemory(ParticleSystem *particleSystem, u
     return allocated;
 }
 
-void *sub_02015264(enum NarcId narcID, void *memberIndex, enum HeapID heapID);
 
 void sub_02015528(ParticleSystem *particleSystem, enum CameraProjection projection);
 

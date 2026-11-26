@@ -34,19 +34,19 @@ s32 ov14_021EF6FC(UnkStruct_ov14_boxapp *arg0) {
     u16 temp_r4_2;
     u16 temp_r7;
     u8 temp_r2_2;
-    void *temp_r1;
+    UnkStruct_ov14_boxsys *temp_r1;
     void *temp_r4;
 
-    temp_r1 = *((void * *)&arg0->sys);
-    temp_r4 = *(void **)((u8 *)temp_r1 + 0xC);
-    if (sub_020199E4(((UnkStruct_ov14_boxsys *)temp_r1)->unk_2F0, 0x10) != 0) {
+    temp_r1 = arg0->sys;
+    temp_r4 = temp_r1->unk_C;
+    if (sub_020199E4(temp_r1->unk_2F0, 0x10) != 0) {
         return 0x85;
     }
     temp_r1_2 = *(u16 *)temp_r4;
     if (temp_r1_2 == arg0->unk21) {
         temp_r4_2 = *(u16 *)((u8 *)temp_r4 + 2);
         ov14_021F1F38(arg0);
-        ov14_021F34C8(*((void * *)&arg0->sys), arg0->unk21, 0);
+        ov14_021F34C8(arg0->sys, arg0->unk21, 0);
         GridInputHandler_SetNextInput(arg0->sys->unk_2C, (s32) arg0->unk21);
         if ((ItemIdIsMail(arg0->sys->unk_88C8) == 1) && (temp_r4_2 != arg0->unk21)) {
             PlaySE(0x5F3U);
@@ -57,21 +57,21 @@ s32 ov14_021EF6FC(UnkStruct_ov14_boxapp *arg0) {
         GridInputHandler_SetButtonInputMode(arg0->sys->unk_2C, 1);
         return 0x82;
     }
-    ov14_021F34C8(*((void * *)&arg0->sys), temp_r1_2, 0);
-    ov14_021F34C8(*((void * *)&arg0->sys), arg0->unk21, 1);
+    ov14_021F34C8(arg0->sys, temp_r1_2, 0);
+    ov14_021F34C8(arg0->sys, arg0->unk21, 1);
     temp_r7 = ov14_021E6070(arg0, *(u16 *)temp_r4, 6, 0);
-    ov14_021E6094(arg0, *(u16 *)temp_r4, 6, *((void * *)&arg0->sys) + 0x88C8);
+    ov14_021E6094(arg0, *(u16 *)temp_r4, 6, &arg0->sys->unk_88C8);
     if (ov14_021E64D0(ov14_021E60C0(arg0, arg0->unk1F, *(u16 *)temp_r4)) == 1) {
         temp_r2 = *(u16 *)temp_r4;
-        ov14_021F2ED0(arg0, arg0->unk1F, temp_r2, *(u8 *)((u8 *)(*((void * *)&arg0->sys) + temp_r2) + 0x4094));
+        ov14_021F2ED0(arg0, arg0->unk1F, temp_r2, arg0->sys->unk_4094[temp_r2]);
     }
     ov14_021E7588(arg0, *(u16 *)temp_r4);
     GridInputHandler_SetNextInput(arg0->sys->unk_2C, (s32)(u8) * (u16 *)temp_r4);
     arg0->sys->unk_88C8 = temp_r7;
-    ov14_021E6094(arg0, (u16) arg0->unk21, 6, *((void * *)&arg0->sys) + 0x88C8);
+    ov14_021E6094(arg0, (u16) arg0->unk21, 6, &arg0->sys->unk_88C8);
     if (ov14_021E64D0(ov14_021E60C0(arg0, arg0->unk1F, (u16) arg0->unk21)) == 1) {
         temp_r2_2 = arg0->unk21;
-        ov14_021F2ED0(arg0, arg0->unk1F, (u16)temp_r2_2, *(u8 *)((u8 *)(*((void * *)&arg0->sys) + temp_r2_2) + 0x4094));
+        ov14_021F2ED0(arg0, arg0->unk1F, (u16)temp_r2_2, arg0->sys->unk_4094[temp_r2_2]);
     }
     temp_r1_2 = arg0->sys->unk_88C8;
     if (temp_r1_2 == 0) {
@@ -80,11 +80,11 @@ s32 ov14_021EF6FC(UnkStruct_ov14_boxapp *arg0) {
         GridInputHandler_SetButtonInputMode(arg0->sys->unk_2C, 1);
         return 0x82;
     }
-    ov14_021F3844(*((void * *)&arg0->sys), temp_r1_2);
-    ov14_021F391C(*((void * *)&arg0->sys), 1);
-    ov14_021F29E4(*((void * *)&arg0->sys), 0xB, 1);
-    ov14_021F2A18(*((void * *)&arg0->sys), 0xB, 1);
-    ov14_021F39D0(*((void * *)&arg0->sys));
+    ov14_021F3844(arg0->sys, temp_r1_2);
+    ov14_021F391C(arg0->sys, 1);
+    ov14_021F29E4(arg0->sys, 0xB, 1);
+    ov14_021F2A18(arg0->sys, 0xB, 1);
+    ov14_021F39D0(arg0->sys);
     PlaySE(0x5EBU);
     return ov14_021F0234(arg0, ov14_021EA928, 0x86);
 }

@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: as ss-grass-thru at Walk 2x (WalkSpeed=2, the test phone's setting): the same keys from f11000 at half the frames (a step takes 8 frames), turn taps (4 frames or less) as they were. ss-grass-thru: Route 29 at Walk 1x, west from 664,400 into the tall grass (657 to 652), through it and out the other side (Smooth motion audit, scratch/ipid)
+# end: f11130
+env BWPORT_HG_WARP=33:664:400 BWPORT_HG_WARP_DIR=2 BWPORT_WALKSPEED=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f120@f11000

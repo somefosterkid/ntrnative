@@ -6,7 +6,7 @@
 #include "math_util.h"
 #include "overlay_96_unk_struct_ov96_021_f7684.h"
 
-s32 ov96_021E8228(s32, s32, u32, s32, s32);
+void ov96_021E8228(s32, s32, u32, s32, s32);
 
 void ov96_021F77EC(s32 arg0, UnkStruct_ov96_021F7684 *arg1, s32 arg2);
 

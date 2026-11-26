@@ -46,7 +46,11 @@ void sub_0203A8A8(s32 arg0) {
 
 s32 sub_02034DCC(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+NetworkIcon *sub_0203A3B0(s32, s32, u16, u16, s32, s32 *, s32, s32);
+#else
 NetworkIcon *sub_0203A3B0(s32, s32, s32, s32, s32, s32 *, s32, s32);
+#endif
 
 extern s32 _0210F91C;
 

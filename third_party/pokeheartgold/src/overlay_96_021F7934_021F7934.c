@@ -74,9 +74,9 @@ s32 ov96_021F8F94(enum HeapID *, PokeathlonCourseData *, s32);
 
 extern Ov96SpriteMgrParam ov96_0221C2A8;
 
-s32 ov96_021F7934(PokeathlonCourseData *arg0);
+BOOL ov96_021F7934(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_021F7934(PokeathlonCourseData *arg0) {
+BOOL ov96_021F7934(PokeathlonCourseData *arg0, int unused) {
     Ov96SpriteMgrParam sp1C;
     s32 spC[4];
     u8 *temp_r0_3;

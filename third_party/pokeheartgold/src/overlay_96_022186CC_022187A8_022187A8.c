@@ -10,7 +10,11 @@ void ov96_02215944(VecFx32 *param_1, fx32 param_2, fx32 param_3);
 
 u32 ov96_022186CC(VecFx32 *param_1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_022186CC_02218784.c (tools/pokehg_abi.py)
+void ov96_02218784(void *param_1, int param_2);
+#else
 void ov96_02218784(void *param_1, u8 param_2);
+#endif
 
 void ov96_022187A8(Ov96RdObj *p, void *param_2);
 

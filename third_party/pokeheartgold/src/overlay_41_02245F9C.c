@@ -26,7 +26,7 @@ typedef struct UnkStruct_ov70_0225CC54_t UnkStruct_ov70_0225CC54;
 typedef struct UnkStruct_ov63_0222BE18_t UnkStruct_ov63_0222BE18;
 typedef struct UnkStruct_ov63_0222D848_t UnkStruct_ov63_0222D848;
 typedef struct UnkStruct_ov66_02234548_t UnkStruct_ov66_02234548;
-void sub_02015FC4(UnkStruct_ov66_02234548 *param0);
+void sub_02015FC4(void *arg0, s16 arg1, s16 arg2);
 typedef struct {
     fx32 unk_00;
     fx32 unk_04;
@@ -99,7 +99,7 @@ typedef struct SoftwareSpriteTemplate {
 } SoftwareSpriteTemplate;
 SoftwareSprite *sub_02015F8C(const SoftwareSpriteTemplate *template);
 
-void ov41_02245F9C(UnkStruct_ov70_0225CA20 *param0);
+void ov41_02245F9C(UnkStruct_ov70_0225CA20 *param0, s16 arg1, s16 arg2);
 void ov41_02245FA8(UnkStruct_ov22_02255040 *param0, int *param1, int *param2);
 void ov41_02245FD8(UnkStruct_ov22_02255040 *param0, int *param1, int *param2);
 void ov41_02246008(UnkStruct_ov22_02255040 *param0, BOOL param1);
@@ -117,8 +117,8 @@ s32 ov41_022467C8(void);
 s32 ov41_022467D4(void);
 void ov41_02246150(void);
 
-void ov41_02245F9C(UnkStruct_ov70_0225CA20 *param0) {
-    sub_02015FC4(param0->unk_04);
+void ov41_02245F9C(UnkStruct_ov70_0225CA20 *param0, s16 arg1, s16 arg2) {
+    sub_02015FC4(param0->unk_04, arg1, arg2);
 }
 
 void ov41_02245FA8(UnkStruct_ov22_02255040 *param0, int *param1, int *param2) {

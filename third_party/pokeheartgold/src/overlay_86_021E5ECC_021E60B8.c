@@ -19,22 +19,6 @@ struct MsgData;
 
 struct MessageFormat;
 
-void ov86_021E6114(FrontierRecordsApp *app);
-
-void ov86_021E62F4(FrontierRecordsApp *app);
-
-void ov86_021E64E0(FrontierRecordsApp *app);
-
-void ov86_021E66D0(FrontierRecordsApp *app);
-
-void ov86_021E690C(FrontierRecordsApp *app);
-
-void ov86_021E6A88(FrontierRecordsApp *app);
-
-void ov86_021E6BA8(FrontierRecordsApp *app);
-
-void ov86_021E60B8(FrontierRecordsApp *app);
-
 void ov86_021E60B8(FrontierRecordsApp *app) {
     switch (app->facility) {
     case FACILITY_FACTORY:

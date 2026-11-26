@@ -37,7 +37,7 @@ s32 ov14_021F0244(struct UnkStruct_ov14_boxapp *arg0, s32 arg1);
 
 s32 ov14_021F0244(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
     *((s32 *)&arg0->unk30) = arg1;
-    ov14_021E5A54(*((void **)&arg0->sys));
+    ov14_021E5A54(arg0->sys);
     return 5;
 }
 

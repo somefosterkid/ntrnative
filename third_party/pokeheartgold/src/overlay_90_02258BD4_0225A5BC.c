@@ -28,12 +28,12 @@ void ov90_0225A5BC(UnkStruct_ov114_0225E1A4 *arg0, BgConfig **arg1, s32 val) {
     }
 }
 
-void ov90_0225A60C(void *arg0, BgConfig **arg1, s32 arg2);
+void ov90_0225A60C(UnkStruct_ov114_0225E1A4 *arg0, BgConfig **arg1, s32 arg2);
 
-void ov90_0225A60C(void *arg0, BgConfig **arg1, s32 value) {
+void ov90_0225A60C(UnkStruct_ov114_0225E1A4 *arg0, BgConfig **arg1, s32 value) {
     s32 v0;
 
-    v0 = *(s32 *)((u8 *)arg0 + 0x10);
+    v0 = (s32)arg0->unk_10;
     switch (v0) {
     case 0:
     case 1:

@@ -2,7 +2,6 @@
 
 #include "sprite.h"
 #include "unk_02005D10.h"
-#include "overlay_43_unk_struct_ov64_0222_f0_c4.h"
 #include "overlay_43_palpad.h"
 
 s32 ov43_0222AD74(void *, s32, s32);

@@ -14,21 +14,11 @@
 #include "overlay_41_sprite_resource_collection.h"
 #include "overlay_90_unk_struct_ov114_0225cdb4.h"
 #include "overlay_90_unk_struct_ov114_0225ccd0.h"
+#include "overlay_90_unk_struct_ov114_0225fab8.h"
 
 struct SpriteResourceCollection;
 
 struct UnkStruct_ov114_02025CAD4_t;
-
-typedef struct {
-    Sprite *unk_00[2];
-    s16 unk_08;
-    s16 unk_0A;
-    u8 unk_0C[2][192];
-    SysTask *unk_18C;
-    GXWndPlane unk_190;
-    GXWndPlane battlerType;
-    int unk_194;
-} UnkStruct_ov114_0225FAB8;
 
 struct UnkStruct_ov114_02025CAD4_t {
     u32 unk_00;

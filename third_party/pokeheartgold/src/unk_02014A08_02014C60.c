@@ -11,11 +11,11 @@ struct SysTaskQueue;
 void *sub_02014A4C(const BufferManager *bufferManager);
 BufferManager *sub_02014A08(enum HeapID heapID, void *buffer1, void *buffer2);
 ScreenScrollManager *ScreenScrollManager_New(enum HeapID heapID);
-SysTask *sub_02014AA0(SysTaskFunc callback, void *param, u32 priority);
+void sub_02014AA0(void);
 
 void sub_02014C60(s16 *dest, u32 entryCount, u16 angleIncrement, fx32 amplitude);
 void sub_02014CBC(SysTask *task, void *param);
-SysTask *sub_02014D68(SysTaskFunc callback, void *param, int priority);
+void sub_02014D68(void);
 
 void sub_02014C60(s16 *dest, u32 entryCount, u16 angleIncrement, fx32 amplitude)
 {
@@ -50,7 +50,7 @@ void sub_02014CBC(SysTask *task, void *param)
     }
 }
 
-SysTask *sub_02014D68(SysTaskFunc callback, void *param, int priority)
+void sub_02014D68(void)
 {
-    return sub_02014AA0(callback, param, priority);
+    sub_02014AA0();
 }

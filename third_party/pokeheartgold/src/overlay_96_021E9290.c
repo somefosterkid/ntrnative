@@ -44,17 +44,18 @@
 #include "union_room_manager.h"
 #include "save_palpad.h"
 #include "field/terrain_collision_manager.h"
+#include "overlay_96_sprite_res_man.h"
 
-void ov96_021E9290(void *arg0);
+void ov96_021E9290(Ov96SpriteResMan *arg0);
 
-void ov96_021E9290(void *arg0) {
+void ov96_021E9290(Ov96SpriteResMan *arg0) {
     if (arg0 == NULL) {
         GF_AssertFail();
     }
-    if (*(s32 *)((u8 *)arg0 + 0xC) != 0) {
+    if (arg0->unk_C != 0) {
         GF_AssertFail();
     }
-    *(s32 *)((u8 *)arg0 + 8) = 1;
+    arg0->mode = 1;
 }
 
 struct OverlayManager;

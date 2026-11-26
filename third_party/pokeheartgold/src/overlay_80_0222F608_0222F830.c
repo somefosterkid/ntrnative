@@ -764,7 +764,7 @@ enum BgOffsetUpdateOp {
     BG_OFFSET_UPDATE_SUB_Y,
 };
 int Bg_GetYpos(BgConfig *bgConfig, enum GFBgLayer bgLayer);
-void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 typedef struct BattleArcade BattleArcade;
 BOOL ov80_02230AF8(BattleArcade *arcade, u16 command, u16 arg);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);

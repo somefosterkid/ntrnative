@@ -5,7 +5,11 @@ struct UnkStruct_ov14_boxapp;
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021E7D9C(void *, u16);
+#else
 s32 ov14_021E7D9C(void *, s32);
+#endif
 
 void ov14_021E7E10(struct UnkStruct_ov14_boxapp *arg0, s32 arg1);
 

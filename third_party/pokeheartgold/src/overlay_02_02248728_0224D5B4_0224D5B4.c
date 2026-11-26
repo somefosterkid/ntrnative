@@ -11,7 +11,11 @@
 #include "player_avatar.h"
 #include "unk_02005D10.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void Field3dObject_SetXRotation(Field3dObject *, s16, u32);
+#else
 void Field3dObject_SetXRotation(Field3dObject *, u16, u32);
+#endif
 
 void ov02_0224D0AC(PlayerAvatar *, Field3dObject *);
 

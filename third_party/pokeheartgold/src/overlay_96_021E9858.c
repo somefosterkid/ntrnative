@@ -2,19 +2,19 @@
 
 #include "pokeathlon/pokeathlon.h"
 
-void ov96_021E9858(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *arg3);
+void ov96_021E9858(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E98D0(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseData *param_4);
-void ov96_021E98F4(u32 param_1, u32 param_2, s32 param_3, PokeathlonCourseData *param_4);
+void ov96_021E98D0(int param_1, int param_2, void *param_3, void *param_4);
+void ov96_021E98F4(int param_1, int param_2, void *param_3, void *param_4);
 
-void ov96_021E9858(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *data) {
+void ov96_021E9858(int arg0, int arg1, void *arg2, void *data) {
     PokeathlonCourse_SetStateTransitionType(data, 0xAU);
     PokeathlonCourse_SetStateField07(data, 0x12U);
 }
 
-void ov96_021E9870(s32 arg0, s32 arg1, void *arg2, PokeathlonCourseData *arg3);
+void ov96_021E9870(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E9870(s32 arg0, s32 arg1, void *arg2, PokeathlonCourseData *data) {
+void ov96_021E9870(int arg0, int arg1, void *arg2, void *data) {
     void *v0;
     u32 v1;
     u8 *v3;
@@ -34,7 +34,7 @@ void ov96_021E9870(s32 arg0, s32 arg1, void *arg2, PokeathlonCourseData *data) {
     }
 }
 
-void ov96_021E98D0(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseData *param_4) {
+void ov96_021E98D0(int param_1, int param_2, void *param_3, void *param_4) {
     u8 *puVar1;
 
     puVar1 = PokeathlonCourse_GetDataCopyArea(param_4);
@@ -43,12 +43,13 @@ void ov96_021E98D0(u32 param_1, size_t param_2, void *param_3, PokeathlonCourseD
     return;
 }
 
-void ov96_021E98F4(u32 param_1, u32 param_2, s32 param_3, PokeathlonCourseData *param_4) {
+void ov96_021E98F4(int param_1, int param_2, void *param_3, void *param_4) {
+    u8 *src = param_3;
     u8 uVar1;
     u8 uVar2;
     BOOL BVar3;
     PokeathlonFieldData *pPVar4;
-    s32 iVar5;
+    u8 *iVar5;
     s32 iVar6;
     u32 uVar7;
 
@@ -59,8 +60,8 @@ void ov96_021E98F4(u32 param_1, u32 param_2, s32 param_3, PokeathlonCourseData *
         uVar7 = 0;
         do {
             iVar6 = uVar7 * 0x20;
-            iVar5 = param_3 + iVar6;
-            *(s32 *)(pPVar4->data + iVar6) = *(s32 *)(pPVar4->data + iVar6) + *(s32 *)(param_3 + iVar6);
+            iVar5 = src + iVar6;
+            *(s32 *)(pPVar4->data + iVar6) = *(s32 *)(pPVar4->data + iVar6) + *(s32 *)(src + iVar6);
             *(s32 *)(pPVar4->data + iVar6 + 4) = *(s32 *)(pPVar4->data + iVar6 + 4) + *(s32 *)(iVar5 + 4);
             *(s32 *)(pPVar4->data + iVar6 + 8) = *(s32 *)(pPVar4->data + iVar6 + 8) + *(s32 *)(iVar5 + 8);
             *(s32 *)(pPVar4->data + iVar6 + 0xc) = *(s32 *)(pPVar4->data + iVar6 + 0xc) + *(s32 *)(iVar5 + 0xc);

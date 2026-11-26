@@ -642,7 +642,11 @@ void sub_0202BC38(DressUpPhoto *photo);
 void sub_0202BC60(DressUpPhoto *photo);
 void sub_0202BC88(DressUpPhoto *photo, Pokemon *mon, UnkStruct_020298D8 *param2);
 void sub_0202BCAC(DressUpPhoto *photo, const UnkStruct_ov22_02255040 *param1, int param2);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0202BD60(DressUpPhoto *photo, s8 param1);
+#else
 void sub_0202BD60(DressUpPhoto *photo, u8 param1);
+#endif
 void sub_0202BDC8(DressUpPhoto *photo, const String *name, int gender);
 void ov41_022480F8(UnkStruct_ov22_02257964 *param0, int param1, int param2);
 

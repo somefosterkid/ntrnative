@@ -1,6 +1,6 @@
 /* vcore_render: renders a .vcs frame with port/vcore (docs/vcore.md).
  *   vcore_render FILE.vcs OUT.png [--3d OUT3D.png] [--libntr OUTL.png] [--geo OUT.txt] [--bank X OUT.png]
- *                [--dump-vram OUT.bin] [--info] [--bench N] [--scale N] [--aa K] [--dot fine] [--line thin] [--edge fine]
+ *                [--dump-vram OUT.bin] [--info] [--bench N] [--scale N] [--aa K|edges] [--dot fine] [--line thin] [--edge fine]
  * --scale N: the 3D at N x (1..8, p21): OUT.png is then 256 N x 384 N.
  * OUT.png: both screens, 256x384 RGBA, top screen first (the compare tool's layout: tools/vcore_compare.py).
  * --3d: the 3D layer (s->f3d.out, alpha 0-31 widened to 0-255) as 256x192. --libntr: the file's own LSHT picture.
@@ -59,7 +59,7 @@ static int usage(void) {
 
 int main(int argc, char **argv) {
   const char *in = NULL, *out = NULL, *out3d = NULL, *outl = NULL, *outg = NULL, *outb = NULL, *outv = NULL;
-  int info = 0, bank = -1, bench = 0, scale = 1, aa = 1, dot_fine = 0, line_thin = 0, edge_fine = 0;
+  int info = 0, bank = -1, bench = 0, scale = 1, aa = 1, edge_aa = 0, dot_fine = 0, line_thin = 0, edge_fine = 0;
   for (int i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--3d") && i + 1 < argc) out3d = argv[++i];
     else if (!strcmp(argv[i], "--libntr") && i + 1 < argc) outl = argv[++i];
@@ -72,7 +72,10 @@ int main(int argc, char **argv) {
     } else if (!strcmp(argv[i], "--bench") && i + 1 < argc) bench = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--seq")) vc_threads = 0;
     else if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) aa = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) {
+      edge_aa = !strcmp(argv[i + 1], "edges"); /* Smooth edges: one sample, the outline with its coverage */
+      aa = edge_aa ? 1 : atoi(argv[i + 1]), i++;
+    }
     else if (!strcmp(argv[i], "--dot") && i + 1 < argc) dot_fine = !strcmp(argv[++i], "fine");
     else if (!strcmp(argv[i], "--line") && i + 1 < argc) line_thin = !strcmp(argv[++i], "thin");
     else if (!strcmp(argv[i], "--edge") && i + 1 < argc) edge_fine = !strcmp(argv[++i], "fine");
@@ -93,6 +96,7 @@ int main(int argc, char **argv) {
   vcore_set_scale(s, scale);
   vcore_set_aa(s, aa); /* --aa K: the 3D at N K x, the picture the K x K box average, N x again (K is lowered when N K > 8) */
   vcore_set_options(s, dot_fine, line_thin, edge_fine);
+  vcore_set_edge_aa(s, edge_aa);
   if (info) printf("%s", s->info ? s->info : "(no INFO)\n");
   if (bench > 0) {
     /* --bench N: render the frame N times, print the milliseconds per frame by stage (the rest = the work reset,

@@ -15,19 +15,7 @@
 #include "unk_02030A98.h"
 struct FrontierRecordsApp;
 
-void ov86_021E5CDC(void *);
-
-s32 ov86_021E5E0C(struct FrontierRecordsApp *);
-
 u8 ov86_021E5E98(u8);
-
-s32 ov86_021E6E30(struct FrontierRecordsApp *);
-
-s32 ov86_021E6E98(struct FrontierRecordsApp *);
-
-s32 ov86_021E7DF8(BgConfig *, Window *, u8);
-
-s32 ov86_021E7E68(BgConfig *, Window *);
 
 BOOL ov86_021E5900(OverlayManager *man, int *state) {
     FrontierRecordsApp *app;

@@ -15,10 +15,6 @@ s32 ov112_021EF8C0(void) {
     return 2;
 }
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EF8D4(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EF8D4(Ov112PokewalkerApp *arg0) {
     String *string;
 

@@ -1,0 +1,216 @@
+pokeplatinum-tags.patch (tools/pokeplat_gen.py applies the patches in name order): Smooth motion's tags, the pseudo-command
+that names the game object each 3D list belongs to (libntr's simulator/sim_g3tag.h), so the in-betweens can pair sprites,
+shadows, effects and particles by identity. Sites: billboard.c BillboardList_Draw (a field sprite: its list, the billboard,
+the texture and palette indexes its animation shows), overworld_anim_manager.c OverworldAnimManagerList_Render (a field
+effect: its render function, the anim manager), the two shadow render functions of overlay005/ov5_021F134C.c (inst = the
+map object's sprite's, the anchor), lib/spl's two particle draw loops (the emitter, the particle, its age); each loop ends
+with the empty tag. The places that make a billboard, an anim manager, an emitter or a particle again drop its old id
+(SIM_G3TagDrop). Off (the default) each site is one flag test and the command stream is unchanged; BWPORT_VCAPTURE_TAGS=1
+or SIM_G3TagEnable(1) turns them on. The DS build never sees the patch.
+diff --git a/lib/spl/src/spl_emit.c b/lib/spl/src/spl_emit.c
+index ed8fcf26f..a46b6aaae 100644
+--- a/lib/spl/src/spl_emit.c
++++ b/lib/spl/src/spl_emit.c
+@@ -15,4 +15,6 @@
+ #define SPL_DIV(n, d) ((d) == 0 ? (n) : (n) / (d))
+ 
++#include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
++
+ static void SPLEmitter_ComputeOrthogonalAxes(SPLEmitter *emtr);
+ static void SPLUtil_TiltCoordinates(VecFx32 *ptclPos, VecFx32 *pos, SPLEmitter *emtr);
+@@ -99,4 +101,5 @@ void SPLEmitter_EmitParticles(SPLEmitter *emtr, SPLParticleList *list)
+             return;
+         }
++        SIM_G3TagDrop(ptcl); // bw-port: a new particle, a new tag id
+ 
+         SPLParticleList_PushFront(&emtr->particles, ptcl);
+@@ -294,4 +297,5 @@ void SPLEmitter_EmitChildren(SPLParticle *ptcl, SPLEmitter *emtr, SPLParticleLis
+             return;
+         }
++        SIM_G3TagDrop(child); // bw-port: a new particle, a new tag id
+ 
+         SPLParticleList_PushFront(&emtr->childParticles, child);
+diff --git a/lib/spl/src/spl_emitter.c b/lib/spl/src/spl_emitter.c
+index 705c3264c..7114ab183 100644
+--- a/lib/spl/src/spl_emitter.c
++++ b/lib/spl/src/spl_emitter.c
+@@ -12,4 +12,6 @@
+ #include "spl_texture.h"
+ 
++#include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
++
+ #define ANIM_FUNC_NO_LOOP 0
+ #define ANIM_FUNC_LOOP    1
+@@ -60,4 +62,5 @@ static void SPLUtil_SetTexture_Stub(SPLTexture *tex)
+ void SPLEmitter_Init(SPLEmitter *emtr, SPLResource *res, const VecFx32 *pos)
+ {
++    SIM_G3TagDrop(emtr); // bw-port: a new emitter, a new tag id
+     emtr->resource = res;
+     emtr->state.all = 0;
+@@ -352,4 +355,8 @@ static void SPLManager_DrawParticles(SPLManager *mgr)
+ 
+     for (SPLParticle *ptcl = emtr->particles.first; ptcl != NULL; ptcl = ptcl->next) {
++        if (SIM_G3TagOn) { // bw-port: Smooth motion's tag (simulator/sim_g3tag.h): the emitter, the particle, its age
++            SIM_G3Tag(SIM_G3TAG_OWNER(SIM_G3TAG_PARTICLE, emtr), SIM_G3TagId(ptcl), ptcl->age);
++        }
++
+         setTexFunc(mgr->textures + ptcl->texture);
+         drawFunc(mgr, ptcl);
+@@ -388,4 +395,8 @@ static void SPLManager_DrawChildParticles(SPLManager *mgr)
+ 
+     for (SPLParticle *ptcl = emtr->childParticles.first; ptcl != NULL; ptcl = ptcl->next) {
++        if (SIM_G3TagOn) { // bw-port: as SPLManager_DrawParticles's
++            SIM_G3Tag(SIM_G3TAG_OWNER(SIM_G3TAG_PARTICLE, emtr), SIM_G3TagId(ptcl), ptcl->age);
++        }
++
+         drawFunc(mgr, ptcl);
+     }
+@@ -409,4 +420,8 @@ void SPLManager_DoDraw(SPLManager *mgr)
+         SPLManager_DrawChildParticles(mgr);
+     }
++
++    if (SIM_G3TagOn) { // bw-port
++        SIM_G3Tag(0, 0, 0);
++    }
+ }
+ 
+diff --git a/src/billboard.c b/src/billboard.c
+index 8cdadfd67..abe8bf2d8 100644
+--- a/src/billboard.c
++++ b/src/billboard.c
+@@ -1,4 +1,6 @@
+ #include "billboard.h"
+ 
++#include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
++
+ #include "billboard_vram_transfer.h"
+ #include "easy3d.h"
+@@ -237,4 +239,18 @@ static BillboardList *FindFirstFreeBillboardList(void)
+ }
+ 
++// bw-port: Smooth motion's tag for a sprite (simulator/sim_g3tag.h): its list, itself, and the image its animation shows
++// now (the texture and palette indexes UpdateTexPlttAddressesForCurrentFrame or the VRAM transfer use)
++static void PortG3Tag_Billboard(BillboardList *list, Billboard *billboard)
++{
++    u32 state = 0;
++
++    if (billboard->gfxSequence.seqCount != 0) {
++        BillboardTexPlttIndex indexes = BillboardGfxSequence_GetTexPlttIndexAt(&billboard->gfxSequence, billboard->frameNum >> FX32_SHIFT);
++        state = indexes.textureIdx | indexes.plttIdx << 8;
++    }
++
++    SIM_G3Tag(SIM_G3TAG_OWNER(SIM_G3TAG_SPRITE, list), SIM_G3TagId(billboard), state);
++}
++
+ static void BillboardList_Draw(BillboardList *list)
+ {
+@@ -267,4 +283,8 @@ static void BillboardList_Draw(BillboardList *list)
+             }
+ 
++            if (SIM_G3TagOn) { // bw-port
++                PortG3Tag_Billboard(list, billboard);
++            }
++
+             Easy3D_DrawRenderObj(&billboard->renderObj, &billboard->pos, rotMatrix, &billboard->scale);
+             ReleaseVRAMKeysAndModelSet(billboard);
+@@ -273,4 +293,8 @@ static void BillboardList_Draw(BillboardList *list)
+         billboard = billboard->next;
+     }
++
++    if (SIM_G3TagOn) { // bw-port
++        SIM_G3Tag(0, 0, 0);
++    }
+ }
+ 
+@@ -740,4 +764,5 @@ static Billboard *BillboardList_AllocBillboard(BillboardList *list)
+     Billboard *billboard = list->freeBillboards[list->freeBillboardHead];
+     list->freeBillboardHead++;
++    SIM_G3TagDrop(billboard); // bw-port: a new sprite, a new tag id
+ 
+     return billboard;
+diff --git a/src/overlay005/ov5_021F134C.c b/src/overlay005/ov5_021F134C.c
+index 9b067e0c9..fef3aad67 100644
+--- a/src/overlay005/ov5_021F134C.c
++++ b/src/overlay005/ov5_021F134C.c
+@@ -1,4 +1,6 @@
+ #include "overlay005/ov5_021F134C.h"
+ 
++#include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
++
+ #include <nitro.h>
+ #include <string.h>
+@@ -8,4 +10,5 @@
+ #include "field/field_system.h"
+ #include "overlay005/field_effect_manager.h"
++#include "overlay005/ov5_021EB1A0.h"
+ 
+ #include "map_object.h"
+@@ -271,4 +274,14 @@ static void ov5_021F1604(OverworldAnimManager *param0, void *param1)
+ }
+ 
++// bw-port: Smooth motion's tag for a shadow (simulator/sim_g3tag.h): anchored to its map object's sprite, whose inst it
++// carries (the map object's own id when it has no sprite); state: which of the shadow models
++static void PortG3Tag_Shadow(OverworldAnimManager *manager, MapObject *mapObj, u32 state)
++{
++    Billboard *billboard = ov5_021EB1A0(mapObj);
++    const void *anchor = billboard != NULL ? (const void *)billboard : (const void *)mapObj;
++
++    SIM_G3Tag(SIM_G3TAG_OWNER(SIM_G3TAG_SHADOW, (const void *)manager->renderFunc), SIM_G3TagId(anchor), state);
++}
++
+ static void ov5_021F1670(OverworldAnimManager *param0, void *param1)
+ {
+@@ -287,4 +300,8 @@ static void ov5_021F1670(OverworldAnimManager *param0, void *param1)
+         v1.z += (FX32_ONE * 1);
+ 
++        if (SIM_G3TagOn) { // bw-port
++            PortG3Tag_Shadow(param0, v0->unk_14.unk_08, 0);
++        }
++
+         Simple3D_DrawRenderObj(v4, &v1, &v2, &v3);
+     }
+@@ -360,4 +377,9 @@ static void ov5_021F176C(OverworldAnimManager *param0, void *param1)
+         v2.y += (FX32_ONE * -4);
+         v2.z += (FX32_ONE * 1);
++
++        if (SIM_G3TagOn) { // bw-port
++            PortG3Tag_Shadow(param0, v0->unk_14.unk_08, v1);
++        }
++
+         Simple3D_DrawRenderObjWithPos(v3, &v2);
+     }
+diff --git a/src/overworld_anim_manager.c b/src/overworld_anim_manager.c
+index 3b8d9c39c..9bc5ad459 100644
+--- a/src/overworld_anim_manager.c
++++ b/src/overworld_anim_manager.c
+@@ -4,4 +4,6 @@
+ #include <string.h>
+ 
++#include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
++
+ #include "heap.h"
+ #include "sys_task.h"
+@@ -68,4 +70,5 @@ OverworldAnimManager *OverworldAnimManagerList_InitManagerEx(OverworldAnimManage
+     }
+ 
++    SIM_G3TagDrop(iter); // bw-port: a new effect, a new tag id
+     OverworldAnimManager_SetActive(iter);
+     OverworldAnimManager_SetUserInt(iter, userInt);
+@@ -166,4 +169,8 @@ void OverworldAnimManagerList_Render(OverworldAnimManagerList *managerList)
+ 
+         if (flags == (OVERWORLD_ANIM_MANAGER_ACTIVE_FLAG | OVERWORLD_ANIM_MANAGER_TICKING_FLAG)) {
++            if (SIM_G3TagOn) { // bw-port: Smooth motion's tag (simulator/sim_g3tag.h): the effect's kind (its render function), this one
++                SIM_G3Tag(SIM_G3TAG_OWNER(SIM_G3TAG_EFFECT, (const void *)iter->renderFunc), SIM_G3TagId(iter), 0);
++            }
++
+             OverworldAnimManager_CallRenderFunc(iter);
+         }
+@@ -172,4 +179,8 @@ void OverworldAnimManagerList_Render(OverworldAnimManagerList *managerList)
+         i--;
+     } while (i);
++
++    if (SIM_G3TagOn) { // bw-port
++        SIM_G3Tag(0, 0, 0);
++    }
+ }
+ 

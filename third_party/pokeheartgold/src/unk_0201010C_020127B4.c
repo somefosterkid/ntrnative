@@ -20,7 +20,6 @@ void sub_02011738(UnkStruct_0201184C *param0, const UnkStruct_02011738 *param1, 
 void sub_02011A00(UnkStruct_02011AFC *param0, UnkStruct_0200FEA4 *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02011D34(UnkStruct_02011E04 *param0, UnkStruct_0200FF30 *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02011FE8(UnkStruct_020120D4 *param0, UnkStruct_0200FE6C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
-void sub_02012290(UnkStruct_02012290 *param0, UnkStruct_0201006C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, int param7);
 void sub_02012384(UnkStruct_02012290 *param0, UnkStruct_0201006C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02012940(UnkStruct_020120D4 *param0, UnkStruct_0200FE6C *param1, int param2, int param3, enum DSScreen screen, HardwareWindowSettings *param5, ScreenFadeHBlanks *param6, enum HeapID heapID);
 void sub_02010728(UnkStruct_0201076C *param0, enum DSScreen screen, int param2, int param3, int param4);
@@ -33,7 +32,11 @@ enum {
 };
 void sub_020110DC(ScreenFadeHBlanks *param0, UnkStruct_0201076C *param1, u32 heapID);
 void sub_02011068(HardwareWindowSettings *param0, int param1, enum DSScreen screen, int param3);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02011080(UnkStruct_0201076C *param0, s8 screen, s8 param2, int param3, int param4);
+#else
 void sub_02011080(UnkStruct_0201076C *param0, enum DSScreen screen, int param2, int param3, int param4);
+#endif
 void sub_020110C4(UnkStruct_0201076C *param0);
 void sub_020110F4(ScreenFadeHBlanks *param0, UnkStruct_0201076C *param1, u32 param2);
 void sub_02012A90(UnkStruct_020120D4 *param0);

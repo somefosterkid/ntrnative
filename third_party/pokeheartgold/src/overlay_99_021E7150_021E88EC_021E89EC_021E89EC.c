@@ -26,7 +26,11 @@ s32 ov99_021E94CC(void *, u16, u32, s32);
 
 PlayerProfile *ov99_021E9508(void **);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_99_021E7150_021E9518_021E9518.c (tools/pokehg_abi.py)
+String *ov99_021E9518(void *, s32, s32);
+#else
 String *ov99_021E9518(void *, u8, u8);
+#endif
 
 void ov99_021E89EC(void *arg0);
 

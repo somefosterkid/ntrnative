@@ -51,9 +51,8 @@ void ov82_0223EE6C(BattleHallApp *arg0, enum GFBgLayer layer) {
     GfGfxLoader_GXLoadPalFromOpenNarc(arg0->narc, 0xBE, GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_0_OFFSET, 0x20U, HEAP_ID_105);
 }
 
-void ov82_0223EECC(s32 param_1, GFBgLayer param_2) {
-    BG_ClearCharDataRange((u8)param_2, 0x20, 0, HEAP_ID_105);
-    GfGfxLoader_LoadCharDataFromOpenNarc(*(NARC **)(param_1 + 0x220), 0x85, *(BgConfig **)(param_1 + 0x48), param_2, 1, 0, 1, HEAP_ID_105);
-    GfGfxLoader_GXLoadPalFromOpenNarc(*(NARC **)(param_1 + 0x220), 0xc0, GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_1_OFFSET, 0x20, HEAP_ID_105);
-    return;
+void ov82_0223EECC(BattleHallApp *arg0, GFBgLayer layer) {
+    BG_ClearCharDataRange((u8)layer, 0x20, 0, HEAP_ID_105);
+    GfGfxLoader_LoadCharDataFromOpenNarc(arg0->narc, 0x85, arg0->bgConfig, layer, 1, 0, 1, HEAP_ID_105);
+    GfGfxLoader_GXLoadPalFromOpenNarc(arg0->narc, 0xc0, GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_1_OFFSET, 0x20, HEAP_ID_105);
 }

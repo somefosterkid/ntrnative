@@ -119,8 +119,8 @@ struct BattleFrontier {
 UnkStruct_ov104_0223D3B0 *sub_02096878(BattleFrontier *frontier);
 void sub_02096884(BattleFrontier *frontier);
 
-s32 sub_0209686C(s32 arg0, s32 arg1) {
-    return arg0 + 0x84 + (0x3C * arg1);
+UnkStruct_ov104_0223C634 *sub_0209686C(BattleFrontier *frontier, s32 idx) {
+    return &frontier->unk_6C[idx];
 }
 
 UnkStruct_ov104_0223D3B0 *sub_02096878(BattleFrontier *frontier) {

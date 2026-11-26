@@ -12,16 +12,11 @@
 #include "unk_02009D48.h"
 #include "unk_0200A090.h"
 #include "overlay_41_sprite_resource_collection.h"
+#include "overlay_41_unk_struct_ov22_0225A428.h"
 
 u8 ov41_0224AE24(Window *arg0, enum NarcId arg1, s32 arg2, s32 arg3, u32 arg4, u32 arg5, u32 arg6, u32 arg7);
 
 struct SpriteResourceCollection;
-typedef struct {
-    SpriteResource *unk_00[4];
-    Sprite *unk_10[20];
-    int unk_60;
-    int unk_64;
-} UnkStruct_ov22_0225A914;
 void ov41_0224AFF8(SpriteResource **param0, SpriteResourceCollection **param1, int param2, NARC *param3, int param4, int param5, int param6, int param7, int param8, int param9);
 void ov41_0224B0B8(SpriteResource **param0, SpriteResourceCollection **param1, SpriteResourcesHeader *param2, int param3);
 void ov41_0224B084(SpriteResource **param0, SpriteResourceCollection **param1);

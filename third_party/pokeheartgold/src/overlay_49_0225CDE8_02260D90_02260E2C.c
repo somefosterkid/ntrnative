@@ -3,6 +3,9 @@
 #include "error_handling.h"
 #include "system.h"
 #include "unk_02005D10.h"
+#include "list_menu_items.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "pm_string.h"
 
 s32 ov45_0222A330(s32);
 
@@ -52,9 +55,9 @@ s32 ov49_0225A040(void *);
 
 s32 ov49_0225A044(void *);
 
-s32 ov49_0225A08C(void *, s32);
+s32 ov49_0225A08C(void *, const String *);
 
-s32 ov49_0225A09C(void *, s32);
+s32 ov49_0225A09C(void *, const String *);
 
 s32 ov49_0225A0AC(void *);
 
@@ -64,7 +67,7 @@ s32 ov49_0225A0CC(void *);
 
 s32 ov49_0225A0EC(void *);
 
-s32 ov49_0225A30C(void *, s32, s32);
+String *ov49_0225A30C(void *, s32, s32);
 
 s32 ov49_0225A510(void *);
 

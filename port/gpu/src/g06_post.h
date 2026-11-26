@@ -13,7 +13,8 @@ int gpu_g06_clr_image(const VCoreState *s, u32 *img);
 void gpu_g06_uni_raster(GpuU *u, const VCoreState *s);
 /* the rear-plane bitmap texture is deleted (the GpuCore goes); a new one is made on the next use */
 void gpu_g06_release(void);
-/* pass P's: edge colours, fog colour/offset/table, the clear colour, the Edge option (edge_fine: 1 = outline of one N x pixel, 0 = one DS pixel) */
-void gpu_g06_uni_post(GpuU *u, const VCoreState *s, int edge_fine);
+/* pass P's: edge colours, fog colour/offset/table, the clear colour, the Edge option (edge_fine: 1 = outline of one N x pixel, 0 = one DS
+ * pixel), Smooth edges (edge_aa: 1 = the outline drawn with its coverage, one sample at N > 1) */
+void gpu_g06_uni_post(GpuU *u, const VCoreState *s, int edge_fine, int edge_aa);
 
 #endif

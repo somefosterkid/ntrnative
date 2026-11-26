@@ -89,6 +89,8 @@ BOOL ov01_021F15B4(const FieldEffectRenderer *renderer);
 const FieldEffectRendererFuncs *ov01_021F15C4(u32 id);
 void ov01_021F1804(struct UnkStruct_ov5_021DF8FC_t *billboardAlloc, u32 id);
 BillboardResources *ov01_021F18A8(struct UnkStruct_ov5_021DF8FC_t *billboardAlloc, u32 id);
+BillboardResources *ov01_021F1824(struct UnkStruct_ov5_021DF8FC_t *billboardAlloc, u32 id, void *modelRes, BillboardGfxSequence *gfxSequence, void *texture, GF_3DGfxRawResObj *texRes, const BillboardAnim *anims);
+BillboardResources *ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3, s32 id, s32 arg5, void *anims);
 void ov01_021F18C8(FieldEffectManager *fieldEffMan, u32 id);
 void ov01_021F18FC(FieldEffectManager *fieldEffMan, u32 slotID);
 void ov01_021F18D4(FieldEffectManager *fieldEffMan, u32 id, u32 memberIndex);

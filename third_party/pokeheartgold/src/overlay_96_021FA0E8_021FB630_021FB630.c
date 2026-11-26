@@ -4,7 +4,11 @@
 
 #include "overlay_96_unk_struct_ov96_021_f94a8.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021FBA3C(PokeathlonCourseData *param_1, UnkStruct_ov96_021F94A8 *param_2, void *param_3, u8 param_4, u32 param_5, u8 param_6);
+#else
 void ov96_021FBA3C(PokeathlonCourseData *param_1, UnkStruct_ov96_021F94A8 *param_2, void *param_3, u32 param_4, u32 param_5, u8 param_6);
+#endif
 
 void ov96_021FB630(PokeathlonCourseData *param_1);
 

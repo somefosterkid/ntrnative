@@ -36,7 +36,7 @@ void ov88_02258C60(UnkStruct_ov69_0225D35C *param0) {
         puVar2 = puVar2 + 1;
     } while (iVar1 < 5);
     Heap_Free(param0->unk_00);
-    ((u8 *)&gSystem)[0x69] = 0;
+    gSystem.screensFlipped = 0;
     GfGfx_SwapDisplay();
     return;
 }

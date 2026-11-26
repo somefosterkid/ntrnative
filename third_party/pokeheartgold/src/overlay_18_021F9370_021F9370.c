@@ -79,7 +79,11 @@ typedef struct CAPSULE {
     SEAL seals[8];
 } CAPSULE;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov18_021F9688(u8 type);
+#else
 u8 ov18_021F9688(int type);
+#endif
 
 void ov18_021F9310(SpriteResource **res, GF_2DGfxResMan **resMan, SpriteResourcesHeader *header, int priority);
 

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "touchscreen.h"
 #include "sprite_resources_header.h"
 #include "constants/heap.h"
 #include "pm_string.h"
@@ -17,6 +18,9 @@
 #include "font_types_def.h"
 #include "font.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "overlay_40_unk_struct_0208_b878.h"
+#include "overlay_41_unk_struct_ov22_0225af8c.h"
+#include "overlay_41_unk_struct_ov22_0225b1bc.h"
 
 struct BgConfig;
 
@@ -167,14 +171,6 @@ typedef struct UnkStruct_02030A80_t {
 
 typedef struct UnkStruct_0202F41C_t UnkStruct_0202F41C;
 
-typedef struct {
-    int unk_00;
-    enum HeapID heapID;
-    int unk_08;
-    int unk_0C;
-    fx32 unk_10;
-} UnkStruct_0208B284;
-
 typedef struct CharTransferAllocation {
     u32 size;
     u32 offset;
@@ -186,36 +182,6 @@ typedef struct SpriteResourcesHeaderList {
     SpriteResourcesHeader *headers;
     int length;
 } SpriteResourcesHeaderList;
-
-typedef struct {
-    NARC *unk_00;
-    SpriteSystem *unk_04;
-    SpriteManager *unk_08;
-    PaletteData *unk_0C;
-} UnkStruct_0208B878_sub1;
-
-typedef struct {
-    ManagedSprite *unk_00;
-    s16 unk_04;
-    s16 unk_06;
-    int unk_08;
-    int unk_0C;
-} UnkStruct_0208B878_sub2;
-
-typedef struct {
-    UnkStruct_0208B878_sub1 unk_00;
-    UnkStruct_0208B284 unk_10;
-    UnkStruct_0208B878_sub2 unk_24[12];
-    int unk_E4;
-    int unk_E8;
-    int unk_EC;
-    BOOL unk_F0;
-    SysTask *unk_F4;
-    int unk_F8;
-    int unk_FC;
-    int unk_100;
-    int unk_104;
-} UnkStruct_0208B878;
 
 typedef struct {
     BOOL unk_00;
@@ -260,27 +226,11 @@ enum TouchScreenButtonState {
     TOUCH_BUTTON_HELD_OUT_OF_BOUNDS
 };
 
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
-
 typedef struct {
     ManagedSprite *unk_00;
     u8 padding_04[8];
     BOOL unk_0C;
-    TouchScreenRect *unk_10;
+    TouchscreenHitbox *unk_10;
     TextOBJ *unk_14;
     UnkStruct_02012B20 *unk_18;
     CharTransferAllocation unk_1C;
@@ -813,7 +763,7 @@ typedef struct {
     int unk_1C;
     int unk_20;
     u32 unk_24;
-    const TouchScreenRect *unk_28;
+    const TouchscreenHitbox *unk_28;
 } UnkStruct_ov62_02248CDC;
 
 void InitWindow(Window *window);
@@ -861,7 +811,7 @@ typedef struct {
     BgConfig *unk_10;
     PaletteData *unk_14;
     TouchHitboxController *unk_18;
-    TouchScreenRect unk_1C[5];
+    TouchscreenHitbox unk_1C[5];
     BOOL unk_30;
     struct MsgData *unk_34;
     struct MsgData *unk_38;
@@ -942,15 +892,6 @@ typedef struct {
     UnkStruct_0208C06C_sub2 unk_41D8;
     SysTask *unk_41E8;
 } UnkStruct_0208C06C;
-
-typedef struct {
-    BgConfig *unk_00;
-    int unk_04;
-    int unk_08;
-    enum HeapID heapID;
-} UnkStruct_ov22_0225AF8C;
-
-typedef struct UnkStruct_ov22_0225B1BC_t UnkStruct_ov22_0225B1BC;
 
 typedef struct {
     UnkStruct_ov61_0222AFC0 unk_00;

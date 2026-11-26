@@ -4,7 +4,11 @@
 #include "unk_02005D10.h"
 #include "overlay_65_trade_room.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov65_0221CB5C(void *);
+#else
 s32 ov65_0221CB5C(void *);
+#endif
 
 s32 ov65_0221DD34(s32, void *, s32);
 
@@ -46,7 +50,7 @@ static s32 ov65_0221DFB8(void *arg0) {
 
 void ov65_0221DC34(TradeRoom *);
 
-s32 ov65_0221DF1C(void *);
+s32 ov65_0221DF1C(TradeRoom *);
 
 s32 ov65_0221E050(void *arg0);
 

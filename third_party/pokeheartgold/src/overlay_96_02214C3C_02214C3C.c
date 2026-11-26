@@ -12,7 +12,11 @@ s32 ov96_02214DBC(Ov96App_02210C98_Unit *unit, Ov96App_02210C98_Mover *mover, s3
 
 s32 ov96_02215614(s32, s32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov96_02215650(s32, s32, s32, s32, u8, u8);
+#else
 s32 ov96_02215650(s32, s32, s32, s32, s32, s32);
+#endif
 
 s32 ov96_022156E8(VecFx32 *, s32, VecFx32 *, s32);
 

@@ -11,6 +11,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -110,12 +111,6 @@ enum TaskState {
 
 
 void *SysTask_GetData(SysTask *task);
-
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
 
 
 enum TradeType {

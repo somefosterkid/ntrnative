@@ -17,9 +17,9 @@ void ov14_021F4848(u8 *param_1) {
     iVar1 = ((UnkStruct_ov14_boxapp *)param_1)->unk25 / 6;
     iVar2 = ((UnkStruct_ov14_boxapp *)param_1)->unk1F / 6;
     if (iVar1 == iVar2) {
-        ov14_021F2A18(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 6, 1);
+        ov14_021F2A18(((UnkStruct_ov14_boxapp *)param_1)->sys, 6, 1);
     } else {
-        ov14_021F2A18(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 6, 0);
+        ov14_021F2A18(((UnkStruct_ov14_boxapp *)param_1)->sys, 6, 0);
     }
     remainder = ((UnkStruct_ov14_boxapp *)param_1)->unk1F % 6;
     ManagedSprite_GetPositionXY(((UnkStruct_ov14_boxapp *)param_1)->sys->sprites[6], &pos[1], &pos[0]);

@@ -10,16 +10,10 @@
 #include "overlay_45_unk_struct_ov66_0222e294.h"
 #include "overlay_90_unk_struct_ov114_0225c9a8.h"
 #include "overlay_90_unk_struct_ov114_0225c76c.h"
+#include "overlay_91_unk_struct_ov66_02230dbc.h"
+#include "overlay_91_unk_struct_ov115_02260440.h"
 
 // ov91-93 view of the Wi-Fi Plaza launch record: 0x34 here (embedded by value), the header copy is 0x3c
-typedef struct UnkStruct_ov66_02230DBC {
-    u32 unk_00;
-    UnkStruct_ov66_0222E294 unk_04;
-    UnkStruct_ov66_02232068 unk_08;
-    BOOL unk_1C;
-    struct PlayerProfile *unk_20[4];
-    WiFiPlazaSystem *unk_30;
-} UnkStruct_ov66_02230DBC;
 
 s32 ov90_022588A4(void *, s32);
 
@@ -77,13 +71,6 @@ void ov90_02258938(UnkStruct_ov114_0225D678 *param0);
 void ov90_02258A04(UnkStruct_ov114_0225E854 *param0);
 void ov91_0225CCEC(UnkStruct_ov115_02260BE4 *param0);
 void ov91_0225CE80(UnkStruct_ov115_02260D78 *param0);
-typedef struct {
-    UnkStruct_ov66_02230DBC unk_00;
-    SaveData *saveData;
-    u8 unk_38;
-    u8 unk_39;
-    u8 padding[2];
-} UnkStruct_ov115_02260440;
 void ov91_0225CC38(UnkStruct_ov115_0226095C *param0);
 void ov91_0225CC4C(UnkStruct_ov115_0226095C *param0, UnkStruct_ov115_02260440 *param1);
 BOOL ov91_0225CCA8(UnkStruct_ov115_0226095C *param0, int param1, const void *param2, int param3);

@@ -1,12 +1,13 @@
 #include "global.h"
 
+#include "unk_02054648.h"
+
 #include "error_handling.h"
 #include "map_object.h"
 #include "overlay_01_021F1AFC.h"
 #include "overlay_02.h"
 #include "unk_0205FD20.h"
 
-s32 sub_02054790(FieldSystem *, s32, s32, s32, s32, u8 *);
 
 s32 ov01_021F29E4(WaterfallTaskEnv *taskEnv);
 

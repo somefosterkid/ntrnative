@@ -1,6 +1,10 @@
 #include "global.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02005A74(u8, u16, u32, u32, u32, u8, void *);
+#else
 void sub_02005A74(u32, u32, u32, u32, u32, u8, void *);
+#endif
 
 void GF_FadeStartMusicId(u32 param_1, u32 param_2, u32 param_3, u32 param_4, u8 param_5, void *param_6);
 

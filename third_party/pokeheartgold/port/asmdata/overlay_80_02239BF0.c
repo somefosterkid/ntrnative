@@ -3,8 +3,6 @@
 #include "nitro/types.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 
-/* type copied from src/overlay_80_02239BF0_02239C28.c:6 (defined in a .c file) */
-struct BattleFrontier;
 /* type copied from src/overlay_80_02239BF0_02239C28.c:16 (defined in a .c file) */
 typedef struct BattleFrontier BattleFrontier;
 /* type copied from src/overlay_80_02239BF0_02239C28.c:55 (defined in a .c file) */

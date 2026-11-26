@@ -11,8 +11,6 @@
 #include "save_arrays.h"
 #include "system.h"
 
-void ov112_021E77E4(Ov112PokewalkerApp *app);
-
 void ov112_021EF15C(void);
 
 void ov112_021EF19C(void);
@@ -40,11 +38,7 @@ s32 ov112_021EF298(PCStorage *storage, u32 boxno, u32 slotno, void *arg3);
 
 void ov112_021EF300(String *dest, PCStorage *pcStorage, u32 boxno);
 
-void ov112_021EF3F8(int box, int slot, Ov112PokewalkerApp *work);
-
 s32 sub_02093440(void *, BgConfig *, PCStorage *, Party *, s32, s32, s32, s32, void *, void *, void *, void *, void *);
-
-s32 ov112_021EEF68(Ov112PokewalkerApp *app, s32 arg1);
 
 #if defined(SDK_PORT) || defined(NONMATCHING)
 s32 ov112_021EEF68(Ov112PokewalkerApp *app, s32 arg1) {

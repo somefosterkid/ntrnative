@@ -10,11 +10,15 @@ u8 sub_02035FF0(void);
 
 u32 sub_02036D14(u8 *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8);
+#else
 s32 sub_0203772C(u16);
+#endif
 
-void sub_0203690C(s32 param_1, u8 *param_2);
+void sub_0203690C(s32 param_1, u8 *param_2, u16 param_3);
 
-void sub_0203690C(s32 param_1, u8 *param_2) {
+void sub_0203690C(s32 param_1, u8 *param_2, u16 param_3) {
     u32 uVar1;
     s32 iVar2;
     u32 uVar3;

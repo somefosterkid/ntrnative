@@ -7,6 +7,8 @@
 #include "overlay_manager.h"
 #include "system.h"
 #include "unk_0203A3B0.h"
+#include "bg_window.h"
+#include "save.h"
 
 void ov46_02258F78(u32 *, u32);
 
@@ -35,7 +37,7 @@ u32 ov46_02258CB4(OverlayManager *param_1) {
     sub_0203A880();
     Main_SetVBlankIntrCB(ov46_02258F70, arg);
     HBlankInterruptDisable();
-    ((u8 *)&gSystem)[0x69] = 1;
+    gSystem.screensFlipped = 1;
     GfGfx_SwapDisplay();
     return 1;
 }

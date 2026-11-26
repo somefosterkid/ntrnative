@@ -10,7 +10,11 @@ void ov74_02231130(s32 arg0);
 
 void *ov74_02231184(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov74_0223144C(WMStateCode arg0);
+#else
 void ov74_0223144C(u16 arg0);
+#endif
 
 s32 ov74_0222FEA0(u32);
 

@@ -32,7 +32,11 @@ void ov99_021E77D8(void *arg0) {
 
 s32 ov98_0221F090(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov99_021E72C0(void *);
+#else
 s32 ov99_021E72C0(void *);
+#endif
 
 s32 ov99_021E7450(void *);
 

@@ -5,8 +5,9 @@
 #include "message_format.h"
 #include "party.h"
 #include "pokemon.h"
+struct TradeRoom;
 
-void *ov65_0221E928(void *, s32, s32);
+void *ov65_0221E928(struct TradeRoom *, s32, s32);
 
 u8 ov65_0221FB90(void *, s32, s32, MsgData *, MessageFormat *);
 

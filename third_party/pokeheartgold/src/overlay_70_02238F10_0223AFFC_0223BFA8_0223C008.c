@@ -12,6 +12,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -117,12 +118,6 @@ enum TaskState {
 };
 
 
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
-
-
 void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dPaletteData **outPaletteData, enum HeapID heapID);
 
 enum TradeType {
@@ -203,7 +198,11 @@ typedef struct GTSCountrySearchRequest {
     u8 countryIndex;
 } GTSCountrySearchRequest;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov70_02238130(const GTSPokemonRequirements *requirements, s8 maxResults, GTSPokemonListing *listing);
+#else
 void ov70_02238130(const GTSPokemonRequirements *requirements, s32 maxResults, GTSPokemonListing *listing);
+#endif
 
 void ov70_022381A4(const GTSCountrySearchRequest *req, GTSPokemonListing *listing);
 

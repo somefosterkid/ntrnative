@@ -502,13 +502,6 @@ enum Species {
     SPECIES_BAD_EGG = 495,
 };
 
-typedef struct PokemonIcon {
-    int tileData;
-    int paletteIndex;
-    Sprite *sprite;
-    u8 vramOffset[512];
-} PokemonIcon;
-
 BOOL ov70_0223E5FC(GTSPokemonCriteria *criteria, GTSPokemonRequirements *requirements);
 
 void ov70_0223E738(GTSPokemonCriteria *criteria, Sprite **unused, GTSPokemonRequirements *requirements, PokemonIcon *icons);

@@ -8,7 +8,6 @@
 
 void ov14_021F32E0(struct UnkStruct_ov14_boxapp *arg0);
 
-s32 sub_02019B1C(void *, s32, void *, s32 *);
 
 extern u8 ov14_021F808C;
 
@@ -21,7 +20,7 @@ void ov14_021F32E0(UnkStruct_ov14_boxapp *arg0) {
     u8 temp_r6;
     u16 var_r4;
     sp0 = arg0;
-    sub_02019B1C(((u8 *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_2F0), 1, &sp4[1], (s32 *)sp4);
+    sub_02019B1C(arg0->sys->unk_2F0, 1, &sp4[1], &sp4[0]);
     var_r4 = 0;
     temp_r7 = sp4[0] * 8;
     temp_r5 = sp4[1] * 8;

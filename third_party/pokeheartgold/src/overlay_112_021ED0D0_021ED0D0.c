@@ -6,11 +6,7 @@
 
 s32 ov112_021E9290(void *, void *, void *, s32);
 
-s32 ov112_021EA670(void *, s32);
-
 void ov112_021ED13C(SysTask *task, void *data);
-
-void ov112_021ED0D0(Ov112PokewalkerApp *arg0);
 
 void ov112_021ED0D0(Ov112PokewalkerApp *arg0) {
     ov112_021E9290(arg0->unk_1E430, arg0->unk_1D7AC, arg0->unk_1D79C, 0);

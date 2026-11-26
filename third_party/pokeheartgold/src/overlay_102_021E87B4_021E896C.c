@@ -10,9 +10,9 @@ s32 ov102_021E8C64(void *);
 
 extern TouchscreenHitbox ov102_021EC5F4;
 
-s32 ov102_021E896C(void *arg0);
+s32 ov102_021E896C(EasyChatApp *arg0);
 
-s32 ov102_021E896C(void *arg0) {
+s32 ov102_021E896C(EasyChatApp *arg0) {
     TouchscreenHitbox hitbox;
     s32 v2;
     s32 v1;
@@ -29,11 +29,11 @@ s32 ov102_021E896C(void *arg0) {
     v3 = TouchscreenHitbox_FindRectAtTouchNew(&ov102_021EC5F4);
     switch (v3) {
     case 0:
-        return ov102_021E8C3C(arg0 + 0x54);
+        return ov102_021E8C3C(&arg0->unk_54);
     case 1:
-        return ov102_021E8C64(arg0 + 0x54);
+        return ov102_021E8C64(&arg0->unk_54);
     default:
-        v5 = ((EasyChatApp *)arg0)->unk_54.unk_00 * 2;
+        v5 = arg0->unk_54.unk_00 * 2;
         v1 = 0;
         v2 = 0;
         v0 = 0x30;
@@ -46,11 +46,11 @@ loop_9:
         hitbox.rect.left = v6;
         hitbox.rect.right = hitbox.rect.left + 0x48;
         if (TouchscreenHitbox_PointIsIn(&hitbox, (u32)gSystem.touchX, (u32)gSystem.touchY) != 0) {
-            *((u16 *)&((EasyChatApp *)arg0)->unk_60.unk_02) = v5;
+            *((u16 *)&arg0->unk_60.unk_02) = v5;
             return 5;
         }
         v5 += 1;
-        if ((u32)v5 >= (u32) ((EasyChatApp *)arg0)->unk_54.unk_04) {
+        if ((u32)v5 >= (u32) arg0->unk_54.unk_04) {
             v1 = 1;
             goto block_14;
         }

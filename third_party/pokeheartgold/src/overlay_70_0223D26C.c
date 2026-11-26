@@ -43,6 +43,12 @@ struct GTSApplicationState;
 #include "struct_defs/resdat_narc_structs.h"
 #include "list_menu_2d.h"
 #include "game_stats.h"
+#include "gts_player_data.h"
+
+typedef struct JournalEntry JournalEntry;
+typedef struct WiFiHistory WiFiHistory;
+typedef struct GlobalTrade GlobalTrade;
+typedef struct PCBoxes PCBoxes;
 
 void ov70_02239D44(void *, u32);
 
@@ -63,14 +69,9 @@ typedef struct SpriteAnimFrame SpriteAnimFrame;
 typedef struct JournalEntryTitle JournalEntryTitle;
 typedef struct JournalEntryMon JournalEntryMon;
 typedef struct JournalEntryTrainer JournalEntryTrainer;
-typedef struct JournalEntry JournalEntry;
-typedef struct WiFiHistory WiFiHistory;
 typedef struct EncodingSeed EncodingSeed;
 typedef struct PokemonAnimManager PokemonAnimManager;
-typedef struct GlobalTrade GlobalTrade;
-typedef struct PCBoxes PCBoxes;
 typedef struct GameTime GameTime;
-typedef struct GTSPlayerData GTSPlayerData;
 typedef struct Poketch Poketch;
 typedef struct PaletteAnimator PaletteAnimator;
 typedef struct GTSBoxPokemonCriteria GTSBoxPokemonCriteria;
@@ -182,25 +183,6 @@ struct GameTime {
     s64 startTimestamp;
     s64 firstCompletionTimestamp;
     u32 penaltyInMinutes;
-};
-struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameStats *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
 };
 struct Poketch {
     u8 poketchEnabled : 1;

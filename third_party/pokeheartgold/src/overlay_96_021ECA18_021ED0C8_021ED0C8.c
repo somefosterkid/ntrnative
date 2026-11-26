@@ -2,6 +2,7 @@
 
 #include "error_handling.h"
 #include "math_util.h"
+#include "sprite_system.h"
 
 s32 ov96_021ED6E8(void);
 

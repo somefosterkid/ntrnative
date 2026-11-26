@@ -79,8 +79,8 @@ void ov49_0225A5EC(void *arg0, SaveData *arg1, enum HeapID arg2) {
     G2dRenderer_SetObjCharTransferReservedRegion(NNS_G2D_VRAM_TYPE_2DMAIN, GX_OBJVRAMMODE_CHAR_1D_32K);
     G2dRenderer_SetPlttTransferReservedRegion(NNS_G2D_VRAM_TYPE_2DMAIN);
     sub_0203A880();
-    ((UnkStruct_ov70_0225E4EC *)arg0)->unk_04 = G2dRenderer_Init(0x18, arg0 + 8, arg2);
-    G2dRenderer_SetSubSurfaceCoords(arg0 + 8, 0, FX32_CONST(256));
+    ((UnkStruct_ov70_0225E4EC *)arg0)->unk_04 = G2dRenderer_Init(0x18, &((UnkStruct_ov70_0225E4EC *)arg0)->unk_08, arg2);
+    G2dRenderer_SetSubSurfaceCoords(&((UnkStruct_ov70_0225E4EC *)arg0)->unk_08, 0, FX32_CONST(256));
     var_r7_2 = GF_GFX_RES_TYPE_CHAR;
     var_r4_2 = (struct SpriteResourceCollection **)arg0;
     do {

@@ -13,10 +13,6 @@ s32 ov112_021EFC9C(void) {
     return 0xD;
 }
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EFCB0(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EFCB0(Ov112PokewalkerApp *arg0) {
     arg0->unk_1E524 = ov112_021EA08C(arg0, 0, 0x31);
     arg0->unk_C = 0xF;
@@ -31,11 +27,7 @@ s32 ov112_021EFCD8(void) {
     return 0x10;
 }
 
-s32 ov112_021EA688(u8 *, s32);
-
-s32 ov112_021EFCFC(void *arg0);
-
-s32 ov112_021EFCFC(void *arg0) {
+s32 ov112_021EFCFC(Ov112PokewalkerApp *arg0) {
     s32 v0;
 
     if (IsPaletteFadeFinished() == 1) {

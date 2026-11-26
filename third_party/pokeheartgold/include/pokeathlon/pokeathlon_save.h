@@ -28,12 +28,12 @@ typedef struct Pokeathlon_UnkSubStruct_B00 {
 
 typedef struct Pokeathlon_CourseEntry {
     u16 unk_0;
-    u8 unk_2[6];
+    u16 unk_2[3];
 } Pokeathlon_CourseEntry; // size: 0x8
 
 typedef struct Pokeathlon_RecordsSolo {
     Pokeathlon_CourseEntry entries[5];
-    u8 unk_28[0x4];
+    u32 unk_28;
 } Pokeathlon_RecordsSolo; // size: 0x2C
 
 typedef struct Pokeathlon_RecordsLink {

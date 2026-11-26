@@ -7,10 +7,6 @@
 
 s32 ov86_021E71FC(void *arg0);
 
-void ov86_021E720C(void *arg0);
-
-s32 ov86_021E60B8(void *);
-
 s32 ov86_021E5B38(FrontierRecordsApp *arg0);
 
 s32 ov86_021E5B38(FrontierRecordsApp *arg0) {

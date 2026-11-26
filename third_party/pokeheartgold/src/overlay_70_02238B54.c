@@ -10,7 +10,11 @@ struct GTSApplicationState;
 
 void ov70_02238B54(SpriteTemplate *template, GTSApplicationState *appState, SpriteResourcesHeader *header, NNS_G2D_VRAM_TYPE whichScreen);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+struct YesNoPrompt *ov70_02238C2C(void *, u8, s32, s32, s32, u8);
+#else
 struct YesNoPrompt *ov70_02238C2C(void *, s32, s32, s32, s32, s32);
+#endif
 struct YesNoPrompt *ov70_02238C14(void *arg0, s32 arg1, s32 arg2, s32 arg3, u8 arg4);
 
 void ov70_02238B54(SpriteTemplate *template, GTSApplicationState *appState, SpriteResourcesHeader *header, NNS_G2D_VRAM_TYPE whichScreen) {

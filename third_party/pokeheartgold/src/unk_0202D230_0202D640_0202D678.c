@@ -82,7 +82,7 @@ static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *);
 static inline void inline_ov61_0222C3B0_sub(SysTask *, void *);
 
 void sub_0202D6DC(void *arg0);
-s32 sub_0202D6F8(void *arg0, void *arg1);
+s32 sub_0202D6F8(RTCDate *arg0, RTCDate *arg1);
 
 static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *param0) {
     int v0, v1, v2, v3, v4, v5;
@@ -180,14 +180,14 @@ void sub_0202D6DC(void *dest) {
     MI_CpuFill8(dest, 0U, 4U);
 }
 
-s32 sub_0202D6F8(void *arg0, void *arg1) {
+s32 sub_0202D6F8(RTCDate *arg0, RTCDate *arg1) {
     if ((u32) * (u32 *)arg0 > (u32) * (u32 *)arg1) {
         return 1;
     }
-    if ((u32) * (u32 *)((u8 *)arg0 + 4) > (u32) * (u32 *)((u8 *)arg1 + 4)) {
+    if ((u32) * &arg0->month > (u32) * &arg1->month) {
         return 1;
     }
-    if ((u32) * (u32 *)((u8 *)arg0 + 8) > (u32) * (u32 *)((u8 *)arg1 + 8)) {
+    if ((u32) * &arg0->day > (u32) * &arg1->day) {
         return 1;
     }
     return 0;

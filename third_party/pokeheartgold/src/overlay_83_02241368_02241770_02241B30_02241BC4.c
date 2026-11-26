@@ -34,7 +34,11 @@ u8 ov83_0224777C(SaveData *saveData, u8 challengeType, u8 rankType);
 
 void BattleCastleApp_SetPartnerName(MessageFormat *template, u32 idx);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247944(Window *window, u8 frame);
+#else
 void ov83_02247944(Window *window, int frame);
+#endif
 
 enum TextAlignment {
     TEXT_ALIGN_LEFT,
@@ -78,13 +82,11 @@ void LoadItemSelectBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
 void LoadSubScreenBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 void PrintStaticMessage(BattleCastleSelfApp *app, Window *window, int entryID, u16 xOffset, u16 yOffset, enum TextAlignment alignment);
 
-void ov82_0223EFB4(BattleCastleSelfApp *app, u32 idx, s32 num, u32 maxDigits, enum PrintingMode paddingMode);
 
 void ChangeState(BattleCastleSelfApp *app, int *state, enum BattleCastleAppState nextState);
 

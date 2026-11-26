@@ -14,8 +14,8 @@ s32 ov98_0221EF80(s32 param_1);
 s32 ov99_021E718C();
 void ov99_021E724C(void);
 
-u8 ov99_021E7180();
-void ov99_021E7258(void *arg0);
+u8 ov99_021E7180(PokeathlonMedals *arg0, s32 arg1);
+void ov99_021E7258(void *arg0, s32 arg1);
 
 s32 ov99_021E7208(void *arg0, u8 species) {
     s32 v0;
@@ -38,11 +38,11 @@ void ov99_021E724C(void) {
     ov98_0221EF80(ov99_021E718C());
 }
 
-void ov99_021E7258(void *arg0) {
+void ov99_021E7258(void *arg0, s32 arg1) {
     u8 v0;
     u32 v1;
 
-    v1 = ov99_021E7180();
+    v1 = ov99_021E7180(arg0, arg1);
     v0 = 0;
     do {
         ManagedSprite_SetDrawFlag(((PokeathlonMedals *)arg0)->sprites[v0 + 15], v1 & 1);

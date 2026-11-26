@@ -29,12 +29,6 @@ struct PokemonSummary;
 struct SpriteList;
 struct SpriteResourceCollection;
 struct MessageFormat;
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 typedef struct Menu Menu;
 u16 ov82_0223F558(BattleHallApp *app);

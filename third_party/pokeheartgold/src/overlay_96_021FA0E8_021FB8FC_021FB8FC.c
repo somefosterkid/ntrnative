@@ -1,6 +1,10 @@
 #include "global.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021EB10C(u32 *, f32, f32);
+#else
 s32 ov96_021EB10C(u32 *, f32, f32);
+#endif
 
 void ov96_021FB8FC(void *arg0, s32 arg1);
 

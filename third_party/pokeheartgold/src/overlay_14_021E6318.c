@@ -32,7 +32,7 @@ static void ov14_021E6318(UnkStruct_ov14_boxapp *arg0, MoveEntry *arg1) {
     if (GetMonData(arg1->mon, 5, NULL) == 0x1EC) {
         Mon_UpdateShayminForm(arg1->mon, 0);
     }
-    PCStorage_PlaceMonInBoxFirstEmptySlot(*((PCStorage * *)&arg0->storage), boxno, Mon_GetBoxMon(arg1->mon));
+    PCStorage_PlaceMonInBoxFirstEmptySlot(arg0->storage, boxno, Mon_GetBoxMon(arg1->mon));
     ov14_021E6100(arg0, arg0->unk1F, arg1->idx);
     ov14_021F4958(arg0, boxno);
     ov14_021F4A20(arg0, boxno);
@@ -62,7 +62,7 @@ void ov14_021E637C(UnkStruct_ov14_boxapp *arg0) {
         from = v2->from;
         if (from < 0x1EU) {
             if (to < 0x1EU) {
-                PCStorage_SwapMonsInBoxByIndexPair(*((PCStorage * *)&arg0->storage), (u32) arg0->unk1F, from, to);
+                PCStorage_SwapMonsInBoxByIndexPair(arg0->storage, (u32) arg0->unk1F, from, to);
                 ov14_021F4958(arg0, arg0->unk1F);
                 ov14_021F4A20(arg0, arg0->unk1F);
                 return;

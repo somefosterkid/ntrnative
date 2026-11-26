@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_45_wifi_plaza_api.h"
 #include "constants/heap.h"
 
 #include "screen_fade.h"
@@ -141,7 +143,6 @@ void *OverlayManager_GetArgs(OverlayManager *appMan);
 
 u32 ov45_0222A53C(const WiFiPlazaSystem *param0);
 
-WiFiPlazaProfile *ov45_0222A5C0(WiFiPlazaSystem *param0);
 
 BOOL ov45_0222AADC(const WiFiPlazaProfile *profile);
 
@@ -156,11 +157,19 @@ typedef struct {
 
 UnkStruct_ov70_0225C894 *ov49_02258958(enum HeapID heapID);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+UnkStruct_ov70_0225CA20 *ov49_02258AB4(u32 param0, s16 param1, const UnkStruct_ov70_0225C894 *param2, u32 heapID, u32 heapID2);
+#else
 UnkStruct_ov70_0225CA20 *ov49_02258AB4(u32 param0, u32 param1, const UnkStruct_ov70_0225C894 *param2, u32 heapID, u32 heapID2);
+#endif
 
 UnkStruct_ov70_02260AD4 *ov49_0225CB78(u32 heapID);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+UnkStruct_ov70_02261E10 *ov49_0225DF18(s8 param0, s8 param1, const UnkStruct_ov70_0225C894 *param2, enum HeapID heapID, u32 heapID2);
+#else
 UnkStruct_ov70_02261E10 *ov49_0225DF18(int param0, int param1, const UnkStruct_ov70_0225C894 *param2, enum HeapID heapID, u32 heapID2);
+#endif
 
 UnkStruct_ov70_022630A4 *ov49_0225EEAC(UnkStruct_ov70_0225DEE8 *param0, enum HeapID heapID);
 

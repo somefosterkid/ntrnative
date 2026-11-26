@@ -8,13 +8,11 @@
 #include "sprite.h"
 
 Billboard *ov01_021F16EC(FieldEffectManager *param0, const BillboardResources *param1, const VecFx32 *param2);
-s32 ov01_021F1824(struct UnkStruct_ov5_021DF8FC_t *billboardAlloc, s32, u32 *, BillboardGfxSequence *, NNSG3dResTex *, GF_3DGfxRawResObj *, void *);
 u32 *ov01_021FC5A4(struct ResourceHeap *resHeap, u32 id);
 void *ov01_021F141C(const FieldEffectManager *, s32, s32);
 void ov01_021F1448(void *a0);
 
 Billboard *ov01_021F1740(FieldEffectManager *fieldEffMan, u32 id, const VecFx32 *position);
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3, s32 id, s32 arg5, void *arg6);
 void ov01_021F17BC(FieldEffectManager *fieldEffMan, struct UnkStruct_ov5_021DF8FC_t *billboardAlloc, s32 count);
 void ov01_021F17F0(struct UnkStruct_ov5_021DF8FC_t *billboardAlloc);
 
@@ -25,11 +23,11 @@ Billboard *ov01_021F1740(FieldEffectManager *fieldEffMan, u32 id, const VecFx32 
     return ov01_021F16EC(fieldEffMan, uVar1, position);
 }
 
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3, s32 id, s32 arg5, void *arg6) {
+BillboardResources *ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3, s32 id, s32 arg5, void *arg6) {
     BillboardGfxSequence gfxSequence;
     GF_3DGfxRawResObj *obj;
     NNSG3dResTex *nNSG3dResTex;
-    s32 v0;
+    BillboardResources *v0;
     u32 *v2;
     struct UnkStruct_ov5_021DF8FC_t *v1;
 
@@ -45,7 +43,7 @@ s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32 arg1, s32 arg2, s32 arg3,
         obj = NULL;
     }
     v0 = ov01_021F1824(v1, arg1, v2, &gfxSequence, nNSG3dResTex, obj, arg6);
-    if (v0 == 0) {
+    if (v0 == NULL) {
         GF_AssertFail();
     }
     return v0;

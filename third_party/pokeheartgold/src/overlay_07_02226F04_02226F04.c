@@ -23,7 +23,7 @@ void ov07_02226F04(SysTask *arg0, void *ptr) {
         reg_G2_WIN0V = 0;
         ManagedSprite_SetDrawFlag(((SetPokemonSpritePriorityContext *)ptr)->sprite, 0);
         SpriteSystem_DrawSprites(((SetPokemonSpritePriorityContext *)ptr)->common.pokemonSpriteManager);
-        ov07_0221C448(*(void **)((u8 *)ptr + 4), arg0);
+        ov07_0221C448(((SetPokemonSpritePriorityContext *)ptr)->common.battleAnimSys, arg0);
         Heap_Free(ptr);
         return;
     }

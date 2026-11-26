@@ -4,9 +4,11 @@
 #include "constants/heap.h"
 #include "gf_gfx_planes.h"
 #include "bg_window.h"
+#include "sprite.h"
+#include "unk_0200A090.h"
+#include "g2d_renderer.h"
 #include "struct_defs/resdat_narc_structs.h"
 
-struct AffineSpriteListTemplate;
 
 struct BgConfig;
 
@@ -297,100 +299,18 @@ void LoadFontPal0(enum GFPalLoadLocation palLocation, u32 palSlotOffset, enum He
 
 typedef u32 TextColor;
 
-typedef struct SpriteList SpriteList;
 
-typedef struct Sprite {
-    VecFx32 position;
-    VecFx32 affineTranslation;
-    VecFx32 affineScale;
-    u16 affineZRotation;
-    u8 affineOverwriteMode;
-    u8 flip;
-    u8 overwriteFlags;
-    u8 explicitPalette;
-    u8 explicitPaletteOffset;
-    BOOL explicitMosaic;
-    GXOamMode explicitOamMode;
-    u8 draw;
-    u8 animate;
-    fx32 animSpeed;
-    SpriteList *list;
 
-    u32 animData[29];
-    NNSG2dImageProxy imageProxy;
-    NNSG2dImagePaletteProxy paletteProxy;
-    u32 type;
-    u16 activeAnimID;
-    u8 explicitPriority;
-    u16 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    struct Sprite *prev;
-    struct Sprite *next;
-} Sprite;
 
-struct SpriteList {
-    Sprite *sprites;
-    int capacity;
-    Sprite **freeSprites;
-    int freeSpriteHead;
-    Sprite sentinelData;
-    NNSG2dRendererInstance *renderer;
-    void *rawAnimData;
-    NNSG2dCellAnimBankData *defaultAnimBank;
-    BOOL active;
-};
 
-typedef struct AffineSpriteListTemplate {
-    SpriteList *list;
-    const SpriteResourcesHeader *resourceData;
-    VecFx32 position;
-    VecFx32 affineScale;
-    u16 affineZRotation;
-    u32 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    enum HeapID heapID;
-} AffineSpriteListTemplate;
 
-Sprite *Sprite_CreateAffine(const AffineSpriteListTemplate *template);
 
-void Sprite_SetDrawFlag(Sprite *sprite, BOOL draw);
 
-void Sprite_SetAnimActiveFlag(Sprite *sprite, BOOL animate);
 
-void Sprite_SetAnimCtrlSeq(Sprite *sprite, u32 animID);
 
-void Sprite_SetExplicitPriority(Sprite *sprite, u8 priority);
 
-typedef struct GF_2DGfxRawResObj {
-    int id;
-    void *data;
-} GF_2DGfxRawResObj;
 
-typedef struct GF_2DGfxRawResMan {
-    GF_2DGfxRawResObj *resources;
-    int capacity;
-    int count;
-} GF_2DGfxRawResMan;
 
-typedef struct SpriteResource {
-    GF_2DGfxRawResObj *rawResource;
-    GfGfxResType type;
-    void *data;
-} SpriteResource;
-
-typedef struct SpriteResourceCollection {
-    GF_2DGfxRawResMan *collection;
-    SpriteResource *resources;
-    void *capacity;
-    void *count;
-    GfGfxResType type;
-} SpriteResourceCollection;
-
-typedef struct G2dRenderer {
-    NNSG2dRendererInstance renderer;
-    NNSG2dRenderSurface mainScreen;
-    NNSG2dRenderSurface subScreen;
-} G2dRenderer;
 
 typedef struct SysTaskManager SysTaskManager;
 
@@ -579,7 +499,7 @@ typedef struct {
     int unk_24;
     SpriteList *unk_28;
     G2dRenderer unk_2C;
-    SpriteResourceCollection *unk_1B8[6];
+    struct SpriteResourceCollection *unk_1B8[6];
     SpriteResource *unk_1D0[6];
     SpriteResourcesHeader unk_1E8;
     UnkStruct_ov97_02234A2C_sub1 unk_20C[(5 * 6)];
@@ -614,7 +534,7 @@ extern u8 ov74_0223C960[6];
 
 void ov97_02233DD0(GBAMigrator *migrator, UnkStruct_ov97_02233DAC *param1, int param2);
 
-void ov97_022340FC(AffineSpriteListTemplate *param0, GBAMigrator *migrator, SpriteResourcesHeader *param2, int param3);
+void ov97_022340FC(SpriteTemplate *param0, GBAMigrator *migrator, SpriteResourcesHeader *param2, int param3);
 
 int ov74_02231D70(GBAMigrator *migrator, int boxId, int boxPosition);
 
@@ -632,20 +552,19 @@ void ov97_02234CF4(GBAMigrator *migrator, enum FadeType fadeType, int param2, in
 
 void ov74_02232BD4(GBAMigrator *migrator);
 
-void ov74_02231D48(AffineSpriteListTemplate *param0, GBAMigrator *migrator, SpriteResourcesHeader *param2, int param3);
-
-void Sprite_SetPriority(Sprite *sprite, u8 priority);
 
 void ov74_02231EC4(int species, int isEgg, u32 personality, int gbaVersion, int param4, Sprite *iconSprite);
 
 void ov74_02232B18(GBAMigrator *migrator);
+
+void ov74_02231D48(SpriteTemplate *param0, GBAMigrator *migrator, SpriteResourcesHeader *param2, NNS_G2D_VRAM_TYPE param3);
 
 void ov74_02231A1C(GBAMigrator *migrator, UnkStruct_ov97_02233DAC *param1, int param2);
 
 void ov74_02232BD4(GBAMigrator *migrator) {
     int i, species, isEgg, gbaVersion;
     u32 personality;
-    AffineSpriteListTemplate v5;
+    SpriteTemplate v5;
 
     for (i = 0; i < (5 * 6); i++) {
         Sprite_SetDrawFlag(migrator->unk_20C[i].monIconSprite, 0);

@@ -35,7 +35,8 @@ struct SpriteResource;
 struct SpriteResourceCollection;
 struct String;
 struct StringTemplate;
-struct UnkStruct_02012744_t;
+struct UnkStruct_02013534;
+struct GF_2DGfxResMan;
 struct UnkStruct_02012B20_t;
 struct UnkStruct_ov114_02025CAD4_t;
 
@@ -50,10 +51,10 @@ typedef struct UnkStruct_ov115_02261ADC {
     struct G3DPipelineBuffers *unk_18;
     struct SpriteList *unk_1C;
     G2dRenderer unk_20;
-    struct SpriteResourceCollection *unk_1AC[4];
+    struct GF_2DGfxResMan *unk_1AC[4];
     SpriteResourcesHeader unk_1BC;
     struct SpriteResource *unk_1E0[4];
-    struct UnkStruct_02012744_t *unk_1F0;
+    struct UnkStruct_02013534 *unk_1F0;
     struct Camera *camera;
     struct { fx32 x; fx32 y; fx32 z; } unk_1F8;
     struct { struct { NNSG3dRenderObj renderObj; struct { fx32 x; fx32 y; fx32 z; } position; struct { fx32 x; fx32 y; fx32 z; } scale; BOOL visible; u16 rotation[3]; u8 padding_76[2]; } unk_00[3]; struct { void *dataRaw; struct NNSG3dResMdlSet_ *modelSet; struct NNSG3dResMdl_ *model; struct NNSG3dResTex_ *texture; } unk_168[3]; struct { void *fileDataRaw; void *animRaw; struct NNSG3dAnmObj_ *animObj; fx32 frame; BOOL shouldRetainData; } unk_198[3]; fx32 unk_1D4; u8 unk_1D8; u8 unk_1D9; s16 unk_1DA; fx32 unk_1DC; fx32 unk_1E0; } unk_204;

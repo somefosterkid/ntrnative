@@ -21,6 +21,18 @@
 #include <string.h>
 #include "port_route_map_game.h"
 #include "port_route_story_game.h"
+#include "port_bw_sweep_field.h"
+#include "port_save_first.h"
+#include "field/field.h"
+#include "field/field_menu.h"
+#include "gfl/key.h"
+#include "save/records.h"
+#include "save/save_control.h"
+#include "system/game_system.h"
+#include "system/wipe.h"
+
+u32 func_ov021_021a308c(FieldPlayer *player);   // src/ov021/field_player.c: the player's observe status (pokebw2's FieldPlayer_GetMoveObserveStatus)
+
 
 extern int SIM_UISettingGet(const char *key);
 extern void SIM_SetTransition(int speed);
@@ -102,11 +114,74 @@ static BOOL PortSave_InChain(GameSystem *gsys, int *state) {
     return *state >= 5 && *state != 17 && *state != 18;
 }
 
+// "Save first" (port/src/save_first.c, docs/save-first.md): the field menu's save without its screens, as an event of the
+// port's. It does what src/ov010/report_event.c's EventSave_Update does after Yes: refused for a new game over another
+// game's save (the game says so and does not save); the times-saved record; func_02012dac, the game data's save
+// start (the player, the actors and the field's state into the save, the write begun); func_02012dd0 each frame until
+// it is written (2) or failed (3). The event holds the field as the menu's does, and the saving flag stops the field and
+// blocks the soft reset until the write ends.
+static GameEventReturnCode PortSaveFirst_Callback(GameEvent *event, u32 *state, void *data) {
+    GameData *gameData = GSYS_GetGameData(GameEvent_GetGameSystem(event));
+
+    (void)data;
+    switch (*state) {
+    case 0:
+        if (func_020071f0(GameData_GetSaveControl(gameData)) == TRUE) {
+            PortSaveFirst_Done(0, "a new game would overwrite another game's save");
+            return GAMEEVENT_DONE;
+        }
+        RecordAddOne(GameData_GetRecords(gameData), 1);
+        func_02012dac(gameData);
+        *state = 1;
+        break;
+    case 1:
+        switch (func_02012dd0(gameData)) {
+        case 2:
+            PortSaveFirst_Done(1, "");
+            return GAMEEVENT_DONE;
+        case 3:
+            PortSaveFirst_Done(0, "the game's save failed");
+            return GAMEEVENT_DONE;
+        }
+        break;
+    }
+    return GAMEEVENT_CONTINUE;
+}
+
+// Each frame: whether the field menu would offer Save (no event: battles, menus, scripts and map changes are events; the
+// field's map loaded; the menu func_ov021_021a8b18 picks has Save: not the Union Room's and the colosseums', Royal Unova's or a
+// forced season sync's), and when a save is asked for, the moment the field's event check would open the menu
+// (fieldmap_event.c: the wipe done, the player able to act: observe status none or end), with no direction held (0xf0:
+// right, left, up, down, as fieldmap_event.c reads them) so the player does not start a step in this frame's field update.
+static void PortSaveFirst_Frame(GameSystem *gsys) {
+    GameData *gameData = GSYS_GetGameData(gsys);
+    Field *field = NULL;
+    u32 menu, observe;
+    int can = 0;
+
+    if (GSYS_GetNowEvent(gsys) == NULL && !GameData_CheckEventsPaused(gameData) && GSYS_CheckField(gsys) == TRUE) {
+        field = GSYS_GetField(gsys);
+        if (field != NULL && Field_CheckMapLoadFinished(field) == TRUE && Field_GetPlayer(field) != NULL) {
+            menu = func_ov021_021a8b18(gameData, GameData_GetEventWork(gameData), Field_GetPlayerStateZoneID(field));
+            can = menu == 0 || menu == 2 || menu == 3;
+        }
+    }
+    PortSaveFirst_Can(can);
+    if (!can || !GFL_WipeIsFinished() || (GCTX_HIDGetHeldKeys() & 0xf0)) {
+        return;
+    }
+    observe = func_ov021_021a308c(Field_GetPlayer(field));
+    if ((observe == 0 || observe == 3) && PortSaveFirst_Take()) {
+        GSYS_SetNowEvent(gsys, GameEvent_Create(gsys, NULL, PortSaveFirst_Callback, sizeof(u32)));
+    }
+}
+
 BOOL GSYS_UpdateEvents(GameSystem *gsys) {
     static BOOL sOn, sSaveOn;
     static int sSaveState = -1;
     int saveState;
     BOOL ret = GSYS_UpdateEvents_game(gsys);
+    PortSaveFirst_Frame(gsys);
     BOOL save = PortSave_InChain(gsys, &saveState);
     // savespeed 1 = off, 2, 4
     int saveSpeed = save ? SIM_UISettingGet("savespeed") : 0;
@@ -150,6 +225,7 @@ BOOL GSYS_UpdateEvents(GameSystem *gsys) {
         sPortMapGsys = gsys;   // the pilot's map (port/include/port_route_map_game.h)
         PortRouteMap_SetAdapter(&kPortRouteGen5);
         PortStory_Hook(gsys);   // the story readout (port/include/port_route_story_game.h)
+        PortBwSweep_Frame(gsys);   // the battle sweep's wild battle (port/include/port_bw_sweep_field.h)
         PortRoute_Frame(&rs);
     }
     return ret;

@@ -110,7 +110,7 @@ BOOL Sound_PlayPokemonCryReversedEcho(u16 species, s8 unused, int volume, int pa
 void *SysTask_GetData(SysTask *task);
 void SysTask_Destroy(SysTask *task);
 void Heap_Free(void *ptr);
-BOOL PlayCryEx(enum PokemonCryMod cryMod, u16 species, int pan, int volume, enum HeapID heapID, u8 form);
+BOOL PlayCryEx(enum PokemonCryMod cryMod, int species, int pan, int volume, enum HeapID heapID, int form);
 enum Species {
     SPECIES_NONE = 0,
     SPECIES_BULBASAUR = 1,

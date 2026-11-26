@@ -16,7 +16,7 @@ flat out vec3 vE1;
 flat out vec3 vE2;
 flat out vec3 vE3; // and edges 0 and nv - 1 (g10_fast.vert)
 flat out vec3 vE4;
-vec3 edge(int i) { return texelFetch(uFastE, ivec2(i & 1023, i >> 10), 0).xyz; }
+vec4 edge(int i) { return texelFetch(uFastE, ivec2(i & 1023, i >> 10), 0); }
 void main() {
   float w = aP.w;
   // z: GL's window depth is (ndc + 1) / 2 (Metal's is ndc), so gl_FragCoord.z is again the DS's z / 2^24 (g10_fast.frag)
@@ -30,10 +30,14 @@ void main() {
   vE0 = vE1 = vE2 = vE3 = vE4 = vec3(0.0, 0.0, 1e9);
   if (nv > 0) {
     int k10 = vK * 10;
-    vE0 = edge(k10 + (t + nv - 1) % nv);
-    vE1 = edge(k10 + t);
-    vE2 = edge(k10 + (t + 1) % nv);
-    vE3 = edge(k10);
-    vE4 = edge(k10 + nv - 1);
+    vec4 h0 = edge(k10 + (t + nv - 1) % nv), h1 = edge(k10 + t), h2 = edge(k10 + (t + 1) % nv), h3 = edge(k10), h4 = edge(k10 + nv - 1);
+    vE0 = h0.xyz;
+    vE1 = h1.xyz;
+    vE2 = h2.xyz;
+    vE3 = h3.xyz;
+    vE4 = h4.xyz;
+    // which of them are inner (shared with a neighbour, src/g10_fast.c fast_seams): bits 16-20 of vF, for g10_fast.frag's rules
+    vF |= (h0.w != 0.0 ? 1 : 0) << 16 | (h1.w != 0.0 ? 1 : 0) << 17 | (h2.w != 0.0 ? 1 : 0) << 18 | (h3.w != 0.0 ? 1 : 0) << 19 |
+          (h4.w != 0.0 ? 1 : 0) << 20;
   }
 }

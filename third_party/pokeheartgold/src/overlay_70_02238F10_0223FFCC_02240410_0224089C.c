@@ -31,6 +31,7 @@
 #include "sav_system_info.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "gts_player_data.h"
 s32 ov70_0224089C(GTSApplicationState *arg0);
 
 s32 ov70_0224089C(GTSApplicationState *arg0) {
@@ -321,26 +322,6 @@ typedef struct GameTime {
     s64 firstCompletionTimestamp;
     u32 penaltyInMinutes;
 } GameTime;
-
-typedef struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameStats *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
-} GTSPlayerData;
 
 typedef struct CameraPositionHistory {
     int historySize;

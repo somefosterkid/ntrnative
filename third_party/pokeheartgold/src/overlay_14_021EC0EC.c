@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 struct UnkStruct_ov14_boxapp;
 
 #include "sprite.h"
@@ -56,13 +57,13 @@ s32 ov14_021EC0EC(UnkStruct_ov14_boxapp *arg0) {
 
 s32 ov14_021EC128(void *arg0) {
     ov14_021F67B0(arg0, 1, 0x25);
-    *(s32 *)((u8 *)arg0 + 0x30) = 0x1C;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0x1C;
     return 6;
 }
 
 s32 ov14_021EC13C(void *arg0) {
     ov14_021F67B0(arg0, 2, 0x25);
-    *(s32 *)((u8 *)arg0 + 0x30) = 0x1D;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0x1D;
     return 6;
 }
 
@@ -75,7 +76,7 @@ void ov14_021EC150(void *arg0) {
     if ((u32) ((UnkStruct_ov14_boxapp *)arg0)->unk21 < 0x1EU) {
         ov14_021F4958(arg0, ((UnkStruct_ov14_boxapp *)arg0)->unk1F);
         ov14_021F4A20(arg0, ((UnkStruct_ov14_boxapp *)arg0)->unk1F);
-        if (*(s32 *)((u8 *)(*(void **)arg0) + 8) == 1) {
+        if (((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 == 1) {
             ov14_021F685C(arg0, 0, 0, 0x27);
             *((s32 *)&((UnkStruct_ov14_boxapp *)arg0)->unk30) = 0x51;
         } else {
@@ -110,7 +111,7 @@ s32 ov14_021EC23C(void *arg0) {
     GridInputHandler_SetNextInput(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C, (s32)(u8)(((UnkStruct_ov14_boxapp *)arg0)->unk21 - 0x1E));
     GridInputHandler_SetButtonInputMode(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C, 1);
     ((UnkStruct_ov14_boxapp *)arg0)->unk21 = 0xFFU;
-    if (*(s32 *)((u8 *)(*(void **)arg0) + 8) == 0) {
+    if (((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 == 0) {
         ov14_021F685C(arg0, 0, 0, 0x27);
         return 0x5B;
     }
@@ -123,7 +124,7 @@ s32 ov14_021EC2A4(UnkStruct_ov14_boxapp *arg0) {
         ov14_021E7264(arg0);
         ov14_021F3F6C(arg0);
         ov14_021F67B0(arg0, 4, 0x25);
-        ov14_021E8824(*((void * *)&arg0->sys));
+        ov14_021E8824(arg0->sys);
         *((s32 *)&arg0->unk30) = 0x1F;
         return 6;
     }

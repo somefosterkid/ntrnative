@@ -1,9 +1,12 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "constants/player_avatar.h"
 
 #include "player_avatar.h"
 #include "map_object.h"
+#include "pokemon_types_def.h"
 
 enum AvatarBikeState {
     AVATAR_BIKE_STATE_NONE = 0,
@@ -23,7 +26,6 @@ enum AvatarMoveSpeed {
 
 enum AvatarBikeState sub_0205D7AC(PlayerAvatar *playerAvatar, int dir);
 
-s32 sub_0205DA1C(PlayerAvatar *, LocalMapObject *, s32);
 s32 sub_0206234C(u32, s32);
 void sub_0205D818(PlayerAvatar *arg0, LocalMapObject *arg1, int dir, u16 keyPad, u16 keyPress);
 

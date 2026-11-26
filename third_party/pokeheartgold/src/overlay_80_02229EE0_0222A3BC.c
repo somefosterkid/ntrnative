@@ -5,7 +5,7 @@
 #include "sprite.h"
 #include "unk_0208805C.h"
 
-s32 ov80_0222A334(s32, Pokemon *);
+void ov80_0222A334(SaveData *, Pokemon *);
 
 enum PokemonIconAnim {
     POKEICON_ANIM_FAINTED = 0,
@@ -24,7 +24,7 @@ enum BarColor {
     BARCOLOR_MAX,
 };
 
-void ov80_0222A3BC(s32 arg0, Party *party, Pokemon *mon) {
+void ov80_0222A3BC(SaveData *arg0, Party *party, Pokemon *mon) {
     ov80_0222A334(arg0, mon);
     Party_AddMon(party, mon);
 }

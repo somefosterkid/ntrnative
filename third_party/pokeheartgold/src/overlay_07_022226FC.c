@@ -22,11 +22,11 @@ s16 ov07_02222674(s16 baseY, int height, fx32 scaleY);
 void ov07_022226FC(ManagedSprite *sprite, s16 y, s16 height, fx32 scale, enum BattleAnimAnchorType anchor);
 
 s32 ov07_0222209C(void *, ManagedSprite *);
-s32 ov07_02222558();
+s32 ov07_02222558(XYTransformContext *ctx);
 s32 ov07_02222748(void *arg0, void *arg1);
 s32 ov07_022220DC(void *, void *);
 s32 ov07_02222768(void *arg0, void *arg1);
-s32 ov07_0222260C();
+s32 ov07_0222260C(XYTransformContext *ctx);
 s32 ov07_02222788(void *arg0, void *arg1);
 
 enum XYTransformParam {
@@ -73,7 +73,7 @@ void ov07_022226FC(ManagedSprite *sprite, s16 y, s16 height, fx32 scale, enum Ba
 }
 
 s32 ov07_02222748(void *arg0, void *arg1) {
-    if (ov07_02222558() != 0) {
+    if (ov07_02222558(arg0) != 0) {
         ov07_0222209C(arg0, arg1);
         return 1;
     }
@@ -81,7 +81,7 @@ s32 ov07_02222748(void *arg0, void *arg1) {
 }
 
 s32 ov07_02222768(void *arg0, void *arg1) {
-    if (ov07_02222558() != 0) {
+    if (ov07_02222558(arg0) != 0) {
         ov07_022220DC(arg0, arg1);
         return 1;
     }
@@ -89,7 +89,7 @@ s32 ov07_02222768(void *arg0, void *arg1) {
 }
 
 s32 ov07_02222788(void *arg0, void *arg1) {
-    if (ov07_0222260C() != 0) {
+    if (ov07_0222260C(arg0) != 0) {
         ov07_022220DC(arg0, arg1);
         return 1;
     }

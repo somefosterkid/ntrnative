@@ -1,4 +1,8 @@
 #include "global.h"
+
+#include "overlay_45_wifi_plaza_api.h"
+
+#include "overlay_49_getters.h"
 #include "sys_task.h"
 #include "screen_fade_internal.h"
 #include "overlay_45_unk_struct_ov66_0222e294.h"
@@ -36,7 +40,6 @@ UnkStruct_ov63_0222CC3C ov42_02228270(UnkStruct_ov63_0222CC3C param0, int param1
 
 BOOL ov45_0222A2F8(const WiFiPlazaSystem *param0);
 
-BOOL ov45_0222A330(const WiFiPlazaSystem *param0);
 
 BOOL ov45_0222A3A0(const WiFiPlazaSystem *param0);
 
@@ -80,19 +83,20 @@ typedef struct UnkStruct_ov70_02261E10_t UnkStruct_ov70_02261E10;
 
 typedef struct UnkStruct_ov70_022630A4_t UnkStruct_ov70_022630A4;
 
-WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 
 UnkStruct_ov70_02261E10 *ov49_02259FF8(UnkStruct_ov70_0225DEE8 *param0);
 
 UnkStruct_ov70_0225C894 *ov49_0225A000(UnkStruct_ov70_0225DEE8 *param0);
 
-UnkStruct_ov70_022630A4 *ov49_0225A010(UnkStruct_ov70_0225DEE8 *param0);
 
 void ov49_0225A03C(UnkStruct_ov70_0225DEE8 *param0, u8 param1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_49_0225A064_0225A064.c (tools/pokehg_abi.py)
+u8 ov49_0225A064(const UnkStruct_ov70_0225DEE8 *param0, int param1);
+#else
 u8 ov49_0225A064(const UnkStruct_ov70_0225DEE8 *param0, u8 param1);
+#endif
 
 BOOL ov49_0225A084(const UnkStruct_ov70_0225DEE8 *param0, u8 param1);
 

@@ -157,7 +157,7 @@ enum SoundChannelConfig {
 
 typedef struct WaveOutParam WaveOutParam;
 
-void Sound_SetScene(u8 scene);
+void Sound_SetScene(int scene);
 
 void Sound_ConfigureBGMChannelsAndReverb(enum SoundChannelConfig config);
 

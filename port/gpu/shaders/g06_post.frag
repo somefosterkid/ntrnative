@@ -3,8 +3,8 @@
 // this sample and its neighbours on the N k grid. Out: the 3D layer at N (vcore's s->f3d.out), r6, g6, b6, a5. vcore p19's
 // vc_3d_post per sample (multisampling, G_K > 1: a fragment per pixel does its samples and the resolve, main below). At N x:
 // the neighbours are 1 sample away; Edge=ds
-// (default) thickens the outline inward to N k samples (one DS pixel), Edge=fine (uEdgeFine) keeps it one pixel of the N grid
-// (uSnap = k samples).
+// (default) thickens the outline inward to N k samples (one DS pixel), Edge=fine (uEdgeFine bit 0) keeps it one pixel of the N
+// grid (uSnap = k samples); Smooth edges (bit 1, one sample) draws either with coverage (p_edge_mark_w).
 // uEdgeCol, uFogTab, uFogColor, uFogOffset, uEdgeFine: g00_head.glsl's block
 #if G_K == 2
 uniform highp usampler2D uMark;    // pass E's stage 3 at N (g06_edgemap.frag), bit j k + i: sample (i, j)'s p_edge_mark
@@ -70,7 +70,7 @@ bool p_edge_mark(ivec2 q, PPx s) { return ((texelFetch(uMark, q >> 1, 0).x >> ui
 #else
 bool p_edge_mark(ivec2 q, PPx s) {
   if (p_fine_mark(q, s)) return true;
-  int T = uEdgeFine != 0u ? uSnap : uScale; // Edge=ds: one DS pixel wide; fine: one pixel of the N grid (k samples)
+  int T = (uEdgeFine & 1u) != 0u ? uSnap : uScale; // Edge=ds: one DS pixel wide; fine: one pixel of the N grid (k samples)
   if (T <= 1 || (s.flags & F_WRITTEN) == 0u) return false;
   if (texelFetch(uEdgeMap, q / uScale, 0).x == 0u) return false;
   // Edge=ds: also the pixels of the same polygon ID up to N - 1 N x pixels from a marked edge pixel
@@ -90,6 +90,56 @@ bool p_edge_mark(ivec2 q, PPx s) {
     }
   return false;
 }
+#endif
+
+#if G_K == 1
+// Smooth edges (Antialiasing=Smooth edges, 2026-11-25; uEdgeFine bit 1, src/g06_post.c; docs/gpu-cost.md "Antialiasing for less"):
+// the edge-marking outline drawn with analytic coverage at N > 1 and one sample. The outline is the band of T pixels of the N
+// grid (Edge=ds: T = N, one DS pixel; Edge=fine: T = 1) from the polygon's edge line inward. The edge pixel takes the edge colour
+// by its DS coverage cov (p_sample blends it with the pixel behind by p_aa_a0, not the DS's fixed 16), pixels 1..T-1 fully, and
+// pixel T by the edge pixel's part outside the polygon (p_aa_wt), so the band's inner side follows the edge's sub-pixel position
+// instead of the N grid's staircase. A walk along an axis finds the column's (row's) edge pixel of an x-major (y-major) edge,
+// whose coverage is along that axis. Edge=ds draws the band opaque; Edge=fine gives its outer half the DS's half blend, as
+// 4 samples draw it (a weight of 3/4 of a pixel). The weight is in 32nds (32: marked).
+bool p_edge_aa() { return uEdgeFine >= 2u && uScale > 1; }
+// the edge pixel's alpha (0-31) from its coverage c
+uint p_aa_a0(uint c) {
+  if ((uEdgeFine & 1u) == 0u) return c;
+  return c <= 15u ? (c + 1u) / 2u : c - 8u; // fine: c / 2 in the band's outer half, then 1/4 + (c - 1/2)
+}
+// pixel T's weight (32nds) from the edge pixel's coverage c
+uint p_aa_wt(uint c) {
+  if ((uEdgeFine & 1u) != 0u && c <= 15u) return 24u - (c * 16u + 15u) / 31u; // fine: 3/4 - c / 2
+  return ((31u - c) * 32u + 15u) / 31u;
+}
+uint p_edge_mark_w(ivec2 q, PPx s) {
+  if (p_fine_mark(q, s)) return 32u;
+  int T = (uEdgeFine & 1u) != 0u ? 1 : uScale;
+  if ((s.flags & F_WRITTEN) == 0u) return 0u;
+  if (texelFetch(uEdgeMap, q / uScale, 0).x == 0u) return 0u;
+  uint best = 0u;
+  for (int k = 0; k < 4; k++)
+    for (int i = 1; i <= T; i++) {
+      ivec2 n = q + P_DIR[k] * i;
+      if (!p_inside(n)) break;
+      uvec4 a = g_samp(n);
+      if ((a.y & 63u) != s.id) break;
+      if (((a.y >> 16) & F_EDGE) == 0u) continue;
+      PPx t;
+      t.depth = a.x;
+      t.id = a.y & 63u;
+      t.flags = (a.y >> 16) & 255u;
+      if (p_fine_mark(n, t)) {
+        if (i < T) return 32u; // a full one: no walk can give more
+        best = max(best, p_aa_wt(min((a.y >> 24) & 31u, 31u)));
+        break;
+      }
+    }
+  return best;
+}
+#else
+bool p_edge_aa() { return false; }
+uint p_aa_a0(uint c) { return c; }
 #endif
 
 // GBATEK 51 FOG_TABLE: the density 0-128 at the 15-bit depth (the interpolation's rounding fitted to the oracle)
@@ -153,6 +203,19 @@ uvec4 p_fog(uvec4 o, PPx s) {
 uvec4 p_base(ivec2 q, PPx s, out bool marked) {
   uvec4 o = s.col;
   marked = false;
+#if G_K == 1
+  if ((uDisp3d & 0x20u) != 0u && p_edge_aa()) { // smooth edges above: the outline's weight
+    uint w = p_edge_mark_w(q, s);
+    uvec3 e = g_rgb6(uEdgeCol[s.id >> 3]) << p_sh();
+    if (w >= 32u) {
+      o = uvec4(e, 31u);
+      marked = true;
+    } else if (w > 0u) {
+      o = uvec4((e * w + o.rgb * (32u - w) + 16u) / 32u, o.a);
+    }
+    return p_fog(o, s);
+  }
+#endif
   if ((uDisp3d & 0x20u) != 0u && p_edge_mark(q, s)) {
     o = uvec4(g_rgb6(uEdgeCol[s.id >> 3]) << p_sh(), 31u);
     marked = true;
@@ -168,7 +231,7 @@ uvec4 p_sample(ivec2 q) {
   // antialiasing: an opaque polygon's edge pixel gets alpha = its coverage (16 when edge-marked), blended with the
   // farthest 4-neighbour that lies behind it (as a translucent pixel is, skipped when that pixel has alpha 0)
   if ((uDisp3d & 0x10u) != 0u && (s.flags & F_EDGE) != 0u && (s.flags & F_TRANS) == 0u) {
-    uint a = min(marked ? 16u : s.cov, 31u);
+    uint a = min(marked ? (p_edge_aa() ? p_aa_a0(s.cov) : 16u) : s.cov, 31u);
     uint udep = s.depth;
     ivec2 best = ivec2(-1);
     for (int k = 0; k < 4; k++) {

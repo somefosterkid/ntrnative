@@ -12,7 +12,11 @@
 /* HDR-OVERLAY end */
 #undef Mail_GetUnk20Array
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/mail.c (tools/pokehg_abi.py)
+MailMessage *Mail_GetUnk20Array(Mail *mail, int i);
+#else
 MailMessage *Mail_GetUnk20Array(Mail *mail, u8 i);
+#endif
 
 /* HDR-OVERLAY done */
 

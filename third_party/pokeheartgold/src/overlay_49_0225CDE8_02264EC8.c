@@ -3,6 +3,7 @@
 #include "overlay_45_wifi_plaza_system.h"
 #include "overlay_49.h"
 #include "overlay_49_unk_struct_ov49_02264cf8.h"
+#include "overlay_49_unk_struct_ov70_0225_ec20.h"
 
 s32 ov45_0222B094();
 

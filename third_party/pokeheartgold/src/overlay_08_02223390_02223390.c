@@ -14,7 +14,7 @@ void ov08_02223390(BattleSystem *battleSystem, u16 itemId, u16 pocket, enum Heap
     BagCursor_Battle_SetLastUsedItem(BattleSystem_GetBagCursor(battleSystem), itemId, pocket);
 }
 
-void ov08_022233DC(BattleBag *, u8);
+void ov08_022233DC(BattleBag *, int);
 
 extern WindowTemplate ov08_02225B90;
 

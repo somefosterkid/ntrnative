@@ -6,7 +6,11 @@
 #include "sprite_system.h"
 #include "overlay_96_ov96_digit_work.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov96_022199A8(SpriteSystem *param_1, SpriteManager *param_2, s16 param_3, u8 param_4, u16 param_5, u16 param_6);
+#else
 ManagedSprite *ov96_022199A8(SpriteSystem *param_1, SpriteManager *param_2, s16 param_3, u32 param_4, u16 param_5, u16 param_6);
+#endif
 void ov96_02219DA8(PokeathlonCourseData *param_1, enum HeapID param_2, ManagedSprite *param_3, s32 param_4, u8 param_5);
 void ov96_02219DD0(Ov96DigitWork *work, s32 param_2, s32 param_3);
 void ov96_02219E60(Ov96DigitWork *work);

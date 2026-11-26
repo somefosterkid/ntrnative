@@ -3,74 +3,65 @@
 #include "error_handling.h"
 #include "heap.h"
 #include "player_data.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "overlay_45_wifi_plaza_system.h"
+#include "overlay_45_wifi_plaza_api.h"
+#include "overlay_91_unk_struct_ov66_02230dbc.h"
 
-void ov45_0222CE78(void *arg0, enum HeapID arg1);
+void ov45_0222CE78(UnkStruct_ov66_02230DBC *arg0, enum HeapID heapID);
 
-void ov45_0222CE78(void *arg0, enum HeapID heapID) {
+void ov45_0222CE78(UnkStruct_ov66_02230DBC *arg0, enum HeapID heapID) {
     s32 v0;
-    void *v1;
 
-    v1 = arg0;
     v0 = 0;
     do {
-        *(PlayerProfile **)((u8 *)v1 + 0x20) = PlayerProfile_New(heapID);
+        arg0->unk_20[v0] = PlayerProfile_New(heapID);
         v0 += 1;
-        v1 += 4;
     } while (v0 < 4);
 }
 
-void ov45_0222CE94(void *arg0);
+void ov45_0222CE94(UnkStruct_ov66_02230DBC *arg0);
 
-void ov45_0222CE94(void *arg0) {
+void ov45_0222CE94(UnkStruct_ov66_02230DBC *arg0) {
     s32 v0;
-    void *v1;
 
     v0 = 0;
-    v1 = arg0;
     do {
-        Heap_Free(*(void **)((u8 *)v1 + 0x20));
-        *(void **)((u8 *)v1 + 0x20) = NULL;
+        Heap_Free(arg0->unk_20[v0]);
+        arg0->unk_20[v0] = NULL;
         v0 += 1;
-        v1 += 4;
     } while (v0 < 4);
 }
 
-s32 ov45_0222A498(s32, void *);
+u32 ov45_0222AAC8(const WiFiPlazaProfile *profile);
 
-s32 ov45_0222A578(s32, u32);
+void ov45_0222AB38(WiFiPlazaSystem *param0, UnkStruct_ov66_02232068 *param1);
 
-s32 ov45_0222A5C0(s32);
+void ov45_0222A844(const WiFiPlazaProfile *profile, PlayerProfile *param1, enum HeapID heapID);
 
-s32 ov45_0222A844(s32, void *, s32);
+void ov45_0222CEB0(UnkStruct_ov66_02230DBC *arg0, WiFiPlazaSystem *arg1, enum HeapID arg2);
 
-s32 ov45_0222AAC8();
-
-s32 ov45_0222AB38(s32, void *);
-
-void ov45_0222CEB0(void *arg0, s32 arg1, s32 arg2);
-
-void ov45_0222CEB0(void *arg0, s32 arg1, s32 arg2) {
-    s32 v0;
-    s32 v1;
+void ov45_0222CEB0(UnkStruct_ov66_02230DBC *arg0, WiFiPlazaSystem *arg1, enum HeapID arg2) {
+    enum HeapID v0;
+    const WiFiPlazaProfile *v1;
     s32 v2;
-    void *v3;
+    s32 v3;
 
     v0 = arg2;
-    ov45_0222A5C0(arg1);
-    *(s32 *)arg0 = ov45_0222AAC8();
-    ov45_0222AB38(arg1, arg0 + 8);
-    ov45_0222A498(arg1, arg0 + 4);
-    *(s32 *)((u8 *)arg0 + 0x30) = arg1;
+    arg0->unk_00 = ov45_0222AAC8(ov45_0222A5C0(arg1));
+    ov45_0222AB38(arg1, &arg0->unk_08);
+    ov45_0222A498(arg1, &arg0->unk_04);
+    arg0->unk_30 = arg1;
     v2 = 0;
-    *(s32 *)((u8 *)arg0 + 0x1C) = 0;
-    v3 = arg0;
+    arg0->unk_1C = 0;
+    v3 = 0;
     do {
-        v1 = ov45_0222A578(arg1, *(u8 *)((u8 *)(arg0 + v2) + 4));
-        if (v1 != 0) {
-            ov45_0222A844(v1, *(void **)((u8 *)v3 + 0x20), v0);
+        v1 = ov45_0222A578(arg1, arg0->unk_04.unk_00[v2]);
+        if (v1 != NULL) {
+            ov45_0222A844(v1, arg0->unk_20[v3], v0);
         }
         v2 += 1;
-        v3 += 4;
+        v3 += 1;
     } while (v2 < 4);
 }
 

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "sys_task.h"
 #include "frontier_graphics.h"
@@ -8,7 +9,6 @@ struct BattleFrontier;
 
 struct BgConfig;
 
-struct FrontierAnimCmd;
 
 struct FrontierGraphics;
 
@@ -172,7 +172,6 @@ u16 FrontierScriptContext_ReadHalfWord(FrontierScriptContext *ctx);
 
 FrontierGraphics *FrontierSystem_GetFrontierMap(FrontierScriptManager *scriptMan);
 
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 
 enum SoundScene {
     SOUND_SCENE_NONE = 0,

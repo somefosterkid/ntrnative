@@ -11,7 +11,7 @@
 
 s32 ov07_0222207C(void *, void *, s16, s16);
 
-s32 ov07_02222384();
+s32 ov07_02222384(void *arg0, void *arg1);
 
 s32 ov07_022223CC(void *arg0, void *arg1, void *arg2);
 
@@ -41,7 +41,7 @@ void ov07_02222494(ValueLerpContext *ctx, u16 start, u16 end, fx32 amplitude, u3
 BOOL ov07_022224AC(ValueLerpContext *ctx);
 
 s32 ov07_022223CC(void *arg0, void *arg1, void *arg2) {
-    if (ov07_02222384() != 0) {
+    if (ov07_02222384(arg0, arg1) != 0) {
         ov07_0222207C(arg0, arg2, 0, 0);
         return 1;
     }

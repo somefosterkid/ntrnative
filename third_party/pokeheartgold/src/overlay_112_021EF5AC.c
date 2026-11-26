@@ -26,16 +26,9 @@
 #include "game_stats.h"
 #include "msgdata.h"
 
-void ov112_021E77E4(void *);
-
 s32 ov112_021F31D8(u8 *);
 
 extern u32 ov112_021FF124;
-
-u32 ov112_021EF5AC(Ov112PokewalkerApp *param_1);
-
-s32 ov112_021E7768(void *arg);
-s32 ov112_021EF62C(void *arg0);
 
 struct GameStats;
 struct JournalEntry;
@@ -87,10 +80,10 @@ u32 ov112_021EF5AC(Ov112PokewalkerApp *param_1) {
     return 2;
 }
 
-s32 ov112_021EF62C(void *arg0) {
+s32 ov112_021EF62C(Ov112PokewalkerApp *arg0) {
     ov112_021E7768(arg0);
-    *(s32 *)((u8 *)arg0 + 8) = 0;
-    *(s32 *)((u8 *)arg0 + 4) = 0xA;
+    arg0->unk_8 = 0;
+    arg0->unk_4 = 0xA;
     return 1;
 }
 

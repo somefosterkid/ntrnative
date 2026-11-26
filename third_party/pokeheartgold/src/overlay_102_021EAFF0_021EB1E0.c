@@ -20,7 +20,7 @@ BgConfig *ov102_021EA268(void *);
 
 s32 ov102_021EB2EC(void *, s32, s32);
 
-s32 ov102_021EB46C(void *, BgConfig *);
+void ov102_021EB46C(Ov102App_021EB1E0 *, BgConfig *);
 
 s32 ov102_021EB4D0(void *);
 
@@ -34,8 +34,8 @@ void ov102_021EB1F8(void *arg0, NARC *narc) {
     bgConfig = ov102_021EA268(*(void **)arg0);
     GfGfxLoader_LoadScrnDataFromOpenNarc(narc, 4, bgConfig, GF_BG_LYR_MAIN_3, 0U, 0U, 1, HEAP_ID_35);
     GfGfxLoader_LoadCharDataFromOpenNarc(narc, 5, bgConfig, GF_BG_LYR_MAIN_3, 0U, 0U, 1, HEAP_ID_35);
-    ((Ov102App_021EB1E0 *)arg0)->unk_54 = GfGfxLoader_GetScrnDataFromOpenNarc(narc, 0xE, 0, arg0 + 0x5C, HEAP_ID_35);
-    ((Ov102App_021EB1E0 *)arg0)->unk_58 = GfGfxLoader_GetScrnDataFromOpenNarc(narc, 0xF, 0, arg0 + 0x60, HEAP_ID_35);
+    ((Ov102App_021EB1E0 *)arg0)->unk_54 = GfGfxLoader_GetScrnDataFromOpenNarc(narc, 0xE, 0, &((Ov102App_021EB1E0 *)arg0)->unk_5C, HEAP_ID_35);
+    ((Ov102App_021EB1E0 *)arg0)->unk_58 = GfGfxLoader_GetScrnDataFromOpenNarc(narc, 0xF, 0, &((Ov102App_021EB1E0 *)arg0)->unk_60, HEAP_ID_35);
     ov102_021EB46C(arg0, bgConfig);
     ov102_021EB4D0(arg0);
     ov102_021EB2EC(arg0, 1, 0);

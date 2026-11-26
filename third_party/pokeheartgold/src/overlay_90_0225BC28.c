@@ -4,17 +4,7 @@
 #include "sys_task.h"
 #include "sys_task_api.h"
 #include "system.h"
-
-typedef struct {
-    Sprite *unk_00[2];
-    s16 unk_08;
-    s16 unk_0A;
-    u8 unk_0C[2][192];
-    SysTask *unk_18C;
-    GXWndPlane unk_190;
-    GXWndPlane battlerType;
-    int unk_194;
-} UnkStruct_ov114_0225FAB8;
+#include "overlay_90_unk_struct_ov114_0225fab8.h"
 
 void ov90_0225BD84(UnkStruct_ov114_0225FAB8 *param0);
 

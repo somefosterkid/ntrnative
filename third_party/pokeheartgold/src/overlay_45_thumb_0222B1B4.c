@@ -1,18 +1,18 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "player_data.h"
 #include "constants/heap.h"
 #include "save.h"
 #include "overlay_45_unk_struct_ov66_0222e294.h"
 #include "overlay_45_wifi_plaza_system.h"
 
-s32 ov45_0222A53C(s32);
+u32 ov45_0222A53C(const WiFiPlazaSystem *param0);
 
-s32 ov45_0222AB28(s32, s32);
+u32 ov45_0222C900(const UnkStruct_ov66_022307D4 *param0);
 
-s32 ov45_0222C900(s32);
-
-s32 ov45_0222B1B4(s32 arg0);
+u32 ov45_0222B1B4(const WiFiPlazaSystem *arg0);
 
 struct PasswordWordBank;
 struct UnkStruct_0207E060_t;
@@ -36,10 +36,10 @@ void ov45_0222B270(WiFiPlazaSystem *param0);
 
 BOOL ov45_0222B28C(charcode_t *trainerName, u32 length);
 
-s32 ov45_0222B1B4(s32 arg0) {
-    s32 v0;
+u32 ov45_0222B1B4(const WiFiPlazaSystem *arg0) {
+    u32 v0;
 
-    v0 = ov45_0222C900(arg0 + 0x3AC);
+    v0 = ov45_0222C900(&arg0->unk_3AB);
     if (ov45_0222AB28(arg0, ov45_0222A53C(arg0)) == 1) {
         v0 += 2;
     }

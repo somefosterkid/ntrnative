@@ -1,6 +1,7 @@
 #include "global.h"
+#include "pokeathlon/pokeathlon.h"
 
-s32 ov96_021E8228(s32, u32, u32, s32, s32);
+void ov96_021E8228(s32, u32, u32, s32, s32);
 
 s32 ov96_022079B8(void *);
 

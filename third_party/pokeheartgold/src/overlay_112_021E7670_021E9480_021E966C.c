@@ -5,10 +5,6 @@ s32 ov112_021E7CA4(void *, s32, s32);
 
 u8 ov112_021E9FA4(void *, s32, void *, s32, s32);
 
-s32 ov112_021EA51C(void *, s32);
-
-void ov112_021E966C(Ov112PokewalkerApp *arg0, s32 arg1);
-
 void ov112_021E966C(Ov112PokewalkerApp *arg0, s32 arg1) {
     ov112_021E7CA4(arg0, 2, 0xD);
     ov112_021EA51C(arg0, 0);

@@ -2162,7 +2162,7 @@ u16 sub_0203769C(void);
 
 enum UnionRoomInteraction sub_0205A200(UnionRoomManager *manager, int localID);
 
-enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, enum UnionRoomInteraction interaction);
+enum UnionRoomInteraction sub_0205A284(UnionRoomManager *manager, int localID, u16 interaction);
 
 enum UnionRoomActivity sub_0205A35C(UnionRoomManager *manager);
 

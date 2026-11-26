@@ -19,7 +19,11 @@ s32 ov112_021F1288(void *);
 
 void ov112_021F179C(Ov112SpriteApp *work);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov112_021F196C(void *);
+#else
 s32 ov112_021F196C(void *);
+#endif
 
 void ov112_021F2EB0(void *);
 
@@ -52,7 +56,7 @@ void ov112_021F2DE4(OverlayManager *man) {
     Main_SetVBlankIntrCB(ov112_021F2EB0, v1);
 }
 
-s32 ov112_021F1324();
+void ov112_021F1324(Ov112SpriteApp *param_1);
 
 s32 ov112_021F1814(void *);
 
@@ -64,7 +68,7 @@ void ov112_021F2E70(OverlayManager *man) {
     Ov112SpriteApp *v0;
 
     v0 = OverlayManager_GetData(man);
-    ov112_021F1324();
+    ov112_021F1324(v0);
     ov112_021F1814(v0);
     ov112_021F1A08(v0);
     NARC_Delete(v0->narc);

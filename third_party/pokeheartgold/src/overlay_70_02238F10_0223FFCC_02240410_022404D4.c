@@ -11,6 +11,7 @@
 #include "pokemon_summary_app.h"
 #include "evolution_data.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -35,10 +36,6 @@ struct MessageFormat;
 struct PlayerProfile;
 
 typedef u16 charcode_t;
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
 
 enum TradeType {
     TRADE_TYPE_NORMAL = 1,
@@ -257,7 +254,7 @@ s32 ov70_02240540(GTSApplicationState *arg0);
 s32 ov70_02240540(GTSApplicationState *arg0) {
     ov70_02240A7C(arg0, &arg0->receivedListing, sub_0202DBA0(*(void **)arg0->playerData), arg0->receivedListing.exchangedFromRemote);
     ov70_02240CE4(*(void **)((u8 *)arg0->playerData + 0x18), &arg0->receivedListing);
-    ov70_02240500(arg0, (Pokemon *)&arg0->receivedListing.pokemon);
+    ov70_02240500(arg0, &arg0->receivedListing.pokemon);
     sub_0202DB5C(*(void **)(arg0->playerData), 0);
     arg0->currentScreenInstruction = 0x1E;
     ov70_02240D44(arg0, 0x13, 0xB);

@@ -24,6 +24,7 @@ typedef struct VC_P21 {
   int dot_fine;  /* a polygon that collapses to one DS pixel draws one N x pixel (default: an N x N block, the DS look) */
   int line_thin; /* lines and wire-frames are 1 N x pixel wide (default: N wide, walked on the DS grid) */
   int edge_fine; /* edge marking outlines one N x pixel (default: N pixels, one DS pixel) */
+  int edge_aa;   /* Smooth edges: at N > 1 with aa 1 the outline is drawn with its coverage (p21_scale.c post_smooth) */
   int filter_bilinear; /* textures sampled bilinear on the decoded texels at N > 1 (default: nearest, the DS look) */
   int force_n;   /* run the N path at scale 1 (checking: BWPORT_VCORE_NPATH=1) */
   struct VC_NFrame *f;

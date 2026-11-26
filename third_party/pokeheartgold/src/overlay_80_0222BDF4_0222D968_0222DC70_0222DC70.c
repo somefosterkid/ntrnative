@@ -1,4 +1,7 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
+
+#include "frontier_launch.h"
 #include "sprite_resources_header.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
@@ -36,7 +39,6 @@ struct FieldBagCursor;
 
 struct FieldFrontierDTO;
 
-struct FrontierAnimCmd;
 
 struct FrontierGraphics;
 
@@ -675,10 +677,6 @@ void FrontierScriptContext_Pause(FrontierScriptContext *ctx, FrontierShouldResum
 
 FrontierGraphics *FrontierSystem_GetFrontierMap(FrontierScriptManager *scriptMan);
 
-typedef struct FrontierAnimCmd {
-    u16 action;
-    u16 count;
-} FrontierAnimCmd;
 
 typedef struct UnkStruct_ov104_0223EBD0_t UnkStruct_ov104_0223EBD0;
 
@@ -690,7 +688,6 @@ typedef struct {
 
 typedef struct UnkStruct_ov104_0223F174_t UnkStruct_ov104_0223F174;
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 void *Frontier_GetData(BattleFrontier *frontier);
 

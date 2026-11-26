@@ -22,20 +22,20 @@ u32 ov02_0224EF94(FieldSystem *arg0) {
     s32 *var_r1;
     s32 *var_r3;
     s32 *var_r4;
-    void *temp_r0;
+    FieldSystemUnkSub120 *temp_r0;
     s32 temp_r1;
     s32 var_r0;
     s32 var_r3_2;
     s32 var_r3_3;
     s32 var_r5;
     void *temp_r6;
-    ReadWholeNarcMemberByIdPair((void *)((*((u8 **)&arg0->unk120)) + 0x14), NARC_a_2_2_0, MapHeader_GetMapSec(*(*((u32 * *)&arg0->location))) + 1);
-    ReadWholeNarcMemberByIdPair((void *)((*((u8 **)&arg0->unk120)) + 0x26C), NARC_a_2_2_0, 0);
+    ReadWholeNarcMemberByIdPair(arg0->unk120->unk14, NARC_a_2_2_0, MapHeader_GetMapSec(arg0->location->mapId) + 1);
+    ReadWholeNarcMemberByIdPair(&arg0->unk120->unk14[0x258], NARC_a_2_2_0, 0);
     ov02_0224F058(arg0, &sp4);
-    temp_r0 = *((void **)&arg0->unk120);
+    temp_r0 = arg0->unk120;
     var_r3 = &sp20[0];
     sp0 = temp_r0;
-    sp0 = temp_r0 + 0x14;
+    sp0 = temp_r0->unk14;
     var_r0 = 0;
     var_r2 = 0;
     do {

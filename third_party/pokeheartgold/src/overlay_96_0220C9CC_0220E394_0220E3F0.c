@@ -47,9 +47,9 @@ s32 ov96_0221022C(UnkStruct_ov96_0220E3F0 *);
 
 void *ov96_022107F0(PokeathlonCourseData *, enum HeapID);
 
-s32 ov96_0220E3F0(PokeathlonCourseData *arg0);
+BOOL ov96_0220E3F0(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_0220E3F0(PokeathlonCourseData *arg0) {
+BOOL ov96_0220E3F0(PokeathlonCourseData *arg0, int unused) {
     u32 temp_r0;
     PokeathlonRecord1 *temp_r0_3;
     UnkStruct_ov96_0220E3F0 *temp_r0_2;

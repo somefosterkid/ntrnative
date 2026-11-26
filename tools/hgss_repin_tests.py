@@ -123,6 +123,21 @@ def test_snapshot_keep_mtimes():
         assert os.stat(os.path.join(t, 'src/b.c')).st_mtime_ns != 10**18
 
 
+def test_keep_mtimes_touches_a_reverted_file_older_than_its_object():
+    # a patch changed src/a.c last time (object compiled after the snapshot's mtime); now no patch does and the vendored copy
+    # brings the original back with its own old mtime: that must not stay older than the object
+    with tempfile.TemporaryDirectory() as t:
+        p = os.path.join(t, 'src/a.c')
+        os.makedirs(os.path.dirname(p))
+        open(p, 'w').write('patched')
+        os.utime(p, ns=(10**18, 10**18))
+        snap = G4.snapshot(t)
+        open(p, 'w').write('original')
+        os.utime(p, ns=(5 * 10**17, 5 * 10**17))
+        assert G4.keep_mtimes(t, snap) == 0
+        assert os.stat(p).st_mtime_ns > 10**18
+
+
 TAGGED = """Prose head of a hand patch (no tag of its own).
 
 Handover-ID: hg36-0001

@@ -14,6 +14,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 void ov70_022396A8(GTSApplicationState *arg0);
 
@@ -21,7 +22,7 @@ extern TouchscreenHitbox ov70_0224524C;
 void ov70_02239730(void);
 
 s32 ov70_02238E50(void *, s32, s32);
-s32 ov70_02238E64();
+int ov70_02238E64(GTSApplicationState *appState);
 s32 ov70_02239BDC(void *, s32, s32, s32, s32);
 void ov70_02239740(GTSApplicationState *arg0, s32 arg1);
 
@@ -122,12 +123,6 @@ enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
-
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
 
 
 enum TradeType {
@@ -260,7 +255,7 @@ void ov70_02239740(GTSApplicationState *arg0, s32 arg1) {
         PlaySE(0x5DCU);
         return;
     case 2:
-        ov70_02239BDC(arg0, 7, ov70_02238E64(), 0, 0xF0F);
+        ov70_02239BDC(arg0, 7, ov70_02238E64(arg0), 0, 0xF0F);
         ov70_02238D84(arg0, 0xA, 0xC);
         Sprite_SetAnimActiveFlag(arg0->cursorSprite, 0);
         PlaySE(0x5DCU);

@@ -50,6 +50,35 @@ typedef struct UnkStruct_ov14_boxscan {
 LAYOUT_CHECK(UnkStruct_ov14_boxscan_size, sizeof(UnkStruct_ov14_boxscan) == 0xC);
 #endif
 
+// The cursor drag state (UnkStruct_ov14_boxsys.unk_C when allocated by ov14_021F1F24, 0x1C bytes), filled by ov14_021E7A08.
+#define OV14_DRAG_XNEG 0x1 // flags: the sprite moves toward lower x
+#define OV14_DRAG_YNEG 0x2 // flags: the sprite moves toward lower y
+typedef struct UnkStruct_ov14_dragstate {
+    u16 slot;  // DS 0x0
+    u16 unk_2; // DS 0x2 (box UnkStruct_ov14_boxsys.unk_44C)
+    s32 mode;  // DS 0x4
+    s32 x;     // DS 0x8 current x, 24.8 fixed point
+    s32 y;     // DS 0xC
+    s32 dx;    // DS 0x10 per-step x delta
+    s32 dy;    // DS 0x14
+    u32 flags; // DS 0x18 OV14_DRAG_*
+} UnkStruct_ov14_dragstate;
+#ifdef __MWERKS__
+LAYOUT_CHECK(UnkStruct_ov14_dragstate_size, sizeof(UnkStruct_ov14_dragstate) == 0x1C);
+#endif
+
+// The cursor glide state (UnkStruct_ov14_boxsys.unk_C when allocated by ov14_021F7AC4, 8 bytes), run by ov14_021E9F20.
+typedef struct UnkStruct_ov14_glide {
+    u8 x;       // DS 0x0
+    u8 y;       // DS 0x1
+    u8 dx;      // DS 0x2 per-step x delta
+    u8 dy;      // DS 0x3
+    u32 flags;  // DS 0x4 bits 0/1 = OV14_DRAG_XNEG/YNEG, bits 2.. = steps left
+} UnkStruct_ov14_glide;
+#ifdef __MWERKS__
+LAYOUT_CHECK(UnkStruct_ov14_glide_size, sizeof(UnkStruct_ov14_glide) == 0x8);
+#endif
+
 typedef struct UnkStruct_ov14_boxsys {
     struct SysTask *unk_0;
 

@@ -36,7 +36,7 @@ typedef struct BgConfig BgConfig;
 
 void *BgGetCharPtr(u8 bgLayer);
 
-void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 NARC *NARC_New(enum NarcId narcID, enum HeapID heapID);
 

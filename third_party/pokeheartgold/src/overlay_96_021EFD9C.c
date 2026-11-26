@@ -18,11 +18,11 @@ s32 ov96_021EFA3C(void *);
 
 s32 ov96_021EFACC(void *);
 
-s32 ov96_021EFD9C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EFD9C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F008C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F008C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EFD9C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EFD9C(PokeathlonCourseData *data, u8 *arg1) {
     s32 v1;
     s32 flag;
     u8 v0;
@@ -89,15 +89,19 @@ s32 ov96_021EFD9C(PokeathlonCourseData *data, u8 *arg1) {
 
 s32 ov96_021EFB20(PokeathlonCourseData *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov96_021EFB50(PokeathlonCourseData *);
+#else
 void *ov96_021EFB50(PokeathlonCourseData *);
+#endif
 
 s32 ov96_021EFD08(PokeathlonCourseData *);
 
 extern TouchscreenHitbox ov96_0221BA20;
 
-s32 ov96_021EFEB8(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EFEB8(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EFEB8(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EFEB8(PokeathlonCourseData *data, u8 *arg1) {
     s32 v1;
     u8 v0;
 
@@ -138,9 +142,9 @@ s32 ov96_021EFEB8(PokeathlonCourseData *data, u8 *arg1) {
 
 extern TouchscreenHitbox ov96_0221BA2C;
 
-s32 ov96_021EFF3C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EFF3C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EFF3C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EFF3C(PokeathlonCourseData *data, u8 *arg1) {
     s32 v1;
     u8 v0;
     void *v2;
@@ -180,9 +184,9 @@ s32 ov96_021EFF3C(PokeathlonCourseData *data, u8 *arg1) {
 
 extern TouchscreenHitbox ov96_0221BA38;
 
-s32 ov96_021EFFE4(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EFFE4(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EFFE4(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EFFE4(PokeathlonCourseData *data, u8 *arg1) {
     s32 v1;
     u8 v0;
     void *v2;
@@ -220,7 +224,7 @@ s32 ov96_021EFFE4(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021F008C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F008C(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
     void *v1;
 

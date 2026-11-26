@@ -9,6 +9,7 @@
 //   .  walk          #  blocked       ~  water (surf)    ,  grass         ^ v < >  a ledge, jumped that way
 //   e  a surf edge tile (blocked for walking; surfing, a step onto it hops over it)   F  a waterfall tile (blocked)
 //   W  a whirlpool tile (HeartGold / SoulSilver; blocked: F:whirlpool crosses it)
+//   L  a magma tile off the platforms (HeartGold / SoulSilver, Blackthorn Gym; blocked: the gym's own collision answers per tile)
 //   E  an electric rock (Chargestone Cave; blocked): a pushed crystal slides until it stops next to one
 //   O  a Strength hole (class 0x1d; blocked)   o  a Strength hole a boulder fills (walk: the game's saved boulder there)
 //   ?  no terrain (a chunk the mapper has not loaded and the ROM's chunk file gives none: the planner tries it)   (space)  off

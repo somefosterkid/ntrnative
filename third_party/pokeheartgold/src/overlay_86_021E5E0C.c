@@ -6,16 +6,6 @@
 #include "overlay_86_frontier_records_app.h"
 #include "palette.h"
 
-s32 ov86_021E5D10(void);
-
-s32 ov86_021E5D30(BgConfig *);
-
-s32 ov86_021E5ECC(FrontierRecordsApp *, s32);
-
-s32 ov86_021E5F58(FrontierRecordsApp *, s32);
-
-void ov86_021E5E0C(FrontierRecordsApp *arg0);
-
 u8 ov86_021E5E98(u8 facility);
 
 void ov86_021E5E0C(FrontierRecordsApp *arg0) {
@@ -24,11 +14,9 @@ void ov86_021E5E0C(FrontierRecordsApp *arg0) {
     arg0->plttData = PaletteData_Init(HEAP_ID_121);
     PaletteData_AllocBuffers(arg0->plttData, PLTTBUF_MAIN_OBJ, 0x200U, HEAP_ID_121);
     PaletteData_AllocBuffers(arg0->plttData, PLTTBUF_MAIN_BG, 0x200U, HEAP_ID_121);
-    ov86_021E5ECC(arg0, 2);
-    ov86_021E5F58(arg0, 6);
+    ov86_021E5ECC(arg0, GF_BG_LYR_MAIN_2);
+    ov86_021E5F58(arg0, GF_BG_LYR_SUB_2);
 }
-
-void ov86_021E5E54(BgConfig *arg0);
 
 void ov86_021E5E54(BgConfig *bgConfig) {
     GfGfx_EngineATogglePlanes(0x1FU, 0U);
@@ -39,8 +27,6 @@ void ov86_021E5E54(BgConfig *bgConfig) {
     FreeBgTilemapBuffer(bgConfig, 6U);
     Heap_Free(bgConfig);
 }
-
-void ov86_021E5E90(FrontierRecordsApp *arg0, s32 *arg1, s32 arg2);
 
 void ov86_021E5E90(FrontierRecordsApp *arg0, s32 *arg1, s32 arg2) {
     arg0->state = 0;

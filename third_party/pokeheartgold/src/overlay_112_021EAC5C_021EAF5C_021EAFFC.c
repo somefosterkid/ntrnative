@@ -5,15 +5,9 @@
 #include "system.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021E9A78(void *, u8);
-
-void ov112_021E9C10(void *arg0, s32 arg1);
-
-s32 ov112_021EA51C(void *, s32);
+void ov112_021E9C10(Ov112PokewalkerApp *arg0, s32 arg1);
 
 extern s32 ov112_021FF0AC[];
-
-s32 ov112_021EAFFC(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EAFFC(Ov112PokewalkerApp *arg0) {
     s32 temp_r1_2;

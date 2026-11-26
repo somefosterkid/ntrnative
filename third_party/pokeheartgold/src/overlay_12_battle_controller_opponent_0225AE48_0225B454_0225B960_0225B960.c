@@ -61,7 +61,7 @@ void ov12_0225B960(SysTask *arg0, void *arg1) {
     switch ((u32)temp_r0) {
     case 0:
         ((MonShowData *)arg1)->delay = 0U;
-        *((s32 *)&((MonShowData *)arg1)->btlMonObjData) = 0;
+        ((MonShowData *)arg1)->btlMonObjData = NULL;
         if (BattleSystem_GetBattleType(*(BattleSystem **)arg1) & 8) {
             if (!(BattleSystem_GetBattleSpecial(*(BattleSystem **)arg1) & 0x20) && (((MonShowData *)arg1)->battlerType == 2)) {
                 *((void **)&((MonShowData *)arg1)->btlMonObjData) = ov07_0221FDFC(*(BattleSystem **)arg1, 5);
@@ -126,7 +126,7 @@ block_22:
                 }
                 if (((MonShowData *)arg1)->btlMonObjData != NULL) {
                     ov07_0221FE08(((MonShowData *)arg1)->btlMonObjData);
-                    *((s32 *)&((MonShowData *)arg1)->btlMonObjData) = 0;
+                    ((MonShowData *)arg1)->btlMonObjData = NULL;
                 }
                 ((MonShowData *)arg1)->state = (u8)(((MonShowData *)arg1)->state + 1);
                 break;

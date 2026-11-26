@@ -8,7 +8,11 @@
 #include "msgdata.h"
 #include "string_util.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EE984(PokedexAppData *, u16, s32, s32);
+#else
 s32 ov18_021EE984(PokedexAppData *, s32, s32, s32);
+#endif
 
 s32 ov18_021EE9FC(PokedexAppData *, s32);
 
@@ -22,12 +26,20 @@ s32 ov18_021EEBE4(PokedexAppData *, s32);
 
 s32 ov18_021EEC34(PokedexAppData *, s32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EECB0(PokedexAppData *, u16, s32);
+#else
 s32 ov18_021EECB0(PokedexAppData *, s32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EED00(PokedexAppData *, u16, s32, s32);
+#else
 s32 ov18_021EED00(PokedexAppData *, s32, s32, s32);
+#endif
 
 s32 ov18_021EE35C(PokedexAppData *, s32 *, s32);
-void ov18_021EEE84(void *arg0);
+void ov18_021EEE84(PokedexAppData *pokedexApp);
 extern s32 ov18_021F9FDC;
 s32 sub_02019A60(UnkStruct_0201956C *, s32, void *);
 
@@ -68,12 +80,12 @@ void ov18_021EEE58(PokedexAppData *pokedexApp) {
     ov18_021EEE84(pokedexApp);
 }
 
-void ov18_021EEE84(void *arg0) {
-    sub_02019A60(*((void **)&((PokedexAppData *)arg0)->unk_0008), 6, arg0 + 0x11C);
-    sub_02019A60(*((void **)&((PokedexAppData *)arg0)->unk_0008), 6, arg0 + 0x12C);
-    sub_02019A60(*((void **)&((PokedexAppData *)arg0)->unk_0008), 6, arg0 + 0x13C);
-    sub_02019A60(*((void **)&((PokedexAppData *)arg0)->unk_0008), 7, arg0 + 0x11C);
-    sub_02019A60(*((void **)&((PokedexAppData *)arg0)->unk_0008), 7, arg0 + 0x13C);
+void ov18_021EEE84(PokedexAppData *pokedexApp) {
+    sub_02019A60(pokedexApp->unk_0008, 6, &pokedexApp->windows[17]);
+    sub_02019A60(pokedexApp->unk_0008, 6, &pokedexApp->windows[18]);
+    sub_02019A60(pokedexApp->unk_0008, 6, &pokedexApp->windows[19]);
+    sub_02019A60(pokedexApp->unk_0008, 7, &pokedexApp->windows[17]);
+    sub_02019A60(pokedexApp->unk_0008, 7, &pokedexApp->windows[19]);
 }
 
 void ov18_021EEED0(PokedexAppData *pokedexApp, int a1) {

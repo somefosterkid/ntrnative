@@ -11,7 +11,7 @@ u32 ov14_021E7930(UnkStruct_ov14_boxapp *param_1, u32 param_2) {
     u8 bVar1;
     PCStorage **new_var;
     u32 uVar2;
-    new_var = &(*((PCStorage * *)&param_1->storage));
+    new_var = &(param_1->storage);
     bVar1 = PCStorage_GetBoxWallpaper(*new_var, param_2);
     uVar2 = (u32)bVar1;
     if ((0xf + 1) <= uVar2) {

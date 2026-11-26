@@ -1,44 +1,27 @@
 #include "global.h"
+#include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
-void ov43_0222ADB8(s32 *, void *, u32);
+void ov43_0222C3E8(PalPadRoster *roster, PalPadGfx *gfx, s16 page);
+void ov43_0222C7F8(PalPadRosterPage *page, PalPadGfx *gfx, PalPadScreens *screens);
+void ov43_0222C844(PalPadRosterPage *page, PalPadGfx *gfx, s32 cursor);
+void ov43_0222C918(PalPadRosterPage *page, PalPadShared *shared, PalPadGfx *gfx, struct UnkStruct_ov42_02227060 *icons, PalPadScreens *screens, PalPadFriendList *friends, u32 pageNum, enum HeapID heapID);
 
-s32 ov43_0222C5D8(void *arg0, s32 *arg1);
-
-u32 ov43_0222C358(void *param_1, void *param_2, void *param_3);
-
-s32 ov43_0222C3E8(void *, s32, s16);
-s32 ov43_0222C7F8(void *, s32, s32);
-s32 ov43_0222C844(void *, s32, s32);
-s32 ov43_0222C918(void *, void *, s32, void *, s32, void *, s32, s32);
-void ov43_0222C378(void *arg0, void *arg1, s32 arg2, s16 arg3, s32 arg4, s32 arg5, s32 arg6);
-
-u32 ov43_0222C358(void *param_1, void *param_2, void *param_3) {
-    s32 iVar1;
-
-    iVar1 = ov43_0222C5D8(param_1, param_2);
-    if (iVar1 == 0) {
-        return 0;
+BOOL ov43_0222C358(PalPadRoster *roster, PalPadShared *shared, PalPadGfx *gfx) {
+    if (ov43_0222C5D8(roster, shared) == 0) {
+        return FALSE;
     }
-    ov43_0222ADB8(param_2, param_3, 1);
-    return 1;
+    ov43_0222ADB8(shared, gfx, 1);
+    return TRUE;
 }
 
-void ov43_0222C378(void *arg0, void *arg1, s32 arg2, s16 arg3, s32 arg4, s32 arg5, s32 arg6) {
-    s32 v1;
-    void *v0;
-    s32 v2;
-    void *v3;
-
-    v0 = arg1;
-    if (arg5 == 0) {
-        *(s16 *)arg0 = arg3;
-        *(s16 *)((u8 *)arg0 + 4) = (s16)arg4;
-        ov43_0222C3E8(arg0, arg2, arg3);
+void ov43_0222C378(PalPadRoster *roster, PalPadShared *shared, PalPadGfx *gfx, s16 page, s32 cursor, u32 slot, enum HeapID heapID) {
+    if (slot == 0) {
+        roster->page = page;
+        roster->cursor = cursor;
+        ov43_0222C3E8(roster, gfx, page);
     }
-    v2 = 0x38 * arg5;
-    v3 = arg0 + 8;
-    v1 = v2;
-    ov43_0222C7F8(v3 + v2, arg2, arg2 + 0x200);
-    ov43_0222C918(v3 + v2, v0, arg2, *(void **)((u8 *)arg0 + 0xB4), arg2 + 0x200, v0 + 0x10, (s32)arg3, arg6);
-    ov43_0222C844(v3 + v2, arg2, arg4);
+    ov43_0222C7F8(&roster->pages[slot], gfx, &gfx->screens);
+    ov43_0222C918(&roster->pages[slot], shared, gfx, roster->trainerIcons, &gfx->screens, &shared->friends, page, heapID);
+    ov43_0222C844(&roster->pages[slot], gfx, cursor);
 }

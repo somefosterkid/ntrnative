@@ -64,9 +64,9 @@ win64 (LLP64) build of HG/SS (hwin1): what Linux's LP64 build hides.
  #define PORT_OVYID(sym, n) ((u32)&sym)
 --- a/port/asmdata/overlay_96.c
 +++ b/port/asmdata/overlay_96.c
-@@ -3,7 +3,7 @@
+@@ -2,7 +2,7 @@
+ #include "global.h"
  #include "overlay_manager.h"
- #include "pokeathlon/pokeathlon.h"
  
 -#ifdef __LP64__
 +#if defined(__LP64__) || defined(_WIN64)

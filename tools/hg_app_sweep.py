@@ -72,8 +72,10 @@ def rep(tok, n):
 
 
 class Play:
-    def __init__(self, pid, name, keys, need=(), warp=None, face=None, save='hg-r30c', cheat=CHEAT_ALL, tail=300, game='heartgold', env=None, script=None):
+    def __init__(self, pid, name, keys, need=(), warp=None, face=None, save='hg-r30c', cheat=CHEAT_ALL, tail=300, game='heartgold', env=None, script=None,
+                 reload=None):
         self.id, self.name, self.save, self.cheat, self.game, self.env = pid, name, save, cheat, game, env or {}
+        self.reload = reload   # keys before START instead of hg_sweep.RELOAD (the title / main menu plays: no Continue)
         self.face = face   # 0 north, 1 south (default), 2 west, 3 east: the facing after the warp (BWPORT_HG_WARP_DIR)
         self.keys, end = Seq(keys)
         self.warp = warp   # (map, x, y) or None: no warp
@@ -90,6 +92,15 @@ class Play:
         return miss
 
 
+# Plays that cannot work without a link session (Union Room crash analysis, 11-25): a verdict that is a failure (crash, hang, stub, heap, timeout,
+# no-field) is reported as `needs-session`, kept out of crash_groups.tsv and listed with its reason in summary.txt. An `ok` row stays ok.
+SESSION = {
+    'link-union-room': 'Union Room: ScrCmd_262 runs sub_0205A904(4) on a NULL sCommServerClient; only the reception desk (ScrCmd_271, '
+                       'sub_02034B0C) allocates it and the warp skips that. The desk itself is link-union (offline: no peer, no session)',
+}
+SESSION_FAIL = ('crash', 'hang', 'stub', 'timeout', 'no-field')   # not heap: a heap-check finding is memory corruption, a session cannot explain it
+def session_verdict(pid, verdict):
+    return 'needs-session' if pid in SESSION and verdict in SESSION_FAIL else verdict
 def plays():
     P = []
     a = P.append
@@ -149,6 +160,48 @@ def plays():
     a(Play('field-flash', 'Flash: the Dark Cave from the party menu', MENU + ' icon:mon+700 right+80 a+250 left+80 down+60 down+60 down+60 a+500 a+400 a+400', [], warp=(176, 28, 21), face=0))
     a(Play('field-bicycle', 'Bicycle: use the key item, ride, walk', MENU + ' icon:bag+700 ' + rep('right+200', 7) + ' a+250 a+300 a+300 wait+200 up*16+30 up*16+30 right*16+30 right*16+30', [], ))
     a(Play('field-registered', 'Registered key item: Y', MENU + ' icon:bag+700 ' + rep('right+200', 7) + ' a+250 down+60 a+250 b+250 b+250 b+250 y+250 a+300 a+300', []))
+    P += plays2()
+    return P
+
+
+def plays2():
+    """the second sweep (hgx1): the facilities the first 47 plays never open: the Battle Frontier's five reception desks, the Pokeathlon
+    Dome, the Safari Zone and Bug-Catching Contest gates, the Pokemon Center's link receptions (colosseum / trade / union: no peer
+    offline), the Union Room, the Global Terminal, Pal Park, the Game Corner.
+    Two ways in, both the game's own: a BG event's script id (the desk's counter: BWPORT_HG_SCRIPT, the id read from the zone events of
+    the ROM, tools/hg_sweep.rom_events; the player stands on the map's first warp tile) or A at a person from the tile next to them
+    (x, z of the person from the same events; face 0 north 1 south 2 west 3 east). An A mash answers every question with its first
+    choice; a facility whose party check fails prints its refusal and the play is `ok` (reached says whether the app opened)."""
+    P = []
+    a = P.append
+    mash = lambda n, w=180: rep('a+%d' % w, n)
+    # ---- the Battle Frontier: the desk's counter script (BG event, ids 10450-10455) and the clerk behind it
+    FR = {'tower': (265, 15, 19, 10450, 15, 6), 'factory': (275, 1, 7, 10452, 21, 7), 'hall': (276, 25, 9, 10453, 7, 9),
+          'castle': (277, 21, 9, 10454, 6, 9), 'arcade': (278, 1, 6, 10455, 14, 6)}
+    for k, (m, sx, sz, sid, cx, cz) in FR.items():
+        a(Play('fr-' + k, 'Battle ' + k.capitalize() + ': the desk script, answers by A', 'wait+300 ' + mash(30), [], warp=(m, sx, sz), face=0, script=sid))
+        a(Play('fr-' + k + '-clerk', 'Battle ' + k.capitalize() + ': A at the clerk', 'wait+200 ' + mash(30), [], warp=(m, cx, cz), face=2 if k in ('hall', 'castle') else 0))
+    # ---- the Pokeathlon Dome: the 1F reception counters, the 2F entrance clerks
+    a(Play('pa-reception', 'Pokeathlon Dome: the 1F reception', 'wait+200 ' + mash(30), [], warp=(281, 23, 9), face=0))
+    a(Play('pa-reception2', 'Pokeathlon Dome: the 1F second desk', 'wait+200 ' + mash(30), [], warp=(281, 11, 9), face=0))
+    a(Play('pa-2f', 'Pokeathlon Dome: the 2F clerk', 'wait+200 ' + mash(30), [], warp=(282, 26, 13), face=0))
+    # ---- Safari Zone (the entrance interior's clerk, then the walk in) and the Bug-Catching Contest (the gatehouse's clerk, the park)
+    a(Play('safari-gate', 'Safari Zone: the clerk, pay, enter, walk', 'wait+200 ' + mash(20) + ' wait+300 ' + rep('up*16+30 right*16+30', 8), [], warp=(173, 10, 8), face=0))
+    a(Play('safari-walk', 'Safari Zone: walk in the grass of area 1', 'wait+200 ' + rep('up*16+30 left*16+30 down*16+30 right*16+30', 8), [], warp=(343, 20, 20), face=0))
+    a(Play('bug-gate', 'Bug-Catching Contest: the National Park gatehouse clerk', 'wait+200 ' + mash(24), [], warp=(104, 5, 5), face=0))
+    a(Play('bug-park', 'Bug-Catching Contest: walk in the contest park', 'wait+200 ' + rep('up*16+30 left*16+30 down*16+30 right*16+30', 8), [], warp=(487, 40, 86), face=0))
+    # ---- the link receptions of the Pokemon Center 2F (no peer: the connect fails), the Union Room, the Global Terminal, Pal Park
+    for k, x in (('colosseum', 4), ('trade', 8), ('union', 12)):
+        a(Play('link-' + k, 'Pokemon Center 2F: the ' + k + ' reception, offline', 'wait+200 ' + mash(30), [], warp=(408, x, 5), face=0))
+    a(Play('link-union-room', 'Union Room: A at a person', 'wait+200 ' + mash(24), [], warp=(2, 3, 4), face=0))
+    a(Play('link-terminal', 'Global Terminal: the globe', 'wait+300 ' + mash(20), [], warp=(207, 13, 18), face=0, script=2015))
+    a(Play('link-terminal-enter', 'Global Terminal: the entrance script', 'wait+300 ' + mash(20), [], warp=(207, 13, 18), face=0, script=2046))
+    a(Play('palpark', 'Pal Park: the clerk', 'wait+200 ' + mash(24), [], warp=(109, 28, 49), face=0))
+    a(Play('trade-house', 'Violet City: the in-game trade', 'wait+200 ' + mash(24), [], warp=(162, 6, 6), face=0))
+    a(Play('gamecorner', 'Goldenrod Game Corner: the counter, the machines', 'wait+200 ' + mash(24), [], warp=(536, 7, 8), face=0))
+    # Not done: Pokewalker (overlay 112) is the title's main menu (main_menu.c, ov112_App_MainMenu_SelectOption_ConnectToPokewalker),
+    # reached with `reload=` keys (Play.reload replaces hg_sweep.RELOAD) but the menu's timing is not measured: a first try
+    # ('start@f200 a@f275' + downs, no warp) ended `no-field` (no field frame, so no END line): look at its shots first.
     return P
 
 
@@ -175,7 +228,7 @@ def run_play(a, p, slot, syms):
     run_dir = os.path.join(a.out, 'run', f'w{slot}')
     out_dir = os.path.join(run_dir, 'out')
     env = dict(os.environ, BWPORT_BUILD=a.build, BWPORT_HG_COV=os.path.join(run_dir, 'cov.bin'), PYTHONDONTWRITEBYTECODE='1',
-               BWPORT_HG_WARP_LOG=os.path.join(d, 'warp.txt'), BWPORT_KEYS=a.reload + ' ' + p.keys)
+               BWPORT_HG_WARP_LOG=os.path.join(d, 'warp.txt'), BWPORT_KEYS=(a.reload if p.reload is None else p.reload) + ' ' + p.keys)
     w = p.warp or (-1, 0, 0)
     env['BWPORT_HG_WARP'] = f'{w[0]}:{w[1]}:{w[2]}:{p.end}'
     if p.cheat:
@@ -251,6 +304,7 @@ def run_play(a, p, slot, syms):
     if os.path.exists(os.path.join(run_dir, 'cov.bin')):
         os.remove(os.path.join(run_dir, 'cov.bin'))
     shutil.rmtree(out_dir, ignore_errors=True)
+    verdict = session_verdict(p.id, verdict)
     return [p.id, p.name, verdict, frame, top, bid, reached, ','.join(miss), f'{wall:.0f}'], text
 
 
@@ -274,6 +328,13 @@ def rescore(a):
 def summarize(a):
     path = os.path.join(a.out, 'sweep.tsv')
     rows = [l.rstrip('\n').split('\t') for l in open(path)][1:] if os.path.exists(path) else []
+    changed = False
+    for r in rows:   # rows an older run wrote: a failure of a SESSION play is not a crash group
+        v = session_verdict(r[0], r[2])
+        changed, r[2] = changed or v != r[2], v
+    if changed:
+        with open(path, 'w') as f:
+            f.write('\t'.join(HEAD) + '\n' + ''.join('\t'.join(r) + '\n' for r in rows))
     verdicts = collections.Counter(r[2] for r in rows)
     groups = collections.OrderedDict()
     for r in rows:
@@ -295,7 +356,8 @@ def summarize(a):
              + '; reached ' + ', '.join(f'{k} {v}' for k, v in reached.most_common()), '',
              'play  verdict  reached  frame  top   (missing needs)']
     for r in rows:
-        lines.append(f'{r[0]:18} {r[2]:10} {r[6]:3} {r[3]:>6}  {r[4]}' + (f'   missing: {r[7]}' if r[7] else ''))
+        lines.append(f'{r[0]:18} {r[2]:10} {r[6]:3} {r[3]:>6}  {r[4]}' + (f'   missing: {r[7]}' if r[7] else '')
+                     + (f'   [{SESSION[r[0]]}]' if r[2] == 'needs-session' else ''))
     lines += ['', 'count  kind   top function   (first play)']
     for (kind, top), g in order:
         lines.append(f'{len(g["plays"]):5}  {kind:5}  {top}   ({g["plays"][0]}; {",".join(g["plays"][:12])})')

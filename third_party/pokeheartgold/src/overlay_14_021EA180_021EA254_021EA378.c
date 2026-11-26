@@ -24,7 +24,7 @@ s32 ov14_021EA378(UnkStruct_ov14_boxapp *param_1) {
     default:
         break;
     case 0:
-        ov14_021F29E4(*((void **)&param_1->sys), 9, 9);
+        ov14_021F29E4(param_1->sys, 9, 9);
         uVar4 = (u32) param_1->sys->unk_44C;
         if ((uVar4 >= 0x25) && (uVar4 <= 0x2A)) {
             uVar4 = uVar4 + 0x5b;
@@ -39,7 +39,7 @@ s32 ov14_021EA378(UnkStruct_ov14_boxapp *param_1) {
         iVar2 = ov14_021E65C4(param_1);
         if (iVar2 == 0) {
             ov14_021E7148(param_1, ((UnkStruct_ov14_boxsys *)iVar3)->unk_C);
-            ov14_021F29E4(*((void **)&param_1->sys), 9, 8);
+            ov14_021F29E4(param_1->sys, 9, 8);
             ((UnkStruct_ov14_boxsys *)iVar3)->unk_10 = 0;
             return 0;
         }

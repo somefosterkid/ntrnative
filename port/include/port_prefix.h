@@ -18,6 +18,8 @@ typedef unsigned long long bwport_rand_u64 __attribute__((aligned(4)));
 #include <nitro/math/rand.h>
 #undef u64
 _Static_assert(sizeof(MATHRandContext32) == 24 && _Alignof(MATHRandContext32) == 4, "MATHRandContext32: the DS's layout");
+// MWCC's plain char is signed: the game is built with -fsigned-char (port/meson.build game_args), on Android arm64 too
+_Static_assert((char)-1 < 0, "plain char must be signed (-fsigned-char)");
 
 #include <nitro.h>
 #include <nnsys.h>

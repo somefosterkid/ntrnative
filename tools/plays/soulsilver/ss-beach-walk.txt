@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove City's western beach, warped to 539,403 facing west; held walks of three tiles west into the shallow water, north along it, east out onto the sand, south, west in again, and on (Smooth motion: captured every 4th frame, the player vanishes stepping in (11523 / 11519) and shows twice stepping out (11395 / 11391, 11403 / 11399))
+# end: f11560
+env BWPORT_HG_WARP=67:539:403 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f48@f11000 up*f48@f11060 right*f48@f11120 down*f48@f11180 left*f48@f11240 down*f32@f11300 right*f48@f11360 up*f32@f11420 left*f48@f11480

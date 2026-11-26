@@ -6,9 +6,9 @@
 void ov96_02218578(Ov96RdObj *obj, s32 state);
 s32 ov96_022186CC(VecFx32 *dir);
 
-void ov96_02218DF8(Ov96RdObj *obj, Ov96RdPos16 *target, s32 arg2);
+void ov96_02218DF8(Ov96RdObj *obj, Ov96RdPos16 *target);
 
-void ov96_02218DF8(Ov96RdObj *obj, Ov96RdPos16 *target, s32 arg2) {
+void ov96_02218DF8(Ov96RdObj *obj, Ov96RdPos16 *target) {
     VecFx32 sp0 = { 0, 0, 0 };
     s32 temp_r0;
     s32 var_r2;

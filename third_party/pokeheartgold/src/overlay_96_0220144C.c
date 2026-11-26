@@ -3,7 +3,11 @@
 
 void ov96_0220144C(s32 *arg0, s32 arg1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov96_022014A4(void *param_1, void *param_2);
+#else
 s8 ov96_022014A4(void *param_1, void *param_2);
+#endif
 u32 ov96_0220146C(s32 param_1);
 
 void ov96_0220144C(s32 *arg0, s32 arg1) {

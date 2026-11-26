@@ -1,23 +1,39 @@
 #include "global.h"
 
+#include "field_system.h"
 #include "filesystem.h"
 
-void ov02_0224F880(void *arg0, s32 arg1);
+void ov02_0224F880(FieldSystemUnkSub120 *arg0, s32 arg1);
 
-void ov02_0224F880(void *arg0, s32 arg1) {
+void ov02_0224F880(FieldSystemUnkSub120 *arg0, s32 arg1) {
     s32 v0;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    FieldSystemUnkSub120_Sub7E4 *v1;
+#else
     void *v1;
+#endif
 
-    ReadWholeNarcMemberByIdPair(arg0 + 0x7E4, NARC_a_2_2_1, arg1 - 1);
+    ReadWholeNarcMemberByIdPair(arg0->unk7E4, NARC_a_2_2_1, arg1 - 1);
     v0 = 0;
-    *(s8 *)((u8 *)arg0 + 0x868) = 0;
-    *(s8 *)((u8 *)arg0 + 0x869) = 0;
-    *(s8 *)((u8 *)arg0 + 0x86B) = 0;
-    *(u8 *)((u8 *)arg0 + 0x86C) = (u8)(*(u8 *)((u8 *)arg0 + 0x86C) & ~0xF);
-    *(s8 *)((u8 *)arg0 + 0x86A) = 0;
-    *(s8 *)((u8 *)arg0 + 0x86D) = 0;
+    arg0->unk868 = 0;
+    arg0->unk869 = 0;
+    arg0->unk86B = 0;
+    arg0->unk86C_3 = 0;
+    arg0->unk86A = 0;
+    arg0->unk86D = 0;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    v1 = arg0->unk7E4;
+    arg0->unk86E = 0;
+    while (v1->unk0 != 0xFFFF) {
+        v0 += 1;
+        v1++;
+        if (v0 >= 5) {
+            break;
+        }
+    }
+#else
     v1 = arg0;
-    *(s16 *)((u8 *)arg0 + 0x86E) = 0;
+    arg0->unk86E = 0;
 loop_1:
     if (*(u16 *)((u8 *)v1 + 0x7E4) != 0xFFFF) {
         v0 += 1;
@@ -26,5 +42,6 @@ loop_1:
             goto loop_1;
         }
     }
-    *(u8 *)((u8 *)arg0 + 0x86C) = (u8)((*(u8 *)((u8 *)arg0 + 0x86C) & ~0xF0) | (u8)((u8)v0 * 0x10));
+#endif
+    arg0->unk86C_4 = v0;
 }

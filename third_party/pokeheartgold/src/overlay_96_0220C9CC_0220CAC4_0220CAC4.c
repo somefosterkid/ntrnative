@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "math_util.h"
+#include "pokeathlon/pokeathlon.h"
 
 typedef struct {
     s32 f0;
@@ -20,7 +21,11 @@ s32 ov96_0220CCBC(void *);
 
 s32 ov96_0220CD00(void *);
 
-s32 ov96_021E8228(s32, u8, u8, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E8228(s32, u32, u32, s32, s32);
+#else
+void ov96_021E8228(s32, u8, u8, s32, s32);
+#endif
 
 s32 ov96_0220CC38(void *, u32);
 

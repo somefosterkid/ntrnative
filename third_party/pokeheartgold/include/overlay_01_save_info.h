@@ -6,14 +6,14 @@
 
 #include "constants/heap.h"
 
-struct PlayTime;
-struct TrainerInfo;
+struct IGT;
+struct PlayerProfile;
 
 typedef struct SaveInfo {
     int pokedexCount;
     int mapLabelTextID;
-    struct TrainerInfo *trainerInfo;
-    struct PlayTime *playTime;
+    struct PlayerProfile *trainerInfo;
+    struct IGT *playTime;
 } SaveInfo;
 
 // sizeof(SaveInfo) == 0x10 on the DS

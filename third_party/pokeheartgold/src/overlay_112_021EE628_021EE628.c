@@ -5,10 +5,6 @@
 #include "save_arrays.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021EECF0(void *);
-
-s32 ov112_021EE628(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EE628(Ov112PokewalkerApp *arg0) {
     PCStorage *temp_r7;
     u32 temp_r6;

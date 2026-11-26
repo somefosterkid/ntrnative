@@ -7,6 +7,7 @@ struct GpuMtlK {
   int scale;
   Pipe *pcap, *pshow;
   __strong id<MTLTexture> bank[4]; /* 256 N x 256 N R16Uint, made on first use */
+  unsigned n_bank[4];              /* their names (gpu_mtl_k_bank; 0: none yet) */
   __strong id<MTLTexture> scratch; /* 256 N x 192 N R16Uint: the capture before it is copied into its bank */
   __strong id<MTLTexture> none;    /* 1 x 1 RGBA8Uint: k3d when there is no 3D layer */
   MData b1x[GPU_RING];             /* source B's bank as the game left it, R16Uint 256 x 256 (a ring: earlier frames read theirs) */
@@ -50,7 +51,7 @@ void gpu_mtl_k_destroy(GpuMtlK *k) {
       k->last[i] = nil;
       mdata_free(&k->b1x[i]);
     }
-    for (int b = 0; b < 4; b++) k->bank[b] = nil;
+    for (int b = 0; b < 4; b++) name_free(k->n_bank[b]), k->bank[b] = nil;
     k->scratch = k->none = nil;
     free(k);
   }
@@ -60,6 +61,12 @@ static id<MTLTexture> k_bank(GpuMtlK *k, int b) {
   if (k->bank[b] == nil) k->bank[b] = target(MTLPixelFormatR16Uint, VC_W * k->scale, 256 * k->scale, 0);
   return k->bank[b];
 }
+unsigned gpu_mtl_k_bank(GpuMtlK *k, int b) {
+  @autoreleasepool {
+    if (k->n_bank[b] == 0) k->n_bank[b] = name_new(k_bank(k, b));
+    return k->n_bank[b];
+  }
+}
 
 /* a render pass of p into t, rows y0 .. y0 + h - 1 (load: keep what the pass does not write) */
 static id<MTLRenderCommandEncoder> k_pass(id<MTLTexture> t, int load, int y0, int w, int h, const Pipe *p, const GpuK *u) {
@@ -67,6 +74,7 @@ static id<MTLRenderCommandEncoder> k_pass(id<MTLTexture> t, int load, int y0, in
   d.colorAttachments[0].texture = t;
   d.colorAttachments[0].loadAction = load ? MTLLoadActionLoad : MTLLoadActionDontCare;
   d.colorAttachments[0].storeAction = MTLStoreActionStore;
+  pt_render(d, p->key);
   id<MTLRenderCommandEncoder> e = [cb() renderCommandEncoderWithDescriptor:d];
   e.label = @(p->key);
   [e setRenderPipelineState:p->rp];
@@ -122,9 +130,11 @@ int gpu_mtl_k_show(GpuMtlK *k, unsigned out, const GpuK *u, int bank) {
   }
 }
 
-unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, unsigned smaa, const GpuU *u) {
+unsigned gpu_mtl_capsrc(GpuMtlC *c, const uint32_t *stage, const uint32_t *src, unsigned serial, int plan, unsigned tex3d,
+                        unsigned smaa, unsigned capbank, const GpuU *u) {
   @autoreleasepool {
-    if (c->up[c->cur] != serial || c->stage[c->cur].buf == nil) return 0; /* (gpu_mtl_compose with this pack first) */
+    c_upload(c, stage, src, serial); /* (pass C reused for this frame did not) */
+    if (c->stage[c->cur].buf == nil) return 0;
     if (c->cap == nil) {
       c->cap = target(MTLPixelFormatRGBA8Unorm, c->w, VC_H * c->scale, 0);
       c->n_cap = name_new(c->cap);
@@ -140,6 +150,8 @@ unsigned gpu_mtl_capsrc(GpuMtlC *c, unsigned serial, int plan, unsigned tex3d, u
     ftex(e, c->pipe, "cSrc1x", c->src[c->cur].tex);
     ftex(e, c->pipe, "c3d", t3 != nil ? t3 : c->stage[c->cur].tex);
     ftex(e, c->pipe, "cSmaa", t3 != nil && ts != nil ? ts : c->none);
+    id<MTLTexture> tk = (__bridge id<MTLTexture>)gpu_mtl_texture(capbank);
+    ftex(e, c->pipe, "cCapBank", tk != nil ? tk : c->src[c->cur].tex);
     pass_end(e);
     c->last[c->cur] = cb();
     return c->n_cap;

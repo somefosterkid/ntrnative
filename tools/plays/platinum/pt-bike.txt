@@ -1,0 +1,10 @@
+# game: platinum
+# from: pt-bike
+# reaches: Eterna City's plaza: the Bicycle registered from the bag (X menu, Key Items pocket), Y mounts it, a ride east, Y gets off, a walk on (bike on and off)
+# end: f10300
+env BWPORT_PT_WARP=65:301:554
+keys start@f6300 a@f6700
+keys x@f7000 down*f6@f7100 down*f6@f7200 a*f6@f7300 left*f6@f7500
+keys down*f6@f7600 down*f6@f7700 down*f6@f7800 down*f6@f7900 down*f6@f8000 a*f6@f8100 down*f6@f8250 a*f6@f8400
+keys b*f6@f8600 b*f6@f8800 b*f6@f9000
+keys y*f6@f9400 right*f50@f9700 y*f6@f9900 right*f40@f10100

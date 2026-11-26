@@ -5,19 +5,46 @@
 
 #include "pokeathlon/pokeathlon_save.h"
 
+#include "comm_cmd_manager.h"
 #include "overlay_manager.h"
+#include "sys_task.h"
 #include "player_data.h"
 #include "save.h"
 
 typedef struct PokeathlonCourseData PokeathlonCourseData;
 
+typedef struct PokeathlonCmdBuf {
+    u8 *sendData;
+    u8 *recvData;
+    s32 size;
+    u32 active;
+} PokeathlonCmdBuf;
+
 // Function pointer types for state management
-typedef BOOL (*PokeathlonStateFunc)(PokeathlonCourseData *, void **);
+typedef BOOL (*PokeathlonStateFunc)(PokeathlonCourseData *, u8 *);
 typedef BOOL (*PokeathlonStateHandlerFunc)(PokeathlonCourseData *, int);
 
+// Per-event handler table (0x14 bytes, in asm data): funcs[1] is run by ov96_021E67AC, funcs[2] (may be NULL) and
+// funcs[3] are the setup/cleanup of the event, flag selects the data copy step of ov96_021E6F2C.
+typedef struct PokeathlonEventHandlers {
+    PokeathlonStateHandlerFunc funcs[4];
+    s32 flag;
+} PokeathlonEventHandlers;
+
 // State info structure (8 bytes)
+struct Sprite;
+struct SysTask;
+
+// One of the 3 sprite slots of the course data (ov96_021E64F8 fills it, ov96_021E81D8 is the task).
+typedef struct PokeathlonCourseSpriteSlot {
+    s32 active;           // 0x0
+    void *unk_4;          // 0x4
+    struct Sprite *sprite; // 0x8
+    struct SysTask *task; // 0xC
+} PokeathlonCourseSpriteSlot; // size 0x10
+
 typedef struct PokeathlonStateInfo {
-    void *ptr;        // 0x00 - Pointer to state function table
+    const PokeathlonStateFunc *ptr; // 0x00 - Pointer to state function table
     u8 field_04;      // 0x04 - Field at offset 4 (initialized to 1)
     u8 stateArgsBase; // 0x05 - Base for state function args
     u8 stateIndex;    // 0x06 - State function index
@@ -143,13 +170,43 @@ typedef struct PokeathlonRecord1 {
     s32 words[10];
 } PokeathlonRecord1; // size 0x28
 
+// Network/local message system of the course (ov96_021E8770 allocates it).
+// One queued message: payloads up to 0x26 bytes are copied into data, larger ones are
+// referenced (or copied by the table's alloc callback) through ptr.
+typedef struct Ov96Msg {
+    s32 active;
+    s32 cmd;
+    u8 data[0x28];
+    s32 size;
+    void *ptr;
+} Ov96Msg; // size 0x38 on the DS
+
+typedef struct Ov96Handlers {
+    Ov96Msg msgs[8];
+    const CommCmdTable *cmdTable;
+    int cmdCount;
+    void *userData;
+    SysTask *task;
+} Ov96Handlers; // size 0x1D0 on the DS
+
+typedef struct Ov96System {
+    u16 isLocal;
+    u16 sizeCheck;
+    Ov96Handlers *handlers;
+} Ov96System;
+
+BOOL ov96_021E8914(Ov96Handlers *handlers, s32 cmd, void *data, s32 size);
+BOOL ov96_021E8988(Ov96Handlers *handlers, s32 cmd, void *data, s32 size);
+
+void ov96_021E87B0(Ov96System *system, s32 mode);
+
 // Pokeathlon course data structure (0xD70 = 3440 bytes)
 struct PokeathlonCourseData {
     u32 field_0[4];                            // 0x000
     u8 filler_10[0x14C];                       // 0x010
     u8 field_15C;                              // 0x15C
     u8 filler_15D[0x83];                       // 0x15D
-    u32 state;                                 // 0x1E0
+    const PokeathlonEventHandlers *state;      // 0x1E0
     void *heapAllocPtr4;                       // 0x1E4 - Heap allocated pointer
     u8 filler_1E8[0x5];                        // 0x1E8
     u8 field_1ED;                              // 0x1ED
@@ -166,15 +223,16 @@ struct PokeathlonCourseData {
     u32 field_27C;                             // 0x27C
     OverlayManager *subOverlay;                // 0x280
     enum HeapID heapId;                        // 0x284
-    void *system;                              // 0x288
+    Ov96System *system;                        // 0x288
     u8 dataCopySource[0x28];                   // 0x28C - Source buffer for exit data copy
     u8 dataCopyBuffer1[0x28];                  // 0x2B4 - Destination buffer 1
     u8 dataCopyBuffer2[0x28];                  // 0x2DC - Destination buffer 2
     u8 filler_304[0xA0];                       // 0x304
-    u32 field_3A4[4];                          // 0x3A4
+    PokeathlonCmdBuf field_3A4;                // 0x3A4
     PokeathlonCourseState courseState;         // 0x3B4 - State machine structure (16 bytes: 4 fields x 4 bytes)
     PokeathlonStateInfo stateInfo;             // 0x3C4 - State information (8 bytes)
-    u8 filler_3CC[0xC];                        // 0x3CC
+    PokeathlonStateInfo subStateInfo;          // 0x3CC
+    u8 filler_3D4[4];                          // 0x3D4
     u32 field_3D8[4];                          // 0x3D8 - Array of 4 u32s (16 bytes)
     u32 field_3E8;                             // 0x3E8
     PokeathlonParticipantData participants[4]; // 0x3EC - 4 participant data elements (0x7C each = 0x1F0 bytes)
@@ -199,7 +257,7 @@ struct PokeathlonCourseData {
     u16 filler_D2A;                            // 0xD2A - Alignment padding
     u32 counterEnabled;                        // 0xD2C - Flag to enable frame counters
     s32 unk_D30;
-    u8 unk_D34[0x30];
+    PokeathlonCourseSpriteSlot spriteSlots[3]; // 0xD34
     void *heapAllocPtr2;                       // 0xD64 - Heap allocated pointer (freed in Exit if mode == 0)
     void *heapAllocPtr3;                       // 0xD68 - Heap allocated pointer (freed in Exit if mode == 0)
     u32 unk_D6C;
@@ -211,7 +269,7 @@ BOOL PokeathlonCourse_Exit(OverlayManager *manager, int *state);
 
 BOOL PokeathlonCourse_RunStateFunc(PokeathlonCourseData *data);
 BOOL PokeathlonCourse_RunSubStateLoop(PokeathlonCourseData *data);
-void PokeathlonCourse_InitStateInfo(const void *funcTable, PokeathlonStateInfo *stateInfo);
+void PokeathlonCourse_InitStateInfo(const PokeathlonStateFunc *funcTable, PokeathlonStateInfo *stateInfo);
 void PokeathlonCourse_InitPlayerProfiles(PokeathlonCourseData *data);
 PlayerProfile *PokeathlonCourse_GetPlayerProfile(PlayerProfile *profiles, int index);
 u8 PokeathlonCourse_GetParticipantCount(PokeathlonCourseData *data);
@@ -238,15 +296,15 @@ u32 PokeathlonCourse_GetMode(PokeathlonCourseData *data);
 u8 PokeathlonCourse_GetField1EF(PokeathlonCourseData *data);
 void PokeathlonCourse_IncrementField1EF(PokeathlonCourseData *data);
 void PokeathlonCourse_ResetField1EF(PokeathlonCourseData *data);
-void *PokeathlonCourse_GetSystem(PokeathlonCourseData *data);
+Ov96System *PokeathlonCourse_GetSystem(PokeathlonCourseData *data);
 BOOL ov96_021E5F24(PokeathlonCourseData *data);
 PlayerProfile *PokeathlonCourse_GetPlayerProfileFromData(PokeathlonCourseData *data, int index);
 PokeathlonUnkSubStruct_974 *PokeathlonCourse_GetField974_AtIndex(PokeathlonCourseData *data, int index);
 u8 *PokeathlonCourse_GetDataCopyArea(PokeathlonCourseData *data);
 void PokeathlonCourse_ResetDataCopyArea(PokeathlonCourseData *data);
-void PokeathlonCourse_SetField3A4(PokeathlonCourseData *data, u32 a0, u32 a1, u32 a2);
+void PokeathlonCourse_SetField3A4(PokeathlonCourseData *data, u8 *a0, u8 *a1, s32 a2);
 void PokeathlonCourse_ResetField3A4(PokeathlonCourseData *data);
-u32 PokeathlonCourse_GetField3A4(PokeathlonCourseData *data);
+u8 *PokeathlonCourse_GetField3A4(PokeathlonCourseData *data);
 u32 PokeathlonCourse_GetUnkConstant4(void *data);
 void PokeathlonCourse_SetField5E0_AtIndex(PokeathlonCourseData *data, int index, u16 value);
 u16 PokeathlonCourse_GetField5F0_AtIndex(PokeathlonCourseData *data, int index);
@@ -261,15 +319,18 @@ PokeathlonMonKinds *ov96_021E60D8(PokeathlonCourseData *data, s32 participant, s
 void ov96_021E67AC(PokeathlonCourseData *data);
 void ov96_021E75BC(void *);
 void ov96_021E7F98(s32 frameCount, u32 maxValue, Pokeathlon_UnkSubStruct_B00 *result);
-void *ov96_021E8770(int a0, int a1, PokeathlonCourseData *data, int a3, enum HeapID heapId);
-BOOL ov96_021E87B4(int a0, void *a1, void *a2, int a3);
-void ov96_021E8810(void *ptr);
+Ov96System *ov96_021E8770(const CommCmdTable *cmdTable, int cmdCount, PokeathlonCourseData *data, int a3, enum HeapID heapId);
+Ov96Handlers *ov96_021E883C(const CommCmdTable *cmdTable, int cmdCount, void *userData, enum HeapID heapID);
+BOOL ov96_021E87B4(s32 a0, void *a1, s32 a2, Ov96System *a3);
+void ov96_021E8810(Ov96System *ptr);
 BOOL ov96_021E8828(void *);
+void ov96_021E6550(PokeathlonCourseData *data);
+void ov96_021E65A4(PokeathlonCourseData *data);
 void *ov96_021E8A20(void *ptr);
-int ov96_021E8A24(void);
+const CommCmdTable *ov96_021E8A24(void);
 int ov96_021E8A2C(void);
 void *ov96_021E92E0(enum HeapID heapId);
 void ov96_021E9320(void *ptr);
-void *ov96_021E9A14(void);
+u32 ov96_021E9A14(void);
 
 #endif // POKEHEARTGOLD_POKEATHLON_H

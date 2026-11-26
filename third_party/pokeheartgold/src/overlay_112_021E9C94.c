@@ -7,8 +7,6 @@ struct UnkStruct_ov112_021EA230;
 
 void ov112_021E9C94(void);
 
-void ov112_021E9C98(Ov112PokewalkerApp *param_1);
-
 void ov112_021E9C94(void) {
 }
 

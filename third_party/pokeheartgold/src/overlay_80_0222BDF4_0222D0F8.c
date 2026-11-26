@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -84,7 +86,6 @@ struct FrontierScriptManager {
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 void BufferRivalsName(StringTemplate *template, u32 idx, const SaveData *saveData);
 typedef struct JournalEntry JournalEntry;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 u16 *FrontierScript_ReadVarPtr(FrontierScriptContext *ctx);
 typedef struct WifiBattleTowerRecord WifiBattleTowerRecord;
 u16 FrontierData_BattlePointAction(WifiBattleTowerRecord *record, u16 value, int func);

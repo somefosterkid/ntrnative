@@ -36,7 +36,7 @@
 #include "unk_0200A090.h"
 #include "unk_02013FDC.h"
 #include "unk_02062108.h"
-#include "overlay_02_follow_app.h"
+#include "field_system.h"
 
 struct AreaDataManager;
 
@@ -158,16 +158,9 @@ struct UnkStruct_0205AC88;
 
 struct UnkStruct_02092BB8;
 
-struct ov02_FollowMonStep;
-
 typedef struct CAPSULE {
     SEAL seals[8];
 } CAPSULE;
-
-typedef struct ov02_FollowMonStep {
-    u8 idx : 4;
-    u8 hi : 4;
-} ov02_FollowMonStep;
 
 void ov02_0224FDF8(void *arg0, u16 arg1, int arg2, int arg3);
 
@@ -183,21 +176,21 @@ void FollowMon_ExpandInteractionMessage(void *work, void *dest, enum HeapID heap
 
 void ov02_0224FCE0(void *work, String *dest, enum HeapID heapID, int flags, u8 a5);
 
-int ov02_0224FF5C(void *a0, LocalMapObject *a1);
+int ov02_0224FF5C(FieldSystemUnkSub120 *a0, LocalMapObject *a1);
 
-int ov02_0224FF5C(void *a0, LocalMapObject *a1) {
-    u8 *entry = (u8 *)a0 + 0x818 + *((u8 *)&((Ov02FollowApp *)a0)->unk_810[91]) * 8;
-    if (*((u8 *)&((Ov02FollowApp *)a0)->unk_810[90]) == 0) {
+int ov02_0224FF5C(FieldSystemUnkSub120 *a0, LocalMapObject *a1) {
+    FieldSystemUnkSub120_Sub818 *entry = &a0->unk818[a0->unk86B];
+    if (a0->unk86A == 0) {
         ov02_0224FD9C(entry, a1);
         ov02_0224FDF8(entry,
-            *(u16 *)((u8 *)a0 + ((ov02_FollowMonStep *)((u8 *)a0 + 0x86c))->idx * 8 + 0x7e8),
-            *((u16 *)&((Ov02FollowApp *)a0)->unk_870[14]),
-            *((u8 *)&((Ov02FollowApp *)a0)->unk_870[13]));
-        ov02_0224FE40(a0, entry, a1);
+            a0->unk7E4[a0->unk86C_3].unk4,
+            a0->unk87E,
+            a0->unk87D);
+        ov02_0224FE40(a0, (u8 *)entry, a1);
     }
-    (*((u8 *)&((Ov02FollowApp *)a0)->unk_810[90]))++;
-    if (*((u8 *)&((Ov02FollowApp *)a0)->unk_810[90]) >= entry[1]) {
-        (*((u8 *)&((Ov02FollowApp *)a0)->unk_810[91]))++;
+    a0->unk86A++;
+    if (a0->unk86A >= entry->unk1) {
+        a0->unk86B++;
         return 1;
     }
     return 0;

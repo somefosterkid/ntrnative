@@ -33,10 +33,10 @@ void ov82_0223EB3C(void *arg0) {
     ov82_0223EE6C(arg0, 5);
 }
 
-s32 ov82_0223F95C(void *, Pokemon *);
+void ov82_0223F95C(BattleHallAppSpriteManager *, Pokemon *);
 
-void ov82_0223EB9C(void *arg0) {
-    ov82_0223F95C(arg0 + 0xA8, Party_GetMonByIndex(((BattleHallApp *)arg0)->party, 0));
+void ov82_0223EB9C(BattleHallApp *arg0) {
+    ov82_0223F95C(&arg0->spriteMan, Party_GetMonByIndex(arg0->party, 0));
 }
 
 void ov82_0223EBB8(BgConfig *arg0);

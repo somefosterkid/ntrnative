@@ -9,17 +9,21 @@
 
 s32 ov14_021F6B28(void *, s32);
 void ov14_021E5A50(UnkStruct_ov14_boxsys *sys, UnkFuncPtr_ov14_boxtask task);
-s32 ov14_021F7AC4(void *);
-void ov14_021F7594(UnkStruct_ov14_boxapp *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F7AC4(UnkStruct_ov14_boxsys *arg0, s32 target, s32 arg2);
+#else
+void ov14_021F7AC4(UnkStruct_ov14_boxsys *arg0, s32 target, s32 arg2);
+#endif
+void ov14_021F7594(UnkStruct_ov14_boxapp *arg0, s32 target, s32 arg2);
 
 s32 ov14_021E9F20(UnkStruct_ov14_boxapp *app);
 
-void ov14_021F7528(void *arg0, u8 arg1, s32 arg2) {
+void ov14_021F7528(UnkStruct_ov14_boxapp *arg0, u8 arg1, s32 arg2) {
     u32 v0;
     u8 v1;
     v1 = arg1;
     if (arg2 != (-1)) {
-        if (ov14_021E8544(((UnkStruct_ov14_boxsys *)((FieldSystem *)arg0)->areaDataManager)->unk_2F0) == 0) {
+        if (ov14_021E8544(arg0->sys->unk_2F0) == 0) {
             v0 = v1 - 0x1E;
             switch (v0) {
             case 0:
@@ -38,7 +42,7 @@ void ov14_021F7528(void *arg0, u8 arg1, s32 arg2) {
                 break;
 
             default:
-                v1 = *((u8 *)(((u8 *)arg0) + 0x21));
+                v1 = arg0->unk21;
                 if (((u32)v1) >= 0x1EU) {
                     v1 = 0;
                 }
@@ -50,16 +54,16 @@ void ov14_021F7528(void *arg0, u8 arg1, s32 arg2) {
         }
     }
     arg1 = 0xFFFFu;
-    GridInputHandler_SetNextInput(*((GridInputHandler **)(((u8 *)(((void *)((FieldSystem *)arg0)->areaDataManager))) + 0x2C)), (s32)(v1 & arg1));
+    GridInputHandler_SetNextInput(arg0->sys->unk_2C, (s32)(v1 & arg1));
     ov14_021F6B28(arg0, v1);
 }
 
-void ov14_021F7594(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F7AC4(arg0->sys);
+void ov14_021F7594(UnkStruct_ov14_boxapp *arg0, s32 target, s32 arg2) {
+    ov14_021F7AC4(arg0->sys, target, arg2);
     ov14_021E5A50(arg0->sys, ov14_021E9F20);
 }
 
-void ov14_021F75AC(void *arg0, u8 arg1) {
+void ov14_021F75AC(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     s32 new_var;
     new_var = (s32)(((((((((arg1 & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu) & 0xFFu);
     GridInputHandler_SetNextInput(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C, new_var);

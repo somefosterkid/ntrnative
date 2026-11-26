@@ -23,7 +23,7 @@
 
 struct FrontierData;
 
-struct FrontierLaunchArgs;
+struct FieldFrontierDTO;
 
 struct FrontierSave;
 
@@ -43,7 +43,7 @@ BOOL FrtCmd_178(FrontierScriptContext *ctx) {
     ctx->scriptPtr++;
     u16 *out = FrontierScript_ReadVarPtr(ctx);
     u8 *data = Frontier_GetData(ctx->frontierSystem->unk0);
-    FrontierLaunchArgs *launchArgs = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
+    FieldFrontierDTO *launchArgs = Frontier_GetLaunchArgs(ctx->frontierSystem->unk0);
     switch (sel) {
     case 0:
         sub_02096910(data);

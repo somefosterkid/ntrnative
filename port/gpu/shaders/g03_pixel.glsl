@@ -9,6 +9,11 @@
 // the fractional parts of the two ends and the remainder in floats (their sum is < 4: error 1e-7). The perspective
 // fraction q is a float (error ~1e-7 of the span, so the colour carries a 1e-4 epsilon instead of vcore's 1e-6).
 
+#ifdef R_LITE
+// 4 samples (lite)'s programs leave GpuOptions.exp's forms out (uExp 0: the defaults; the switches are for the 4 samples' A/B)
+#define uExp 0u
+#endif
+
 int g_fdiv(int a, int b) { // floor(a / b), b > 0 (GLSL leaves / and % of negative operands open: positive operands only)
   return a >= 0 ? a / b : -((-a + b - 1) / b);
 }
@@ -158,7 +163,8 @@ void g_cover_row(GRow r, int x0, int s0, bool early, uvec4 old, uint attr, inout
   }
   if (!any_c) return;
   uint rf = uint(t4.z);
-  if (float(x0) >= dlo.z && float(x0 + G_K - 1) <= dlo.w) { // all in the inner run (g02_spans.h t10): no edge flag, full coverage
+  // all in the inner run (g02_spans.h t10): no edge flag, full coverage (GPU_EXP_R_NOINNER: the edge step as for any pixel)
+  if ((uExp & 1u) == 0u && float(x0) >= dlo.z && float(x0 + G_K - 1) <= dlo.w) {
     bool m = (rf & ROW_ALLEDGE) != 0u;
     if ((rf & ROW_WIRE) != 0u && !m) return;
     for (int i = 0; i < G_K; i++) {
@@ -323,10 +329,33 @@ uint g_depth_px(int x, vec4 t0, vec4 t1, vec4 t4, vec4 dlo) {
   return dd < 0.0 ? 0u : (dd > 16777215.0 ? 0xFFFFFFu : uint(dd + 0.5));
 }
 
+// the edge step for one sample (g_edge2's lane; bit 0 the edge flag, bits 1-5 the coverage, bit 31 not drawn: a wire-frame's
+// pixel off the mask): the form before g_edge2, kept for GPU_EXP_R_NOEDGE2 (the phone's A/B, docs/gpu-cost.md)
+uint g_edge_px(int x, uint rf, vec4 t5, vec4 t6, vec4 t7, vec4 t8, vec4 t9) {
+  float fx = float(x);
+  bool m = (rf & ROW_ALLEDGE) != 0u || (fx >= t5.x && fx <= t5.y) || (fx >= t5.z && fx <= t5.w);
+  if ((rf & ROW_MASK2) != 0u)
+    m = m || (fx >= t6.x && fx <= t6.y) || (fx >= t6.z && fx <= t6.w) || (fx >= t7.x && fx <= t7.y) || (fx >= t7.z && fx <= t7.w);
+  if ((rf & ROW_WIRE) != 0u && !m) return 0x80000000u;
+  uint cv = (rf & ROW_COV0) != 0u ? 0u : 31u;
+  if ((rf & ROW_AA) != 0u) {
+    uint a = 31u;
+    int xa = (rf & ROW_DSGRID) != 0u ? x / int(rf >> 8) : x; // G9: a DS-grid row's windows are in DS pixels
+    if ((rf & ROW_WIRE) == 0u) {
+      a = g_aa_side(xa, t6, t7, true);
+      if (!((rf & ROW_VERTL) != 0u && float(xa) == t6.w)) a = min(a, g_aa_side(xa, t8, t9, false));
+    }
+    if (a < 31u) m = true;
+    cv = (rf & ROW_COV0) != 0u ? 0u : a;
+  }
+  return (m ? 1u : 0u) | (cv << 1);
+}
+
 // g_depth_px of samples x and x + 1 of a row: g_lin's row constants (the ends' whole and fractional parts, dz's quotient and
 // remainder by den_z) once, and the second sample's quotient from the first one's remainder (m + dr = qq d + rem + dr, the two
-// remainders below d); the same values as two g_depth_px (the float sum is the same expression)
-uvec2 g_depth2(int x, vec4 t0, vec4 t1, vec4 t4, vec4 dlo) {
+// remainders below d); the same values as two g_depth_px (the float sum is the same expression). GPU_EXP_R_DQ: dz's quotient
+// is pass S's (the record's t9.w, fdq: g02_spans.h), not divided here
+uvec2 g_depth2(int x, vec4 t0, vec4 t1, vec4 t4, vec4 dlo, float fdq) {
   float nf = float(x) - t4.w, nf1 = float(x + 1) - t4.w;
   bool whole_z = nf == floor(nf) && t0.w == floor(t0.w) && t0.w >= 1.0 && t0.w < 65536.0 && abs(nf) < 65536.0 && abs(nf1) < 65536.0;
   if ((uSwap & 2u) != 0u || !whole_z) return uvec2(g_depth_px(x, t0, t1, t4, dlo), g_depth_px(x + 1, t0, t1, t4, dlo));
@@ -335,7 +364,7 @@ uvec2 g_depth2(int x, vec4 t0, vec4 t1, vec4 t4, vec4 dlo) {
   int ai = int(floor(a)), bi = int(floor(b));
   float fa = (a - float(ai)) + dlo.x, fb = (b - float(bi)) + dlo.y;
   int dz = bi - ai;
-  int dq = g_fixq(dz, d, float(dz) / fd);
+  int dq = (uExp & 8u) != 0u ? int(fdq) : g_fixq(dz, d, float(dz) / fd);
   int dr = dz - dq * d;
   float fq = nf / t0.w, fq1 = nf1 / t0.w;
   int m = dr * n;
@@ -370,7 +399,15 @@ void g_cover2(GRow ra, bool oka, GRow rb, bool okb, int x0, bool early, uvec4 ol
   }
   if (!any(c)) return;
   vec4 dla = g_span(ra.rec, 10), dlb = g_span(rb.rec, 10);
-  uvec4 d = uvec4(g_depth2(x0, ra.t0, ra.t1, ra.t4, dla), g_depth2(x0, rb.t0, rb.t1, rb.t4, dlb));
+  uvec4 d;
+  if ((uExp & 2u) != 0u) { // GPU_EXP_R_NODEPTH2: a sample at a time, the form before g_depth2
+    d = uvec4(g_depth_px(x0, ra.t0, ra.t1, ra.t4, dla), g_depth_px(x0 + 1, ra.t0, ra.t1, ra.t4, dla),
+              g_depth_px(x0, rb.t0, rb.t1, rb.t4, dlb), g_depth_px(x0 + 1, rb.t0, rb.t1, rb.t4, dlb));
+  } else {
+    bool sq = (uExp & 8u) != 0u; // GPU_EXP_R_DQ
+    d = uvec4(g_depth2(x0, ra.t0, ra.t1, ra.t4, dla, sq ? g_span(ra.rec, 9).w : 0.0),
+              g_depth2(x0, rb.t0, rb.t1, rb.t4, dlb, sq ? g_span(rb.rec, 9).w : 0.0));
+  }
   if (early) c = g_and(c, (attr & 0x4000u) != 0u ? lessThanEqual(max(d, old) - min(d, old), uvec4(0x200u)) : lessThan(d, old));
   if (!any(c)) return;
   // the edge steps row by row: a row's windows are live for its own two samples only (with both rows' ten texels at once, this
@@ -378,10 +415,18 @@ void g_cover2(GRow ra, bool oka, GRow rb, bool okb, int x0, bool early, uvec4 ol
   uvec4 e;
   for (int j = 0; j < 2; j++) {
     int rec = j == 0 ? ra.rec : rb.rec;
+#ifdef R_LITE
+    // 4 samples (lite), pass R's own programs ("#2+R_LITE", "#2f+R_LITE"; src/g00_frame.c raster_prog, gpu_mtl.m): the DS's
+    // coverage windows left out, every sample whole, the edge flags the mask's (the window code compiled away: Metal town -0.1 ms
+    // where a uniform test kept it)
+    uint rf = uint(j == 0 ? ra.t4.z : rb.t4.z) & ~ROW_AA;
+#else
     uint rf = uint(j == 0 ? ra.t4.z : rb.t4.z);
+#endif
     vec2 in2 = j == 0 ? dla.zw : dlb.zw;
     uvec2 ej;
-    if (float(x0) >= in2.x && float(x0 + 1) <= in2.y) { // both in the inner run (g02_spans.h t10): no edge flag, full coverage
+    // both in the inner run (g02_spans.h t10): no edge flag, full coverage (GPU_EXP_R_NOINNER: the edge step as for any pixel)
+    if ((uExp & 1u) == 0u && float(x0) >= in2.x && float(x0 + 1) <= in2.y) {
       bool m = (rf & ROW_ALLEDGE) != 0u;
       ej = uvec2((rf & ROW_WIRE) != 0u && !m ? 0x80000000u : (m ? 1u : 0u) | ((rf & ROW_COV0) != 0u ? 0u : 62u));
     } else {
@@ -394,7 +439,10 @@ void g_cover2(GRow ra, bool oka, GRow rb, bool okb, int x0, bool early, uvec4 ol
         t8 = g_span(rec, 8);
         t9 = g_span(rec, 9);
       }
-      ej = g_edge2(x0, rf, t5, t6, t7, t8, t9);
+      if ((uExp & 4u) != 0u) // GPU_EXP_R_NOEDGE2: a sample at a time, the form before g_edge2
+        ej = uvec2(g_edge_px(x0, rf, t5, t6, t7, t8, t9), g_edge_px(x0 + 1, rf, t5, t6, t7, t8, t9));
+      else
+        ej = g_edge2(x0, rf, t5, t6, t7, t8, t9);
     }
     if (j == 0) e.xy = ej;
     else e.zw = ej;

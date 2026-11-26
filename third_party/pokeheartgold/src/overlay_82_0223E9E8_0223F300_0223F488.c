@@ -10,7 +10,11 @@ u16 ov82_0223F558(void *);
 
 u16 ov82_0223F570(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov82_0223FCBC(void *, u16, u16);
+#else
 s32 ov82_0223FCBC(void *, s32, s32);
+#endif
 
 s32 ov82_0223FCFC(void *, s32);
 

@@ -2,7 +2,11 @@
 
 #include "pokeathlon/pokeathlon.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E8228(s32, u32, u32, s32, s32);
+#else
 void ov96_021E8228(s32, u8, u8, s32, s32);
+#endif
 
 void ov96_02218578(void *, s32);
 

@@ -10,7 +10,11 @@ s32 ov70_0223EDE4(void *, s32);
 
 s32 ov70_0223F3D8(void *, void *, void *, void *, s32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov70_0223F960(void *, s32, s16, s16);
+#else
 s32 ov70_0223F960(void *, s32, u16, u16);
+#endif
 
 s16 ov70_02242144(void *);
 

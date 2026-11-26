@@ -646,21 +646,6 @@ typedef struct {
     const TouchscreenHitbox *unk_28;
 } UnkStruct_ov62_02248CDC;
 
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
-
 typedef struct {
     int unk_00;
     BOOL unk_04;

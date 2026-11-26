@@ -11,6 +11,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -116,13 +117,6 @@ enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
-
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
-
 
 
 void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dPaletteData **outPaletteData, enum HeapID heapID);

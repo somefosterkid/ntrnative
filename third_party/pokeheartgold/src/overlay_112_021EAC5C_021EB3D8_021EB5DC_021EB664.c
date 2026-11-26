@@ -9,17 +9,7 @@ s32 ov112_021EB9C0(void);
 
 s32 ov112_021EB9E4(void);
 
-s32 ov112_021EA51C(void *, s32);
-
-s32 ov112_021EB90C(void *, s32);
-
-s32 ov112_021EB950(void *, s32);
-
-s32 ov112_021EC440(void *, s32, s32, s32);
-
 extern s32 ov112_021FF09C;
-
-s32 ov112_021EB664(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EB664(Ov112PokewalkerApp *arg0) {
     s32 temp_r0;

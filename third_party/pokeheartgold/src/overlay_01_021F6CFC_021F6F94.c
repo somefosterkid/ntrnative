@@ -32,7 +32,7 @@ s32 ov01_021F6F94(void *arg0) {
     v0 = ((UnkStruct_ov5_021EAE78 *)arg0)->unk_9A;
     switch (v0) {
     case 0:
-        ov01_021F6A9C((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem), 6, arg0 + 0x94);
+        ov01_021F6A9C((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem), 6, &((UnkStruct_ov5_021EAE78 *)arg0)->unk_94);
         ((UnkStruct_ov5_021EAE78 *)arg0)->unk_9A = (u16)(((UnkStruct_ov5_021EAE78 *)arg0)->unk_9A + 1);
         break;
     case 1:

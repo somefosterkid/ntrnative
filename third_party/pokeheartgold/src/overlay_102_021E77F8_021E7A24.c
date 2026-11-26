@@ -19,10 +19,8 @@ void ov102_021E7A24(void *arg0, OverlayManager *man) {
     OverlayManager_FreeData(man);
 }
 
-void ov102_021E7A4C(void *arg0, void *arg1);
-
-void ov102_021E7A4C(void *arg0, void *arg1) {
-    *(void **)((u8 *)arg0 + 0x20) = arg1;
-    *(s32 *)((u8 *)arg0 + 0x1C) = 0;
-    *(s32 *)((u8 *)arg0 + 0x78) = 0;
+void ov102_021E7A4C(EasyChatApp *easyChatApp, EasyChatMainFunc mainFunc) {
+    easyChatApp->mainFunc = mainFunc;
+    easyChatApp->state = 0;
+    *(s32 *)((u8 *)easyChatApp + 0x78) = 0;
 }

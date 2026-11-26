@@ -11,7 +11,7 @@ void ov41_02249BAC(UnkStruct_ov22_02259560 *param0, int *param1, int *param2, in
 void ov41_02248400(UnkStruct_ov22_02259560 *param0, int *param1, int *param2);
 
 s32 ov41_0224888C(void *, s32);
-s32 ov41_022489A8(void *, void *);
+void ov41_022489A8(void *, void *);
 void ov41_02248488(struct UnkStruct_ov22_02257F50 *arg0, void *arg1);
 
 void ov41_02248400(UnkStruct_ov22_02259560 *param0, int *param1, int *param2) {

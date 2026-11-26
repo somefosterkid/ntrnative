@@ -151,7 +151,6 @@ struct MailBoxPrintState {
     u8 printing;
 };
 
-void sub_02019B1C(UnkStruct_0201956C *frames, int index, s8 *x, s8 *y);
 
 struct MailboxProcessData {
     GameData *gameData;

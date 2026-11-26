@@ -8,7 +8,11 @@ BOOL sub_02089E80(PokemonSummary *summaryScreen, s32 badge);
 
 void sub_02089E14(PokemonSummary *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0208A234(PokemonSummary *, s8);
+#else
 void sub_0208A234(PokemonSummary *, u32);
+#endif
 
 s32 sub_0208A310(PokemonSummary *, s32);
 

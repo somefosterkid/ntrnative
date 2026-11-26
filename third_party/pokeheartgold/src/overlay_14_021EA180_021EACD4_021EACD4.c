@@ -189,16 +189,16 @@ s32 ov14_021EACD4(UnkStruct_ov14_boxapp *param_1) {
     u32 uStack_20;
 
     iVar6 = ((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys);
-    iVar1 = ov14_021E8514(*(void **)(iVar6 + 0x2f0));
+    iVar1 = ov14_021E8514(((UnkStruct_ov14_boxsys *)iVar6)->unk_2F0);
     iVar2 = ov14_021E80A8(param_1);
-    sub_02019978(*(void **)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x2f0), 10);
+    sub_02019978(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_2F0, 10);
     switch (*(u16 *)(iVar6 + 0x10)) {
     case 0:
         iVar1 = *((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys);
         if (((UnkStruct_ov14_boxsys *)iVar1)->unk_88C8 != 0) {
             ov14_021F391C((UnkStruct_ov14_boxsys *)iVar1, 1);
-            ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 0xb, 1);
-            ov14_021F2A18(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 0xb, 1);
+            ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 0xb, 1);
+            ov14_021F2A18(((UnkStruct_ov14_boxapp *)param_1)->sys, 0xb, 1);
             *(u16 *)(iVar6 + 0x10) = 1;
         } else {
             ov14_021E8434(((UnkStruct_ov14_boxsys *)iVar1)->unk_2F0);
@@ -206,11 +206,11 @@ s32 ov14_021EACD4(UnkStruct_ov14_boxapp *param_1) {
         }
         break;
     case 1:
-        if (ov14_021F2A04(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 0xb) == 1) {
+        if (ov14_021F2A04(((UnkStruct_ov14_boxapp *)param_1)->sys, 0xb) == 1) {
             break;
         }
         ov14_021F391C((UnkStruct_ov14_boxsys *)*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys), 0);
-        ov14_021F3B3C(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys));
+        ov14_021F3B3C(((UnkStruct_ov14_boxapp *)param_1)->sys);
         *(u16 *)(iVar6 + 0x10) = 2;
     case 2:
         if ((*(u8 *)(*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x44a) == 1) && (iVar2 == 0)) {
@@ -239,13 +239,17 @@ s32 ov14_021EACD4(UnkStruct_ov14_boxapp *param_1) {
                 }
             }
             if (uVar7 == ((UnkStruct_ov14_boxapp *)param_1)->unk21) {
-                ov14_021E8434(*(UnkStruct_0201956C **)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x2f0));
+                ov14_021E8434(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_2F0);
                 if (*(u8 *)(*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x44a) != 0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+                    ov14_021E7FEC(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_2F0);
+#else
                     ov14_021E7FEC(*(UnkStruct_0201956C **)(*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x2f0));
+#endif
                     ov14_021F3488(param_1, 1, 1);
                 }
             } else {
-                ov14_021E88F8(*(UnkStruct_0201956C **)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x2f0));
+                ov14_021E88F8(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_2F0);
             }
             ov14_021E7AD4(param_1, (u16)uVar5, uVar7, 1);
             *(u16 *)(iVar6 + 0x10) = 3;
@@ -254,11 +258,11 @@ s32 ov14_021EACD4(UnkStruct_ov14_boxapp *param_1) {
                 iVar1 = *((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys);
                 if (*((u8 *)&((UnkStruct_ov14_boxsys *)iVar1)->unk_448[2]) == 0 && (auStack_1c < 0x10 || uStack_20 < 0x30 || auStack_1c >= 0x68)) {
                     *((u8 *)&((UnkStruct_ov14_boxsys *)iVar1)->unk_448[2]) = 1;
-                    ov14_021E7FB8(*(UnkStruct_0201956C **)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x2f0));
+                    ov14_021E7FB8(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_2F0);
                 }
             }
-            ov14_021F395C(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), (s16)auStack_1c, (s16)uStack_20);
-            ov14_021F3B5C(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys));
+            ov14_021F395C(((UnkStruct_ov14_boxapp *)param_1)->sys, (s16)auStack_1c, (s16)uStack_20);
+            ov14_021F3B5C(((UnkStruct_ov14_boxapp *)param_1)->sys);
             *(u32 *)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x40b8) = auStack_1c;
             *(u32 *)(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x40bc) = uStack_20;
         }
@@ -272,7 +276,7 @@ s32 ov14_021EACD4(UnkStruct_ov14_boxapp *param_1) {
         if ((iVar1 == 0) && (iVar2 == 0)) {
             if (*(u16 *)(*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x88c8) != 0) {
                 ov14_021F391C((UnkStruct_ov14_boxsys *)*((s32 *)&((UnkStruct_ov14_boxapp *)param_1)->sys), 0);
-                ov14_021F3B3C(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys));
+                ov14_021F3B3C(((UnkStruct_ov14_boxapp *)param_1)->sys);
             }
             *(u16 *)(iVar6 + 0x10) = 0;
             return 0;

@@ -3,6 +3,8 @@
 #include "overlay_49.h"
 #include "camera.h"
 #include "overlay_49_unk_struct_ov70_0225_ec20.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "overlay_49_unk_struct_ov70_0226da18.h"
 
 s32 ov45_0222A4B8(s32);
 
@@ -22,9 +24,9 @@ s32 ov49_02258EAC(s32, s32, s32, int);
 
 s32 ov49_02258EEC(s32, s32, s32);
 
-s32 ov49_02259FE8(const UnkStruct_ov70_0225EC20 *);
+s32 ov49_02259FE8(const struct UnkStruct_ov70_0225DEE8_t *);
 
-void *ov49_02259FEC(Camera const *);
+void *ov49_02259FEC(const struct UnkStruct_ov70_0225DEE8_t *);
 
 s32 ov49_02259FF0(void *);
 
@@ -36,15 +38,15 @@ u8 ov49_0225A02C(void *);
 
 s32 ov49_0225A030(void *);
 
-s32 ov49_0225A08C(void *, s32);
+s32 ov49_0225A08C(void *, const String *);
 
 s32 ov49_0225A0AC(void *);
 
 s32 ov49_0225A0EC(void *);
 
-s32 ov49_0225A30C(void *, s32, s32);
+String *ov49_0225A30C(void *, s32, s32);
 
-s32 ov49_0225A37C(void *, int, s32);
+String *ov49_0225A37C(void *, int, s32);
 
 u32 ov49_0225EF88(void *);
 
@@ -52,13 +54,13 @@ s32 ov49_0225EF8C(void *, s32);
 
 s32 ov49_0225EF90(void *);
 
-s32 ov49_0225EF98(s32, s32, s32 *, s32);
+s32 ov49_0225EF98(s32, s32, const UnkStruct_ov70_0226DA18 *, s32);
 
 s32 ov49_0225F334(void *, s32, s32, s32, s32);
 
-extern s32 ov49_02269B38;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B38;
 
-s32 ov49_0225FA14(void *arg0, void *arg1, s32 arg2) {
+BOOL ov49_0225FA14(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2) {
     s32 v2;
     s32 v1;
     s32 v0;
@@ -128,11 +130,29 @@ s32 ov45_0222A4C8(s32, s32);
 
 s32 ov45_0222A4D0(s32);
 
-s32 ov49_0225EFC4(s32, s32, s32 *, void *);
+s32 ov49_0225EFC4(s32, s32, const UnkStruct_ov70_0226DA18 *, void *);
 
-extern s32 ov49_02269B68;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B68;
 
-s32 ov49_0225FB5C(void *arg0, void *arg1, s32 arg2) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov49_02262AC4(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+BOOL ov49_0225F518(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+BOOL ov49_0225FA14(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+BOOL ov49_0225FB5C(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+BOOL ov49_0225FCA8(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+
+// asm keeps the DS copy (4-byte callback pointer and a literal 0); the 64-bit port emits 4-byte pointers (wordmix.py): the PC
+// build uses this C definition instead.
+const UnkStruct_ov70_0226DA18 ov49_02269B68 = { ov49_02262AC4, NULL };
+const UnkStruct_ov70_0226DA18 ov49_02269BE0[4] = {
+    { ov49_0225F518, NULL },
+    { ov49_0225FA14, NULL },
+    { ov49_0225FB5C, NULL },
+    { ov49_0225FCA8, NULL },
+};
+#endif
+
+BOOL ov49_0225FB5C(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2) {
     s32 v0;
     s32 v3;
     s32 v2;
@@ -195,7 +215,7 @@ s32 ov49_0225FB5C(void *arg0, void *arg1, s32 arg2) {
     return 0;
 }
 
-s32 ov49_0225FCA8(void *arg0, void *arg1, s32 arg2) {
+BOOL ov49_0225FCA8(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2) {
     s32 v2;
     void *v1;
     s32 v0;

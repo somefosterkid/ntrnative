@@ -4,14 +4,15 @@
 #include "sprite.h"
 #include "sprite_system.h"
 #include "touchscreen.h"
+#include "unk_struct_ov96_0220b148.h"
 
 extern s32 ov96_0221CDA0;
 
 extern s32 ov96_0221DC68;
 
-s32 ov96_0220B0A4(void *arg0, s32 arg1);
+s32 ov96_0220B0A4(UnkStruct_ov96_0220B148 *arg0, s32 arg1);
 
-s32 ov96_0220B0A4(void *arg0, s32 arg1) {
+s32 ov96_0220B0A4(UnkStruct_ov96_0220B148 *arg0, s32 arg1) {
     s32 var_r0;
     s32 sp4[3];
     s16 sp0[2];
@@ -41,7 +42,7 @@ s32 ov96_0220B0A4(void *arg0, s32 arg1) {
     }
     var_r4 = (void *)(*(void **)((u8 *)&ov96_0221DC68 + (arg1 * 4)));
     temp_r5 = *(u8 *)((u8 *)&ov96_0221CDA0 + arg1) - 1;
-    ManagedSprite_GetPositionXY(*(ManagedSprite **)((u8 *)arg0 + 4), &sp0[1], &sp0[0]);
+    ManagedSprite_GetPositionXY(arg0->unk_4, &sp0[1], &sp0[0]);
     var_r0 = 0;
     if ((s32)temp_r5 > 0) {
         temp_r2 = sp0[0];

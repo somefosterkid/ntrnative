@@ -2,7 +2,11 @@
 
 void ov74_02231070(s8 param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov74_0223110C(s16 param0);
+#else
 void ov74_0223110C(u16 param0);
+#endif
 
 BOOL ov74_02231118(void);
 

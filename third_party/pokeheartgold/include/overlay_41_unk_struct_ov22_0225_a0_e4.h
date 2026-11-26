@@ -2,6 +2,13 @@
 #define POKEHEARTGOLD_OVERLAY_41_UNK_STRUCT_OV22_0225_A0_E4_H
 
 #include "g2d_renderer.h"
+#include "menu_input_state.h"
+#include "overlay_41_unk_struct_ov22_0225899C.h"
+#include "overlay_41_unk_struct_ov22_02259484.h"
+#include "overlay_41_unk_struct_ov22_02257_f50.h"
+#include "overlay_41_unk_struct_ov22_02257964.h"
+#include "overlay_41_unk_struct_ov22_02258A48.h"
+#include "overlay_41_unk_struct_ov22_0225A428.h"
 
 // UnkStruct_ov22_0225A0E4: merged by tools/hg/promote.py from 39 m2c local copies (1 variants, base
 // src/overlay_41_02246130_02246170.c) and 65 accesses; fields at every accessed offset, pads elsewhere.
@@ -20,6 +27,9 @@ struct SoftwareSpriteManager;
 struct SpriteList;
 struct SpriteResourceCollection;
 struct UnkStruct_ov22_02254DE0;
+struct YesNoPrompt;
+struct Window;
+struct MessageFormat;
 
 typedef struct UnkStruct_ov22_0225A0E4 {
     struct SoftwareSpriteManager *unk_00;
@@ -43,19 +53,25 @@ typedef struct UnkStruct_ov22_0225A0E4 {
     struct SpriteResourceCollection *unk_48[4];
     G2dRenderer unk_58;
     struct NARC *unk_5C;
-    u8 pad_184[0x1e0]; // 0x184..0x364 only exists in UnkStruct_ov22_0225B1BC (the 0x268-byte portrait object)
+    UnkStruct_ov22_0225899C unk_184;
+    UnkStruct_ov22_02259484 unk_35C;
     struct UnkStruct_ov22_02254DE0 *unk_364;
-    u8 pad_368[0x348];
-    u32 unk_6B0;
+    UnkStruct_ov22_02257F50 unk_368;
+    UnkStruct_ov22_02257964 unk_3F4;
+    u8 pad_47C[0x1c];
+    UnkStruct_ov22_02258A48 unk_498;
+    u8 pad_4B4[0xb4];
+    UnkStruct_ov22_0225A428 unk_568;
+    s32 unk_6B0;
     u8 pad_6B4[0x4];
-    u32 unk_6B8;
-    u32 unk_6BC;
-    u32 unk_6C0;
+    struct YesNoPrompt *unk_6B8;
+    struct Window *unk_6BC;
+    s32 unk_6C0;
     u8 pad_6C4[0x18];
-    u32 unk_6DC;
+    s32 unk_6DC;
     u8 pad_6E0[0x8];
-    u32 unk_6E8;
-    u32 unk_6EC;
+    struct MessageFormat *unk_6E8;
+    enum MenuInputState unk_6EC;
 } UnkStruct_ov22_0225A0E4;
 
 // sizeof(UnkStruct_ov22_0225A0E4) == 0x6f0

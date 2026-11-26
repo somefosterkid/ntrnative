@@ -14,11 +14,11 @@ YesNoPrompt *ov75_02247890(BgConfig *arg0, s32 arg1, u32 arg2) {
     sp0.bgId = bgId;
     sp0.tileStart = arg1;
     sp0.plttSlot = 0xE;
-    *(s8 *)((u8 *)(&sp0) + 0x10) = 0x19;
-    *(s8 *)((u8 *)(&sp0) + 0x11) = 0xA;
-    *(u8 *)((u8 *)(&sp0) + 0x12) = (u8)(*(u8 *)((u8 *)(&sp0) + 0x12) & ~0xF);
-    *(u8 *)((u8 *)(&sp0) + 0x12) = (u8)((*(u8 *)((u8 *)(&sp0) + 0x12) & ~0xF0) | ((((u32)(u8)arg2) << 28) >> 24));
-    *(s8 *)((u8 *)(&sp0) + 0x13) = 0;
+    sp0.x = 0x19;
+    sp0.y = 0xA;
+    sp0.ignoreTouchFlag = 0;
+    sp0.initialCursorPos = arg2;
+    sp0.shapeParam = 0;
     YesNoPrompt_InitFromTemplate(temp_r0, &sp0);
     return temp_r0;
 }

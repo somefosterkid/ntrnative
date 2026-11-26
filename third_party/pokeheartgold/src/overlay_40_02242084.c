@@ -17,7 +17,7 @@ s32 ov40_0222D5AC(void *, void *, s32);
 s32 ov40_0222D66C(void *, void *, s32);
 s32 ov40_0222D6EC(void *, s32);
 ManagedSprite *ov40_0222D800(void *, s32);
-void ov40_02242110(void *arg0);
+void ov40_02242110(UnkStruct_0208C06C *arg0);
 
 void ov40_02242084(u8 *param_1) {
     u8 *iVar1;
@@ -50,23 +50,23 @@ void ov40_022420B4(UnkStruct_0208C06C *arg0, s32 arg1) {
     sub_020136B4(*(TextOBJ **)((u8 *)v0 + 0x34), 0x24, -8);
 }
 
-void ov40_02242110(void *arg0) {
+void ov40_02242110(UnkStruct_0208C06C *arg0) {
     void *v0;
 
-    v0 = ((UnkStruct_0208C06C *)arg0)->unk_860;
+    v0 = arg0->unk_860;
     ov40_0222D6EC(arg0, 2);
     *(ManagedSprite **)((u8 *)v0 + 0x14) = ov40_0222D800(arg0, 2);
     *(ManagedSprite **)((u8 *)v0 + 0x30) = ov40_0222D800(arg0, 2);
-    ov40_0222D5AC(v0 + 0x10, arg0 + 0x14, 2);
-    ov40_0222D5AC(v0 + 0x2C, arg0 + 0x14, 2);
-    if (((UnkStruct_0208C06C *)arg0)->unk_86C == 0xD2) {
-        ov40_0222D66C(v0 + 0x10, arg0 + 0x14, 3);
-        ov40_0222D66C(v0 + 0x2C, arg0 + 0x14, 0x6F);
+    ov40_0222D5AC(v0 + 0x10, &arg0->unk_14, 2);
+    ov40_0222D5AC(v0 + 0x2C, &arg0->unk_14, 2);
+    if (arg0->unk_86C == 0xD2) {
+        ov40_0222D66C(v0 + 0x10, &arg0->unk_14, 3);
+        ov40_0222D66C(v0 + 0x2C, &arg0->unk_14, 0x6F);
         ManagedSprite_SetAnim(*(ManagedSprite **)((u8 *)v0 + 0x14), 0);
         ManagedSprite_SetAnim(*(ManagedSprite **)((u8 *)v0 + 0x30), 1);
     } else {
-        ov40_0222D66C(v0 + 0x10, arg0 + 0x14, 3);
-        ov40_0222D66C(v0 + 0x2C, arg0 + 0x14, 0x5E);
+        ov40_0222D66C(v0 + 0x10, &arg0->unk_14, 3);
+        ov40_0222D66C(v0 + 0x2C, &arg0->unk_14, 0x5E);
         ManagedSprite_SetAnim(*(ManagedSprite **)((u8 *)v0 + 0x14), 0);
         ManagedSprite_SetAnim(*(ManagedSprite **)((u8 *)v0 + 0x30), 3);
     }

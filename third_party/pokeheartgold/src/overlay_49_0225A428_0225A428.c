@@ -4,7 +4,11 @@
 
 typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225B89C(UnkStruct_ov70_0225F350 *, s8, s16);
+#else
 void ov49_0225B89C(UnkStruct_ov70_0225F350 *, s32, s32);
+#endif
 
 u8 ov49_0225B8F8(UnkStruct_ov70_0225F350 *);
 

@@ -4,19 +4,21 @@
 #include "overlay_07_battle_anim_funcs.h"
 #include "sys_task.h"
 
+typedef struct SpriteShakeInfo {
+    s16 extentX;
+    s16 extentY;
+    s16 interval;
+    s16 amount;
+    int targets;
+} SpriteShakeInfo;
+
+// the layout of FlailContext (overlay_07_02226F04_02228F88_02228F88.c)
 typedef struct UnkStruct_ov07_02228F14_ptr {
-    u8 unk_0;
-    u8 unk_1[0x3];
-    void *unk_4;
-    u8 unk_8[0x14];
-    s16 unk_1C;
-    s16 unk_1E;
-    s16 unk_20;
-    s16 unk_22;
-    u8 unk_24[0x8];
-    void *unk_2C;
-    u8 unk_30[0x8];
-    u8 unk_38;
+    BattleAnimScriptFuncCommon common;
+    SpriteShakeInfo shakeInfo;
+    struct Pokepic *battlerSprites[2];
+    s64 unused;
+    XYTransformContext shake;
 } UnkStruct_ov07_02228F14_ptr;
 
 s32 ov07_022227A8(void *, s16, s16, u32, s32);
@@ -30,21 +32,21 @@ void ov07_02228F14(SysTask *arg0, void *param) {
     Point2D v0;
     u8 v1;
 
-    v1 = ptr->unk_0;
+    v1 = ptr->common.state;
     switch (v1) {
     case 0:
-        ov07_022227A8((void *)&ptr->unk_38, ptr->unk_1C, ptr->unk_1E, ptr->unk_20, (s32) ptr->unk_22);
-        ptr->unk_0 = (u8)(ptr->unk_0 + 1);
+        ov07_022227A8((void *)&ptr->shake, ptr->shakeInfo.extentX, ptr->shakeInfo.extentY, ptr->shakeInfo.interval, (s32) ptr->shakeInfo.amount);
+        ptr->common.state = (u8)(ptr->common.state + 1);
         return;
     case 1:
-        ov07_02231FA0(ptr->unk_2C, &v0);
-        if (ov07_0222283C((void *)&ptr->unk_38, v0.x, v0.y, ptr->unk_2C) == 0) {
-            ptr->unk_0 = (u8)(ptr->unk_0 + 1);
+        ov07_02231FA0(ptr->battlerSprites[1], &v0);
+        if (ov07_0222283C((void *)&ptr->shake, v0.x, v0.y, ptr->battlerSprites[1]) == 0) {
+            ptr->common.state = (u8)(ptr->common.state + 1);
             return;
         }
         return;
     default:
-        ov07_0221C448(ptr->unk_4, arg0);
+        ov07_0221C448(ptr->common.battleAnimSys, arg0);
         Heap_Free(ptr);
         break;
     }

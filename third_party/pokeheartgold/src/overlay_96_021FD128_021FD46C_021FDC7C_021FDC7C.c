@@ -13,7 +13,11 @@ s32 ov96_021EB570(void *, s32);
 
 s32 ov96_021FE550(PokeathlonCourseData *, s32, void *, u8 *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021FEAEC(void *, s32);
+#else
 s32 ov96_021FEAEC(void *, s32);
+#endif
 
 s32 ov96_021FFBD8(BgConfig *, s32);
 

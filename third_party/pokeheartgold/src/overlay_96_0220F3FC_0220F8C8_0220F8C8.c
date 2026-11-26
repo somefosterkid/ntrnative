@@ -11,7 +11,7 @@ s32 ov96_0220D8C4(UnkStruct_ov96_0220E3F0_Unit *, s32, s32);
 
 void ov96_0220D9A4(UnkStruct_ov96_0220E3F0_Unit *, PokeathlonCourseData *);
 
-s8 ov96_0220DAA0(UnkStruct_ov96_0220E3F0_Unit *, s16, s16);
+s8 ov96_0220DAA0(UnkStruct_ov96_0220E3F0_Unit *, s16, s32);
 
 s32 ov96_0220F710(PokeathlonCourseData *);
 

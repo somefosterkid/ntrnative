@@ -5,10 +5,10 @@
 #include "options.h"
 #include "pm_string.h"
 #include "save.h"
+#include "sprite.h"
+#include "g2d_renderer.h"
 #include "touchscreen.h"
 #include "unk_0200A090.h"
-
-void ov74_02231D48(u32 *param_1, s32 param_2, void *param_3, u32 param_4);
 
 struct SpriteList;
 struct SpriteResourceCollection;
@@ -208,52 +208,7 @@ typedef struct {
 } GBASaveSlot;
 u32 AGB_GetBoxMonData(GBABoxPokemon *gbaBoxMon, int field, u8 *data);
 typedef u32 TextColor;
-typedef struct SpriteList SpriteList;
-typedef struct Sprite {
-    VecFx32 position;
-    VecFx32 affineTranslation;
-    VecFx32 affineScale;
-    u16 affineZRotation;
-    u8 affineOverwriteMode;
-    u8 flip;
-    u8 overwriteFlags;
-    u8 explicitPalette;
-    u8 explicitPaletteOffset;
-    BOOL explicitMosaic;
-    GXOamMode explicitOamMode;
-    u8 draw;
-    u8 animate;
-    fx32 animSpeed;
-    SpriteList *list;
-
-    u32 animData[29];
-    NNSG2dImageProxy imageProxy;
-    NNSG2dImagePaletteProxy paletteProxy;
-    u32 type;
-    u16 activeAnimID;
-    u8 explicitPriority;
-    u16 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    struct Sprite *prev;
-    struct Sprite *next;
-} Sprite;
-struct SpriteList {
-    Sprite *sprites;
-    int capacity;
-    Sprite **freeSprites;
-    int freeSpriteHead;
-    Sprite sentinelData;
-    NNSG2dRendererInstance *renderer;
-    void *rawAnimData;
-    NNSG2dCellAnimBankData *defaultAnimBank;
-    BOOL active;
-};
 typedef struct SpriteResourceCollection SpriteResourceCollection;
-typedef struct G2dRenderer {
-    NNSG2dRendererInstance renderer;
-    NNSG2dRenderSurface mainScreen;
-    NNSG2dRenderSurface subScreen;
-} G2dRenderer;
 typedef struct TrainerInfo TrainerInfo;
 typedef struct StringTemplate StringTemplate;
 typedef struct YesNoTouchMenu YesNoTouchMenu;
@@ -345,18 +300,19 @@ int ov74_02231D94(GBAMigrator *migrator, int boxId, int boxPosition);
 int ov74_02231DB8(GBAMigrator *migrator, int boxId, int boxPosition);
 void ov74_02231DDC(TouchscreenHitbox *rect, int param1, int param2, int param3, int param4);
 
-void ov74_02231D48(u32 *param_1, s32 param_2, void *param_3, u32 param_4) {
-    *param_1 = *(u32 *)(param_2 + 0x28);
-    param_1[1] = param_2 + 0x184;
-    param_1[4] = 0;
-    param_1[5] = 0x1000;
-    param_1[6] = 0x1000;
-    param_1[7] = 0x1000;
-    *(u16 *)(param_1 + 8) = 0;
-    param_1[9] = 0x14;
-    param_1[10] = param_4;
-    param_1[0xb] = 0x4c;
-    return;
+void ov74_02231D48(SpriteTemplate *param_1, GBAMigrator *param_2, SpriteResourcesHeader *param_3, NNS_G2D_VRAM_TYPE param_4);
+
+void ov74_02231D48(SpriteTemplate *param_1, GBAMigrator *param_2, SpriteResourcesHeader *param_3, NNS_G2D_VRAM_TYPE param_4) {
+    param_1->spriteList = param_2->unk_28;
+    param_1->header = &param_2->unk_1E8;
+    param_1->position.z = 0;
+    param_1->scale.x = 0x1000;
+    param_1->scale.y = 0x1000;
+    param_1->scale.z = 0x1000;
+    param_1->rotation = 0;
+    param_1->drawPriority = 0x14;
+    param_1->whichScreen = param_4;
+    param_1->heapID = (enum HeapID)0x4c;
 }
 
 int ov74_02231D70(GBAMigrator *migrator, int boxId, int boxPosition) {

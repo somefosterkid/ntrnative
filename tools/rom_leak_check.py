@@ -23,6 +23,7 @@ Any shared run of >= 48 bytes contains one stride-16 window, so none is missed.
 import argparse
 import bisect
 import hashlib
+import time
 import mmap
 import pickle
 import os
@@ -39,6 +40,8 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MINRUN = 48
 WIN = 32
 STRIDE = 16
+MIN_BITS = 20   # a number-stream run with less information than this (all its elements, Shannon) is a pattern, not data
+MULT = 4   # index entries kept per window hash: the same 32 bytes in several ROM files must not hide the one whose run is longest
 K = [np.uint64(x) for x in (0x9E3779B97F4A7C15, 0xC2B2AE3D27D4EB4F, 0x165667B19E3779F9, 0x27D4EB2F165667C5)]
 
 def _main_checkout():
@@ -311,16 +314,25 @@ def rom_sources(roms, cache):
             yield "cache:" + fn, _map(os.path.join(cache, fn))
 
 
-def build_index(roms, cache):
-    """Sorted window hashes of every ROM source (cached next to the LZ cache: the hashing takes minutes)."""
-    global _idx
+def _sources_key(roms, cache):
+    """(the sources, the key naming this exact set of them: the index file's identity)."""
     import resource
     lim = resource.getrlimit(resource.RLIMIT_NOFILE)  # every mapped file keeps a descriptor
     resource.setrlimit(resource.RLIMIT_NOFILE, (min(lim[1], 1 << 18) if lim[1] != resource.RLIM_INFINITY else 1 << 18, lim[1]))
     srcs = list(rom_sources(roms, cache))
+    return srcs, f"mult{MULT} " + " ".join(f"{n}:{len(b)}" for n, b in srcs)
+
+
+def index_file(cache, key):
+    return os.path.join(cache, "index-" + hashlib.blake2b(key.encode(), digest_size=8).hexdigest() + ".npz")
+
+
+def build_index(roms, cache):
+    """Sorted window hashes of every ROM source (cached next to the LZ cache: the hashing takes minutes)."""
+    global _idx
+    srcs, key = _sources_key(roms, cache)
     names, bufs = [n for n, _ in srcs], [b for _, b in srcs]
-    key = " ".join(f"{n}:{len(b)}" for n, b in srcs)
-    npz = os.path.join(cache, "index.npz")
+    npz = index_file(cache, key)
     if os.path.exists(npz):
         z = np.load(npz)
         if str(z["key"]) == key:
@@ -335,10 +347,18 @@ def build_index(roms, cache):
     h, s, o = np.concatenate(hs), np.concatenate(so), np.concatenate(oo)
     order = np.argsort(h, kind="stable")
     h, s, o = h[order], s[order], o[order]
-    keep = np.ones(len(h), bool)
-    keep[1:] = h[1:] != h[:-1]
+    first = np.zeros(len(h), np.int64)   # position of the first entry of each hash's group
+    first[1:] = np.where(h[1:] != h[:-1], np.arange(1, len(h)), 0)
+    first = np.maximum.accumulate(first)
+    keep = np.arange(len(h)) - first < MULT
     h, s, o = h[keep], s[keep], o[keep]
-    np.savez(npz, h=h, s=s, o=o, key=key)
+    tmp = f"{npz}.{os.getpid()}.tmp.npz"   # a reader never sees half an index
+    np.savez(tmp, h=h, s=s, o=o, key=key)
+    os.replace(tmp, npz)
+    for f in os.listdir(cache):   # the indexes of other source sets, once a day old (a run with fewer ROMs must not take the full one away)
+        p = os.path.join(cache, f)
+        if f.startswith("index") and f.endswith(".npz") and p != npz and time.time() - os.path.getmtime(p) > 86400:
+            os.remove(p)
     _idx = (h, s, o, names, bufs)
     print(f"index: {len(names)} sources, {len(h)} windows", file=sys.stderr)
 
@@ -422,7 +442,18 @@ def trivial(run, w):
             return True
     if w:
         a = np.frombuffer(run[:len(run) // w * w], "<u%d" % w)
+        # a run of two or three distinct values (0/1 flags, masks) carries too little information to be anyone's: under
+        # MIN_BITS of Shannon information in all (ov124's first-tile table, a real one, holds 24)
+        c = np.unique(a, return_counts=True)[1] / len(a)
+        if len(a) and -(c * np.log2(c)).sum() * len(a) < MIN_BITS:
+            return True
         df = np.diff(a.astype(np.int64))
+        # counters in code (0, 0, 1, 1, 2, 2 ...; 2, 1, 3, 2, 4, 3 ...): the steps between the elements take at most 3 values
+        # AND repeat with a period of 1 to 4 (80 % of them): a long 0/1 flag table or a gym's grid takes the same three
+        # steps (-1, 0, 1) with no period at all, and is a table (lk4: the filter-off run over the tree, 2026-11-26)
+        if len(df) >= 10 and len(np.unique(df)) <= 3 and \
+                max((df[p:] == df[:-p]).mean() for p in range(1, 5)) >= 0.8:
+            return True
         return np.unique(df, return_counts=True)[1].max() >= 0.7 * len(df)
     # raw bytes (--package): a ramp of 8-, 16- or 32-bit elements, 80 % of them one same nonzero step apart (code point and
     # identity tables, a compiler's jump table of equal-sized cases): start and step say it all, nobody's data
@@ -445,24 +476,27 @@ def scan_stream(data, w=0, cap=200):
     wh, wo = hashes(data, 1)
     if not len(wh):
         return []
-    pos = np.searchsorted(h, wh)
-    pos[pos >= len(h)] = len(h) - 1
-    hit = np.nonzero(h[pos] == wh)[0]
+    lo = np.searchsorted(h, wh, "left")
+    hi = np.searchsorted(h, wh, "right")
     res = []
-    covered = -1
-    for j in hit:
+    done = {}   # (ROM source, diagonal) -> end in data of the run already measured along it
+    for j in np.nonzero(hi > lo)[0]:
         off = int(wo[j])
-        if off < covered:
-            continue
-        k = pos[j]
-        src = bufs[s[k]]
-        st, ln = run_len(data, off, src, int(o[k]))
-        covered = st + ln
-        if ln >= MINRUN and not trivial(data[st:st + ln], w):
-            res.append((st, ln, names[s[k]], int(o[k]) - (off - st)))
+        for k in range(int(lo[j]), int(hi[j])):
+            diag = (int(s[k]), int(o[k]) - off)
+            if done.get(diag, -1) > off or (w > 1 and diag[1] % w):
+                continue   # (a u16/u32 element of the C file sits at an element boundary of a ROM table: 0/1 flags match anywhere else)
+            src = bufs[s[k]]
+            st, ln = run_len(data, off, src, int(o[k]))
+            done[diag] = st + ln
+            # a short run (or one of a repeated source) must not hide a longer one through the same stretch of data:
+            # only the same alignment in the same source is skipped (ov124's first-tile table, 2026-11-26)
+            if ln >= MINRUN and not any(a <= st and st + ln <= a + b for a, b, *_ in res) \
+                    and not trivial(data[st:st + ln], w):
+                res.append((st, ln, names[s[k]], int(o[k]) - (off - st)))
         if len(res) >= cap:
             break
-    return res
+    return sorted(res)
 
 
 INIT_RE = re.compile(r"(\w+)\s*(?:\[[^\]]*\]\s*)*(?:ATTRIBUTE_ALIGN\(\d+\)\s*)?=\s*\{")
@@ -871,9 +905,9 @@ def code_version():
 
 
 def index_version(roms, cache):
-    """The ROM index's identity without loading it: its file and the ROMs it was built from (size, mtime)."""
-    parts = []
-    for f in [os.path.join(cache, "index.npz")] + [r[1] for r in roms]:
+    """The ROM index's identity without loading it: its source set and the ROMs it was built from (size, mtime)."""
+    parts = [index_file(cache, _sources_key(roms, cache)[1])]
+    for f in [r[1] for r in roms]:
         try:
             st = os.stat(f)
             parts.append((os.path.basename(f), st.st_size, st.st_mtime_ns))
@@ -911,6 +945,8 @@ def scan_cached(paths, roms, cache, jobs, use_cache=True, full=True):
     print(f"scan cache: {len(paths) - len(todo)} reused, {len(todo)} scanned", file=sys.stderr)
     if not full:
         new = {**old, **new}  # a partial run keeps the other files
+        if not old and os.path.exists(fn):
+            return [r for p in paths if p in new for r in new[p][1]]   # the stored full results are another version's: a few files must not replace them
     if todo or len(new) != len(old):
         tmp = f"{fn}.{os.getpid()}.tmp"
         try:

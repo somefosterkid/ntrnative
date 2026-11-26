@@ -154,7 +154,11 @@ void Field3dObject_SetPosEx(Field3dObject *obj, fx32 x, fx32 y, fx32 z);
 
 void sub_020182B0(const Field3dObject *obj, fx32 *outX, fx32 *outY, fx32 *outZ);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_020182E0(Field3dObject *obj, s16 angle, enum RotationAxis axis);
+#else
 void sub_020182E0(Field3dObject *obj, u16 angle, enum RotationAxis axis);
+#endif
 
 u16 sub_020182EC(const Field3dObject *obj, enum RotationAxis axis);
 

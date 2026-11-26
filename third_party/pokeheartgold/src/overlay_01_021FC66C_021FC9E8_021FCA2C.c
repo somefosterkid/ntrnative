@@ -717,26 +717,26 @@ BOOL ov01_021FCA58(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObje
     return 1 ;
 }
 
-s32 ov01_021FCA94(void *arg0, void *arg1, void *arg2) {
+s32 ov01_021FCA94(FishingTask *arg0, void *arg1, void *arg2) {
     s32 v0;
 
-    v0 = *(s32 *)((u8 *)arg0 + 0x10) + 1;
-    *(s32 *)((u8 *)arg0 + 0x10) = v0;
+    v0 = arg0->counter + 1;
+    arg0->counter = v0;
     if (v0 > 2) {
-        *(s32 *)((u8 *)arg0 + 0xC) = 0x11;
+        arg0->fishingTask = 0x11;
     }
     return 0;
 }
 
-s32 ov01_021FCAA8(void *arg0, void *arg1, void *arg2) {
+s32 ov01_021FCAA8(FishingTask *arg0, void *arg1, void *arg2) {
     OverworldAnimManager *a0;
 
-    a0 = *(OverworldAnimManager **)((u8 *)arg0 + 0x24);
+    a0 = arg0->unk_24;
     if (a0 != 0) {
         sub_02068B48(a0);
-        *(s32 *)((u8 *)arg0 + 0x24) = 0;
+        arg0->unk_24 = NULL;
     }
-    *(s32 *)((u8 *)arg0 + 4) = 1;
+    arg0->doneFishing = 1;
     return 0;
 }
 

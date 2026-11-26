@@ -3,12 +3,13 @@
 #include "overlay_manager.h"
 #include "overlay_59_juice_feed_app.h"
 #include "sprite_system.h"
+struct UnkStruct_ov59_0223C5B0;
 
 s32 ov59_0223AB3C(Ov59JuiceFeedApp *arg0);
 
 s32 ov59_0223AB90(Ov59JuiceFeedApp *arg0);
 
-void ov59_0223C304(void *arg0);
+void ov59_0223C304(struct UnkStruct_ov59_0223C5B0 *arg0);
 
 s32 ov59_0223ABE4(Ov59JuiceFeedApp *arg0);
 

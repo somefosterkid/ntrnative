@@ -525,6 +525,127 @@ On the phone: any number of FF toggles should leave the overlay's in-between cou
 slower (Low Power Mode, heat: the display lag line then reads below 120 Hz); `smooth motion off ... fell behind` should no longer
 appear during FF, only when 1x itself cannot be held.
 
+### Smooth motion: an even step every refresh (2026-11-24; sim_main.cpp SIM_InterpPace, port/bridge)
+
+The maintainer (iPhone 16 Pro Max, gpu 3x, 4 samples, Metal, Smooth on, Monitor, HG field): 120 fps on the overlay, GPU 63-69% busy,
+yet it "doesn't feel quite as smooth as 120 fps should". Measured on the Mac with the pretended 120 Hz link (BWPORT_PANELHZ=120,
+the iOS present path; SoulSilver Cherrygrove walk, the phone's settings, 11.3 s windows, load 2-3) with BWPORT_PRESENTLOG, which now
+logs per present the slot, the swap call, the game time the picture shows (the bridges' SIM_InterpShows) and the tick's due time,
+an S line with the panel model's refresh for it and a D line per drop; the per-refresh histograms are a scratch script's.
+
+- **The cause: every fourth picture showed the game up to a refresh early.** A slot's picture is the blend of the bridge's last two
+  keyframes at f = (slot - key) / gap, so it shows the game at slot - gap. The next tick's first slot is drawn from this tick's
+  state (the bridge's pipeline: GpuFrame draws the previous call's picture), and that slot comes x = 0..Q into the next tick
+  (Q = 8.33 ms at 120 Hz). When the next tick brings the new keyframe (the HG field's 3D is 30 fps: every other tick), the slot
+  lies past the newest keyframe the picture can have: f clamped at 1, the keyframe shown as it is, x too early. x slides 0.048 ms a
+  tick (59.83 Hz ticks, 120 Hz refreshes) and wraps when a tick gets three slots, so the error sweeps 0-8.3 ms every 2.9 s: steps
+  between refreshes of 8.3 - x and 8.3 + x. Before: **50.6% of the steps 8.3 ms**, the rest spread evenly over 0-16.7 ms; the
+  shown picture 48 ms behind its refresh on 74% of the refreshes and 49-56 ms on the rest. 60 fps content has the same error on
+  every tick's first slot; a 60 Hz panel the same with Q = 16.7 ms.
+- **The fix:** SIM_InterpPace hands the bridges each slot's time less one slot period (Q) under Monitor, whose slots slide against
+  the ticks: every picture then shows the game Q + gap before its slot, a constant, and the next tick's first slot always falls
+  between keyframes it has. 60 and 120 (no link) keep their slots on the ticks (lead 0, unchanged). A blend at f 0 (the lead puts a
+  slot exactly on a keyframe's tick start) now shows the older keyframe instead of the newer (both bridges). BWPORT_INTERPLEAD=0:
+  as before. Cost: the 3D motion is shown one refresh later (the model's picture-to-glass 48 -> 56 ms).
+- **Slots are handed out in a chain:** a tick's first slot is the one after the last one the tick before had (BWPORT_SLOTCHAIN=0:
+  each tick takes the slots inside its own interval, as before). The phase loop moves the slots at every present to follow the
+  link; a slot within that much of a tick boundary was counted by both ticks (two presents in a refresh) or by neither, and the
+  next tick's first slot was not the one its picture was made for. No difference on the Mac's exact pretended link, nor with
+  BWPORT_LINKJITTER=300 (a test aid: each reading of the pretended refresh off by up to 300 us); a real link's jitter is the case.
+- **The fps number:** SIM_PresentRate counted over whole ticks (60 ticks = 1.0029 s hold 120 or 121 presents of a 120 Hz panel:
+  "121 fps" a third of the time, none extra). It now counts from present to present: 120.
+
+Results (before = BWPORT_INTERPLEAD=0 BWPORT_SLOTCHAIN=0 on the same build; even = steps within 0.6 ms of the mode):
+
+| run | even steps before | after | presents/s before / after | drops / 11 s |
+| --- | --- | --- | --- | --- |
+| 120 Hz link, Smooth, 1x | 50.6% (0-16.7 spread) | 97.8%, 97.6% (8.3 ms; 15-17 stalls + 15 skips) | 119.5 / 119.7, 119.4 | 5 / 3, 7 |
+| 120 Hz link, Smooth, Game speed 2x | 6.9% | 98.8% | 119.6 / 119.5 | 3 / 4 |
+| 120 Hz link, Smooth, Game speed 4x | 97.0% (8.4) | 97.4% (8.3) | 119.6 / 119.6 | 0 / 0 |
+| 120 Hz link, Smooth off | 50.2% (0 / 16.7 by design) | 50.1% | 119.1 / 119.0 | 12 / 13 |
+| Frame rate 60, Smooth | 50.1% (0 / 16.7: 60 a second) | 50.1% | 59.9 / 59.9 | 0 / 0 |
+| desktop Metal Monitor (the Mac's 60 Hz CVDisplayLink), Smooth | 3.8% | 99.7% (16.7 ms) | 60.1 / 60.1 | 0 / 0 |
+| desktop GL Monitor (real vsync, no link), Smooth | | | 59.9 / 60.0 | 0 / 0 |
+
+tools/mac_fftoggle.py (needs BWPORT_FFMAX=0 since mac_run.sh's default Max fast forward; in a worktree without build/port/macos the
+run folder must be a clone of ~/bw-cache/runbase): PASS, 1.00 / 1.00x, 119.5 / 119.8 presents/s, 53.1 / 53.3 in-betweens/s, drops
+0.38 / 0.00 a second.
+
+What is left (Mac): the stalls and skips after the fix are presents that miss their refresh. A tick's first present waits for that
+tick's game logic and render call (its picture is ready a tick earlier), so when its slot comes early in the tick it goes out late:
+43% of first presents 1-9 ms late here (2-8 ms of work before it on the M2), about 45% up to ~4 ms on the phone (0.9-1.0 ms game +
+1.3 ms render). The panel model then chains every later present a refresh behind (display lag ~14 ms, "1 waiting", the state the
+phone's overlay shows), and the next miss is dropped. Presenting the next tick's first slot from this tick's loop (before the next
+game logic) is the next step; the compositor's real behaviour on a miss is still the glass line's open question (docs/gpu-backends.md).
+
+On the phone (Overlay, Detailed): the field walk should look steady, with no beat every ~3 s; the fps reads 120 (no 121); the
+display line as before (lag 14-15 ms and 1 waiting while the model's chain stands); `display: N presents dropped` lines rare.
+
+### Smooth motion: a tick's first present on time (2026-11-24, later; sim_main.cpp's early present, port/bridge gpu_bridge.c NextPicture)
+
+What the entry above left: the stalls and skips after the even-step fix were presents that missed their refresh. Measured with the
+same BWPORT_PRESENTLOG (Mac, pretended 120 Hz link unless noted, SoulSilver Cherrygrove walk, the phone's settings: gpu 3x, 4 samples,
+Metal, Smooth, Monitor; 11.3 s windows; load 2-4). Before = ba8975fe0's build, after = this one, run in pairs back to back (the
+M2 switched between ~2.3 and ~6.5 ms of CPU a tick during the session, so only a pair compares like with like).
+
+- **The cause:** a tick's first present shows the picture the tick before prepared (the GPU path's pipeline), but it was made after
+  the tick's game logic and renderer call, and that call also ran the picture's GL half (Stage2). The slots slide through the ticks
+  (59.83 Hz against the panel), so when the first slot came within that work of the tick's start the present went out late and
+  its GPU work went in late: 18% of first presents 3 ms or more late, 27% of all presents done after the refresh they were aimed
+  at (the swap call or the GPU after it: the S line's done against the refresh after the slot's). Once one present lands a
+  refresh late, every later one does too: one present a refresh never lets the panel's queue drain (FIFO), the overlay's
+  "1 waiting" and a refresh more of display lag (14 ms instead of 6), and a present more than a refresh late is then dropped.
+- **The fix:** with a display link, under Monitor, with the Metal present and the GPU path's pictures (Smooth on or off), when the
+  next tick could not have its first present out by its slot, the bridge draws that picture ahead (SIM_SetNextTexture ->
+  NextPicture: Stage2 now; the next call no longer draws it) and it goes out at its slot (less SpWaitSlot's 1.5 ms) as that tick's
+  first present, which the tick then does not make (sPace.early0, found by the slot's time):
+  - from this tick's loop, right after its last present, when the slot comes sooner than the next tick's game logic can be done
+    (the longest of the last 64 ticks', from the cap's sleep to the top of the frame: SpTopMark); that logic waits for it;
+  - else at the top of the next tick's frame, before its renderer call, when it comes sooner than that call and the rest can be
+    done (the longest of the last 64 ticks', SpPreMark); that call waits for it.
+  Either waits less than the part it stands in front of (logic 1-3 ms, the call 0-1 ms here: about 45% of first presents from
+  the loop, 10% from the top). A later slot is left to the tick as before, its picture drawn in the renderer call: drawing every next picture right after
+  the last present (a first version) put heavy GPU work right behind each present and lengthened the GPU's tail (p90 done - call
+  +1 ms at Game speed 2x), and holding the next tick's logic back for the whole work made more in-betweens' CPU halves late. The
+  "behind" rule does not count the wait (it never counted a tick's own present). GL's present is left out: its swap may wait for
+  the panel (a pretended-link GL run: 95.6% -> 85.7% even steps with it on). BWPORT_EARLYPRESENT=0: off (the A/B).
+- BWPORT_PRESENTLOG: a P line's 12th field is 1 for a present made from the tick before's loop, 2 for one made at the top of the
+  tick's frame; an X line per decision (now, the slot less 1.5 ms, the next tick's due time, the longest logic and renderer parts).
+
+| run (pairs, seconds) | first presents >= 3 ms late | presents done after their refresh | drops | repeats + skips on the glass | even steps | waiting, model's display lag |
+| --- | --- | --- | --- | --- | --- | --- |
+| phone's settings, 1x (4, 45 s) | 18% -> 2% | 26.9% -> 7.6% | 21 -> 11 | 68 + 66 -> 40 + 38 | 97.6% -> 98.5% | 100%, 13.1 ms -> 100%, 13.5 ms |
+| Game speed 2x (2, 48 s) | 18% -> 1% | 27.2% -> 7.0% | 21 -> 7 | 73 + 68 -> 42 + 42 | 97.5% -> 98.6% | 100% both |
+| Game speed 4x (1, 49 s) | 20% -> 0% | 29.8% -> 4.4% | 15 -> 5 | 58 + 55 -> 23 + 23 | 98.1% -> 99.2% | 100% both |
+| Smooth off (1, 11 s) | 22% -> 0% | 31.8% -> 4.9% | 3 -> 3 | (a repeat every tick by design) | 50.1% both | 100% both |
+| gpu 2x, no AA: the GPU keeps up (1, 11 s) | 13% -> 0% | 4.4% -> 0.1% | 1 -> 0 | 5 + 4 -> 1 + 1 | 99.3% -> 99.9% | 88%, 12.7 ms -> **0%, 5.6 ms** |
+| the Mac's real 60 Hz link (CVDisplayLink), Smooth (3, 34 s) | 30% -> 22% (the rest: the sleep's overshoot, below) | 1.9% -> 0.3% | 0 / 0 | 2 + 1 -> 3 + 0 | 99.9% both | 98%, 29.6 ms -> 84%, 27.6 ms (below) |
+| real 60 Hz link, Smooth off (1, 11 s) | 17% -> 3% | 1.2% -> 0.1% | 0 / 0 | 3 / 3 | 99.6% both | 96%, 29.8 ms -> 84%, 28.2 ms |
+| Frame rate 60; Present=gl | unchanged (no early present: not Monitor; not Metal) | | | | | |
+
+The pictures' timing is untouched: at 1x the shown picture is 56 ms behind its refresh in both (pa.py "display - game"). Where no
+present misses, the queue never forms: gpu 2x no AA, the model's landing 5.8 ms after the slot for 1357 of 1359 presents (before:
+14.2 ms from 2.4 s on, after a miss), 48 ms display - game. On the real 60 Hz link the queue formed in every before run within
+0.04-1.7 s (a late first present); after, in all four runs of this build at 2.85 s, at the GPU path's pass S self-check (its
+frame 300 draws the frame once more: one GPU miss), and not at all in the three pairs of an earlier variant of this fix that drew
+every next picture early (waiting 0%, display lag 13.2-13.5 ms against 27.2-29.6 ms).
+
+tools/mac_fftoggle.py (BWPORT_FFMAX=0, run folder a clone of ~/bw-cache/runbase): PASS, 1.00 / 1.00x, 119.95 / 119.75 presents/s,
+59.45 / 59.65 in-betweens/s, drops 0 / 0.12 a second; --smooth 0: PASS. tools/check.sh: 9/10 (b2 reset-save: no save b2-champ in
+this environment, as before).
+
+What is left (Mac): the GPU at gpu 3x, 4 samples still finishes 6-8% of presents after their refresh (two such pictures a tick),
+so the panel's queue still stands there; once it stands it absorbs misses of under a refresh (fewer drops), and only a refresh
+without a present drains it (draining on purpose would cost a skipped picture a miss). The first presents still 1-3 ms late in
+both builds are the sleep's own overshoot in this test setup: a game started from the agent's shell wakes ~25-50% of a sleep's
+length late (timer leeway; a C test from the same shell shows it, a real-time thread does not), so the real 60 Hz link's long
+sleeps show it most.
+
+On the phone (Overlay, Detailed): "waiting" should read 0 and the display lag about 6 ms (one refresh and the GPU) instead of
+"1 waiting" and 14-15 ms, from launch on; a real hitch (a load, the self-check's extra draw ~5 s after the renderer starts) can
+bring "1 waiting" back, and it then stays until a pause (the queue drains only at a refresh with no present): that state is
+harmless to smoothness. `display: N presents dropped` lines should be rarer, the fps 120.
+
 ### Stuck buttons (2026-11-02; libntr-ios-stuckinput.patch, port/src/ios_input.m)
 
 The maintainer (iPhone 16 Pro Max, on-screen touch controls only, never a controller): with every fix above in and Smooth motion off,
@@ -1292,3 +1413,278 @@ runs): the high-resolution timer's own wake lateness (spin 0) is p50 390 us, p90
 core; the desktop (pf3c, busy: p90 490-570) would gain at most ~100 us a tick from an adaptive clamp 100..600 (it sits at 600 on
 the laptop), so nothing was changed. The no-high-res path (Windows before 10 1803) could spin 1500 on an idle laptop, but pf3c's
 desktop had that timer's p90 at 1.0-1.6 ms under load: left at 2500.
+
+## Where the cost goes (2026-11-25)
+
+The test phone (iPhone 16 Pro Max, A18 Pro, 120 Hz; gpu 3x = 768 x 1152 for both screens, Metal, Smooth motion at Monitor, Exact,
+Antialiasing off or 4 samples, HeartGold field): the overlay's GPU busy reads 40-50% with Antialiasing off and 60-85% with 4 samples
+("gpu 10.5-11.5 ms ~63-69% busy", "cpu 0.6 (main 0.2 oth 0.4 aud 0.0)"). Is the chain well optimized, what costs most, and can our
+tools tell? Measured on the M2 (SoulSilver ss-r30, Cherrygrove warp 553:403, a back-and-forth walk, the reference ini, the pretended
+120 Hz link BWPORT_PANELHZ=120, real time BWPORT_FFMAX=0, load 2-4), build perf 4d561271e.
+
+### The tools, and how far to trust them
+
+| tool | what it gives | Mac | phone | trust |
+| --- | --- | --- | --- | --- |
+| sys line / overlay "gpu X ms ~Y% busy" (sysmetrics.c) | GPU ms a tick: every renderer and present command buffer's GPUEnd - GPUStart, summed | yes | yes (Detailed) | **overstates**: the present's command buffer starts (its vertex stage) before the frame's is done and waits for it, so the overlap counts twice (M2: 13.5 ms/tick ~80% where the timestamps say 10.5 ms, 63%). And any busy % is at the clock the GPU's governor picked (below) |
+| bench rows' metal: line | GPU ms a present (spans), renderer ms/s, "GPU spans ~N% (overlaps count twice)" | yes | perftest log | same overlap; good for A/Bs of the same setting |
+| Breakdown / perflog= (perf_NAME.txt) | CPU per stage (frame thread, the render call, the worker's stages) and, on Metal, GPU per pass from one command buffer a pass | yes | cfgscript only | CPU rows good. **The Metal GPU rows are wrong**: each split command buffer's span includes the wait for the one before (R, E, P, C ~10 ms each at 60 fps). Not fixed: use the GPU passes |
+| passes=1 rows (perftest) | each pass its own command buffer, committed and waited for | yes | perftest | real per-pass times but serialised, the GPU idles between passes and clocks down ("bottom clock"): proportions only |
+| ablate= | a pass taken out: what the frame costs without it | yes | cfgscript | good for ceilings; the picture is wrong |
+| threads: line (bench rows) | CPU ms a drawn frame per thread name, instructions and cycles | yes | perftest log | good; cycles move with the clock, instructions do not |
+| BWPORT_PRESENTLOG / PACELOG | per present and per second pacing, the W/I/G lines (worker, pairing, Stage2) | yes | log | timing of the pipeline, not cost |
+| gpu_render --time, gpu_fastdiff --time | per-pass mins on a corpus frame, at full clock, glFinish/wait after each | yes | no | best for shader A/Bs; not the game's mix or clock |
+| Instruments (ios_device_profile.py --template metal, xctrace on the Mac) | per encoder GPU time, counters (occupancy, limiters, bandwidth) | yes | cable + maintainer | the reference; heavy, not for a quick look |
+| **GPU passes (new, 494237544)** | per present: ms by pass (S, R, E, P, SMAA, C, capture, present), busy % from the union of the timed stages, keyframe and in-between renders a second | yes | **yes: overlay Detailed, log** | stage-boundary timestamps in the frame's own command buffers (no split, no wait); off by default; overhead within noise (renderer 733 vs 741 ms/s, 3 runs each); pictures identical. Per-pass ms are at the governor's clock |
+| **tools/mac_gpu_profile.py (new, 4d561271e)** | one run, a row per setting (Exact/Fast x AA x Smooth, optionally Frame rate Unlimited for the top clock), the table below | yes | --parse a phone log | as the GPU passes and the bench rows |
+
+Gaps left: the GPU's clock (no public API; the Unlimited rows stand in for "top clock"), memory bandwidth (Instruments only), and
+the Breakdown's Metal GPU rows (should read the timestamps instead of splitting).
+
+**The clock matters more than anything else in reading busy %.** Apple's GPUs run at the lowest clock that keeps up: at the reference
+settings the M2's pass R takes 3.98 ms paced at 120 Hz and 2.08 ms with Frame rate Unlimited (top clock); Antialiasing off paced
+reads 62% busy against 64% with 4 samples, though its work at the top clock is 25-40% less. So 60-85% busy on the phone does not mean
+the phone is 60-85% loaded: it means the governor runs the GPU at a clock where the frame takes that share. The cost is the work at
+the top clock (or energy); the headroom is what Unlimited draws.
+
+### The M2's table (tools/mac_gpu_profile.py, two runs agree within ~5%)
+
+ms a render (keyframe or in-between) by pass; pres = the final present (the picture's quad to a 2232 x 1780 drawable plus the UI),
+ms a present. Paced rows: 120 presents/s on the pretended 120 Hz link.
+
+| row | renders/s | GPU busy | ms/present | S | R | E | P | C | pres | CPU cores | CPU ms/tick |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Exact, 4 samples, Smooth (the reference setting) | 60 key + 59 mid | 64% | 5.3 | 0.50 | 3.98 | 0.33 | 0.22 | 0.18 | 0.43 | 0.42 | 7.0 |
+| Exact, AA off, Smooth | 60 + 59 | 62% | 5.1 | 0.40 | 3.58 | 0.28 | 0.32 | 0.26 | 0.60 | 0.40 | 6.6 |
+| Fast, 4 samples, Smooth | 60 + 58 | 61% | 5.1 | - | 4.07 | 0.34 | 0.23 | 0.19 | 0.43 | 0.38 | 6.4 |
+| Fast, AA off, Smooth | 60 + 59 | 46% | 3.8 | - | 2.40 | 0.28 | 0.33 | 0.26 | 0.53 | 0.38 | 6.4 |
+| Exact, 4 samples, Smooth off | 60 | 50% | 4.2 | 0.67 | 6.04 | 0.44 | 0.30 | 0.25 | 0.57 | 0.35 | 5.9 |
+| Exact, AA off, Smooth off | 60 | 35% | 3.0 | 0.41 | 3.75 | 0.27 | 0.32 | 0.26 | 0.58 | 0.35 | 5.9 |
+| Fast, 4 samples, Smooth off | 60 | 47% | 4.0 | - | 5.95 | 0.45 | 0.31 | 0.25 | 0.48 | 0.35 | 6.0 |
+| Fast, AA off, Smooth off | 60 | 26% | 2.2 | - | 2.37 | 0.27 | 0.33 | 0.26 | 0.53 | 0.35 | 6.0 |
+| **top clock** (Unlimited, Smooth off): Exact, 4 samples | 360 | 90% | | 0.25 | 2.08 | 0.16 | 0.10 | 0.09 | 0.20 | | |
+| Exact, AA off | 400-580 | 80-89% | | 0.14-0.20 | 1.20-1.57 | 0.10 | 0.10-0.13 | 0.09-0.12 | 0.19-0.24 | | |
+| Fast, 4 samples | 415 | 90% | | - | 1.78 | 0.15 | 0.11 | 0.09 | 0.20 | | |
+| Fast, AA off | 430-525 | 81-83% | | - | 1.09-1.38 | 0.12-0.15 | 0.16-0.20 | 0.13-0.16 | 0.21-0.22 | | |
+
+At the top clock the reference setting is 120 renders x 2.68 ms + 120 presents x 0.20 ms = ~345 ms of GPU a second: **about 35% of the
+M2**, paced at ~half clock (64%). The GPU timeline of one render (BWPORT_GPUPASSES_RAW): the vertex stages of every pass run ahead
+in the first 0.1-0.4 ms; pass S (compute) 0.4-0.7 ms; then the fragment stages back to back (R, E's three draws, P, C); the present's
+command buffer starts at once and its fragment stage waits for C. CPU (perf logs, threads lines): 0.35-0.42 cores; a tick's game
+thread 2.1 ms (game logic 0.23, events + UI build 0.18, the render call 0.29, sound 0.22, the present call 1-2 ms of which most is
+waiting for a drawable), the worker 3.4 ms with Smooth motion (the in-between's geometry and span setup), 1.0-1.4 without.
+
+### The phone's readings, in ms a refresh
+
+At 120 Hz a refresh is 8.33 ms. The overlay's 40-50% (AA off) is 3.3-4.2 ms a refresh, 60-85% (4 samples) 5.0-7.1 ms, both with
+the present's wait counted twice (on the M2 that is ~20% of the figure) and at the governor's clock. The earlier phone passes rows
+(serialised, bottom clock; gpu-cost.md "Pass R's fixed part on the A18 Pro") had R 6.6, E 0.5, P 1.7 ms at 4 samples: the same
+proportions as here (R about three quarters). What scales differently on the A18 Pro: pass R is ALU-bound (Instruments on the M2:
+ALU limiter 59%, occupancy 21%), so it follows shader throughput (6 cores against the M2's 8-10); the 4-sample layers' tile stores
+and E/P's neighbour reads follow bandwidth (lower on the phone); the present renders at the panel's 1320 x 2868 (SDL's high-DPI
+Metal view, nearest filter, the whole drawable cleared, then the touch controls drawn by ImGui): 3.8 M pixels against the Mac
+window's 4.0 M, so the M2's 0.2 ms (top clock) is the order to expect, more for the touch controls' blended quads. These are the
+open numbers; the overlay's new lines give them.
+
+### Ranked costs at the reference setting (M2, top clock, Exact, 4 samples, Smooth at 120)
+
+| # | cost | share | DS work or overhead | candidate | gain (est.) | effort / risk |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | pass R, 2.08 ms a render | ~72% | the DS work at that quality: every pixel walks its bin's polygon list, 4 samples ~1.5x AA off | gpu-cost.md's R cuts (row pairs, the inner run, done on the Mac, phone A/B pending); SMAA instead of 4 samples (R at the AA-off cost) | 25-40% of R | known work; the picture judged by eye |
+| 2 | in-betweens: a whole S + R + E + P + C a refresh | ~50% of the 3D | Smooth motion's price; overhead when nothing moved | skip a mid whose paired vertices equal the keyframe's (P5); draw mids at AA off or a cheaper R | up to 50% standing, 0 walking | P5 is designed; small risk |
+| 3 | repeat keyframes: the HG field's 3D runs at 30 fps, half the ticks bring the same vertex record (I lines: 224 repeats, 224 new in ~7.5 s), yet every tick renders | 25% of renders (Smooth on), 50% (off) | **overhead if the picture is the same**: to prove (the 3D input is more than the vertices: textures, palettes, registers) | reuse the last 3D layer (skip S, R, E, P) when the GPU path's whole 3D input equals the last frame's (pf82's "Next") | 25-50% of the 3D in 30 fps scenes | a hash of the input; risk: a missed input shows a stale frame |
+| 4 | pass S, 0.25 ms | ~9% | DS work moved to the GPU (span records) | - | - | - |
+| 5 | E + P, 0.26 ms | ~10% | DS work (edge marking, 4-sample resolve) | gpu-cost.md E/P items | small | - |
+| 6 | the present, 0.20 ms at 4 M pixels | ~7% | overhead of scaling to the panel | present into a smaller drawable (the compositor scales) or C straight into the drawable | 0.1-0.2 ms a present | small; the look of nearest scaling |
+| 7 | pass C, both screens at 3x, 0.09 ms | ~3% | the bottom screen re-composed every present even when it did not change: overhead, but small | skip the bottom half when its 2D input is unchanged | ~0.05 ms | not worth it now |
+| CPU | 0.4 cores (M2), 0.6 on the phone | | span setup and geometry for every in-between; the present call's drawable wait | item 2 and 3 cut it too | | |
+
+Not wasteful: no CPU readback or wait in the normal path; uploads are memcpys into shared buffers; one command buffer a render.
+
+### What can be read on the phone
+
+Settings, section Metrics: Metrics = **Detailed**. Two more lines at the overlay's bottom, refreshed each second:
+"GPU ms/present S .. R .. E .. P .. C .. pres .." (each pass's GPU ms a present) and "= X ms, Y% busy; K key + M mid /s" (the
+union of the passes, so the present's wait is not counted twice; key/mid: renders a second). Compare it with the old
+"gpu .. ms ~..% busy" line above it. Then set Frame rate to Unlimited for ~10 s (Smooth motion off): the GPU runs flat out, and the
+R value then is pass R's cost at the top clock (keep it short: the phone heats). Settings, About: Share latest log; the log has a
+"gpu passes:" line every 10 s (and after each perftest row), which tools/mac_gpu_profile.py --parse turns into the table above.
+
+## Work whose result cannot change: the 3D layer and pass C reused (2026-11-25, M2 macOS)
+
+The audit above found two kinds of repeated GPU work (items 2, 3 and 7): HeartGold's field 3D changes at 30 fps yet every tick
+drew it again, and pass C composed both screens every present though the bottom one rarely changes. Built (port/bridge/gpu_bridge.c,
+port/gpu/src/g07_compose.c, commits a5fe7cc7d and 00548c851 on `reuse`):
+
+- **The 3D layer reused.** The worker numbers each picture it makes, keyframe or in-between (R3Id): the number of the picture before
+  when everything passes S, R, E, P read is equal, else a new one. Compared: the geometry's output (vertices after transform,
+  lighting and clipping, field by field; polygons with their attributes; drawing order; SWAP_BUFFERS' parameter), the 3D registers
+  (DISP3DCNT, edge colours, alpha test, clear colour/depth/image offset, fog, toon table, 1DOT_DEPTH), the texture and palette VRAM
+  with the toon table (the slot's GpuTexData: by its build within a slot, by its bytes across slots), the texture regions' sizes, the
+  options and the grid. An in-between is compared after its blend, so one whose lists did not move takes the number of the picture
+  before (P5 above, on the GPU side). The GL thread draws nothing for a picture whose number the 3D layer holds. Not with the texture
+  cache (Mipmaps on GL: its layers carry state) nor in the test modes that draw twice (TCAB, the timing mode, ablations).
+  BWPORT_3D_REUSE=0 off (the numbering still runs: an A/B differs only in the drawing), =check.
+- **Pass C per screen.** Each half of pass C's output keeps the key it was drawn from: the engine, its 2D (the pack's serials, carried
+  by the 2D skip), the uniforms, the 3D layer's number, SMAA's weights, the 2D filter. One half changed: that half is drawn alone (a
+  scissor, the other half loaded); none: nothing is drawn or uploaded. BWPORT_COMPOSE_REUSE=0 off, =check.
+- BWPORT_PRESENTHASH now works under Metal (cd5a8940f: the presented picture read back and hashed), for the proofs below.
+
+**Pictures identical.** (a) Smooth motion off is reproducible present by present: per-present hashes with both reuses on and both off,
+each run's pictures in the order they changed compared (difflib; logs in scratch/reuse/logs): SoulSilver Cherrygrove
+(ss-r30, warp 553:403: east 600 frames, the menu opened and closed, standing) in Exact and Fast with Antialiasing off, 4 samples and
+Smooth edges: 244 pictures each, **0 in one run only**; Black's town walk to the lab and Cheren's text: 720, 0; Black's room, the
+stairs' fade and downstairs' text: 265, 0; Black 2's battle with Hugh: 1121, 0; the GL present (Present=gl) with Filter2D scale2x,
+mmpx, and Mipmaps: 244 each, 0. (b) Smooth motion on is not reproducible present by present even with both off (off against off: 781 of
+791 matching presents differ: the in-between's blend follows the display link's phase), so the check modes prove it in the run: every
+picture drawn, and each one the reuse would have kept compared byte for byte with what it would have kept. Cherrygrove in the six
+settings: 460-885 3D layers and 1536-2548 screens a run, 0 differ; the 3D check alone (more in-betweens drawn): Exact 4 samples 451,
+Fast 4 samples 482, Exact AA off 922 (501 in-betweens), the Black 2 battle 718, 0 differ; pass C's alone: Cherrygrove 2617 screens,
+Black's town 597, 0; Black's town, room and battle with both, 0; GL: 436 layers and 836 screens, Filter2D scale2x 3598 and mmpx 3559
+screens, 0. (c) Fast-forward toggles (tools/mac_fftoggle.py's steps, 8 x 4x/1x, Black's town, BWPORT_FFMAX=0): the checks with Smooth
+motion off (899 layers, 4492 screens) and on (4208 screens) 0 differ; the pacing check PASS with the reuses on and off. (At 4x the
+presents sample frames by timing, so a per-present A/B is not reproducible there: on against off 105/262 pictures in one run only,
+off against off 142/115.)
+
+**Cost** (tools/mac_gpu_profile.py, Cherrygrove, the test phone's ini, the pretended 120 Hz link, real time, load 1.6-2.2; off = both
+BWPORT_*_REUSE=0 on the same build; command buffers a second with GPU work, GPU busy, GPU ms a present, C ms a render):
+
+| row | walking: off | walking: on | standing: off | standing: on |
+| --- | --- | --- | --- | --- |
+| Exact, 4 samples, Smooth (the test phone's) | 60+60/s, 66%, 5.53 ms, C 0.19 | 59+60/s, 65%, 5.47 ms, C 0.14 | 60+60/s, 68%, 5.73 ms | **4+11/s, 16%, 1.38 ms** |
+| Exact, AA off, Smooth | 60+60/s, 59%, 4.93, C 0.25 | 60+60/s, 58%, 4.82, C 0.19 | 60+60/s, 61%, 5.08 | **2+9/s, 12%, 1.02** |
+| Fast, 4 samples, Smooth | 60+60/s, 62%, 5.14 | 60+60/s, 63%, 5.27 | 60+60/s, 64%, 5.34 | **4+12/s, 17%, 1.42** |
+| Fast, AA off, Smooth | 60+60/s, 48%, 3.98 | 60+60/s, 47%, 3.90 | 60+60/s, 49%, 4.11 | **6+14/s, 14%, 1.17** |
+| Exact, 4 samples, Smooth off | 60/s, 51%, 4.29 | **38/s, 35%, 2.95** | 60/s, 53%, 4.42 | **14/s, 18%, 1.51** |
+| Exact, AA off, Smooth off | 60/s, 37%, 3.10 | **38/s, 26%, 2.19** | 60/s, 37%, 3.10 | **8/s, 12%, 0.96** |
+| Fast, 4 samples, Smooth off | 60/s, 49%, 4.09 | **37/s, 33%, 2.76** | 60/s, 49%, 4.06 | **9/s, 14%, 1.18** |
+| Fast, AA off, Smooth off | 60/s, 28%, 2.31 | **38/s, 20%, 1.68** | 60/s, 28%, 2.37 | **8/s, 11%, 0.90** |
+
+Standing still the GPU's work falls by 70-80% in every row. Walking with Smooth motion off (and in fast forward, keyframes only) the
+3D is drawn 38 times a second instead of 60 (the 30 fps 3D's repeats) and the GPU's time falls by about 30%. Walking with Smooth motion
+on, every refresh shows a new blend (f 1/4, 1/2, 3/4 of the step, then the keyframe), so nothing repeats in the 3D (the audit's 25% was
+an estimate: none of the four repeats); there pass C's bottom screen is the saving, 0.05-0.06 ms a render (C 0.19 to 0.14). CPU ms a
+tick: within noise walking (6.23 against 6.06), less standing (5.55 against 5.87 with Smooth motion, 5.55 against 6.17 without: the GL
+thread's uploads go with the draws). The checks' own cost: the worker's compares take 11 us a picture walking and 34 us standing (the
+608 KB texture compare once a tick when the geometry is the same): 1.3-4 ms a second, 0.1-0.4% of a core; pass C's key is two
+300-byte compares. In a whole run (the fast forward, walking, standing) the 3D was reused for 1892 of 2267 keyframes and 1075 of 1333
+in-betweens standing, 362 of 2271 and 47 of 1329 walking.
+
+**The present ("pres")**, measured, not changed: it scales with the drawable's pixels. M2, Exact 4 samples, standing: the 2232 x 1780
+drawable (3.97 M pixels) 0.55 ms a present paced and 0.23 ms at the top clock (Frame rate Unlimited); a 960 x 540 window (0.52 M) 0.12
+and 0.03: about 0.06 ms a million pixels at the top clock, 0.14 paced. The Mac's side panel (ImGui) adds nothing measurable (0.58
+against 0.55, 0.22 against 0.23 without it). The phone's 0.57 ms at 1320 x 2868 (3.79 M) is the same rate per pixel. What would cut it:
+(1) no present when neither the picture nor the UI changed (standing, pass C drew nothing for 513 of 600 composes: the picture was
+the one before; the panel keeps the last picture, and ProMotion could lower the refresh): the largest cut, but it touches the pacing and the touch controls' feedback;
+(2) a drawable smaller than the panel (the compositor scales it): 2/3 of the panel's size a side is 44% of the pixels; (3) skipping the
+clear saves nothing on a tile GPU (the store of every tile is the cost).
+
+**What the test phone shows** (Metrics Detailed): "GPU ms/present" R, E and P fall with the renders reused and C with the screens kept;
+"= X ms, Y% busy; K key + M mid /s" counts command buffers that did GPU work, so standing still in the field it drops from about 60 + 60
+to about 4 + 11 a second and the ms a present to about a quarter; in fast forward (keyframes only, as the test phone's reading R 1.53, E
+0.48, P 0.34, C 0.42, pres 0.57 likely was) walking about 37% fewer renders. The present is then the largest item standing.
+
+Left: the present when nothing changed (above); the worker still prepares (spans and bins) every picture, also the reused ones (a
+reused keyframe could skip its prep: the GL thread can prepare from s->geo the rare time it must draw it); the texture cache's
+statefulness (Mipmaps on GL, where the 3D reuse is off); the phone's own numbers (overlay, Detailed).
+
+## The same picture not sent again (2026-11-25, M2 macOS)
+
+The present ("pres": the picture scaled to the panel plus the touch controls) was the largest GPU item left standing still (the entry
+above: the test phone's 0.57 ms at 1320 x 2868, 120 times a second, about 68 ms of GPU a second), and most of those presents drew
+what the panel already showed. Built (port/src/metal_present.mm bwport_mtl_same / bwport_mtl_keep, sim_main.cpp SpKeep / PaceKept,
+port/bridge/gpu_bridge.c MtlPicGen, port/gpu g07_out_gen, port/src/ios_input.m):
+
+- **What is compared.** A present clears a drawable and draws the picture texture with the screen quads, then ImGui's draw data. It
+  is the same as the last one sent when the picture is the GPU renderer's pass C output (the same texture) whose number has not changed
+  (g07_out_gen: a new number whenever pass C draws into it, either half, or another pass does, g07cap_show; numbers are never given
+  twice, also across a renderer made anew); the quads, viewport and filter are equal; ImGui's draw data hashes the same (vertices,
+  indices, each command's clip rectangle, texture and ranges, the display size; one hash a frame) and no ImGui texture update is due
+  (the dynamic font atlas uploads at the next present drawn); the drawable has the same size; and the last one sent had a drawable.
+  vcore's pictures (uploaded), a present with a screenshot, and the first present after the background or the settings sheet are
+  always sent. The 2D, the 3D layer, fades and brightness reach the picture through pass C; the overlay's text and the touch controls
+  through ImGui. The Metal present has no filter of its own that animates (nearest, no time input).
+- **A present kept** (SpKeep, at each of the three places a present is made: a tick's own, an in-between or repeat, the early first
+  present) takes no drawable, encodes nothing, commits no command buffer and puts no fence in the GPU queue; the panel keeps its
+  picture. For the pacing it is a present at its slot: the slot is used (the early present's slot is not presented again), the link's
+  phase follows it, the fps and the longest gap count it, a kept in-between counts as shown and in time, and a press whose first
+  answering picture it was is "shown" at it (and GPU-done at once once the present that sent that picture is).
+- **The panel's queue (kKeepStill).** A present not sent is a refresh with no new picture, which drains the panel's queue (the panel
+  model's "waiting"). In motion that brings the next new picture a refresh early, an uneven step, and another when the queue forms
+  again. The first build kept every repeat: on the M2 at gpu 3x 4 samples, where the GPU is late often enough that the queue stands,
+  a back-and-forth walk kept 6.5 repeats a second (the turns) and even steps fell from 97.5% to 90.0%. So a present is kept only when
+  the last one sent is no longer on its way to the glass (not in flight on the GPU, not waiting in the model; LagPoll first), or when
+  the picture has stood still for 4 presents in a row: the queue then drains in a still spell, where nothing moves to be uneven, and
+  the first picture after it lands a refresh sooner. This keeps the queue alive on purpose while things move; it is the stopgap until
+  the pacing decides the queue's depth itself (scratch/fable_pacing/PACING-ARCH.md I6, M1): with such a pacer a kept present is
+  simply the free drain and the rule goes.
+- **ProMotion's range.** The display link asked 80-120 Hz while Smooth motion runs. With few presents sent iOS may lower the panel inside
+  that range; each rate that holds 0.5 s restarts the pacing's timeline (the "the panel runs at N Hz" path), a hitch when motion resumes
+  (PACING-ARCH.md I7 / B9). It now asks exactly the panel's rate (ios_input.m), as Smooth off asks exactly 60. Lowering the rate on
+  purpose while nothing changes (the panel's own power) was considered and not built: the slots follow the link's period, so a lowered
+  link moves them to its coarser grid and the first changed picture would wait up to a low-rate period, then re-lock; keeping the slots
+  on the 120 Hz grid while the link ticks slower needs a panel that shows a present at the next 120 Hz refresh from a lowered rate,
+  which iOS does not promise and the Mac cannot test (the pretended link has no panel). It wants the phone: lower to 30-60 after ~0.5 s
+  of kept presents, keep the pacing's period at the panel's maximum, raise at the first present sent, and read the first changed
+  picture's presentedTime against its slot.
+- **Touch feedback** never waits on it: a pressed touch button is drawn lit, which changes ImGui's draw data, so that present is sent.
+  The draw data changes at a tick's UI build, as before; the skip adds nothing to a press's latency (overlay "input" / "to GPU": a
+  kept present that answers a press is counted as shown at its slot).
+- **Off:** sim_config.ini PresentSkip=off (default on; the Apple builds write the key) or BWPORT_PRESENTSKIP=0. =check (with
+  BWPORT_PRESENTLOG and BWPORT_PRESENTHASH): every present made, and each one it would keep compared by its picture's hash with the
+  last one it would send (a log line every 600, and at a normal exit). Metal only (Present=gl unchanged).
+- **Readouts:** the overlay's first line in Detailed reads "120 fps (N sent)"; the pace log's line a second ends "kept N"; a bench
+  row's metal: line ends "kept (not sent: the same picture) N/s" (its present count and the GPU passes' presents/s are the ones sent;
+  the bench row's pres/s counts both, as the fps does); BWPORT_PRESENTLOG writes a K line for a kept present (a P line's fields; its
+  lag serial is the last one sent's, so it has no S line).
+
+**Pictures identical.** Smooth motion off, per-present hashes with the skip on and off (BWPORT_PRESENTHASH; the pictures in the order
+they changed, difflib, as the entry above): SoulSilver Cherrygrove (ss-r30, warp 553:403, east, the menu opened and closed, standing)
+244 pictures each, 0 in one run only (956 presents sent of 2701 made without the skip); Black 2's battle with Hugh 1121 each, 0 (3203
+sent of 3838). Smooth motion on (not reproducible present by present), the check mode in the run: Cherrygrove walk, menu and standing
+more than 1800 presents it would keep compared, 0 differ; the battle more than 1800, 0.
+
+**Cost** (tools/mac_gpu_profile.py's GPU passes in bench rows, the test phone's ini, the pretended 120 Hz link, real time, load 2-7;
+off = BWPORT_PRESENTSKIP=0 on the same build; presents sent a second (kept), GPU ms a second (the passes' busy share), CPU cores):
+
+| scene | off: sent/s, GPU ms/s, cores | on: sent/s (kept/s), GPU ms/s, cores | GPU |
+| --- | --- | --- | --- |
+| Cherrygrove standing (NPCs, sea: the picture changes ~15-40 times a second) | 117, 173, 0.30 | 17 (103), 97, 0.28 | -44% |
+| Cherrygrove, walking back and forth | 120, 629 / 597 | 119 / 120 (0 / 0), 620 / 610 | same |
+| the field menu open | 120, 134, 0.30 | 11 (109), 55, 0.27 | -59% |
+| Smooth off: standing / walking / menu | 117 / 120 / 120: 149 / 325 / 130 | 13 / 119 / 13 (106 / 1.5 / 108): 68 / 342 / 57 | -54% / same / -56% |
+| Black's room, standing | 98, 59, 0.22 | 1.5 (118), 1, 0.05 | -98% |
+| Black 2's battle with Hugh: text and intro / waiting / moves | 120: 409 / 263 / 461 | 109 / 55 / 110: 392 / 205 / 471 | -4% / -22% / same |
+
+Where the picture stands still the present's whole cost goes (0.4-0.6 ms a present here, the phone's 0.57) and with it the swap's CPU
+(swap ms/s 10-30 -> 1-4) and the CPU time around the present (Black's room 3.6 -> 0.8 ms a tick); walking nothing changes. Smooth off
+at 120 Hz shows each picture twice; at gpu 3x 4 samples the M2's second present follows the first while that one is still on its way
+(the queue stands), so the rule above sends it (walking keeps 0-1.5 a second). Where the GPU keeps up (gpu 2x, Antialiasing off) a walk
+with Smooth off keeps 74 of 120 presents a second (the repeats and the 30 fps 3D's), with the same steps on the glass (0 / 16.7 ms:
+630 / 628 refreshes against 631 / 628) and each picture a refresh sooner (pa.py's display - game 23-34 ms against 31-42: the repeats
+no longer refill the queue).
+
+**Pacing.** The walk back and forth (Cherrygrove, Smooth on, 10.5 s windows, pa.py with K lines counted, scratch/presentskip/pa2.py):
+the skip keeps 0 presents walking at gpu 3x 4 samples (even steps on 95.1% / 85.5%, off 82.3% / 98.2%: the load's spread, the presents
+are the same) and 0-0.7 a second at gpu 2x without antialiasing (on 99.2% / 99.4%, off 98.6% / 100%); drops 0-9 both. Frame rate 60,
+Smooth off: even steps 50.2% / 50.1% (0 and 16.7 ms by design), 17 of 60 presents a second kept walking (the 30 fps 3D's repeats).
+tools/mac_fftoggle.py (BWPORT_FFMAX=0, 20 toggles, Black's town): PASS, 1.00 / 1.00x, 118.9 / 120.0 presents/s, 57.5 / 60.2
+in-betweens/s, drops 1.0 / 0.0 a second; --smooth 0: PASS (kept 17-64 a second there). Standing, the model's queue drains: every sent
+present lands one refresh after its slot (Cherrygrove standing: 31 of 31; off: 0 of 399, all two), so the display lag standing is a
+refresh shorter.
+
+**The first picture after a still spell** (Black's room, a step every 3.3 s): the 39 presents sent after 30 or more kept in a row all
+landed one refresh after their slot (on time; called 0.5 ms after the slot on average, 3.8 at most). The walk's first second after 4 s
+standing in Cherrygrove (PACING-ARCH.md I5, the GPU clocked down by the reuses and the skip): the queue forms again at once on the M2
+(98% of the first second's presents land two refreshes after their slot; off 100%, where it never drained), and the GPU lag of those
+presents is the off run's (2.36 ms mean both; max 14.3 against 11.0): no sign on the M2 of a slower GPU at the start of a walk.
+
+**On the test phone** (Metrics Detailed): standing still in a quiet place "120 fps (N sent)" with N small (Black's room ~2, a busy town
+15-40), walking N about 120; "GPU ms/present" with "= X ms, Y% busy" falling standing as above; touch buttons light at once; "waiting"
+reading 0 more often (a still spell drains it) and the display lag a refresh shorter standing; "the panel runs at N Hz" lines should
+not appear (the link now asks exactly 120). If anything looks stale (a picture that does not update), PresentSkip=off in the ini is
+the A/B.
+
+Left: a present that got no drawable is still entered in the panel model as shown (PACING-ARCH.md B2; the skip itself records a
+present as sent only with a drawable, so it sends the next one); the ProMotion lowering above; the skip under Present=gl and for
+vcore's uploaded pictures.

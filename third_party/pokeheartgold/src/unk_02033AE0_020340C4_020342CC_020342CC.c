@@ -3,9 +3,7 @@
 #include "comm_cmd_manager.h"
 #include "unk_02035900.h"
 
-struct CommCmdTable;
 
-typedef struct CommCmdTable CommCmdTable;
 
 BOOL sub_02037108(int cmd, const void *data, int size);
 

@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "frontier/frontier_script_context.h"
 #include "frontier/overlay_80_0222BDF4.h"
 
@@ -9,7 +11,6 @@
 
 void ov80_0222F53C(SysTask *task, void *data);
 
-void *sub_0209680C(void *);
 
 s32 FrtCmd_078(FrontierScriptContext *ctx);
 

@@ -12,8 +12,6 @@
 #include "overlay_112_sub_screen.h"
 #include "overlay_112_pokewalker_app.h"
 
-
-
 s32 ov112_021F0314(void);
 
 s32 ov112_021F0314(void) {
@@ -22,10 +20,6 @@ s32 ov112_021F0314(void) {
     }
     return 0x21;
 }
-
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021F0328(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021F0328(Ov112PokewalkerApp *arg0) {
     s32 v0;
@@ -40,8 +34,6 @@ s32 ov112_021F0328(Ov112PokewalkerApp *arg0) {
     arg0->unk_C = 8;
     return 0x23;
 }
-
-s32 ov112_021F0368(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021F0368(Ov112PokewalkerApp *arg0) {
     s32 v0;

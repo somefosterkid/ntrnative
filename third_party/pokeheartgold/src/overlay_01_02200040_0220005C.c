@@ -8,7 +8,6 @@ void ov01_0220005C(void *a0) {
     ov01_021F1448(a0);
 }
 
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32, s32, s32, s32, s32, s32 *);
 
 void ov01_021F18D4(FieldEffectManager *fieldEffMan, u32 id, u32 memberIndex);
 

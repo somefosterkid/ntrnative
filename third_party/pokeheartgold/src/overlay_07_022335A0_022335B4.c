@@ -24,7 +24,11 @@ int ov07_02222EE8(PaletteFadeContext *p);
 
 void ov07_02222EF8(PaletteFadeContext *p);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+PaletteFadeContext *ov07_02222F10(PaletteData *a, int b, int c, u16 d, u16 e, u8 f, s8 g, u8 h, u8 i, u16 j, int k);
+#else
 PaletteFadeContext *ov07_02222F10(PaletteData *a, int b, int c, int d, int e, int f, int g, int h, int i, int j, int k);
+#endif
 
 BOOL ov07_022335B4(UnkStruct_ov07_022335B4 *ctx);
 

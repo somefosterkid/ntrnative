@@ -16,6 +16,8 @@
 #include "pm_string.h"
 #include "text.h"
 #include "overlay_89.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "overlay_45_wifi_plaza_system.h"
 
 struct UnkStruct_ov113_0225E6B8_t;
 

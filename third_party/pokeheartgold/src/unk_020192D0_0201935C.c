@@ -88,7 +88,6 @@ int ov39_02228140(OverlayManager *appMan, int *param1);
 
 int ov61_0222C0F8(OverlayManager *appMan, int *param1);
 
-int ov39_02228370(OverlayManager *appMan, int *param1);
 
 void sub_0203A930(int networkStrength);
 

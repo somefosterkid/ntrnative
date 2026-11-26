@@ -12,13 +12,9 @@
 
 void ov112_021E7CA4(Ov112PokewalkerApp *, u32, u32);
 
-void ov112_021E9F5C(Ov112PokewalkerApp *, u32, u32, u32);
-
 void ov112_021E9FA4(Ov112PokewalkerApp *, u32, void *, u32, u32);
 
 void ov112_021E9FD8(Ov112PokewalkerApp *, u32, void *, u32);
-
-u32 ov112_021EFF84(Ov112PokewalkerApp *app);
 
 u32 ov112_021EFF84(Ov112PokewalkerApp *app) {
     u16 uVar1;

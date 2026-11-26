@@ -6,6 +6,7 @@
 #include "save_vars_flags.h"
 #include "sys_flags.h"
 #include "trainer_data.h"
+#include "overlay_manager.h"
 
 u32 BattleSetup_GetTransitionAndMusicParam(void *arg0);
 

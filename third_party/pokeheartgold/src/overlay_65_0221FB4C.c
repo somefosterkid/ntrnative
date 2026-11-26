@@ -15,7 +15,7 @@ void ov65_0221FB4C(Window *window, String *str, int unused, u32 textSpeed, int x
 
 u8 ov65_0221FB90(Window *arg0, u32 arg1, enum Font arg2, MsgData *arg3, MessageFormat *arg4);
 
-YesNoPrompt *ov65_0221FC08(s32 arg0);
+YesNoPrompt *ov65_0221FC08(BgConfig *arg0);
 
 void ov65_0221FB4C(Window *window, String *str, int unused, u32 textSpeed, int xOrCenter, int yOffset) {
     int xOffset = 0;
@@ -47,7 +47,7 @@ u8 ov65_0221FB90(Window *window, u32 msgno, enum Font fontId, MsgData *msgData, 
     return v0;
 }
 
-YesNoPrompt *ov65_0221FC08(s32 arg0) {
+YesNoPrompt *ov65_0221FC08(BgConfig *arg0) {
     YesNoPromptTemplate dest;
     YesNoPrompt *yesNoPrompt;
 
@@ -55,7 +55,7 @@ YesNoPrompt *ov65_0221FC08(s32 arg0) {
     dest.bgId = 0;
     dest.tileStart = 0x180;
     dest.plttSlot = 0xE;
-    (*(s32 *)&dest) = arg0;
+    dest.bgConfig = arg0;
     dest.x = 0x1A;
     dest.y = 0xA;
     *(u8 *)((u8 *)(&dest) + 0x12) = (u8)(*(u8 *)((u8 *)(&dest) + 0x12) & ~0xF);

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 #include "field_system.h"
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
@@ -37,7 +38,7 @@ void ov14_021EC730(void *arg0) {
     ov14_021E8248(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
     ov14_021E82A8(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
     ov14_021E8328(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0);
-    if (*(s32 *)((u8 *)(*(void **)arg0) + 8) == 3) {
+    if (((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 == 3) {
         ov14_021F3488(arg0, 0x81, 1);
         ov14_021F6AC0(arg0, 6, 0x21);
         ov14_021F0234(arg0, ov14_021E94BC, 0x75);

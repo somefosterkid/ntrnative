@@ -11,15 +11,8 @@
 #include "system.h"
 struct FrontierRecordsApp;
 
-s32 ov86_021E5E54(BgConfig *);
-
 u8 ov86_021E5E98(u8);
 
-s32 ov86_021E6FF4(struct FrontierRecordsApp *arg0);
-
-s32 ov86_021E7E40(Window *, u8);
-
-SysTask *ov86_021E7E90(Window *);
 
 s32 ov86_021E5AA4(OverlayManager *man, s32 *state);
 

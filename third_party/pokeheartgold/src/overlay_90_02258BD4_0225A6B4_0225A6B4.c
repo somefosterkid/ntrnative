@@ -220,7 +220,11 @@ extern void ov90_0225AE4C(SysTask *param0, void *param1);
 
 extern void ov90_0225B230(SysTask *param0, void *param1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+extern void ov90_0225B340(UnkStruct_ov114_0225F270 *param0, UnkStruct_ov114_0225CEF0 *param1, s8 param2, u32 heapID);
+#else
 extern void ov90_0225B340(UnkStruct_ov114_0225F270 *param0, UnkStruct_ov114_0225CEF0 *param1, u32 param2, u32 heapID);
+#endif
 
 extern const GraphicsBanks ov90_0225C2F4;
 

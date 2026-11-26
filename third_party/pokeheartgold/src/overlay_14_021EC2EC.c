@@ -9,7 +9,7 @@ struct UnkStruct_ov14_boxapp;
 s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 nextState);
 s32 ov14_021F3488(void *, s32, s32);
 s32 ov14_021F40E8(void *, s32);
-s32 ov14_021F43F4(s32, s32);
+void ov14_021F43F4(void *arg0, s32 arg1);
 s32 ov14_021E7EC0(void *);
 s32 ov14_021E7EE0(void *);
 s32 ov14_021E81A8(void *, s32);
@@ -23,7 +23,7 @@ s32 ov14_021F6AC0(void **, s32, s32);
 
 s32 ov14_021EC2EC(void *arg0) {
     ov14_021F67B0(arg0, 5, 0x25);
-    *(s32 *)((u8 *)arg0 + 0x30) = 0x20;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0x20;
     return 6;
 }
 
@@ -32,7 +32,7 @@ s32 ov14_021E9450(UnkStruct_ov14_boxapp *app);
 void ov14_021EC300(UnkStruct_ov14_boxapp *arg0) {
     ov14_021F40E8(arg0, 1);
     if ((u32) arg0->unk21 < 0x1EU) {
-        ov14_021F43F4(*((s32 *)&arg0->sys), 1);
+        ov14_021F43F4(arg0->sys, 1);
         ov14_021F3488(arg0, 1, 0);
     } else {
         ov14_021F3488(arg0, 2, 0);

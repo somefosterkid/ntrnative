@@ -29,7 +29,7 @@ void ov70_0223E264(GTSApplicationState *arg0, s32 arg1) {
     Pokemon *sp24;
     PCStorage *sp20;
     NARC *sp1C;
-    void *sp18;
+    PokemonIcon *sp18;
     int sp14;
     s32 sp10;
     BoxPokemon *temp_r0_4;
@@ -41,10 +41,10 @@ void ov70_0223E264(GTSApplicationState *arg0, s32 arg1) {
     s32 var_r4_3;
     u32 var_r4;
     u32 var_r4_2;
-    void *temp_r0;
+    PokemonIcon *temp_r0;
     sp10 = arg1;
     sp20 = *((PCStorage **)((u8 *)arg0->playerData + 0xC));
-    temp_r0 = Heap_AllocAtEnd(HEAP_ID_3, 0x3D68U);
+    temp_r0 = Heap_AllocAtEnd(HEAP_ID_3, 30 * sizeof(PokemonIcon));
     arg0->selectPokemonIconHeapPtr = temp_r0;
     sp18 = temp_r0;
     sp1C = NARC_New(NARC_poketool_icongra_poke_icon, HEAP_ID_61);
@@ -58,7 +58,7 @@ void ov70_0223E264(GTSApplicationState *arg0, s32 arg1) {
         do {
             temp_r6 = var_r4_2 * 4;
             *((u16 *)((u8 *)arg0->boxCriteria + temp_r6)) = 0;
-                        ov70_0223E170(PCStorage_GetMonByIndexPair(sp20, (u32)sp10, var_r4_2), arg0->boxSlotIconSprites[var_r4_2], arg0->boxSlotItemSprites[var_r4_2], &(sp2C)[var_r4_2], var_r4_2, sp1C, (u8 *)arg0->boxCriteria + temp_r6, sp18 + (var_r4_2 * 0x20C));
+                        ov70_0223E170(PCStorage_GetMonByIndexPair(sp20, (u32)sp10, var_r4_2), arg0->boxSlotIconSprites[var_r4_2], arg0->boxSlotItemSprites[var_r4_2], &(sp2C)[var_r4_2], var_r4_2, sp1C, (u8 *)arg0->boxCriteria + temp_r6, &sp18[var_r4_2]);
             if (var_r4_2 < 6U) {
                 Sprite_SetDrawFlag(arg0->selectPokemonPartySprites[var_r4_2], 0);
             }
@@ -77,7 +77,7 @@ void ov70_0223E264(GTSApplicationState *arg0, s32 arg1) {
                 temp_r6_2 = var_r4_3 * 4;
                 sp28 = temp_r0_4;
                 ov70_0223E114(temp_r0_4, (u8 *)arg0->boxCriteria + temp_r6_2);
-                ov70_0223E170(temp_r0_4, arg0->boxSlotIconSprites[var_r4_3], arg0->boxSlotItemSprites[var_r4_3], &(sp2C)[var_r4_3], (u32)var_r4_3, sp1C, (u8 *)arg0->boxCriteria + temp_r6_2, sp18 + (var_r4_3 * 0x20C));
+                ov70_0223E170(temp_r0_4, arg0->boxSlotIconSprites[var_r4_3], arg0->boxSlotItemSprites[var_r4_3], &(sp2C)[var_r4_3], (u32)var_r4_3, sp1C, (u8 *)arg0->boxCriteria + temp_r6_2, &sp18[var_r4_3]);
                 if (GetMonData(temp_r0_3, 0xA2, 0L) != 0) {
                     Sprite_SetDrawFlag(arg0->selectPokemonPartySprites[var_r4_3], 1);
                 } else {
@@ -92,7 +92,7 @@ void ov70_0223E264(GTSApplicationState *arg0, s32 arg1) {
                 *((u16 *)((u8 *)arg0->boxCriteria + temp_r1)) = 0;
                 Sprite_SetDrawFlag(arg0->boxSlotIconSprites[var_r4_3], 0);
                 Sprite_SetDrawFlag(arg0->boxSlotItemSprites[var_r4_3], 0);
-                *((s32 *)(((u8 *)(sp18 + (var_r4_3 * 0x20C))) + 8)) = 0;
+                sp18[var_r4_3].sprite = NULL;
                 if (((u32)var_r4_3) < 6U) {
                     Sprite_SetDrawFlag(arg0->selectPokemonPartySprites[var_r4_3], 0);
                 }

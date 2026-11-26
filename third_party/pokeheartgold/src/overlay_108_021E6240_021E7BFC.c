@@ -7,11 +7,11 @@ void *ov108_021E6238(void *);
 
 void ov108_021E767C(SafariAreaCustomizer *param_1, s8 param_2);
 
-s32 ov108_021E7700(void *, s32, s32, s32);
+u8 ov108_021E7700(void *, s32, s32, s32);
 
 void ov108_021E7C5C(SafariAreaCustomizer *arg0);
 
-s32 ov108_021E7CD8(void *, u8);
+s32 ov108_021E7CD8(void *, unsigned int);
 
 void ov108_021E7BFC(SafariAreaCustomizer *arg0);
 

@@ -1,5 +1,5 @@
 # libntr (MIT, https://github.com/cybervisi0n/libntr): NitroSDK/TwlSDK for PC. Upstream's commit f6b3a690c is fetched by meson at
-# the first configure into port/subprojects/libntr/, then our changes (the port's fixes and additions: one patch of 83 files,
+# the first configure into port/subprojects/libntr/, then our changes (the port's fixes and additions: one patch of 113 files,
 # packagefiles/libntr-ours.patch) are applied on top. Only our changes are in this repository, none of upstream's files.
 [wrap-git]
 url = https://github.com/cybervisi0n/libntr.git

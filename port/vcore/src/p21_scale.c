@@ -26,6 +26,7 @@ typedef struct VC_NFrame {
   size_t npx;
   u32 *color, *depth, *out, *src;
   u8 *oid, *tid, *flags, *cov, *mark, *thick; /* thick: Edge=ds thickening (post phase 1) */
+  u8 *ew;          /* Smooth edges: the band's inner pixel's edge-colour weight in 32nds (post phase 1) */
   VC_NPoly *poly;
   u32 *pic;        /* the picture: ow x 2 oh RGBA8, the top screen first (k x k box average of the n x grid) */
   int pic_valid, layer_valid; /* the picture is complete; the 3D layer was drawn this frame */
@@ -40,7 +41,7 @@ enum { M_FINE = 1, M_THICK = 2 };
 static void nframe_free(VC_NFrame *F) {
   if (F == NULL) return;
   free(F->color); free(F->depth); free(F->out); free(F->src);
-  free(F->oid); free(F->tid); free(F->flags); free(F->cov); free(F->mark); free(F->thick);
+  free(F->oid); free(F->tid); free(F->flags); free(F->cov); free(F->mark); free(F->thick); free(F->ew);
   free(F->poly); free(F->pic); free(F->fogd);
   free(F);
 }
@@ -90,9 +91,10 @@ int vc_n_begin(VCoreState *s) {
   F->cov = (u8 *)calloc(F->npx, 1);
   F->mark = (u8 *)calloc(F->npx, 1);
   F->thick = (u8 *)calloc(F->npx, 1);
+  F->ew = (u8 *)calloc(F->npx, 1);
   F->poly = (VC_NPoly *)calloc(VC_MAX_POLYS, sizeof(VC_NPoly));
   F->pic = (u32 *)calloc((size_t)F->ow * F->oh * 2, 4);
-  if (!F->color || !F->depth || !F->out || !F->oid || !F->tid || !F->flags || !F->cov || !F->mark || !F->thick || !F->poly || !F->pic) {
+  if (!F->color || !F->depth || !F->out || !F->oid || !F->tid || !F->flags || !F->cov || !F->mark || !F->thick || !F->ew || !F->poly || !F->pic) {
     nframe_free(F);
     return 0;
   }
@@ -735,6 +737,14 @@ static int post_thick(const VCoreState *s, const VC_NFrame *F) {
   const int T = s->p21.edge_fine ? F->aa : F->n; /* Edge=ds: one DS pixel wide; fine: one pixel of the picture's grid */
   return T;
 }
+/* Smooth edges (Antialiasing=Smooth edges, one sample at N > 1; port/gpu g06_post.frag p_edge_mark_w, the same rule): the outline
+ * is the band of T pixels from the polygon's edge line inward. A marked pixel takes the edge colour by its coverage c (the AA's
+ * alpha, edge_a0, not the DS's fixed 16), pixels 1..T-1 fully (thick), and the pixel T steps from a marked pixel along a row or
+ * column by the marked pixel's part outside the polygon (edge_wt, in 32nds, into F->ew), so the band's inner side follows the
+ * edge's sub-pixel position. Edge=ds: opaque; Edge=fine (T = 1): the outer half takes the DS's half blend, as 4 samples draw it. */
+static int post_smooth(const VCoreState *s, const VC_NFrame *F) { return s->p21.edge_aa && F->aa == 1 && F->n > 1; }
+static u32 edge_a0(int fine, u32 c) { return !fine ? c : c <= 15 ? (c + 1) / 2 : c - 8; }
+static u32 edge_wt(int fine, u32 c) { return fine && c <= 15 ? 24 - (c * 16 + 15) / 31 : ((31 - c) * 32 + 15) / 31; }
 
 int vc_n_post_begin(VCoreState *s) {
   VC_NFrame *F = s->p21.f;
@@ -754,12 +764,13 @@ void vc_n_post_rows(VCoreState *s, int phase, int y0, int y1) {
   u32 clear_id = (cc >> 24) & 0x3F;
   static const int dxs[4] = {0, 0, -1, 1}, dys[4] = {-1, 1, 0, 0};
   const size_t r0 = (size_t)y0 * W, r1 = (size_t)y1 * W, cnt = r1 - r0;
-  const int T = post_thick(s, F);
+  const int T = post_thick(s, F), smooth = post_smooth(s, F), fine = s->p21.edge_fine;
 
   if (phase == 0) {
     memcpy(F->out + r0, F->color + r0, cnt * 4);
     memset(F->mark + r0, 0, cnt);
     memset(F->thick + r0, 0, cnt);
+    memset(F->ew + r0, 0, cnt);
     if (!edge) return;
     /* an edge-flagged pixel with a 4-neighbour of another ID and a greater depth (off screen: the rear plane's ID) */
     for (int y = y0; y < y1; y++)
@@ -783,11 +794,12 @@ void vc_n_post_rows(VCoreState *s, int phase, int y0, int y1) {
   }
 
   if (phase == 1) {
-    if (!edge || T <= 1) return;
+    if (!edge || (T <= 1 && !smooth)) return;
+    const int TW = smooth ? T : T - 1; /* the farthest pixel walked (Smooth edges: pixel T takes a weight) */
     /* Edge=ds (port/gpu's pass P): also the written pixels of the same ID up to N - 1 pixels from a marked edge pixel
      * along a row or column (the path between them all of that ID): the outline is one DS pixel wide. The marked pixels
      * up to T - 1 rows away are walked too; only the pixels in rows y0..y1-1 are written. */
-    int ya = y0 - (T - 1) < 0 ? 0 : y0 - (T - 1), yb = y1 + (T - 1) > H ? H : y1 + (T - 1);
+    int ya = y0 - TW < 0 ? 0 : y0 - TW, yb = y1 + TW > H ? H : y1 + TW;
     for (int y = ya; y < yb; y++) {
       const int own = y >= y0 && y < y1;
       for (int x = 0; x < W; x++) {
@@ -797,13 +809,17 @@ void vc_n_post_rows(VCoreState *s, int phase, int y0, int y1) {
         u32 id = F->oid[i];
         for (int k = 0; k < 4; k++) {
           if (dys[k] == 0 && !own) continue; /* along the row: lands in row y only */
-          for (int t = 1; t < T; t++) {
+          for (int t = 1; t <= TW; t++) {
             int nx = x + dxs[k] * t, ny = y + dys[k] * t;
             if (nx < 0 || ny < 0 || nx >= W || ny >= H) break;
             size_t j = (size_t)ny * W + nx;
             if (F->oid[j] != id) break;
-            if (ny < y0 || ny >= y1) continue;
-            if (F->flags[j] & VC_F3_WRITTEN) F->thick[j] = M_THICK;
+            if (ny < y0 || ny >= y1 || !(F->flags[j] & VC_F3_WRITTEN)) continue;
+            if (t < T) F->thick[j] = M_THICK;
+            else {
+              u32 w = edge_wt(fine, F->cov[i] > 31 ? 31 : F->cov[i]);
+              if (w > F->ew[j]) F->ew[j] = (u8)w;
+            }
           }
         }
       }
@@ -814,10 +830,16 @@ void vc_n_post_rows(VCoreState *s, int phase, int y0, int y1) {
   if (phase == 2) {
     if (edge)
       for (size_t i = r0; i < r1; i++) {
-        if ((i & 7) == 0 && i + 8 <= r1 && none8(F->mark + i, BYTES(0xFF)) && none8(F->thick + i, BYTES(0xFF))) { i += 7; continue; }
+        if ((i & 7) == 0 && i + 8 <= r1 && none8(F->mark + i, BYTES(0xFF)) && none8(F->thick + i, BYTES(0xFF)) &&
+            none8(F->ew + i, BYTES(0xFF))) { i += 7; continue; }
         if (F->mark[i] | F->thick[i]) {
           u32 ec = rgb555_to_rgb6(vc_io16(s, VC_REG_EDGE_COLOR + (F->oid[i] >> 3) * 2));
           F->out[i] = (ec & 0xFFFFFF) | (31u << 24);
+        } else if (F->ew[i]) { /* Smooth edges: the band's inner pixel, the edge colour by its weight */
+          u32 ec = rgb555_to_rgb6(vc_io16(s, VC_REG_EDGE_COLOR + (F->oid[i] >> 3) * 2)), p = F->out[i], w = F->ew[i];
+          u32 r = (VC_R6(ec) * w + VC_R6(p) * (32 - w) + 16) / 32, g = (VC_G6(ec) * w + VC_G6(p) * (32 - w) + 16) / 32;
+          u32 b = (VC_B6(ec) * w + VC_B6(p) * (32 - w) + 16) / 32;
+          F->out[i] = VC_RGB6(r, g, b) | (p & 0xFF000000u);
         }
       }
     if (fog) {
@@ -848,8 +870,8 @@ void vc_n_post_rows(VCoreState *s, int phase, int y0, int y1) {
       size_t i = (size_t)y * W + x;
       if ((x & 7) == 0 && x + 8 <= W && none8(F->flags + i, BYTES(VC_F3_EDGE))) { x += 7; continue; }
       if (!(F->flags[i] & VC_F3_EDGE) || (F->flags[i] & VC_F3_TRANS)) continue;
-      u32 a = (F->mark[i] | F->thick[i]) ? 16 : F->cov[i];
-      if (a > 31) a = 31;
+      u32 a = F->cov[i] > 31 ? 31 : F->cov[i];
+      if (F->mark[i] | F->thick[i]) a = smooth ? edge_a0(fine, a) : 16; /* Smooth edges: the marked pixel by its coverage */
       u32 p = F->src[i], under = 0, udep = F->depth[i];
       for (int k = 0; k < 4; k++) {
         int nx = x + dxs[k], ny = y + dys[k];
@@ -1009,6 +1031,7 @@ void vcore_set_options(VCoreState *s, int dot_fine, int line_thin, int edge_fine
   s->p21.edge_fine = edge_fine != 0;
 }
 void vcore_set_filter(VCoreState *s, int bilinear) { s->p21.filter_bilinear = bilinear != 0; }
+void vcore_set_edge_aa(VCoreState *s, int on) { s->p21.edge_aa = on != 0; }
 const uint8_t *vcore_picture(const VCoreState *s, int *w, int *h) {
   const VC_NFrame *F = s->p21.f;
   if (F == NULL || !F->pic_valid || !vc_p21_active(s)) return NULL;

@@ -159,7 +159,7 @@ void SetBgPriority(u8 bgLayer, u8 priority);
 
 void ToggleBgLayer(u8 bgLayer, u8 enable);
 
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 void BG_ClearCharDataRange(u8 bgLayer, u32 size, u32 offset, enum HeapID heapID);
 

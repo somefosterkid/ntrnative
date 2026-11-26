@@ -10,7 +10,7 @@ s32 ov40_0222BF80(void *, s32);
 
 s32 ov40_0222DED0(void *, s32);
 
-s32 ov40_0222DFB0();
+void ov40_0222DFB0(void *arg0);
 
 s32 ov40_0222FCCC(void *);
 
@@ -49,7 +49,7 @@ s32 ov40_02232A48(void *arg0) {
         *((s32 *)&((UnkStruct_0208C06C *)arg0)->unk_08) = (s32)(*((s32 *)&((UnkStruct_0208C06C *)arg0)->unk_08) + 1);
         break;
     default:
-        ov40_0222DFB0();
+        ov40_0222DFB0(arg0);
         ov40_02233044(arg0);
         ov40_0222BF80(arg0, 9);
         break;

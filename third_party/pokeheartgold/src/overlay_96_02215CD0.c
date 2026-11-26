@@ -7,9 +7,9 @@
 
 #include "overlay_96_ov96_rd_work.h"
 
-u32 ov96_02215CD0(PokeathlonCourseData *param_1);
+BOOL ov96_02215CD0(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_02215CD0(PokeathlonCourseData *data) {
+BOOL ov96_02215CD0(PokeathlonCourseData *data, int unused) {
     Ov96RdWork *work;
 
     work = PokeathlonCourse_GetHeapAllocPtr4(data);

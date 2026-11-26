@@ -2,6 +2,7 @@
 
 #include "constants/heap.h"
 
+#include "pokeathlon/pokeathlon.h"
 #include "overlay_96_unk_struct_ov96_021_f7934.h"
 #include "save.h"
 
@@ -13,7 +14,6 @@ typedef struct RecordMixedRNG RecordMixedRNG;
 
 RecordMixedRNG *Save_SealCase_Get(SaveData *saveData);
 
-void *ov73_021E7960(RecordMixedRNG *param0);
 
 void *ov73_021EA2B4(SaveData *saveData, enum HeapID heapID, u32 param2);
 
@@ -21,13 +21,11 @@ void *ov59_021D3088(SaveData *saveData, enum HeapID heapID, u32 param2);
 
 void *ov73_021EA348(SaveData *saveData, enum HeapID heapID, u32 param2);
 
-BOOL ov96_021F7E74(void *param0, u8 *state);
+BOOL ov96_021F7E74(PokeathlonCourseData *param0, u8 *state);
 
-void *PokeathlonCourse_GetHeapAllocPtr4(void *param0);
 
 BOOL IsFanfarePlaying(void);
 
-int PokeathlonCourse_GetMode(void *param0);
 
 int ov96_021F85F4(void *param0);
 
@@ -41,11 +39,9 @@ int ov96_021F83DC(void *param0);
 
 BOOL ov96_021F81CC(UnkStruct_ov96_021F8094 *param0, void *param1);
 
-void *PokeathlonCourse_GetGraphicsSystem(void *param0);
 
 void *ov96_021E94EC(void *param0, u32 param1);
 
-void *PokeathlonCourse_GetPlayerProfileFromData(void *param0, u32 param1);
 
 void BufferPlayersName(void *param0, u32 param1, void *param2);
 
@@ -55,7 +51,6 @@ void UpdateMainScreenBrightnessSurface(u32 param0, u32 param1);
 
 BOOL IsBrightnessTransitionActive(u32 param0);
 
-u32 PokeathlonCourse_GetField3D8_ForCurrentParticipant(void *param0);
 
 s32 ov96_021E95D8(void *param0, u32 param1, u32 param2);
 
@@ -65,7 +60,11 @@ int ov96_021F83FC(void *param0);
 
 u8 ov96_021F7E64(void *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void BeginNormalPaletteFade(u32 param0, u32 param1, u32 param2, u16 param3, u32 param4, u32 param5, u32 param6);
+#else
 void BeginNormalPaletteFade(u32 param0, u32 param1, u32 param2, u32 param3, u32 param4, u32 param5, u32 param6);
+#endif
 
 void GF_SndStartFadeOutBGM(u32 param0, u32 param1);
 
@@ -75,7 +74,7 @@ void ov96_021EE944(void *param0);
 
 void ov96_021EE8CC(void *param0, s32 param1);
 
-BOOL ov96_021F7E74(void *param0, u8 *state) {
+BOOL ov96_021F7E74(PokeathlonCourseData *param0, u8 *state) {
     int r4 = 0;
     BOOL ret;
     UnkStruct_ov96_021F7934 *v0;

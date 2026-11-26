@@ -59,7 +59,11 @@ void ov96_02208AF0(Ov96HurdleCpu *cpu, struct Ov96HurdleSlot *slots);
 void ov96_02208AF8(Ov96HurdleCpu *cpu, const void *data);
 void ov96_02208B2C(Ov96HurdleCpu *cpu);
 u8 ov96_02208B34(Ov96HurdleCpu *cpu);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in port/nonmatching/ov96_02208BB8.c (tools/pokehg_abi.py)
+void ov96_02208BB8(Ov96HurdleCpu *cpu, unsigned int idx);
+#else
 void ov96_02208BB8(Ov96HurdleCpu *cpu, u8 idx);
+#endif
 Ov96HurdleCpuCell *ov96_02208FB8(Ov96HurdleCpu *cpu);
 u8 ov96_02208FF0(Ov96HurdleCpuCell **src, Ov96HurdleCpuCell **dst);
 BOOL ov96_022090A8(Ov96HurdleCpuCell *cell, u16 x, u16 y);

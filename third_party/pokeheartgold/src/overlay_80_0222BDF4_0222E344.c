@@ -67,7 +67,7 @@ void ov80_0222E344(void *arg0, enum Font fontId, u32 textSpeed, s32 enable, s32 
     } else {
         TextFlags_SetCanTouchSpeedUpPrint(1);
     }
-    ((FrontierScriptManager *)arg0)->printerID = AddTextPrinterParameterized(arg0 + 0x64, fontId, ((FrontierScriptManager *)arg0)->string, 0U, 0U, textSpeed, NULL);
+    ((FrontierScriptManager *)arg0)->printerID = AddTextPrinterParameterized(&((FrontierScriptManager *)arg0)->msgWindow, fontId, ((FrontierScriptManager *)arg0)->string, 0U, 0U, textSpeed, NULL);
 }
 
 void ov80_0222E38C(FrontierScriptManager *scriptMan) {

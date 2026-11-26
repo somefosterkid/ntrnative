@@ -8,18 +8,12 @@
 
 void ov112_021E7484(u32);
 
-u32 ov112_021EC000(Ov112PokewalkerApp *param_1);
-
-s32 ov112_021E7CC8();
-s32 ov112_021EC038(void);
+void ov112_021E7CC8(Ov112PokewalkerApp *param_1);
+s32 ov112_021EC038(Ov112PokewalkerApp *param_1);
 
 void ov112_021E7464(void);
 s32 ov112_021E7668(void);
 u32 ov112_021E76A8(void);
-void ov112_021E98E8(u8 *, u16);
-void ov112_021EC134(u8 *param_1);
-void ov112_021EC440(u8 *, u32, u32, u32);
-s32 ov112_021EC044(u8 *param_1);
 
 u32 ov112_021EC000(Ov112PokewalkerApp *param_1) {
     ov112_021E7484(1);
@@ -28,12 +22,12 @@ u32 ov112_021EC000(Ov112PokewalkerApp *param_1) {
     return 0x10;
 }
 
-s32 ov112_021EC038(void) {
-    ov112_021E7CC8();
+s32 ov112_021EC038(Ov112PokewalkerApp *param_1) {
+    ov112_021E7CC8(param_1);
     return 0x11;
 }
 
-s32 ov112_021EC044(u8 *param_1) {
+s32 ov112_021EC044(Ov112PokewalkerApp *param_1) {
     u32 uVar1;
     s32 iVar2;
     s32 iVar3;
@@ -66,11 +60,11 @@ s32 ov112_021EC044(u8 *param_1) {
         iVar3 = 0x12;
         break;
     case 0xf:
-        ManagedSprite_SetDrawFlag(*(ManagedSprite **)(param_1 + 0x1e538), 0);
+        ManagedSprite_SetDrawFlag(param_1->sprites[2], 0);
         ov112_021EC134(param_1);
-        sub_02032624(*(POKEWALKER **)(param_1 + 0x1e440));
-        *(u32 *)(param_1 + 0x1d758) = 0;
-        *(u32 *)(param_1 + 0x1d75c) = 0;
+        sub_02032624(param_1->pokewalker);
+        param_1->unk_1D758 = 0;
+        param_1->unk_1D75C = 0;
         ov112_021E7464();
         return 0x14;
     }
@@ -81,7 +75,7 @@ s32 ov112_021EC044(u8 *param_1) {
     if (iVar2 == 0) {
         ov112_021E98E8(param_1, 1);
         iVar2 = ov112_021E9888(5);
-        if (((iVar2 == 0) || ((((u32 *)&gSystem)[0x12] & 1) != 0)) || ((((u32 *)&gSystem)[0x12] & 2) != 0)) {
+        if (((iVar2 == 0) || ((gSystem.newKeys & 1) != 0)) || ((gSystem.newKeys & 2) != 0)) {
             ov112_021E7464();
             ov112_021EC440(param_1, 1, 3, 0x12);
             PlaySE(0x5dc);

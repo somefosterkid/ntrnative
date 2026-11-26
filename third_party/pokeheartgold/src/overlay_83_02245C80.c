@@ -28,7 +28,7 @@ struct ListMenu2D;
 typedef struct ListMenuCursor ListMenuCursor;
 typedef struct ListMenu2D ListMenu2D;
 u8 ov80_02237B58(u8 challengeType, BOOL includeBothOpponents);
-void ov83_02245CA8(BattleCastleOpponentApp *app, s32 slot);
+void ov83_02245CA8(BattleCastleOpponentApp *arg0, s32 slot);
 
 void ov83_02245C80(BattleCastleOpponentApp *app);
 

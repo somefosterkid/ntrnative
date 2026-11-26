@@ -44,6 +44,7 @@ BOOL Task_FieldEscapeRope(TaskManager *taskManager);
 BOOL Task_FieldTeleport(TaskManager *taskManager);
 BOOL Task_FieldDig(TaskManager *taskManager);
 BOOL ov02_0224C1F8(TaskManager *taskManager);
+s32 ov02_0224C840(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *env);
 void *ov02_0224C1D8(FieldSystem *fieldSystem, enum HeapID heapID, int a2);
 void *ov02_0224C660(enum HeapID heapID, u32 size);
 Field3dObjectTask *ov02_0224DDE0(FieldSystem *fieldSystem);

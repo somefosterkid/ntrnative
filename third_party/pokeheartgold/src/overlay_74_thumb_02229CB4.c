@@ -602,7 +602,11 @@ typedef struct PGT {
     u16 : 14;
     GiftData data;
 } PGT;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038114(SaveData *saveData, s8 commType);
+#else
 void sub_02038114(SaveData *saveData, int commType);
+#endif
 BOOL sub_02037474(void);
 typedef void (*UnkFuncPtr_ov97_0222D0A4)(void);
 void ov74_02229BD0(void);

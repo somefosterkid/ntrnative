@@ -20,7 +20,11 @@ void ov37_021E6FC8(UnkStruct_02095EAC *param0, int param1, u8 param2);
 
 int ov37_021E75E0(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 BOOL sub_02037108(int cmd, const void *data, int size);
 

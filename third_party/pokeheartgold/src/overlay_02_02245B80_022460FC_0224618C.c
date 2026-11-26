@@ -4,7 +4,11 @@
 #include "overlay_02.h"
 #include "task.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void *ov02_022461AC(FieldSystem *, s8);
+#else
 void *ov02_022461AC(FieldSystem *, u8);
+#endif
 
 BOOL ov02_022461DC(TaskManager *param_1);
 

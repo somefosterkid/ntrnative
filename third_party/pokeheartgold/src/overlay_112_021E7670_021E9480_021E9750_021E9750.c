@@ -15,12 +15,6 @@ struct SysTaskQueue;
 
 struct System;
 
-extern void ov112_021EA51C(Ov112PokewalkerApp *app, int selection);
-
-extern void ov112_021EA584(Ov112PokewalkerApp *app);
-
-int ov112_021E9750(Ov112PokewalkerApp *app);
-
 int ov112_021E9750(Ov112PokewalkerApp *app) {
     u32 result;
     u32 keys;

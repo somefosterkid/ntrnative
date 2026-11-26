@@ -6,15 +6,15 @@ def parse(path, lo=None, hi=None):
     rows = []
     for ln in open(path):
         m = re.match(r'f=(\d+) on=(\d)/(\d) nl=(\d+)/(\d+) nv=(\d+)/(\d+) npoly=(\d+) str=(\d+) loose=(\d+) rem=(\d+) add=(\d+) '
-                     r'jump=(\d+) behind=(\d+) vtp=(\d+) vtr=(\d+) vta=(\d+) chA=(\d+) chAt=(\d+) chT=(\d+) chP=(\d+) chV=(\d+) '
+                     r'jump=(\d+) behind=(\d+) vtp=(\d+) vtr=(\d+) vta=(\d+) '
                      r'same=(\d) dmean=([\d.]+) dmax=([\d.]+)', ln)
         if not m:
             continue
         g = m.groups()
         r = dict(f=int(g[0]), on_a=int(g[1]), on_b=int(g[2]), nl_a=int(g[3]), nl_b=int(g[4]), nv_a=int(g[5]), nv_b=int(g[6]),
                  npoly=int(g[7]), strict=int(g[8]), loose=int(g[9]), rem=int(g[10]), add=int(g[11]), jump=int(g[12]),
-                 behind=int(g[13]), vtp=int(g[14]), vtr=int(g[15]), vta=int(g[16]), chA=int(g[17]), chAt=int(g[18]),
-                 chT=int(g[19]), chP=int(g[20]), chV=int(g[21]), same=int(g[22]), dmean=float(g[23]), dmax=float(g[24]))
+                 behind=int(g[13]), vtp=int(g[14]), vtr=int(g[15]), vta=int(g[16]), same=int(g[17]), dmean=float(g[18]),
+                 dmax=float(g[19]))
         # 2D parts
         for e in (0, 1):
             m2 = re.search(r'\| e%d scr=(\w+) sd=(\d+) aff=(\w+) reg=(\d+) obj=(\d+) mv=(\d+) mvmax=(\d+) chg=(\d+) app=(\d+) dis=(\d+) pal=(\d+)' % e, ln)
@@ -57,11 +57,6 @@ def table(name, rows):
             if r['add']: rs['lists added'] += 1
             if r['jump']: rs['moved > 48 px'] += 1
             if r['behind']: rs['behind camera'] += 1
-            if r['chAt']: rs['attr changed'] += 1
-            if r['chA']: rs['alpha changed'] += 1
-            if r['chT']: rs['texparam changed'] += 1
-            if r['chP']: rs['palette changed'] += 1
-            if r['chV']: rs['viewport changed'] += 1
         print('   non-trivial pairs %d, reasons (a pair can have several): %s' % (len(bad), ', '.join('%s %d' % kv for kv in rs.most_common())))
     # blendable vertex share, over the 3D-on pairs
     on = [r for r in rows if r['on_a'] and r['on_b']]

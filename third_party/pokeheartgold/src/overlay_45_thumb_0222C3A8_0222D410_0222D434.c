@@ -25,11 +25,9 @@ typedef struct {
     BOOL unk_08;
 } UnkStruct_ov66_02231300;
 
-int ov46_02258CB4(OverlayManager *appMan, int *param1);
 
 int ov46_02258DA8(OverlayManager *appMan, int *param1);
 
-int ov46_02258EFC(OverlayManager *appMan, int *param1);
 
 FS_EXTERN_OVERLAY(overlay67);
 

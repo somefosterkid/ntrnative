@@ -11,12 +11,7 @@ struct UnkStruct_ov112_021EA230;
 
 void ov112_021EA19C(Ov112PokewalkerApp *arg0);
 
-s32 ov112_021EA230(void *);
-s32 ov112_021EA2C4(Ov112PokewalkerApp *);
-s32 ov112_021EA3C0(void *);
 s32 ov112_021EAB58(void);
-void ov112_021EA1AC(Ov112PokewalkerApp *arg0);
-void ov112_021EA1F8(Ov112PokewalkerApp *arg0);
 
 void ov112_021EA19C(Ov112PokewalkerApp *arg0) {
     sub_0200F450(arg0->waitingIcon);

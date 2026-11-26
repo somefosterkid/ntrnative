@@ -30,6 +30,7 @@ struct SpriteList;
 struct SpriteResource;
 struct SpriteResourceCollection;
 struct String;
+struct ListMenuItem;
 struct StringList;
 struct StringTemplate;
 
@@ -54,7 +55,7 @@ typedef struct MysteryGiftAppData {
     int unused_70;
     u32 queuedState;
     struct ListMenu *listMenu;
-    struct StringList *listMenuOptions;
+    struct ListMenuItem *listMenuOptions;
     int canReceiveGiftStatus;
     int foundGiftType;
     int unused_88;

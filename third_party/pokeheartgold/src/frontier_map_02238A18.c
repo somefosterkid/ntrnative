@@ -95,7 +95,6 @@ s32 ov80_02239900(void *, UnkStruct_ov104_0223D570 *);
 
 void *sub_02096864(BattleFrontier *);
 
-void *sub_0209686C(BattleFrontier *, s32);
 
 void ov80_02238A18(FrontierGraphics *param0);
 

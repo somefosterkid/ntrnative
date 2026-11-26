@@ -3,12 +3,13 @@
 #include "constants/heap.h"
 
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
 s32 ov43_0222A9F4(PalPadGfx *, Window *, s32);
 s32 ov43_0222AD00(PalPadGfx *, s32);
 s32 ov43_0222AD74(PalPadGfx *, s32, s32);
 s32 ov43_0222AD98(PalPadGfx *, u8, s32);
-s32 ov43_0222C378(PalPadRoster *, PalPadShared *, PalPadGfx *, s16, s32, s32, enum HeapID);
+
 void ov43_0222BB20(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
 void ov43_0222BB20(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID) {

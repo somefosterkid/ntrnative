@@ -3,8 +3,6 @@
 #include "bg_window.h"
 #include "overlay_86_frontier_records_app.h"
 
-void ov86_021E7C70(FrontierRecordsApp *param_1);
-
 void ov86_021E7C70(FrontierRecordsApp *param_1) {
     u32 uVar1;
     Window *window;

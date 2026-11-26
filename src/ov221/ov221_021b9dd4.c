@@ -17,7 +17,9 @@
 #include "gfl/bg_sys.h"
 #include "gfl/bmpwin.h"
 
-static const BGSysVRAMConfig data_ov221_021ba220 = { 1, 0, 4, 0, 2, 0, 256, 0, 8, 32, 16, 16 };
+static const BGSysVRAMConfig data_ov221_021ba220 = {
+#include "asset/ov221_021b9dd4_data_ov221_021ba220.inc"
+};
 
 // The BGs, cell actors and 3D camera of the regional Pokedex diploma and its vblank task, pokebw2's
 // chihou_zukan_award_graphic.c

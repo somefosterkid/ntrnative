@@ -26,8 +26,7 @@ ov117_0225F524	asm/overlay_117_0225F524.s	25	PORTOK	worker		PORTOK handover evo2
 ov12_02238A68	asm/overlay_12_022378C0_02238A64.s	0	CLOSE	worker		pilot hk28 [native: static->real global]
 ov12_0225A07C	asm/overlay_12_battle_controller_opponent_0225A07C.s	62	PORTOK	worker		PORTOK hk39: fixed (typed rewrite): x read at table + pos*12 ((u16*) + pos*6; asm pos*6 bytes); the Pokepic template nev
 ov14_021E6CF8	asm/overlay_14_021E6CF8.s	13	PORTOK	worker		PORTOK hk40: checked all (7x0x20 clear loop, +0xE4/E8/EC, 0x40C4 flag, all 5 branches + 3 loops +4/+8/+C stores); FIXED:
-ov14_021F129C	asm/overlay_14_021F1228.s	0	MATCH	worker		pilot dg4
-ov14_021F5950	asm/overlay_14_021F5718_021F58B8.s	64	PORTOK	worker		PORTOK hk39: checked all, no change: windows at sys+0x30 [idx], colors/offsets 0x180/0, GetCharData args, all 8 BlitBitm
+ov14_021F5950	asm/overlay_14_021F5718_021F58B8.s	64	PORTOK	worker		PORTOK hk645 header types: sys->windows/unk_20 via overlay_14_unk_struct_ov14_boxsys.h, local boxsys/boxapp/args copies 
 ov18_021F831C	asm/overlay_18_021F684C_021F7060_021F831C.s	29	PORTOK	worker		PORTOK hk40: fork text (Platinum-style src): all 17 type cases 0x33..0x43, case 17 memcpy(dst,src,n*2)+*count=n, ov18_02
 ov28_0225E1A4	asm/overlay_28_0225DA1C_0225DE88.s	10	PORTOK	tweak		PORTOK hk40: checked all (0x208..0x24c fields, abs thresholds 8/0xC/0x11, both 4x0xC loops, %360 unsigned, +0x168 fixups
 ov28_0225E730	asm/overlay_28_0225DA1C_0225DE88_0225E43C_0225E578.s	50	PORTOK	worker		PORTOK hk39: fixed: old text read 0x209/0x211/0x201 (p=arg0+0x209 s32*) and stored the counter at (u16*)arg0+0x338 (=0x6

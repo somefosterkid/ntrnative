@@ -6,7 +6,6 @@
 void ov14_021E7EE0(UnkStruct_0201956C *param_1);
 void ov14_021E7F4C(UnkStruct_0201956C *param_1);
 
-void sub_02019B1C(UnkStruct_0201956C *, u32, s8 *, s8 *);
 
 void ov14_021E7EE0(UnkStruct_0201956C *param_1) {
     s8 cStack_14;

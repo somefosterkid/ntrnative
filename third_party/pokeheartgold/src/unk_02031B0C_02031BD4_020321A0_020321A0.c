@@ -11,7 +11,7 @@
 
 s32 sub_02031D6C(ApricornJuice *a0);
 
-s32 sub_02032158(void *arg0, void *arg1);
+s32 sub_02032158(ApricornRecord *arg0, ApricornRecord *arg1);
 
 void sub_020321A0(SaveApricornBox *box, void *slotData, int count, int startIdx);
 

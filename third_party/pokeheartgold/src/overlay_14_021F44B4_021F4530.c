@@ -13,10 +13,10 @@ void ov14_021F4530(struct UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2);
 void ov14_021F4530(UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2) {
     s16 y[2];
     u32 v0;
-    void *v1;
+    UnkStruct_ov14_boxsys *v1;
     v0 = ov14_021E7930(arg0, arg0->unk25, arg2);
-    v1 = *((void * *)&arg0->sys);
-    if ((((unsigned int)((u8)(*((u8 *)&((UnkStruct_ov14_boxsys *)v1)->unk_44D)))) >> 2) == (v0 >> 2)) {
+    v1 = arg0->sys;
+    if ((((unsigned int)((u8)(*((u8 *)&v1->unk_44D)))) >> 2) == (v0 >> 2)) {
         ov14_021F2A18(v1, 6, 1);
     } else {
         ov14_021F2A18(v1, 6, 0);

@@ -14,6 +14,8 @@
 #include "overlay_49_unk_struct_ov70_02266af0.h"
 
 struct UnkStruct_ov70_0225DEE8_t;
+struct UnkStruct_ov70_02263344_t;
+struct UnkStruct_ov66_0222DFF8_t;
 struct UnkStruct_ov70_02260BB8_t;
 struct UnkStruct_ov70_022610B8_t;
 struct UnkStruct_ov70_02261E10_t;
@@ -54,7 +56,13 @@ void ov49_0225BBCC(void);
 
 s32 ov49_0225CB70(struct UnkStruct_ov70_0225DEE8_t *arg0);
 
-void ov49_0225CC28(void *arg0, s32 arg1, s32 arg2, s32 arg3);
+struct UnkStruct_ov70_02260AD4_t {
+    struct Camera *camera;
+    void *unk_4;
+    VecFx32 pos;
+};
+
+void ov49_0225CC28(struct UnkStruct_ov70_02260AD4_t *arg0, s32 arg1, s32 arg2, s32 arg3);
 
 void ov49_0225CDEC(void *arg0, s8 arg1, s8 arg2, enum HeapID arg3, enum HeapID arg4);
 
@@ -67,22 +75,22 @@ void ov49_0225E4A4(struct UnkStruct_ov70_02261E10_t *arg0, u32 arg1);
 
 void ov49_0225EFF0(u8 *arg0, u32 arg1, s32 arg2);
 
-s32 ov49_0225FA14(void *arg0, void *arg1, s32 arg2);
-s32 ov49_0225FB5C(void *arg0, void *arg1, s32 arg2);
-s32 ov49_0225FCA8(void *arg0, void *arg1, s32 arg2);
+BOOL ov49_0225FA14(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2);
+BOOL ov49_0225FB5C(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2);
+BOOL ov49_0225FCA8(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2);
 
-u32 ov49_02260230(void *param_1, void *param_2);
+u32 ov49_02260230(struct UnkStruct_ov70_02263344_t *param0, struct UnkStruct_ov70_0225DEE8_t *param1);
 
 s32 ov49_02260C58(u32 arg0);
 s32 ov49_02260CC0(u32 arg0);
 s32 ov49_02260D28(u32 arg0);
 
-s32 ov49_022618C0(void *arg0, s32 arg1, s32 arg2);
+BOOL ov49_022618C0(struct UnkStruct_ov70_02263344_t *param0, struct UnkStruct_ov70_0225DEE8_t *param1, u32 param2);
 
-s32 ov49_02262AC4(void *arg0, void *arg1);
+BOOL ov49_02262AC4(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2);
 
-void ov49_02264C50(void *arg0, s32 arg1, s32 arg2);
-s32 ov49_02264CA8(UnkStruct_ov49_02264CF8 *arg0, s32 arg1, u8 arg2);
+void ov49_02264C50(struct UnkStruct_ov70_0225DEE8_t *param0, u32 param1, u32 param2);
+BOOL ov49_02264CA8(UnkStruct_ov49_02264CF8 *arg0, struct UnkStruct_ov66_0222DFF8_t *arg1, u8 arg2);
 void ov49_02264CF8(void);
 
 void ov49_02264D14(UnkStruct_ov49_02264CF8 *arg0, void *arg1);

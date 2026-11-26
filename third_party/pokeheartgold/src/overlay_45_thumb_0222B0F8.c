@@ -1,11 +1,11 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "game_stats.h"
 #include "constants/heap.h"
 #include "save.h"
 #include "overlay_45_wifi_plaza_system.h"
-
-void IncrementGameStat47(SaveData **arg0);
 
 struct PasswordWordBank;
 struct PlayerProfile;
@@ -16,20 +16,16 @@ typedef struct UnkStruct_ov66_0223177C_t UnkStruct_ov66_0223177C;
 typedef u16 charcode_t;
 typedef struct UnkStruct_0207E060_t UnkStruct_0207E060;
 typedef struct PasswordWordBank PasswordWordBank;
-BOOL ov45_0222A330(const WiFiPlazaSystem *param0);
-BOOL ov45_0222A394(const WiFiPlazaSystem *param0);
 BOOL ov45_0222A3A0(const WiFiPlazaSystem *param0);
 void ov45_0222B118(WiFiPlazaSystem *param0, int param1);
 int ov45_0222B134(const WiFiPlazaSystem *param0);
 
-void IncrementGameStat47(SaveData **arg0) {
-    GameStats_Inc(Save_GameStats_Get(*arg0), 0x2F);
+void IncrementGameStat47(WiFiPlazaSystem *arg0) {
+    GameStats_Inc(Save_GameStats_Get(arg0->saveData), 0x2F);
 }
 
-void IncrementGameStat119(SaveData **arg0);
-
-void IncrementGameStat119(SaveData **arg0) {
-    GameStats_Inc(Save_GameStats_Get(*arg0), 0x77);
+void IncrementGameStat119(WiFiPlazaSystem *arg0) {
+    GameStats_Inc(Save_GameStats_Get(arg0->saveData), 0x77);
 }
 
 void ov45_0222B118(WiFiPlazaSystem *param0, int param1) {

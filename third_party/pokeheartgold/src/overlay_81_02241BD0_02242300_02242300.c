@@ -4,7 +4,11 @@
 #include "overlay_81.h"
 #include "overlay_81_battle_factory_app.h"
 
-s32 ov81_022409B0(void *, void *, u8, s32, s32, s32, s32, s32, s32, void *);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_81_022400D0_022408B8_022409B0_022409B0.c (tools/pokehg_abi.py)
+void ov81_022409B0(void *, void *, s32, s32, s32, u8, u8, u8, u8, void *);
+#else
+void ov81_022409B0(void *, void *, u8, s32, s32, s32, s32, s32, s32, void *);
+#endif
 
 void ov81_02242300(BattleFactoryApp *app, u32 arg1, u32 arg2) {
     u8 v0;

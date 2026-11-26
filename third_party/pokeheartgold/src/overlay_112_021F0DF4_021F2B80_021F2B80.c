@@ -1,7 +1,7 @@
 #include "global.h"
 #include "overlay_112_sprite_app.h"
 
-u8 ov112_021F0F60(void *);
+u8 ov112_021F0F60(Ov112Record *);
 
 void ov112_021F15E4(Ov112SpriteApp *);
 

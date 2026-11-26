@@ -777,7 +777,11 @@ enum MysteryGiftAppState ov74_02229F90(OverlayManager *appMan) {
     }
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov74_02229D50(s8 param0);
+#else
 void ov74_02229D50(int param0);
+#endif
 
 void sub_02037AC0(u8 syncNo);
 

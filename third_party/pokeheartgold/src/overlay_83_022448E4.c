@@ -13,10 +13,10 @@ struct BattleCastleOpponentApp;
 
 u8 ov80_02237B58(u8, s32);
 
-void ov83_022448E4(struct BattleCastleOpponentApp *arg0, Window *arg1);
+void ov83_022448E4(BattleCastleOpponentApp *arg0, Window *window);
 
 s32 ov83_02244BA8(void *, Window *, s32, s32, s32, s32);
-void ov83_022449D4(void *arg0, Window *arg1);
+void ov83_022449D4(BattleCastleOpponentApp *arg0, Window *window);
 
 void ov83_022448E4(BattleCastleOpponentApp *arg0, Window *window) {
     Pokemon *pokemon;
@@ -48,9 +48,9 @@ void ov83_022448E4(BattleCastleOpponentApp *arg0, Window *window) {
             } else {
                 mon = Party_GetMonByIndex(arg0->opponentsParty, slot);
                 pokemon = mon;
-                PrintUIntOnWindow(*((MessagePrinter * *)&arg0->specialChars), GetMonData(mon, 0xA3, NULL), 3U, PRINTING_MODE_RIGHT_ALIGN, window, v3, 1U);
-                sub_0200CDAC(*((MessagePrinter * *)&arg0->specialChars), 0U, window, v0, 1U);
-                PrintUIntOnWindow(*((MessagePrinter * *)&arg0->specialChars), GetMonData(mon, 0xA4, NULL), 3U, PRINTING_MODE_LEFT_ALIGN, window, x, 1U);
+                PrintUIntOnWindow(arg0->msgPrinter, GetMonData(mon, 0xA3, NULL), 3U, PRINTING_MODE_RIGHT_ALIGN, window, v3, 1U);
+                sub_0200CDAC(arg0->msgPrinter, 0U, window, v0, 1U);
+                PrintUIntOnWindow(arg0->msgPrinter, GetMonData(mon, 0xA4, NULL), 3U, PRINTING_MODE_LEFT_ALIGN, window, x, 1U);
             }
             v0 += 0x40;
             v3 += 0x40;
@@ -61,7 +61,7 @@ void ov83_022448E4(BattleCastleOpponentApp *arg0, Window *window) {
     ScheduleWindowCopyToVram(window);
 }
 
-void ov83_022449D4(void *arg0, Window *window) {
+void ov83_022449D4(BattleCastleOpponentApp *arg0, Window *window) {
     Pokemon *pokemon;
     s32 v1;
     Window *v0;
@@ -87,7 +87,7 @@ void ov83_022449D4(void *arg0, Window *window) {
         do {
             mon = Party_GetMonByIndex(((BattleCastleOpponentApp *)arg0)->opponentsParty, slot);
             pokemon = mon;
-            FontSpecialChars_DrawPartyScreenText(*((MessagePrinter **)&((BattleCastleOpponentApp *)arg0)->specialChars), 1U, GetMonData(mon, 0xA1, NULL), 3U, PRINTING_MODE_LEFT_ALIGN, v0, x, 1U);
+            FontSpecialChars_DrawPartyScreenText(((BattleCastleOpponentApp *)arg0)->msgPrinter, 1U, GetMonData(mon, 0xA1, NULL), 3U, PRINTING_MODE_LEFT_ALIGN, v0, x, 1U);
             ov83_02244BA8(arg0, v0, v3, 1, 0, (s32)(u8)GetMonData(mon, 0x6F, NULL));
             slot += 1;
             x += 0x40;

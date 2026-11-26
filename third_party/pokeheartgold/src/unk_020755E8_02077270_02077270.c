@@ -256,7 +256,6 @@ struct PaletteAnimator {
 
 void GF_RunVramTransferTasks(void);
 
-EvolutionData *sub_02075A7C(Party *party, Pokemon *mon, int targetSpecies, Options *options, int showContest, Pokedex *pokedex, Bag *bag, GameRecords *records, Poketch *poketch, int method, int flags, enum HeapID heapID);
 
 void sub_02077270(void *data);
 

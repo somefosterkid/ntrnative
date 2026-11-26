@@ -14,19 +14,19 @@ typedef struct UnkStruct_ov71_02249CF0_Heap_Alloc {
     void *unk_0;
     s32 unk_4;
     u8 unk_8[0x4];
-    s32 unk_C;
+    struct BgConfig *unk_C;
     u8 unk_10[0x14];
 } UnkStruct_ov71_02249CF0_Heap_Alloc;
 
-void ov71_02249C90(void *arg0);
+void ov71_02249C90(TradeBallFlybyPhase *arg0);
 
-s32 ov71_02247384(void *);
+struct BgConfig *ov71_02247384(void *);
 void *ov71_02249CF0(void *arg0);
 s32 ov71_0224A080();
 void ov71_02249D14(void *arg0);
 
-void ov71_02249C90(void *arg0) {
-    *(s32 *)((u8 *)arg0 + 0xC) = 1;
+void ov71_02249C90(TradeBallFlybyPhase *arg0) {
+    arg0->screenSwapPending = 1;
 }
 
 struct SysTask;

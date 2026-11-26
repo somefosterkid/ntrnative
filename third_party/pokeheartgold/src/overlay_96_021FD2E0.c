@@ -11,19 +11,23 @@ s32 ov96_021EB564(void *, s32);
 
 s32 ov96_021EB588(void *, s32 *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021FEAEC(void *, s32);
+#else
 s32 ov96_021FEAEC(void *, s32);
+#endif
 
 void ov96_021FFB44(Ov96Obstacle *);
 
-s32 ov96_021FD2E0(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021FD2E0(PokeathlonCourseData *arg0, u8 *arg1);
 
 s32 ov96_021E637C(PokeathlonCourseData *);
 s32 ov96_021E667C(PokeathlonCourseData *);
 s32 ov96_021FD4D0(PokeathlonCourseData *);
 s32 ov96_021FDB64(PokeathlonCourseData *);
-s32 ov96_021FD3EC(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021FD3EC(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021FD2E0(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021FD2E0(PokeathlonCourseData *data, u8 *arg1) {
     s32 v4[3];
     s32 v3;
     Ov96RowerWork *v2;
@@ -77,7 +81,7 @@ s32 ov96_021FD2E0(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021FD3EC(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021FD3EC(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
     Ov96RowerWork *v1;
 

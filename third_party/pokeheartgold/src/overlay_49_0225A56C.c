@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "bg_window.h"
 #include "filesystem.h"
 #include "list_menu.h"
@@ -42,7 +44,6 @@ typedef struct UnkStruct_ov70_02260AD4_t UnkStruct_ov70_02260AD4;
 typedef struct UnkStruct_ov70_02261E10_t UnkStruct_ov70_02261E10;
 typedef struct UnkStruct_ov70_022630A4_t UnkStruct_ov70_022630A4;
 u32 ov45_0222A53C(const WiFiPlazaSystem *param0);
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 u32 ov45_0222AAC8(const WiFiPlazaProfile *profile);
 void ov45_0222AD70(WiFiPlazaSystem *param0, u32 param1);
 typedef struct UnkStruct_ov70_02269204_t UnkStruct_ov70_02269204;

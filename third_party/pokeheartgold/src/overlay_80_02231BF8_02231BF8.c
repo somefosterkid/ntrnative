@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
 
@@ -789,7 +791,6 @@ typedef struct BattleArcadeSave BattleArcadeSave;
 BattleCastle *ov80_022324C4(SaveData *saveData, u16 resumingFromSave, u8 challengeType, u16 partySlot1, u16 partySlot2, u16 partySlot3, u16 *param6);
 u16 *FrontierScript_ReadVarPtr(FrontierScriptContext *ctx);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void Frontier_SetData(BattleFrontier *frontier, void *facilityData);
 typedef struct BattleRegulation BattleRegulation;
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {

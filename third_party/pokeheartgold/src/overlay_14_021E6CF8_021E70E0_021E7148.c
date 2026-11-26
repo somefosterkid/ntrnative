@@ -20,7 +20,7 @@ void ov14_021E7148(UnkStruct_ov14_boxapp *arg0, void *arg1) {
     var_r6 = sp0;
     do {
         if ((*((s32 *)(((u8 *)var_r3) + 0xC))) != 0) {
-            *var_r6 = *((u8 *)(((u8 *)((*((void * *)&arg0->sys)) + (*((s32 *)(((u8 *)var_r3) + 4))))) + 0x4094));
+            *var_r6 = arg0->sys->unk_4094[*((s32 *)(((u8 *)var_r3) + 4))];
         }
         var_r2 += 1;
         var_r3 += 0x20;
@@ -32,13 +32,13 @@ void ov14_021E7148(UnkStruct_ov14_boxapp *arg0, void *arg1) {
         if ((*((s32 *)(((u8 *)var_r4) + 0xC))) != 0) {
             temp_r1 = *((u32 *)(((u8 *)var_r4) + 8));
             if (!(0x80 & temp_r1)) {
-                *((u8 *)(((u8 *)((*((void * *)&arg0->sys)) + temp_r1)) + 0x4094)) = (u8)(*var_r6_2);
-                ov14_021F3190(*((void * *)&arg0->sys), *((u32 *)(((u8 *)var_r4) + 8)), 1);
+                arg0->sys->unk_4094[temp_r1] = (u8)(*var_r6_2);
+                ov14_021F3190(arg0->sys, *((u32 *)(((u8 *)var_r4) + 8)), 1);
             } else {
                 if (((u32)(*((u32 *)(((u8 *)var_r4) + 4)))) >= 0x1EU) {
-                    *((u8 *)(((u8 *)(*((void * *)&arg0->sys))) + 0x40B7)) = (u8)(*var_r6_2);
+                    arg0->sys->unk_4094[0x23] = (u8)(*var_r6_2);
                 }
-                ov14_021F3190(*((void * *)&arg0->sys), *((u32 *)(((u8 *)var_r4) + 4)), 1);
+                ov14_021F3190(arg0->sys, *((u32 *)(((u8 *)var_r4) + 4)), 1);
             }
         }
         var_r7 += 1;

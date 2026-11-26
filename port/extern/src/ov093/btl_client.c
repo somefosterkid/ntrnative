@@ -5,11 +5,27 @@
 // cannot (immune: PortRoute_BestMove, the game's own type effectiveness, func_ov093_021d799c, no PP, disabled) with the
 // usable one that hurts it most, and switches to the first party member that has one when no move of the lead can hurt it
 // (Fighting and Normal against a Ghost). The DS build never sees this file.
+#include "battle/btl_client.h"
+#include "battle/btl_adapter.h"   // (its prototype is declared before the call sites are renamed)
+static BOOL (*const sPortSweepRealSend)(BtlAdapter *, const void *, u32) = func_ov093_021eec4c;   // (White's build renames it: w_ ...)
+#define func_ov093_021eec4c(adapter, data, size) PortSweep_Send(client, adapter, data, size)
+BOOL PortSweep_Send(BtlClient *client, BtlAdapter *adapter, const void *data, u32 size);
+#include "battle/btl_server_cmd.h"
+static u16 (*const sPortSweepRealReadCmd)(BtlServerCmdQueue *, u32 *) = func_ov093_021cd5e0;
+#define func_ov093_021cd5e0(que, args) PortSweep_ReadCmd(client, que, args)
+u16 PortSweep_ReadCmd(BtlClient *client, BtlServerCmdQueue *que, u32 *args);
+#include "battle/btlv.h"
+static void (*const sPortSweepRealPokeList)(BtlvCore *, const BtlvPokeListCmd *, s32, u16, BtlvPokeSelectParam *) =
+    BattleClientCmd_StartPokeList;
+#define BattleClientCmd_StartPokeList(core, cmd, idx, move, sel) PortSweep_PokeList(core, cmd, idx, move, sel)
+void PortSweep_PokeList(BtlvCore *core, const BtlvPokeListCmd *cmd, s32 idx, u16 move, BtlvPokeSelectParam *sel);
 #include "../../../../src/ov093/btl_client.c"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "port_route.h"
+#include "port_bw_sweep_battle.h"
 
 // the first opponent of mon's position that has not fainted (the game's own position expansion, never a random pick)
 static BattleMon *PortTarget(BtlClient *client, BattleMon *mon) {

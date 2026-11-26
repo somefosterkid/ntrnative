@@ -1,6 +1,7 @@
 #include "global.h"
 #include "error_handling.h"
 #include "unk_02035900.h"
+#include "pokeathlon/pokeathlon.h"
 #include "bag_cursor.h"
 #include "billboard_gfx_sequence.h"
 #include "camera.h"
@@ -620,23 +621,16 @@ static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID
     location->direction = faceDirection;
 }
 
-void ov96_021E87B0(ObjectEvent *objectEvent, int graphicsID);
-
-void ov96_021E87B0(ObjectEvent *objectEvent, int graphicsID)
-{
-    objectEvent->spriteId = graphicsID;
+void ov96_021E87B0(Ov96System *system, s32 mode) {
+    system->sizeCheck = mode;
 }
 
-s32 ov96_021E8914(s32 *, s32, void *, void *);
-
-BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, s32 a3);
-
-BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, s32 a3) {
-    if ((*(u16 *)((u8 *)a3 + 2) != 0) && ((s32) a2 > 0x26)) {
+BOOL ov96_021E87B4(s32 a0, void *a1, s32 a2, Ov96System *a3) {
+    if ((a3->sizeCheck != 0) && (a2 > 0x26)) {
         GF_AssertFail();
     }
-    if (*(u16 *)a3 == 1) {
-        return sub_02037030(a0, a1, (s32) a2);
+    if (a3->isLocal == 1) {
+        return sub_02037030(a0, a1, a2);
     }
-    return ov96_021E8914(*(void **)((u8 *)a3 + 4), a0, a1, a2);
+    return ov96_021E8914(a3->handlers, a0, a1, a2);
 }

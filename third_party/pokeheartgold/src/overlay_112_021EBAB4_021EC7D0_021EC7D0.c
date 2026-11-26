@@ -8,13 +8,7 @@
 #include "overlay_112_pokewalker_app.h"
 #include "string_util.h"
 
-s32 ov112_021EC7B8(Ov112PokewalkerApp *arg0);
-
 void ov112_021E9FA4(void *, s32, String *, u32, u32);
-
-void ov112_021EC8A4(void *param_1, u32 param_2, s32 param_3);
-
-void ov112_021EC7D0(Ov112PokewalkerApp *param_1);
 
 void ov112_021EC7D0(Ov112PokewalkerApp *param_1) {
     Ov112PokewalkerApp *p = param_1;

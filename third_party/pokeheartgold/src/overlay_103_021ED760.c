@@ -13,8 +13,8 @@ s32 ov103_021EDA70(void *, s8, s32);
 s32 ov103_021EE824(void *);
 s32 ov103_021EE860(void *);
 void ov103_021ED7A4(MailBoxWork *arg0);
-s32 ov103_021ECF68();
-s32 ov103_021ED7D8(void);
+void ov103_021ECF68(MailBoxWork *arg0);
+s32 ov103_021ED7D8(MailBoxWork *arg0);
 
 s32 ov103_021ED760(MailBoxWork *arg0) {
     if ((arg0->page) == 0) {
@@ -38,7 +38,7 @@ void ov103_021ED7A4(MailBoxWork *arg0) {
     ov103_021EDA70(arg0, 0, 0xD);
 }
 
-s32 ov103_021ED7D8(void) {
-    ov103_021ECF68();
+s32 ov103_021ED7D8(MailBoxWork *arg0) {
+    ov103_021ECF68(arg0);
     return 0xE;
 }

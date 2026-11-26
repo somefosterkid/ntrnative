@@ -27,7 +27,11 @@ GridInputHandler *ov81_02243398(void *callbackParam, GridInputHandler *arg1) {
     return GridInputHandler_Create(&ov81_022436A8, &ov81_022437C8, &ov81_02243638, callbackParam, 1, 0U, HEAP_ID_100);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov81_02242704(u16);
+#else
 s32 ov81_02242704(s32);
+#endif
 
 void ov81_022433FC(GridInputHandler *arg0, s32 arg1, s32 arg2);
 

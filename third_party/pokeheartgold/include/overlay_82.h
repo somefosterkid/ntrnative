@@ -7,16 +7,18 @@
 #include "bg_window.h"
 #include "sys_task.h"
 
+struct BattleHallApp;
+
 s32 ov82_0223DF74(OverlayManager *arg0);
 
 void ov82_0223E070(u8 *arg0);
 
-void ov82_0223E8C4(void *arg0);
+void ov82_0223E8C4(struct BattleHallApp *arg0);
 
 void ov82_0223EB3C(void *arg0);
-void ov82_0223EB9C(void *arg0);
+void ov82_0223EB9C(struct BattleHallApp *arg0);
 
-void ov82_0223EECC(s32 param_1, GFBgLayer param_2);
+void ov82_0223EECC(struct BattleHallApp *arg0, GFBgLayer layer);
 
 void ov82_0223F10C(void *arg0, Window *arg1, u32 arg2, u32 arg3, u32 arg4);
 
@@ -34,9 +36,9 @@ void ov82_0223F808(void *arg0, s16 arg1, s16 arg2);
 
 void ov82_0223F814(s32 netID, s32 unused, void *data, void *context);
 
-void ov82_0223F84C(void *arg0);
+void ov82_0223F84C(struct BattleHallApp *arg0);
 
-void ov82_0223F8E4(void *arg0);
+void ov82_0223F8E4(struct BattleHallApp *arg0);
 
 void ov82_0223F948(s32 arg0);
 

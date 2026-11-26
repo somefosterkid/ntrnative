@@ -11,32 +11,13 @@
 #include "unk_0200A090.h"
 #include "render_window.h"
 #include "gf_gfx_planes.h"
+#include "yes_no_prompt.h"
+#include "overlay_48_unk_struct_ov69_0225ddc8.h"
 
 struct YesNoPrompt;
 
-typedef struct YesNoPrompt YesNoPrompt;
-
-typedef struct YesNoPromptTemplate {
-    BgConfig *bgConfig;
-    enum GFBgLayer bgLayer;
-    u32 baseTile;
-    u32 palette;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-} YesNoPromptTemplate;
-
 void YesNoPrompt_InitFromTemplate(YesNoPrompt *menu, const YesNoPromptTemplate *params);
 
-u32 YesNoPrompt_HandleInput(YesNoPrompt *menu);
-
-typedef struct {
-    u32 unk_00;
-    u32 unk_04;
-    u32 unk_08;
-    String *unk_0C;
-    Window unk_10;
-    YesNoPrompt *unk_20;
-} UnkStruct_ov69_0225DDC8;
 
 extern const YesNoPromptTemplate ov48_0225B1C4;
 

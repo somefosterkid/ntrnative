@@ -22,7 +22,7 @@
 #include "sys_task.h"
 #include "unk_0200A090.h"
 #include "overlay_45_wifi_plaza_system.h"
-#include "overlay_91_unk_struct_ov66_02230dbc.h"
+#include "overlay_91_unk_struct_ov115_02260440.h"
 
 struct PlayerProfile;
 struct UnkStruct_ov66_0222DFF8_t;
@@ -631,13 +631,6 @@ static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID
     location->y = z;
     location->direction = faceDirection;
 }
-typedef struct {
-    UnkStruct_ov66_02230DBC unk_00;
-    SaveData *saveData;
-    u8 unk_38;
-    u8 unk_39;
-    u8 padding[2];
-} UnkStruct_ov115_02260440;
 FS_EXTERN_OVERLAY(OVY_90);
 
 void sub_02078C60(UnkStruct_ov115_02260440 *param0);

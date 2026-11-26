@@ -76,7 +76,7 @@ typedef struct ScriptEnvironment {
     u8 padding[0xC]; // FIXME: ugly hack
     Window *moneyBox;
     u8 padding2[0xC]; // FIXME: ugly hack 2
-    struct SaveStatsPrinter *saveStatsPrinter;
+    struct SaveInfoWindow *saveStatsPrinter;
 } ScriptEnvironment;
 
 typedef enum ScriptEnvField {

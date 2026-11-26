@@ -22,7 +22,7 @@ s32 ov14_021F34C8(UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021EAA04(UnkStruct_ov14_boxapp *app);
 
 s32 ov14_021F1B4C(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
-    void *v0;
+    UnkStruct_ov14_boxsys *v0;
 
     arg0->unk21 = arg1;
     arg0->sys->unk_88CA = (s16)arg1;
@@ -34,8 +34,8 @@ s32 ov14_021F1B4C(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     arg0->sys->unk_44B = 1;
     ov14_021F2A18(((void *)arg0->sys), 0xB, 0);
     ov14_021F39A0(((void *)arg0->sys), arg0->unk21, 2);
-    v0 = ((void *)arg0->sys);
-    ov14_021F3844(v0, ((UnkStruct_ov14_boxsys *)v0)->unk_88C8);
+    v0 = arg0->sys;
+    ov14_021F3844(v0, v0->unk_88C8);
     ov14_021F34C8(((void *)arg0->sys), arg0->unk21, 1);
     ov14_021E88BC(*(void **)&arg0->sys->unk_2F0);
     if (ov14_021E8648(arg0->sys->unk_2F0) == 1) {

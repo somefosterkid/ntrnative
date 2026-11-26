@@ -12,13 +12,13 @@
 #include "unk_020689C8.h"
 #include "vram_transfer_manager.h"
 
-s32 ov01_021F771C(MapObjectManager *);
+Billboard *ov01_021F771C(MapObjectManager *);
 
 s32 ov01_022039E0(u32);
 
-s32 sub_02023E78(s32, VecFx32 *);
+s32 sub_02023E78(Billboard *, VecFx32 *);
 
-s32 sub_02023FB0(s32);
+s32 sub_02023FB0(const Billboard *);
 
 extern s32 ov01_022094BC;
 
@@ -38,7 +38,7 @@ void ov01_02203654(OverworldAnimManager *arg0, UnkOv01_022031C0_Work *arg1) {
     s32 temp_r1;
     s32 temp_r4;
     s32 temp_r4_3;
-    s32 temp_r7;
+    Billboard *temp_r7;
     u8 temp_r4_2;
 
     sp0 = arg1->data.mapObject;

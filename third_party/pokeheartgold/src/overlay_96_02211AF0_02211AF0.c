@@ -7,9 +7,8 @@
 
 #include "overlay_96_app_02210C98.h"
 
-s32 ov96_021E65A4(PokeathlonCourseData *);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
 
 s32 ov96_021E8324(PokeathlonCourseData *, s32 *);
 
@@ -78,7 +77,11 @@ s32 ov96_022132FC(PokeathlonCourseData *);
 
 void ov96_02213354(s32 x, s32 y, VecFx32 *out);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov96_02213364(void *, s16, s16, s16);
+#else
 s8 ov96_02213364(void *, u8, u8, u8);
+#endif
 
 void ov96_02214B84(PokeathlonCourseData *data, Ov96App_02210C98_Cpu *cpu);
 

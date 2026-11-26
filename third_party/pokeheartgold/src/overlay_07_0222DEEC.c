@@ -145,16 +145,16 @@ void ov07_0222E07C(void *arg0) {
     v0 = *((u32 *)&((LockOnSpriteContext *)arg0)->segment);
     switch (v0) {
     case 0:
-        ov07_02222268(arg0 + 0x28, 0, 0x50, 0, 0x50, 4);
+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0x50, 0, 0x50, 4);
         return;
     case 1:
-        ov07_02222268(arg0 + 0x28, 0, 0, 0, -0x50, 4);
+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0, 0, -0x50, 4);
         return;
     case 2:
-        ov07_02222268(arg0 + 0x28, 0, -0x50, 0, 0x50, 4);
+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, -0x50, 0, 0x50, 4);
         return;
     case 3:
-        ov07_02222268(arg0 + 0x28, 0, 0x28, 0, -0x28, 4);
+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0x28, 0, -0x28, 4);
         return;
     default:
         GF_AssertFail();

@@ -17,7 +17,7 @@
 
 
 void FrontierMap_LoadPaletteData(void **param_1) {
-    FrontierLaunchArgs *pFVar1;
+    FieldFrontierDTO *pFVar1;
     u32 uVar2;
 
     PaletteData_LoadNarc((PaletteData *)param_1[1], NARC_graphic_font, 7, HEAP_ID_101, PLTTBUF_MAIN_BG, 0x20, 0xe0);

@@ -5,7 +5,11 @@
 #include "bg_window.h"
 #include "wild_encounter.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EE984(PokedexAppData *, u16, s32, s32);
+#else
 s32 ov18_021EE984(PokedexAppData *, u32, s32, s32);
+#endif
 
 s32 ov18_021EE9FC(PokedexAppData *, s32);
 
@@ -19,9 +23,17 @@ s32 ov18_021EEBE4(PokedexAppData *, s32);
 
 s32 ov18_021EEC34(PokedexAppData *, u32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EECB0(PokedexAppData *, u16, s32);
+#else
 s32 ov18_021EECB0(PokedexAppData *, u32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EED00(PokedexAppData *, u16, s32, s32);
+#else
 s32 ov18_021EED00(PokedexAppData *, u32, s32, s32);
+#endif
 
 void ov18_021EE8B8(PokedexAppData *pokedexApp, u32 species, int a2) {
     ClearWindowTilemapAndScheduleTransfer(&pokedexApp->windows[0xC]);

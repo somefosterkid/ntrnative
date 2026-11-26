@@ -8,10 +8,6 @@
 #include "overlay_86_frontier_records_app.h"
 #include "text.h"
 
-void ov86_021E5ECC(FrontierRecordsApp *arg0, enum GFBgLayer arg1);
-
-void ov86_021E5FD8(Window *arg0, String *arg1, u32 arg2, u32 arg3, enum Font arg4, u32 arg5, s32 arg6);
-
 void ov86_021E5ECC(FrontierRecordsApp *arg0, enum GFBgLayer layer) {
     NNSG2dScreenData *ppScrnData;
     NARC *narc;
@@ -27,8 +23,6 @@ void ov86_021E5ECC(FrontierRecordsApp *arg0, enum GFBgLayer layer) {
     NARC_Delete(narc);
 }
 
-void ov86_021E5F58(FrontierRecordsApp *arg0, enum GFBgLayer arg1);
-
 void ov86_021E5F58(FrontierRecordsApp *arg0, enum GFBgLayer layer) {
     NARC *narc;
 
@@ -38,8 +32,6 @@ void ov86_021E5F58(FrontierRecordsApp *arg0, enum GFBgLayer layer) {
     GfGfxLoader_GXLoadPalFromOpenNarc(narc, 0xC4, GF_PAL_LOCATION_SUB_BG, GF_PAL_SLOT_0_OFFSET, 0x20U, HEAP_ID_121);
     NARC_Delete(narc);
 }
-
-void ov86_021E5FBC(FrontierRecordsApp *arg0, u32 arg1, s32 arg2);
 
 void ov86_021E5FBC(FrontierRecordsApp *arg0, u32 idx, s32 num) {
     BufferIntegerAsString(arg0->msgFmt, idx, num, 4U, PRINTING_MODE_RIGHT_ALIGN, 1);

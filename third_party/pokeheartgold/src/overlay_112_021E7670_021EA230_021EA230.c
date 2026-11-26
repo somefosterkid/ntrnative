@@ -11,8 +11,6 @@ extern const OamManagerParam ov112_021FECC4;
 
 extern const OamCharTransferParam ov112_021FEC98;
 
-void ov112_021EA230(Ov112PokewalkerApp *app);
-
 void ov112_021EA230(Ov112PokewalkerApp *app) {
     SpriteResourceCountsListUnion capacities = ov112_021FECAC;
     app->spriteSystem = SpriteSystem_Alloc(HEAP_ID_154);

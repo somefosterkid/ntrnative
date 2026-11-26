@@ -11,11 +11,12 @@
 #include "pm_string.h"
 #include "string_util.h"
 #include "text.h"
+#include "overlay_96_ov96_mon_icon_work.h"
 
 void *ov96_021EB594(void *);
 
 #if defined(SDK_PORT) || defined(NONMATCHING)
-s32 ov96_021EB630(void *, s32);
+s32 ov96_021EB630(struct Ov96Obj *, s32);
 #else
 s32 ov96_021EB630(s32, s32);
 #endif

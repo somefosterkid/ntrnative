@@ -7,7 +7,11 @@ s32 ov74_022314A0(void);
 void ov74_02230A34(void);
 
 void *ov74_02231054(void);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov74_02231460(void *, u32, u16);
+#else
 s32 ov74_02231460(void *, u32, s32);
+#endif
 void ov74_02230A4C(void *arg0, u32 arg1, s32 arg2);
 s32 ov74_02230A74(void);
 s32 ov74_02230A7C(void);

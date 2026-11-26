@@ -5,6 +5,7 @@
 #include "list_menu.h"
 #include "list_menu_items.h"
 #include "overlay_manager.h"
+#include "overlay_74_mystery_gift_app_data.h"
 
 void ov74_022359BC(void);
 
@@ -16,30 +17,43 @@ s32 ov74_02235728(s32, s32, s32, s32, s32, s32);
 void ov74_02229F04(void);
 
 void ov74_02229E68(OverlayManager *param_1) {
-    u32 *puVar1;
+    MysteryGiftAppData *appData;
     BOOL BVar2;
+#if !(defined(SDK_PORT) || defined(NONMATCHING))
     u32 *puVar3;
+#endif
     Window *window;
     s32 iVar4;
 
-    puVar1 = OverlayManager_GetData(param_1);
+    appData = OverlayManager_GetData(param_1);
     ov74_022359BC();
-    if ((ListMenuItem *)puVar1[0x1f] != NULL) {
-        ListMenuItems_Delete((ListMenuItem *)puVar1[0x1f]);
+    if (appData->listMenuOptions != NULL) {
+        ListMenuItems_Delete(appData->listMenuOptions);
     }
-    if ((ListMenu *)puVar1[0x1e] != NULL) {
-        DestroyListMenu((ListMenu *)puVar1[0x1e], (u16 *)0x0, (u16 *)0x0);
+    if (appData->listMenu != NULL) {
+        DestroyListMenu(appData->listMenu, (u16 *)0x0, (u16 *)0x0);
     }
-    ClearWindowTilemapAndCopyToVram((Window *)(puVar1 + 6));
-    RemoveWindow((Window *)(puVar1 + 6));
-    BVar2 = WindowIsInUse((Window *)(puVar1 + 0x16));
+    ClearWindowTilemapAndCopyToVram(&appData->messageBox);
+    RemoveWindow(&appData->messageBox);
+    BVar2 = WindowIsInUse(&appData->wonderCardTitleWindow);
     if (BVar2 != 0) {
-        ClearWindowTilemapAndCopyToVram((Window *)(puVar1 + 0x16));
-        RemoveWindow((Window *)(puVar1 + 0x16));
+        ClearWindowTilemapAndCopyToVram(&appData->wonderCardTitleWindow);
+        RemoveWindow(&appData->wonderCardTitleWindow);
     }
     iVar4 = 0;
-    puVar3 = puVar1;
-    window = (Window *)(puVar1 + 10);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    window = appData->menuWindows;
+    do {
+        if (window->bgConfig != NULL) {
+            ClearWindowTilemapAndCopyToVram(window);
+            RemoveWindow(window);
+        }
+        iVar4 = iVar4 + 1;
+        window = window + 1;
+    } while (iVar4 < 3);
+#else
+    puVar3 = (u32 *)appData;
+    window = appData->menuWindows;
     do {
         if (puVar3[10] != 0) {
             ClearWindowTilemapAndCopyToVram(window);
@@ -49,11 +63,12 @@ void ov74_02229E68(OverlayManager *param_1) {
         puVar3 = puVar3 + 4;
         window = window + 1;
     } while (iVar4 < 3);
-    FreeBgTilemapBuffer((BgConfig *)*puVar1, 0);
-    FreeBgTilemapBuffer((BgConfig *)*puVar1, 1);
-    FreeBgTilemapBuffer((BgConfig *)*puVar1, 4);
-    FreeBgTilemapBuffer((BgConfig *)*puVar1, 5);
-    Heap_Free((void *)*puVar1);
+#endif
+    FreeBgTilemapBuffer(appData->bgConfig, 0);
+    FreeBgTilemapBuffer(appData->bgConfig, 1);
+    FreeBgTilemapBuffer(appData->bgConfig, 4);
+    FreeBgTilemapBuffer(appData->bgConfig, 5);
+    Heap_Free(appData->bgConfig);
     return;
 }
 

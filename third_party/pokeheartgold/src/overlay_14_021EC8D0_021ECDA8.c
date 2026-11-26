@@ -7,6 +7,7 @@ struct UnkStruct_ov14_boxapp;
 #include "pokemon_types_def.h"
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
+#include "overlay_14_move_owner.h"
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 #include "overlay_14_box_funcs.h"
@@ -23,7 +24,7 @@ s32 ov14_021F685C(void *, s32, s32, s32);
 
 s32 ov14_021ECDA8(UnkStruct_ov14_boxapp *arg0) {
     s32 sp0;
-    void *temp_r7;
+    MoveSet *temp_r7;
     s32 temp_r6;
     u8 temp_r6_2;
     s32 temp_r6_3;
@@ -32,14 +33,14 @@ s32 ov14_021ECDA8(UnkStruct_ov14_boxapp *arg0) {
     s32 temp_r0;
     Pokemon *temp_r0_2;
     temp_r7 = arg0->sys->unk_C;
-    temp_r6 = *((s32 *)(((u8 *)temp_r7) + 0xE8));
-    temp_r4 = *((s32 *)(((u8 *)temp_r7) + 0xEC));
+    temp_r6 = temp_r7->to;
+    temp_r4 = temp_r7->unk_EC;
     PlaySE(0x5EAU);
     ov14_021E637C(arg0);
     temp_r0 = 0x80 & temp_r6;
     sp0 = temp_r0;
     if (temp_r0 == 0) {
-        ov14_021E6548(arg0, *((s32 *)(((u8 *)temp_r7) + 0xE4)), *((s32 *)(((u8 *)temp_r7) + 0xE8)));
+        ov14_021E6548(arg0, temp_r7->from, temp_r7->to);
     }
     ov14_021F08F0(arg0);
     GridInputHandler_SetNextInput(arg0->sys->unk_2C, (s32)(arg0->unk21));

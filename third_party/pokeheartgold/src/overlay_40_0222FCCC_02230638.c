@@ -7,15 +7,16 @@ struct UnkStruct_0208C06C;
 #include "save_misc_data.h"
 #include "sprite_system.h"
 #include "overlay_40_unk_struct_0208_c06_c.h"
+#include "overlay_40_unk_struct_ov62_02241204.h"
 
-s32 ov40_0222FF74();
+void ov40_0222FF74(UnkStruct_ov62_02233F74 *param0, UnkStruct_0208C06C *param1);
 
-s32 ov40_02230424(void *, s32);
+void ov40_02230424(UnkStruct_ov62_02233F74 *param0, UnkStruct_0208C06C *param1);
 
-void ov40_02230638(void *arg0, s32 arg1);
+void ov40_02230638(UnkStruct_ov62_02233F74 *arg0, UnkStruct_0208C06C *arg1);
 
-void ov40_02230638(void *arg0, s32 arg1) {
-    ov40_0222FF74();
+void ov40_02230638(UnkStruct_ov62_02233F74 *arg0, UnkStruct_0208C06C *arg1) {
+    ov40_0222FF74(arg0, arg1);
     ov40_02230424(arg0, arg1);
 }
 
@@ -108,9 +109,17 @@ void ov40_02230738(void) {
 
 s32 sub_020878B0(void *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_020878B8(void *, s16, s16);
+#else
 s32 sub_020878B8(void *, s32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02087948(void *, s16, s16);
+#else
 s32 sub_02087948(void *, s32, s32);
+#endif
 
 s32 sub_020879E0(void *, s32);
 

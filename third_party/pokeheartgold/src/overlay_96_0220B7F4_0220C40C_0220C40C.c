@@ -6,7 +6,11 @@
 #include "sprite_system.h"
 #include "overlay_96_unk_struct_ov96_0220_be28.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_0220C004(void *, void *);
+#else
 s32 ov96_0220C004(void *, void *);
+#endif
 
 s32 ov96_0220C0DC(void *, void *);
 

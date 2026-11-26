@@ -48,6 +48,7 @@ enum UnionRoomPendingConnection {
     UR_PENDING_CONNECTION_UNION,
     UR_PENDING_CONNECTION_DRAW,
 };
+BOOL sub_020376F8(void);
 typedef void (*UnionRoomTask)(UnionRoomManager *);
 void sub_0205A904(enum UnionRoomStatus status);
 enum MapHeaderID {
@@ -658,7 +659,6 @@ static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID
 }
 void sub_02037FF0(void);
 BOOL sub_02039918(void);
-SysTask *sub_020376F8(void);
 void sub_02059F30(UnionRoomManager *manager);
 void sub_0205A034(UnionRoomManager *manager, UnionRoomTask task, int timer);
 void sub_0205ABBC(UnionRoomManager *manager);

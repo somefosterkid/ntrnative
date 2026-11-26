@@ -17,6 +17,7 @@ struct UnkStruct_ov5_021EAE78;
 #include "unk_02034354.h"
 #include "unk_02035900.h"
 #include "overlay_01_unk_struct_ov5_021_eae78.h"
+#include "field_system.h"
 
 u32 ov01_021F6CFC(u8 *param_1);
 
@@ -33,15 +34,15 @@ u32 ov01_021F6CFC(u8 *param_1) {
 
     a0 = sub_0202C6F4(((UnkStruct_ov5_021EAE78 *)param_1)->saveData);
     sub_0202C23C(a0, 0);
-    sVar1 = sub_0203A1C4(((UnkStruct_ov5_021EAE78 *)param_1)->saveData, (s32 *)(param_1 + 0x48), HEAP_ID_FIELD1);
+    sVar1 = sub_0203A1C4(((UnkStruct_ov5_021EAE78 *)param_1)->saveData, &((UnkStruct_ov5_021EAE78 *)param_1)->unk_48, HEAP_ID_FIELD1);
     if (sVar1 == 0) {
         return 1;
     }
     *((u32 *)&((UnkStruct_ov5_021EAE78 *)param_1)->unk_6C[7]) = 0;
     options = Save_PlayerData_GetOptionsAddr(((UnkStruct_ov5_021EAE78 *)param_1)->saveData);
     uVar2 = Options_GetFrame(options);
-    LoadUserFrameGfx2(*(BgConfig **)(((u8 *)((UnkStruct_ov5_021EAE78 *)param_1)->fieldSystem) + 8), GF_BG_LYR_MAIN_3, 0x1e2, 0xa, (u8)uVar2, HEAP_ID_FIELD1);
-    LoadUserFrameGfx1(*(BgConfig **)(((u8 *)((UnkStruct_ov5_021EAE78 *)param_1)->fieldSystem) + 8), GF_BG_LYR_MAIN_3, 0x3d9, 0xb, 0, HEAP_ID_FIELD1);
+    LoadUserFrameGfx2(((UnkStruct_ov5_021EAE78 *)param_1)->fieldSystem->bgConfig, GF_BG_LYR_MAIN_3, 0x1e2, 0xa, (u8)uVar2, HEAP_ID_FIELD1);
+    LoadUserFrameGfx1(((UnkStruct_ov5_021EAE78 *)param_1)->fieldSystem->bgConfig, GF_BG_LYR_MAIN_3, 0x3d9, 0xb, 0, HEAP_ID_FIELD1);
     *((u32 *)&((UnkStruct_ov5_021EAE78 *)param_1)->unk_44) = 1;
     return 0;
 }

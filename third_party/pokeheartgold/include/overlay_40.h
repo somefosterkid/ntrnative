@@ -146,7 +146,7 @@ s32 ov40_0224147C(void);
 
 s32 ov40_022417A4(void *arg0);
 
-u32 ov40_022417DC(u8 *param_1);
+u32 ov40_022417DC(struct UnkStruct_0208C06C *param_1);
 
 void ov40_02241C70(u32 param0, enum TouchScreenButtonState param1, void *param2);
 

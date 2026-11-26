@@ -28,7 +28,11 @@ typedef struct Rankings Rankings;
 
 Rankings *Save_Rankings_Get(SaveData *saveData);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void Save_UpdateRankingsFromMixing(SaveData *saveData, u8 participantIndex, u8 participantCount, const void **rankingData, enum HeapID heapID);
+#else
 void Save_UpdateRankingsFromMixing(SaveData *saveData, int participantIndex, u8 participantCount, const void **rankingData, enum HeapID heapID);
+#endif
 
 typedef struct {
     enum HeapID heapID;

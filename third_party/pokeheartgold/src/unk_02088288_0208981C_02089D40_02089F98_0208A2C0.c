@@ -22,7 +22,11 @@
 
 s8 sub_0208A2E0(PokemonSummary *summaryScreen, s8 delta);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0208A234(PokemonSummary *, s8);
+#else
 s32 sub_0208A234(PokemonSummary *, u8);
+#endif
 
 void sub_0208A2C0(PokemonSummary *arg0, s8 arg1);
 
@@ -39,7 +43,7 @@ s8 sub_0208A4B8(PokemonSummary *summaryScreen, s8 delta);
 
 s8 sub_0208A3F4(PokemonSummary *summaryScreen, s8 delta);
 
-s8 sub_0208A45C();
+s8 sub_0208A45C(PokemonSummary *arg0, s32 arg1);
 
 s8 sub_0208A2E0(PokemonSummary *summaryScreen, s8 delta) {
     u8 v0;
@@ -49,7 +53,7 @@ s8 sub_0208A2E0(PokemonSummary *summaryScreen, s8 delta) {
     case 0:
         return sub_0208A3F4(summaryScreen, delta);
     case 1:
-        return sub_0208A45C();
+        return sub_0208A45C(summaryScreen, delta);
     case 2:
         return sub_0208A4B8(summaryScreen, delta);
     default:

@@ -16,9 +16,9 @@
 #include "overlay_96_ov96_icon_work.h"
 #include "overlay_96_unk_struct_ov96_021_f94a8.h"
 
-s32 ov96_021E60C0(PokeathlonCourseData *, s32, s32);
+PokeathlonMonPerf *ov96_021E60C0(PokeathlonCourseData *, s32, s32);
 
-s32 ov96_021E6108();
+s32 ov96_021E6108(void *arg0);
 
 s32 ov96_021E6168(PokeathlonCourseData *, s32, s32, s32 *);
 
@@ -36,7 +36,7 @@ Sprite *ov96_021EA374(void *, s32, s32, enum HeapID);
 
 void *ov96_021EA854(enum HeapID, s32, s32, void *, s32);
 
-s32 ov96_021EA8A8(void *, s32, s32 *, s32 *, s32, s32);
+SysTask *ov96_021EA8A8(void *, s32, s32 *, s32 *, s32, s32);
 
 s32 ov96_021EAA00(void *);
 
@@ -86,15 +86,19 @@ s32 ov96_021FA0E8(PokeathlonCourseData *, s32 *, s32 *, void *, void *, void *, 
 
 void ov96_021FB7C8(UnkStruct_ov96_021F94A8 *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021FBBB4(PokeathlonCourseData *, s32 *);
+#else
 s32 ov96_021FBBB4(PokeathlonCourseData *, s32 *);
+#endif
 
 u32 *ov96_021FC028(enum HeapID);
 
 s32 ov96_021FC07C(u32 *, void *);
 
-u32 ov96_021FC0E4(void *);
+u8 *ov96_021FC0E4(void *);
 
-u32 ov96_021FC0E8(void *);
+u8 *ov96_021FC0E8(void *);
 
 u32 ov96_021FC0F4(void *);
 
@@ -112,9 +116,9 @@ extern s32 ov96_0221C404;
 
 extern s32 ov96_0221C410;
 
-s32 ov96_021F94A8(PokeathlonCourseData *arg0);
+BOOL ov96_021F94A8(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_021F94A8(PokeathlonCourseData *arg0) {
+BOOL ov96_021F94A8(PokeathlonCourseData *arg0, int unused) {
     s32 sp40[80];
     s32 sp28[6];
     s32 sp24;
@@ -135,8 +139,8 @@ s32 ov96_021F94A8(PokeathlonCourseData *arg0) {
     s32 var_r7_2;
     u16 temp_r2;
     u32 temp_r0;
-    u32 temp_r5;
-    u32 temp_r7;
+    u8 *temp_r5;
+    u8 *temp_r7;
     u8 *temp_r0_6;
     u8 *temp_r0_7;
     u8 *temp_r0_8;
@@ -312,8 +316,7 @@ loop_14:
         var_r7_3 = &sp40[63];
         do {
             ov96_021E6168(arg0, ov96_021E5F24(arg0), var_r5_5, sp1C);
-            ov96_021E60C0(arg0, ov96_021E5F24(arg0), var_r5_5);
-            *(s32 *)((u8 *)var_r7_3 + 0x14) = ov96_021E6108();
+            *(s32 *)((u8 *)var_r7_3 + 0x14) = ov96_021E6108(ov96_021E60C0(arg0, ov96_021E5F24(arg0), var_r5_5));
             var_r5_5 += 1;
             var_r7_3 = (void *)((u8 *)var_r7_3 + (4));
             sp1C = (void *)((u8 *)sp1C + (0x10));

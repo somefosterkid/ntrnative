@@ -40,7 +40,11 @@ void sub_02036438(int);
 
 void sub_020367B0(u16 param0, u16 *param1, u16 param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8);
+#else
 s32 sub_0203772C(u16);
+#endif
 
 void sub_02036ABC(s32);
 

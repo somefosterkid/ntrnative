@@ -7,7 +7,7 @@ s32 ov07_0223192C(BattleAnimSystem *system, s32 battler);
 
 s32 ov07_02231AD0(s32, u32 *, s32, s32);
 
-u8 sub_02015530();
+u8 sub_02015530(void *);
 
 void ov07_022208F8(void *arg0, BattleAnimSystem **arg1, void *arg2);
 
@@ -17,8 +17,7 @@ void ov07_022208F8(void *arg0, BattleAnimSystem **arg1, void *arg2) {
     s32 v2;
 
     v0 = *arg1;
-    ov07_0221C478(v0);
-    v1 = sub_02015530();
+    v1 = sub_02015530(ov07_0221C478(v0));
     if (ov07_0223192C(v0, ov07_0221C470(v0)) != 3) {
         v2 = 1;
     } else {
@@ -35,8 +34,7 @@ void ov07_02220938(void *arg0, BattleAnimSystem **arg1, void *arg2) {
     s32 v2;
 
     v0 = *arg1;
-    ov07_0221C478(v0);
-    v1 = sub_02015530();
+    v1 = sub_02015530(ov07_0221C478(v0));
     if (ov07_0223192C(v0, ov07_0221C468(v0)) != 3) {
         v2 = 1;
     } else {

@@ -36,9 +36,9 @@ s32 ov14_021E94BC(UnkStruct_ov14_boxapp *app);
 
 void ov14_021F0AD8(UnkStruct_ov14_boxapp *arg0) {
     *((s8 *)&arg0->unk23[0]) = 1;
-    ov14_021F43F4(*((void * *)&arg0->sys), 0);
+    ov14_021F43F4(arg0->sys, 0);
     ov14_021F3488(arg0, 1, 1);
-    ov14_021F2A18(*((void * *)&arg0->sys), 9, 0);
+    ov14_021F2A18(arg0->sys, 9, 0);
     ov14_021E8234(((u8 *)arg0->sys->unk_2F0));
     ov14_021E8294(((u8 *)arg0->sys->unk_2F0));
     ov14_021E8314(((u8 *)arg0->sys->unk_2F0));

@@ -17,7 +17,7 @@ u8 ov83_02247768(u8);
 
 u8 ov83_0224777C(SaveData *, u8, u8);
 
-s32 ov83_02247944(void *, u32);
+s32 ov83_02247944(Window *window, u32);
 
 extern void *_02247D0C;
 

@@ -5,6 +5,7 @@
 #include "sprite.h"
 
 #include "overlay_96_ov96_course_hud.h"
+#include "overlay_96_unk_struct_ov96_021e9a78.h"
 
 Sprite *ov96_021EA2C4(s32, s32, s32, s32);
 

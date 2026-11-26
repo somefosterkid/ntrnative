@@ -23,6 +23,58 @@ static volatile int sOpen;       // present() was called and the dialog has not 
 static volatile int sShown;      // the dialog is on screen
 static struct timespec sOpenedAt;
 
+// (lfx1) The app's SettingsScreen class: an app class is not found by FindClass on a thread SDL attached, so ask the activity's class
+// loader. NULL (with the exception cleared) when it is not there.
+static jclass LoadScreen(JNIEnv *env, jobject act) {
+    jclass cc, clsClass, loaderClass, scr;
+    jobject loader;
+    jmethodID getLoader, loadClass;
+    jstring name;
+
+    clsClass = (*env)->FindClass(env, "java/lang/Class");
+    cc = (*env)->GetObjectClass(env, act);
+    getLoader = (*env)->GetMethodID(env, clsClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+    loader = (*env)->CallObjectMethod(env, cc, getLoader);
+    loaderClass = (*env)->FindClass(env, "java/lang/ClassLoader");
+    loadClass = (*env)->GetMethodID(env, loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    name = (*env)->NewStringUTF(env, "com.bwport.app.SettingsScreen");
+    scr = (jclass)(*env)->CallObjectMethod(env, loader, loadClass, name);
+    (*env)->DeleteLocalRef(env, loader);
+    (*env)->DeleteLocalRef(env, cc);
+    if ((*env)->ExceptionCheck(env) || scr == NULL) {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return NULL;
+    }
+    return scr;
+}
+
+// (lfx1) The 10 s wait ran out and the game goes on: ask Java to take the dialog down, also one that is only now being built (the UI
+// thread runs its queue in order: the dismiss comes after the show). Best effort; a Java side without dismiss() is only logged.
+static void AskDismiss(void) {
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    jobject act = (jobject)SDL_AndroidGetActivity();
+    jclass scr;
+    jmethodID dismiss;
+
+    if (env == NULL || act == NULL) {
+        return;
+    }
+    scr = LoadScreen(env, act);
+    if (scr != NULL) {
+        dismiss = (*env)->GetStaticMethodID(env, scr, "dismiss", "(Landroid/app/Activity;)V");
+        if (dismiss != NULL && !(*env)->ExceptionCheck(env)) {
+            (*env)->CallStaticVoidMethod(env, scr, dismiss, act);
+        }
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionDescribe(env);
+            (*env)->ExceptionClear(env);
+        }
+        (*env)->DeleteLocalRef(env, scr);
+    }
+    (*env)->DeleteLocalRef(env, act);
+}
+
 static double Now(void) {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
@@ -32,34 +84,24 @@ static double Now(void) {
 void bwport_android_settings_present(void) {
     JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();   // (attaches this thread)
     jobject act = (jobject)SDL_AndroidGetActivity();
-    jclass cc, clsClass, loaderClass, scr;
-    jobject loader;
-    jmethodID getLoader, loadClass, show;
-    jstring name;
+    jclass scr;
+    jmethodID show;
 
     if (sOpen) {
         return;
     }
-    sOpen = 1;
+    // (lfx3, crv4 #5) the time stamp and sShown are written before sOpen goes up (release), so a thread that sees sOpen set
+    // (the hang watcher, bwport_android_settings_is_open_peek) never pairs it with an old time stamp
     sShown = 0;
     clock_gettime(CLOCK_MONOTONIC, &sOpenedAt);
+    __atomic_store_n(&sOpen, 1, __ATOMIC_RELEASE);
     if (env == NULL || act == NULL) {
         fprintf(stderr, "bwport: settings: no JNI environment or activity\n");
         sOpen = 0;
         return;
     }
-    // an app class is not found by FindClass on a thread SDL attached: ask the activity's class loader
-    clsClass = (*env)->FindClass(env, "java/lang/Class");
-    cc = (*env)->GetObjectClass(env, act);
-    getLoader = (*env)->GetMethodID(env, clsClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
-    loader = (*env)->CallObjectMethod(env, cc, getLoader);
-    loaderClass = (*env)->FindClass(env, "java/lang/ClassLoader");
-    loadClass = (*env)->GetMethodID(env, loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;");
-    name = (*env)->NewStringUTF(env, "com.bwport.app.SettingsScreen");
-    scr = (jclass)(*env)->CallObjectMethod(env, loader, loadClass, name);
-    if ((*env)->ExceptionCheck(env) || scr == NULL) {
-        (*env)->ExceptionDescribe(env);
-        (*env)->ExceptionClear(env);
+    scr = LoadScreen(env, act);
+    if (scr == NULL) {
         fprintf(stderr, "bwport: settings: SettingsScreen not found\n");
         sOpen = 0;
         return;
@@ -73,18 +115,23 @@ void bwport_android_settings_present(void) {
         return;
     }
     (*env)->DeleteLocalRef(env, scr);
-    (*env)->DeleteLocalRef(env, loader);
-    (*env)->DeleteLocalRef(env, cc);
     (*env)->DeleteLocalRef(env, act);
 }
 
+// The hang watcher's view (another thread): only reads. The 10 s timeout and AskDismiss stay on the game's main thread
+// (is_open below, called by sim_main's wait loop, the thread that also called present).
+int bwport_android_settings_is_open_peek(void) {
+    return __atomic_load_n(&sOpen, __ATOMIC_ACQUIRE);
+}
+
 int bwport_android_settings_is_open(void) {
-    if (sOpen && !sShown) {   // Java never got it up (the activity going away, a refused window): the game goes on
+    if (__atomic_load_n(&sOpen, __ATOMIC_ACQUIRE) && !sShown) {   // Java never got it up (the activity going away, a refused window): the game goes on
         struct timespec t;
         clock_gettime(CLOCK_MONOTONIC, &t);
         if ((double)(t.tv_sec - sOpenedAt.tv_sec) > 10.0) {
             fprintf(stderr, "bwport: settings: the dialog did not show in 10 s; the game goes on without it\n");
             sOpen = 0;
+            AskDismiss();
         }
     }
     return sOpen;
@@ -121,8 +168,15 @@ JNIEXPORT __attribute__((visibility("default"))) jint JNICALL Java_com_bwport_ap
 }
 
 JNIEXPORT __attribute__((visibility("default"))) void JNICALL Java_com_bwport_app_SettingsScreen_nativeSet(JNIEnv *env, jclass c, jstring key, jint v) {
-    const char *k = (*env)->GetStringUTFChars(env, key, NULL);
+    const char *k;
 
+    // (lfx1) the game is only parked while sOpen: a choice from a dialog that showed after the 10 s wait would run
+    // SIM_UISettingSet (the ini write, the speed, the perf test) on this thread against a running game
+    if (!sOpen) {
+        fprintf(stderr, "bwport: settings: a choice after the dialog's time ran out is ignored\n");
+        return;
+    }
+    k = (*env)->GetStringUTFChars(env, key, NULL);
     SIM_UISettingSet(k, v);
     (*env)->ReleaseStringUTFChars(env, key, k);
 }
@@ -164,5 +218,20 @@ JNIEXPORT __attribute__((visibility("default"))) void JNICALL Java_com_bwport_ap
 }
 JNIEXPORT __attribute__((visibility("default"))) void JNICALL Java_com_bwport_app_SettingsScreen_nativeRestart(JNIEnv *env, jclass c) {
     bwport_press_restart();
+}
+
+// Save first (port/src/save_first.c, docs/save-first.md): the game's own save, then the leave (then 0 = Restart to title, 1 =
+// Games). The request waits for the game to run again (the screen stops it) and to be free; the leave follows the write.
+extern int bwport_save_first_possible(void);
+extern int bwport_save_first(int then);
+JNIEXPORT __attribute__((visibility("default"))) jboolean JNICALL Java_com_bwport_app_SettingsScreen_nativeSaveFirstPossible(JNIEnv *env, jclass c) {
+    (void)env;
+    (void)c;
+    return bwport_save_first_possible() ? JNI_TRUE : JNI_FALSE;
+}
+JNIEXPORT __attribute__((visibility("default"))) void JNICALL Java_com_bwport_app_SettingsScreen_nativeSaveFirst(JNIEnv *env, jclass c, jint then) {
+    (void)env;
+    (void)c;
+    bwport_save_first(then);
 }
 #endif

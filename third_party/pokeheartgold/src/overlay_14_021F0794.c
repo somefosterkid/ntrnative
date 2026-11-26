@@ -18,12 +18,12 @@ s32 ov14_021EA068(UnkStruct_ov14_boxapp *app);
 
 void ov14_021F0794(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     arg0->unk21 = arg1;
-    ov14_021F3190(*((void * *)&arg0->sys), arg0->unk21, 1);
+    ov14_021F3190(arg0->sys, arg0->unk21, 1);
     ov14_021F3F6C(arg0);
     ov14_021F685C(arg0, arg0->unk21, 1, 0x27);
     ov14_021E8434(((u8 *)arg0->sys->unk_2F0));
     ov14_021E8314(((u8 *)arg0->sys->unk_2F0));
-    ov14_021E8824(*((void * *)&arg0->sys));
+    ov14_021E8824(arg0->sys);
     ov14_021F0234(arg0, ov14_021EA068, 0x6F);
 }
 
@@ -31,10 +31,10 @@ s32 ov14_021EA0B8(UnkStruct_ov14_boxapp *app);
 
 void ov14_021F07F0(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     arg0->unk21 = arg1;
-    ov14_021F3190(*((void * *)&arg0->sys), arg0->unk21, 1);
+    ov14_021F3190(arg0->sys, arg0->unk21, 1);
     ov14_021F3F6C(arg0);
     ov14_021E8434(((u8 *)arg0->sys->unk_2F0));
     ov14_021E8314(((u8 *)arg0->sys->unk_2F0));
-    ov14_021E8824(*((void * *)&arg0->sys));
+    ov14_021E8824(arg0->sys);
     ov14_021F0234(arg0, ov14_021EA0B8, 0x4C);
 }

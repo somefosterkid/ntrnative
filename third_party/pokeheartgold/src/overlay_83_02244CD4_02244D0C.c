@@ -2,11 +2,15 @@
 #include "overlay_83_battle_castle_opponent_app.h"
 struct BattleCastleOpponentApp;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_02244DA0(void *, s32 *, s32 *, u8);
+#else
 s32 ov83_02244DA0(void *, s32 *, s32 *, u32);
+#endif
 
 s32 ov83_0224691C(void *, s32);
 
-s32 ov83_02246938(void *, s32);
+s32 ov83_02246938(BattleCastleOpponentApp *param_1, s32);
 
 s32 ov83_02247568(void *, u16, u16);
 

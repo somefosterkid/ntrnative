@@ -12,6 +12,8 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "overlay_55.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -127,14 +129,6 @@ typedef struct BallSeal {
 
 typedef u16 charcode_t;
 
-typedef union MailIconData {
-    struct {
-        u16 spriteIndex : 12;
-        u16 palIndex : 4;
-    } asStruct;
-    u16 asValue;
-} MailIconData;
-
 enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
@@ -143,15 +137,8 @@ enum TaskState {
 
 u32 GetBoxMonData(BoxPokemon *boxMon, int param, void *dest);
 
-u32 CalcBoxMonLevel(BoxPokemon *boxMon);
 
 BoxPokemon *Mon_GetBoxMon(Pokemon *mon);
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
-
 
 enum TradeType {
     TRADE_TYPE_NORMAL = 1,
@@ -203,7 +190,7 @@ void ov70_0223E690(GTSPokemonListing *listing, GTSApplicationState *appState) {
 
     ov70_0223F6E4(listing, appState);
 
-    boxMon = Mon_GetBoxMon((Pokemon *)appState->searchResults[appState->selectedSearchResult].pokemon.bytes);
+    boxMon = Mon_GetBoxMon(&appState->searchResults[appState->selectedSearchResult].pokemon);
 
     requirements.species = GetBoxMonData(boxMon, MON_DATA_SPECIES, 0L);
     requirements.gender = GetBoxMonData(boxMon, MON_DATA_GENDER, 0L) + 1;

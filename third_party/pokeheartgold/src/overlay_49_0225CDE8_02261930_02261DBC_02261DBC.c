@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_49_getters.h"
+
 #include "error_handling.h"
 #include "overlay_42.h"
 #include "overlay_93_unk_struct_ov117_02261280_t.h"
@@ -43,7 +45,6 @@ u32 ov49_02258E60(const UnkStruct_ov70_0225CC54 *param0, int param1);
 
 BOOL ov49_0225904C(UnkStruct_ov70_0225CA20 *param0, const UnkStruct_ov70_0225CC54 *param1, u32 *param2, UnkStruct_ov63_0222CC3C *param3);
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 
 UnkStruct_ov70_0225C894 *ov49_0225A000(UnkStruct_ov70_0225DEE8 *param0);
 

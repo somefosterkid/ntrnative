@@ -19,6 +19,6 @@ void ov14_021F459C(u8 *param_1) {
     ManagedSprite_SetPositionXY(((UnkStruct_ov14_boxapp *)param_1)->sys->sprites[7], sStack_10, sStack_e);
     ManagedSprite_GetPositionXY(((UnkStruct_ov14_boxapp *)param_1)->sys->sprites[8], asStack_c, &sStack_e);
     ManagedSprite_SetPositionXY(((UnkStruct_ov14_boxapp *)param_1)->sys->sprites[8], sStack_10, sStack_e);
-    ov14_021F4410(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys));
+    ov14_021F4410(((UnkStruct_ov14_boxapp *)param_1)->sys);
     return;
 }

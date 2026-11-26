@@ -27,7 +27,11 @@ typedef struct PokemonPreview {
     u8 state;
 } PokemonPreview;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+PokemonPreview *sub_0200F5C4(BgConfig *bgConfig, s8 bgLayer, s8 x, s8 y, u32 heapID);
+#else
 PokemonPreview *sub_0200F5C4(BgConfig *bgConfig, u8 bgLayer, u8 x, u8 y, u32 heapID);
+#endif
 
 void sub_0200F600(PokemonPreview *preview, u32 heapID);
 

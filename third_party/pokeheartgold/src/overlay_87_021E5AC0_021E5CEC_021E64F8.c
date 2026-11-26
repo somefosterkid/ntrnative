@@ -49,11 +49,11 @@ struct PaletteAnimator {
 
 extern const CoordinatesS16 ov87_021E82E4[9];
 
-BOOL ov87_021E64F8(ScratchOffCardApp *app, s32 arg1, s32 arg2);
+BOOL ov87_021E64F8(ScratchOffCardApp *app);
 
 void ov87_021E7FD4(ScratchOffCardsAppSprite *appSprite, int draw);
 
-BOOL ov87_021E64F8(ScratchOffCardApp *app, s32 arg1, s32 arg2) {
+BOOL ov87_021E64F8(ScratchOffCardApp *app) {
     switch (app->subState) {
     case 0:
         GfGfx_EngineATogglePlanes(GX_PLANEMASK_BG2, 0);

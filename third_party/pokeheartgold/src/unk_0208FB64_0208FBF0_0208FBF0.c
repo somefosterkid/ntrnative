@@ -81,7 +81,11 @@ void ov73_021E705C(UnkStruct_020961E8 *param0, int param1, u32 param2);
 
 int ov73_021E7488(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 BOOL sub_02037030(int cmd, const void *data, int size);
 

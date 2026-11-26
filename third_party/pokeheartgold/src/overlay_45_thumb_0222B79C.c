@@ -27,7 +27,11 @@ void ov45_0222EC10(UnkStruct_ov66_02232B20 *param0);
 
 u16 ov45_0222EDC4(u32 param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_45_thumb_0222E810_0222E9F8_0222EDA8.c (tools/pokehg_abi.py)
+u8 ov45_0222EDF0(u32 param0);
+#else
 u8 ov45_0222EDF0(u8 param0);
+#endif
 
 void ov45_0222B79C(UnkStruct_ov66_0222F6C4 *param0, UnkStruct_ov66_02231560 *param1);
 

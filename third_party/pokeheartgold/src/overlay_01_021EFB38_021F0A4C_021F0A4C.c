@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "bg_window.h"
+#include "overlay_01_021EFB38.h"
 #include "overlay_01_unk_struct_ov5_021de6bc.h"
 
 struct UnkStruct_ov5_021DE928;
@@ -24,8 +25,6 @@ BOOL ov01_021F08C0(UnkStruct_ov5_021DE6BC *param0);
 
 extern const u8 ov01_02206980[8];
 
-void ov01_021F0868(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, u8 arg9);
-
 BOOL ov01_021F0A4C(UnkStruct_ov5_021DE928 *param0);
 
 BOOL ov01_021F0A4C(UnkStruct_ov5_021DE928 *param0) {
@@ -48,7 +47,7 @@ BOOL ov01_021F0A4C(UnkStruct_ov5_021DE928 *param0) {
             v1 = -16 - ((param0->unk_C4 / 8) * 32);
             v2 = (192 + -16) - ((param0->unk_C4 / 8) * 32);
 
-            ov01_021F0868(param0->unk_04[param0->unk_C4], (s32)(v0), (s32)(v0), (s32)(v1), (s32)(v2), (s32)(param0->unk_C6), (s32)(param0->unk_00), (s32)(32), (s32)(32), param0->unk_C9);
+            ov01_021F0868(param0->unk_04[param0->unk_C4], (s32)(v0), (s32)(v0), (s32)(v1), (s32)(v2), (s32)(param0->unk_C6), param0->unk_00, (s32)(32), (s32)(32), param0->unk_C9);
             param0->unk_C4++;
         }
     }

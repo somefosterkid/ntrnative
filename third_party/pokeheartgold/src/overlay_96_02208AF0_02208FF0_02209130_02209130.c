@@ -15,9 +15,9 @@ s32 ov96_0220A840(void *);
 
 s32 ov96_0220AD34(void *);
 
-s32 ov96_02209130(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_02209130(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_02209130(PokeathlonCourseData *arg0, u8 *arg1) {
+BOOL ov96_02209130(PokeathlonCourseData *arg0, u8 *arg1) {
     s32 temp_r0;
     void *temp_r4;
 

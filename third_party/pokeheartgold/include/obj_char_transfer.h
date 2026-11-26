@@ -1,6 +1,7 @@
 #ifndef POKEHEARTGOLD_OBJ_CHAR_TRANSFER_H
 #define POKEHEARTGOLD_OBJ_CHAR_TRANSFER_H
 
+#include "obj_char_transfer_types.h"
 #include <nnsys.h>
 
 #include "heap.h"
@@ -18,13 +19,6 @@ typedef struct UnkStruct_02021758 {
     int id;
     BOOL atEnd;
 } ObjCharTransferTaskTemplate;
-
-typedef struct UnkStruct_02021AC8 {
-    u32 size;
-    u32 offset;
-    u16 vram;
-    u16 isAtEnd;
-} UnkStruct_02021AC8;
 
 typedef struct ObjCharTransferTasksManager ObjCharTransferTasksManager;
 

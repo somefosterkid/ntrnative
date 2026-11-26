@@ -2,8 +2,7 @@
 
 #include "bg_window.h"
 #include "heap.h"
-
-s32 ov112_021E90FC(Window *, void *);
+#include "overlay_112_pokewalker_app.h"
 
 s32 ov112_021E93BC(void *, s32, s32, void *, s32, s32, s32, s32);
 
@@ -339,14 +338,12 @@ extern s32 ov112_021FE018;
 
 extern s32 ov112_021FE198;
 
-void ov112_021E7DFC(void *arg0, void *arg1);
-
-void ov112_021E7DFC(void *arg0, void *dest) {
+void ov112_021E7DFC(Ov112PokewalkerApp *arg0, void *dest) {
     Window window;
     void *v0;
 
     v0 = Heap_Alloc(HEAP_ID_154, 0x180U);
-    AddWindowParameterized(*(BgConfig **)((u8 *)arg0 + 0x18), &window, 1U, 0U, 0U, 0xAU, 2U, 0U, 0U);
+    AddWindowParameterized(arg0->bgConfig, &window, 1U, 0U, 0U, 0xAU, 2U, 0U, 0U);
     FillWindowPixelBuffer(&window, 0U);
     MI_CpuCopy8(&ov112_021F5758, dest, 0x20U);
     MI_CpuCopy8(&ov112_021F5858, dest + 0x20, 0x20U);

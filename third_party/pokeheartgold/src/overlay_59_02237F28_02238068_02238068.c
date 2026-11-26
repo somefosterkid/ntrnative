@@ -1,7 +1,7 @@
 #include "global.h"
 #include "overlay_59_apricorn_app.h"
 
-s32 ov59_022385AC();
+s32 ov59_022385AC(Ov59ApricornApp *arg0);
 
 s32 ov59_02238CFC(Ov59ApricornApp *, s32, u32);
 
@@ -35,7 +35,7 @@ s32 ov59_02238068(Ov59ApricornApp *arg0) {
         sub_02031BEC(arg0->apricornBox, 1);
         arg0->state = (u16)(arg0->state + 1);
     } else {
-        if (ov59_022385AC() != 0) {
+        if (ov59_022385AC(arg0) != 0) {
             ov59_02238FF4(arg0, 0);
             ov59_02238D74(arg0);
             arg0->state = 0U;

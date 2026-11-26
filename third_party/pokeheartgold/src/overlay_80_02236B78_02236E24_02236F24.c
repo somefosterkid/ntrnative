@@ -52,7 +52,7 @@ BattleSetup *ov80_02236F24(BattleFactory *factory, FieldFrontierDTO *arg1) {
     HealParty(factory->playersParty);
     HealParty(factory->opponentsParty);
     temp_r0 = BattleSetup_New(HEAP_ID_FIELD2, ov80_022370F4(factory->challengeType));
-    sub_02051D18(temp_r0, NULL, arg1->saveData, *((u32 *)&arg1->unk_18), *((BagCursor * *)&arg1->journalEntry), *((void * *)&arg1->mapHeaderID));
+    sub_02051D18(temp_r0, NULL, arg1->saveData, arg1->mapHeaderID, arg1->bagCursor, arg1->subscreenCursorOn);
     temp_r0->battleBg = BATTLE_BG_BATTLE_FACTORY;
     temp_r0->terrain = TERRAIN_BATTLE_FACTORY;
     Party_InitWithMaxSize(temp_r0->party[0], sp10);

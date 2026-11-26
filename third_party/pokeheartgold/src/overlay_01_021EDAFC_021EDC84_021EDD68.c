@@ -7,20 +7,20 @@ struct FieldMenuManager;
 #include "pm_string.h"
 #include "overlay_01_field_menu_manager.h"
 
-void ov01_021EDD68(void *arg0, s32 arg1, s32 arg2);
+void ov01_021EDD68(FieldMenuManager *arg0, s32 arg1, s32 arg2);
 
-void ov01_021EDD68(void *arg0, s32 strno, s32 arg2) {
+void ov01_021EDD68(FieldMenuManager *arg0, s32 strno, s32 arg2) {
     String *string;
     u8 v0;
 
     string = String_New(0x50U, HEAP_ID_FIELD1);
-    ReadMsgDataIntoString(*(MsgData **)((u8 *)arg0 + 0x8C), strno, string);
-    StringExpandPlaceholders(*(MessageFormat **)((u8 *)arg0 + 0x90), *(String **)((u8 *)(arg0 + (*(u8 *)((u8 *)arg0 + 0x9B) * 4)) + 0x1C), string);
-    v0 = *(u8 *)((u8 *)arg0 + 0x9B);
-    *(s32 *)((u8 *)(arg0 + (v0 * 8)) + 0xBC) = (s32) * (s32 *)((u8 *)(arg0 + (v0 * 4)) + 0x1C);
+    ReadMsgDataIntoString(arg0->messageLoader, strno, string);
+    StringExpandPlaceholders(arg0->stringTemplate, arg0->choicesStringsBuffers[arg0->optionsCount], string);
+    v0 = arg0->optionsCount;
+    arg0->menuChoicesStrings[v0].text = arg0->choicesStringsBuffers[v0];
     String_Delete(string);
-    *(s32 *)((u8 *)(arg0 + (*(u8 *)((u8 *)arg0 + 0x9B) * 8)) + 0xC0) = arg2;
-    *(u8 *)((u8 *)arg0 + 0x9B) = (u8)(*(u8 *)((u8 *)arg0 + 0x9B) + 1);
+    arg0->menuChoicesStrings[arg0->optionsCount].value = arg2;
+    arg0->optionsCount = (u8)(arg0->optionsCount + 1);
 }
 
 s32 ov01_021EDDD8(struct FieldMenuManager *arg0);

@@ -86,7 +86,11 @@ struct FrontierScriptManager {
     u16 unk_B6;
     u16 *unk_B8;
 };
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov80_02232F00(BattleCastle *castle);
+#else
 void ov80_02232F00(BattleCastle *castle);
+#endif
 void *Frontier_GetData(BattleFrontier *frontier);
 void ov80_02232F08(BattleCastle *castle);
 

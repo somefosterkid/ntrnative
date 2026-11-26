@@ -26,7 +26,11 @@ s32 ov14_021F00A0(UnkStruct_ov14_boxapp *arg0) {
     return 0x8B;
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021F00BC(UnkStruct_ov14_boxapp *arg0) {
     u16 *v1;
@@ -72,13 +76,13 @@ s32 ov14_021F0164(UnkStruct_ov14_boxapp *arg0) {
 s32 ov14_021F0198(void *arg0) {
     PlaySE(0x5F3U);
     ov14_021F68C0(arg0, 5, 0x25);
-    *(s32 *)((u8 *)arg0 + 0x30) = 0xE;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0xE;
     return 6;
 }
 
 s32 ov14_021F01B8(void *arg0) {
     PlaySE(0x5F3U);
     ov14_021F6724(arg0, 0x25);
-    *(s32 *)((u8 *)arg0 + 0x30) = 0xE;
+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0xE;
     return 6;
 }

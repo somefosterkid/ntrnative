@@ -6,6 +6,7 @@
 #include "unk_02037C94.h"
 #include "unk_02069528.h"
 #include "overlay_72_wfc_connect.h"
+struct WifiBattleTowerDownloadData;
 
 s32 ov72_02238680(void *, s32, s32);
 
@@ -52,7 +53,12 @@ s32 ov72_0223A444(void *);
 
 s32 sub_0202D678(void *, u8, u8, RTCDate *);
 
-s32 sub_0202D7C0(void *, void *, u8, u8);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0202D7C0(struct WifiBattleTowerDownloadData *, void *, s8, s8);
+#else
+s32 sub_0202D7C0(struct WifiBattleTowerDownloadData *, void *, u8, u8);
+#endif
+
 
 s32 ov72_022398BC(NintendoWfcConnect *arg0);
 
@@ -139,7 +145,7 @@ s32 ov72_02239A08(NintendoWfcConnect *arg0) {
 s32 ov72_02237C30(s32, s32, s32, void *);
 
 
-s32 sub_0202D7F0(void *, s32 *);
+s32 sub_0202D7F0(struct WifiBattleTowerDownloadData *, s32 *);
 
 s32 ov72_02239A3C(NintendoWfcConnect *arg0);
 
@@ -233,7 +239,11 @@ s32 ov72_02239B98(NintendoWfcConnect *arg0) {
 
 s32 ov72_0223A41C(void *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov72_0223A520(NintendoWfcConnect *, s8, s8);
+#else
 s32 ov72_0223A520(NintendoWfcConnect *, s32, s32);
+#endif
 
 s32 ov72_02239BC8(NintendoWfcConnect *arg0);
 

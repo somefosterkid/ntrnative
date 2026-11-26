@@ -1,15 +1,13 @@
 #include "global.h"
 
+#include "overlay_86_frontier_records_app.h"
+
 #include "bg_window.h"
 
 extern const struct {
     const WindowTemplate *templates;
     u32 numTemplates;
 } ov86_021E8230[2];
-
-void ov86_021E7DF8(BgConfig *bgConfigs, Window *windows, u8 isOpponentApp);
-
-void ov86_021E7E68(BgConfig *arg0, Window *arg1);
 
 void ov86_021E7DF8(BgConfig *bgConfigs, Window *windows, u8 isOpponentApp) {
     const WindowTemplate *template = ov86_021E8230[isOpponentApp].templates;
@@ -20,8 +18,6 @@ void ov86_021E7DF8(BgConfig *bgConfigs, Window *windows, u8 isOpponentApp) {
         FillWindowPixelBuffer(&windows[i], 0);
     }
 }
-
-void ov86_021E7E40(Window *windows, u8 isOpponentApp);
 
 void ov86_021E7E40(Window *windows, u8 isOpponentApp) {
     u16 i;

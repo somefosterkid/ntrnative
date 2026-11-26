@@ -80,7 +80,6 @@ void LoadItemSelectBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
 void ov82_0223EE6C(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

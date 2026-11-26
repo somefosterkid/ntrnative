@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -82,13 +84,11 @@ struct FrontierScriptManager {
     u16 *unk_B8;
 };
 typedef struct FrontierGraphics FrontierGraphics;
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 typedef struct GameRecords GameRecords;
 GameRecords *Save_GameStats_Get(SaveData *saveData);
 void GameStats_Inc(GameRecords *records, int scoreID);
 typedef struct JournalEntry JournalEntry;
 u16 FrontierScriptContext_ReadHalfWord(FrontierScriptContext *ctx);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 u32 GameStats_Add(GameRecords *records, int id, u32 toAdd);
 void GameStats_AddScore(GameRecords *records, int scoreID);

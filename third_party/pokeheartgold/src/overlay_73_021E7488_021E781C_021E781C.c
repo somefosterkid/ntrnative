@@ -71,7 +71,11 @@ typedef struct JournalEntry JournalEntry;
 
 typedef struct Menu Menu;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 int sub_02037454(void);
 

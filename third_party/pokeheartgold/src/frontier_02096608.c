@@ -10,7 +10,7 @@
 #include "overlay_manager.h"
 #include "poke_overlay.h"
 
-struct FrontierLaunchArgs;
+struct FieldFrontierDTO;
 
 struct FrontierMap;
 
@@ -23,7 +23,7 @@ struct OverlayManager;
 struct OverlayManagerTemplate;
 
 typedef struct FrontierWork {
-    FrontierLaunchArgs *launchArgs;
+    FieldFrontierDTO *launchArgs;
     OverlayManager *childOvy;
     void *childArg;
     UnkFuncPtr_020965A4 *childCallback;
@@ -133,12 +133,12 @@ int Frontier_Main(OverlayManager *man, int *state) {
     case 6:
         Frontier_CreateMap(data);
         if (data->unk20 == 0xFFFF) {
-            ov80_0222AA7C(data->system, data->launchArgs->unk20, HEAP_ID_FIELD2);
+            ov80_0222AA7C(data->system, data->launchArgs->sceneID, HEAP_ID_FIELD2);
         } else {
             void *r6 = ov80_0222AAD8(data->system, HEAP_ID_FIELD2);
             ov80_0222A920(data->system);
-            data->system = FrontierSystem_Create(data, HEAP_ID_FIELD2, data->launchArgs->unk20);
-            FrontierSystem_AddTask(data->system, data->launchArgs->unk20, data->unk20);
+            data->system = FrontierSystem_Create(data, HEAP_ID_FIELD2, data->launchArgs->sceneID);
+            FrontierSystem_AddTask(data->system, data->launchArgs->sceneID, data->unk20);
             ov80_0222AAF8(data->system, r6);
         }
         data->unk1E = 0;

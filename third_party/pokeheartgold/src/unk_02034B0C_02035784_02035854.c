@@ -6,6 +6,12 @@
 void sub_02035854(void *arg0);
 
 void sub_02035854(void *src) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    // The DS reads low memory here when no link session exists (harmless); the PC would fault.
+    if (_021D4134.sCommServerClient == NULL) {
+        return;
+    }
+#endif
     MI_CpuCopy8(src, _021D4134.sCommServerClient->unk_D7C, LinkBattleRuleset_sizeof());
 }
 
@@ -22,6 +28,11 @@ s32 sub_020352D8(void);
 void sub_0203588C(void);
 
 void sub_0203588C(void) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    if (_021D4134.sCommServerClient == NULL) {
+        return;
+    }
+#endif
     sub_020352D8();
     sub_020339B4(_021D4134.sCommServerClient->unk_D88, 0x5C, _021D4134.sCommServerClient->unk_D80, _021D4134.tgid);
 }

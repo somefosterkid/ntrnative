@@ -12,7 +12,11 @@ s32 ov72_0223A7F4(NintendoWfcNumberInput *, s32);
 
 u8 ov72_0223A8DC(NintendoWfcNumberInput *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov72_0223AED0(NintendoWfcConnect *, s8, s8, s8);
+#else
 s32 ov72_0223AED0(NintendoWfcConnect *, u8, u8, s32);
+#endif
 
 extern u8 ov72_0223B478[];
 

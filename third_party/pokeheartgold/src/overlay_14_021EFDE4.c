@@ -21,7 +21,11 @@ s32 ov14_021EFDE4(UnkStruct_ov14_boxapp *arg0) {
     return 0x8B;
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EFDF4(UnkStruct_ov14_boxapp *arg0) {
     u16 v3;

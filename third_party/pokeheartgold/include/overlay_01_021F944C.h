@@ -72,7 +72,9 @@ typedef struct MapObjectBillboardWorkB { // ov01_021F7478, ov01_021F74B4, ov01_0
     Billboard *billboard;
     BillboardAnimState animState;
     s8 unk_10;
-    u8 unk_11[3];
+    u8 unk_11;
+    s8 unk_12;
+    s8 unk_13;
     s8 unk_14;
     s8 unk_15;
     u8 unk_16;

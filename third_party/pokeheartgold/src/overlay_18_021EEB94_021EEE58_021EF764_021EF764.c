@@ -11,7 +11,11 @@
 /* HDR-OVERLAY end */
 #undef ov18_021E7698
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov18_021E7698(int a0);
+#else
 s8 ov18_021E7698(int a0);
+#endif
 
 /* HDR-OVERLAY done */
 s32 ov18_021EF388(PokedexAppData *, s32, s32);

@@ -96,7 +96,11 @@ enum PokemonSpriteAttribute {
 void ov41_022497A0(UnkStruct_020298D8 *param0, int *param1, int *param2);
 void ov41_02249978(TouchScreenRect *rect, int param1, int param2, int param3, int param4);
 void TouchscreenHitbox_TouchHeldIsIn(Simple3DModel *model);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL TouchscreenHitbox_PointIsIn(Simple3DModel *model);
+#else
 void TouchscreenHitbox_PointIsIn(Simple3DModel *model);
+#endif
 
 void ov41_022496E8(UnkStruct_020298D8 *param0);
 void ov41_02249700(UnkStruct_020298D8 *param0, int param1);

@@ -955,7 +955,7 @@ void ov80_0222F030(FrontierGraphics *param0, Pokemon *param1, enum HeapID heapID
         species = GetMonData(param1, MON_DATA_SPECIES, 0L);
 
         GetPokemonSpriteCharAndPlttNarcIds(&v3, param1, 2);
-        sub_02014494((enum NarcId)((int)((enum NarcId)(v3.narcID))), (int)((unsigned char *)(v3.charDataID)), (enum HeapID)((int)(heapID)), (int)((unsigned char *)(0)), (int)((unsigned char *)(0)), (int)((unsigned char *)(10)), (int)((unsigned char *)(10)), (unsigned char *)((u8 *)(v4)), personality, 0, 2, (enum Species)(species));
+        sub_02014494((NarcId)v3.narcID, v3.charDataID, heapID, 0, 0, 10, 10, v4, personality, 0, 2, (enum Species)species);
     }
 
     {

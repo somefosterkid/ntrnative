@@ -13,10 +13,6 @@ s32 ov112_021EFED8(void) {
     return 0x12;
 }
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EFEEC(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EFEEC(Ov112PokewalkerApp *arg0) {
     arg0->unk_1E524 = ov112_021EA08C(arg0, 0, 0x32);
     arg0->unk_C = 0x14;

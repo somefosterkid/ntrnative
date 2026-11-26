@@ -4,7 +4,11 @@
 #include "heap.h"
 #include "sys_task_api.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov102_021EB570(void *, s8, s8);
+#else
 s32 ov102_021EB570(void *, u8, s32);
+#endif
 
 void ov102_021EB5B8(SysTask *arg0, void *arg1);
 

@@ -3,20 +3,21 @@
 #include "pokemon_icon_idx.h"
 #include "heap.h"
 #include "overlay_112_pokewalker_app.h"
+struct NNSG2dCharacterData;
 
 void ov112_021EA9BC(void *, void *);
 
-void ov112_021EAA98(u8 *param_1, u8 *param_2, s32 param_3);
-
-s32 ov112_021EAA10();
-s32 ov112_021EAA34(Ov112PokewalkerApp *, s16, s16);
-s32 ov112_021EAAE4(Ov112PokewalkerApp *arg0, void *arg1);
+void ov112_021EAA10(Ov112PokewalkerApp *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021EAA34(Ov112PokewalkerApp *, u16, s32);
+#else
+s32 ov112_021EAA34(Ov112PokewalkerApp *, s16, s32);
+#endif
 void ov112_021EAB58(void);
 
-s32 ov112_021EABE8(void *, u32, u32, s32, s32, void *);
-void ov112_021EAB78(Ov112PokewalkerApp *arg0, s32 arg1, u32 arg2, u32 arg3);
+s32 ov112_021EABE8(struct NNSG2dCharacterData *, u32, u32, s32, s32, void *);
 
-void ov112_021EAA98(u8 *param_1, u8 *param_2, s32 param_3) {
+void ov112_021EAA98(Ov112PokewalkerApp *param_1, u8 *param_2, s32 param_3) {
     if (param_3 == 0) {
         *(u16 *)(param_2 + 4) = 0x80;
         *(u16 *)(param_2 + 6) = 0x82;
@@ -63,7 +64,7 @@ s32 ov112_021EAAE4(Ov112PokewalkerApp *arg0, void *arg1) {
         ov112_021EAA34(arg0, *(s16 *)((u8 *)arg1 + 4), *(s16 *)((u8 *)arg1 + 6));
         return 0;
     }
-    ov112_021EAA10();
+    ov112_021EAA10(arg0);
     return 1;
 }
 

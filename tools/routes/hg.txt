@@ -158,3 +158,9 @@ burned-b1f | hg-burned1f | Pa To:30000 G:warp:217 Wf:60 G:trig:0 Wf:300 S | zone
 gym-in | hg-burnedb1f | Pa To:30000 G:warp:7 Wf:30 G:warp:78 Wf:30 G:warp:80 Wf:60 G:16,42 Wf:20 G:16,38 Wf:20 S | zone 80 16,38 | hg-gymin
 # gym-maze1 (hgr12): the hops 19,38 (a direct 19,34 from 16,38 wanders: the planner finds no way round the beaten trainer's corner, so go along the row first), then x = 19 north to 19,34, 20,31 (the trainer at 19,30 fights as the path reaches row 31), 20,29, then west along the long row 29 to 15,29 (still out of the next trainer's sight).
 gym-maze1 | hg-gymin | Pa To:30000 G:19,38 Wf:10 G:19,34 Wf:20 G:20,31 Wf:20 G:20,29 Wf:20 G:15,29 Wf:20 S | zone 80 15,29 | hg-gymmaze1
+# gym-maze2 (hgr14): the third trainer (9,29) fights as the path reaches 14,29 (Wf:300 for his walk and battle; he then stands in the row); the bay below it is free floor, walked in single hops 14,30 / 13,30 / 12,30 / 12,29 (a direct G:12,29 from 14,29 plans no way), then x = 11 north to 11,22 (out of the next trainer's sight).
+gym-maze2 | hg-gymmaze1 | Pa To:30000 G:14,29 Wf:300 G:14,30 Wf:10 G:13,30 Wf:10 G:12,30 Wf:10 G:12,29 Wf:10 G:11,22 Wf:20 S | zone 80 11,22 | hg-gymmaze2
+# gym-morty (hgr14): the fourth trainer (uid 5, the forced fight starts as the leg begins) then the leader (uid 1, trainer script: the fight, the badge, the gift machine); VAR_MIDGAME_BADGES = 1.
+gym-morty | hg-gymmaze2 | Pa To:30000 G:npc:5 Wf:60 G:npc:1 Wf:100 S | zone 80 10,9 | hg-gymmorty
+# ecru-out (hgr14): the way back out of the gym is one warp token (the beaten gym's planner walks round the pit rectangles by itself); named ecru-out, gym-out is Goldenrod's.
+ecru-out | hg-gymmorty | Pa To:30000 G:warp:78 Wf:60 S | zone 78 376,184 | hg-ecruout

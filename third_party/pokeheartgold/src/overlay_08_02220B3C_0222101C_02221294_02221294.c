@@ -645,7 +645,6 @@ typedef struct SpritePosition {
 
 extern const SpritePosition ov08_0222550C[5];
 
-void sub_020161CC(ManagedSprite *sprite, const int x, const int y);
 
 void ov08_02220AEC(BattleParty *battleParty, ManagedSprite *sprite, u32 resourceID, u8 type);
 

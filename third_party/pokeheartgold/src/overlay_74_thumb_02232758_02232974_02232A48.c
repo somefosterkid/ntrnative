@@ -4,6 +4,7 @@
 #include "screen_fade_internal.h"
 #include "save.h"
 #include "options.h"
+#include "system.h"
 #include "pm_string.h"
 #include "sprite.h"
 #include "overlay_41_sprite_resource_collection.h"
@@ -26,7 +27,7 @@ struct GBAPokemonSubstruct2;
 
 struct GBAPokemonSubstruct3;
 
-struct GXBanks;
+struct GraphicsBanks;
 
 struct Options;
 
@@ -402,43 +403,8 @@ enum BgLayer {
     BG_LAYER_MAX,
 };
 
-typedef struct Background {
-    void *tilemapBuffer;
-    u32 bufferSize;
-    u32 baseTile;
-    int hOffset;
-    int vOffset;
-    u8 mode;
-    u8 size;
-    u8 colorMode;
-    u8 tileSize;
-    u16 rotation;
-    u16 unk22;
-    fx32 xScale;
-    fx32 yScale;
-    int centerX;
-    int centerY;
-} Background;
 
-typedef struct BgConfig {
-    enum HeapID heapID;
-    u16 scrollScheduled;
-    u16 bufferTransferScheduled;
-    struct Background bgs[8];
-} BgConfig;
 
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
 
 enum SaveBlockID {
     SAVE_BLOCK_ID_NORMAL = 0,
@@ -588,20 +554,6 @@ typedef struct StringTemplate {
     String *templateBuf;
 } StringTemplate;
 
-typedef struct GXBanks {
-    GXVRamBG unk_00;
-    GXVRamBGExtPltt unk_04;
-    GXVRamSubBG unk_08;
-    GXVRamSubBGExtPltt unk_0C;
-    GXVRamOBJ unk_10;
-    GXVRamOBJExtPltt unk_14;
-    GXVRamSubOBJ unk_18;
-    GXVRamSubOBJExtPltt unk_1C;
-    GXVRamTex unk_20;
-    GXVRamTexPltt unk_24;
-} GXBanks;
-
-void GfGfx_SetBanks(const GXBanks *banks);
 
 void GXLayers_SwapDisplay(void);
 
@@ -614,45 +566,7 @@ enum ButtonMode {
     BUTTON_MODE_L_IS_A = 3,
 };
 
-typedef struct System {
-    Callback vBlankIntr;
-    void *vBlankIntrArg;
-    Callback hBlankIntr;
-    void *hBlankIntrArg;
-    UnkCallback unk10;
-    UnkCallback unk14;
-    SysTaskQueue *mainTaskQueue;
-    SysTaskQueue *vblankTaskQueue;
-    SysTaskQueue *vwaitTaskQueue;
-    SysTaskQueue *printTaskQueue;
-    u32 *unk28;
-    u32 vblankCounter;
-    u32 frameCounter;
-    int buttonMode;
-    int heldKeysRaw;
-    int newKeysRaw;
-    int newAndRepeatedKeysRaw;
-    int heldKeys;
-    int newKeys;
-    int newAndRepeatedKeys;
-    int keyRepeatCounter;
-    int keyRepeatContinueDelay;
-    int keyRepeatStartDelay;
-    int simulatedInputs;
-    u16 touchX;
-    u16 touchY;
-    u16 touchNew;
-    u16 touchHeld;
-    u8 touchpadReadAuto;
-    u8 screensFlipped;
-    u8 unk6A;
-    u8 lidClosedPauseDisabled;
-    u8 softResetDisabled;
-    BOOL unk70;
-    u32 *unk74;
-} System;
 
-extern System gSystem;
 
 enum TouchScreenButtonState {
     TOUCH_BUTTON_NOT_PRESSED = -1,
@@ -792,10 +706,10 @@ void GfGfx_SwapDisplay(void);
 
 void FontID_Alloc(enum Font fontId, enum HeapID heapID);
 
-extern const GXBanks _0223B578;
+extern const GraphicsBanks _0223B578;
 
 void ov74_02232A48(GBAMigrator *migrator) {
-    GXBanks v0 = _0223B578;
+    GraphicsBanks v0 = _0223B578;
 
     GfGfx_SetBanks(&v0);
     ov74_02232974(migrator->bgConfig);

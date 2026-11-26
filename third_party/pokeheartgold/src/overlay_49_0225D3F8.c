@@ -102,8 +102,12 @@ void ov49_0225D3F8(UnkStruct_ov70_02260BB8 *param0, UnkStruct_ov70_022610B8 *par
 
 u8 ov49_0225D450(void *arg0, s32 arg1);
 s32 ov49_0225D470(void *arg0, s32 arg1);
-s32 sub_020182A0(void *);
-void ov49_0225D494(u8 *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_020182A0(void *arg0, s32 arg1);
+#else
+void sub_020182A0(void *arg0, s32 arg1);
+#endif
+void ov49_0225D494(u8 *arg0, s32 arg1);
 void ov49_0225D4A0(u8 *arg0, void *arg1, s32 arg2);
 void ov49_0225D4C8(void *arg0, s32 arg1);
 void ov49_0225D4D0(void *arg0, s8 arg1, s8 arg2);
@@ -142,8 +146,8 @@ s32 ov49_0225D470(void *arg0, s32 arg1) {
     return *(s32 *)((u8 *)(arg0 + (arg1 * 4)) + 0xC0);
 }
 
-void ov49_0225D494(u8 *arg0) {
-    sub_020182A0(arg0 + 4);
+void ov49_0225D494(u8 *arg0, s32 arg1) {
+    sub_020182A0(arg0 + 4, arg1);
 }
 
 void ov49_0225D4A0(u8 *arg0, void *arg1, s32 light) {

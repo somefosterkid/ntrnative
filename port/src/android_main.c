@@ -116,7 +116,7 @@ JNIEXPORT void JNICALL Java_com_bwport_app_BwportActivity_nativeInsets(JNIEnv *e
     if (density > 0.0f) {
         sDensity = density;
     }
-    sInsetsKnown = 1;
+    __atomic_store_n(&sInsetsKnown, 1, __ATOMIC_RELEASE);   // publishes sInsets and sDensity: arm64 reorders plain stores
 }
 
 // The panel's refreshes (BwportActivity.nativeVsync, Choreographer's frame times): the last one and the period, from the median of the
@@ -149,13 +149,15 @@ JNIEXPORT void JNICALL Java_com_bwport_app_BwportActivity_nativeVsync(JNIEnv *en
         }
         sVsPeriod = g[n / 2];
     }
-    sVsLast = t;
+    __atomic_store_n(&sVsLast, t, __ATOMIC_RELEASE);   // after sVsPeriod: the reader loads sVsLast first (acquire)
 }
 
 int bwport_android_vsync(unsigned long long *lastNs, unsigned long long *periodNs) {
-    *lastNs = sVsLast;
+    unsigned long long last = __atomic_load_n(&sVsLast, __ATOMIC_ACQUIRE);
+
+    *lastNs = last;
     *periodNs = sVsPeriod;
-    return sVsLast != 0 && sVsPeriod != 0;
+    return last != 0 && sVsPeriod != 0;
 }
 
 float bwport_android_density(void) {
@@ -168,11 +170,13 @@ float bwport_android_density(void) {
 }
 
 int bwport_android_insets(float *l, float *t, float *r, float *b) {
+    int known = __atomic_load_n(&sInsetsKnown, __ATOMIC_ACQUIRE);   // before the values it publishes
+
     *l = sInsets[0];
     *t = sInsets[1];
     *r = sInsets[2];
     *b = sInsets[3];
-    return sInsetsKnown;
+    return known;
 }
 
 // Leaves the game for the launcher (reset.c: Restart to title restarts the same game, Games goes to the library): BwportActivity.leaveGame

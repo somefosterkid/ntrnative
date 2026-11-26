@@ -147,7 +147,7 @@ void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, u32 param2, u3
     void *v0;
     NNSG2dScreenData *v1;
 
-    v0 = GfGfxLoader_GetScrnDataFromOpenNarc((struct NARC *)((u8 *)((struct NARC *)((u8 *)(param1)))), (u32)((struct NNSG2dScreenData **)(param2)), (int)((struct NNSG2dScreenData **)(0)), (struct NNSG2dScreenData **)((u8 *)(&v1)), (enum HeapID)(heapID));
+    v0 = GfGfxLoader_GetScrnDataFromOpenNarc(param1, param2, 0, &v1, (enum HeapID)(heapID));
 
     {
         int v2;

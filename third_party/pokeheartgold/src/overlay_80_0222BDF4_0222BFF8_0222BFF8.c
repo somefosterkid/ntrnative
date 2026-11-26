@@ -3,7 +3,11 @@
 #include "frontier/frontier_script_context.h"
 #include "frontier/overlay_80_0222BDF4.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov80_0222BFE4(u16, u16);
+#else
 u32 ov80_0222BFE4(u32, u16);
+#endif
 
 s32 FrtCmd_032(FrontierScriptContext *arg0);
 

@@ -1,21 +1,53 @@
 #ifndef POKEHEARTGOLD_OVERLAY_41_UNK_STRUCT_OV22_02257964_H
 #define POKEHEARTGOLD_OVERLAY_41_UNK_STRUCT_OV22_02257964_H
 
-// UnkStruct_ov22_02257964: merged by tools/hg/promote.py from 30 m2c local copies (1 variants, base
-// src/overlay_41_02246DE0_02246F08.c) and 1 accesses; fields at every accessed offset, pads elsewhere.
+#include "touchscreen.h"
+#include "overlay_41_unk_struct_ov22_02254de0.h"
+#include "overlay_41_unk_struct_ov22_02259484.h"
+#include "overlay_41_unk_struct_ov22_02259560.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct BgConfig;
 struct Pokemon;
-struct PokemonSprite;
-struct PokemonSpriteManager;
+struct Pokepic;
+struct PokepicManager;
+struct SoftwareSpriteChars;
 struct SoftwareSpriteManager;
-struct UnkStruct_ov22_02259560_t;
+struct SoftwareSpritePalette;
+
+typedef struct UnkStruct_ov22_02257964_sub1 {
+    UnkStruct_ov22_02259484 *unk_00;
+    UnkStruct_ov22_02259560 unk_04;
+    UnkStruct_ov22_02259560 unk_14;
+    int unk_24;
+    int unk_28;
+} UnkStruct_ov22_02257964_sub1;
+
+typedef struct UnkStruct_ov22_02257964_sub2_sub {
+    struct Pokepic *unk_00;
+    TouchscreenHitbox unk_04;
+    struct { u8 unk_00; u8 unk_01; u8 unk_02; u8 unk_03; } unk_08;
+    struct Pokemon *unk_0C;
+} UnkStruct_ov22_02257964_sub2_sub;
+
+typedef struct UnkStruct_ov22_02257964_sub2 {
+    struct SoftwareSpriteManager *unk_00;
+    struct SoftwareSpriteChars **unk_04;
+    struct SoftwareSpritePalette **unk_08;
+    u8 *unk_0C;
+    struct PokepicManager *unk_10;
+    struct BgConfig *unk_14;
+    UnkStruct_ov22_02254DE0 *unk_18;
+    UnkStruct_ov22_022597BC unk_1C;
+    int unk_48;
+    UnkStruct_ov22_02257964_sub2_sub unk_4C;
+} UnkStruct_ov22_02257964_sub2;
 
 typedef struct UnkStruct_ov22_02257964 {
-    struct { void *unk_00; struct { void *unk_00; int unk_04; struct UnkStruct_ov22_02259560_t *unk_08; struct UnkStruct_ov22_02259560_t *unk_0C; } unk_04; struct { void *unk_00; int unk_04; struct UnkStruct_ov22_02259560_t *unk_08; struct UnkStruct_ov22_02259560_t *unk_0C; } unk_14; int unk_24; int unk_28; } unk_00;
-    struct { struct SoftwareSpriteManager *unk_00; void **unk_04; void **unk_08; u8 *unk_0C; struct PokemonSpriteManager *unk_10; struct BgConfig *unk_14; void *unk_18; struct { struct BgConfig *unk_00; u32 narcID; int unk_08; int unk_0C; int unk_10; int unk_14; int unk_18; int unk_1C; int unk_20; int unk_24; int unk_28; } unk_1C; int unk_48; struct { struct PokemonSprite *unk_00; u8 unk_04[0x4]; struct { u8 unk_00; u8 unk_01; u8 unk_02; u8 unk_03; } unk_08; struct Pokemon *unk_0C; } unk_4C; } unk_2C;
+    UnkStruct_ov22_02257964_sub1 unk_00;
+    UnkStruct_ov22_02257964_sub2 unk_2C;
 } UnkStruct_ov22_02257964;
 
-// sizeof(UnkStruct_ov22_02257964) == 0x88
+// sizeof(UnkStruct_ov22_02257964) == 0x88 on DS
 
 #endif // POKEHEARTGOLD_OVERLAY_41_UNK_STRUCT_OV22_02257964_H

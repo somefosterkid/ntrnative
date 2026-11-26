@@ -42,9 +42,9 @@ void ov14_021F5EE4(UnkStruct_ov14_boxapp *arg0, void *arg1, u32 arg2) {
     }
     if (var_r6 < 5U) {
         do {
-            temp_r4 = (0x21 - var_r6) * 0x10;
-            FillWindowPixelBuffer(((((void *)arg0->sys)) + 0x30) + temp_r4, 0U);
-            CopyWindowPixelsToVram_TextMode(((((void *)arg0->sys)) + 0x30) + temp_r4);
+            temp_r4 = 0x21 - var_r6;
+            FillWindowPixelBuffer(&arg0->sys->windows[temp_r4], 0U);
+            CopyWindowPixelsToVram_TextMode(&arg0->sys->windows[temp_r4]);
             var_r6 += 1;
         } while (var_r6 < 5U);
     }

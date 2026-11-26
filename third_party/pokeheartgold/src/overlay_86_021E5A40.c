@@ -15,12 +15,6 @@ void BattleArcadeGameBoard_SetState(FrontierRecordsApp *app, int *state, int new
 
 void LoadMainBackground(FrontierRecordsApp *app, enum GFBgLayer bgLayer);
 
-void ov86_021E5F58(FrontierRecordsApp *app, enum GFBgLayer bgLayer);
-
-void ov86_021E5E90(FrontierRecordsApp *arg0, s32 *arg1, s32 arg2);
-
-void ov86_021E703C(FrontierRecordsApp *arg0);
-
 int ov86_021E5A40(OverlayManager *appMan, int *state);
 
 BOOL ov86_021E5B38(FrontierRecordsApp *app);

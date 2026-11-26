@@ -1433,7 +1433,11 @@ typedef struct BerryPatchManager BerryPatchManager;
 void ov91_0225EED0(UnkStruct_ov115_02262E64 *param0, const UnkStruct_ov115_02262F50 *param1, const UnkStruct_ov115_022612BC *param2, u16 param3, u16 param4);
 void ov91_0225F3A0(UnkStruct_ov115_022632C8 *param0, u32 param1, u32 param2);
 void ov91_0225EEBC(UnkStruct_ov115_02262E64 *param0, const UnkStruct_ov115_02262F50 *param1, const UnkStruct_ov115_022612BC *param2);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov91_0225F008(UnkStruct_ov115_02260D78 *param0, const UnkStruct_ov115_02262E64 *param1);
+#else
 void ov91_0225F008(UnkStruct_ov115_02260D78 *param0, const UnkStruct_ov115_02262E64 *param1);
+#endif
 typedef struct {
     fx32 unk_00;
     fx32 unk_04;

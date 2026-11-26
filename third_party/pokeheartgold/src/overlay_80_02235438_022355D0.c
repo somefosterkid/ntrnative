@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -756,7 +758,6 @@ typedef struct BattleTower {
 } BattleTower;
 int ov80_02236B18(u8 challengeMode);
 void ov80_0222F458(FrontierScriptContext *ctx, u16 *args, u32 bankID);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void *Frontier_GetData(BattleFrontier *frontier);
 void FrontierFieldSystem_Free(BattleArcade *arcade);
 

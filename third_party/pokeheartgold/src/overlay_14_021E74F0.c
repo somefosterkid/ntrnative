@@ -8,7 +8,11 @@ void ov14_021E8944(UnkStruct_0201956C *param_1);
 void ov14_021E895C(UnkStruct_ov14_boxapp *param_1, u32 param_2);
 void ov14_021F2A18(UnkStruct_ov14_boxsys *param_1, s32 param_2, s32 param_3);
 void ov14_021F38B0(UnkStruct_ov14_boxsys *param_1, u16 param_2);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F5564(UnkStruct_ov14_boxapp *param_1, u8 param_2);
+#else
 s32 ov14_021F5564(UnkStruct_ov14_boxapp *param_1, s32 param_2);
+#endif
 
 void ov14_021E74F0(UnkStruct_ov14_boxapp *param_1, UnkStruct_ov14_mon *param_2) {
     s32 iVar1;

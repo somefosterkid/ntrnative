@@ -1,26 +1,9 @@
 #include "global.h"
 
-struct GXBanks;
-
-typedef struct GXBanks {
-    GXVRamBG unk_00;
-    GXVRamBGExtPltt unk_04;
-    GXVRamSubBG unk_08;
-    GXVRamSubBGExtPltt unk_0C;
-    GXVRamOBJ unk_10;
-    GXVRamOBJExtPltt unk_14;
-    GXVRamSubOBJ unk_18;
-    GXVRamSubOBJExtPltt unk_1C;
-    GXVRamTex unk_20;
-    GXVRamTexPltt unk_24;
-} GXBanks;
-
-void GfGfx_SetBanks(const GXBanks *banks);
-
-void ov86_021E5D10(void);
+#include "overlay_86_frontier_records_app.h"
 
 void ov86_021E5D10(void) {
-    GXBanks banks = {
+    GraphicsBanks banks = {
         GX_VRAM_BG_128_A,
         GX_VRAM_BGEXTPLTT_NONE,
         GX_VRAM_SUB_BG_128_C,

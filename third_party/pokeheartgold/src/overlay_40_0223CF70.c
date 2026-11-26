@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_40_unk_struct_0208_c06_c.h"
 
 s32 ov40_0222BF80(s32, s32);
 

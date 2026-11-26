@@ -1,0 +1,7 @@
+# game: soulsilver
+# from: ss-ilexff2
+# reaches: Ilex Forest: A at the Cut tree (16,62) from below, Yes, the Cut cut-in and the tree falling (cheat items, badges, party)
+# end: f10900
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=117:16:63 BWPORT_HG_WARP_DIR=0
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600

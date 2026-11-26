@@ -5,13 +5,25 @@
 
 #include "error_handling.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E60C_0220E770_0220E7BC.c (tools/pokehg_abi.py)
+u8 ov96_0220E7BC(PokeathlonCourseData *, s32);
+#else
 u8 ov96_0220E7BC(PokeathlonCourseData *, u8);
+#endif
 
 s16 ov96_0220E6DC(int, int);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E70C.c (tools/pokehg_abi.py)
+UnkStruct_ov96_0220E3F0_Record *ov96_0220E74C(UnkStruct_ov96_0220E3F0 *, u32);
+#else
 UnkStruct_ov96_0220E3F0_Record *ov96_0220E74C(UnkStruct_ov96_0220E3F0 *, u8);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220E818.c (tools/pokehg_abi.py)
+void ov96_0220E818(UnkStruct_ov96_0220E3F0 *, s16 *, s32, s32);
+#else
 s32 ov96_0220E818(UnkStruct_ov96_0220E3F0 *, s16 *, u8, u8);
+#endif
 
 typedef struct {
     PokeathlonCourseData *course;
@@ -26,7 +38,11 @@ typedef struct {
     u32 unkC_11 : 21;
 } UnkStruct_ov96_022109D8;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov96_02210BD0(UnkStruct_ov96_022109D8 *, u16, int);
+#else
 s32 ov96_02210BD0(UnkStruct_ov96_022109D8 *, int, int);
+#endif
 
 void ov96_022109D8(UnkStruct_ov96_022109D8 *work);
 

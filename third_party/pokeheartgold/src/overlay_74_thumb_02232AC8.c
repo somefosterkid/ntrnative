@@ -152,7 +152,7 @@ extern u8 ov74_0223C960;
 
 void ov74_02232AC8(GBAMigrator *migrator);
 
-void ov74_02232B18(u8 *param_1);
+void ov74_02232B18(GBAMigrator *migrator);
 
 void ov74_02232AC8(GBAMigrator *migrator) {
     GfGfxLoader_LoadScrnData(NARC_a_1_1_3, 0x18, migrator->bgConfig, GF_BG_LYR_MAIN_2, 0, 0x600, 1, HEAP_ID_76);
@@ -161,22 +161,22 @@ void ov74_02232AC8(GBAMigrator *migrator) {
     return;
 }
 
-void ov74_02232B18(u8 *param_1) {
+void ov74_02232B18(GBAMigrator *migrator) {
     LoadFontPal0(GF_PAL_LOCATION_MAIN_BG, GF_PAL_SLOT_14_OFFSET, HEAP_ID_76);
-    LoadUserFrameGfx1(*(BgConfig **)(param_1 + 0x20), GF_BG_LYR_MAIN_0, 0x3f0, 0xe, 0, HEAP_ID_76);
-    LoadUserFrameGfx2(*(BgConfig **)(param_1 + 0x20), GF_BG_LYR_MAIN_0, 0x3d2, 0xd, (u8) * (u32 *)(param_1 + 0x1c), HEAP_ID_76);
-    memset((void *)(param_1 + 0x42c), 0, 0x4c);
-    *((void **)&((GBAMigrator *)param_1)->unk_490.unk_00) = param_1 + 0x498;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_08) = 2;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_0C) = 1;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_10) = 0x1b;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_14) = 4;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.bgLayer) = 0;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_28) = 1;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_20) = 1;
-    ((GBAMigrator *)param_1)->unk_490.unk_2C = 0x1020f;
-    ((GBAMigrator *)param_1)->unk_490.unk_30 = 0xf020f;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_38) = 0;
-    *((u32 *)&((GBAMigrator *)param_1)->unk_490.unk_3C) = 0;
+    LoadUserFrameGfx1(migrator->bgConfig, GF_BG_LYR_MAIN_0, 0x3f0, 0xe, 0, HEAP_ID_76);
+    LoadUserFrameGfx2(migrator->bgConfig, GF_BG_LYR_MAIN_0, 0x3d2, 0xd, (u8)migrator->messageBoxFrame, HEAP_ID_76);
+    memset(&migrator->unk_42C, 0, sizeof(migrator->unk_42C));
+    migrator->unk_42C.unk_00 = &migrator->unk_498;
+    migrator->unk_42C.unk_08 = 2;
+    migrator->unk_42C.unk_0C = 1;
+    migrator->unk_42C.unk_10 = 0x1b;
+    migrator->unk_42C.unk_14 = 4;
+    migrator->unk_42C.bgLayer = 0;
+    migrator->unk_42C.unk_28 = 1;
+    migrator->unk_42C.unk_20 = 1;
+    migrator->unk_42C.unk_2C = 0x1020f;
+    migrator->unk_42C.unk_30 = 0xf020f;
+    migrator->unk_42C.unk_38 = 0;
+    migrator->unk_42C.unk_3C = 0;
     return;
 }

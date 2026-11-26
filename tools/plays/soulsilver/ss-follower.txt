@@ -1,0 +1,10 @@
+# game: soulsilver
+# from: ss-r35pond
+# reaches: Route 35's sand with the follower: it walks beside the player, goes into its ball when the bicycle is mounted (Y), comes out of the ball on the first step after the player gets off (cheat items, badges, party)
+# end: f12500
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=39:375:289 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys start@f11000 stylus:42,116@f11100-f11110 stylus:235,15@f11250-f11260 stylus:172,93@f11400-f11410 stylus:142,142@f11550-f11560
+keys b@f11700 b@f11800 b@f11900
+keys left*f8@f11980 y@f12150 y@f12270 left*f8@f12330

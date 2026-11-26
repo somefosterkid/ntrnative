@@ -36,9 +36,9 @@ extern u8 ov96_0221A934[];
 
 extern u8 ov96_0221A95C[];
 
-void ov96_021E811C(void *arg0, u32 arg1, s8 *arg2);
+void ov96_021E811C(PokeathlonCourseArgs *arg0, u32 arg1, s8 *arg2);
 
-void ov96_021E811C(void *arg0, u32 arg1, s8 *arg2) {
+void ov96_021E811C(PokeathlonCourseArgs *arg0, u32 arg1, s8 *arg2) {
     s32 var_r7;
     u8 temp_r0;
     u8 temp_r6;
@@ -46,9 +46,9 @@ void ov96_021E811C(void *arg0, u32 arg1, s8 *arg2) {
     u8 var_r2_2;
 
     *arg2 = 0xA;
-    temp_r6 = *(u8 *)((u8 *)arg0 + 0xC);
+    temp_r6 = arg0->filler_A[2];
     var_r7 = 0;
-    if (*(s32 *)((u8 *)arg0 + 4) == 1) {
+    if ((s32)arg0->mode == 1) {
         switch (temp_r6) {
         case 5:
         case 6:

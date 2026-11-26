@@ -30,13 +30,20 @@ import argparse, collections, concurrent.futures as cf, json, os, re, shlex, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIB = '/usr/lib/llvm-18/lib/libclang-18.so.1'
-SEEN = set()           # header declarations this worker already reported
+HMEMO = {}             # this worker's header declarations by (name, file, line): the decl tuple (None: internal linkage)
+SENT = set()           # block hashes this worker already returned to the parent (see scan_file)
 SKIP_ARGS = {'-o', '-MF', '-MQ', '-MT', '-c'}
+
+
+def default_jobs(env=None):
+    """-j default: the slot's CPU share ($NTR_SLOT_JOBS, set for every job on a queue slot) else 8; a 2-core share used to run 8 parsers"""
+    v = (os.environ if env is None else env).get('NTR_SLOT_JOBS', '')
+    return int(v) if v.isdigit() and int(v) > 0 else 8
 
 
 def init_lib():
     import clang.cindex as ci
-    for p in (os.environ.get('LIBCLANG'), LIB, '/usr/lib/x86_64-linux-gnu/libclang-18.so.1'):
+    for p in (os.environ.get('LIBCLANG'), LIB, '/usr/lib/x86_64-linux-gnu/libclang-18.so.1', '/usr/lib/llvm-21/lib/libclang-21.so.1'):
         if p and os.path.exists(p):
             try:
                 ci.Config.set_library_file(p)
@@ -125,7 +132,7 @@ def pch_args(ci, idx, argv):
     return rest + ['-include-pch', pch]
 
 
-def scan_file(job):
+def scan_fresh(job):
     path, cmd, cwd, mapp, root = job
     ci = init_lib()
     CK = ci.CursorKind
@@ -204,12 +211,113 @@ def scan_file(job):
         inmain = f is not None and os.path.abspath(f.name) == mainf
         if c.kind == CK.FUNCTION_DECL and not inmain:
             key = (c.spelling, f.name if f else '', c.location.line)
-            if key not in SEEN:
-                SEEN.add(key)
+            t = HMEMO.get(key, 0)
+            if t == 0:
+                n0 = len(decls)
                 decl(c)
+                HMEMO[key] = decls[-1] if len(decls) > n0 else None
+            elif t is not None:
+                decls.append(t)
         elif inmain:
             walk(c)
     return path, decls, calls, impl, refs
+
+
+_VER = []
+
+
+def cache_version():
+    """What the facts depend on besides the unit: this file's code and the libclang it runs on."""
+    if not _VER:
+        import hashlib
+        h = hashlib.sha1(open(os.path.abspath(__file__), 'rb').read())
+        for p in (os.environ.get('LIBCLANG'), LIB, '/usr/lib/x86_64-linux-gnu/libclang-18.so.1'):
+            if p and os.path.exists(p):
+                st = os.stat(os.path.realpath(p))
+                h.update(('%s %d' % (os.path.basename(os.path.realpath(p)), st.st_size)).encode())
+                break
+        _VER.append(h.hexdigest()[:16])
+    return _VER[0]
+
+
+def group_items(decls, mainrel):
+    """One unit's declarations in order as items: ('m', decl) for the ones of the unit's own file, ('b', hash) for each run of
+    consecutive ones from one header (the run is a block: identical across the units that include that header, so the
+    cache keeps it once) and {hash: [decls]} of the blocks."""
+    import hashlib
+    items, blocks, run = [], {}, []
+
+    def flush():
+        if run:
+            h = hashlib.sha1(json.dumps(run, separators=(',', ':')).encode()).hexdigest()[:20]
+            blocks[h] = list(run)
+            items.append(['b', h])
+            del run[:]
+    for d in decls:
+        if d[6] == mainrel:
+            flush()
+            items.append(['m', d])
+        else:
+            if run and run[-1][6] != d[6]:
+                flush()
+            run.append(d)
+    flush()
+    return items, blocks
+
+
+def scan_file(job):
+    """scan_fresh through the unit cache (tools/hg_unitcache.py): (path, items, calls, impl, refs, new blocks, hit). The parent
+    merges the items in order (merge_items); a block this worker already returned is not sent again."""
+    import hg_unitcache as UC
+    path, cmd, cwd, mapp, root = job
+    mainrel = os.path.relpath(path, root)
+    key = None
+    if UC.cache_dir() is not None:
+        argv = argv_for(cmd, path, mapp) + ['-Wno-everything', '-Werror=implicit-function-declaration']
+        key = UC.unit_key('decl', cache_version(), argv, path, cwd if os.path.isdir(cwd) else root, root)
+    ent = UC.get('decl', key)
+    if ent is not None:
+        fresh, ok = {}, True
+        for it in ent['items']:
+            if it[0] == 'b' and it[1] not in SENT and it[1] not in fresh:
+                b = UC.get('declblk', it[1])
+                if b is None:
+                    ok = False
+                    break
+                fresh[it[1]] = b
+        if ok:
+            SENT.update(fresh)
+            refs = {(r[0], r[1], r[2]): [r[3], r[4]] for r in ent['refs']}
+            return path, ent['items'], [tuple(c) for c in ent['calls']], ent['impl'], refs, fresh, True
+    p, decls, calls, impl, refs = scan_fresh(job)
+    items, blocks = group_items(decls, mainrel)
+    fresh = {h: b for h, b in blocks.items() if h not in SENT}
+    SENT.update(fresh)
+    if key and not any(x.startswith('parse failed') for x in impl):
+        for h, b in blocks.items():
+            if not UC.has('declblk', h):
+                UC.put('declblk', h, b)
+        UC.put('decl', key, {'items': items, 'calls': calls, 'impl': impl,
+                             'refs': [list(k) + v for k, v in refs.items()]})
+    return p, items, calls, impl, refs, fresh, False
+
+
+def merge_items(items, blocks, merged, seen, decls):
+    """Appends one unit's declarations to decls, the first of each (name, file, line) only (scan_file's items, the parent's
+    {hash: decls} of the blocks; merged = block hashes already in)."""
+    for it in items:
+        if it[0] == 'b':
+            if it[1] in merged:
+                continue
+            merged.add(it[1])
+            ds = blocks[it[1]]
+        else:
+            ds = [it[1]]
+        for d in ds:
+            k = (d[0], d[6], d[7])
+            if k not in seen:
+                seen.add(k)
+                decls.append(tuple(d))
 
 
 # ----------------------------------------------------------------------------------------------------------- ranking
@@ -670,7 +778,7 @@ def main():
     ap.add_argument('--from-facts')
     ap.add_argument('--facts')
     ap.add_argument('--min-rank', type=int, default=1)
-    ap.add_argument('-j', type=int, default=8)
+    ap.add_argument('-j', type=int, default=default_jobs(), help='parser processes (default: $NTR_SLOT_JOBS in a queue slot, else 8)')
     ap.add_argument('--out', default='-')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--emit-fixes', metavar='DIR', help='with --from-facts and --cc: write DIR/port.patch (the fixes that verify), DIR/decomp.patch, DIR/rows.txt')
@@ -713,14 +821,12 @@ def main():
             jobs = jobs[:o.limit]
         nfiles = len(jobs)
         print('scanning %d files' % nfiles, file=sys.stderr)
-        seen = set()
+        seen, merged, blocks, hits = set(), set(), {}, 0
         with cf.ProcessPoolExecutor(o.j) as ex:
-            for i, (p, ds, cs, im, rf) in enumerate(ex.map(scan_file, jobs, chunksize=8)):
-                for d in ds:
-                    k = (d[0], d[6], d[7])
-                    if k not in seen:
-                        seen.add(k)
-                        decls.append(tuple(d))
+            for i, (p, items, cs, im, rf, nb, hit) in enumerate(ex.map(scan_file, jobs, chunksize=8)):
+                blocks.update(nb)
+                hits += hit
+                merge_items(items, blocks, merged, seen, decls)
                 calls += [tuple(c) for c in cs]
                 impl += im
                 for k2, v2 in rf.items():
@@ -728,6 +834,9 @@ def main():
                     refs[k2][1] += v2[1]
                 if i % 1000 == 999:
                     print('  %d files' % (i + 1), file=sys.stderr)
+        print('unit cache: %d of %d files from the cache' % (hits, nfiles), file=sys.stderr)
+        import hg_unitcache as UC
+        UC.prune()
         if o.facts:
             with open(o.facts, 'w') as w:
                 w.write(json.dumps(['n', nfiles]) + '\n')

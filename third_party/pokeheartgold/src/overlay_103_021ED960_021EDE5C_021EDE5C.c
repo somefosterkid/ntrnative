@@ -4,7 +4,11 @@
 
 void ov103_021EDA40(void *, s32 arg1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov103_021EDC68(MailBoxWork *, s8, s16, u32);
+#else
 void ov103_021EDC68(MailBoxWork *, u32, u16, u32);
+#endif
 
 void ov103_021EDE5C(MailBoxWork *param_1);
 

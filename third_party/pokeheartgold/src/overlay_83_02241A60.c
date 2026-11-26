@@ -8,7 +8,11 @@ s32 ov83_0223FAA8(void *, s32);
 
 void ov83_0223FD4C(BattleCastleSelfApp *param_1, Window *param_2, Pokemon *param_3);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov83_02247768(u8, u8);
+#else
 u8 ov83_02247768(u8, s32);
+#endif
 
 s32 ov83_022477EC(s32, s32, void *);
 

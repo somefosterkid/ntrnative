@@ -90,7 +90,11 @@ void ov90_02258AA8(UnkStruct_ov114_0225C9A8 *param0, u32 param1);
 void ov90_02258B24(UnkStruct_ov114_0225D678 *param0, int param1);
 void ov90_02258B2C(UnkStruct_ov114_0225E854 *param0, u32 param1, BOOL param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov90_0225B594(UnkStruct_ov114_0225F270 *param0, s8 param1);
+#else
 void ov90_0225B594(UnkStruct_ov114_0225F270 *param0, BOOL param1);
+#endif
 int sub_020390C4(void);
 u8 sub_02039264(void);
 int sub_02037454(void);

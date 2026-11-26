@@ -11,6 +11,7 @@
 #include "list_menu.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
 struct OverlayManager;
 
@@ -84,7 +85,7 @@ struct MessageFormat;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct TradeAnimationTemplate;
 
@@ -124,31 +125,10 @@ typedef u16 charcode_t;
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
 
-typedef struct SysTaskManager SysTaskManager;
-
-
 enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
-
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
-
-
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
 
 
 void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dPaletteData **outPaletteData, enum HeapID heapID);

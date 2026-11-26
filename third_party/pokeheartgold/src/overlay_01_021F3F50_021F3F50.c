@@ -15,6 +15,8 @@
 #include "map_header.h"
 #include "map_matrix.h"
 #include "options.h"
+#include "overlay_01_save_info.h"
+#include "player_data.h"
 #include "overlay_manager.h"
 #include "pm_string.h"
 #include "pokemon_types_def.h"
@@ -1543,17 +1545,9 @@ typedef struct FieldWildBattleMetadata {
     u16 encounterAttempts;
     u16 wildMonDefeated;
 } FieldWildBattleMetadata;
-typedef struct SaveInfo {
-    int pokedexCount;
-    int mapLabelTextID;
-    TrainerInfo *trainerInfo;
-    PlayTime *playTime;
-} SaveInfo;
 typedef struct FieldOverworldState FieldOverworldState;
 Location *LocalFieldData_GetCurrentPosition(FieldOverworldState *fieldState);
 FieldOverworldState *Save_LocalFieldData_Get(SaveData *saveData);
-TrainerInfo *Save_PlayerData_GetProfile(SaveData *saveData);
-PlayTime *Save_PlayerData_GetIGTAddr(SaveData *saveData);
 
 void ov01_021F3F50(SaveInfo *saveInfo, const FieldSystem *fieldSystem);
 

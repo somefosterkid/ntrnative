@@ -375,7 +375,7 @@ s32 WirelessTradeSelectMon_Init(OverlayManager *man, s32 *state) {
     ov65_0221F8D0(temp_r0->bgConfig, &temp_r0->windows[0], temp_r0->args->options);
     temp_r0_2 = temp_r0->args->fieldSystem;
     temp_r0->fieldSystem = temp_r0_2;
-    sub_0208F7E0(temp_r0_2, (s32)temp_r0);
+    sub_0208F7E0(temp_r0_2, temp_r0);
     ov65_0221FB90(&temp_r0->windows[0x17], 0x14, 1, temp_r0->msgLoader, temp_r0->strTemplate);
     sub_0208F658(temp_r0->fieldSystem);
     ToggleBgLayer(0U, 1U);

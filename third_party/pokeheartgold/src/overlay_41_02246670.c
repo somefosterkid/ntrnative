@@ -37,10 +37,10 @@ void ov41_02246698(UnkStruct_ov22_0225A0E4 *arg0) {
     ov41_02246B34(arg0);
 }
 
-void ov41_022466B8(void *arg0);
+void ov41_022466B8(UnkStruct_ov22_0225A0E4 *arg0);
 
-void ov41_022466B8(void *arg0) {
-    DoScheduledBgGpuUpdates(*(BgConfig **)((u8 *)arg0 + 0x40));
+void ov41_022466B8(UnkStruct_ov22_0225A0E4 *arg0) {
+    DoScheduledBgGpuUpdates(arg0->unk_40);
     OamManager_ApplyAndResetBuffers();
 }
 

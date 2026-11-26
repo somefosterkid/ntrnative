@@ -26,15 +26,19 @@ void ov74_022369C8(DWCAllocType param0, void *param1, u32 param2);
 void *ov74_022369A8(DWCAllocType param0, u32 param1, int param2) {
 #pragma unused(param0, param2)
     void *v0;
-    u32 *v1;
+    void **v1;
 
     param1 = (((param1 + sizeof(void *)) + 32) & ~31) + 32;
 
     v0 = Heap_Alloc((enum HeapID)84, param1);
-    v1 = (u32 *)(((u32)v0 + 32) & ~31);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    v1 = (void **)((u8 *)v0 + 32 - ((uintptr_t)v0 & 0x1F));
+#else
+    v1 = (void **)(((u32)v0 + 32) & ~31);
+#endif
 
     v1--;
-    *v1 = (u32)v0;
+    *v1 = v0;
     v1++;
 
     return v1;
@@ -42,12 +46,12 @@ void *ov74_022369A8(DWCAllocType param0, u32 param1, int param2) {
 
 void ov74_022369C8(DWCAllocType param0, void *param1, u32 param2) {
 
-    u32 *v0;
+    void **v0;
 
     if (!param1) {
         return;
     }
 
-    v0 = (u32 *)((u8 *)param1 - 4);
-    Heap_Free((void *)*v0);
+    v0 = (void **)param1 - 1;
+    Heap_Free(*v0);
 }

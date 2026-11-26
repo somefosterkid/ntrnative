@@ -9,9 +9,9 @@ void ov96_021EB5BC(void *param_1);
 
 void ov96_021F87D0(void *param_1);
 
-u32 ov96_021F7C4C(PokeathlonCourseData *param_1);
+BOOL ov96_021F7C4C(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_021F7C4C(PokeathlonCourseData *param_1) {
+BOOL ov96_021F7C4C(PokeathlonCourseData *param_1, int unused) {
     UnkStruct_ov96_021F7934 *pvVar1;
 
     pvVar1 = PokeathlonCourse_GetHeapAllocPtr4(param_1);

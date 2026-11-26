@@ -48,7 +48,7 @@ void ov49_0225DC2C(UnkStruct_ov70_02261BB4 *param0, NARC *param1, NNSFndAllocato
 
         for (v1 = 0; v1 < 3; v1++) {
             if (param3->unk_48[v0][v1] != param3->unk_00[v0]) {
-                param0->unk_120[v0][v1] = GfGfxLoader_LoadFromOpenNarc((struct NARC *)((enum HeapID)(param1)), param3->unk_48[v0][v1], 0, (enum HeapID)(heapID), 0);
+                param0->unk_120[v0][v1] = GfGfxLoader_LoadFromOpenNarc(param1, param3->unk_48[v0][v1], 0, (enum HeapID)(heapID), 0);
             } else {
                 param0->unk_120[v0][v1] = 0L;
             }

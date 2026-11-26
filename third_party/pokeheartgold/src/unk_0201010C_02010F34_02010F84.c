@@ -1,4 +1,5 @@
 #include "global.h"
+#include "screen_fade_internal.h"
 
 void sub_02013220(u32, u32, u32, u32);
 

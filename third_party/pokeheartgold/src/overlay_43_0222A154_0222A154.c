@@ -3,6 +3,7 @@
 #include "constants/heap.h"
 
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "system.h"
 
 void ov43_0222A148(void *param0);
@@ -10,7 +11,6 @@ void ov43_0222D584(PalPadDetails *param0, PalPadShared *param1, PalPadGfx *param
 void ov43_0222A48C(PalPadGfx *gfx, PalPadShared *shared, enum HeapID heapID);
 void ov43_0222A154(PalPadWork *work, enum HeapID heapID);
 void ov43_0222B0A0(PalPadMenu *menu, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID);
-void ov43_0222B944(PalPadRoster *roster, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID);
 void ov43_0222CD3C(PalPadNaming *naming, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID);
 void ov43_0222CE48(PalPadFriendCode *friendCode, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID);
 

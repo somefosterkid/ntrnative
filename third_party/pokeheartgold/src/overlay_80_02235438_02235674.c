@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -874,7 +876,6 @@ u16 *FrontierScript_ReadVarPtr(FrontierScriptContext *ctx);
 void *Frontier_GetData(BattleFrontier *frontier);
 void ov80_02236ABC(BattleTower *battleTower, BOOL isRetiring);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 u16 sub_0203769C(void);
 BOOL sub_02037C0C(int param0, const void *param1);
 void FrontierScriptContext_Pause(FrontierScriptContext *ctx, FrontierShouldResumeScriptFunc shouldResume);

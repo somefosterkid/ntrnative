@@ -102,15 +102,15 @@ s32 ov96_021E6108(void *arg0) {
     }
 }
 
-s32 ov96_021E6138(void *arg0);
+s32 ov96_021E6138(PokeathlonMonPerf *arg0);
 
-s32 ov96_021E6138(void *arg0) {
+s32 ov96_021E6138(PokeathlonMonPerf *arg0) {
     u8 v0;
 
     if (arg0 == NULL) {
         return 0;
     }
-    v0 = *(u8 *)((u8 *)arg0 + 6);
+    v0 = arg0->unk_6;
     switch (v0) {
     case 1:
         return 1;

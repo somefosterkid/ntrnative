@@ -75,7 +75,7 @@ void ov99_021E5FE8(u32 *param_1, s32 param_2);
 
 void ov99_021E6050(s32 *arg0, s32 arg1);
 
-void ov99_021E6530(u32 *param_1, u32 param_2);
+void ov99_021E6530(PokeathlonCourseRecord *param_1, u32 param_2);
 
 void ov99_021E5D2C(void *param_1);
 
@@ -88,7 +88,7 @@ BOOL PokeathlonCourseRecord_Main(OverlayManager *man, int *state) {
     if (work->selection.pageChanged == TRUE) {
         ov99_021E5FE8((u32 *)(work), work->selection.page);
         ov99_021E6050((s32 *)(work), work->selection.page);
-        ov99_021E6530((u32 *)(work), work->selection.page);
+        ov99_021E6530(work, work->selection.page);
         work->selection.pageChanged = FALSE;
         work->selection.scrolling = TRUE;
     }

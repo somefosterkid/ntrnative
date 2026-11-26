@@ -1,4 +1,7 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "constants/heap.h"
@@ -15,7 +18,6 @@ struct BgConfig;
 
 struct FieldFrontierDTO;
 
-struct FrontierAnimCmd;
 
 struct FrontierMenuManager;
 
@@ -216,11 +218,9 @@ typedef struct BagCursor BagCursor;
 
 typedef struct JournalEntry JournalEntry;
 
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 
 typedef void (*BattleFrontierSubAppCallback)(void *);
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(void *a0);
 
 void Frontier_LaunchApplication(BattleFrontier *frontier, const OverlayManagerTemplate *appTemplate, void *appArgs, BOOL freeArgsAfter, BattleFrontierSubAppCallback finishCallback);
 

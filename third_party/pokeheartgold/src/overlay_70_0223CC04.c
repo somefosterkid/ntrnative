@@ -10,7 +10,7 @@ s32 ov70_022450B8(void *, String *, s32, s32, s32, s32);
 
 void ov70_0223CC04(BgConfig *arg0, void *arg1, MsgData *arg2, s32 arg3);
 
-s32 ov70_0223CC68(void *arg0, void *arg1, s32 arg2, s32 arg3);
+s32 ov70_0223CC68(GTSPokemonRequirements *arg0, GTSPokemonRequirements *arg1, s32 arg2, s32 arg3);
 void ov70_0223CCA4(GTSApplicationState *arg0);
 void ov70_0223CD28(s32 arg0);
 s32 ov70_0223CE44(BgConfig *);
@@ -42,8 +42,8 @@ void ov70_0223CC04(BgConfig *bgConfig, void *arg1, MsgData *msgData, s32 arg3) {
     String_Delete(string);
 }
 
-s32 ov70_0223CC68(void *arg0, void *arg1, s32 arg2, s32 arg3) {
-    if ((*(s16 *)arg0 == *(s16 *)arg1) && (*(s8 *)((u8 *)arg0 + 2) == *(s8 *)((u8 *)arg1 + 2)) && (*(s8 *)((u8 *)arg0 + 3) == *(s8 *)((u8 *)arg1 + 3)) && (*(s8 *)((u8 *)arg0 + 4) == *(s8 *)((u8 *)arg1 + 4)) && (arg2 == arg3)) {
+s32 ov70_0223CC68(GTSPokemonRequirements *arg0, GTSPokemonRequirements *arg1, s32 arg2, s32 arg3) {
+    if ((arg0->species == arg1->species) && (arg0->gender == arg1->gender) && (arg0->level == arg1->level) && (arg0->level2 == arg1->level2) && (arg2 == arg3)) {
         return 1;
     }
     return 0;

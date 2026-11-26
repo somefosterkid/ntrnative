@@ -5,7 +5,11 @@
 #include "error_handling.h"
 #include "overlay_96_unk_struct_ov96_021_f7684.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021F7740_021F77EC.c (tools/pokehg_abi.py)
+void ov96_021F77EC(s32, UnkStruct_ov96_021F7684 *, s32);
+#else
 s32 ov96_021F77EC(s32, UnkStruct_ov96_021F7684 *, u8);
+#endif
 
 s32 ov96_021F7740(s32 arg0, UnkStruct_ov96_021F7684 *data);
 

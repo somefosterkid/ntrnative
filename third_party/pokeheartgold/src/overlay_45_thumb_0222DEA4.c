@@ -27,8 +27,8 @@ typedef struct {
 
 void ov45_0222DEA4(UnkStruct_ov66_02231D38 *param0, enum WiFiPlazaPlayerEvent param1);
 
-s32 ov45_0222DEE0();
-s32 ov45_0222DECC(void);
+u32 ov45_0222DEE0(const UnkStruct_ov66_02231D38 *param0, u32 param1);
+s32 ov45_0222DECC(const UnkStruct_ov66_02231D38 *param0, u32 param1);
 
 void ov45_0222DEA4(UnkStruct_ov66_02231D38 *param0, enum WiFiPlazaPlayerEvent param1) {
     GF_ASSERT(param1 <= UnkEnum_ov66_02231E54_02);
@@ -42,8 +42,8 @@ void ov45_0222DEB8(UnkStruct_ov66_02231D38 *param0, u32 param1) {
     param0->unk_52 = param1;
 }
 
-s32 ov45_0222DECC(void) {
-    if (ov45_0222DEE0() != 2) {
+s32 ov45_0222DECC(const UnkStruct_ov66_02231D38 *param0, u32 param1) {
+    if (ov45_0222DEE0(param0, param1) != 2) {
         return 1;
     }
     return 0;

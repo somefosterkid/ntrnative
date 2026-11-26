@@ -4,10 +4,6 @@
 #include "screen_fade.h"
 #include "overlay_112_pokewalker_app.h"
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, u32, u32);
-
-u32 ov112_021F0114(Ov112PokewalkerApp *param_1);
-
 s32 ov112_021F015C(void);
 s32 ov112_021F0180(void);
 s32 ov112_021F0194(void);

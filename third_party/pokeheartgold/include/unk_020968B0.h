@@ -5,6 +5,6 @@
 
 #include "field_system.h"
 
-FrontierLaunchArgs *sub_020968B0(FieldSystem *fieldSystem, void *param1);
+FieldFrontierDTO *sub_020968B0(FieldSystem *fieldSystem, void *param1);
 
 #endif // POKEHEARTGOLD_UNK_020968B0_H

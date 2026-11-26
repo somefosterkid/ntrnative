@@ -49,11 +49,11 @@ void ov41_0224B084(SpriteResource **param0, SpriteResourceCollection **param1);
 
 void ov41_0224B21C(UnkStruct_ov22_0225AB54 *param0, SpriteResourceCollection **param1);
 
-s32 ov41_0224B270(u8 *);
+void ov41_0224B270(UnkStruct_ov22_0225AB54 *);
 s32 ov41_0224B298(void *);
-s32 ov41_0224B310();
-s32 ov41_0224B450(u8 *);
-void ov41_0224B250(u8 *arg0);
+s32 ov41_0224B310(void *arg0);
+s32 ov41_0224B450(void *);
+void ov41_0224B250(UnkStruct_ov22_0225AB54 *arg0);
 
 void ov41_0224B21C(UnkStruct_ov22_0225AB54 *param0, SpriteResourceCollection **param1) {
     if (param0->unk_24) {
@@ -70,9 +70,9 @@ void ov41_0224B21C(UnkStruct_ov22_0225AB54 *param0, SpriteResourceCollection **p
     memset(param0, 0, sizeof(UnkStruct_ov22_0225AB54));
 }
 
-void ov41_0224B250(u8 *arg0) {
-    ov41_0224B310();
+void ov41_0224B250(UnkStruct_ov22_0225AB54 *arg0) {
+    ov41_0224B310(arg0);
     ov41_0224B270(arg0);
     ov41_0224B298(arg0);
-    ov41_0224B450(arg0 + 0x30);
+    ov41_0224B450(&arg0->unk_30);
 }

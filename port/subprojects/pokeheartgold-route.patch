@@ -440,3 +440,15 @@ index f0a9727..0ba3d8d 100644
 +    BattleController_EmitUpdateHPGauge(battleSystem, ctx, battlerId);
  
      return FALSE;
+--- a/src/unk_020755E8_02075D4C_02075E14.c
++++ b/src/unk_020755E8_02075D4C_02075E14.c
+@@ -1025,5 +1025,9 @@
+ void sub_02075630(EvolutionData *);
+ 
++void PortRoute4_EvoMenu(int noQuestion); // the port's route pilot (port/game/route_gen4.c)
++
+ void sub_02075E14(EvolutionData *evolutionData) {
++    PortRoute4_EvoMenu(evolutionData->state >= EVOLUTION_STATE_PRINT_SHOULD_A_MOVE_BE_DELETED
++                       && evolutionData->state <= EVOLUTION_STATE_PROCESS_INPUT_SHOULD_A_MOVE_BE_DELETED);
+     if (evolutionData->shrinkAndGrowState) {
+         if ((evolutionData->shrinkAndGrowState & 1) == 0) {

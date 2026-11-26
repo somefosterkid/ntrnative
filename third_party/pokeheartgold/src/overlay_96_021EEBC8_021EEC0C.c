@@ -7,7 +7,7 @@
 
 s32 ov96_021EED64(Sprite *, void *, s32);
 
-s32 ov96_021EED70(ManagedSprite *, u16, u16, s32, void *, enum HeapID);
+s32 ov96_021EED70(ManagedSprite *, int, s32, s32, void *, enum HeapID);
 
 extern UnkStruct_02014E30 ov96_0221B1AC;
 

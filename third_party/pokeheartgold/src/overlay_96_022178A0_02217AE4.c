@@ -12,7 +12,7 @@ s32 ov96_021E6108(void *arg0);
 
 u32 _s32_div_f(s32, u32);
 
-u32 ov96_021E60C0(PokeathlonCourseData *data, u32 a, u32 b);
+PokeathlonMonPerf *ov96_021E60C0(PokeathlonCourseData *data, u32 a, u32 b);
 
 void ov96_021E6168(PokeathlonCourseData *data, u32 index, u32 a, void *out);
 

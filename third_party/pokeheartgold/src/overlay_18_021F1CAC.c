@@ -4,7 +4,11 @@
 
 #include "sprite_system.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov18_021F1BC8(PokedexAppData *pokedexApp, u16 species, int a2, int a3);
+#else
 void ov18_021F1BC8(PokedexAppData *pokedexApp, int species, int a2, int a3);
+#endif
 
 enum NarcId ov18_021E5900(void);
 s32 ov18_021E5908(void);

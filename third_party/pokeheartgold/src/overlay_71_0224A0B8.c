@@ -11,7 +11,7 @@ typedef struct UnkStruct_ov71_0224A0F0_Heap_Alloc {
     u8 unk_8[0x4];
     s32 unk_C;
     u8 unk_10[0x14];
-    s32 unk_24;
+    struct BgConfig *unk_24;
     s32 unk_28;
     u8 unk_2C[0x8];
     u8 unk_34;
@@ -37,7 +37,7 @@ void ov71_0224A0B8(BgConfig *bgConfig, int bg1Scroll, int bg2Scroll) {
     BgSetPosTextAndCommit(bgConfig, GF_BG_LYR_SUB_1, BG_POS_OP_SET_Y, bg1Scroll + 192);
 }
 
-s32 ov71_02247384(void *);
+struct BgConfig *ov71_02247384(void *);
 
 s32 ov71_0224A5A8(void *);
 

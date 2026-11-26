@@ -7,10 +7,6 @@
 
 void *ov86_021E73EC(s32, u32 *);
 
-void ov86_021E7418(FrontierRecordsApp *arg0);
-
-void ov86_021E74D0(FrontierRecordsApp *arg0);
-
 #if defined(SDK_PORT) || defined(NONMATCHING)
 void ov86_021E7418(FrontierRecordsApp *arg0) {
     u32 out;

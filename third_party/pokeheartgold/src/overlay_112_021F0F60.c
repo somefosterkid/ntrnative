@@ -1,13 +1,14 @@
 #include "global.h"
+#include "overlay_112_sprite_app.h"
 
-u8 ov112_021F0F60(void *arg0);
+u8 ov112_021F0F60(Ov112Record *arg0);
 
 s32 ov112_021F0F70(u32 **arg0, u32 **arg1);
 
-u8 ov112_021F0F60(void *arg0) {
+u8 ov112_021F0F60(Ov112Record *arg0) {
     u16 v0;
 
-    v0 = *(u8 *)((u8 *)arg0 + 0x76);
+    v0 = arg0->page;
     if ((u32)v0 >= 8U) {
         v0 = 0;
     }

@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "ptr_align.h"
 #include "sprite_resources_header.h"
 #include "overlay_70_gtsapplication_state.h"
 #include "message_format.h"
@@ -15,6 +17,7 @@
 #include "overlay_73_wifi_battle_tower_app_state.h"
 #include "sound.h"
 #include "filesystem_files_def.h"
+#include "gts_player_data.h"
 
 struct AffineSpriteListTemplate;
 
@@ -49,8 +52,6 @@ void Heap_Free(void *ptr);
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
 typedef struct AffineSpriteListTemplate AffineSpriteListTemplate;
-
-typedef struct GTSPlayerData GTSPlayerData;
 
 void SetBothScreensModesAndDisable(const GraphicsModes *graphicsModes);
 
@@ -293,7 +294,7 @@ BOOL ov70_02238430(OverlayManager *appMan, int *loopState) {
         Sound_SetSceneAndPlayBGM((enum SoundScene)11, 0x47D, 1);
 
         appState->dwcHeapPointer = Heap_Alloc(HEAP_ID_61, 0x20000 + 32);
-        appState->dwcHeapHandle = NNS_FndCreateExpHeapEx((void *)(((u32)appState->dwcHeapPointer + 31) / 32 * 32), 0x20000, 0);
+        appState->dwcHeapHandle = NNS_FndCreateExpHeapEx(PTR_ALIGN_UP(appState->dwcHeapPointer, 32), 0x20000, 0);
         *loopState = GTS_LOOP_STATE_INIT;
         break;
     case GTS_LOOP_STATE_INIT:

@@ -3,9 +3,7 @@
 #include "comm_cmd_manager.h"
 #include "constants/heap.h"
 
-struct CommCmdTable;
 
-typedef struct CommCmdTable CommCmdTable;
 
 void *Heap_Alloc(u32 heapID, u32 size);
 

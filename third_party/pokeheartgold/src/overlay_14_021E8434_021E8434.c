@@ -6,7 +6,6 @@
 
 void ov14_021E8434(UnkStruct_0201956C *param_1);
 
-void sub_02019B1C(UnkStruct_0201956C *, u32, s8 *, s8 *);
 
 void ov14_021E8434(UnkStruct_0201956C *param_1) {
     u32 uVar1;

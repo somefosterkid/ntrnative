@@ -7,6 +7,7 @@
 #include "touchscreen.h"
 #include "unk_02005D10.h"
 #include "unk_02026E30.h"
+#include "overlay_41_unk_struct_ov22_0225_b85_c.h"
 
 void ov41_022466C8(void *);
 
@@ -17,15 +18,15 @@ extern u8 gSystem;
 BOOL AccessoryPortrait_Main(OverlayManager *man, s32 *state);
 
 BOOL AccessoryPortrait_Main(OverlayManager *man, s32 *state) {
-    void *pvVar1;
+    UnkStruct_ov22_0225B85C *pvVar1;
     BOOL BVar2;
 
     pvVar1 = OverlayManager_GetData(man);
     Thunk_G3X_Reset();
     NNS_G2dSetupSoftwareSpriteCamera();
-    ov41_0224B554(*(void **)((u8 *)pvVar1 + 0x10));
+    ov41_0224B554(pvVar1->unk_10);
     RequestSwap3DBuffers(GX_SORTMODE_AUTO, GX_BUFFERMODE_Z);
-    ov41_022466C8((u8 *)pvVar1 + 0x14);
+    ov41_022466C8(&pvVar1->unk_14);
     switch (*state) {
     case 0:
         *state = *state + 1;

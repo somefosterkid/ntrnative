@@ -15,19 +15,8 @@ earlier patches applied, `python3 tools/pokehg_cc.py`, then `python3 tools/pokeh
   pokeplatinum-widepointers2.patch.
 - Not done: casts inside macros (poke_overlay.c's HW_DTCM bounds, trainer_ai.c's OFFSET_OF: an offset, harmless).
 
-diff --git a/include/pokeathlon/pokeathlon.h b/include/pokeathlon/pokeathlon.h
-index 2ec99f1175..9f5c34aa2f 100644
---- a/include/pokeathlon/pokeathlon.h
-+++ b/include/pokeathlon/pokeathlon.h
-@@ -262,5 +262,5 @@ void ov96_021E67AC(PokeathlonCourseData *data);
- void ov96_021E75BC(void *);
- void ov96_021E7F98(s32 frameCount, u32 maxValue, Pokeathlon_UnkSubStruct_B00 *result);
--void *ov96_021E8770(int a0, int a1, PokeathlonCourseData *data, int a3, enum HeapID heapId);
-+void *ov96_021E8770(intptr_t a0, int a1, PokeathlonCourseData *data, int a3, enum HeapID heapId);
- BOOL ov96_021E87B4(int a0, void *a1, void *a2, intptr_t a3);
- void ov96_021E8810(void *ptr);
 diff --git a/include/unk_0200FA24.h b/include/unk_0200FA24.h
-index 22ea1c2a47..99b37c2d97 100644
+index 22ea1c2a47d..99b37c2d976 100644
 --- a/include/unk_0200FA24.h
 +++ b/include/unk_0200FA24.h
 @@ -11,5 +11,5 @@ void sub_0200FC20(u16 arg0);
@@ -38,7 +27,7 @@ index 22ea1c2a47..99b37c2d97 100644
  void sub_0200FFB4(s32 arg0, s32 arg1, enum HeapID arg2);
  
 diff --git a/port/nonmatching/ov01_021F7504.c b/port/nonmatching/ov01_021F7504.c
-index d9270d4942..6f2731a71c 100644
+index d9270d49422..6f2731a71cc 100644
 --- a/port/nonmatching/ov01_021F7504.c
 +++ b/port/nonmatching/ov01_021F7504.c
 @@ -45,5 +45,5 @@ void ov01_021F7504(LocalMapObject *param_1) {
@@ -63,7 +52,7 @@ index d9270d4942..6f2731a71c 100644
        VecFx32 afStack_38 = {0, 0, 0};
        MapObject_CopyFacingVector(param_1,&VStack_2c);
 diff --git a/port/nonmatching/ov01_02205B14.c b/port/nonmatching/ov01_02205B14.c
-index 3b390087ec..ffb0d5aa5c 100644
+index 3b390087ecb..ffb0d5aa5c9 100644
 --- a/port/nonmatching/ov01_02205B14.c
 +++ b/port/nonmatching/ov01_02205B14.c
 @@ -61,5 +61,5 @@ u32 ov01_02205B14(TaskManager *param_1) {
@@ -74,7 +63,7 @@ index 3b390087ec..ffb0d5aa5c 100644
        *ptr = (s8)uVar6;
      }
 diff --git a/port/nonmatching/ov112_021E6164.c b/port/nonmatching/ov112_021E6164.c
-index deda2f6779..c152d7f70f 100644
+index deda2f6779a..c152d7f70ff 100644
 --- a/port/nonmatching/ov112_021E6164.c
 +++ b/port/nonmatching/ov112_021E6164.c
 @@ -33,13 +33,13 @@ static inline void ov112_SendBlock(void) {
@@ -116,7 +105,7 @@ index deda2f6779..c152d7f70f 100644
              ov112_021E5EEC();
              return;
 diff --git a/port/nonmatching/ov112_021E8CB8.c b/port/nonmatching/ov112_021E8CB8.c
-index f529d446cd..695b68b93f 100644
+index f529d446cdb..695b68b93ff 100644
 --- a/port/nonmatching/ov112_021E8CB8.c
 +++ b/port/nonmatching/ov112_021E8CB8.c
 @@ -87,5 +87,5 @@ void ov112_021E8CB8(u8 *out, u8 *data) {
@@ -134,7 +123,7 @@ index f529d446cd..695b68b93f 100644
      }
      MI_CpuCopy8(file, out + 0x43E, 0x600);
 diff --git a/port/nonmatching/ov112_021F0F90.c b/port/nonmatching/ov112_021F0F90.c
-index 63b327ae1a..b02fe27ee9 100644
+index 63b327ae1ab..b02fe27ee94 100644
 --- a/port/nonmatching/ov112_021F0F90.c
 +++ b/port/nonmatching/ov112_021F0F90.c
 @@ -35,5 +35,5 @@ void ov112_021F0F90(u8 *work)
@@ -159,7 +148,7 @@ index 63b327ae1a..b02fe27ee9 100644
        count++;
      }
 diff --git a/port/nonmatching/ov74_0222AB0C.c b/port/nonmatching/ov74_0222AB0C.c
-index 622997ccd0..14d0998c5c 100644
+index 622997ccd04..14d0998c5c8 100644
 --- a/port/nonmatching/ov74_0222AB0C.c
 +++ b/port/nonmatching/ov74_0222AB0C.c
 @@ -1648,5 +1648,5 @@ void ov74_0222AB0C(ApplicationManager *appMan, enum WonderCardsAppState *state,
@@ -170,7 +159,7 @@ index 622997ccd0..14d0998c5c 100644
  
    switch (input) {
 diff --git a/port/nonmatching/ov96_021E8484.c b/port/nonmatching/ov96_021E8484.c
-index d685df930e..5afeadf208 100644
+index d685df930e6..5afeadf2085 100644
 --- a/port/nonmatching/ov96_021E8484.c
 +++ b/port/nonmatching/ov96_021E8484.c
 @@ -51,5 +51,5 @@ void ov96_021E8484(PokeathlonCourseData *param_1, s32 param_2) {
@@ -181,7 +170,7 @@ index d685df930e..5afeadf208 100644
      perfNarc = NARC_New(NARC_poketool_personal_performance, PokeathlonCourse_GetHeapID(param_1));
      teamNarc = NARC_New(NARC_a_2_5_8, PokeathlonCourse_GetHeapID(param_1));
 diff --git a/port/nonmatching/ov96_021EBB64.c b/port/nonmatching/ov96_021EBB64.c
-index 2186509389..bcb982656f 100644
+index 2186509389b..bcb982656f0 100644
 --- a/port/nonmatching/ov96_021EBB64.c
 +++ b/port/nonmatching/ov96_021EBB64.c
 @@ -140,6 +140,6 @@ s32 ov96_021EBB64(PokeathlonCourseData *arg0)
@@ -194,7 +183,7 @@ index 2186509389..bcb982656f 100644
    s32 var_r7;
    s8 *temp_r0;
 diff --git a/port/nonmatching/ov96_021EF2C0.c b/port/nonmatching/ov96_021EF2C0.c
-index be6b49eb8e..590773db1c 100644
+index be6b49eb8e2..590773db1cd 100644
 --- a/port/nonmatching/ov96_021EF2C0.c
 +++ b/port/nonmatching/ov96_021EF2C0.c
 @@ -22,5 +22,5 @@ void ov96_021EF2C0(PokeathlonCourseData *arg0)
@@ -205,7 +194,7 @@ index be6b49eb8e..590773db1c 100644
    Main_SetVBlankIntrCB(0L, 0L);
    Main_SetHBlankIntrCB(0L, 0L);
 diff --git a/port/nonmatching/ov96_021F010C.c b/port/nonmatching/ov96_021F010C.c
-index e75ddb5e9e..5fe36aad92 100644
+index e75ddb5e9eb..5fe36aad927 100644
 --- a/port/nonmatching/ov96_021F010C.c
 +++ b/port/nonmatching/ov96_021F010C.c
 @@ -397,11 +397,11 @@ u32 ov96_021F010C(PokeathlonCourseData *param_1) {
@@ -236,7 +225,7 @@ index e75ddb5e9e..5fe36aad92 100644
        ov96_021F0D60(puVar5);
        ov96_021F424C((void *)puVar5[0x1dd]);
 diff --git a/port/nonmatching/ov96_021F5018.c b/port/nonmatching/ov96_021F5018.c
-index ec3dec2283..9d9e2eba35 100644
+index ec3dec22831..9d9e2eba354 100644
 --- a/port/nonmatching/ov96_021F5018.c
 +++ b/port/nonmatching/ov96_021F5018.c
 @@ -110,5 +110,5 @@ u32 ov96_021F5018(PokeathlonCourseData *param_1) {
@@ -254,7 +243,7 @@ index ec3dec2283..9d9e2eba35 100644
      PokeathlonCourse_IncrementField1ED(param_1);
      break;
 diff --git a/port/nonmatching/ov96_021F61C8.c b/port/nonmatching/ov96_021F61C8.c
-index e63611a980..e482c0e500 100644
+index e63611a9808..e482c0e5002 100644
 --- a/port/nonmatching/ov96_021F61C8.c
 +++ b/port/nonmatching/ov96_021F61C8.c
 @@ -13,5 +13,5 @@ extern s32 ov96_0221DC10[2];
@@ -265,7 +254,7 @@ index e63611a980..e482c0e500 100644
  {
    OV96_Vec3 vec;
 diff --git a/port/nonmatching/ov96_021FC768.c b/port/nonmatching/ov96_021FC768.c
-index d98b14c041..554ef6df0c 100644
+index d98b14c041f..554ef6df0ca 100644
 --- a/port/nonmatching/ov96_021FC768.c
 +++ b/port/nonmatching/ov96_021FC768.c
 @@ -158,6 +158,6 @@ u32 ov96_021FC768(PokeathlonCourseData *param_1) {
@@ -278,7 +267,7 @@ index d98b14c041..554ef6df0c 100644
      ov96_021E6670(param_1, 8);
      tmp4[0] = 0x97;
 diff --git a/port/nonmatching/ov96_021FDE7C.c b/port/nonmatching/ov96_021FDE7C.c
-index 4daafc4935..0bf21d741c 100644
+index 4daafc49350..0bf21d741c7 100644
 --- a/port/nonmatching/ov96_021FDE7C.c
 +++ b/port/nonmatching/ov96_021FDE7C.c
 @@ -102,5 +102,5 @@ void ov96_021FDE7C(PokeathlonCourseData *param_1) {
@@ -296,7 +285,7 @@ index 4daafc4935..0bf21d741c 100644
          if (heap->f63c == 0 && sVar3 != 0) {
              heap->f63c = 1;
 diff --git a/port/nonmatching/ov96_02202958.c b/port/nonmatching/ov96_02202958.c
-index c7a0564260..b5cb05c574 100644
+index c7a05642608..b5cb05c5746 100644
 --- a/port/nonmatching/ov96_02202958.c
 +++ b/port/nonmatching/ov96_02202958.c
 @@ -83,5 +83,5 @@ void ov96_02202958(PokeathlonCourseData *param_1) {
@@ -540,7 +529,7 @@ index c7a0564260..b5cb05c574 100644
      puStack_124 = puStack_124 + 2;
    } while (iVar15 < 0xc);
 diff --git a/port/nonmatching/ov96_022047EC.c b/port/nonmatching/ov96_022047EC.c
-index 416783d9a0..7bd9ff0947 100644
+index 416783d9a02..7bd9ff09477 100644
 --- a/port/nonmatching/ov96_022047EC.c
 +++ b/port/nonmatching/ov96_022047EC.c
 @@ -149,6 +149,6 @@ u32 ov96_022047EC(PokeathlonCourseData *course) {
@@ -553,7 +542,7 @@ index 416783d9a0..7bd9ff0947 100644
          ov96_021E6670(course, 8);
          oamArgs[0] = 0xca;
 diff --git a/port/nonmatching/ov96_0220DC7C.c b/port/nonmatching/ov96_0220DC7C.c
-index 6ca878e046..a2a0df1044 100644
+index 6ca878e0463..a2a0df10448 100644
 --- a/port/nonmatching/ov96_0220DC7C.c
 +++ b/port/nonmatching/ov96_0220DC7C.c
 @@ -37,5 +37,5 @@ typedef struct { /* invented */
@@ -564,7 +553,7 @@ index 6ca878e046..a2a0df1044 100644
    u8 uVar2;
    void *pvVar3;
 diff --git a/port/nonmatching/ov96_022127F4.c b/port/nonmatching/ov96_022127F4.c
-index 2b81372711..3a73201cc9 100644
+index 2b813727117..3a73201cc90 100644
 --- a/port/nonmatching/ov96_022127F4.c
 +++ b/port/nonmatching/ov96_022127F4.c
 @@ -111,5 +111,5 @@ void ov96_022127F4(PokeathlonCourseData *param_1) {
@@ -575,7 +564,7 @@ index 2b81372711..3a73201cc9 100644
            *(u8 *)(elem + 0x3b) = uVar12;
          }
 diff --git a/port/nonmatching/ov96_02216C38.c b/port/nonmatching/ov96_02216C38.c
-index 383639920d..dc50a48453 100644
+index 383639920df..dc50a484532 100644
 --- a/port/nonmatching/ov96_02216C38.c
 +++ b/port/nonmatching/ov96_02216C38.c
 @@ -91,5 +91,5 @@ void ov96_02216C38(u32 *param_1, u8 *param_2, PokeathlonCourseData *param_3, u32
@@ -593,7 +582,7 @@ index 383639920d..dc50a48453 100644
          if (0x9f < (s32)uStack_40) {
            ov96_021EB01C(piVar11,(u32)*pbVar21,
 diff --git a/port/nonmatching/sub_02032354.c b/port/nonmatching/sub_02032354.c
-index f811d7b2a7..d72d92abaf 100644
+index f811d7b2a70..d72d92abaf4 100644
 --- a/port/nonmatching/sub_02032354.c
 +++ b/port/nonmatching/sub_02032354.c
 @@ -2,5 +2,5 @@ void sub_020324F4(intptr_t, s8 *);
@@ -611,7 +600,7 @@ index f811d7b2a7..d72d92abaf 100644
    s8 *pcVar7;
    s8 *pcVar8;
 diff --git a/src/application/capsule_menu/graphics.c b/src/application/capsule_menu/graphics.c
-index 3e73a0fa72..49baba2229 100644
+index 3e73a0fa729..49baba22292 100644
 --- a/src/application/capsule_menu/graphics.c
 +++ b/src/application/capsule_menu/graphics.c
 @@ -399,5 +399,5 @@ void CapsuleGraphics_OpenCapsuleSelectionMenu(BgConfig *bgConfig, Window *window
@@ -622,7 +611,7 @@ index 3e73a0fa72..49baba2229 100644
          String_Delete(string);
      }
 diff --git a/src/application/capsule_menu/manager.c b/src/application/capsule_menu/manager.c
-index aaf842d580..f9442efa3a 100644
+index aaf842d5808..f9442efa3ad 100644
 --- a/src/application/capsule_menu/manager.c
 +++ b/src/application/capsule_menu/manager.c
 @@ -212,5 +212,5 @@ static BOOL CapsuleManager_SelectionActions(CapsuleAppManager *appMan) {
@@ -633,7 +622,7 @@ index aaf842d580..f9442efa3a 100644
  
          switch (result) {
 diff --git a/src/bg_window.c b/src/bg_window.c
-index 3f18a12d0e..751b5e0079 100644
+index 3f18a12d0ef..751b5e00798 100644
 --- a/src/bg_window.c
 +++ b/src/bg_window.c
 @@ -777,5 +777,5 @@ static void CopyOrUncompressTilemapData(const void *src, void *dest, u32 size) {
@@ -644,7 +633,7 @@ index 3f18a12d0e..751b5e0079 100644
          MI_CpuCopy32(src, dest, size);
          return;
 diff --git a/src/certificates_app.c b/src/certificates_app.c
-index c6a5f68111..006ea33e19 100644
+index c6a5f681112..006ea33e193 100644
 --- a/src/certificates_app.c
 +++ b/src/certificates_app.c
 @@ -681,6 +681,6 @@ static void ov78_021E656C(Sprite *sprite, void *unkBuffer, u32 unkBufferSize, u3
@@ -657,7 +646,7 @@ index c6a5f68111..006ea33e19 100644
  }
  
 diff --git a/src/map_object.c b/src/map_object.c
-index 339d9ab674..18377daa22 100644
+index f40fde15796..ad04f4ae37d 100644
 --- a/src/map_object.c
 +++ b/src/map_object.c
 @@ -852,5 +852,5 @@ static void sub_0205F058(LocalMapObject *object, u32 mapNo, ObjectEvent *objectE
@@ -668,7 +657,7 @@ index 339d9ab674..18377daa22 100644
  }
  
 diff --git a/src/move.c b/src/move.c
-index 6551cf55c6..705a266ee5 100644
+index 6551cf55c6d..705a266ee5a 100644
 --- a/src/move.c
 +++ b/src/move.c
 @@ -53,5 +53,5 @@ u32 GetMoveTblAttr(MoveTbl *moveTbl, MoveAttr attr) {
@@ -679,17 +668,17 @@ index 6551cf55c6..705a266ee5 100644
      }
  }
 diff --git a/src/overlay_00_thumb_021E5900.c b/src/overlay_00_thumb_021E5900.c
-index 25e62f1ac9..cc175affd1 100644
+index dd6b5353fe4..e1f0e61ad8d 100644
 --- a/src/overlay_00_thumb_021E5900.c
 +++ b/src/overlay_00_thumb_021E5900.c
-@@ -50,5 +50,5 @@ int ov00_021E5900(SaveData *saveData, enum HeapID heapID, int heapSize, int maxP
+@@ -18,5 +18,5 @@ int ov00_021E5900(SaveData *saveData, enum HeapID heapID, int heapSize, int maxP
      MI_CpuClear8(wfcManAllocPtr, sizeof(NintendoWFCManager) + 32);
  
 -    _0221A680 = (NintendoWFCManager *)((void *)(((u32)(wfcManAllocPtr) + (32 - 1)) / (32) * (32)));
 +    _0221A680 = (NintendoWFCManager *)((void *)(((uintptr_t)(wfcManAllocPtr) + (32 - 1)) / (32) * (32)));
      _0221A680->allocStartPtr = wfcManAllocPtr;
      _0221A680->saveData = saveData;
-@@ -62,5 +62,5 @@ int ov00_021E5900(SaveData *saveData, enum HeapID heapID, int heapSize, int maxP
+@@ -30,5 +30,5 @@ int ov00_021E5900(SaveData *saveData, enum HeapID heapID, int heapSize, int maxP
      _0221A680->heap1AllocPtr = Heap_Alloc(heapID, heapSize + (4096 * 3) + 32);
      _0221A680->heap2AllocPtr = 0L;
 -    _0221A680->heap1 = NNS_FndCreateExpHeapEx(((void *)(((u32)(_0221A680->heap1AllocPtr) + (32 - 1)) / (32) * (32))), heapSize, 0);
@@ -697,10 +686,10 @@ index 25e62f1ac9..cc175affd1 100644
      _0221A680->heap2 = 0L;
      _0221A680->voiceChatCodec = 0;
 diff --git a/src/overlay_00_thumb_021E714C_021E727C.c b/src/overlay_00_thumb_021E714C_021E727C.c
-index da0f6a4181..5cbafe391c 100644
+index 5ddc910f6d1..cef9a05d5ff 100644
 --- a/src/overlay_00_thumb_021E714C_021E727C.c
 +++ b/src/overlay_00_thumb_021E714C_021E727C.c
-@@ -804,5 +804,5 @@ void ov00_021E727C(int index) {
+@@ -27,5 +27,5 @@ void ov00_021E727C(int index) {
          }
  
 -        DWC_SetRecvBuffer(index, ((void *)(((u32)(_0221A680->receiveBuffers[index]) + (32 - 1)) / (32) * (32))), 4096);
@@ -708,7 +697,7 @@ index da0f6a4181..5cbafe391c 100644
      }
  }
 diff --git a/src/overlay_00_thumb_021E77CC.c b/src/overlay_00_thumb_021E77CC.c
-index 4579588bb4..1af7335237 100644
+index 4579588bb41..1af7335237f 100644
 --- a/src/overlay_00_thumb_021E77CC.c
 +++ b/src/overlay_00_thumb_021E77CC.c
 @@ -10,4 +10,4 @@ void ov00_021E77CC(void **allocStartPtr, void **alignedPtr, int size, enum HeapI
@@ -717,19 +706,8 @@ index 4579588bb4..1af7335237 100644
 -    *alignedPtr = ((void *)(((u32)(*allocStartPtr) + (32 - 1)) / (32) * (32)));
 +    *alignedPtr = ((void *)(((uintptr_t)(*allocStartPtr) + (32 - 1)) / (32) * (32)));
  }
-diff --git a/src/overlay_01_021EFB38_021F0A4C_021F0A4C.c b/src/overlay_01_021EFB38_021F0A4C_021F0A4C.c
-index cd3601b56f..f31590eed5 100644
---- a/src/overlay_01_021EFB38_021F0A4C_021F0A4C.c
-+++ b/src/overlay_01_021EFB38_021F0A4C_021F0A4C.c
-@@ -49,5 +49,5 @@ BOOL ov01_021F0A4C(UnkStruct_ov5_021DE928 *param0) {
-             v2 = (192 + -16) - ((param0->unk_C4 / 8) * 32);
- 
--            ov01_021F0868(param0->unk_04[param0->unk_C4], (s32)(v0), (s32)(v0), (s32)(v1), (s32)(v2), (s32)(param0->unk_C6), (s32)(param0->unk_00), (s32)(32), (s32)(32), param0->unk_C9);
-+            ov01_021F0868(param0->unk_04[param0->unk_C4], (s32)(v0), (s32)(v0), (s32)(v1), (s32)(v2), (s32)(param0->unk_C6), (intptr_t)(param0->unk_00), (s32)(32), (s32)(32), param0->unk_C9);
-             param0->unk_C4++;
-         }
 diff --git a/src/overlay_108_021E6240_021E7C5C_021E8540_021E8540.c b/src/overlay_108_021E6240_021E7C5C_021E8540_021E8540.c
-index b5018d6efd..8193d811d5 100644
+index b5018d6efd0..8193d811d54 100644
 --- a/src/overlay_108_021E6240_021E7C5C_021E8540_021E8540.c
 +++ b/src/overlay_108_021E6240_021E7C5C_021E8540_021E8540.c
 @@ -23,5 +23,5 @@ u32 *ov108_021E8540(enum HeapID *param_1, s32 param_2, s32 param_3, u8 param_4,
@@ -747,7 +725,7 @@ index b5018d6efd..8193d811d5 100644
      if (pSVar3 == NULL) {
          GF_AssertFail();
 diff --git a/src/overlay_112_021E5A68_021E5D38.c b/src/overlay_112_021E5A68_021E5D38.c
-index 9d0c9e1d3f..179cba23c3 100644
+index 9d0c9e1d3fd..179cba23c35 100644
 --- a/src/overlay_112_021E5A68_021E5D38.c
 +++ b/src/overlay_112_021E5A68_021E5D38.c
 @@ -34,5 +34,5 @@ void ov112_021E5D68(u8 *arg0);
@@ -758,7 +736,7 @@ index 9d0c9e1d3f..179cba23c3 100644
          OS_Halt();
      }
 diff --git a/src/overlay_112_021E5A68_021E5EEC_021E5EEC.c b/src/overlay_112_021E5A68_021E5EEC_021E5EEC.c
-index 0d08489ab2..da5245c27c 100644
+index 0d08489ab22..da5245c27ce 100644
 --- a/src/overlay_112_021E5A68_021E5EEC_021E5EEC.c
 +++ b/src/overlay_112_021E5A68_021E5EEC_021E5EEC.c
 @@ -19,5 +19,5 @@ void ov112_021E5EEC(void) {
@@ -769,7 +747,7 @@ index 0d08489ab2..da5245c27c 100644
      var_r5 = ov112_021FFB24.unk30;
      if ((u32)var_r5 > 0x80U) {
 diff --git a/src/overlay_112_021E5A68_021E6134.c b/src/overlay_112_021E5A68_021E6134.c
-index c22a049164..57f5a9847f 100644
+index c22a049164b..57f5a9847ff 100644
 --- a/src/overlay_112_021E5A68_021E6134.c
 +++ b/src/overlay_112_021E5A68_021E6134.c
 @@ -17,5 +17,5 @@ void ov112_021E6134(void) {
@@ -779,19 +757,8 @@ index c22a049164..57f5a9847f 100644
 +    v1 = (u16) ((intptr_t)ov112_021FFB24.unk20);
      *(s8 *)(&v0) = (s8)((s32)v1 >> 8);
      *(s8 *)((u8 *)(&v0) + 1) = (s8)v1;
-diff --git a/src/overlay_14_021F08BC.c b/src/overlay_14_021F08BC.c
-index 7003129ce7..e3b8beeeea 100644
---- a/src/overlay_14_021F08BC.c
-+++ b/src/overlay_14_021F08BC.c
-@@ -23,5 +23,5 @@ void ov14_021F08BC(u8 *param_1) {
-     do {
-         pPVar2 = AllocMonZeroed(HEAP_ID_10);
--        *puVar4 = (u32)(pPVar2);
-+        *puVar4 = (uintptr_t)(pPVar2);
-         uVar3 = uVar3 + 1;
-         puVar4 = puVar4 + 8;
 diff --git a/src/overlay_18_021F1D98_021F1DE4.c b/src/overlay_18_021F1D98_021F1DE4.c
-index 14dd004314..8935903f5f 100644
+index 14dd0043143..8935903f5f3 100644
 --- a/src/overlay_18_021F1D98_021F1DE4.c
 +++ b/src/overlay_18_021F1D98_021F1DE4.c
 @@ -16,5 +16,5 @@ void ov18_021F1DE4(PokedexAppData *pokedexApp, u32 species, int a2, int a3) {
@@ -802,7 +769,7 @@ index 14dd004314..8935903f5f 100644
  
      var_r5 = pokedexApp;
 diff --git a/src/overlay_18_021F3CA8_021F3CA8.c b/src/overlay_18_021F3CA8_021F3CA8.c
-index 590f6eba60..130b9ef573 100644
+index 590f6eba60d..130b9ef5732 100644
 --- a/src/overlay_18_021F3CA8_021F3CA8.c
 +++ b/src/overlay_18_021F3CA8_021F3CA8.c
 @@ -12,5 +12,5 @@ void ov18_021F3CA8(void *arg0, s32 arg1, s8 *arg2, s8 *arg3) {
@@ -813,17 +780,17 @@ index 590f6eba60..130b9ef573 100644
      new_var = (u8 *)arg0;
      temp_r3 = *((u8 *)(temp_r6 + arg1));
 diff --git a/src/overlay_45_thumb_022302E4_02230498_02230498.c b/src/overlay_45_thumb_022302E4_02230498_02230498.c
-index 3b7b8bd90d..da59f34b28 100644
+index 5946572ef07..52127a15dc5 100644
 --- a/src/overlay_45_thumb_022302E4_02230498_02230498.c
 +++ b/src/overlay_45_thumb_022302E4_02230498_02230498.c
-@@ -46,5 +46,5 @@ u32 *ov45_02230498(s32 param_1, s32 param_2, enum HeapID param_3, enum HeapID pa
+@@ -47,5 +47,5 @@ u32 *ov45_02230498(s32 param_1, s32 param_2, enum HeapID param_3, enum HeapID pa
      memset(puVar1, 0, 0x30);
      pvVar2 = Heap_Alloc(param_3, param_1 * 0x90);
 -    puVar1[4] = (u32)pvVar2;
 +    puVar1[4] = (uintptr_t)pvVar2;
      uVar11 = 0;
      puVar1[5] = param_1;
-@@ -58,9 +58,9 @@ u32 *ov45_02230498(s32 param_1, s32 param_2, enum HeapID param_3, enum HeapID pa
+@@ -59,9 +59,9 @@ u32 *ov45_02230498(s32 param_1, s32 param_2, enum HeapID param_3, enum HeapID pa
      }
      pGVar3 = GF2dGfxRawResMan_Create(1, param_3);
 -    *puVar1 = (u32)pGVar3;
@@ -836,27 +803,8 @@ index 3b7b8bd90d..da59f34b28 100644
 +    puVar1[2] = (uintptr_t)pGVar4;
      BillboardLists_Create(1, param_3);
      iStack_20[0] = param_1;
-diff --git a/src/overlay_49_0225AC24_0225BB14_0225BB14.c b/src/overlay_49_0225AC24_0225BB14_0225BB14.c
-index baee507614..078f1d171d 100644
---- a/src/overlay_49_0225AC24_0225BB14_0225BB14.c
-+++ b/src/overlay_49_0225AC24_0225BB14_0225BB14.c
-@@ -142,11 +142,11 @@ void ov70_0225F2D8(UnkStruct_ov70_0225F208 *param0, enum PlazaMinigame param1, u
- void ov49_0225CB50(u32 param0, enum TouchScreenButtonState param1, void *param2);
- 
--void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, u32 param2, u32 param3, u32 param4, u32 heapID);
-+void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, uintptr_t param2, u32 param3, u32 param4, u32 heapID);
- 
--void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, u32 param2, u32 param3, u32 param4, u32 heapID) {
-+void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, uintptr_t param2, u32 param3, u32 param4, u32 heapID) {
-     void *v0;
-     NNSG2dScreenData *v1;
- 
--    v0 = GfGfxLoader_GetScrnDataFromOpenNarc((struct NARC *)((u8 *)((struct NARC *)((u8 *)(param1)))), (u32)((struct NNSG2dScreenData **)(param2)), (int)((struct NNSG2dScreenData **)(0)), (struct NNSG2dScreenData **)((u8 *)(&v1)), (enum HeapID)(heapID));
-+    v0 = GfGfxLoader_GetScrnDataFromOpenNarc((struct NARC *)((u8 *)((struct NARC *)((u8 *)(param1)))), (uintptr_t)((struct NNSG2dScreenData **)(param2)), (intptr_t)((struct NNSG2dScreenData **)(0)), (struct NNSG2dScreenData **)((u8 *)(&v1)), (enum HeapID)(heapID));
- 
-     {
 diff --git a/src/overlay_49_0225BBCC_0225C8D4_0225CAD4_0225CAD4.c b/src/overlay_49_0225BBCC_0225C8D4_0225CAD4_0225CAD4.c
-index 4ff7b70526..372b1a8694 100644
+index 4ff7b705267..372b1a86944 100644
 --- a/src/overlay_49_0225BBCC_0225C8D4_0225CAD4_0225CAD4.c
 +++ b/src/overlay_49_0225BBCC_0225C8D4_0225CAD4_0225CAD4.c
 @@ -34,5 +34,5 @@ typedef struct {
@@ -866,74 +814,8 @@ index 4ff7b70526..372b1a8694 100644
 +void ov49_0225BB14(UnkStruct_ov70_0225E4EC *param0, NARC *param1, uintptr_t param2, u32 param3, u32 param4, u32 heapID);
  
  extern s32 ov49_022696EC;
-diff --git a/src/overlay_49_0225CB78.c b/src/overlay_49_0225CB78.c
-index 54930bfa04..0c69630b91 100644
---- a/src/overlay_49_0225CB78.c
-+++ b/src/overlay_49_0225CB78.c
-@@ -41,5 +41,5 @@ u32 *ov49_0225CB78(enum HeapID param_1) {
-     } while (iVar3 != 0);
-     pCVar2 = Camera_New(param_1);
--    *puVar1 = (u32)(pCVar2);
-+    *puVar1 = (uintptr_t)(pCVar2);
-     Camera_Init_FromTargetDistanceAndAngle((VecFx32 *)(puVar1 + 2), 0x29aec1, (CameraAngle *)&ov49_02269A6C, 0x5c1, 0, 1, (Camera *)*puVar1);
-     Camera_SetStaticPtr((Camera *)*puVar1);
-diff --git a/src/overlay_49_0225CDE8_0225D5E4_0225DC2C_0225DC2C.c b/src/overlay_49_0225CDE8_0225D5E4_0225DC2C_0225DC2C.c
-index a9ac1c8073..7f9ae539e7 100644
---- a/src/overlay_49_0225CDE8_0225D5E4_0225DC2C_0225DC2C.c
-+++ b/src/overlay_49_0225CDE8_0225D5E4_0225DC2C_0225DC2C.c
-@@ -49,5 +49,5 @@ void ov49_0225DC2C(UnkStruct_ov70_02261BB4 *param0, NARC *param1, NNSFndAllocato
-         for (v1 = 0; v1 < 3; v1++) {
-             if (param3->unk_48[v0][v1] != param3->unk_00[v0]) {
--                param0->unk_120[v0][v1] = GfGfxLoader_LoadFromOpenNarc((struct NARC *)((enum HeapID)(param1)), param3->unk_48[v0][v1], 0, (enum HeapID)(heapID), 0);
-+                param0->unk_120[v0][v1] = GfGfxLoader_LoadFromOpenNarc((struct NARC *)((intptr_t)(param1)), param3->unk_48[v0][v1], 0, (enum HeapID)(heapID), 0);
-             } else {
-                 param0->unk_120[v0][v1] = 0L;
-diff --git a/src/overlay_49_0225CDE8_02264F9C_022651E8.c b/src/overlay_49_0225CDE8_02264F9C_022651E8.c
-index 4167ce213b..2245b4ad81 100644
---- a/src/overlay_49_0225CDE8_02264F9C_022651E8.c
-+++ b/src/overlay_49_0225CDE8_02264F9C_022651E8.c
-@@ -132,5 +132,5 @@ void ov49_022651E8(UnkStruct_ov70_02268E44 *param0, UnkStruct_ov70_0225DEE8 *par
- 
-     for (v0 = 0; v0 < 4 - 1; v0++) {
--        ov49_0225A37C((struct UnkStruct_ov70_0225DEE8_t *)((enum PlazaMinigame)(param1)), (enum PlazaMinigame)(UnkEnum_ov66_022324D0_00 + v0), 0);
-+        ov49_0225A37C((struct UnkStruct_ov70_0225DEE8_t *)((intptr_t)(param1)), (enum PlazaMinigame)(UnkEnum_ov66_022324D0_00 + v0), 0);
-         v1 = ov49_0225A30C(param1, 1, 38);
-         ov49_0225A144(param1, v1, v0);
-diff --git a/src/overlay_65_0221DF1C_0221E270_0221E354.c b/src/overlay_65_0221DF1C_0221E270_0221E354.c
-index 8a38b87f4d..08f2ab61d8 100644
---- a/src/overlay_65_0221DF1C_0221E270_0221E354.c
-+++ b/src/overlay_65_0221DF1C_0221E270_0221E354.c
-@@ -15,5 +15,5 @@ s32 ov65_0221E354(void *arg0) {
-     u32 temp_r0;
- 
--    temp_r0 = (s32)(ov65_0221FC54(*(s32 *)((u8 *)arg0 + 0x180), (s32)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, 1));
-+    temp_r0 = (s32)(ov65_0221FC54(*(s32 *)((u8 *)arg0 + 0x180), (intptr_t)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, 1));
-     switch (temp_r0) {
-     case 0:
-diff --git a/src/overlay_65_0221DF1C_0221E270_0221E3BC.c b/src/overlay_65_0221DF1C_0221E270_0221E3BC.c
-index 5c0e1e3969..0ffdc48398 100644
---- a/src/overlay_65_0221DF1C_0221E270_0221E3BC.c
-+++ b/src/overlay_65_0221DF1C_0221E270_0221E3BC.c
-@@ -28,5 +28,5 @@ s32 ov65_0221E3BC(void *arg0) {
-     u32 v0;
- 
--    v0 = (s32)(ov65_0221FC54(*((s32 *)&((TradeRoom *)arg0)->bgConfig), (s32)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, 1));
-+    v0 = (s32)(ov65_0221FC54(*((s32 *)&((TradeRoom *)arg0)->bgConfig), (intptr_t)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, 1));
-     switch (v0) {
-     case 0:
-diff --git a/src/overlay_65_0221EE18_0221F120_0221F120.c b/src/overlay_65_0221EE18_0221F120_0221F120.c
-index adf9fd4a52..d8de08bd87 100644
---- a/src/overlay_65_0221EE18_0221F120_0221F120.c
-+++ b/src/overlay_65_0221EE18_0221F120_0221F120.c
-@@ -27,5 +27,5 @@ s32 ov65_0221F120(void *arg0) {
-     u32 temp_r0;
- 
--    temp_r0 = ov65_0221FC54(*(BgConfig **)((u8 *)arg0 + 0x180), (s32)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, (s32)(0));
-+    temp_r0 = ov65_0221FC54(*(BgConfig **)((u8 *)arg0 + 0x180), (intptr_t)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, (s32)(0));
-     switch (temp_r0) {
-     case 0:
 diff --git a/src/overlay_72_02237E20_02237E20.c b/src/overlay_72_02237E20_02237E20.c
-index 88e0a31ad9..c4d1ac7a30 100644
+index 88e0a31ad9d..c4d1ac7a30d 100644
 --- a/src/overlay_72_02237E20_02237E20.c
 +++ b/src/overlay_72_02237E20_02237E20.c
 @@ -292,5 +292,5 @@ BOOL NintendoWfc_Init(OverlayManager *man, int *state);
@@ -951,7 +833,7 @@ index 88e0a31ad9..c4d1ac7a30 100644
              Sound_SetSceneAndPlayBGM(11, 1149, 1);
              TextFlags_SetCanTouchSpeedUpPrint(1);
 diff --git a/src/overlay_74_thumb_02229F90_0222A2A4_0222A89C_0222A89C.c b/src/overlay_74_thumb_02229F90_0222A2A4_0222A89C_0222A89C.c
-index 420cfe647f..a42b8ac6d2 100644
+index 420cfe647f1..a42b8ac6d24 100644
 --- a/src/overlay_74_thumb_02229F90_0222A2A4_0222A89C_0222A89C.c
 +++ b/src/overlay_74_thumb_02229F90_0222A2A4_0222A89C_0222A89C.c
 @@ -1045,5 +1045,5 @@ void ov74_0222A89C(OverlayManager *appMan, StateTransitionMenuOptionTemplate *en
@@ -961,34 +843,8 @@ index 420cfe647f..a42b8ac6d2 100644
 +        ListMenuItems_AppendFromMsgData(appData->listMenuOptions, appData->msgLoader, entries[i].textEntryId, (uintptr_t)entries[i].stateTransitionFuncPtr);
      }
  
-diff --git a/src/overlay_74_thumb_02232F9C.c b/src/overlay_74_thumb_02232F9C.c
-index 79defffce4..a26f935bda 100644
---- a/src/overlay_74_thumb_02232F9C.c
-+++ b/src/overlay_74_thumb_02232F9C.c
-@@ -240,5 +240,5 @@ void ov74_02232F9C(s32 *param_1) {
-     ov74_02232B18(param_1);
-     param_1[0x118] = *(s32 *)(&ov74_0223C980 + *param_1);
--    param_1[0x11b] = (s32)messageFormat;
-+    param_1[0x11b] = (intptr_t)messageFormat;
-     ov74_02231A1C(param_1, param_1 + 0x10b, 0x18);
-     String_Delete(string);
-diff --git a/src/overlay_74_thumb_022369A8.c b/src/overlay_74_thumb_022369A8.c
-index 78ad695ffe..7ca55a30dd 100644
---- a/src/overlay_74_thumb_022369A8.c
-+++ b/src/overlay_74_thumb_022369A8.c
-@@ -32,8 +32,8 @@ void *ov74_022369A8(DWCAllocType param0, u32 param1, int param2) {
- 
-     v0 = Heap_Alloc((enum HeapID)84, param1);
--    v1 = (u32 *)(((u32)v0 + 32) & ~31);
-+    v1 = (u32 *)(((uintptr_t)v0 + 32) & ~31);
- 
-     v1--;
--    *v1 = (u32)v0;
-+    *v1 = (uintptr_t)v0;
-     v1++;
- 
 diff --git a/src/overlay_75_02246BE0_02248034_022483EC.c b/src/overlay_75_02246BE0_02248034_022483EC.c
-index 531e6c7f5d..f35512d8f0 100644
+index 531e6c7f5d7..f35512d8f06 100644
 --- a/src/overlay_75_02246BE0_02248034_022483EC.c
 +++ b/src/overlay_75_02246BE0_02248034_022483EC.c
 @@ -125,5 +125,5 @@ s32 ov75_022483EC(UnkStruct_ov98_02247704 *arg0) {
@@ -999,7 +855,7 @@ index 531e6c7f5d..f35512d8f0 100644
          if (temp_r0_2 == YESNORESPONSE_YES) {
              YesNoPrompt_Destroy(arg0->unk_88);
 diff --git a/src/overlay_80_0222BDF4_0222D63C.c b/src/overlay_80_0222BDF4_0222D63C.c
-index eae30ef9c0..12ba354d3f 100644
+index eae30ef9c0a..12ba354d3f8 100644
 --- a/src/overlay_80_0222BDF4_0222D63C.c
 +++ b/src/overlay_80_0222BDF4_0222D63C.c
 @@ -179,5 +179,5 @@ void ov80_0222D644(SysTask *param0, void *param1) {
@@ -1031,7 +887,7 @@ index eae30ef9c0..12ba354d3f 100644
          }
      }
 diff --git a/src/overlay_85_021E8008_021E84EC_021E84EC.c b/src/overlay_85_021E8008_021E84EC_021E84EC.c
-index dbf3c5f461..a23367aff3 100644
+index dbf3c5f461b..a23367aff3a 100644
 --- a/src/overlay_85_021E8008_021E84EC_021E84EC.c
 +++ b/src/overlay_85_021E8008_021E84EC_021E84EC.c
 @@ -192,5 +192,5 @@ void ov85_021E84EC(UnkStruct_ov109_021D0F70 *param0, s32 param1) {
@@ -1042,7 +898,7 @@ index dbf3c5f461..a23367aff3 100644
      uVar1 = auStack_18[param1];
      data[1] = param1;
 diff --git a/src/overlay_87_021E5AC0_021E5C38.c b/src/overlay_87_021E5AC0_021E5C38.c
-index 4b6e2e9b90..3aa66c973d 100644
+index 4b6e2e9b901..3aa66c973d9 100644
 --- a/src/overlay_87_021E5AC0_021E5C38.c
 +++ b/src/overlay_87_021E5AC0_021E5C38.c
 @@ -167,5 +167,5 @@ BOOL ov87_021E5C38(ScratchOffCardApp *app) {
@@ -1053,7 +909,7 @@ index 4b6e2e9b90..3aa66c973d 100644
  
          if (selectedCard != -1) {
 diff --git a/src/overlay_92_0225EEBC_0225F530.c b/src/overlay_92_0225EEBC_0225F530.c
-index 064067db4b..e7f03fb400 100644
+index 064067db4bc..e7f03fb4003 100644
 --- a/src/overlay_92_0225EEBC_0225F530.c
 +++ b/src/overlay_92_0225EEBC_0225F530.c
 @@ -71,5 +71,5 @@ void ov92_0225F530(SysTask *param0, void *param1) {
@@ -1070,208 +926,8 @@ index 064067db4b..e7f03fb400 100644
 +        ov92_0225D9A8((intptr_t)var_r5, *(s32 *)temp_r2, *(s32 *)(&ov92_02263CD4 + var_r3 * 2));
          ov92_0225D9B4(var_r5, *((s32 *)&((UnkStruct_ov116_02262D08 *)var_r4)->unk_40));
          *(u32 *)var_r4 = (u32)(*(u32 *)var_r4 + 1);
-diff --git a/src/overlay_96_021E6870_021E6870.c b/src/overlay_96_021E6870_021E6870.c
-index bccd8f5a8e..52728c1ed8 100644
---- a/src/overlay_96_021E6870_021E6870.c
-+++ b/src/overlay_96_021E6870_021E6870.c
-@@ -18,5 +18,5 @@ u32 ov96_021E6870(PokeathlonCourseData *param_1, u8 *param_2, u32 param_3, u32 p
-     switch (*param_2) {
-     case 0:
--        param_1->state = (u32)ov96_0221A8BC;
-+        param_1->state = (uintptr_t)ov96_0221A8BC;
-         param_1->field_1ED = 0;
-         PokeathlonCourse_InitStateInfo(ov96_0221DA68, (PokeathlonStateInfo *)param_1->filler_3CC);
-diff --git a/src/overlay_96_021E6A54.c b/src/overlay_96_021E6A54.c
-index eb3cb2525f..69475e5c01 100644
---- a/src/overlay_96_021E6A54.c
-+++ b/src/overlay_96_021E6A54.c
-@@ -14,5 +14,5 @@ s32 ov96_021E6A54(PokeathlonCourseData *data) {
-     data->counterEnabled = 1;
-     PokeathlonCourse_ResetDataCopyArea(data);
--    data->state = (u32)&ov96_0221A808;
-+    data->state = (uintptr_t)&ov96_0221A808;
-     data->field_1ED = 0;
-     PokeathlonCourse_InitStateInfo(&ov96_0221DA50, (PokeathlonStateInfo *)data->filler_3CC);
-diff --git a/src/overlay_96_021E6AE8_021E6AE8.c b/src/overlay_96_021E6AE8_021E6AE8.c
-index dd64f84b3f..a118133410 100644
---- a/src/overlay_96_021E6AE8_021E6AE8.c
-+++ b/src/overlay_96_021E6AE8_021E6AE8.c
-@@ -31,5 +31,5 @@ u32 ov96_021E6AE8(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         if (BVar2 == 0) {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (intptr_t)param_1->system);
-             puVar4 = ov96_021E8A20(param_1->dataCopyBuffer2);
-             puVar5 = ov96_021E8A20(param_1->dataCopySource);
-@@ -44,5 +44,5 @@ u32 ov96_021E6AE8(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         } else {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (intptr_t)param_1->system);
-         }
-     }
-diff --git a/src/overlay_96_021E6BEC_021E6BEC.c b/src/overlay_96_021E6BEC_021E6BEC.c
-index 92d219ff73..f48510dbee 100644
---- a/src/overlay_96_021E6BEC_021E6BEC.c
-+++ b/src/overlay_96_021E6BEC_021E6BEC.c
-@@ -10,5 +10,5 @@ u32 ov96_021E6BEC(PokeathlonCourseData *param_1);
- 
- u32 ov96_021E6BEC(PokeathlonCourseData *param_1) {
--    param_1->state = (u32)ov96_0221A8E4;
-+    param_1->state = (uintptr_t)ov96_0221A8E4;
-     param_1->field_1ED = 0;
-     PokeathlonCourse_InitStateInfo((void *)ov96_0221DA6C, (PokeathlonStateInfo *)param_1->filler_3CC);
-diff --git a/src/overlay_96_021E6E38_021E6E38.c b/src/overlay_96_021E6E38_021E6E38.c
-index 4e19a15313..c3e310d4d2 100644
---- a/src/overlay_96_021E6E38_021E6E38.c
-+++ b/src/overlay_96_021E6E38_021E6E38.c
-@@ -32,5 +32,5 @@ u32 ov96_021E6E38(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         if (BVar2 == 0) {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (intptr_t)param_1->system);
-             puVar4 = ov96_021E8A20(param_1->dataCopyBuffer2);
-             puVar5 = ov96_021E8A20(param_1->dataCopySource);
-@@ -45,5 +45,5 @@ u32 ov96_021E6E38(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         } else {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (intptr_t)param_1->system);
-         }
-     }
-diff --git a/src/overlay_96_021E6F2C_021E6F2C.c b/src/overlay_96_021E6F2C_021E6F2C.c
-index a69bc99380..173106b6ea 100644
---- a/src/overlay_96_021E6F2C_021E6F2C.c
-+++ b/src/overlay_96_021E6F2C_021E6F2C.c
-@@ -19,5 +19,5 @@ u32 ov96_021E6F2C(PokeathlonCourseData *data) {
-         buf[0] = data->field_5E0[idx][0];
-         buf[1] = data->field_5E0[idx][1];
--        ret = ov96_021E87B4(0x1d, data->dataCopySource, ov96_021E9A14(), (int)data->system);
-+        ret = ov96_021E87B4(0x1d, data->dataCopySource, ov96_021E9A14(), (intptr_t)data->system);
-         if (ret && !ov96_021E5F24(data)) {
-             size = PokeathlonCourse_GetUnkConstant4(data);
-diff --git a/src/overlay_96_021E6F2C_021E6FFC.c b/src/overlay_96_021E6F2C_021E6FFC.c
-index 163b65eaec..6d20d0d38d 100644
---- a/src/overlay_96_021E6F2C_021E6FFC.c
-+++ b/src/overlay_96_021E6F2C_021E6FFC.c
-@@ -11,5 +11,5 @@ s32 ov96_021E6FFC(PokeathlonCourseData *arg0) {
-     temp_r4 = PokeathlonCourse_GetDataCopyArea(arg0);
-     temp_r6 = ov96_021E9A14();
--    if (ov96_021E87B4(0x1E, temp_r4 + 0x28, temp_r6, (s32)PokeathlonCourse_GetSystem(arg0)) != 0) {
-+    if (ov96_021E87B4(0x1E, temp_r4 + 0x28, temp_r6, (intptr_t)PokeathlonCourse_GetSystem(arg0)) != 0) {
-         PokeathlonCourse_SetStateField07(arg0, 0x26U);
-     }
-diff --git a/src/overlay_96_021E711C_021E711C.c b/src/overlay_96_021E711C_021E711C.c
-index 1ac405d7f9..314fc102d7 100644
---- a/src/overlay_96_021E711C_021E711C.c
-+++ b/src/overlay_96_021E711C_021E711C.c
-@@ -10,5 +10,5 @@ u32 ov96_021E711C(PokeathlonCourseData *param_1);
- 
- u32 ov96_021E711C(PokeathlonCourseData *param_1) {
--    param_1->state = (u32)&ov96_0221A86C;
-+    param_1->state = (uintptr_t)&ov96_0221A86C;
-     param_1->field_1ED = 0;
-     PokeathlonCourse_InitStateInfo(&ov96_0221DC24, (PokeathlonStateInfo *)param_1->filler_3CC);
-diff --git a/src/overlay_96_021E7190_021E7190.c b/src/overlay_96_021E7190_021E7190.c
-index 3bbe6befa4..89a34fc0d4 100644
---- a/src/overlay_96_021E7190_021E7190.c
-+++ b/src/overlay_96_021E7190_021E7190.c
-@@ -33,5 +33,5 @@ u32 ov96_021E7190(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         if (BVar2 == 0) {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (intptr_t)param_1->system);
-             puVar4 = ov96_021E8A20(param_1->dataCopyBuffer2);
-             puVar5 = ov96_021E8A20(param_1->dataCopySource);
-@@ -46,5 +46,5 @@ u32 ov96_021E7190(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         } else {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (intptr_t)param_1->system);
-         }
-     }
-diff --git a/src/overlay_96_021E7268.c b/src/overlay_96_021E7268.c
-index c809e53243..1cac4b273a 100644
---- a/src/overlay_96_021E7268.c
-+++ b/src/overlay_96_021E7268.c
-@@ -25,5 +25,5 @@ s32 ov96_021E7294(PokeathlonCourseData *arg0);
- s32 ov96_021E7294(PokeathlonCourseData *data) {
-     PokeathlonCourse_ResetDataCopyArea(data);
--    data->state = (u32)&ov96_0221A844;
-+    data->state = (uintptr_t)&ov96_0221A844;
-     data->field_1ED = 0;
-     PokeathlonCourse_InitStateInfo(&ov96_0221DA5C, (PokeathlonStateInfo *)data->filler_3CC);
-diff --git a/src/overlay_96_021E7320_021E7320.c b/src/overlay_96_021E7320_021E7320.c
-index ef91386038..6990ddd510 100644
---- a/src/overlay_96_021E7320_021E7320.c
-+++ b/src/overlay_96_021E7320_021E7320.c
-@@ -33,5 +33,5 @@ u32 ov96_021E7320(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         if (BVar2 == 0) {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopyBuffer1, pvVar3, (intptr_t)param_1->system);
-             puVar4 = ov96_021E8A20(param_1->dataCopyBuffer2);
-             puVar5 = ov96_021E8A20(param_1->dataCopySource);
-@@ -42,5 +42,5 @@ u32 ov96_021E7320(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, u32 p
-         } else {
-             pvVar3 = ov96_021E9A14();
--            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (s32)param_1->system);
-+            ov96_021E87B4(0x1b, param_1->dataCopySource, pvVar3, (intptr_t)param_1->system);
-         }
-     }
-diff --git a/src/overlay_96_021E75BC_021E75E4.c b/src/overlay_96_021E75BC_021E75E4.c
-index c2cb1c75c9..0c768c3087 100644
---- a/src/overlay_96_021E75BC_021E75E4.c
-+++ b/src/overlay_96_021E75BC_021E75E4.c
-@@ -36,4 +36,4 @@ u32 ov96_021E75E4(PokeathlonCourseData *arg0) {
-     temp_r1 = sp0 + 0x28;
-     sp0 = temp_r1;
--    return ov96_021E87B4(0x1E, temp_r1, temp_r4, (s32)temp_r3);
-+    return ov96_021E87B4(0x1E, temp_r1, temp_r4, (intptr_t)temp_r3);
- }
-diff --git a/src/overlay_96_021E87B0.c b/src/overlay_96_021E87B0.c
-index be1db8a257..9a373b09fb 100644
---- a/src/overlay_96_021E87B0.c
-+++ b/src/overlay_96_021E87B0.c
-@@ -633,9 +633,9 @@ BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, intptr_t a3);
- 
- BOOL ov96_021E87B4(s32 a0, void *a1, void *a2, intptr_t a3) {
--    if ((*(u16 *)((u8 *)a3 + 2) != 0) && ((s32) a2 > 0x26)) {
-+    if ((*(u16 *)((u8 *)a3 + 2) != 0) && ((intptr_t) a2 > 0x26)) {
-         GF_AssertFail();
-     }
-     if (*(u16 *)a3 == 1) {
--        return sub_02037030(a0, a1, (s32) a2);
-+        return sub_02037030(a0, a1, (intptr_t) a2);
-     }
-     return ov96_021E8914(*(void **)((u8 *)a3 + 4), a0, a1, a2);
-diff --git a/src/overlay_96_021E8914_021E8988.c b/src/overlay_96_021E8914_021E8988.c
-index e2efa01284..8f54d1a7d8 100644
---- a/src/overlay_96_021E8914_021E8988.c
-+++ b/src/overlay_96_021E8914_021E8988.c
-@@ -38,7 +38,7 @@ void ov96_021E8988(s32 *param_1, s32 param_2, void *param_3, size_t param_4) {
-             memcpy(pvVar2, param_3, param_4);
-         }
--        piVar6[0xd] = (s32)pvVar2;
-+        piVar6[0xd] = (intptr_t)pvVar2;
-     } else {
--        piVar6[0xd] = (s32)param_3;
-+        piVar6[0xd] = (intptr_t)param_3;
-     }
-     piVar6[1] = param_2 + -0x16;
-diff --git a/src/overlay_96_021E8A20.c b/src/overlay_96_021E8A20.c
-index 55ded09b13..d1c6f168df 100644
---- a/src/overlay_96_021E8A20.c
-+++ b/src/overlay_96_021E8A20.c
-@@ -20,5 +20,5 @@ s32 ov96_021E8A24(void);
- 
- s32 ov96_021E8A24(void) {
--    return (s32)&ov96_0221AEC4;
-+    return (intptr_t)&ov96_0221AEC4;
- }
- 
 diff --git a/src/overlay_96_021F30F8_021F31F0.c b/src/overlay_96_021F30F8_021F31F0.c
-index 43cacc47f3..50b9244d60 100644
+index 43cacc47f34..50b9244d60b 100644
 --- a/src/overlay_96_021F30F8_021F31F0.c
 +++ b/src/overlay_96_021F30F8_021F31F0.c
 @@ -31,5 +31,5 @@ void ov96_021F31F0(void *arg0, u8 arg1) {
@@ -1282,7 +938,7 @@ index 43cacc47f3..50b9244d60 100644
              var_r6 = ov96_021EB5B8(*((void **)(((u8 *)(var_r5 + ((*((s32 *)(((u8 *)var_r5) + 0x80))) * 0x10))) + 0xC)));
              ov96_021EB52C(*((void **)(((u8 *)(var_r5 + ((*((s32 *)(((u8 *)var_r5) + 0x80))) * 0x10))) + 0xC)), 1, 1);
 diff --git a/src/overlay_96_021F3E60_021F4990_021F4990.c b/src/overlay_96_021F3E60_021F4990_021F4990.c
-index 7231c8fa1d..a0ea0a0d85 100644
+index 7231c8fa1da..a0ea0a0d85c 100644
 --- a/src/overlay_96_021F3E60_021F4990_021F4990.c
 +++ b/src/overlay_96_021F3E60_021F4990_021F4990.c
 @@ -32,5 +32,5 @@ void ov96_021F4990(u32 *param_1, BgConfig *param_2) {
@@ -1293,7 +949,7 @@ index 7231c8fa1d..a0ea0a0d85 100644
      param_1[7] = 4;
      *param_1 = 1;
 diff --git a/src/overlay_96_021F8F94_021F9134_021F9134.c b/src/overlay_96_021F8F94_021F9134_021F9134.c
-index 01e8016d65..ead23adfde 100644
+index 01e8016d659..ead23adfde7 100644
 --- a/src/overlay_96_021F8F94_021F9134_021F9134.c
 +++ b/src/overlay_96_021F8F94_021F9134_021F9134.c
 @@ -26,7 +26,7 @@ void ov96_021F9134(void *arg0, Window *arg1, String *arg2, u32 arg3, s32 arg4, s
@@ -1307,7 +963,7 @@ index 01e8016d65..ead23adfde 100644
      sp28[4] = arg6;
      sp28[5] = sp1C.offset;
 diff --git a/src/overlay_96_021FA0E8_021FAB24_021FAFFC_021FB400.c b/src/overlay_96_021FA0E8_021FAB24_021FAFFC_021FB400.c
-index 96a47faf21..1cdcf97429 100644
+index 96a47faf218..1cdcf97429d 100644
 --- a/src/overlay_96_021FA0E8_021FAB24_021FAFFC_021FB400.c
 +++ b/src/overlay_96_021FA0E8_021FAB24_021FAFFC_021FB400.c
 @@ -41,5 +41,5 @@ void ov96_021FB400(PokeathlonCourseData *arg0) {
@@ -1318,7 +974,7 @@ index 96a47faf21..1cdcf97429 100644
      *(s16 *)((u8 *)(sp18) + 8) = 0;
      *(s16 *)((u8 *)(sp18) + 0xA) = 0;
 diff --git a/src/overlay_96_021FC028.c b/src/overlay_96_021FC028.c
-index a814f8fd28..6b76b72b88 100644
+index a814f8fd28e..6b76b72b888 100644
 --- a/src/overlay_96_021FC028.c
 +++ b/src/overlay_96_021FC028.c
 @@ -21,5 +21,5 @@ u32 *ov96_021FC028(enum HeapID param_1) {
@@ -1328,19 +984,8 @@ index a814f8fd28..6b76b72b88 100644
 +        *puVar3 = (uintptr_t)(pvVar1);
          iVar2 = iVar2 + 1;
          puVar3 = puVar3 + 2;
-diff --git a/src/overlay_96_021FCD84_021FCD84.c b/src/overlay_96_021FCD84_021FCD84.c
-index 4f7ce5a500..42a74ab53d 100644
---- a/src/overlay_96_021FCD84_021FCD84.c
-+++ b/src/overlay_96_021FCD84_021FCD84.c
-@@ -29,5 +29,5 @@ u32 ov96_021FCD84(PokeathlonCourseData *param_1) {
-     }
-     ov96_021E93B4(gfx, 1);
--    ov96_0221A56C((u32)(gfx), 6);
-+    ov96_0221A56C((uintptr_t)(gfx), 6);
-     ov96_021E952C(gfx);
-     ov96_021E9570(gfx, 6);
 diff --git a/src/overlay_96_02204F20_02207BE4_02207C64.c b/src/overlay_96_02204F20_02207BE4_02207C64.c
-index 44913b4a98..7278d72572 100644
+index 44913b4a98e..7278d72572f 100644
 --- a/src/overlay_96_02204F20_02207BE4_02207C64.c
 +++ b/src/overlay_96_02204F20_02207BE4_02207C64.c
 @@ -19,6 +19,6 @@ void ov96_02207C64(PokeathlonCourseData *arg0) {
@@ -1353,7 +998,7 @@ index 44913b4a98..7278d72572 100644
          var_r5 = (u8 *)0x3FF;
          var_r5 = (u8 *)0x3E7;
 diff --git a/src/overlay_96_0220B7F4_0220C40C_0220C490.c b/src/overlay_96_0220B7F4_0220C40C_0220C490.c
-index 98330236db..66a50c8358 100644
+index 98330236dba..66a50c83585 100644
 --- a/src/overlay_96_0220B7F4_0220C40C_0220C490.c
 +++ b/src/overlay_96_0220B7F4_0220C40C_0220C490.c
 @@ -30,5 +30,5 @@ void ov96_0220C490(u32 *param_1, SpriteSystem *param_2, SpriteManager *param_3)
@@ -1371,7 +1016,7 @@ index 98330236db..66a50c8358 100644
          ManagedSprite_SetAnimateFlag(pMVar1, 1);
          iVar2 = iVar2 + 1;
 diff --git a/src/overlay_96_0221A56C_0221A56C.c b/src/overlay_96_0221A56C_0221A56C.c
-index b135058b46..b168a8b039 100644
+index b135058b46c..b168a8b0398 100644
 --- a/src/overlay_96_0221A56C_0221A56C.c
 +++ b/src/overlay_96_0221A56C_0221A56C.c
 @@ -6,5 +6,5 @@ void ov96_0221A56C(u32 param_1, u32 param_2);
@@ -1381,25 +1026,8 @@ index b135058b46..b168a8b039 100644
 +    uintptr_t fn = ov96_0221D9A0[param_2];
  
      ((void (*)(u32, u32, u32, u32))fn)(param_1, param_2, fn, param_2 << 2);
-diff --git a/src/overlay_99_021E5B7C_021E5BD8.c b/src/overlay_99_021E5B7C_021E5BD8.c
-index 0ee8a8c604..59075ea9ca 100644
---- a/src/overlay_99_021E5B7C_021E5BD8.c
-+++ b/src/overlay_99_021E5B7C_021E5BD8.c
-@@ -7,10 +7,10 @@ u16 ov99_021E5BD8(u32 *param_1, s32 param_2, s32 param_3);
- u16 ov99_021E5BD8(u32 *param_1, s32 param_2, s32 param_3) {
-     u16 *p;
--    u32 new_var;
-+    uintptr_t new_var;
-     if (param_1 == 0L) {
-         GF_AssertFail();
-     }
-     if (param_3 == 3) {
--        u32 off = param_2 * 0x2c;
-+        uintptr_t off = param_2 * 0x2c;
-         p = (u16 *)(off + (*param_1));
-         new_var = *param_1;
 diff --git a/src/overlay_mic_test.c b/src/overlay_mic_test.c
-index 5c0c6a44b1..213aea33ff 100644
+index 5c0c6a44b18..213aea33ff7 100644
 --- a/src/overlay_mic_test.c
 +++ b/src/overlay_mic_test.c
 @@ -766,5 +766,5 @@ static void ov62_021E61AC(MicTestInput *input, enum HeapID heapID, MICCallback a
@@ -1409,14 +1037,3 @@ index 5c0c6a44b1..213aea33ff 100644
 +    input->mic.buffer = (void *)(MATH_ROUNDUP32((uintptr_t)data));
      input->mic.size = 256;
      input->mic.rate = 0x1040;
-diff --git a/src/pokeathlon/pokeathlon_course.c b/src/pokeathlon/pokeathlon_course.c
-index a6987b7763..1988a5b38d 100644
---- a/src/pokeathlon/pokeathlon_course.c
-+++ b/src/pokeathlon/pokeathlon_course.c
-@@ -165,5 +165,5 @@ BOOL PokeathlonCourse_Main(OverlayManager *manager, int *state) {
-                 src = ov96_021E9A14();
-                 dest1 = data->dataCopyBuffer1; // Destination buffer 1
--                ov96_021E87B4(0x1B, dest1, src, (int)data->system);
-+                ov96_021E87B4(0x1B, dest1, src, (intptr_t)data->system);
- 
-                 dest1 = ov96_021E8A20(data->dataCopyBuffer2); // Destination buffer 2

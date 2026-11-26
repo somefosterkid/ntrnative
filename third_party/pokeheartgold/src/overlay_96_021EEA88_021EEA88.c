@@ -1,4 +1,5 @@
 #include "global.h"
+#include "sprite.h"
 
 s32 ov96_021EEA94(s32, s32, s32, s32);
 

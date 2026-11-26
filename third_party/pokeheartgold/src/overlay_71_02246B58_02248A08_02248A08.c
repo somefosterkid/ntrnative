@@ -247,9 +247,7 @@ void ov71_02248A08(TradeTubePhase *ttPhase) {
     NNSG2dImagePaletteProxy sp60;
     NNSG2dImageProxy sp3C;
     s32 sp18[9];
-    s32 sp14;
-    TradeTubePhase *var_r4;
-    s32 temp_r0;
+    s32 i;
     s32 temp_r5;
     s32 temp_r6;
 
@@ -262,19 +260,14 @@ void ov71_02248A08(TradeTubePhase *ttPhase) {
     GfGfxLoader_PartiallyLoadPalette(NARC_a_0_8_9, 0xE, NNS_G2D_VRAM_TYPE_2DSUB, 0U, HEAP_ID_57, &sp60);
     ov71_02247320(sp18, &ttPhase->animResources, &sp3C, &sp60, 1);
     SetMTRNGSeed(0x035947D1U);
-    sp14 = 0;
-    var_r4 = ttPhase;
-    do {
+    for (i = 0; i < 20; i++) {
         temp_r6 = (MTRandom() % 232U) + 0xC;
         temp_r5 = (MTRandom() % 452U) - 0x1C;
-        var_r4->sprites[0][0] = ov71_02247340(ttPhase->sequenceData, sp18, temp_r6, temp_r5, 0, 1);
-        var_r4->sprites[0][1] = ov71_02247340(ttPhase->sequenceData, sp18, temp_r6, temp_r5 + 0x38, 0, 1);
-        Sprite_SetAnimCtrlSeq(var_r4->sprites[0][0], 0);
-        Sprite_SetAnimCtrlSeq(var_r4->sprites[0][1], 1);
-        Sprite_SetDrawFlag(var_r4->sprites[0][0], 0);
-        Sprite_SetDrawFlag(var_r4->sprites[0][1], 0);
-        var_r4 = (void *)((u8 *)var_r4 + (8));
-        temp_r0 = sp14 + 1;
-        sp14 = temp_r0;
-    } while (temp_r0 < 0x14);
+        ttPhase->sprites[i][0] = ov71_02247340(ttPhase->sequenceData, sp18, temp_r6, temp_r5, 0, 1);
+        ttPhase->sprites[i][1] = ov71_02247340(ttPhase->sequenceData, sp18, temp_r6, temp_r5 + 0x38, 0, 1);
+        Sprite_SetAnimCtrlSeq(ttPhase->sprites[i][0], 0);
+        Sprite_SetAnimCtrlSeq(ttPhase->sprites[i][1], 1);
+        Sprite_SetDrawFlag(ttPhase->sprites[i][0], 0);
+        Sprite_SetDrawFlag(ttPhase->sprites[i][1], 0);
+    }
 }

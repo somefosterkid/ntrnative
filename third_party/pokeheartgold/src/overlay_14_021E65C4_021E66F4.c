@@ -51,7 +51,6 @@ s32 ov14_021E6814(UnkStruct_ov14_boxapp *arg0) {
     s16 pos[2];
     int i;
     u8 slot;
-    u8 *p;
     MoveSet *set = ((MoveSet *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_C);
     MoveEntry *e;
 
@@ -59,10 +58,9 @@ s32 ov14_021E6814(UnkStruct_ov14_boxapp *arg0) {
         e = set->e;
         for (i = 0; (u32)i < 7; i++, e++) {
             if (e->active != 0) {
-                p = (u8 *)(*((void * *)&arg0->sys)) + e->idx;
-                slot = p[0x4094];
+                slot = arg0->sys->unk_4094[e->idx];
                 ov14_021F2F88(e->arg, &pos[1], (s32 *)pos, arg0->unk22);
-                ManagedSprite_SetPositionXY(*(ManagedSprite **)((u8 *)(*((void * *)&arg0->sys)) + slot * 4 + 0x2FC), pos[1], pos[0]);
+                ManagedSprite_SetPositionXY(arg0->sys->sprites[slot], pos[1], pos[0]);
             }
         }
         return 0;
@@ -71,12 +69,11 @@ s32 ov14_021E6814(UnkStruct_ov14_boxapp *arg0) {
     set->frame++;
     for (i = 0; (u32)i < 7; i++, e++) {
         if (e->active != 0) {
-            p = (u8 *)(*((void * *)&arg0->sys)) + e->idx;
-            slot = p[0x4094];
+            slot = arg0->sys->unk_4094[e->idx];
             pos[1] = e->x0 + e->dx * ((set->frame * e->mulX) >> 16);
             pos[0] = e->y0 + e->dy * ((set->frame * e->mulY) >> 16);
-            ManagedSprite_SetPositionXY(*(ManagedSprite **)((u8 *)(*((void * *)&arg0->sys)) + slot * 4 + 0x2FC), pos[1], pos[0]);
-            ov14_021F31E0(*((void * *)&arg0->sys), e->idx, e->arg);
+            ManagedSprite_SetPositionXY(arg0->sys->sprites[slot], pos[1], pos[0]);
+            ov14_021F31E0(arg0->sys, e->idx, e->arg);
         }
     }
     return 1;

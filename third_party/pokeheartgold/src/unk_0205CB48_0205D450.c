@@ -1,12 +1,14 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "field_types_def.h"
 #include "player_avatar.h"
 #include "map_object.h"
+#include "pokemon_types_def.h"
 
 u32 sub_0205D450(PlayerAvatar *param_1, u32 param_2);
 
-s32 sub_0205DA1C(void *, LocalMapObject *, s32);
 s32 sub_0206234C(u32, s32);
 void sub_0205D494(void *arg0, LocalMapObject *arg1, int dir, u16 keyPad, u16 keyPress);
 

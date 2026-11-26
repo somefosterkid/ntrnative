@@ -539,3 +539,6 @@ staff_roll_main_data_ov181_021bace4	ov181	0x021bace4	0x021bad8c	s32*6
 zknsearch_obj_shape_setup	ov210	0x021c0978	0x021c0980	s16*2,u16,u8*2
 zknsearch_obj_shapeSub_setup	ov210	0x021c0990	0x021c0998	s16*2,u16,u8*2
 mystery_gift_data_sRibbonParams	ov010	0x02170068	0x021700a4	u32
+cg_help_data_ov124_021d4c04	ov124	0x021d4c04	0x021d4c24	u32
+bsubway_scr_data_ov021_021dacdc	ov021	0x021dacdc	0x021dad22	u8*10
+ov221_021b9dd4_data_ov221_021ba220	ov221	0x021ba220	0x021ba250	u32

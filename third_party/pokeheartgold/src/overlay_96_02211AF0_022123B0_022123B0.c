@@ -9,7 +9,11 @@ void ov96_021EB52C(s16 *param_1, s32 param_2, s32 param_3);
 
 void ov96_021EB564(void *param_1, s32 param_2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_02214258(Ov96App_02210C98 *param_1, s32 param_2, u8 param_3, u8 param_4);
+#else
 void ov96_02214258(Ov96App_02210C98 *param_1, s32 param_2, s32 param_3, s32 param_4);
+#endif
 
 void ov96_022123B0(Ov96App_02210C98 *param_1, s32 param_2, s32 param_3, u32 param_4, u8 param_5, u8 param_6);
 

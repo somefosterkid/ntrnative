@@ -8,7 +8,7 @@ void ov83_022451B8(s32 netID, s32 unused, void *data, void *context);
 
 void ov83_02245210(void *arg0, u16 arg1);
 
-void ov83_02244D0C(void *, u32, u32);
+void ov83_02244D0C(BattleCastleOpponentApp *arg0, u32, u32);
 void ov83_02245220(u32 param_1, u32 param_2, void *param_3, struct BattleCastleOpponentApp *param_4);
 
 void ov83_02245248(struct BattleCastleOpponentApp *arg0);

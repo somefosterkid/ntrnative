@@ -6,18 +6,14 @@
 #include "overlay_07_battle_anim_funcs.h"
 #include "overlay_07_shake_bg_context.h"
 
+// the layout of PixelatePokemonSpriteContext (overlay_07_02223240_02225F94_02225F94.c)
 typedef struct UnkStruct_ov07_02225F18_ptr {
-    u8 unk_0[0x4];
-    void *unk_4;
-    u8 unk_8[0x4];
-    SpriteManager *unk_C;
-    u8 unk_10[0xC];
-    ManagedSprite *unk_1C;
-    s16 unk_20;
-    u8 unk_22[0x2];
-    s32 unk_24;
-    s32 unk_28;
-    s32 unk_2C;
+    BattleAnimScriptFuncCommon common;
+    ManagedSprite *sprite;
+    s16 scaleStep;
+    int scaleX;
+    int scaleY;
+    int targetScale;
 } UnkStruct_ov07_02225F18_ptr;
 
 void ov07_02225E9C(BattleAnimSystem *system);
@@ -56,34 +52,34 @@ void ov07_02225F18(SysTask *arg0, void *param) {
     s32 v3;
     s32 v4;
 
-    v0 = ptr->unk_2C;
-    v4 = ptr->unk_24;
-    if ((v4 == v0) || (ptr->unk_28 == v0)) {
-        ov07_0221C448(ptr->unk_4, arg0);
+    v0 = ptr->targetScale;
+    v4 = ptr->scaleX;
+    if ((v4 == v0) || (ptr->scaleY == v0)) {
+        ov07_0221C448(ptr->common.battleAnimSys, arg0);
         Heap_Free(ptr);
         return;
     }
-    v1 = ptr->unk_20;
+    v1 = ptr->scaleStep;
     if ((s32)v1 < 0) {
         v2 = v4 + v1;
         if (v2 > 0) {
-            ptr->unk_24 = v2;
-            ptr->unk_28 = (s32)(ptr->unk_28 + ptr->unk_20);
+            ptr->scaleX = v2;
+            ptr->scaleY = (s32)(ptr->scaleY + ptr->scaleStep);
         } else {
-            ptr->unk_24 = v0;
-            ptr->unk_28 = (s32) ptr->unk_2C;
+            ptr->scaleX = v0;
+            ptr->scaleY = (s32) ptr->targetScale;
         }
     } else {
         v3 = v4 + v1;
         if (v3 < 0xF) {
-            ptr->unk_24 = v3;
-            ptr->unk_28 = (s32)(ptr->unk_28 + ptr->unk_20);
+            ptr->scaleX = v3;
+            ptr->scaleY = (s32)(ptr->scaleY + ptr->scaleStep);
         } else {
-            ptr->unk_24 = v0;
-            ptr->unk_28 = (s32) ptr->unk_2C;
+            ptr->scaleX = v0;
+            ptr->scaleY = (s32) ptr->targetScale;
         }
     }
-    ManagedSprite_TickFrame(ptr->unk_1C);
-    *((s8 *)REG_MOSAIC_ADDR + 1) = ptr->unk_24 | (ptr->unk_28 * 0x10);
-    SpriteSystem_DrawSprites(ptr->unk_C);
+    ManagedSprite_TickFrame(ptr->sprite);
+    *((s8 *)REG_MOSAIC_ADDR + 1) = ptr->scaleX | (ptr->scaleY * 0x10);
+    SpriteSystem_DrawSprites(ptr->common.pokemonSpriteManager);
 }

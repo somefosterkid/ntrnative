@@ -10,7 +10,6 @@ void ov18_021EE3AC(PokedexAppData *, MsgData *, u32, s32, u32, u32, u32, u32, u3
 
 s32 ov18_021F09D8(PokedexAppData *, s32);
 
-void sub_02019B1C(UnkStruct_0201956C *, u32, u8 *, s8 *);
 
 void ov18_021F0B70(PokedexAppData *pokedexApp, int a1) {
     s32 iVar1;

@@ -22,7 +22,6 @@ struct BattleHallApp;
 
 struct BattleHallAppSprite;
 
-struct BattleHallAppSpriteManager;
 
 struct G2dRenderer;
 
@@ -41,14 +40,6 @@ struct ListMenuItem;
 struct Window;
 
 u8 sub_02030BD0(u8 idx, u8 *typeRanks);
-
-typedef struct BattleHallAppSpriteManager {
-    u8 unk_0[4];
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 

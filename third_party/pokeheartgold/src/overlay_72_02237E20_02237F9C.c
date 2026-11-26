@@ -103,7 +103,6 @@ enum WifiBattleTowerLoopState {
 
 void ov72_022378DC(void);
 
-int ov73_021E84D0(WifiBattleTowerAppState *appState, int unused);
 
 int WifiBattleTower_ScreenMain(WifiBattleTowerAppState *appState, int unused);
 

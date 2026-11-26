@@ -18,7 +18,7 @@ struct BattleFactory;
 
 void ov80_02237130(struct BattleFactory *factory);
 
-void ov80_022371B0(s32 param_1);
+void ov80_022371B0(struct BattleFactory *factory);
 
 BOOL ov80_02237254(u8 challengeType);
 BOOL ov80_02237254(u8 challengeType);

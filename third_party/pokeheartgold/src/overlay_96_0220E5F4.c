@@ -6,9 +6,9 @@
 #include "sprite_system.h"
 #include "overlay_96_unk_struct_ov96_0220e3f0.h"
 
-u32 ov96_0220E5F4(PokeathlonCourseData *param_1);
+BOOL ov96_0220E5F4(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_0220E5F4(PokeathlonCourseData *param_1) {
+BOOL ov96_0220E5F4(PokeathlonCourseData *param_1, int unused) {
     UnkStruct_ov96_0220E3F0 *pvVar1;
 
     pvVar1 = PokeathlonCourse_GetHeapAllocPtr4(param_1);

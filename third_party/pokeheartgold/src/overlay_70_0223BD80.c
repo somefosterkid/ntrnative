@@ -31,7 +31,7 @@ void ov70_0223BD90(void *arg0, u32 arg1) {
         species = ((GTSApplicationState *)arg0)->searchRequirements.species;
         if (species != 0) {
             ((GTSApplicationState *)arg0)->speciesMenuState->selectedSpeciesGenderRatio = GetMonBaseStat((s32)species, 0x12);
-            if (ov70_0223EDE4(arg0 + 0xB8A, ((GTSApplicationState *)arg0)->speciesMenuState->selectedSpeciesGenderRatio) != 0) {
+            if (ov70_0223EDE4(&((GTSApplicationState *)arg0)->searchRequirements.species, ((GTSApplicationState *)arg0)->speciesMenuState->selectedSpeciesGenderRatio) != 0) {
                 PlaySE(0x5DCU);
                 return;
             }

@@ -16,13 +16,11 @@ s32 ov96_021E661C(void *arg0);
 s32 ov96_021E637C(void *arg0);
 
 void ov96_021E6454(void *arg0, s32 arg1);
-void ov96_021E64B8(void *arg0);
+void ov96_021E64B8(PokeathlonCourseData *arg0);
 void ov96_021E81D8(SysTask *task, void *data);
 Sprite *ov96_021EA7A4(UnkStruct_ov96_021E9A78 *, SpriteList *, s32, s32);
-s32 ov96_021E64F8(void *arg0, void *arg1, UnkStruct_ov96_021E9A78 *arg2, void *arg3, s32 arg4);
-void ov96_021E6550(void *param_1);
-void ov96_021E658C(void *param_1, s32 param_2, s32 param_3);
-void ov96_021E65A4(void *param_1);
+Sprite *ov96_021E64F8(PokeathlonCourseData *arg0, void *arg1, UnkStruct_ov96_021E9A78 *arg2, SpriteList *arg3, s32 arg4);
+void ov96_021E658C(PokeathlonCourseData *param_1, s32 param_2, s32 param_3);
 void ov96_021E6670(void *arg0, s32 arg1);
 
 s32 ov96_021E637C(void *arg0) {
@@ -89,14 +87,31 @@ void ov96_021E6454(void *arg0, s32 arg1) {
     Sprite_SetDrawFlag(((PokeathlonCourseData *)arg0)->hud.unk_C, 0);
 }
 
-void ov96_021E64B8(void *arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E64B8(PokeathlonCourseData *arg0) {
+    u8 v1;
+
+    v1 = 0;
+    arg0->unk_D30 = 0;
+    do {
+        if (arg0->spriteSlots[v1].active != 0) {
+            GF_AssertFail();
+        }
+        arg0->spriteSlots[v1].unk_4 = NULL;
+        arg0->spriteSlots[v1].sprite = NULL;
+        arg0->spriteSlots[v1].task = NULL;
+        v1 += 1;
+    } while ((u32)v1 < 3U);
+}
+#else
+void ov96_021E64B8(PokeathlonCourseData *arg0) {
     u8 v1;
     void *v0;
 
     v1 = 0;
-    ((PokeathlonCourseData *)arg0)->unk_D30 = 0;
+    arg0->unk_D30 = 0;
     do {
-        v0 = arg0 + (v1 * 0x10);
+        v0 = (u8 *)arg0 + (v1 * 0x10);
         if (*(s32 *)((u8 *)v0 + 0xD34) != 0) {
             GF_AssertFail();
         }
@@ -106,36 +121,55 @@ void ov96_021E64B8(void *arg0) {
         v1 += 1;
     } while ((u32)v1 < 3U);
 }
+#endif
 
-s32 ov96_021E64F8(void *arg0, void *arg1, UnkStruct_ov96_021E9A78 *arg2, void *arg3, s32 arg4) {
+Sprite *ov96_021E64F8(PokeathlonCourseData *arg0, void *arg1, UnkStruct_ov96_021E9A78 *arg2, SpriteList *arg3, s32 arg4) {
     u32 v0;
     u32 v1;
-    void *v2;
-    void *v3;
+    PokeathlonCourseSpriteSlot *v2;
+    PokeathlonCourseSpriteSlot *v3;
 
-    v0 = *((u32 *)&((PokeathlonCourseData *)arg0)->unk_D30);
+    v0 = arg0->unk_D30;
     if (v0 >= 3U) {
         GF_AssertFail();
-        return 0;
+        return NULL;
     }
-    v3 = arg0 + 0xD34;
-    v1 = (u32)(v0 << 0x18) >> 0x14;
-    *(s32 *)(v3 + v1) = 1;
-    v2 = v3 + v1;
-    *(void **)((u8 *)v2 + 4) = arg1;
-    *(void **)((u8 *)v2 + 8) = ov96_021EA7A4(arg2, arg3, arg4, *((s32 *)&((PokeathlonCourseData *)arg0)->heapId));
-    *(SysTask **)((u8 *)v2 + 0xC) = SysTask_CreateOnMainQueue(ov96_021E81D8, v2, 1U);
-    *((u32 *)&((PokeathlonCourseData *)arg0)->unk_D30) = (u32)(*((u32 *)&((PokeathlonCourseData *)arg0)->unk_D30) + 1);
-    return *(s32 *)((u8 *)v2 + 8);
+    v3 = arg0->spriteSlots;
+    v1 = (u8)v0;
+    v3[v1].active = 1;
+    v2 = &v3[v1];
+    v2->unk_4 = arg1;
+    v2->sprite = ov96_021EA7A4(arg2, arg3, arg4, arg0->heapId);
+    v2->task = SysTask_CreateOnMainQueue(ov96_021E81D8, v2, 1U);
+    arg0->unk_D30 = arg0->unk_D30 + 1;
+    return v2->sprite;
 }
 
-void ov96_021E6550(void *param_1) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E6550(PokeathlonCourseData *param_1) {
+    u32 uVar1;
+    PokeathlonCourseSpriteSlot *iVar2;
+
+    uVar1 = 0;
+    do {
+        iVar2 = &param_1->spriteSlots[uVar1];
+        iVar2->active = 0;
+        iVar2->unk_4 = NULL;
+        iVar2->sprite = NULL;
+        SysTask_Destroy(iVar2->task);
+        iVar2->task = NULL;
+        uVar1 = uVar1 + 1 & 0xff;
+    } while (uVar1 < 3);
+    return;
+}
+#else
+void ov96_021E6550(PokeathlonCourseData *param_1) {
     u32 uVar1;
     void *iVar2;
 
     uVar1 = 0;
     do {
-        iVar2 = param_1 + uVar1 * 0x10;
+        iVar2 = (u8 *)param_1 + uVar1 * 0x10;
         *(u32 *)(iVar2 + 0xd34) = 0;
         *(u32 *)(iVar2 + 0xd38) = 0;
         *(u32 *)(iVar2 + 0xd3c) = 0;
@@ -145,19 +179,37 @@ void ov96_021E6550(void *param_1) {
     } while (uVar1 < 3);
     return;
 }
+#endif
 
-void ov96_021E658C(void *param_1, s32 param_2, s32 param_3) {
-    Sprite_TryChangeAnimSeq(*(Sprite **)(param_1 + param_2 * 0x10 + 0xd3c), param_3);
+void ov96_021E658C(PokeathlonCourseData *param_1, s32 param_2, s32 param_3) {
+    Sprite_TryChangeAnimSeq(param_1->spriteSlots[param_2].sprite, param_3);
     return;
 }
 
-void ov96_021E65A4(void *param_1) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E65A4(PokeathlonCourseData *param_1) {
+    u32 uVar1;
+    PokeathlonCourseSpriteSlot *iVar2;
+
+    uVar1 = 0;
+    do {
+        iVar2 = &param_1->spriteSlots[uVar1];
+        if (iVar2->active == 0) {
+            GF_AssertFail();
+        }
+        Sprite_SetAnimActiveFlag(iVar2->sprite, 0);
+        uVar1 = uVar1 + 1 & 0xff;
+    } while (uVar1 < 3);
+    return;
+}
+#else
+void ov96_021E65A4(PokeathlonCourseData *param_1) {
     u32 uVar1;
     void *iVar2;
 
     uVar1 = 0;
     do {
-        iVar2 = param_1 + uVar1 * 0x10;
+        iVar2 = (u8 *)param_1 + uVar1 * 0x10;
         if (*(s32 *)(iVar2 + 0xd34) == 0) {
             GF_AssertFail();
         }
@@ -166,6 +218,7 @@ void ov96_021E65A4(void *param_1) {
     } while (uVar1 < 3);
     return;
 }
+#endif
 
 void ov96_021E65D8(void *arg0) {
     u8 v0;

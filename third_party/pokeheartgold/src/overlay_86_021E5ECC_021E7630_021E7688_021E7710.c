@@ -4,12 +4,6 @@
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
 
-void ov86_021E71C0(void *);
-
-s32 ov86_021E723C(void *);
-
-s32 ov86_021E7688(void *, u32);
-
 s32 ov86_021E7710(FrontierRecordsApp *arg0);
 
 s32 ov86_021E7710(FrontierRecordsApp *arg0) {

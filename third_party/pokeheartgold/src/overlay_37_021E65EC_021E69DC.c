@@ -16,7 +16,11 @@ typedef struct {
     u8 unk_03;
 } UnkStruct_02095FE4;
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 BOOL sub_02037030(int cmd, const void *data, int size);
 

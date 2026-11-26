@@ -30,9 +30,9 @@ void ov91_02260370(UnkStruct_ov115_02263DF8 *param0, u32 param1);
 void ov91_02260334(void *arg0, u16 arg1) {
     if (((UnkStruct_ov115_02263DF8 *)arg0)->unk_212 != arg1) {
         if (arg1 == 1) {
-            sub_020181D4(arg0, arg0 + 0x198);
+            sub_020181D4(arg0, &((UnkStruct_ov115_02263DF8 *)arg0)->unk_198[0].fileDataRaw);
         } else {
-            sub_020181E0(arg0, arg0 + 0x198);
+            sub_020181E0(arg0, &((UnkStruct_ov115_02263DF8 *)arg0)->unk_198[0].fileDataRaw);
         }
         ((UnkStruct_ov115_02263DF8 *)arg0)->unk_212 = arg1;
     }

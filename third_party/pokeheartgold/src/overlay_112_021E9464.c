@@ -11,7 +11,6 @@ s32 ov112_021E9464(BoxPokemon *arg0);
 extern u8 ov112_021F397E;
 u32 ov112_021E9480(u32 arg0, s32 arg1, u16 arg2);
 extern u32 ov112_021F4138;
-void ov112_021E95A0(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021E9464(BoxPokemon *boxMon) {
     return Boxmon_GetIconNaix(boxMon) - 7;

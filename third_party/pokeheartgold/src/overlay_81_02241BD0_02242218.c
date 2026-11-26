@@ -8,7 +8,7 @@
 #include "pokemon.h"
 #include "pokemon_icon_idx.h"
 
-s32 ov81_022409B0(void *, void *, s32, s32, s32, u8, u8, u8, u8, Party *);
+void ov81_022409B0(void *, void *, s32, s32, s32, u8, u8, u8, u8, Party *);
 
 void ov81_02242D88(BattleFactoryAppPanelSprite *panelSprite, BOOL draw);
 

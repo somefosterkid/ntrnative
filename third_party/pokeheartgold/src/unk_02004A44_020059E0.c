@@ -4,7 +4,11 @@
 
 void sub_020059E0(u8 param_1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02005A10(u8, u16, s32, s32, u8, void *);
+#else
 s32 sub_02005A10(s32, s32, s32, s32, s32, void *);
+#endif
 void GF_NowStartMusicId(s32 arg0, s32 arg1, s32 arg2, s32 arg3, void *arg4);
 
 void sub_020059E0(u8 param_1) {

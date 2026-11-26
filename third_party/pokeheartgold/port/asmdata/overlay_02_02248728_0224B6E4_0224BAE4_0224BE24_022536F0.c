@@ -28,7 +28,6 @@ extern char ov02_0224C6DC[];
 extern char ov02_0224C71C[];
 extern char ov02_0224C75C[];
 extern char ov02_0224C7D4[];
-extern char ov02_0224C840[];
 extern char ov02_0224C87C[];
 extern char ov02_0224C8D0[];
 extern char ov02_0224C93C[];

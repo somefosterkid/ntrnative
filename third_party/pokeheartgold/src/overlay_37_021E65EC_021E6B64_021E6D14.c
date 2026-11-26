@@ -8,7 +8,11 @@
 #include "render_window.h"
 #include "unk_0200A090.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 PlayerProfile *sub_02034818(int netId);
 

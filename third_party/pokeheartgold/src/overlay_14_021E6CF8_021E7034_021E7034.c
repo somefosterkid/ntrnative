@@ -32,7 +32,7 @@ void ov14_021E7034(void *param_1, u32 param_2, s32 param_3) {
         iVar3->e[0].idx = param_2;
         iVar3->e[0].arg = param_2;
         iVar3->e[0].active = 1;
-        ov14_021E6B48(param_1, iVar3);
+        ov14_021E6B48(param_1, &iVar3->e[0]);
         return;
     }
     iVar3->from = param_2;

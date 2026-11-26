@@ -13,7 +13,11 @@
 #include "overlay_96_app_02210C98.h"
 #include "overlay_96_ov96_course_hud.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov96_021E8318(PokeathlonCourseData *, s16);
+#else
 s32 ov96_021E8318(PokeathlonCourseData *, s32);
+#endif
 
 s32 ov96_022136A4(Ov96App_02210C98 *, s32);
 

@@ -27,9 +27,15 @@ typedef struct GpuU {
   uint32_t uZero;
   int32_t uFirst, uPart, uN, uR;
   float aLuma;
-  uint32_t uHiPrec; /* (std140: the block's size is a multiple of 16; this field took the pad's place) */
+  uint32_t uHiPrec;
+  /* pass C: a captured bank shown as a BG at N x (g07_set_capbg) */
+  uint32_t cCapBg;
+  int32_t cCapOx, cCapOy, cCapY0, cCapY1;
+  uint32_t cCapSer;
+  uint32_t uExp;  /* pass R: GpuOptions.exp (GPU_EXP_*) */
+  uint32_t uPad1; /* (std140: the block's size is a multiple of 16) */
 } GpuU;
 
-_Static_assert(sizeof(GpuU) == 816, "GpuU: std140 layout of shaders/g00_head.glsl's block");
+_Static_assert(sizeof(GpuU) == 848, "GpuU: std140 layout of shaders/g00_head.glsl's block");
 
 #endif

@@ -3,6 +3,7 @@
 #include "heap.h"
 #include "overlay_43.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "overlay_manager.h"
 #include "poke_overlay.h"
 #include "system.h"
@@ -14,8 +15,6 @@ s32 ov43_0222A290(void *, void *, s32);
 s32 ov43_0222A48C(void *, void *, s32);
 
 void ov43_0222AE5C(PalPadMenu *, PalPadShared *, PalPadGfx *, enum HeapID);
-
-s32 ov43_0222B5A8(void *, void *, void *, s32);
 
 s32 ov43_0222CBAC(void *, void *, void *, s32);
 
@@ -36,7 +35,7 @@ BOOL PalPad_Init(OverlayManager *man, int *state) {
     ov43_0222A290(&work->shared, work->args, 0x33);
     ov43_0222A48C(&work->gfx, &work->shared, 0x33);
     ov43_0222AE5C(&work->menu, &work->shared, &work->gfx, HEAP_ID_51);
-    ov43_0222B5A8(&work->roster, &work->shared, &work->gfx, 0x33);
+    ov43_0222B5A8(&work->roster, &work->shared, &work->gfx, HEAP_ID_51);
     ov43_0222CBAC(&work->naming, &work->shared, &work->gfx, 0x33);
     ov43_0222CD90(&work->friendCode, &work->shared, &work->gfx, 0x33);
     ov43_0222D134(&work->details, &work->shared, &work->gfx, 0x33);

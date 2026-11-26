@@ -49,6 +49,8 @@ public final class SettingsScreen {
     static native void nativePerfTest();
     static native void nativeRestart();
     static native void nativeGames();
+    static native boolean nativeSaveFirstPossible();
+    static native void nativeSaveFirst(int then);
 
     // ---- the rows (ios_settings.m's BWRow) ----------------------------------------------------------------------------------------
 
@@ -139,7 +141,7 @@ public final class SettingsScreen {
         Section rendering = section("Rendering",
                 menu("renderer", "Renderer", new String[] {"Auto", "CPU (vcore)", "GPU"}, new int[] {0, 1, 2}, null),
                 menu("resolution", "Resolution", res, resv, ress),
-                menu("antialias", "Antialiasing", new String[] {"Off", "4 samples", "SMAA"}, new int[] {0, 1, 2}, null),
+                menu("antialias", "Antialiasing", new String[] {"Off", "Smooth edges", "4 samples (lite)", "4 samples", "SMAA"}, new int[] {0, 3, 4, 1, 2}, null),
                 menu("renderer3d", "3D renderer", new String[] {"Exact", "Fast"}, new int[] {0, 1},
                      new String[] {"The DS's 3D bit for bit", "The GPU's own rasterizer: much cheaper, slightly off at polygon edges"}),
                 menu("texsmooth", "Texture smoothing", new String[] {"Off", "Bilinear", "Mipmaps"}, new int[] {0, 1, 2}, null),
@@ -239,6 +241,18 @@ public final class SettingsScreen {
     private SettingsScreen(Activity a) {
         mAct = a;
         mDp = a.getResources().getDisplayMetrics().density;
+    }
+
+    /**
+     * Called from the game's thread (port/src/android_settings.c) when its 10 s wait for the dialog ran out and the game goes on: takes
+     * the dialog down, also one whose show() is still queued (runOnUiThread runs in order, so this comes after it).
+     */
+    public static void dismiss(final Activity act) {
+        act.runOnUiThread(() -> {
+            if (sCurrent != null && sCurrent.mDialog != null) {
+                sCurrent.mDialog.dismiss();
+            }
+        });
     }
 
     /** Called from the game's render thread (port/src/android_settings.c) when the touch menu button was pressed. */
@@ -575,29 +589,48 @@ public final class SettingsScreen {
     // Restart to title: the game's own soft reset (L+R+START+SELECT) once the screen is closed. The app ends after the game's message:
     // port/src/reset.c; the next start is at the title.
     private void restartToTitle() {
-        new AlertDialog.Builder(mAct, android.R.style.Theme_Material_Dialog_Alert)
+        saveFirstButton(new AlertDialog.Builder(mAct, android.R.style.Theme_Material_Dialog_Alert)
             .setTitle("Restart to the title screen?")
-            .setMessage("Unsaved progress is lost. The game starts again at the title.")
+            .setMessage(saveFirstMessage("Unsaved progress is lost. The game starts again at the title."))
             .setNegativeButton("Cancel", null)
+            .setNeutralButton("Save first", (dialog, which) -> {
+                mDialog.dismiss();
+                nativeSaveFirst(0);
+            })
             .setPositiveButton("Restart", (dialog, which) -> {
                 mDialog.dismiss();
                 nativeRestart();
             })
-            .show();
+            .show());
+    }
+
+    // Save first (port/src/save_first.c, docs/save-first.md): the game's own save, what its menu's Save writes, then the leave. The
+    // native side waits for the game to run again and be free, saves, then presses the leave; greyed out where the game's menu would
+    // not offer Save, and if the game does not get free after all (3 s of its time) nothing is left and the game goes on.
+    private static String saveFirstMessage(String msg) {
+        return nativeSaveFirstPossible() ? msg : msg + "\n\nSave first: the game can't save here right now.";
+    }
+
+    private static void saveFirstButton(AlertDialog dlg) {
+        dlg.getButton(AlertDialog.BUTTON_NEUTRAL).setEnabled(nativeSaveFirstPossible());
     }
 
     // Games: the launcher after the game's own soft reset (port/src/restart_press.c bwport_press_games; reset.c ends this process and
     // LauncherActivity comes up). Unsaved progress is lost, as with Restart to title.
     private void toGames() {
-        new AlertDialog.Builder(mAct, android.R.style.Theme_Material_Dialog_Alert)
+        saveFirstButton(new AlertDialog.Builder(mAct, android.R.style.Theme_Material_Dialog_Alert)
             .setTitle("Go to the games?")
-            .setMessage("Unsaved progress is lost.")
+            .setMessage(saveFirstMessage("Unsaved progress is lost."))
             .setNegativeButton("Cancel", null)
+            .setNeutralButton("Save first", (dialog, which) -> {
+                mDialog.dismiss();
+                nativeSaveFirst(1);
+            })
             .setPositiveButton("Games", (dialog, which) -> {
                 mDialog.dismiss();
                 nativeGames();
             })
-            .show();
+            .show());
     }
 
     // libntr-ios-pace.patch: a fixed list of settings, a few seconds each from where the player stands, a table in the log; the settings

@@ -37,6 +37,8 @@ PROGRAMS = [("g00_full.vert", "vert", "g00_full.vert", None)]
 for fs in ("g00_raster.frag", "g06_edgemap.frag", "g06_post.frag"):
     PROGRAMS += [(fs, "frag", fs, None), (fs + "#2", "frag", fs, 2)]
 PROGRAMS += [("g00_raster.frag#1f", "frag", "g00_raster.frag", 1), ("g00_raster.frag#2f", "frag", "g00_raster.frag", 2)]  # G_FILTER
+# Antialiasing=4 samples (lite): pass R without the DS's coverage windows (shaders/g03_pixel.glsl's R_LITE)
+PROGRAMS += [("g00_raster.frag#2" + f + "+R_LITE", "frag", "g00_raster.frag", 2) for f in ("", "f")]
 PROGRAMS += [("g06_post.frag#2+P_FAST", "frag", "g06_post.frag", 2)]  # pass P's first draw (shaders/g06_post.frag)
 PROGRAMS += [(fs, "frag", fs, None) for fs in ("g07_compose.frag", "g08_smaa_edge.frag", "g08_smaa_weight.frag",
                                                 "g08_smaa_blend.frag")]

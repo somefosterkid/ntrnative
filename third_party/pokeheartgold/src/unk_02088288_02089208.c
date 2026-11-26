@@ -16,10 +16,10 @@ s32 sub_0208B068(PokemonSummary *, s32);
 
 s32 sub_02089208(PokemonSummary *arg0);
 
-s32 sub_0208A9C4();
-s32 sub_020892F4(void);
-s32 sub_0208AA9C();
-s32 sub_02089308(void);
+s32 sub_0208A9C4(PokemonSummary *arg0);
+s32 sub_020892F4(PokemonSummary *arg0);
+s32 sub_0208AA9C(PokemonSummary *arg0);
+s32 sub_02089308(PokemonSummary *arg0);
 
 s32 sub_02089208(PokemonSummary *arg0) {
     s32 v0;
@@ -56,15 +56,15 @@ s32 sub_02089208(PokemonSummary *arg0) {
     }
 }
 
-s32 sub_020892F4(void) {
-    if (sub_0208A9C4() == 1) {
+s32 sub_020892F4(PokemonSummary *arg0) {
+    if (sub_0208A9C4(arg0) == 1) {
         return 0xC;
     }
     return 0xA;
 }
 
-s32 sub_02089308(void) {
-    if (sub_0208AA9C() == 1) {
+s32 sub_02089308(PokemonSummary *arg0) {
+    if (sub_0208AA9C(arg0) == 1) {
         return 2;
     }
     return 0xB;

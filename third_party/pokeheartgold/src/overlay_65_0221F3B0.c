@@ -5,6 +5,7 @@
 #include "party.h"
 #include "pokemon.h"
 #include "touchscreen_list_menu.h"
+struct TradeRoom;
 
 typedef struct UnkStruct_ov65_0221F3B0 {
     u8 unk_0[0x4];
@@ -27,7 +28,7 @@ extern s32 ov65_0221E270;
 
 s32 ov65_0221F3B0(UnkStruct_ov65_0221F3B0 *arg0);
 
-TouchscreenListMenu *ov65_0221E928(void *, s32, s32);
+TouchscreenListMenu *ov65_0221E928(struct TradeRoom *, s32, s32);
 u8 ov65_0221FB90(void *, s32, s32, MsgData *, MessageFormat *);
 extern s32 ov65_0221F4D4;
 s32 ov65_0221F3F4(void *arg0);

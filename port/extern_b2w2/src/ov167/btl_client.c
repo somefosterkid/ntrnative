@@ -5,11 +5,33 @@
 // (immune: PortRoute_BestMove, the game's own type effectiveness, BtlCalc_GetTypePairEffectiveness, no PP, disabled) with the
 // usable one that hurts it most, and switches to the first party member that has one when no move of the lead can hurt it.
 // The DS build never sees this file.
+// The battle sweep (tools/battle_sweep_bw.py, port/include/port_bw_sweep_battle.h): the send of the client's actions to the server,
+// the server's command reads and the party list's start go through the sweep's hooks (a no-op unless BWPORT_BW_TESTLIST is set).
+#include "battle/btl_client.h"
+#include "battle/btl_adapter.h"   // (its prototype is declared before the call sites are renamed)
+static BOOL (*const sPortSweepRealSend)(BtlAdapter *, const void *, u32) = BtlAdapter_SetReturnData;
+#define BtlAdapter_SetReturnData(adapter, data, size) PortSweep_Send(client, adapter, data, size)
+BOOL PortSweep_Send(BtlClient *client, BtlAdapter *adapter, const void *data, u32 size);
+#include "battle/btl_server_cmd.h"
+static u16 (*const sPortSweepRealReadCmd)(BtlServerCmdQueue *, u32 *) = BtlServerCmdQueue_Read;
+#define BtlServerCmdQueue_Read(que, args) PortSweep_ReadCmd(client, que, args)
+u16 PortSweep_ReadCmd(BtlClient *client, BtlServerCmdQueue *que, u32 *args);
+#include "battle/btlv.h"
+static void (*const sPortSweepRealPokeList)(BtlvCore *, const BtlvPokeListCmd *, s32, u16, BtlvPokeSelectParam *) =
+    BattleClientCmd_StartPokeList;
+#define BattleClientCmd_StartPokeList(core, cmd, idx, move, sel) PortSweep_PokeList(core, cmd, idx, move, sel)
+void PortSweep_PokeList(BtlvCore *core, const BtlvPokeListCmd *cmd, s32 idx, u16 move, BtlvPokeSelectParam *sel);
+#define PSW_MOVE_CMD SC_MOVE_MSG
+#define PSW_EXP_CMD SC_EXP_GAIN
+#define PSW_TARGET(client, mon, move) \
+    DecideMoveTargetAutoForClient((client)->mainModule, (client)->pokeCon, (mon), (move), &(client)->targetRand)
 #include "../../../../third_party/pokebw2/src/ov167/btl_client.c"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "port_route.h"
+#include "port_bw_sweep_battle.h"
 
 // the first opponent of mon's position that has not fainted (the game's own position expansion, never a random pick)
 static BattleMon *PortTarget(BtlClient *client, BattleMon *mon) {

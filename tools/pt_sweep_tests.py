@@ -48,6 +48,22 @@ class Tests(unittest.TestCase):
             self.assertEqual(pt_sweep.parse_maps('all', maps), [0, 1, 2])
             self.assertEqual(pt_sweep.parse_maps('1-9,411', maps), [1, 2, 411])
 
+    def test_needs_session(self):
+        self.assertIn('Union Room', pt_sweep.needs_session('466', 'crash'))   # the 11-25 sweep: sub_0205C820 <- ScrCmd_142 on map 466
+        self.assertIsNone(pt_sweep.needs_session('466', 'ok'))              # an ok run stays ok
+        self.assertIsNone(pt_sweep.needs_session('70', 'crash'))            # a real map stays a finding
+        with tempfile.TemporaryDirectory() as t:                            # an older 9-column sweep.tsv is reclassified by --summary
+            class A: out, save, frames = t, 'pt-x', 100
+            rows = ['\t'.join(pt_sweep.HEAD[:9]),
+                    '466\tMAP_HEADER_UNION_ROOM\tcrash\t1742\tsub_0205C820\tb8ccddc6\t\t\t39',
+                    '70\tMAP_HEADER_X\tcrash\t900\tfoo\t11111111\t\t\t5']
+            open(os.path.join(t, 'sweep.tsv'), 'w').write('\n'.join(rows) + '\n')
+            os.makedirs(os.path.join(t, 'maps', '70'))
+            pt_sweep.summarize(A, {466: ('MAP_HEADER_UNION_ROOM', None), 70: ('MAP_HEADER_X', None)})
+            groups = open(os.path.join(t, 'crash_groups.tsv')).read()
+            self.assertNotIn('sub_0205C820', groups)
+            self.assertIn('foo', groups)
+            self.assertIn('needs-session', open(os.path.join(t, 'sweep.tsv')).read())
     def test_walk(self):
         a, b = pt_sweep.walk_keys(342, 3000, 1800), pt_sweep.walk_keys(342, 3000, 1800)
         self.assertEqual(a, b)                                    # seeded by the map: the same every run

@@ -189,7 +189,6 @@ void *ov49_0225EF40(UnkStruct_ov70_02263344 *param0, u32 param1);
 
 void ov49_0225EF68(UnkStruct_ov70_02263344 *param0);
 
-void *GridInputHandler_IsButtonInputMode(UnkStruct_ov70_02263344 *param0);
 
 u32 ov70_02262E84(const UnkStruct_ov70_02263344 *param0);
 

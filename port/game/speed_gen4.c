@@ -69,10 +69,11 @@ int PortSpeed4_TextChars(void) {
 // Movement log: BWPORT_MOVELOG4=1 prints one line a tile the player's grid position changes (`move4:` the V-blank, the tile, the
 // V-blanks since the last change, the follower's tile and follow state, -1 = none, and `ends`: how many field frames so far saw the
 // player's step end, PLAYER_MOVE_STATE_END, the frames wild encounters and step counters run on) and one `move4f:` line a tile the
-// follower's changes; =2 also one line per V-blank the pixel position moves (the step's px). The route pilot's frame hook
-// (port/game/route_gen4.c, after the field's frame) calls it once a field frame; tools/speed4_measure.sh reads it.
-void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fstate, int moveState) {
-    static int mode = -1, lgx = -1, lgz = -1, lpx, lpz, lfgx = -1, lfgz = -1, ends;
+// follower's changes; =2 also one line per V-blank the player's or the follower's pixel position moves (px, fpx: -1 = none;
+// Platinum's follower is a partner trainer). The route pilot's frame hook (port/game/route_gen4.c, after the field's frame) calls it
+// once a field frame; tools/speed4_measure.sh reads it.
+void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fpx, int fpz, int fstate, int moveState) {
+    static int mode = -1, lgx = -1, lgz = -1, lpx, lpz, lfpx, lfpz, lfgx = -1, lfgz = -1, ends;
     static unsigned lvb;
     unsigned vb = OS_GetVBlankCount();
 
@@ -84,11 +85,13 @@ void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fs
     if (mode == 0) {
         return;
     }
-    if (mode >= 2 && (px != lpx || pz != lpz)) {
-        fprintf(stderr, "move4px: vb=%u px=%d,%d\n", vb, px, pz);
+    if (mode >= 2 && (px != lpx || pz != lpz || fpx != lfpx || fpz != lfpz)) {
+        fprintf(stderr, "move4px: vb=%u px=%d,%d fpx=%d,%d\n", vb, px, pz, fpx, fpz);
     }
     lpx = px;
     lpz = pz;
+    lfpx = fpx;
+    lfpz = fpz;
     ends += moveState == 3;
     if (gx != lgx || gz != lgz) {
         fprintf(stderr, "move4: vb=%u tile=%d,%d dt=%u follower=%d,%d state=%d ends=%d\n", vb, gx, gz, vb - lvb, fgx, fgz, fstate, ends);
@@ -107,9 +110,10 @@ void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fs
 // How many Gen 4 step actions faster the player's step is than the game's own: 0 = the game's (the default), 1 = the next faster
 // action (the setting's 2x), 2 = the one after (4x). The settings are Black's: WalkSpeed / SurfSpeed / RunSpeed hold 1, 2 or 4
 // (sim_config.ini, BWPORT_WALKSPEED / SURFSPEED / RUNSPEED, cfgscript walkspeed= / surfspeed= / runspeed=). Walk: WALK_NORMAL (8
-// frames a tile), WALK_FAST (4), WALK_FASTER (2); Surf (WALK_FAST, 4) and Run (4 frames) stop at 2 frames: a 1-frame step (WALK_FASTEST,
-// or the run remade at 16 px) leaves the game's step-end logic nothing to see and stops the Platinum Surf legs ver58 and ver62, so
-// their 4x is their 2x. The player's step pick asks once a step (Platinum player_move.c, HG/SS
+// frames a tile), WALK_FAST (4), WALK_FASTER (2); Surf (WALK_FAST, 4) stops at 2 frames: a 1-frame step (WALK_FASTEST) leaves the
+// game's step-end logic nothing to see and stops the Platinum Surf legs ver58 and ver62, so its 4x is its 2x. Run (4 frames) goes on
+// to a 1-frame step at 4x (the run remade at 16 px, its end reported by PortSpeed4_NoteRunStep below). The player's step pick asks
+// once a step (Platinum player_move.c, HG/SS
 // unk_0205CB48_0205D450_0205D4B4_0205D4B4.c) and swaps the action itself; only the player's own step is touched.
 static int PortSpeed4_Steps(const char *key, int max) {
     int v = SIM_UISettingGet(key);
@@ -145,9 +149,20 @@ int PortSpeed4_SurfSteps(void) {
 
 // Run: the same count for the RunSpeed setting; the run action itself (4 px a frame for 4 frames, the run animation) is remade by
 // the game's own Step0 for the player's object only (Platinum unk_020655F4.c, HG/SS unk_02062108_020626AC.c): 2x 8 px for 2
-// frames, 4x 16 px for 1 (the 1-frame step reports its end and keeps its animation: PortSpeed4_NoteStep1F below).
+// frames, 4x 16 px for 1 (each step keeps its run animation, and the 1-frame step reports its end: PortSpeed4_NoteRunStep below).
 int PortSpeed4_RunSteps(void) {
     return PortSpeed4_Steps("runspeed", 2);
+}
+
+// How many times a field frame the map loader's tracker looks at the player's position (Platinum land_data.c LandDataManager_Tick,
+// HG/SS MapLoadManager_Tick): the game's once, twice at Run 4x. The tracker needs a look when a step starts (a step into another
+// quarter of a map queues the maps beyond it) and one when the player is a whole tile on (the tile and quarter it is in); the
+// 1-frame step is a whole tile in one frame, so with one look only every other tile's start was seen, and a step into a new quarter
+// seen only at its end left the maps beyond unloaded: the player's tiles were read from the map beside them (ss Cherrygrove 559 ->
+// 560 east: the sea's behaviour and height, so the player sank, could only turn and met Surf encounters). A second look at a
+// longer step sees what the first saw and does nothing.
+int PortSpeed4_TrackLooks(void) {
+    return PortSpeed4_RunSteps() == 2 ? 2 : 1;
 }
 
 // What a following object (Platinum's unk_02069BE0.c, HG/SS's follower) adds to the walk action 0x10 (WALK_FAST: what it copies the
@@ -162,32 +177,63 @@ int PortSpeed4_FollowRunAdd(void) {
     return 0;
 }
 
-// The player's 1-frame step (Run 4x). It starts and ends inside one map-object update, so (1) the player's move-state observer
-// (Platinum player_move.c PlayerAvatar_UpdatePlayerMoveState, HG/SS PlayerAvatar_UpdateMovement) only sees it finished and never
-// reports its end, which wild encounters, step counters and the follower wait for, and (2) its animation is set and reset to 0 in
-// the same update, so the sprite would be drawn standing. The run's Step0 notes it here; the observer takes the flag
-// (PortSpeed4_TakeStep1F: report END), and the map object's animation getter (Platinum map_object.c sub_02062A14, HG/SS
-// sub_0205F330) returns the step's animation while the V-blank is that of the step or the one after (PortSpeed4_Step1FAnim; the
-// field runs at 30 fps, so a step every field frame keeps it). Black's pattern: port/extern/src/ov021/field_player_core.c and
-// field_rail_loader.c.
-static int sStep1F;
-static const void *sStep1FObj;
-static u32 sStep1FAnim, sStep1FVBlank;
+// The player's faster run step (Run 2x: 2 frames, 4x: 1), noted by the run's Step0 (PortSpeed4_NoteRunStep). (1) The 1-frame step
+// starts and ends inside one map-object update, so the player's move-state observer (Platinum player_move.c
+// PlayerAvatar_UpdatePlayerMoveState, HG/SS PlayerAvatar_UpdateMovement) only sees it finished and never reports its end, which wild
+// encounters, step counters and the follower wait for: the observer takes the flag (PortSpeed4_TakeStep1F: report END). (2) A run
+// step sets its animation (the run's 9) and back to 0 at its end. The sprite code reads that 0 in the step's last frame as the pause
+// between two steps, and the next step's run animation goes back to a multiple of 4 of its frames (HG/SS ov01_021F829C's
+// ov01_021F8C3C, Platinum's alike), which the game's 4-frame step always reaches: at 2x (2 frames a step) the run's first pose was
+// drawn for good, and at 4x (set and reset in one update) the player was drawn standing. The map object's animation getter
+// (Platinum map_object.c sub_02062A14, HG/SS sub_0205F330) returns the step's animation through the step's frames
+// (PortSpeed4_RunStepAnim; the field runs at 30 fps, 2 V-blanks a frame), so a run of steps is one run animation; when the player
+// stops, the next frame reads 0. Black's pattern: port/extern/src/ov021/field_player_core.c and field_rail_loader.c. (3) A
+// following object (HG/SS's Pokemon: sub_02065DF4, sub_02065F44, PortSpeed4_FollowBehind; Platinum's partner: unk_02069BE0.c
+// sub_02069D8C) steps to the player's previous tile, read in its own update, which runs after the player's (map_object.c
+// MapObjectMan_AddMoveTask: a follower's task priority + 2). A longer step is under way there, its previous tile the one it left;
+// the 1-frame step has ended, and a step's end sets the previous tile to the current one (sub_02060F78, Platinum
+// MapObject_UpdateCoords), so the follower stepped toward the player's own tile: after a turn from north/south to east/west a
+// diagonal, taken as an east/west step and finished by HG/SS's step-again rule in the same frame (onto the player's tile, drawn as
+// one diagonal move); Platinum's partner stayed on the player's tile once on it. The player's previous-tile getter (HG/SS
+// PlayerAvatar_GetPreviousXCoord / ZCoord, Platinum PlayerAvatar_XPosPrev / ZPosPrev; only the follow code calls them) returns the
+// tile the 1-frame step left until the next frame's observer takes the step, while the player stands on the tile it reached
+// (PortSpeed4_Step1FPrev): what a longer step's previous tile reads through its frames.
+static int sStep1F, sStep1FFromX, sStep1FFromZ, sStep1FToX, sStep1FToZ;
+static const void *sRunObj;
+static u32 sRunAnim, sRunFrames, sRunVBlank;
 
-void PortSpeed4_NoteStep1F(void *mapObj, u32 anim) {
-    sStep1F = 1;
-    sStep1FObj = mapObj;
-    sStep1FAnim = anim;
-    sStep1FVBlank = OS_GetVBlankCount();
+void PortSpeed4_NoteRunStep(void *mapObj, u32 anim, int frames, int fromX, int fromZ, int toX, int toZ) {
+    // (the flag of a 1-frame step the observer never took, a warp or cutscene right after it, is stale a few V-blanks on)
+    if (OS_GetVBlankCount() - sRunVBlank >= 4) {
+        sStep1F = 0;
+    }
+    if (frames == 1) {
+        sStep1F = 1;
+        sStep1FFromX = fromX;
+        sStep1FFromZ = fromZ;
+        sStep1FToX = toX;
+        sStep1FToZ = toZ;
+    }
+    sRunObj = mapObj;
+    sRunAnim = anim;
+    sRunFrames = frames;
+    sRunVBlank = OS_GetVBlankCount();
 }
 
 int PortSpeed4_TakeStep1F(void) {
-    int step = sStep1F;
+    int step = sStep1F && OS_GetVBlankCount() - sRunVBlank < 4;   // (an older one was never taken: no END to report now)
 
     sStep1F = 0;
     return step;
 }
 
-u32 PortSpeed4_Step1FAnim(const void *mapObj, u32 anim) {
-    return anim == 0 && mapObj == sStep1FObj && OS_GetVBlankCount() - sStep1FVBlank <= 1 ? sStep1FAnim : anim;
+void PortSpeed4_Step1FPrev(const void *mapObj, int x, int z, int *prevX, int *prevZ) {
+    if (sStep1F && mapObj == sRunObj && x == sStep1FToX && z == sStep1FToZ && *prevX == x && *prevZ == z) {
+        *prevX = sStep1FFromX;
+        *prevZ = sStep1FFromZ;
+    }
+}
+
+u32 PortSpeed4_RunStepAnim(const void *mapObj, u32 anim) {
+    return anim == 0 && mapObj == sRunObj && OS_GetVBlankCount() - sRunVBlank < 2 * sRunFrames ? sRunAnim : anim;
 }

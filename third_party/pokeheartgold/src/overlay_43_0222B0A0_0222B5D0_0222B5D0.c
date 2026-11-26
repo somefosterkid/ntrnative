@@ -3,6 +3,7 @@
 #include "constants/heap.h"
 
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "screen_fade.h"
 #include "system.h"
 #include "touchscreen.h"
@@ -16,24 +17,30 @@ void ov43_0222A318(PalPadShared *param0, s8 param1, s8 param2);
 void ov43_0222BB20(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 void ov43_0222BFD4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 BOOL ov43_0222C024(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
-void ov43_0222C378(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, s16 param3, u32 param4, u32 param5, enum HeapID heapID);
+
 void ov43_0222C600(PalPadRoster *param0);
 int ov43_0222B5D0(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 void ov43_0222A420(PalPadShared *param0);
 u32 ov43_0222BFA4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2);
 void ov43_0222C53C(PalPadRoster *param0, PalPadShared *param1, s16 param2);
 u32 ov43_0222C620(const PalPadRoster *param0);
-u32 ov43_0222C228(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
+
 void ov43_0222C148(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov43_0222A41C(PalPadShared *param0, s8 param1);
+#else
 void ov43_0222A41C(PalPadShared *param0, u32 param1);
+#endif
 void ov43_0222A414(PalPadShared *param0, const u16 *param1);
 void ov43_0222BBB8(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2);
 void ov43_0222C32C(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
-BOOL ov43_0222C358(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
+
 void ov43_0222C65C(PalPadRoster *param0, PalPadGfx *param1);
-BOOL ov43_0222C714(PalPadRoster *param0, PalPadGfx *param1);
-BOOL ov43_0222C2B0(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
-BOOL ov43_0222C5D8(const PalPadRoster *param0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+
+#else
+
+#endif
 void ov43_0222C750(PalPadRoster *param0, PalPadGfx *param1);
 void ov43_0222AD00(PalPadGfx *param0, BOOL param1);
 void ov43_0222C890(PalPadRosterPage *param0, PalPadGfx *param1, s32 param2, u32 param3);
@@ -98,7 +105,7 @@ int ov43_0222B5D0(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2,
         param1->subState = 6;
         break;
     case 6:
-        param1->subState = ov43_0222C228(param0, param1, param2, heapID);
+        param1->subState = ov43_0222C228(param0, param1, param2);
         break;
     case 7:
         param0->timer = 4;
@@ -153,7 +160,7 @@ int ov43_0222B5D0(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2,
         param1->subState = 16;
         break;
     case 16:
-        v0 = ov43_0222C358(param0, param1, param2, heapID);
+        v0 = ov43_0222C358(param0, param1, param2);
 
         if (v0 == 1) {
             param1->subState = 17;
@@ -205,7 +212,7 @@ int ov43_0222B5D0(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2,
         }
         break;
     case 22:
-        if (ov43_0222C5D8(param0) == 0) {
+        if (ov43_0222C5D8(param0, param1) == 0) {
             break;
         }
 

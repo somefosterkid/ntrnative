@@ -6,20 +6,20 @@
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
 
-s32 ov18_021F7444();
+void ov18_021F7444(PokedexAppData *pokedexApp, s32 target);
 
-void ov18_021F74B0(void);
+void ov18_021F74B0(PokedexAppData *pokedexApp, s32 target);
 
-void ov18_021F74B0(void) {
-    ov18_021F7444();
+void ov18_021F74B0(PokedexAppData *pokedexApp, s32 target) {
+    ov18_021F7444(pokedexApp, target);
     PlaySE(0x8E8U);
 }
 
-void ov18_021F74C4(void **arg0);
+void ov18_021F74C4(PokedexAppData *arg0, s32 target);
 
-void ov18_021F74C4(void **arg0) {
-    ov18_021F7444();
-    MenuInputStateMgr_SetState(*(MenuInputStateMgr **)((u8 *)(*arg0) + 0xC), MENU_INPUT_STATE_TOUCH);
+void ov18_021F74C4(PokedexAppData *arg0, s32 target) {
+    ov18_021F7444(arg0, target);
+    MenuInputStateMgr_SetState(arg0->args->menuInputStatePtr, MENU_INPUT_STATE_TOUCH);
 }
 
 s32 ov18_021F75C8(PokedexAppData *, s32);

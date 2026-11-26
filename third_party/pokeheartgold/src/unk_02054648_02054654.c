@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "unk_02054648.h"
+
 #include "field_system.h"
 #include "map_matrix.h"
 #include "overlay_01_021F4704.h"
@@ -15,7 +17,6 @@ fx32 ov01_021FB474(const u8 index, const DynamicTerrainHeightManager *dynamicTer
 
 s32 sub_02054648(s32, s32);
 
-s32 sub_02054654(const FieldSystem *fieldSystem, s32 arg1, s32 arg2, s32 arg3, s32 arg4, u8 *arg5);
 
 s32 sub_02054654(const FieldSystem *fieldSystem, s32 arg1, s32 arg2, s32 arg3, s32 arg4, u8 *arg5) {
     VecFx32 pos;

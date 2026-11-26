@@ -7,7 +7,11 @@ s32 ov12_0223A7A0(void);
 
 s32 ov12_02258DB0(BattleSystem *, OpponentData *, int, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov12_02265FD4(UnkBattleSystemSub17C *, BattleSystem *, s8, s8);
+#else
 void ov12_02265FD4(UnkBattleSystemSub17C *, BattleSystem *, s32, enum Terrain);
+#endif
 
 void ov12_022389B8(BattleSystem *arg0);
 

@@ -11,6 +11,9 @@
 #include "pokepic.h"
 #include "overlay_41_unk_struct_ov22_0225b1bc.h"
 #include "filesystem_files_def.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct Pokepic;
 struct PokepicDrawParam;
@@ -23,21 +26,6 @@ typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
 
 void ov80_0222C03C(UnkStruct_ov22_0225B1BC *param0, BOOL param1);
 

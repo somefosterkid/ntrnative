@@ -447,78 +447,6 @@ diff --git a/port/nonmatching/sub_02036BE4.c b/port/nonmatching/sub_02036BE4.c
 +    _021D4140.sCommunicationSystem->sendHeldKeys &= ~(PAD_KEY_LEFT | PAD_KEY_RIGHT | PAD_KEY_UP | PAD_KEY_DOWN);
 +    _021D4140.sCommunicationSystem->sendHeldKeys += newHeldKeys;
  }
-hg33 (crash 80, out of the front door into the town): sub_02062F48 (the emote movement's first step) sets up the map
-object's movement data with the DS size 8 for {int; OverworldAnimManager *} (16 bytes on the host) and stores the
-pointer at DS offset 4, where MapObjectMovementCmd075_Step1 reads it at host offset 8: EmoteMovementData, sizeof.
-Drop when upstream types it.
-Handover-ID: hg33-0001
-diff --git a/src/unk_02062108_02062F48_02062F48.c b/src/unk_02062108_02062F48_02062F48.c
-index 6dfecabcf..b8aafc7c3 100644
---- a/src/unk_02062108_02062F48_02062F48.c
-+++ b/src/unk_02062108_02062F48_02062F48.c
-@@ -3,13 +3,19 @@
- #include "map_object.h"
- #include "overlay_01_022001E4.h"
- 
-+// the emote movement's data: the same record MapObjectMovementCmd075_Step1 reads (unk_02062108_02062F6C.c)
-+typedef struct EmoteMovementData {
-+    int unk_00;
-+    OverworldAnimManager *unk_04;
-+} EmoteMovementData;
-+
- void sub_02062F48(LocalMapObject *arg0, s32 arg1);
- 
- void sub_02062F48(LocalMapObject *object, s32 a0) {
--    u8 *v0;
-+    EmoteMovementData *v0;
- 
--    v0 = sub_0205F3C0(object, 8);
--    *(s32 *)v0 = a0;
--    *(OverworldAnimManager **)((u8 *)v0 + 4) = ov01_02200540(object, a0, 1);
-+    v0 = (EmoteMovementData *)sub_0205F3C0(object, sizeof(EmoteMovementData));
-+    v0->unk_00 = a0;
-+    v0->unk_04 = ov01_02200540(object, a0, 1);
-     MapObject_IncrementMovementStep(object);
- }
-hbs1 (the test battle's start: SIGSEGV in BattleInput_CreateTextObject): sub_02013FA8 / sub_02013FC0 walk
-UnkStruct_02013034's list links (unk_0C / unk_10) at the DS offsets 0xC / 0x10 (host 0x10 / 0x18): the fields.
-Drop when upstream types them.
-Handover-ID: hbs1-0003
-diff --git a/src/unk_02013534_02013FA8.c b/src/unk_02013534_02013FA8.c
---- a/src/unk_02013534_02013FA8.c
-+++ b/src/unk_02013534_02013FA8.c
-@@ -10,14 +10,15 @@
- s32 sub_02013728();
- void sub_02013FD0(void *arg0, s32 arg1);
- 
-+// the list links are UnkStruct_02013034's unk_0C / unk_10 (DS offsets 0xC / 0x10; 0x10 / 0x18 on the host)
- void sub_02013FA8(void *arg0) {
-     void *v0;
-     void *v1;
- 
--    v1 = *(void **)((u8 *)arg0 + 0xC);
-+    v1 = ((UnkStruct_02013034 *)arg0)->unk_0C;
-     if (v1 != arg0) {
-         do {
--            v0 = *(void **)((u8 *)v1 + 0xC);
-+            v0 = ((UnkStruct_02013034 *)v1)->unk_0C;
-             sub_02013F94(v1);
-             v1 = v0;
-         } while (v0 != arg0);
-@@ -25,10 +26,10 @@
- }
- 
- void sub_02013FC0(UnkStruct_02013034 *arg0, void *arg1) {
--    *((void * *)&arg0->unk_0C) = (void *)*(void **)((u8 *)arg1 + 0xC);
-+    *((void * *)&arg0->unk_0C) = (void *)((UnkStruct_02013034 *)arg1)->unk_0C;
-     *((void * *)&arg0->unk_10) = arg1;
--    *(void **)((u8 *)(*(void **)((u8 *)arg1 + 0xC)) + 0x10) = arg0;
--    *(void **)((u8 *)arg1 + 0xC) = arg0;
-+    *((void * *)&((UnkStruct_02013034 *)((UnkStruct_02013034 *)arg1)->unk_0C)->unk_10) = arg0;
-+    *((void * *)&((UnkStruct_02013034 *)arg1)->unk_0C) = arg0;
- }
- 
- void sub_02013FD0(void *arg0, s32 arg1) {
 rv5 (2026-11-18, 766902128): the pin's include/pokeathlon/pokeathlon.h declares ov96_021E60D8 as returning PokeathlonMonKinds * (the
 Pokeathlon pass), and three port/nonmatching files the decomp does not build (ov96_021F1614, ov96_021FA0E8, ov96_021FBBB4) kept a
 prototype of their own with another return type: "conflicting types". Their prototypes are dropped (the header's applies; the one
@@ -550,268 +478,6 @@ diff --git a/port/nonmatching/ov96_021FBBB4.c b/port/nonmatching/ov96_021FBBB4.c
 -      mon = ov96_021E60D8(data, i, j);
 +      mon = (u8 *) ov96_021E60D8(data, i, j);
        entry->unk10 = ((f32) stats[mon[1] + 15]) / 10.0f;
-rv5 (2026-11-18, 766902128; the sweep's pc-* and x-dex plays, SIGSEGV at frames 2698 / 3108): two more raw DS offsets, both found by the
-crashes. ov14_021F2EA0 read the character data's pixel pointer at DS +0x14 of NNSG2dCharacterData (it is at +0x18 on the host: the PC
-box's first icon load, GX_LoadOBJ from a bad source); ov18_021F4A6C read the Pokedex app's PlayerProfile at DS +4 of its PokedexArgs
-(+8 on the host: PlayerProfile_GetTrainerGender on a wild pointer, the screen's first frame). Typed. Drop when upstream types them.
-Handover-ID: none (port-only)
-diff --git a/src/overlay_14_021F2E78.c b/src/overlay_14_021F2E78.c
---- a/src/overlay_14_021F2E78.c
-+++ b/src/overlay_14_021F2E78.c
-@@ -22,3 +22,3 @@
-     ptr = ov14_021F2DC4(*((void **)&arg0->sys), boxMon, &v0);
--    ov14_021F2E78(arg0->sys, *(u8 **)((u8 *)v0 + 0x14), arg2, Boxmon_GetIconPalette(boxMon));
-+    ov14_021F2E78(arg0->sys, ((NNSG2dCharacterData *)v0)->pRawData, arg2, Boxmon_GetIconPalette(boxMon));
-     Heap_Free(ptr);
-diff --git a/src/overlay_18_021F3FDC_021F4A6C.c b/src/overlay_18_021F3FDC_021F4A6C.c
---- a/src/overlay_18_021F3FDC_021F4A6C.c
-+++ b/src/overlay_18_021F3FDC_021F4A6C.c
-@@ -20,3 +20,3 @@
-     SpriteSystem_LoadAnimResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x71, 1, 0xC55B);
--    if (PlayerProfile_GetTrainerGender(*(PlayerProfile **)((u8 *)(*(void **)arg0) + 4)) == 0) {
-+    if (PlayerProfile_GetTrainerGender(((PokedexAppData *)arg0)->args->playerProfile) == 0) {
-         SpriteSystem_LoadCharResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x69, 1, 1, 0xC59B);
-hgfly1 (F:fly on HG, after hgfly1-0001: SIGSEGV in sub_02023FB0 <- ov01_02203654 <- sub_02068D18, the follower's Fly effect):
-ov01_021F771C returned the follower's billboard as the first u32 of its work block (half a pointer on 64 bits) and
-ov01_021F7704 wrote unk_15 at the DS offset 0x15; both typed on MapObjectBillboardWorkB (the follower's work, ov01_021F7504).
-Handover-ID: hgfly1-0002
-diff --git a/src/overlay_01_021F72DC_021F7704.c b/src/overlay_01_021F72DC_021F7704.c
---- a/src/overlay_01_021F72DC_021F7704.c
-+++ b/src/overlay_01_021F72DC_021F7704.c
-@@ -3,20 +3,21 @@
- #include "map_object.h"
- #include "overlay_01.h"
- #include "field_types_def.h"
-+#include "overlay_01_021F944C.h"
- 
- 
- uintptr_t ov01_021F771C(MapObjectManager *param_1);
- 
- void ov01_021F7704(LocalMapObject *object) {
--    *(s8 *)((u8 *)(sub_0205F40C(object)) + 0x15) = 0;
-+    ((MapObjectBillboardWorkB *)sub_0205F40C(object))->unk_15 = 0;
-     MapObject_GetFacingVector(object)->y = 0;
- }
- 
- uintptr_t ov01_021F771C(MapObjectManager *param_1) {
-     LocalMapObject *object;
--    u8 *puVar1;
-+    MapObjectBillboardWorkB *work;
- 
-     object = MapObjectManager_GetFirstActiveObjectByID(param_1, 0xfd);
--    puVar1 = sub_0205F40C(object);
--    return *(u32 *)puVar1;
-+    work = (MapObjectBillboardWorkB *)sub_0205F40C(object);
-+    return (uintptr_t)work->billboard;
- }
-hgfly1 (F:waterfall on HG: SIGSEGV in NNS_FndAllocFromAllocator <- NNS_G3dAllocAnmObj <- ov02_0224D0C8 <- ov02_0224D488, the
-waterfall's 3D effect): its task init ov02_0224D43C cleared 0x1CC bytes and set up the allocator at the DS offset 0x1B8 of
-UnkStruct_ov6_02248498 (larger on 64 bits: the allocator ov02_0224D488 passes was never set up); typed on the struct.
-Handover-ID: hgfly1-0003
-diff --git a/src/overlay_02_02248728_0224D43C.c b/src/overlay_02_02248728_0224D43C.c
---- a/src/overlay_02_02248728_0224D43C.c
-+++ b/src/overlay_02_02248728_0224D43C.c
-@@ -863,9 +863,11 @@
- void ov02_0224D468(UnkStruct_ov5_021D1BEC *param0, FieldSystem *fieldSystem, void *param2);
- 
- void ov02_0224D43C(uintptr_t param_1, uintptr_t param_2, void *param_3) {
--    memset(param_3, 0, 0x1cc);
--    HeapExp_FndInitAllocator((NNSFndAllocator *)((u8 *)param_3 + 0x1b8), HEAP_ID_FIELD1, 0x20);
--    *(u16 *)((u8 *)param_3 + 0x1ca) = 0;
-+    UnkStruct_ov6_02248498 *work = param_3;
-+
-+    memset(work, 0, sizeof(*work));
-+    HeapExp_FndInitAllocator(&work->unk_1B8, HEAP_ID_FIELD1, 0x20);
-+    work->unk_1C8 = 0;   // the DS cleared its high half (ov02_0224D488's state); the memset did all of it
-     return;
- }
- 
-
-id1: ov07_0222DE30 (the Foresight sprite's move table, overlay_07_0222D578_0222DE30.c) and ov07_0222E07C (the lock-on one, in
-overlay_07_0222DEEC.c) hand the transform work block to ov07_02222268 as `arg0 + 0x18` / `arg0 + 0x28`: the DS offsets of
-ForesightSpriteContext.pos / LockOnSpriteContext.pos. On the host (8-byte pointers) pos sits at 0x30 / 0x50, so the block was
-written over defenderSprite and sprite: the first wild battle's Foresight (Sentret, turn 1 with some RNG states) ended with
-ManagedSprite_SetOamMode(NULL) in ov07_0222DEEC. The typed header has the field: take its address. Drop when upstream does.
-Handover-ID: id1-0001 (decomp: two raw DS offsets of typed structs)
-diff --git a/src/overlay_07_0222D578_0222DE30.c b/src/overlay_07_0222D578_0222DE30.c
---- a/src/overlay_07_0222D578_0222DE30.c
-+++ b/src/overlay_07_0222D578_0222DE30.c
-@@ -13,22 +13,22 @@
-     v0 = *((u32 *)&((ForesightSpriteContext *)arg0)->segment);
-     switch (v0) {
-     case 0:
--        ov07_02222268(arg0 + 0x18, 0, 0x28, 0, 0x28, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, 0x28, 0, 0x28, 8);
-         return;
-     case 1:
--        ov07_02222268(arg0 + 0x18, 0, 0, 0, -0x50, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, 0, 0, -0x50, 8);
-         return;
-     case 2:
--        ov07_02222268(arg0 + 0x18, 0, -0x50, 0, 0x50, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, -0x50, 0, 0x50, 8);
-         return;
-     case 3:
--        ov07_02222268(arg0 + 0x18, 0, 0, 0, -0x50, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, 0, 0, -0x50, 8);
-         return;
-     case 4:
--        ov07_02222268(arg0 + 0x18, 0, 0x50, 0, 0x50, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, 0x50, 0, 0x50, 8);
-         return;
-     case 5:
--        ov07_02222268(arg0 + 0x18, 0, -0x28, 0, -0x28, 8);
-+        ov07_02222268(&((ForesightSpriteContext *)arg0)->pos, 0, -0x28, 0, -0x28, 8);
-         return;
-     default:
-         GF_AssertFail();
-diff --git a/src/overlay_07_0222DEEC.c b/src/overlay_07_0222DEEC.c
---- a/src/overlay_07_0222DEEC.c
-+++ b/src/overlay_07_0222DEEC.c
-@@ -145,16 +145,16 @@
-     v0 = *((u32 *)&((LockOnSpriteContext *)arg0)->segment);
-     switch (v0) {
-     case 0:
--        ov07_02222268(arg0 + 0x28, 0, 0x50, 0, 0x50, 4);
-+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0x50, 0, 0x50, 4);
-         return;
-     case 1:
--        ov07_02222268(arg0 + 0x28, 0, 0, 0, -0x50, 4);
-+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0, 0, -0x50, 4);
-         return;
-     case 2:
--        ov07_02222268(arg0 + 0x28, 0, -0x50, 0, 0x50, 4);
-+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, -0x50, 0, 0x50, 4);
-         return;
-     case 3:
--        ov07_02222268(arg0 + 0x28, 0, 0x28, 0, -0x28, 4);
-+        ov07_02222268(&((LockOnSpriteContext *)arg0)->pos, 0, 0x28, 0, -0x28, 4);
-         return;
-     default:
-         GF_AssertFail();
-
-id2: tools/hg_offscan.py (libclang over the port's compile line: every `p + 0xNN` / `*(T *)((u8 *)p + 0xNN)` / `((u8 *)p)[0xNN]` whose base
-is a typed struct, the struct's DS layout (4-byte pointers, ARM EABI) against the host's) found these DS-offset accesses in the
-battle animation code. Each reached a member of a context struct by its DS offset; on the host (8-byte pointers) the member sits
-later, so the callee (ov07_02222508 / 590 / 748 / 788 / 222B4 / 222F0 / 2222AC4 / 2222AF4 / 0222207C / 0222260C / 02222644: the
-XYTransformContext, alpha-fade and lerp work blocks) read and wrote other members (sprite pointers) of the context:
-Swagger (ov07_02223CAC), Scary Face (ov07_0222DC54), Torment (ov07_0222EDF0, ov07_0222EE14), Memento (ov07_0222F6C0): the transform block
-`&ctx->scale` / `faceScale` / `facePos` / `faceAlpha` / `defenderPos`; the set-sprite-priority animation's end read the battle anim system
-pointer at host +4 (ov07_02226F04: pad + half of the pointer: ov07_0221C448 got garbage); the battle anim system's init
-(ov07_0221C01C, port/nonmatching) wrote bgLayerPriorities[0..2] at host +0x1AC.. (the field is at 0x284): into other members.
-The typed headers have the fields: take them by name. Drop when upstream does.
-Handover-ID: id2-0001 (decomp: raw DS offsets of typed structs; the inline `struct {...} scale` is not the XYTransformContext type: cast the address if the DS compiler warns)
-diff --git a/src/overlay_07_02223240_02223CAC.c b/src/overlay_07_02223240_02223CAC.c
---- a/src/overlay_07_02223240_02223CAC.c
-+++ b/src/overlay_07_02223240_02223CAC.c
-@@ -11,5 +11,5 @@
-     ManagedSprite_SetDrawFlag(((SwaggerSpriteContext *)arg0)->sprite, 1);
-     ManagedSprite_SetPositionXY(((SwaggerSpriteContext *)arg0)->sprite, x, y);
-     *((s32 *)&((SwaggerSpriteContext *)arg0)->scaleStep) = 0;
--    ov07_02222508(arg0 + 0x18, 0xA, 0xA, 0xE, 4);
-+    ov07_02222508(&((SwaggerSpriteContext *)arg0)->scale, 0xA, 0xA, 0xE, 4);
- }
-diff --git a/src/overlay_07_0222DBD8.c b/src/overlay_07_0222DBD8.c
---- a/src/overlay_07_0222DBD8.c
-+++ b/src/overlay_07_0222DBD8.c
-@@ -156,16 +156,16 @@
-     v1 = 0;
-     switch (v0) {
-     case 0:
--        ov07_02222748(arg0 + 0x44, ((ScaryFaceSpriteContext *)arg0)->sprite);
--        if (ov07_022222B4(arg0 + 0x68) != 0) {
--            ov07_0222207C(arg0 + 0x68, ((ScaryFaceSpriteContext *)arg0)->sprite, ((ScaryFaceSpriteContext *)arg0)->baseX, ((ScaryFaceSpriteContext *)arg0)->baseY);
-+        ov07_02222748(&((ScaryFaceSpriteContext *)arg0)->faceScale, ((ScaryFaceSpriteContext *)arg0)->sprite);
-+        if (ov07_022222B4(&((ScaryFaceSpriteContext *)arg0)->facePos) != 0) {
-+            ov07_0222207C(&((ScaryFaceSpriteContext *)arg0)->facePos, ((ScaryFaceSpriteContext *)arg0)->sprite, ((ScaryFaceSpriteContext *)arg0)->baseX, ((ScaryFaceSpriteContext *)arg0)->baseY);
-         } else {
-             *((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) = (s32)(*((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) + 1);
--            ov07_02222AC4(arg0 + 0x8C, 0x10, 0, 0xE, 0x10, 8);
-+            ov07_02222AC4(&((ScaryFaceSpriteContext *)arg0)->faceAlpha, 0x10, 0, 0xE, 0x10, 8);
-         }
-         break;
-     case 1:
--        if (ov07_02222AF4(arg0 + 0x8C) != 0) {
-+        if (ov07_02222AF4(&((ScaryFaceSpriteContext *)arg0)->faceAlpha) != 0) {
-             ManagedSprite_SetDrawFlag(((ScaryFaceSpriteContext *)arg0)->sprite, 0);
-             *((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) = (s32)(*((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) + 1);
-         }
-diff --git a/src/overlay_07_0222ED7C.c b/src/overlay_07_0222ED7C.c
---- a/src/overlay_07_0222ED7C.c
-+++ b/src/overlay_07_0222ED7C.c
-@@ -54,7 +54,7 @@
- 
- void ov07_0222EDF0(void *arg0) {
-     *((s32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = 0;
--    ov07_02222590(arg0 + 0x1C, 0xA, 9, 0xA, 8, 0xA, 2);
-+    ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 0xA, 9, 0xA, 8, 0xA, 2);
- }
- 
- s32 ov07_022226C4(Pokepic *, s16, s32, s32, s32);
-@@ -71,23 +71,23 @@
-     v1 = 0;
-     switch (v0) {
-     case 0:
--        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
-         } else {
-             *((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = (u32)(*((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) + 1);
--            ov07_02222590(arg0 + 0x1C, 9, 0xB, 8, 0xF, 0xA, 2);
-+            ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 9, 0xB, 8, 0xF, 0xA, 2);
-         }
-         break;
-     case 1:
--        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
-         } else {
-             *((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = (u32)(*((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) + 1);
--            ov07_02222590(arg0 + 0x1C, 0xB, 0xA, 0xF, 0xA, 0xA, 2);
-+            ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 0xB, 0xA, 0xF, 0xA, 0xA, 2);
-         }
-         break;
-     case 2:
--        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
-             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
-         } else {
-             Pokepic_SetAttr(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), 0xC, 0x100);
-diff --git a/src/overlay_07_0222EF58_0222F6C0.c b/src/overlay_07_0222EF58_0222F6C0.c
---- a/src/overlay_07_0222EF58_0222F6C0.c
-+++ b/src/overlay_07_0222EF58_0222F6C0.c
-@@ -26,15 +26,15 @@
-     switch (v0) {
-     case 0:
-         *((s32 *)&((MementoContext *)arg0)->spriteDelay) = (s32)(*((s32 *)&((MementoContext *)arg0)->spriteDelay) - 1);
--        ov07_022222F0(arg0 + 0x70, ((MementoContext *)arg0)->defenderSprite);
-+        ov07_022222F0(&((MementoContext *)arg0)->defenderPos, ((MementoContext *)arg0)->defenderSprite);
-         if ((s32) *((s32 *)&((MementoContext *)arg0)->spriteDelay) < 0) {
-             *((s32 *)&((MementoContext *)arg0)->spriteState) = (s32)(*((s32 *)&((MementoContext *)arg0)->spriteState) + 1);
-         }
-         break;
-     case 1:
--        ov07_022222F0(arg0 + 0x70, ((MementoContext *)arg0)->defenderSprite);
--        v1 = ov07_0222260C(arg0 + 0x28);
--        ov07_02222644(arg0 + 0x28, &x, &y);
-+        ov07_022222F0(&((MementoContext *)arg0)->defenderPos, ((MementoContext *)arg0)->defenderSprite);
-+        v1 = ov07_0222260C(&((MementoContext *)arg0)->scale);
-+        ov07_02222644(&((MementoContext *)arg0)->scale, &x, &y);
-         if (*((s32 *)&((MementoContext *)arg0)->defenderFlipped) == 1) {
-             x = 0.0f - x;
-         }
-diff --git a/src/overlay_07_02226F04_02226F04.c b/src/overlay_07_02226F04_02226F04.c
---- a/src/overlay_07_02226F04_02226F04.c
-+++ b/src/overlay_07_02226F04_02226F04.c
-@@ -23,7 +23,7 @@
-         reg_G2_WIN0V = 0;
-         ManagedSprite_SetDrawFlag(((SetPokemonSpritePriorityContext *)ptr)->sprite, 0);
-         SpriteSystem_DrawSprites(((SetPokemonSpritePriorityContext *)ptr)->common.pokemonSpriteManager);
--        ov07_0221C448(*(void **)((u8 *)ptr + 4), arg0);
-+        ov07_0221C448(((SetPokemonSpritePriorityContext *)ptr)->common.battleAnimSys, arg0);
-         Heap_Free(ptr);
-         return;
-     }
 diff --git a/port/nonmatching/ov07_0221C01C.c b/port/nonmatching/ov07_0221C01C.c
 --- a/port/nonmatching/ov07_0221C01C.c
 +++ b/port/nonmatching/ov07_0221C01C.c
@@ -829,228 +495,6 @@ diff --git a/port/nonmatching/ov07_0221C01C.c b/port/nonmatching/ov07_0221C01C.c
  
      for (i = 0; i < 10 ; i++) {
 
-id3: the exact-start WRITES and pointer-member reads that tools/hg_offscan.py (id2) ranks first outside the battle (the host layout puts the
-member later than its DS offset, so a raw `(u8 *)p + 0xNN` access hit another member): ov05_0221C21C/0221C430 (the trainer-encounter
-transition effect: members B78/B7A/B7F/B82 of UnkStruct_ov10_0221FB28, the host has them 0x174 later), ov112_021F3018 (curIdx/count),
-ov75_02247890 (the yes/no template's x/y/shapeParam on a local copy), ov96_021E7718 (the course args: the earned amount overwrote
-`mode`), ov14 (the PC box app's unk21/unk26/unk2A/unk2B/unk30 flags), ov48_02259EAC (init of the 0x24-byte DS struct: memset 0x2C and
-its window at +0x10 hit the host's other members), ov96_021FA34C (bgConfig pointer read at +4), ov86_021E6E98 (spriteSystem), ov70
-(the exchange's sprite delete loops stepped the host pointer array by 4; GTSSpeciesMenuState.selectedSpeciesGenderRatio).
-Taken by member name, as tools/hg_offscan.py --fixes proposes (checked by compile). Left to the decomp (listed in the inbox note).
-Handover-ID: id3-0001 (decomp: raw DS offsets of typed structs; take the members by name)
-diff --git a/src/overlay_05_0221C050.c b/src/overlay_05_0221C050.c
---- a/src/overlay_05_0221C050.c
-+++ b/src/overlay_05_0221C050.c
-@@ -57,7 +57,7 @@
-     s8 v2;
-     u8 v0;
- 
--    if ((ov05_0221DAE0(arg0) == 0) && ((u32) * (u8 *)((u8 *)arg0 + 0xB82) > 0x18U)) {
-+    if ((ov05_0221DAE0(arg0) == 0) && ((u32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B82 > 0x18U)) {
-         arg0->unk_B82 = 0U;
-         return 1;
-     }
-@@ -87,10 +87,10 @@
-         v3 = ((s32)LCRandom() % v1) - ((s32)(v1 + ((u32)v1 >> 0x1F)) >> 1);
-         v2 = arg0->unk_B7D;
-         value = ((s32)LCRandom() % v2) - ((s32)(v2 + ((u32)v2 >> 0x1F)) >> 1);
--        if ((((s32)v3 < 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB78) < 0)) || (((s32)v3 > 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB78) > 0))) {
-+        if ((((s32)v3 < 0) && ((s32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B78 < 0)) || (((s32)v3 > 0) && ((s32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B78 > 0))) {
-             v3 *= -1;
-         }
--        if ((((s32)value < 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB7A) < 0)) || (((s32)value > 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB7A) > 0))) {
-+        if ((((s32)value < 0) && ((s32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B7A < 0)) || (((s32)value > 0) && ((s32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B7A > 0))) {
-             value *= -1;
-         }
-         ScheduleSetBgPosText(arg0->unk_0C, 3U, BG_POS_OP_SET_ROT, v3 + 0x18);
-@@ -116,8 +116,8 @@
-     if (arg0->unk_B82 == 8) {
-         BeginNormalPaletteFade(FADE_BOTH_SCREENS, FADE_TYPE_BRIGHTNESS_OUT, FADE_TYPE_BRIGHTNESS_OUT, 0x7FFFU, 6, 1, *(enum HeapID *)((u8 *)(*(void **)arg0) + 0x24));
-     }
--    if (((u32) * (u8 *)((u8 *)arg0 + 0xB82) >= 8U) && (IsPaletteFadeFinished() == 1)) {
--        *(s8 *)((u8 *)arg0 + 0xB7F) = 2;
-+    if (((u32) ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B82 >= 8U) && (IsPaletteFadeFinished() == 1)) {
-+        ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B7F = 2;
-         return 1;
-     }
-     if (arg0->unk_B82 == 0) {
-diff --git a/src/overlay_112_021F2EF4.c b/src/overlay_112_021F2EF4.c
---- a/src/overlay_112_021F2EF4.c
-+++ b/src/overlay_112_021F2EF4.c
-@@ -131,17 +131,17 @@
-     }
-     iVar1 = ov112_021F0EB4(arg0);
-     if (iVar1 != 0) {
--        remainder = *((s8 *)(((u8 *)arg0) + 0x13d));
-+        remainder = ((Ov112SpriteApp *)arg0)->curIdx;
-         if (remainder != 0) {
--            *((s8 *)(((u8 *)arg0) + 0x13d)) = remainder + (-1);
-+            ((Ov112SpriteApp *)arg0)->curIdx = remainder + (-1);
-         }
-         ov112_021F2CC4(arg0);
-         PlaySE(0x5dc);
-     } else {
-         iVar1 = ov112_021F0EFC(arg0);
-         if (iVar1 != 0) {
--            remainder = ((s32)((*((u8 *)(((u8 *)arg0) + 0x13d))) + 1)) % ((s32)(*((u8 *)(((u8 *)arg0) + 0x13e))));
--            *((u8 *)(((u8 *)arg0) + 0x13d)) = remainder;
-+            remainder = ((s32)((((Ov112SpriteApp *)arg0)->curIdx) + 1)) % ((s32)(((Ov112SpriteApp *)arg0)->count));
-+            ((Ov112SpriteApp *)arg0)->curIdx = remainder;
-             ov112_021F2CC4(arg0);
-             PlaySE(0x5dc);
-         } else {
-diff --git a/src/overlay_14_021EC3D8_021EC3D8.c b/src/overlay_14_021EC3D8_021EC3D8.c
---- a/src/overlay_14_021EC3D8_021EC3D8.c
-+++ b/src/overlay_14_021EC3D8_021EC3D8.c
-@@ -70,15 +70,15 @@
-         break;
-     case 6:
-         PlaySE(0x5DDU);
--        *((u8 *)arg0 + 0x2A) = 0;
--        *((u8 *)arg0 + 0x2B) = 0;
-+        ((UnkStruct_ov14_boxapp *)arg0)->unk2A = 0;
-+        ((UnkStruct_ov14_boxapp *)arg0)->unk2B = 0;
-         return ov14_021F2490(arg0, 0, 0x9D);
-     case 8:
-         PlaySE(0x5DDU);
-         if (System_GetTouchNew() == 0) {
--            *((u8 *)arg0 + 0x2A) = 2;
-+            ((UnkStruct_ov14_boxapp *)arg0)->unk2A = 2;
-         }
--        *((u8 *)arg0 + 0x2B) = *((u8 *)arg0 + 0x21);
-+        ((UnkStruct_ov14_boxapp *)arg0)->unk2B = ((UnkStruct_ov14_boxapp *)arg0)->unk21;
-         return ov14_021F2330(arg0, 3, 0x9D);
-     case 9:
-         PlaySE(0x5DDU);
-@@ -108,7 +108,7 @@
-         return ov14_021F2270(arg0, 0xA, 0x9F);
-     case 13:
-         PlaySE(0x5DCU);
--        temp_r5 = *((u8 *)arg0 + 0x21) - 0x1E;
-+        temp_r5 = ((UnkStruct_ov14_boxapp *)arg0)->unk21 - 0x1E;
-         ov14_021F7AC4(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), temp_r5, GridInputHandler_GetNextInput(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C));
-         GridInputHandler_SetNextInput(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2C, (s32)temp_r5);
-         return ov14_021F2270(arg0, 0xB, 0x9E);
-diff --git a/src/overlay_14_021EC8D0_021EC8D0.c b/src/overlay_14_021EC8D0_021EC8D0.c
---- a/src/overlay_14_021EC8D0_021EC8D0.c
-+++ b/src/overlay_14_021EC8D0_021EC8D0.c
-@@ -93,8 +93,8 @@
-         r1 = GridInputHandler_GetNextInput(GH(arg0));
-         if (ov14_021E6070(arg0, r1, 0xAC, 0) != 0) {
-             PlaySE(0x5DD);
--            *((u8 *)arg0 + 0x21) = r1;
--            *((u8 *)arg0 + 0x26) = 1;
-+            ((UnkStruct_ov14_boxapp *)arg0)->unk21 = r1;
-+            ((UnkStruct_ov14_boxapp *)arg0)->unk26[0] = 1;
-             return ov14_021F2330(arg0, 0xF, 0x97);
-         }
-         return 0x29;
-diff --git a/src/overlay_14_021ED9AC.c b/src/overlay_14_021ED9AC.c
---- a/src/overlay_14_021ED9AC.c
-+++ b/src/overlay_14_021ED9AC.c
-@@ -10,13 +10,13 @@
- s32 ov14_021ED9AC(void *arg0) {
-     PaletteData_LoadPaletteSlotFromHardware(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_18, PLTTBUF_MAIN_BG, 0U, 0x200U);
-     PaletteData_BeginPaletteFade(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_18, 1U, 0xC000U, 0, 0U, 0x10U, 0x7FFFU);
--    *(s32 *)((u8 *)arg0 + 0x30) = 0x46;
-+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0x46;
-     return 3;
- }
- 
- s32 ov14_021ED9EC(void *arg0) {
-     PaletteData_BeginPaletteFade(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_18, 1U, 0xC000U, 0, 0x10U, 0U, 0x7FFFU);
--    *(s32 *)((u8 *)arg0 + 0x30) = 0x42;
-+    ((UnkStruct_ov14_boxapp *)arg0)->unk30 = 0x42;
-     return 3;
- }
- 
-diff --git a/src/overlay_48_02259EAC_02259EAC.c b/src/overlay_48_02259EAC_02259EAC.c
---- a/src/overlay_48_02259EAC_02259EAC.c
-+++ b/src/overlay_48_02259EAC_02259EAC.c
-@@ -13,11 +13,12 @@
- void ov48_02259EAC(void *arg0, BgConfig **arg1, void *arg2, SaveData *arg3, enum HeapID arg4);
- 
- void ov48_02259EAC(void *arg0, BgConfig **arg1, void *arg2, SaveData *saveData, enum HeapID heapID) {
--    memset(arg0, 0, 0x2CU);
--    *(s32 *)((u8 *)arg0 + 8) = (s32)Options_GetTextFrameDelay(Save_PlayerData_GetOptionsAddr(saveData));
--    *(String **)((u8 *)arg0 + 0xC) = String_New(0x80U, heapID);
--    AddWindowParameterized(*arg1, arg0 + 0x10, 1U, 2U, 1U, 0x1BU, 4U, 1U, 0x34U);
--    FillWindowPixelBuffer(arg0 + 0x10, 0xFU);
--    ov48_0225B0D4(arg2, 5, *(String **)((u8 *)arg0 + 0xC));
--    *((YesNoPrompt **)&((UnkStruct_ov69_0225DDC8 *)arg0)->unk_20) = YesNoPrompt_Create(heapID);
-+    UnkStruct_ov69_0225DDC8 *self = arg0;
-+    memset(self, 0, sizeof(UnkStruct_ov69_0225DDC8));
-+    self->unk_08 = (s32)Options_GetTextFrameDelay(Save_PlayerData_GetOptionsAddr(saveData));
-+    self->unk_0C = String_New(0x80U, heapID);
-+    AddWindowParameterized(*arg1, &((UnkStruct_ov69_0225DDC8 *)arg0)->unk_10, 1U, 2U, 1U, 0x1BU, 4U, 1U, 0x34U);
-+    FillWindowPixelBuffer(&((UnkStruct_ov69_0225DDC8 *)arg0)->unk_10, 0xFU);
-+    ov48_0225B0D4(arg2, 5, self->unk_0C);
-+    *((YesNoPrompt **)&self->unk_20) = YesNoPrompt_Create(heapID);
- }
-diff --git a/src/overlay_70_02238F10_0223AFFC_0223CF74_0223D208.c b/src/overlay_70_02238F10_0223AFFC_0223CF74_0223D208.c
---- a/src/overlay_70_02238F10_0223AFFC_0223CF74_0223D208.c
-+++ b/src/overlay_70_02238F10_0223AFFC_0223CF74_0223D208.c
-@@ -329,15 +329,13 @@
-     var_r6_2 = 0;
-     var_r4_2 = var_r5;
-     do {
--        Sprite_Delete(var_r4_2->boxSlotIconSprites[0]);
--        Sprite_Delete(var_r4_2->boxSlotItemSprites[0]);
-+        Sprite_Delete(var_r4_2->boxSlotIconSprites[var_r6_2]);
-+        Sprite_Delete(var_r4_2->boxSlotItemSprites[var_r6_2]);
-         var_r6_2 += 1;
--        var_r4_2 = (void *)((u8 *)var_r4_2 + (4));
-     } while (var_r6_2 < 0x1E);
-     var_r4_3 = 0;
-     do {
--        Sprite_Delete(var_r5->selectPokemonPartySprites[0]);
-+        Sprite_Delete(var_r5->selectPokemonPartySprites[var_r4_3]);
-         var_r4_3 += 1;
--        var_r5 = (void *)((u8 *)var_r5 + (4));
-     } while (var_r4_3 < 6);
- }
-diff --git a/src/overlay_70_0223EFE0.c b/src/overlay_70_0223EFE0.c
---- a/src/overlay_70_0223EFE0.c
-+++ b/src/overlay_70_0223EFE0.c
-@@ -58,7 +58,7 @@
-     case 12:
-     case -2:
-         ClearFrameAndWindow2((void *)&arg0->bottomInstructionWindow, 0);
--        if (ov70_0223EDE4((void *)&arg0->depositRequirements.species, *(s32 *)((u8 *)(arg0->speciesMenuState) + 0x20)) != 0) {
-+        if (ov70_0223EDE4((void *)&arg0->depositRequirements.species, ((GTSSpeciesMenuState *)(arg0->speciesMenuState))->selectedSpeciesGenderRatio) != 0) {
-             arg0->currentScreenInstruction = 0;
-         } else {
-             arg0->currentScreenInstruction = 7;
-diff --git a/src/overlay_75_02246BE0_02247890_02247890.c b/src/overlay_75_02246BE0_02247890_02247890.c
---- a/src/overlay_75_02246BE0_02247890_02247890.c
-+++ b/src/overlay_75_02246BE0_02247890_02247890.c
-@@ -14,11 +14,11 @@
-     sp0.bgId = bgId;
-     sp0.tileStart = arg1;
-     sp0.plttSlot = 0xE;
--    *(s8 *)((u8 *)(&sp0) + 0x10) = 0x19;
--    *(s8 *)((u8 *)(&sp0) + 0x11) = 0xA;
-+    ((YesNoPromptTemplate *)(&sp0))->x = 0x19;
-+    ((YesNoPromptTemplate *)(&sp0))->y = 0xA;
-     *(u8 *)((u8 *)(&sp0) + 0x12) = (u8)(*(u8 *)((u8 *)(&sp0) + 0x12) & ~0xF);
-     *(u8 *)((u8 *)(&sp0) + 0x12) = (u8)((*(u8 *)((u8 *)(&sp0) + 0x12) & ~0xF0) | ((((u32)(u8)arg2) << 28) >> 24));
--    *(s8 *)((u8 *)(&sp0) + 0x13) = 0;
-+    ((YesNoPromptTemplate *)(&sp0))->shapeParam = 0;
-     YesNoPrompt_InitFromTemplate(temp_r0, &sp0);
-     return temp_r0;
- }
-diff --git a/src/overlay_86_021E5ECC_021E66D0_021E6DD8_021E6E98_021E6E98.c b/src/overlay_86_021E5ECC_021E66D0_021E6DD8_021E6E98_021E6E98.c
---- a/src/overlay_86_021E5ECC_021E66D0_021E6DD8_021E6E98_021E6E98.c
-+++ b/src/overlay_86_021E5ECC_021E66D0_021E6DD8_021E6E98_021E6E98.c
-@@ -47,7 +47,7 @@
-     SpriteSystem_LoadCharResObjFromOpenNarc(arg0->spriteSystem, arg0->spriteManager, temp_r0, 0x33, 1, 1, 0xD8CC);
-     SpriteSystem_LoadPlttResObjFromOpenNarc(arg0->spriteSystem, arg0->spriteManager, temp_r0, 0x40, 0, 2, 1, 0xD8CC);
-     SpriteSystem_LoadCellResObjFromOpenNarc(arg0->spriteSystem, arg0->spriteManager, temp_r0, 0x31, 1, 0xD8CC);
--    SpriteSystem_LoadAnimResObjFromOpenNarc(*((SpriteSystem **)(0x22C + ((u8 *)arg0))), arg0->spriteManager, temp_r0, 0x32, 1, 0xD8CC);
-+    SpriteSystem_LoadAnimResObjFromOpenNarc(arg0->spriteSystem, arg0->spriteManager, temp_r0, 0x32, 1, 0xD8CC);
-     NARC_Delete(temp_r0);
-     var_r7 = 0;
-     var_r6 = &ov86_021E802C;
 diff --git a/src/overlay_96_021E7718.c b/src/overlay_96_021E7718.c
 --- a/src/overlay_96_021E7718.c
 +++ b/src/overlay_96_021E7718.c
@@ -1083,513 +527,163 @@ diff --git a/src/overlay_96_021FA0E8_021FA34C_021FA34C.c b/src/overlay_96_021FA0
 -    ov96_021FAB24(*(void **)((u8 *)sp4 + 4), arg2);
 +    ov96_021FAB24(sp4->bgConfig, arg2);
  }
-
-id4: the battle animation task functions that read their context through a local copy of the struct with the DS layout (u8 unk_N[..]
-filler, 4-byte pointers): the creator allocates the real context (host layout: 8-byte pointers), so the task read other members. First crash:
-Toxic's palette fade task (ov07_02225810: the battle anim system pointer and the PaletteFadeContext pointer at DS offsets 4 / 0x30, passed
-as garbage to ov07_02222EE8; wild battle, Sentret L5, our move 92: SIGSEGV at V-blank 1528). The same class in ov07_02225F18 (pixelate),
-ov07_02228D08 (nightmare), ov07_02228F14 (flail), ov07_0222AE14 (mimic), ov07_02230960 (megahorn), ov07_0222314C (the sprite example):
-each local struct now has the creator's members by name (same layout on the DS).
-Handover-ID: id4-0001 (decomp: hoist the creators' context typedefs into headers; the consumers use them)
-diff --git a/src/overlay_07_0222314C_0222314C.c b/src/overlay_07_0222314C_0222314C.c
---- a/src/overlay_07_0222314C_0222314C.c
-+++ b/src/overlay_07_0222314C_0222314C.c
-@@ -5,16 +5,14 @@
- #include "sprite_system.h"
- #include "sys_task.h"
- 
-+// the layout of SpriteExampleContext (overlay_07_022231BC.c); unk_14 / unk_18 / unk_1C are sprites[0..2]
- typedef struct UnkStruct_ov07_0222314C_ptr {
--    u8 unk_0;
--    u8 unk_1[0x3];
--    void *unk_4;
--    u8 unk_8[0x4];
--    SpriteManager *unk_C;
--    ManagedSprite *unk_10;
--    Sprite **unk_14;
--    Sprite **unk_18;
--    Sprite **unk_1C;
-+    u8 state;
-+    BattleAnimSystem *battleAnimSystem;
-+    SpriteSystem *spriteSys;
-+    SpriteManager *spriteMgr;
-+    ManagedSprite *mainSprite;
-+    ManagedSprite *sprites[3];
- } UnkStruct_ov07_0222314C_ptr;
- 
- void ov07_0222314C(SysTask *arg0, void *param);
-@@ -24,20 +22,20 @@
-     void *v1;
-     u8 v0;
- 
--    v0 = ptr->unk_0;
-+    v0 = ptr->state;
-     switch (v0) {
-     case 0:
--        Sprite_TickFrame(*ptr->unk_14);
--        Sprite_TickFrame(*ptr->unk_18);
--        Sprite_TickFrame(*ptr->unk_1C);
--        Sprite_OffsetPositionXY(*ptr->unk_14, 1, 0);
--        Sprite_OffsetPositionXY(*ptr->unk_18, -1, 0);
--        Sprite_OffsetPositionXY(*ptr->unk_1C, 1, 1);
--        SpriteSystem_DrawSprites(ptr->unk_C);
-+        Sprite_TickFrame(*(Sprite **)ptr->sprites[0]);
-+        Sprite_TickFrame(*(Sprite **)ptr->sprites[1]);
-+        Sprite_TickFrame(*(Sprite **)ptr->sprites[2]);
-+        Sprite_OffsetPositionXY(*(Sprite **)ptr->sprites[0], 1, 0);
-+        Sprite_OffsetPositionXY(*(Sprite **)ptr->sprites[1], -1, 0);
-+        Sprite_OffsetPositionXY(*(Sprite **)ptr->sprites[2], 1, 1);
-+        SpriteSystem_DrawSprites(ptr->spriteMgr);
-         return;
-     case 1:
--        v1 = ptr->unk_4;
--        Sprite_DeleteAndFreeResources(ptr->unk_10);
-+        v1 = ptr->battleAnimSystem;
-+        Sprite_DeleteAndFreeResources(ptr->mainSprite);
-         Heap_Free(ptr);
-         ov07_0221C448(v1, arg0);
-         return;
-diff --git a/src/overlay_07_02223240_02224998_022252F8_02225810.c b/src/overlay_07_02223240_02224998_022252F8_02225810.c
---- a/src/overlay_07_02223240_02224998_022252F8_02225810.c
-+++ b/src/overlay_07_02223240_02224998_022252F8_02225810.c
-@@ -3,12 +3,14 @@
- #include "heap.h"
- #include "overlay_07_battle_anim_funcs.h"
- #include "sys_task.h"
-+#include "overlay_07_palette_fade.h"
- 
-+// the DS layout of FadePokemonSpriteContext (overlay_07_02223240_02224998_022252F8_02225838.c): the host pointers make the
-+// members sit later than their DS offsets (4 / 0x30)
- typedef struct UnkStruct_ov07_02225810_ptr {
--    u8 unk_0[0x4];
--    void *unk_4;
--    u8 unk_8[0x28];
--    void *unk_30;
-+    BattleAnimScriptFuncCommon common;
-+    BattleAnimSpriteInfo spriteInfo;
-+    PaletteFadeContext *paletteFade;
- } UnkStruct_ov07_02225810_ptr;
- 
- s32 ov07_02222EE8(s32 *);
-@@ -19,9 +21,9 @@
- 
- void ov07_02225810(SysTask *arg0, void *param) {
-     UnkStruct_ov07_02225810_ptr *ptr = param;
--    if (ov07_02222EE8(ptr->unk_30) == 0) {
--        ov07_02222EF8(ptr->unk_30);
--        ov07_0221C448(ptr->unk_4, arg0);
-+    if (ov07_02222EE8((s32 *)ptr->paletteFade) == 0) {
-+        ov07_02222EF8(ptr->paletteFade);
-+        ov07_0221C448(ptr->common.battleAnimSys, arg0);
-         Heap_Free(ptr);
+rp7 (2026-11-25, f5fd275c9): ov112_021F3018 (the sprite app's input step) reads Ov112SpriteApp's curIdx and count as raw bytes at DS offsets
+0x13D/0x13E; the lift wave A upstream typed the curIdx writes but the reads in the same step are still raw. Typed here as the
+struct's fields. Drop when upstream types the reads.
+Handover-ID: none (port-only)
+diff --git a/src/overlay_112_021F2EF4.c b/src/overlay_112_021F2EF4.c
+--- a/src/overlay_112_021F2EF4.c
++++ b/src/overlay_112_021F2EF4.c
+@@ -131,7 +131,7 @@ int ov112_021F3018(OverlayManager *param_1, int *param_2) {
      }
- }
-diff --git a/src/overlay_07_02223240_02225E9C.c b/src/overlay_07_02223240_02225E9C.c
---- a/src/overlay_07_02223240_02225E9C.c
-+++ b/src/overlay_07_02223240_02225E9C.c
-@@ -6,18 +6,14 @@
- #include "overlay_07_battle_anim_funcs.h"
- #include "overlay_07_shake_bg_context.h"
- 
-+// the layout of PixelatePokemonSpriteContext (overlay_07_02223240_02225F94_02225F94.c)
- typedef struct UnkStruct_ov07_02225F18_ptr {
--    u8 unk_0[0x4];
--    void *unk_4;
--    u8 unk_8[0x4];
--    SpriteManager *unk_C;
--    u8 unk_10[0xC];
--    ManagedSprite *unk_1C;
--    s16 unk_20;
--    u8 unk_22[0x2];
--    s32 unk_24;
--    s32 unk_28;
--    s32 unk_2C;
-+    BattleAnimScriptFuncCommon common;
-+    ManagedSprite *sprite;
-+    s16 scaleStep;
-+    int scaleX;
-+    int scaleY;
-+    int targetScale;
- } UnkStruct_ov07_02225F18_ptr;
- 
- void ov07_02225E9C(BattleAnimSystem *system);
-@@ -56,34 +52,34 @@
-     s32 v3;
-     s32 v4;
- 
--    v0 = ptr->unk_2C;
--    v4 = ptr->unk_24;
--    if ((v4 == v0) || (ptr->unk_28 == v0)) {
--        ov07_0221C448(ptr->unk_4, arg0);
-+    v0 = ptr->targetScale;
-+    v4 = ptr->scaleX;
-+    if ((v4 == v0) || (ptr->scaleY == v0)) {
-+        ov07_0221C448(ptr->common.battleAnimSys, arg0);
-         Heap_Free(ptr);
-         return;
-     }
--    v1 = ptr->unk_20;
-+    v1 = ptr->scaleStep;
-     if ((s32)v1 < 0) {
-         v2 = v4 + v1;
-         if (v2 > 0) {
--            ptr->unk_24 = v2;
--            ptr->unk_28 = (s32)(ptr->unk_28 + ptr->unk_20);
-+            ptr->scaleX = v2;
-+            ptr->scaleY = (s32)(ptr->scaleY + ptr->scaleStep);
-         } else {
--            ptr->unk_24 = v0;
--            ptr->unk_28 = (s32) ptr->unk_2C;
-+            ptr->scaleX = v0;
-+            ptr->scaleY = (s32) ptr->targetScale;
+     iVar1 = ov112_021F0EB4(arg0);
+     if (iVar1 != 0) {
+-        remainder = *((s8 *)(((u8 *)arg0) + 0x13d));
++        remainder = ((Ov112SpriteApp *)arg0)->curIdx;
+         if (remainder != 0) {
+             ((Ov112SpriteApp *)arg0)->curIdx = remainder + (-1);
          }
+@@ -140,7 +140,7 @@ int ov112_021F3018(OverlayManager *param_1, int *param_2) {
      } else {
-         v3 = v4 + v1;
-         if (v3 < 0xF) {
--            ptr->unk_24 = v3;
--            ptr->unk_28 = (s32)(ptr->unk_28 + ptr->unk_20);
-+            ptr->scaleX = v3;
-+            ptr->scaleY = (s32)(ptr->scaleY + ptr->scaleStep);
-         } else {
--            ptr->unk_24 = v0;
--            ptr->unk_28 = (s32) ptr->unk_2C;
-+            ptr->scaleX = v0;
-+            ptr->scaleY = (s32) ptr->targetScale;
-         }
-     }
--    ManagedSprite_TickFrame(ptr->unk_1C);
--    *((s8 *)REG_MOSAIC_ADDR + 1) = ptr->unk_24 | (ptr->unk_28 * 0x10);
--    SpriteSystem_DrawSprites(ptr->unk_C);
-+    ManagedSprite_TickFrame(ptr->sprite);
-+    *((s8 *)REG_MOSAIC_ADDR + 1) = ptr->scaleX | (ptr->scaleY * 0x10);
-+    SpriteSystem_DrawSprites(ptr->common.pokemonSpriteManager);
- }
-diff --git a/src/overlay_07_02226F04_02228C8C.c b/src/overlay_07_02226F04_02228C8C.c
---- a/src/overlay_07_02226F04_02228C8C.c
-+++ b/src/overlay_07_02226F04_02228C8C.c
-@@ -8,19 +8,21 @@
- #include "sprite_system.h"
- #include "sys_task.h"
+         iVar1 = ov112_021F0EFC(arg0);
+         if (iVar1 != 0) {
+-            remainder = ((s32)((*((u8 *)(((u8 *)arg0) + 0x13d))) + 1)) % ((s32)(*((u8 *)(((u8 *)arg0) + 0x13e))));
++            remainder = ((s32)((((Ov112SpriteApp *)arg0)->curIdx) + 1)) % ((s32)(((Ov112SpriteApp *)arg0)->count));
+             ((Ov112SpriteApp *)arg0)->curIdx = remainder;
+             ov112_021F2CC4(arg0);
+             PlaySE(0x5dc);
+rp15 (2026-11-26, dc4c11068): src/overlay_96_021E6CE4_021E6CE4.c defines the Pokeathlon event-handler tables (ov96_0221A7F4, ...A90C) and the
+state-function arrays (ov96_0221DB50, ...DC74) as `static const` inside its PC block, but their labels are in port/asmdata/LABELS.txt: the asm
+copies of the same tables (hg_data.o, renamed __ds) still reference those names, so a static (file-local) definition leaves 18 undefined
+data symbols at the link (port_undefined: "nothing defines them, so the game reads zeros"). Global definitions, as the generated asmdata copies were.
+Drop when upstream drops `static` from the tables in that block.
+Handover-ID: rp15-0001
+diff --git a/src/overlay_96_021E6CE4_021E6CE4.c b/src/overlay_96_021E6CE4_021E6CE4.c
+--- a/src/overlay_96_021E6CE4_021E6CE4.c
++++ b/src/overlay_96_021E6CE4_021E6CE4.c
+@@ -48,52 +48,52 @@
+ BOOL ov96_02215CE8(PokeathlonCourseData *, int);
+ BOOL ov96_02215D4C(PokeathlonCourseData *, int);
  
-+// the layout of NightmareContext (overlay_07_02226F04_02228D64_02228D64.c)
- typedef struct UnkStruct_ov07_02228D08_ptr {
--    u8 unk_0;
--    u8 unk_1[0xB];
--    void *unk_C;
--    SpriteManager *unk_10;
--    u8 unk_14[0x4];
--    ManagedSprite *unk_18;
--    u8 unk_1C;
--    u8 unk_1D[0x23];
--    s16 unk_40;
--    s16 unk_42;
--    u8 unk_44[0x20];
--    u8 unk_64;
-+    u8 state;
-+    u8 unused;
-+    u8 sLotoId;
-+    u8 unused2;
-+    Point2D monPos;
-+    struct BgConfig *bgConfig;
-+    BattleAnimSystem *system;
-+    SpriteManager *pokemonSpriteManager;
-+    Pokepic *monSprite;
-+    ManagedSprite *xluSprite;
-+    XYTransformContext shake;
-+    XYTransformContext pos;
-+    XYTransformContext alpha;
- } UnkStruct_ov07_02228D08_ptr;
+-static const PokeathlonEventHandlers ov96_0221A90C = {
++const PokeathlonEventHandlers ov96_0221A90C = {
+     .funcs = { ov96_021F94A8, ov96_021F9CA4, ov96_021F9CC4, ov96_021F9D58 },
+     .flag = 1,
+ };
  
- void ov07_02232020(BattleAnimSystem *system, int targets, BattleAnimSpriteInfo *sprites, int *count);
-@@ -65,17 +67,17 @@
+-static const PokeathlonEventHandlers ov96_0221A8D0 = {
++const PokeathlonEventHandlers ov96_0221A8D0 = {
+     .funcs = { ov96_022047EC, ov96_02204DE8, ov96_02204DF8, ov96_02204E58 },
+     .flag = 0,
+ };
  
- void ov07_02228D08(SysTask *arg0, void *param) {
-     UnkStruct_ov07_02228D08_ptr *ptr = param;
--    if (ptr->unk_0 == 0) {
--        if (ov07_022222B4((void *)&ptr->unk_40) == 0) {
--            ptr->unk_0 = (u8)(ptr->unk_0 + 1);
-+    if (ptr->state == 0) {
-+        if (ov07_022222B4((void *)&ptr->pos) == 0) {
-+            ptr->state = (u8)(ptr->state + 1);
-         }
--        ov07_022227D8((void *)&ptr->unk_1C);
--        ov07_02222AF4((void *)&ptr->unk_64);
--        ManagedSprite_SetPositionXY(ptr->unk_18, ptr->unk_40, ptr->unk_42);
--        ManagedSprite_TickFrame(ptr->unk_18);
--        SpriteSystem_DrawSprites(ptr->unk_10);
-+        ov07_022227D8((void *)&ptr->shake);
-+        ov07_02222AF4((void *)&ptr->alpha);
-+        ManagedSprite_SetPositionXY(ptr->xluSprite, ptr->pos.x, ptr->pos.y);
-+        ManagedSprite_TickFrame(ptr->xluSprite);
-+        SpriteSystem_DrawSprites(ptr->pokemonSpriteManager);
-         return;
-     }
--    ov07_0221C448(ptr->unk_C, arg0);
-+    ov07_0221C448(ptr->system, arg0);
-     Heap_Free(ptr);
- }
-diff --git a/src/overlay_07_02226F04_02228F14.c b/src/overlay_07_02226F04_02228F14.c
---- a/src/overlay_07_02226F04_02228F14.c
-+++ b/src/overlay_07_02226F04_02228F14.c
-@@ -4,19 +4,21 @@
- #include "overlay_07_battle_anim_funcs.h"
- #include "sys_task.h"
+-static const PokeathlonEventHandlers ov96_0221A7F4 = {
++const PokeathlonEventHandlers ov96_0221A7F4 = {
+     .funcs = { ov96_021F010C, ov96_021F08E4, ov96_021F08F4, ov96_021F095C },
+     .flag = 0,
+ };
  
-+typedef struct SpriteShakeInfo {
-+    s16 extentX;
-+    s16 extentY;
-+    s16 interval;
-+    s16 amount;
-+    int targets;
-+} SpriteShakeInfo;
+-static const PokeathlonEventHandlers ov96_0221A830 = {
++const PokeathlonEventHandlers ov96_0221A830 = {
+     .funcs = { ov96_02209448, ov96_02209738, ov96_02209748, ov96_022097AC },
+     .flag = 1,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A8A8 = {
++const PokeathlonEventHandlers ov96_0221A8A8 = {
+     .funcs = { ov96_0220E3F0, ov96_0220E5F4, ov96_0220E60C, ov96_0220E670 },
+     .flag = 0,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A920 = {
++const PokeathlonEventHandlers ov96_0221A920 = {
+     .funcs = { ov96_021F5018, ov96_021F54C0, ov96_021F54D4, ov96_021F553C },
+     .flag = 1,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A8F8 = {
++const PokeathlonEventHandlers ov96_0221A8F8 = {
+     .funcs = { ov96_021FC768, ov96_021FCD74, ov96_021FCD84, ov96_021FCE10 },
+     .flag = 0,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A880 = {
++const PokeathlonEventHandlers ov96_0221A880 = {
+     .funcs = { ov96_02215AC4, ov96_02215CD0, ov96_02215CE8, ov96_02215D4C },
+     .flag = 0,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A858 = {
++const PokeathlonEventHandlers ov96_0221A858 = {
+     .funcs = { ov96_02201558, ov96_02201B18, ov96_02201B34, ov96_02201B98 },
+     .flag = 0,
+ };
+ 
+-static const PokeathlonEventHandlers ov96_0221A81C = {
++const PokeathlonEventHandlers ov96_0221A81C = {
+     .funcs = { ov96_02210C98, ov96_02211650, ov96_02211660, ov96_022116C8 },
+     .flag = 0,
+ };
+@@ -121,14 +121,14 @@
+ BOOL ov96_0220E2DC(PokeathlonCourseData *, u8 *);
+ BOOL ov96_0220E394(PokeathlonCourseData *, u8 *);
+ 
+-static const PokeathlonStateFunc ov96_0221DC30[] = { ov96_021F9234, ov96_021F9240, ov96_021F9380 };
+-static const PokeathlonStateFunc ov96_0221DC50[] = { ov96_022052B0, ov96_0220549C, ov96_02205520 };
+-static const PokeathlonStateFunc ov96_0221DB50[] = { ov96_021F0A7C, ov96_021F0AE0, ov96_021F0B58 };
+-static const PokeathlonStateFunc ov96_0221DC5C[] = { ov96_02209130, ov96_0220935C, ov96_022093D0 };
+-static const PokeathlonStateFunc ov96_0221DC74[] = { ov96_0220E22C, ov96_0220E2DC, ov96_0220E394 };
+-static const PokeathlonStateFunc ov96_0221DC1C[] = { ov96_021F5650, ov96_021F5730 };
+-static const PokeathlonStateFunc ov96_0221DC3C[] = { ov96_021FD2E0, ov96_021FD3EC, ov96_021FD46C };
+-static const PokeathlonStateFunc ov96_0221DC48[] = { ov96_02202154, ov96_022021D4 };
++const PokeathlonStateFunc ov96_0221DC30[] = { ov96_021F9234, ov96_021F9240, ov96_021F9380 };
++const PokeathlonStateFunc ov96_0221DC50[] = { ov96_022052B0, ov96_0220549C, ov96_02205520 };
++const PokeathlonStateFunc ov96_0221DB50[] = { ov96_021F0A7C, ov96_021F0AE0, ov96_021F0B58 };
++const PokeathlonStateFunc ov96_0221DC5C[] = { ov96_02209130, ov96_0220935C, ov96_022093D0 };
++const PokeathlonStateFunc ov96_0221DC74[] = { ov96_0220E22C, ov96_0220E2DC, ov96_0220E394 };
++const PokeathlonStateFunc ov96_0221DC1C[] = { ov96_021F5650, ov96_021F5730 };
++const PokeathlonStateFunc ov96_0221DC3C[] = { ov96_021FD2E0, ov96_021FD3EC, ov96_021FD46C };
++const PokeathlonStateFunc ov96_0221DC48[] = { ov96_02202154, ov96_022021D4 };
+ extern PokeathlonStateFunc ov96_0221DC90[];
+ extern PokeathlonStateFunc ov96_0221DC88[];
+ 
+rp15 (2026-11-26, dc4c11068): FrtCmd_040 (the frontier script's "run this movement list on an object" command) reads the script offset into a `u32`, the other
+users of FrontierScriptContext_ReadWord (FrtCmd_034 and the four calls in the 0222C040/0222C0B4/0222C820/0222C884 files) use `s32`. The offset is
+relative and negative here (the movement list lies before the command): on the DS ptr + (u32)offset wraps to the list, on the host it is ptr + 2^32 - n,
+a pointer 4 GiB past the script buffer: the FrontierAnimData task reads animCmd->action from unmapped memory (fr-factory-clerk, f3992,
+ov80_0222EEC8). s32 as the siblings.
+Handover-ID: rp15-0002
+diff --git a/src/overlay_80_0222BDF4_0222C52C.c b/src/overlay_80_0222BDF4_0222C52C.c
+--- a/src/overlay_80_0222BDF4_0222C52C.c
++++ b/src/overlay_80_0222BDF4_0222C52C.c
+@@ -1883,7 +1883,7 @@
+     FrontierScriptManager *scriptMan = ctx->frontierSystem;
+     FrontierGraphics *graphics = sub_0209680C(scriptMan->frontier);
+     u16 localID = FrontierScript_ReadVar(ctx);
+-    u32 offset = FrontierScriptContext_ReadWord(ctx);
++    s32 offset = FrontierScriptContext_ReadWord(ctx);
+     UnkStruct_ov104_0223C634 *object = ov80_02239938(scriptMan->frontier, localID);
+ 
+     if (object == 0L) {
+fishcrash (2026-11-26, 766902128; the plays' ss-fish-bite, SIGSEGV about 50 frames after the bite's "!"): the fishing task's
+m2c states read FishingTask (overlay_01_fishing_task.h) at its DS offsets, wrong on the host once the 8-byte fieldSystem pointer
+(DS +0x20) moves everything after it. hgss-port dc4c11068 types ov01_021FC934, ov01_021FC9AC and ov01_021FCAA8; ov01_021FCBCC (every
+fishing message's close) still read printerID at DS +0x28 and the window at DS +0x38 (a String on the host) for ClearFrameAndWindow2 /
+RemoveWindow. Typed. Fishing never worked on 64-bit hosts. Drop when upstream types it.
+Handover-ID: none (port-only)
+diff --git a/src/overlay_01_021FC66C_021FCB90_021FCB90.c b/src/overlay_01_021FC66C_021FCB90_021FCB90.c
+--- a/src/overlay_01_021FC66C_021FCB90_021FCB90.c
++++ b/src/overlay_01_021FC66C_021FCB90_021FCB90.c
+@@ -1686,7 +1686,9 @@ void ov01_021FCB90(FishingTask *fishingTask, u32 messageID)
+ 
+ s32 ov01_021FCBCC(void *arg0) {
+-    if ((DialogBox_IsPrintFinished(*(u8 *)((u8 *)arg0 + 0x28)) == 1) && (ov01_021FCAFC() == 1)) {
+-        ClearFrameAndWindow2(arg0 + 0x38, 0);
+-        RemoveWindow(arg0 + 0x38);
++    FishingTask *fishingTask = arg0; // Port: printerID and window were read at their DS offsets (+0x28, +0x38)
 +
-+// the layout of FlailContext (overlay_07_02226F04_02228F88_02228F88.c)
- typedef struct UnkStruct_ov07_02228F14_ptr {
--    u8 unk_0;
--    u8 unk_1[0x3];
--    void *unk_4;
--    u8 unk_8[0x14];
--    s16 unk_1C;
--    s16 unk_1E;
--    s16 unk_20;
--    s16 unk_22;
--    u8 unk_24[0x8];
--    void *unk_2C;
--    u8 unk_30[0x8];
--    u8 unk_38;
-+    BattleAnimScriptFuncCommon common;
-+    SpriteShakeInfo shakeInfo;
-+    struct Pokepic *battlerSprites[2];
-+    s64 unused;
-+    XYTransformContext shake;
- } UnkStruct_ov07_02228F14_ptr;
- 
- s32 ov07_022227A8(void *, s16, s16, u32, s32);
-@@ -30,21 +32,21 @@
-     Point2D v0;
-     u8 v1;
- 
--    v1 = ptr->unk_0;
-+    v1 = ptr->common.state;
-     switch (v1) {
-     case 0:
--        ov07_022227A8((void *)&ptr->unk_38, ptr->unk_1C, ptr->unk_1E, ptr->unk_20, (s32) ptr->unk_22);
--        ptr->unk_0 = (u8)(ptr->unk_0 + 1);
-+        ov07_022227A8((void *)&ptr->shake, ptr->shakeInfo.extentX, ptr->shakeInfo.extentY, ptr->shakeInfo.interval, (s32) ptr->shakeInfo.amount);
-+        ptr->common.state = (u8)(ptr->common.state + 1);
-         return;
-     case 1:
--        ov07_02231FA0(ptr->unk_2C, &v0);
--        if (ov07_0222283C((void *)&ptr->unk_38, v0.x, v0.y, ptr->unk_2C) == 0) {
--            ptr->unk_0 = (u8)(ptr->unk_0 + 1);
-+        ov07_02231FA0(ptr->battlerSprites[1], &v0);
-+        if (ov07_0222283C((void *)&ptr->shake, v0.x, v0.y, ptr->battlerSprites[1]) == 0) {
-+            ptr->common.state = (u8)(ptr->common.state + 1);
-             return;
-         }
-         return;
-     default:
--        ov07_0221C448(ptr->unk_4, arg0);
-+        ov07_0221C448(ptr->common.battleAnimSys, arg0);
-         Heap_Free(ptr);
-         break;
++    if ((DialogBox_IsPrintFinished(fishingTask->printerID) == 1) && (ov01_021FCAFC() == 1)) {
++        ClearFrameAndWindow2(&fishingTask->window, 0);
++        RemoveWindow(&fishingTask->window);
+         return 1;
      }
-diff --git a/src/overlay_07_0222A8EC_0222AE14.c b/src/overlay_07_0222A8EC_0222AE14.c
---- a/src/overlay_07_0222A8EC_0222AE14.c
-+++ b/src/overlay_07_0222A8EC_0222AE14.c
-@@ -4,25 +4,15 @@
- #include "sprite_system.h"
- #include "sys_task.h"
- 
-+// the layout of MimicContext (overlay_07_0222A8EC_0222AEA0_0222AEA0.c)
- typedef struct UnkStruct_ov07_0222AE14_arg1 {
--    u8 unk_0;
--    u8 unk_1[0x3];
--    void *unk_4;
--    u8 unk_8[0x4];
--    SpriteManager *unk_C;
--    u8 unk_10[0x18];
--    ManagedSprite *unk_28;
--    u8 unk_2C[0x10];
--    ManagedSprite *unk_3C;
--    u8 unk_40[0x10];
--    ManagedSprite *unk_50;
--    u8 unk_54[0x4];
--    s16 unk_58;
--    s16 unk_5A;
--    u8 unk_5C[0x4];
--    u8 unk_60;
--    u8 unk_61[0x13];
--    s32 unk_74;
-+    BattleAnimScriptFuncCommon common;
-+    BattleAnimSpriteInfo defenderSprite;
-+    BattleAnimSpriteInfo opponentSprites[2];
-+    s16 defenderY;
-+    s16 defenderHeight;
-+    s16 unused;
-+    XYTransformContext scale;
- } UnkStruct_ov07_0222AE14_arg1;
- 
- s32 ov07_0222260C(void *);
-@@ -40,21 +30,21 @@
-     f32 x;
-     f32 y;
- 
--    if (arg1->unk_0 == 0) {
--        if (ov07_0222260C((void *)&arg1->unk_60) == 0) {
--            ManagedSprite_SetDrawFlag(arg1->unk_28, 0);
--            ManagedSprite_SetDrawFlag(arg1->unk_3C, 0);
--            ManagedSprite_SetDrawFlag(arg1->unk_3C, 0);
--            ov07_0221C448(arg1->unk_4, arg0);
-+    if (arg1->common.state == 0) {
-+        if (ov07_0222260C((void *)&arg1->scale) == 0) {
-+            ManagedSprite_SetDrawFlag(arg1->defenderSprite.hwSprite, 0);
-+            ManagedSprite_SetDrawFlag(arg1->opponentSprites[0].hwSprite, 0);
-+            ManagedSprite_SetDrawFlag(arg1->opponentSprites[0].hwSprite, 0);
-+            ov07_0221C448(arg1->common.battleAnimSys, arg0);
-             ov07_02232508(arg1);
-             return;
-         }
--        ov07_02222644((void *)&arg1->unk_60, &x, &y);
--        ManagedSprite_SetAffineScale(arg1->unk_28, x, y);
--        ov07_022226FC(arg1->unk_28, arg1->unk_58, arg1->unk_5A, arg1->unk_74, 0);
--        ManagedSprite_TickFrame(arg1->unk_28);
--        ManagedSprite_TickFrame(arg1->unk_3C);
--        ManagedSprite_TickFrame(arg1->unk_50);
--        SpriteSystem_DrawSprites(arg1->unk_C);
-+        ov07_02222644((void *)&arg1->scale, &x, &y);
-+        ManagedSprite_SetAffineScale(arg1->defenderSprite.hwSprite, x, y);
-+        ov07_022226FC(arg1->defenderSprite.hwSprite, arg1->defenderY, arg1->defenderHeight, arg1->scale.data[4], 0);
-+        ManagedSprite_TickFrame(arg1->defenderSprite.hwSprite);
-+        ManagedSprite_TickFrame(arg1->opponentSprites[0].hwSprite);
-+        ManagedSprite_TickFrame(arg1->opponentSprites[1].hwSprite);
-+        SpriteSystem_DrawSprites(arg1->common.pokemonSpriteManager);
-     }
- }
-diff --git a/src/overlay_07_022301C4_02230960.c b/src/overlay_07_022301C4_02230960.c
---- a/src/overlay_07_022301C4_02230960.c
-+++ b/src/overlay_07_022301C4_02230960.c
-@@ -5,12 +5,12 @@
- #include "sprite_system.h"
- #include "sys_task.h"
- 
-+// the layout of MegahornContext (overlay_07_022301C4_02230994_02230994.c)
- typedef struct UnkStruct_ov07_02230960_ptr {
--    void *unk_0;
--    SpriteManager *unk_4;
--    u8 unk_8;
--    u8 unk_9[0x23];
--    ManagedSprite *unk_2C;
-+    BattleAnimSystem *battleAnimSys;
-+    SpriteManager *spriteManager;
-+    XYTransformContext pos;
-+    ManagedSprite *hornSprite;
- } UnkStruct_ov07_02230960_ptr;
- 
- s32 ov07_022222F0(void *, ManagedSprite *);
-@@ -19,11 +19,11 @@
- 
- void ov07_02230960(SysTask *arg0, void *param) {
-     UnkStruct_ov07_02230960_ptr *ptr = param;
--    if (ov07_022222F0((void *)&ptr->unk_8, ptr->unk_2C) == 0) {
--        Sprite_DeleteAndFreeResources(ptr->unk_2C);
-+    if (ov07_022222F0((void *)&ptr->pos, ptr->hornSprite) == 0) {
-+        Sprite_DeleteAndFreeResources(ptr->hornSprite);
-         Heap_Free(ptr);
--        ov07_0221C448(ptr->unk_0, arg0);
-+        ov07_0221C448(ptr->battleAnimSys, arg0);
-         return;
-     }
--    SpriteSystem_DrawSprites(ptr->unk_4);
-+    SpriteSystem_DrawSprites(ptr->spriteManager);
- }
-
-cr1: src/sound.c keeps the two wave-out channel handles (the primary at 0xBEB9C, the secondary at 0xBEBA0, reached through
-GF_SdatGetAttrPtr(0/1) by sub_020055AC) in u32 slots, but a handle is a pointer (NNSSndWaveOutHandle): on the host the 8-byte
-store of the primary handle overwrote the secondary slot, and the secondary's store the current-bank word at 0xBEBA4, so a
-move sound that allocates both channels (Hyper Voice: the cry plays through the wave-out path) left the primary handle
-half-clobbered and IsCryFinished -> sub_02005738 -> NNS_SndWaveOutIsPlaying read through it. Both slots are NNSSndWaveOutHandle
-(4 bytes on the DS, the same layout). Drop when upstream types the two fields.
-Handover-ID: cr1-0001 (decomp bug: the wave-out handles of SND_WORK are u32)
-diff --git a/src/sound.c b/src/sound.c
---- a/src/sound.c
-+++ b/src/sound.c
-@@ -14,8 +14,8 @@
-     /* 0x00094 */ NNSSndHeapHandle heap;
-     /* 0x00098 */ u8 heap_buf[SND_HEAP_SIZE];
-     /* 0xBEB78 */ NNSSndHandle unk_BEB78[SND_HANDLE_MAX];
--    /* 0xBEB9C */ u32 unk_BEB9C;
--    /* 0xBEBA0 */ u32 unk_BEBA0;
-+    /* 0xBEB9C */ NNSSndWaveOutHandle unk_BEB9C;
-+    /* 0xBEBA0 */ NNSSndWaveOutHandle unk_BEBA0;
-     /* 0xBEBA4 */ u32 unk_BEBA4;
-     /* 0xBEBA8 */ u8 unk_BEBA8[0x18];
-     /* 0xBEBC0 */ u8 unk_BEBC0[16];
-cr2: ov07_02231C20 (anim emitter callback cases 14 and 15, Tail Glow vs Psybeam) declares sub_02015530 and
-ov07_02231924 as returning void * although both return u8: the 64-bit host reads all of rax, the upper bits are whatever
-the callee left, and the garbage becomes ov07_02231A70's table row and index (a crash at the first copy from the
-row). The siblings (ov07_02231C50, ov07_02231B90) already declare the u8 returns. ov07_022208F8 / ov07_02220938 (the
-same family, cases 12 and 13 of the callback switch) call the unprototyped sub_02015530() with no argument after dropping
-ov07_0221C478's result: the DS passes r0 through, the host calls it with whatever rdi held. Drop when upstream types
-both files.
-Handover-ID: cr2-0001 (decomp: u8 returns declared void * in ov07_02231C20; r0 pass-through in ov07_022208F8)
-diff --git a/src/overlay_07_0223192C_02231C20.c b/src/overlay_07_0223192C_02231C20.c
---- a/src/overlay_07_0223192C_02231C20.c
-+++ b/src/overlay_07_0223192C_02231C20.c
-@@ -3,17 +3,17 @@
- 
- void ov07_02231C20(void *ctx, void *param1, void *param2);
- 
--void *sub_02015530(void *a);
-+u8 sub_02015530(void *a);
- 
--void *ov07_02231924(void *ctx, void *b);
-+u8 ov07_02231924(void *ctx, void *b);
- 
--void *ov07_0221BFC0(void *ctx);
-+uintptr_t ov07_0221BFC0(void *ctx);
- 
--void ov07_02231B00(void *a, void *b, void *c, void *d);
-+void ov07_02231B00(uintptr_t a, u32 *b, uintptr_t c, uintptr_t d);
- 
- void ov07_02231C20(void *ctx, void *param1, void *param2) {
--    void *v0 = sub_02015530(ov07_0221C478(ctx));
--    void *v1 = ov07_02231924(ctx, param1);
-+    u8 v0 = sub_02015530(ov07_0221C478(ctx));
-+    u8 v1 = ov07_02231924(ctx, param1);
- 
--    ov07_02231B00(v1, param2, ov07_0221BFC0(ctx), v0);
-+    ov07_02231B00(v1, (u32 *)param2, ov07_0221BFC0(ctx), v0);
- }
-diff --git a/src/overlay_07_02220884_022208F8.c b/src/overlay_07_02220884_022208F8.c
---- a/src/overlay_07_02220884_022208F8.c
-+++ b/src/overlay_07_02220884_022208F8.c
-@@ -7,7 +7,7 @@
- 
- s32 ov07_02231AD0(uintptr_t, u32 *, s32, s32);
- 
--u8 sub_02015530();
-+u8 sub_02015530(void *);
- 
- void ov07_022208F8(void *arg0, BattleAnimSystem **arg1, void *arg2);
- 
-@@ -17,8 +17,7 @@
-     s32 v2;
- 
-     v0 = *arg1;
--    ov07_0221C478(v0);
--    v1 = sub_02015530();
-+    v1 = sub_02015530(ov07_0221C478(v0));
-     if (ov07_0223192C(v0, ov07_0221C470(v0)) != 3) {
-         v2 = 1;
-     } else {
-@@ -35,8 +34,7 @@
-     s32 v2;
- 
-     v0 = *arg1;
--    ov07_0221C478(v0);
--    v1 = sub_02015530();
-+    v1 = sub_02015530(ov07_0221C478(v0));
-     if (ov07_0223192C(v0, ov07_0221C468(v0)) != 3) {
-         v2 = 1;
-     } else {

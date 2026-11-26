@@ -27,7 +27,15 @@
 #include "overlay_08_battle_bag.h"
 #include "constants/items.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/bag.c (tools/pokehg_abi.py)
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ItemSlot *Bag_GetPocketSlotN(Bag *bag, u8 pocketID, u32 slot);
+#else
+ItemSlot *Bag_GetPocketSlotN(Bag *bag, u16 pocketID, u32 slot);
+#endif
+#else
 ItemSlot *Bag_GetPocketSlotN(Bag *bag, u16 pocketID, u16 slot);
+#endif
 
 extern const u8 ov08_02225CE0[5];
 

@@ -3,6 +3,7 @@ struct Sprite;
 
 #include "sprite.h"
 #include "unk_02035900.h"
+#include "unk_02095EAC.h"
 
 extern const u16 ov37_021E7A80[12][3];
 
@@ -10,7 +11,7 @@ void ov37_021E6818(Sprite **param0, int param1);
 
 void ov37_021E6848(struct Sprite *param_1, s32 param_2);
 
-s32 ov37_021E65EC();
+s32 ov37_021E65EC(void *param0, s32 arg1);
 s32 ov37_021E72E8(void *, void *, void *, s32);
 s32 ov37_021E73B4(u8 *);
 s32 ov37_021E745C(void);
@@ -39,7 +40,7 @@ void ov37_021E6848(Sprite *param_1, s32 param_2) {
 }
 
 s32 ov37_021E6860(u8 *arg0, s32 arg1) {
-    ov37_021E65EC();
+    ov37_021E65EC(arg0, arg1);
     if (sub_0203769C() == 0) {
         if (ov37_021E745C() != 1) {
             ov37_021E755C(arg0);

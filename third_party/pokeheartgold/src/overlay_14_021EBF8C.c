@@ -27,20 +27,20 @@ void ov14_021EBF8C(void *arg0) {
 s32 ov14_021EBF9C(UnkStruct_ov14_boxapp *arg0) {
     Pokemon *mon;
     s32 slot;
-    void *v0;
-    void *v1;
-    void *v2;
-    void *v3;
+    UnkStruct_ov14_boxsys *v0;
+    UnkStruct_ov14_boxsys *v1;
+    UnkStruct_ov14_boxsys *v2;
+    UnkStruct_ov14_boxsys *v3;
 
     if ((u32) arg0->unk21 >= 0x1EU) {
         ov14_021F3488(arg0, 2, 1);
-        ov14_021F34C8(*((void * *)&arg0->sys), arg0->unk21, 0);
+        ov14_021F34C8(arg0->sys, arg0->unk21, 0);
         slot = arg0->unk21 - 0x1E;
         if (ov14_021E6480(arg0, slot) == 0) {
             PlaySE(0x5F3U);
             ov14_021F67B0(arg0, 6, 0x25);
-            v0 = *((void * *)&arg0->sys);
-            *(u8 *)((u8 *)v0 + 0x44E) = (u8)(0x80 | *(u8 *)((u8 *)v0 + 0x44E));
+            v0 = arg0->sys;
+            v0->unk_44E_7 = 1;
             *((s32 *)&arg0->unk30) = 0xE;
             return 6;
         }
@@ -48,30 +48,30 @@ s32 ov14_021EBF9C(UnkStruct_ov14_boxapp *arg0) {
         if (ItemIdIsMail((u16)GetMonData(mon, 6, NULL)) == 1) {
             PlaySE(0x5F3U);
             ov14_021F685C(arg0, 0, 6, 0x25);
-            v1 = *((void * *)&arg0->sys);
-            *(u8 *)((u8 *)v1 + 0x44E) = (u8)(0x80 | *(u8 *)((u8 *)v1 + 0x44E));
+            v1 = arg0->sys;
+            v1->unk_44E_7 = 1;
             *((s32 *)&arg0->unk30) = 0xE;
             return 6;
         }
         if (GetMonData(mon, 0xA2, NULL) != 0) {
             PlaySE(0x5F3U);
             ov14_021F685C(arg0, 0, 5, 0x25);
-            v2 = *((void * *)&arg0->sys);
-            *(u8 *)((u8 *)v2 + 0x44E) = (u8)(0x80 | *(u8 *)((u8 *)v2 + 0x44E));
+            v2 = arg0->sys;
+            v2->unk_44E_7 = 1;
             *((s32 *)&arg0->unk30) = 0xE;
             return 6;
         }
         goto block_8;
     }
-    ov14_021F43F4(*((void * *)&arg0->sys), 0);
+    ov14_021F43F4(arg0->sys, 0);
     ov14_021F3488(arg0, 1, 1);
-    ov14_021F34C8(*((void * *)&arg0->sys), arg0->unk21, 0);
+    ov14_021F34C8(arg0->sys, arg0->unk21, 0);
 block_8:
     if (GetBoxMonData(ov14_021E60C0(arg0, arg0->unk1F, arg0->unk21), 0x4C, NULL) != 0) {
         PlaySE(0x5F3U);
         ov14_021F67B0(arg0, 3, 0x25);
-        v3 = *((void * *)&arg0->sys);
-        *(u8 *)((u8 *)v3 + 0x44E) = (u8)(0x80 | *(u8 *)((u8 *)v3 + 0x44E));
+        v3 = arg0->sys;
+        v3->unk_44E_7 = 1;
         *((s32 *)&arg0->unk30) = 0xE;
         return 6;
     }

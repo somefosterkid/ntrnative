@@ -11,5 +11,5 @@ void ov07_02223CAC(void *arg0, s16 x, s16 y) {
     ManagedSprite_SetDrawFlag(((SwaggerSpriteContext *)arg0)->sprite, 1);
     ManagedSprite_SetPositionXY(((SwaggerSpriteContext *)arg0)->sprite, x, y);
     *((s32 *)&((SwaggerSpriteContext *)arg0)->scaleStep) = 0;
-    ov07_02222508(arg0 + 0x18, 0xA, 0xA, 0xE, 4);
+    ov07_02222508(&((SwaggerSpriteContext *)arg0)->scale, 0xA, 0xA, 0xE, 4);
 }

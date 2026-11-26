@@ -4,6 +4,8 @@
 // PokeathlonCourseRecord: merged by tools/hg/promote.py from 2 m2c local copies (1 variants, base
 // src/overlay_99_021E5900.c) and 87 accesses; fields at every accessed offset, pads elsewhere.
 
+#include "constants/heap.h"
+
 struct BgConfig;
 struct ManagedSprite;
 struct NARC;
@@ -15,7 +17,7 @@ typedef struct PokeathlonCourseRecord {
     struct PokeathlonCourseRecordArgs *args;
     struct BgConfig *bgConfig;
     struct NARC *narc;
-    u32 heapId;
+    enum HeapID heapId;
     struct Ov98TextSys *textContext;
     struct PokeathlonSpriteContext *spriteContext;
     struct ManagedSprite *sprites[26];

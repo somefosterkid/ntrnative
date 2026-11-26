@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove City's western beach (shallow water: column x 536, and 537 from row 404 down), warped to 537,405 facing west; a blocked step west, then single steps north into the shallow water and on (537,404 -> 402), east, south, west (Smooth motion: the player sprite vanishes as a step into the water starts, keyframe 11035 / 11033)
+# end: f11300
+env BWPORT_HG_WARP=67:537:405 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f16@f11000 up*f3@f11030 up*f32@f11050 right*f3@f11100 right*f16@f11120 down*f3@f11150 down*f32@f11170 left*f16@f11220 right*f3@f11250 left*f3@f11270

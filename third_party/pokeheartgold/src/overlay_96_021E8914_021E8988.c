@@ -1,48 +1,41 @@
 #include "global.h"
 
 #include "error_handling.h"
+#include "pokeathlon/pokeathlon.h"
 
-void ov96_021E8988(s32 *param_1, s32 param_2, void *param_3, size_t param_4);
+BOOL ov96_021E8988(Ov96Handlers *handlers, s32 cmd, void *data, s32 size) {
+    s32 expected;
+    void *copy;
+    s32 i;
+    Ov96Msg *msg;
+    s32 idx;
 
-void ov96_021E8988(s32 *param_1, s32 param_2, void *param_3, size_t param_4) {
-    size_t sVar1;
-    void *pvVar2;
-    s32 iVar3;
-    s32 *piVar4;
-    void *(*pcVar5)();
-    s32 *piVar6;
-
-    piVar6 = NULL;
-    iVar3 = 0;
-    piVar4 = param_1;
-    do {
-        if (*piVar4 == 0) {
-            piVar6 = param_1 + iVar3 * 0xe;
+    msg = NULL;
+    for (i = 0; i < 8; i++) {
+        if (handlers->msgs[i].active == 0) {
+            msg = &handlers->msgs[i];
             break;
         }
-        iVar3 = iVar3 + 1;
-        piVar4 = piVar4 + 0xe;
-    } while (iVar3 < 8);
-    if (piVar6 == NULL) {
+    }
+    if (msg == NULL) {
         GF_AssertFail();
     }
-    iVar3 = (param_2 + -0x16) * 0xc;
-    sVar1 = (**(size_t(**)())(param_1[0x70] + iVar3 + 4))();
-    if ((sVar1 != 0xffff) && (sVar1 != param_4)) {
+    idx = cmd - 0x16;
+    expected = handlers->cmdTable[idx].unk_04();
+    if (expected != 0xffff && expected != size) {
         GF_AssertFail();
     }
-    pcVar5 = *(void *(**)())(param_1[0x70] + iVar3 + 8);
-    if (pcVar5 != NULL) {
-        pvVar2 = (void *)(*pcVar5)(0, param_1[0x72], param_4);
-        if (0 < (s32)param_4) {
-            memcpy(pvVar2, param_3, param_4);
+    if (handlers->cmdTable[idx].unk_08 != NULL) {
+        copy = handlers->cmdTable[idx].unk_08(0, handlers->userData, size);
+        if (size > 0) {
+            memcpy(copy, data, size);
         }
-        piVar6[0xd] = (s32)pvVar2;
+        msg->ptr = copy;
     } else {
-        piVar6[0xd] = (s32)param_3;
+        msg->ptr = data;
     }
-    piVar6[1] = param_2 + -0x16;
-    piVar6[0xc] = param_4;
-    *piVar6 = 1;
-    return;
+    msg->cmd = cmd - 0x16;
+    msg->size = size;
+    msg->active = 1;
+    return TRUE;
 }

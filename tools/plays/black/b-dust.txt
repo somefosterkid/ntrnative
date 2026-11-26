@@ -1,0 +1,5 @@
+# game: black
+# from: b-r8-1
+# reaches: Route 4's desert: off the road onto the sand (from about f760), the sand's dust trail behind the player while it walks left, down and up (dust on sand)
+# end: f1150
+walk 300 40 up4 left10 down4 up4

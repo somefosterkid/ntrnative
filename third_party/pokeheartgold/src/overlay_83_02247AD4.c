@@ -8,7 +8,11 @@ s32 ov83_02247AD4(GridInputHandler *arg0);
 
 void ov83_02247B04(GridInputHandler *arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_02242AB4(void *, s8, s8);
+#else
 s32 ov83_02242AB4(void *, s32, s32);
+#endif
 void ov83_02247B1C(void *arg0, s32 arg1, s32 arg2);
 void ov83_02247B34(void *arg0, s32 arg1, s32 arg2);
 

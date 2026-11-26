@@ -152,7 +152,8 @@ def slice_cmd(cmd):
 
 def setup_args():
     """meson setup's native files: linux.ini, and linux-ccache.ini on top when ccache is installed (only a NEW build dir
-    takes them: /etc/ccache.conf's base_dir=/root/bw-port lets every worktree share the objects)"""
+    takes them, except that port_wraps.stale_launcher wipes an older dir that lacks the ccache-nopch launcher:
+    /etc/ccache.conf's base_dir=/root/bw-port lets every worktree share the objects)"""
     if os.environ.get('BWPORT_NATIVE'):
         return ['--native-file', os.environ['BWPORT_NATIVE']]
     args = ['--native-file', 'port/machine/linux.ini']
@@ -368,6 +369,15 @@ def start_xvfb():
     for n in range(300, 400):
         if os.path.exists(f'/tmp/.X{n}-lock'):
             continue
+        # claim the number atomically (a flock on a file of ours, held until this process ends; the kernel frees it when
+        # the process dies): two port_runs starting together never pick the same display
+        try:
+            import fcntl
+            claim = open(f'/tmp/.bwport-xclaim-{n}', 'a')
+            fcntl.flock(claim, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            continue
+        _XCLAIMS.append(claim)
         xvfb = subprocess.Popen(['Xvfb', f':{n}', '-screen', '0', '1280x1024x24', '-nolisten', 'tcp'],
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         env = dict(os.environ, DISPLAY=f':{n}', SDL_VIDEODRIVER='x11', WAYLAND_DISPLAY='')
@@ -383,7 +393,11 @@ def start_xvfb():
                 break
             time.sleep(0.05)
         xvfb.kill()
+        _XCLAIMS.pop().close()
     sys.exit('port_run: Xvfb did not start')
+
+
+_XCLAIMS = []
 
 
 def find_window(env):
@@ -576,7 +590,7 @@ CODES = {'black': 'IRBO', 'white': 'IRAO', 'b2': 'IREO', 'w2': 'IRDO', 'platinum
 
 def import_game(run_dir, game):
     """a launcher root's game folder (the launcher's own importrom step, no window): the ROM is orig/baserom_*_us.nds"""
-    rom = os.path.join(os.path.dirname(find_rom()), ROMS[game])
+    rom = os.path.join(os.path.dirname(find_rom()), ROMS[game]) if game in ROMS else find_rom()   # Black: the default ROM
     if not os.path.exists(rom):
         sys.exit(f'port_run: no {rom}')
     env = dict(os.environ, BWPORT_LCTEST=f'importrom={rom}', DBUS_SESSION_BUS_ADDRESS='disabled:', SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')

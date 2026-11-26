@@ -1,5 +1,6 @@
 #include "global.h"
 
+#include "field_system.h"
 #include "field_types_def.h"
 #include "game_stats.h"
 #include "map_object.h"
@@ -20,8 +21,9 @@
 #include "sys_task.h"
 #include "unk_0200A090.h"
 #include "overlay_01_fishing_task.h"
+#include "field_system.h"
 
-void ov01_021FCB90(u8 *, u32);
+void ov01_021FCB90(FishingTask *, u32);
 
 struct MapObject;
 struct MsgData;
@@ -655,22 +657,22 @@ BOOL ov01_021FC9DC(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObje
 
 s32 ov01_021FCAE8(void);
 
-u32 ov01_021FC98C(u8 *param_1, u32 param_2, LocalMapObject *param_3) {
+u32 ov01_021FC98C(FishingTask *param_1, u32 param_2, LocalMapObject *param_3) {
     sub_0205F328(param_3, 0);
     ov01_021FCB90(param_1, 0x33);
-    *(u32 *)(param_1 + 0x10) = 0x10;
-    *(u32 *)(param_1 + 0xc) = 0xe;
+    param_1->counter = 0x10;
+    param_1->fishingTask = 0xe;
     return 1;
 }
 
-u32 ov01_021FC9AC(u8 *param_1, u32 param_2, LocalMapObject *param_3) {
+u32 ov01_021FC9AC(FishingTask *param_1, u32 param_2, LocalMapObject *param_3) {
     GameStats *gameStats;
 
     sub_0205F328(param_3, 0);
     ov01_021FCB90(param_1, 0x32);
-    *(u32 *)(param_1 + 0x10) = 0x10;
-    *(u32 *)(param_1 + 0xc) = 0xe;
-    gameStats = Save_GameStats_Get(*(SaveData **)(((u8 *)((FishingTask *)param_1)->fieldSystem) + 0xc));
+    param_1->counter = 0x10;
+    param_1->fishingTask = 0xe;
+    gameStats = Save_GameStats_Get(param_1->fieldSystem->saveData);
     GameStats_Inc(gameStats, 0x65);
     return 1;
 }
@@ -692,21 +694,21 @@ BOOL ov01_021FC9DC(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObje
     return 1 ;
 }
 
-u32 ov01_021FC9E8(u8 *param_1, u32 param_2, LocalMapObject *param_3) {
+u32 ov01_021FC9E8(FishingTask *param_1, u32 param_2, LocalMapObject *param_3) {
     s32 iVar1;
 
-    *(s32 *)(param_1 + 0x10) = *(s32 *)(param_1 + 0x10) + -1;
+    param_1->counter = param_1->counter + -1;
     iVar1 = ov01_021FCAE8();
     if (iVar1 == 1) {
-        *(u32 *)(param_1 + 0xc) = 10;
+        param_1->fishingTask = 10;
         return 1;
     }
-    if (*(s32 *)(param_1 + 0x10) != 0) {
+    if (param_1->counter != 0) {
         return 0;
     }
     sub_0205F328(param_3, 0);
     ov01_021FCB90(param_1, 0x31);
-    *(u32 *)(param_1 + 0x10) = 0x10;
-    *(u32 *)(param_1 + 0xc) = 0xe;
+    param_1->counter = 0x10;
+    param_1->fishingTask = 0xe;
     return 0;
 }

@@ -20,7 +20,7 @@ FrontierSave *Save_Frontier_GetStatic(SaveData *saveData);
 
 s32 ov83_02243F9C(void);
 
-s32 ov83_02243FD4(void *);
+void ov83_02243FD4(BattleCastleOpponentApp *);
 
 FS_EXTERN_OVERLAY(OVY_80);
 
@@ -53,7 +53,7 @@ s32 ov83_02242FE8(OverlayManager *arg0) {
     temp_r0->movesUnlocked = temp_r0_2->movesUnlocked;
     temp_r0->slotID = 0xFF;
     temp_r0->partnersCP = temp_r0_2->partnersCP;
-    *((FrontierSave **)&temp_r0->frontier) = Save_Frontier_GetStatic(temp_r0->saveData);
+    temp_r0->frontier = Save_Frontier_GetStatic(temp_r0->saveData);
     var_r3 = 0;
     do {
         temp_r0->partnersRanks[var_r3] = 1;

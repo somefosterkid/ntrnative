@@ -21,14 +21,8 @@
 #include "sprite.h"
 #include "overlay_41_sprite_resource_collection.h"
 #include "overlay_43_unk_struct_ov64_02230904.h"
-#include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
-
-s32 ov43_0222D2FC(void *, s32 *, s32);
-
-s32 ov43_0222D3B8(void *, s32 *, s32, s32 *);
-
-int ov43_0222D47C(void *arg0, s32 *arg1, s32 arg2);
 
 struct MsgData;
 struct SpriteList;
@@ -70,24 +64,21 @@ typedef struct {
     u32 unk_28[7];
 } UnkStruct_ov64_02230F98;
 void ov43_0222AD20(PalPadGfx *param0, BOOL param1);
-void ov43_0222DAE8(PalPadDetails *param0, PalPadShared *param1, PalPadGfx *param2, u32 param3, u32 param4, u32 param5);
 void ov43_0222D4C4(PalPadDetails *param0, PalPadShared *param1, PalPadGfx *param2, u32 param3);
 
-int ov43_0222D47C(void *arg0, s32 *arg1, s32 arg2) {
-    s32 v0;
-    s32 **new_var2;
-    s32 *new_var;
+int ov43_0222D47C(PalPadDetails *details, PalPadShared *shared, PalPadGfx *gfx) {
+    u32 v0;
+    u32 ret;
     v0 = 0;
     if (!(0xC0 & gSystem.heldKeys)) {
-        *((s16 *)(((u8 *)arg0) + 0xE)) = 0;
+        details->friendChangeHeld = 0;
     }
-    ov43_0222D3B8(arg0, new_var = arg1, arg2, &v0);
+    ret = ov43_0222D3B8(details, shared, gfx, &v0);
     if (v0 != 0) {
-        *arg1 = 1;
-        return;
+        shared->inputState = 1;
+        return ret;
     }
-    new_var2 = &arg1;
-    return ov43_0222D2FC(arg0, *new_var2, arg2);
+    return ov43_0222D2FC(details, shared, gfx);
 }
 
 static inline void inline_ov61_0222C3B0(UnkStruct_ov61_0222C3B0 *param0, NARC *param1, int param2, enum HeapID heapID) {

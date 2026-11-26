@@ -14,6 +14,7 @@
 #include "overlay_45_unk_struct_ov66_0223177_c_t.h"
 #include "overlay_45_unk_struct_ov66_02234798.h"
 #include "gf_3d_loader.h"
+#include "overlay_49_unk_struct_ov70_0226da18.h"
 
 typedef struct UnkStruct_ov63_0222BCE8_t UnkStruct_ov63_0222BCE8;
 
@@ -216,17 +217,27 @@ s32 ov49_0225EF88(UnkStruct_ov70_02263344 *);
 
 s32 ov49_0225EF8C(UnkStruct_ov70_02263344 *, s32);
 
-s32 ov49_0225EF98(s32, u32, s32 *, UnkStruct_ov70_02265CCC *);
+s32 ov49_0225EF98(s32, u32, const UnkStruct_ov70_0226DA18 *, UnkStruct_ov70_02265CCC *);
 
-s32 ov49_0225EFC4(s32, u32, s32 *, UnkStruct_ov70_02265CCC *);
+s32 ov49_0225EFC4(s32, u32, const UnkStruct_ov70_0226DA18 *, UnkStruct_ov70_02265CCC *);
 
-extern s32 ov49_02269B48;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B48;
 
-extern s32 ov49_02269B50;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B50;
 
-extern s32 ov49_02269B58;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B58;
 
-extern s32 ov49_02269B80;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B80;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov49_022618C0(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+BOOL ov49_02261930(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
+
+// asm keeps the DS copy (4-byte callback pointer and a literal 0); the 64-bit port emits 4-byte pointers (wordmix.py): the PC
+// build uses this C definition instead.
+const UnkStruct_ov70_0226DA18 ov49_02269B48 = { ov49_022618C0, NULL };
+const UnkStruct_ov70_0226DA18 ov49_02269B50 = { ov49_02261930, NULL };
+#endif
+
 
 s32 ov49_02261720(UnkStruct_ov70_02263344 *param0, UnkStruct_ov70_0225DEE8 *param1, u32 param2);
 

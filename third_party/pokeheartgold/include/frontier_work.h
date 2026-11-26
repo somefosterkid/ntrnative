@@ -4,13 +4,13 @@
 // FrontierWork: merged by tools/hg/promote.py from 1 m2c local copies (1 variants, base
 // src/frontier_02096608.c) and 2 accesses; fields at every accessed offset, pads elsewhere.
 
-struct FrontierLaunchArgs;
+struct FieldFrontierDTO;
 struct FrontierMap;
 struct FrontierSystem;
 struct OverlayManager;
 
 typedef struct FrontierWork {
-    struct FrontierLaunchArgs *launchArgs;
+    struct FieldFrontierDTO *launchArgs;
     struct OverlayManager *childOvy;
     void *childArg;
     void *childCallback;

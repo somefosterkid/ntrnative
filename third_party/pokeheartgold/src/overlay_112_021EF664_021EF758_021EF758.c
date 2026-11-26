@@ -9,17 +9,7 @@
 #include "screen_fade.h"
 #include "string_util.h"
 
-void ov112_021E9F5C(Ov112PokewalkerApp *, u32, u32, u32);
-
 void ov112_021E9FA4(Ov112PokewalkerApp *, u32, void *, u32, u32);
-
-void ov112_021EA670(Ov112PokewalkerApp *, u32);
-
-void ov112_021EA6B8(Ov112PokewalkerApp *, u32, u16, u16);
-
-void ov112_021EAB78(Ov112PokewalkerApp *, u32, u32, u32);
-
-u32 ov112_021EF758(Ov112PokewalkerApp *app);
 
 u32 ov112_021EF758(Ov112PokewalkerApp *app) {
     s32 uVar1;

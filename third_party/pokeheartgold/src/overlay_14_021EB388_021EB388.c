@@ -18,7 +18,7 @@ s32 ov14_021F2270(void *, s32, s32);
 s32 ov14_021E6070(void *, s32, s32, void *);
 s32 ov14_021E7588(void *arg0, s32 arg1);
 s32 ov14_021E765C(void *);
-s32 ov14_021E76B8(void *);
+void ov14_021E76B8(void *);
 s32 ov14_021E8248(void *);
 s32 ov14_021E82A8(void *);
 s32 ov14_021E884C(UnkStruct_ov14_boxsys *);
@@ -26,8 +26,16 @@ s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 
 s32 ov14_021F0244(void *, s32);
 s32 ov14_021F028C(void *, s32);
 s32 ov14_021F0314(void *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F039C(void *, u8);
+#else
 s32 ov14_021F039C(void *, s32);
+#endif
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F0530(void *, u8);
+#else
 s32 ov14_021F0530(void *, s32);
+#endif
 s32 ov14_021F1128(void *);
 s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F40E8(void *, s32);
@@ -41,7 +49,7 @@ extern s32 ov14_021F7D3C;
 s32 ov14_021EB388(void *arg0) {
     u32 temp_r0_2;
     u32 var_r5;
-    void *temp_r2;
+    UnkStruct_ov14_boxsys *temp_r2;
     UnkStruct_ov14_boxapp *var_r4;
 
     var_r4 = arg0;
@@ -49,8 +57,8 @@ s32 ov14_021EB388(void *arg0) {
     if (var_r5 != -1U) {
         if (ov14_021E6070(var_r4, var_r5, 0xAC, 0) != 0) {
             PlaySE(0x5EBU);
-            temp_r2 = ((void *)var_r4->sys);
-            System_GetTouchNewCoords(temp_r2 + 0x40B8, temp_r2 + 0x40BC);
+            temp_r2 = var_r4->sys;
+            System_GetTouchNewCoords(&temp_r2->unk_40B8, &temp_r2->unk_40BC);
             if (ov14_021E8544(var_r4->sys->unk_2F0) == 0) {
                 ov14_021F5EE4(var_r4, &ov14_021F7D3C, 5);
             }

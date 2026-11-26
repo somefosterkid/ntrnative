@@ -2,11 +2,10 @@
 
 #include "pokeathlon/pokeathlon.h"
 
-s32 ov96_021E87B0(void *, s32);
 
-s32 ov96_021E7150(PokeathlonCourseData *arg0);
+BOOL ov96_021E7150(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E7150(PokeathlonCourseData *data) {
+BOOL ov96_021E7150(PokeathlonCourseData *data, u8 *unused) {
     u8 *v0;
 
     if (PokeathlonCourse_RunSubStateLoop(data) != 0) {

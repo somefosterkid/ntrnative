@@ -4,7 +4,11 @@
 
 s32 ov112_021E594C(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021E59B4(u8 *, u8, s8, s8, s32);
+#else
 s32 ov112_021E59B4(u8 *, s32, s32, u8, s32);
+#endif
 
 extern u8 _021FF500;
 

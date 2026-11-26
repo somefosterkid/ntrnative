@@ -6,11 +6,48 @@
 # "malformed or corrupted precompiled file: could not find file '<deleted dir>/.../fx_const.h'" (11-21, twice). A generated header
 # in a deleted dir cannot be anchored, so the .pch is never taken from the cache. The objects that use it (-include-pch of the
 # dir's own .pch) are hashed with that .pch as before.
+#
+# ccx1 11-26: ... which made every object that uses a .pch miss in every other dir (those bytes hold the dir's path: same commit, second
+# dir, 8% hits), so the shared cache hit ~30% and BD's slots almost never. Now a `-o X.pch` compile also writes X.pch.sum, a hash of the
+# header's preprocessed text + the compile flags (paths under the checkout / build dir rewritten to @R / @B), and objects are compiled with
+# CCACHE_PCH_EXTSUM=1: ccache hashes X.pch.sum instead of X.pch (the .pch itself still never goes through the cache). Same text and flags =
+# same sum in every checkout; a changed header or flag = another sum. A miss still compiles with the dir's own .pch.
 prev=
+pch=
 for a in "$@"; do
   case $prev:$a in
-    -o:*.pch|*:-emit-pch|-x:c-header|-x:c++-header) exec "$@" ;;
+    -o:*.pch) pch=$a ;;
+    -o:*|-MF:*|-MQ:*|-MT:*) ;;
+    *:-emit-pch|-x:c-header|-x:c++-header) pch=${pch:-/dev/null} ;;
   esac
   prev=$a
 done
+if [ -n "$pch" ]; then
+  # CCACHE_NOPCH_SUMONLY=1 (tools/port_wraps.py pch_sums, ccx2 11-26): a build dir made before the sums existed gets its X.pch.sum without
+  # recompiling the .pch (and so, by ninja, none of the objects): only the sum below
+  [ -n "$CCACHE_NOPCH_SUMONLY" ] || "$@" || exit $?
+  [ "$pch" = /dev/null ] && exit 0
+  # the sum: flags + preprocessed header, without the output/dependency options (the arguments rotated through "$@")
+  root=${0%/port/machine/ccache-nopch}
+  n=$#
+  skip=
+  while [ "$n" -gt 0 ]; do
+    a=$1; shift; n=$((n - 1))
+    if [ -n "$skip" ]; then skip=; continue; fi
+    case $a in
+      -o|-MF|-MQ|-MT) skip=1 ;;
+      -MD|-MMD|-c|-fdiagnostics-color=*) ;;
+      *) set -- "$@" "$a" ;;
+    esac
+  done
+  # no .sum on any failure: ccache then hashes the .pch itself (its own dir's: a miss, never a wrong hit)
+  rm -f "$pch.sum"
+  t=$pch.sum.$$
+  { printf '%s\n' "$@" && "$@" -E -P -fdiagnostics-color=never 2>/dev/null; } > "$t.in" &&
+    sed -e "s#$PWD#@B#g" -e "s#$root#@R#g" "$t.in" | sha256sum | cut -d' ' -f1 > "$t" &&
+    mv -f "$t" "$pch.sum"
+  rm -f "$t" "$t.in"
+  exit 0
+fi
+export CCACHE_PCH_EXTSUM=1
 exec ccache "$@"

@@ -13,9 +13,13 @@ hugh-fight 260-760/1
 w2-town 300-700/1
 w2-r19 300-760/1
 w2-docks 300-700/1
-# HeartGold / SoulSilver: Cherrygrove (house door, block edge, both directions, shore), New Bark door, Routes 29 / 30, Violet, a trainer battle
+# HeartGold / SoulSilver: Cherrygrove (house door, block edge, both directions, shore, Run 2x / 4x by day), New Bark door, Routes 29 / 30, Route 29's tall grass at Run 2x, Violet, a trainer battle
 cherry-door-east 10990-11360/1
 cherry-door-west 10990-11360/1
+ss-cherry-night 10990-11130/1
+ss-cherry-run2 10990-11140/1
+ss-cherry-run4 10990-11120/1
+ss-grass-run2 10990-11090/1
 hg-door 11000-11400/1
 hg-r29 11000-11500/1
 hg-r30 11000-11500/1
@@ -27,6 +31,17 @@ ss-r29 11000-11500/1
 ss-r30 11000-11500/1
 ss-violet 11000-11500/1
 ss-trainer 11000-11600/1
+ss-water 10990-11240/1
+ss-sand-turn 10990-11200/1
+ss-grass-thru 10990-11260/1
+ss-run-toggle 10990-11180/1
+ss-beach-in 10990-11300/1
+ss-beach-turn 10990-11500/1
+ss-beach-up 10990-11280/1
+ss-beach-walk 10990-11560/1
+ss-grass-back 10990-11440/1
+ss-grass-east 10990-11680/1
+ss-ground-turn 10990-11680/1
 # Platinum: Twinleaf (houses, door), Routes 201 / 202, Jubilife, Oreburgh, a lake, a wild battle
 pt-door 7500-7900/1
 pt-r201 7500-8000/1
@@ -34,3 +49,27 @@ pt-r202 7500-8100/1
 pt-oreburgh 7500-8100/1
 pt-lake 7500-8100/1
 r202-wild 7500-7900/1
+ss-beach-in-w2 10990-11150/1
+ss-beach-up-w2 10990-11140/1
+ss-beach-walk-w2 10990-11280/1
+ss-water-w2 10990-11120/1
+ss-grass-thru-w2 10990-11130/1
+ss-grass-east-w2 10990-11340/1
+ss-grass-back-w2 10990-11220/1
+# Field effects and motion cases added by the plays job (14 plays, about 2 minutes): HG/SS bike, follower ball, Surf, ledge, Cut, Rock Smash, Strength, fishing (Mew-lead cheat party: BWPORT_HG_CHEAT=items,badges,party); Platinum bike, Surf (BWPORT_TESTCHEAT=win), ledge; Black desert sand; a Route 1 wild battle's send-out and faint
+ss-surf 10600-11250/1
+ss-bike 12100-12900/1
+ss-follower 12140-12480/1
+ss-ledge 10990-11260/1
+ss-smash 10590-10840/1
+ss-strength 11640-12420/1
+ss-cut 10600-10850/1
+ss-fish 11650-11960/1
+ss-fish-bite 11650-12000/1
+ss-fish-reel 11650-12150/1
+ss-fish-early 11650-12150/1
+pt-bike 9380-10150/1
+pt-surf 7700-8480/1
+pt-ledge 6990-7260/1
+b-dust 700-1150/1
+route1-wild-faint 700-1700/1

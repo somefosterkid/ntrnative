@@ -63,7 +63,11 @@ void ov45_02230A44(UnkStruct_ov66_02234958 *param0);
 
 void ov45_02230638(UnkStruct_ov66_02234548 *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov45_02230A4C(void *);
+#else
 s32 ov45_02230A4C(void *);
+#endif
 void ov45_02230700(u8 *arg0);
 
 void ov45_02230638(UnkStruct_ov66_02234548 *param0) {

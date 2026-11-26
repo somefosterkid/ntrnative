@@ -8,7 +8,6 @@ struct BgConfig;
 
 void OamManager_ApplyAndResetBuffers(void);
 
-void GF_RunVramTransferTasks(void *);
 
 void ov99_021E7A54(void *param0);
 

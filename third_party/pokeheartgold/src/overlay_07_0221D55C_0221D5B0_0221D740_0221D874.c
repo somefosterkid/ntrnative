@@ -116,7 +116,11 @@ typedef enum HeapID HeapID;
 
 s32 ov07_0221D3CC(enum HeapID *, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined (tools/hg/absorb.py)
+Pokepic *ov07_0221FA48(enum HeapID *, s32);
+#else
 s32 ov07_0221FA48(enum HeapID *, s32);
+#endif
 
 typedef struct LoaderEnt {
     void *gfx;

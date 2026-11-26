@@ -25,7 +25,7 @@ s32 ov14_021F5EB4(void *, s32);
 s32 ov14_021F5EC4(void *, s32);
 void ov14_021E82DC(void *arg0);
 void ov14_021E8314(UnkStruct_0201956C *arg0);
-s32 ov14_021E834C(s32 arg0);
+s32 ov14_021E834C(UnkStruct_0201956C *arg0);
 void ov14_021E8368(UnkStruct_0201956C *arg0);
 void ov14_021E83F4(UnkStruct_0201956C *arg0);
 
@@ -101,9 +101,7 @@ void ov14_021E8328(UnkStruct_0201956C *a0) {
     sub_020198FC(a0, 0xA, 0, -1, 3);
 }
 
-s32 sub_02019B1C(s32, s32, s8 *, s8 *);
-
-s32 ov14_021E834C(s32 arg0) {
+s32 ov14_021E834C(UnkStruct_0201956C *arg0) {
     s8 v0[2];
     s32 v1;
 

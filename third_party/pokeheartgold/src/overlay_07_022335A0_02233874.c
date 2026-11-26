@@ -502,7 +502,11 @@ BOOL ov07_02222EE8(PaletteFadeContext *ctx);
 
 void ov07_02222EF8(PaletteFadeContext *ctx);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, u8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#else
 PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, s8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#endif
 
 u16 LCRandom(void);
 

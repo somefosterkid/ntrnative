@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove's beach with the follower: west from the sand into the shallow water (column 536), a turn up in the water, east out onto the sand (Smooth motion audit, scratch/ipid: the test phone's vanish stepping in, double stepping out)
+# end: f11240
+env BWPORT_HG_WARP=67:538:403 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f36@f11000 up*f4@f11090 down*f4@f11120 right*f36@f11160

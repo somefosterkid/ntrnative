@@ -5,7 +5,11 @@
 #include "error_handling.h"
 #include "overlay_96_ov96_02203468work.h"
 
-s32 ov96_021E8228(void *, u8, u8, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(void *, u32, u32, s32, s32);
+#else
+void ov96_021E8228(void *, u8, u8, s32, s32);
+#endif
 
 #if defined(SDK_PORT) || defined(NONMATCHING)
 extern VecFx32 ov96_0221C98C[];

@@ -18,7 +18,6 @@ struct SysTaskQueue;
 
 void ov01_021FBD8C(SysTask *task, void *param);
 
-void sub_02018030(Field3dModel *model, enum NarcId narcID, u32 memberIndex, enum HeapID heapID);
 
 void sub_020180BC(Field3DModelAnimation *anim, const Field3dModel *model, NARC *narc, u32 memberIndex, enum HeapID heapID, NNSFndAllocator *allocator);
 

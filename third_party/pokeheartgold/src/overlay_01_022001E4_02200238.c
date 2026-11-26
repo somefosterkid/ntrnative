@@ -2,7 +2,6 @@
 #include "overlay_01_021F1348.h"
 #include "overlay_01_022001E4.h"
 
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32, s32, s32, s32, s32, s32 *);
 void ov01_021F18D4(FieldEffectManager *fieldEffMan, u32 id, u32 memberIndex);
 s32 ov01_021F1908(FieldEffectManager *fieldEffMan, s32, s32);
 s32 ov01_021F1930(FieldEffectManager *fieldEffMan, s32, s32, s32);

@@ -127,28 +127,27 @@ void sub_02090D8C(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2) {
     }
 }
 
-BOOL sub_02090DC0(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2) {
+BOOL sub_02090DC0(const EasyChatArgs *args, const u16 *words, const MailMessage *sentence) {
     switch (args->unk0) {
     case 0:
-        return msg1->msg_bank == args->unk1C[0];
+        return words[0] == args->unk1C[0];
     case 1:
-        return msg1->msg_bank == args->unk1C[0] && msg1->msg_no == args->unk1C[1];
+        return words[0] == args->unk1C[0] && words[1] == args->unk1C[1];
     case 2:
     default:
-        return MailMsg_Compare(&args->mailMessage, msg2);
+        return MailMsg_Compare(&args->mailMessage, sentence);
     }
 }
 
-void sub_02090E04(EasyChatArgs *args, MailMessage *msg1, MailMessage *msg2) {
-    args->unk3 = !sub_02090DC0(args, msg1, msg2);
+void sub_02090E04(EasyChatArgs *args, const u16 *words, const MailMessage *sentence) {
+    args->unk3 = !sub_02090DC0(args, words, sentence);
     args->unk2 = 0;
 
-    u16 *src = (u16 *)&msg1->msg_bank;
     for (int i = 0; i < 2; i++) {
-        args->unk1C[i] = src[i];
+        args->unk1C[i] = words[i];
     }
 
-    args->mailMessage = *msg2;
+    args->mailMessage = *sentence;
 }
 
 int sub_02090E44(EasyChatArgs *args) {

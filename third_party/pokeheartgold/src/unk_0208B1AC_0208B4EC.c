@@ -6,7 +6,7 @@
 #include "pokemon_summary_app.h"
 
 
-s32 sub_0208BA60();
+s32 sub_0208BA60(void *arg0);
 s32 sub_0208BA88(PokemonSummary *, s32, s32, u8);
 s32 sub_0208BE70(void *);
 
@@ -33,7 +33,7 @@ void sub_0208B55C(PokemonSummary *arg0) {
     u16 moveId;
     u16 v0;
 
-    sub_0208BA60();
+    sub_0208BA60(arg0);
     v0 = 0;
     do {
         moveId = arg0->mon.moves[v0];

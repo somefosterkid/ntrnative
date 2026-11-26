@@ -78,7 +78,11 @@ void FrontierScriptContext_Stop(FrontierScriptContext *ctx);
 void sub_0209684C(BattleFrontier *frontier);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 void FrontierScriptContext_Pause(FrontierScriptContext *ctx, FrontierShouldResumeScriptFunc shouldResume);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02096854(BattleFrontier *frontier, s8 sceneID, s16 entryPointOffset);
+#else
 void sub_02096854(BattleFrontier *frontier, u16 sceneID, u16 entryPointOffset);
+#endif
 BOOL ov80_0222BEFC(FrontierScriptContext *ctx);
 
 BOOL FrtCmd_002(FrontierScriptContext *ctx);

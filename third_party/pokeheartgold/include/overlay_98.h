@@ -15,7 +15,7 @@
 
 void ov98_0221E784(SpriteSystem *arg0, SpriteManager *arg1, void *arg2, s32 arg3);
 
-void ov98_0221E8A8(void *arg0, void *arg1, s32 arg2, s32 arg3, s32 arg4);
+void ov98_0221E8A8(PokeathlonSpriteContext *arg0, void *arg1, s32 arg2, s32 arg3, s32 arg4);
 
 void ov98_0221E9FC(Sprite **arg0, void *arg1, u32 arg2);
 

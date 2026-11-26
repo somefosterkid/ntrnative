@@ -3,9 +3,7 @@
 
 void *ov112_021E7668(void);
 
-s32 ov112_021ED330(void *arg0, s32 arg1);
-
-s32 ov112_021ED330(void *arg0, s32 arg1) {
+s32 ov112_021ED330(Ov112PokewalkerApp *arg0, s32 arg1) {
     s32 var_r4;
     u16 temp_r1;
     Ov112PokewalkerApp *var_r5;

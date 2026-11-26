@@ -8,6 +8,16 @@
 #include "constants/heap.h"
 #include "palette.h"
 #include "gf_gfx_planes.h"
+#include "save.h"
+#include "options.h"
+#include "pm_string.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "unk_02013534.h"
+#include "msgdata.h"
+#include "pokepic.h"
+#include "touch_hitbox_controller.h"
+#include "overlay_73_wifi_battle_tower_app_state.h"
 
 struct BgConfig;
 
@@ -37,46 +47,19 @@ struct MessageFormat;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct TouchHitboxController;
 
 struct UnkStruct_020F3DCC_t;
 
-typedef struct SaveData SaveData;
-
-typedef struct Options Options;
-
-typedef struct String String;
-
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
-typedef struct ManagedSprite ManagedSprite;
 
-typedef struct SpriteSystem SpriteSystem;
-
-typedef struct SpriteManager SpriteManager;
-
-BOOL SpriteSystem_LoadCharResObjFromOpenNarc(SpriteSystem *spriteSys, SpriteManager *spriteMan, NARC *narc, int memberIdx, BOOL compressed, enum NNS_G2D_VRAM_TYPE vramType, int resourceID);
-
-u8 SpriteSystem_LoadPaletteBufferFromOpenNarc(PaletteData *paletteData, enum PaletteBufferId bufferID, SpriteSystem *spriteSys, SpriteManager *spriteMan, NARC *narc, int memberIdx, BOOL compressed, int paletteIdx, enum NNS_G2D_VRAM_TYPE vramType, int resourceID);
 
 BOOL SpriteSystem_LoadCellResObjFromOpenNarc(SpriteSystem *spriteSys, SpriteManager *spriteMan, NARC *narc, int memberIdx, BOOL compressed, int resourceID);
 
 BOOL SpriteSystem_LoadAnimResObjFromOpenNarc(SpriteSystem *spriteSys, SpriteManager *spriteMan, NARC *narc, int memberIdx, BOOL compressed, int resourceID);
-
-typedef struct SysTaskManager SysTaskManager;
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
 
 typedef struct UnkStruct_020F3DCC_t UnkStruct_020F3DCC;
 
@@ -92,19 +75,7 @@ struct UnkStruct_020F3DCC_t {
     const UnkStruct_020F3DCC *unk_20;
 };
 
-typedef struct TextOBJ TextOBJ;
-
-typedef struct MsgData MsgData;
-
-typedef struct PokepicManager PokepicManager;
-
-typedef struct MessageFormat MessageFormat;
-
-typedef struct BgConfig BgConfig;
-
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
-
-typedef struct TouchHitboxController TouchHitboxController;
 
 u32 GfGfxLoader_LoadCharDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, BgConfig *bgConfig, u32 bgLayer, u32 offset, u32 size, BOOL compressed, u32 heapID);
 
@@ -115,16 +86,6 @@ void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dP
 void Heap_Free(void *ptr);
 
 SysTask *SysTask_ExecuteOnVBlank(SysTaskFunc callback, void *param, u32 priority);
-
-typedef struct {
-    SysTask *unk_00;
-    BOOL unk_04;
-    u16 unk_08[4][16];
-    u16 unk_88[21][16];
-    s16 unk_328;
-    s8 unk_32A;
-    u8 unk_32B;
-} UnkStruct_ov61_0222C3B0;
 
 static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *param0);
 

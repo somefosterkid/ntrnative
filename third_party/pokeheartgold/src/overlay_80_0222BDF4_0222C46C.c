@@ -159,7 +159,11 @@ extern const WindowTemplate ov80_0223B9D0;
 BOOL FrtCmd_031(FrontierScriptContext *ctx);
 
 s32 FrtCmd_030(void **arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    ov80_0222EEAC(((FrontierScriptManager *)(*arg0))->menuMan);
+#else
     ov80_0222EEAC(*(void **)((u8 *)(*arg0) + 0x60));
+#endif
     return 1;
 }
 

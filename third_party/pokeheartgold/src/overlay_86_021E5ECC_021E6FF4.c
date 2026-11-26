@@ -3,45 +3,29 @@
 #include "overlay_86_frontier_records_app.h"
 #include "sprite_system.h"
 
-void ov86_021E6FF4(FrontierRecordsApp *arg0);
-
 void ov86_021E6FF4(FrontierRecordsApp *arg0) {
-    void *v0;
-    ManagedSprite *managedSprite;
-    u32 v1;
-    void *v2;
+    u32 i;
 
-    v1 = 0;
-    v0 = arg0;
-    v2 = arg0;
+    i = 0;
     do {
-        managedSprite = *(ManagedSprite **)((u8 *)v2 + 0x234);
-        if (managedSprite != NULL) {
-            Sprite_DeleteAndFreeResources(managedSprite);
-            *(ManagedSprite **)((u8 *)v2 + 0x234) = NULL;
+        if (arg0->sprites[i] != NULL) {
+            Sprite_DeleteAndFreeResources(arg0->sprites[i]);
+            arg0->sprites[i] = NULL;
         }
-        v1 += 1;
-        v2 += 4;
-    } while (v1 < 2U);
-    SpriteSystem_FreeResourcesAndManager(*(SpriteSystem **)((u8 *)v0 + 0x22C), *(SpriteManager **)((u8 *)v0 + 0x230));
-    SpriteSystem_Free(*(SpriteSystem **)((u8 *)v0 + 0x22C));
+        i++;
+    } while (i < 2U);
+    SpriteSystem_FreeResourcesAndManager(arg0->spriteSystem, arg0->spriteManager);
+    SpriteSystem_Free(arg0->spriteSystem);
 }
 
-void ov86_021E703C(FrontierRecordsApp *arg0);
-
 void ov86_021E703C(FrontierRecordsApp *arg0) {
-    ManagedSprite *managedSprite;
-    u32 v0;
-    void *v1;
+    u32 i;
 
-    v1 = arg0;
-    v0 = 0;
+    i = 0;
     do {
-        managedSprite = *(ManagedSprite **)((u8 *)v1 + 0x234);
-        if (managedSprite != NULL) {
-            ManagedSprite_TickFrame(managedSprite);
+        if (arg0->sprites[i] != NULL) {
+            ManagedSprite_TickFrame(arg0->sprites[i]);
         }
-        v0 += 1;
-        v1 += 4;
-    } while (v0 < 2U);
+        i++;
+    } while (i < 2U);
 }

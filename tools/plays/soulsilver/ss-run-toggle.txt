@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove east from 537,400 with the follower: walk, B held (running shoes) for 60 frames, walk again (Smooth motion audit, scratch/ipid)
+# end: f11180
+env BWPORT_HG_WARP=67:537:400 BWPORT_HG_WARP_DIR=3
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys right*f160@f11000 b*f60@f11050

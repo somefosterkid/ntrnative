@@ -6,7 +6,7 @@
 
 void ov74_02229CB8(SysTask *task, void *data);
 
-s32 ov74_02229E14();
+void ov74_02229E14(void *arg0);
 
 extern void *ov74_0223D0A4;
 
@@ -25,7 +25,7 @@ char ov74_02229B68(void *arg0) {
 #endif
     void *dest;
     if (ov74_0223D0A4 == 0L) {
-        ov74_02229E14();
+        ov74_02229E14(arg0);
         dest = Heap_Alloc(HEAP_ID_15, 0x3D4U);
         ov74_0223D0A4 = dest;
         MI_CpuFill8(dest, 0U, 0x3D4U);

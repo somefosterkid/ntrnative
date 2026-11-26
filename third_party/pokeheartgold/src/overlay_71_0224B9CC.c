@@ -121,7 +121,7 @@ void ov71_0224BA64(void *arg0) {
         }
     }
     *((s16 *)&((BallOpenState *)arg0)->rotation.y) = (s16)(*((s16 *)&((BallOpenState *)arg0)->rotation.y) + *((s16 *)&((BallOpenState *)arg0)->rotationSpeed));
-    ov71_022476EC(*((void **)&((BallOpenState *)arg0)->model), arg0 + 0x34);
+    ov71_022476EC(*((void **)&((BallOpenState *)arg0)->model), &((BallOpenState *)arg0)->rotation);
 }
 
 void ov71_0224BAA0(BallOpenState *arg0, s32 arg1, s32 arg2) {

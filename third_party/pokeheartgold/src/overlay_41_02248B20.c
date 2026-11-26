@@ -4,6 +4,9 @@
 #include "overlay_41_unk_struct_ov22_02257_f50.h"
 #include "filesystem_files_def.h"
 #include "overlay_41_unk_struct_ov22_02259560.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 struct SoftwareSprite;
 
@@ -20,11 +23,6 @@ typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
 
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
-
-typedef struct {
-    int unk_00;
-    SoftwareSprite *unk_04;
-} UnkStruct_ov22_02255040;
 
 void ov41_02246008(UnkStruct_ov22_02255040 *param0, BOOL param1);
 

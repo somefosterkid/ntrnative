@@ -28,6 +28,7 @@
 #include "g07_compose.h"
 #include "gpu.h"
 #include "vc_shared.h"
+#include "diag_rec.h"
 
 #include <pthread.h>
 #include <stdint.h>
@@ -44,11 +45,16 @@ typedef unsigned (*SIM_FrameRendererGLFn)(int *w, int *h);
 void SIM_SetFrameRendererGL(SIM_FrameRendererGLFn fn);
 void *SIM_GLGetProc(const char *name);
 int SIM_RenderScale(void); /* libntr-onerender.patch: the Resolution, 1..8 */
+int SIM_GpuPassesWanted(void); /* sim_main.cpp: the GPU passes' times wanted (BWPORT_GPUPASSES, cfgscript gpupasses=, Detailed metrics) */
 unsigned SIM_RendererSerial(void); /* changes with the renderer or the resolution: start afresh */
 void SIM_SetRendererIdle(int which, void (*fn)(void)); /* libntr-switchcheck.patch: fn runs when the other renderer is wanted */
+void SIM_SetGLLostHook(void (*fn)(void)); /* glr2: fn runs when the GL context was lost and a new one is current */
 void SIM_RendererFailed(const char *reason); /* the status line says why the GPU path is not drawing */
+void SIM_VCapSwapInfo(uint32_t *swaps, uint32_t *swapFrame, uint32_t *frame); /* libntr-diagrec.patch: the 3D swaps, for diag_rec.c */
 int SIM_FrameSkipping(void); /* libntr-frameskip.patch: this frame is not to be drawn */
-int SIM_AntialiasWanted(void); /* libntr-aa70.patch, libntr-ios-msaa.patch: Antialiasing off|4 samples as k = 1, 2; 3 SMAA (libntr-ios-smaa.patch) */
+int SIM_AntialiasWanted(void); /* libntr-aa70.patch, libntr-ios-msaa.patch: Antialiasing off|4 samples as k = 1, 2; 3 SMAA (libntr-ios-smaa.patch); 4 Smooth edges */
+int SIM_AntialiasLite(void); /* 1: 4 samples (lite), the DS's own antialiasing left out under the samples (GpuOptions.aalite) */
+int SIM_PerfExperiments(void); /* sim_config.ini PerfExperiments: GpuOptions.exp (GPU_EXP_*) */
 void SIM_RendererAAUsed(int k); /* the k the GPU path draws with (k x k samples per pixel; never lowered) */
 void SIM_Renderer3DFast(int ok, const char *how); /* libntr-ios-fastgl.patch: Renderer3D=fast drawn (1) or not (0), how or why */
 int SIM_GLRendererOption(int which); /* libntr-gpuopt.patch: 0 dot, 1 line, 2 edge, 3 filter (bilinear); 4 the 3D renderer fast; 5 the 2D filter (0 off, 1 Scale2x, 2 MMPX), 6 texture smoothing (0 off, 1 bilinear, 2 mips), 7 fog, 8 colour (the ini keys) */
@@ -71,8 +77,14 @@ static void GatherHDma(VCoreState *s) {
 /* libntr-ib78.patch / libntr-ib79.patch: in-between pictures (docs/interp.md) */
 int SIM_InterpWanted(void);
 int SIM_InterpPace(long long *serial, long long *nominal, long long *tick, int max, long long *off, long long *next);
+int SIM_InterpLeadOn(void); /* 0: BWPORT_INTERPLEAD=0, a blend at f 0 shows the newer keyframe as before the lead */
 void SIM_InterpLate(void); /* libntr-ios-smoothdrop.patch: this slot's in-between was not ready in time */
+void SIM_InterpShows(long long gameNs); /* the game time the picture about to be presented shows (BWPORT_PRESENTLOG's P lines) */
+long long SIM_TickNominal(void);       /* the tick's nominal time on the present timeline (0: none) */
+int SIM_PresentLogOn(void);            /* BWPORT_PRESENTLOG is open: the W, I and G lines below (the CPU halves' times) */
+void SIM_PresentLogNote(const char *line);
 void SIM_SetInterpTexture(unsigned (*fn)(int slot, int *w, int *h, long long waitNs));
+void SIM_SetNextTexture(unsigned (*fn)(int *w, int *h)); /* the next tick's first picture, drawn after this tick's last present */
 /* libntr-pf82.patch: the per-stage timing readout: time the stages when SIM_PerfOn; SIM_PerfStage(name, kind, ms) on the frame
  * thread, kind 1 inside this call, 2 the worker's, 3 GPU ms; SIM_PerfGpuTimers: GL timer queries work in libntr's context */
 int SIM_PerfOn(void);
@@ -91,6 +103,7 @@ int SIM_PresentMetal(void); /* libntr-ios-metal.patch: the window presents with 
 #ifdef BR_METAL
 #include "gpu_bridge_mtl.h"
 void SIM_SetFrameTextureMetal(void *(*fn)(unsigned name)); /* libntr-ios-gpuapi.patch */
+void SIM_SetFrameTextureGen(unsigned long long (*fn)(unsigned name)); /* the present's skip (sim_main.cpp SpKeep) */
 void bwport_sys_gpu_add(double ms);                       /* port/src/sysmetrics.c */
 #endif
 
@@ -202,6 +215,7 @@ static void RestoreGL(const GLSave *g) {
 typedef struct IpMid {
   GpuPrep *prep;
   int state;
+  unsigned id3d; /* its 3D inputs' number (R3Id; set before it is settled) */
 } IpMid;
 /* the worker tells the GL thread a mid is settled (InterpTexture sleeps on it, it no longer spins) */
 static pthread_mutex_t sMidM = PTHREAD_MUTEX_INITIALIZER;
@@ -228,6 +242,9 @@ typedef struct Slot {
   unsigned capSer; /* capHi: that capture's number (sCapCount) */
   unsigned rowSer[4][256]; /* banks A-D: the capture number each bank row holds as gathered (0: none, or the CPU changed its
                               bytes since): Gather's compare with sCapShadow */
+  int cbg;         /* M_GPU at N x: engine A's BG (2 or 3) that shows a captured bank as it is (CapBgFind, on the worker), else 0 */
+  int cbgBank, cbgOx, cbgOy; /* that bank; DS pixel (x, y) of the BG is its texel (x + cbgOx) & 255 of bank row y + cbgOy */
+  uint32_t cbgLines[6];      /* the lines that show it so (bit y) */
   unsigned fno;    /* the frame's number (CapLog's count of gathered frames) */
   VC_Line *stage;  /* M_GPU: engine A's 2D layers at 1x (g07_stage_build, on the worker) */
   G07Pack *pack;   /* M_GPU: them and the 1x lines as pass C uploads them (g07_pack, on the worker; the mids reuse the upload):
@@ -249,11 +266,17 @@ typedef struct Slot {
    * prepares each slot's 3D (mid[i]: the blended geometry's span records) and the GL thread draws it at the slot (InterpTexture) */
   int ipN;
   long long ipSerial, ipNominal, ipTick, ipOff[IP_MAXSLOT], ipNext;
+  long long ipGame[IP_MAXSLOT + 1], gameNs; /* the game time each picture shows (1..ipN; the keyframe's own: gameNs) */
   IpMid mid[IP_MAXSLOT];
   /* G12, the texture cache (opt.texcache; Exact and Fast): this frame's layers as gpu_texcache_frame gave them (on the worker, after
    * td), drawn by the frame and its in-between pictures (gpu_use_tcframe before each gpu_render_prepared) */
   GpuTcFrame *tc;
   int tcOk; /* tc holds this frame's */
+  unsigned id3d; /* the 3D inputs' number of the picture Stage2 draws (R3Id; 0: none known) */
+  /* Record diagnostics (diag_rec.c): this renderer call's number, and at its gather the game's 3D swaps, the V-blank count of the
+   * shown 3D's swap and the V-blank count */
+  unsigned drId;
+  uint32_t drSwaps, drSwapFrame, drFrame;
 } Slot;
 enum { M_GPU = 0, M_VCORE = 1 };
 static Slot *sIpTick; /* the slot this call launched, when it has in-between pictures */
@@ -263,6 +286,7 @@ static Slot sSlot[2];
 static int sCur;       /* the slot this call gathers into */
 static int sPipe = -1; /* the pipeline is on */
 static int sInflight;  /* a worker runs stage 1 of slot sCur ^ 1 */
+static int sNextOk;    /* the frame the last drawn call gathered (slot sCur ^ 1) went into the pipeline: its GL half is NextPicture's */
 static VCTask sThread;  /* vcore's persistent task threads (p22_task.c), not a new thread a frame */
 
 static int sInit, sDead, sLogged;
@@ -319,6 +343,7 @@ static uint32_t sCapRefGxCap;
 static G07Cap *sCap;           /* the bank textures (GL thread) */
 static int sCapFailed;         /* g07cap_create failed at this scale: not again until Setup */
 static unsigned sGlSer[4][256];
+static unsigned sCapGen[4];    /* the captures drawn into each bank's texture (GL thread): pass C's reuse key of a BG showing it */
 
 static int BankLcdc(const VCoreState *s, int bank) {
   u8 c = s->io9[VC_REG_VRAMCNT_A + bank];
@@ -520,6 +545,48 @@ static void Skip2D(Slot *sl, const Slot *prev) {
   sl->pfCmp = t0 != 0 ? (double)(NowNs() - t0) / 1e6 : 0.0;
 }
 
+/* engine A's BG2 or BG3 showing a captured bank as it is (docs/gpu.md "Display capture"), at N x: display mode 1, the BG extended
+ * (BG mode 3-5) as a 256 x 256 direct-colour bitmap without mosaic, PA = 0x100 and PC = 0 on every line, each line's row alone in
+ * one of banks A-D, the same bank and the same offsets on every line (cbg*); the first of BG2, BG3. A scaled, rotated or wavy BG
+ * (HDMA) stays 1x. The GL thread draws its lines from the bank's N x texture where that holds this capture (CapBgSet). (Worker,
+ * VRAM mapped) */
+static void CapBgFind(Slot *sl) {
+  VCoreState *s = sl->s;
+  sl->cbg = 0;
+  memset(sl->cbgLines, 0, sizeof sl->cbgLines);
+  u32 dispcnt = vc_eng32(s, VC_ENG_A, VC_REG_DISPCNT);
+  const int mode = dispcnt & 7;
+  const VC_Region *rg = vc_rgn_bg(s, VC_ENG_A);
+  if (sOut < 2 || ((dispcnt >> 16) & 3) != 1 || mode < 3 || mode > 5 || rg->npages == 0) return;
+  for (int n = mode == 5 ? 2 : 3; n <= 3 && sl->cbg == 0; n++) {
+    u16 cnt = vc_eng16(s, VC_ENG_A, VC_REG_BG0CNT + 2 * n);
+    if (!((dispcnt >> (8 + n)) & 1) || (cnt & 0xC0C4) != 0x4084) continue; /* (size 256 x 256, bitmap, no mosaic, direct colour) */
+    const u32 base = ((cnt >> 8) & 31) * 0x4000u, pa = VC_REG_BG2PA + 0x10u * (u32)(n - 2), rx = VC_REG_BG2X + 0x10u * (u32)(n - 2);
+    int bank = -1, ox = 0, oy = 0, bad = 0;
+    for (int y = 0; y < VC_H && !bad; y++) {
+      s32 x0 = vc_aff_ref(s, VC_ENG_A, y, rx, pa + 2), ty = vc_aff_ref(s, VC_ENG_A, y, rx + 4, pa + 6) >> 8;
+      if (vc_ln16(s, VC_ENG_A, y, pa) != 0x100 || vc_ln16(s, VC_ENG_A, y, pa + 4) != 0 ||
+          vc_ln16(s, VC_ENG_A, y, VC_REG_BG0CNT + 2u * (u32)n) != cnt)
+        bad = 1;
+      if (bad || ty < 0 || ty > 255) continue; /* (outside the bitmap: transparent, or wrapped: 1x) */
+      const u32 a = base + (u32)ty * 512;
+      const VC_Page *p = &rg->page[(a >> VC_PAGE_SHIFT) % rg->npages];
+      int b = 0;
+      while (b < 4 && p->n == 1 && !(p->src[0] >= vc_bank(s, b) && p->src[0] < vc_bank(s, b) + 0x20000)) b++;
+      if (p->n != 1 || b == 4) {
+        bad = 1;
+        continue;
+      }
+      int row = (int)((p->src[0] - vc_bank(s, b) + (a & (VC_PAGE_SIZE - 1))) / 512);
+      if (bank < 0) bank = b, ox = x0 >> 8, oy = row - y;
+      if (b != bank || x0 >> 8 != ox || row - y != oy) bad = 1;
+      else sl->cbgLines[y >> 5] |= 1u << (y & 31);
+    }
+    if (!bad && bank >= 0) sl->cbg = n, sl->cbgBank = bank, sl->cbgOx = ox, sl->cbgOy = oy;
+    else memset(sl->cbgLines, 0, sizeof sl->cbgLines);
+  }
+}
+
 /* stage 1's 2D (a worker): engine B's lines, engine A's layers and the pack, each engine's half reused when Skip2D found it unchanged */
 static void Build2D(Slot *sl) {
   VCoreState *s = sl->s;
@@ -540,6 +607,7 @@ static void Build2D(Slot *sl) {
           d == 3 ? "A and B" : d == 1 ? "A" : "B", (unsigned)vc_eng32(s, VC_ENG_A, VC_REG_DISPCNT), (unsigned)vc_eng32(s, VC_ENG_B, VC_REG_DISPCNT));
     }
   }
+  CapBgFind(sl);
   sl->ok2d = 1;
 }
 
@@ -590,6 +658,99 @@ static void TcFrame(Slot *sl) {
   sl->tcOk = 1;
 }
 
+/* ---- the 3D layer reused (docs/perf.md "Work whose result cannot change", 2026-11-25). A picture's 3D layer (a keyframe's or an
+ * in-between's) is a function of what passes S, R, E and P read: the geometry's output (s->geo: the vertices after transform,
+ * lighting and clipping, the polygons with their attributes, the drawing order, SWAP_BUFFERS' parameter), the 3D registers
+ * (DISP3DCNT, the edge colours, alpha test, the clear colour, depth and image offset, fog, the toon table, 1DOT_DEPTH), the
+ * texture and palette VRAM with the toon table (the slot's GpuTexData, and the texture regions' sizes), the options and the
+ * grid. The worker numbers each picture as it makes it (R3Id): the number of the picture before when all of that is equal,
+ * else a new one. The GL thread draws no S, R, E, P for a picture whose number the 3D layer holds already (R3Hit): the layer
+ * is what they would draw. Not with the texture cache (its layers carry state from picture to picture) nor in the modes that
+ * draw a picture twice or differently (TCAB, the timing mode, ablations). BWPORT_3D_REUSE=0: off; =check: every picture drawn,
+ * and one that would have been reused compared with the layer it would have reused (a log line every 600 pictures and at
+ * each mismatch). ---- */
+static int sR3 = -1; /* 1 on, 0 off, 2 check */
+static struct {      /* the worker's: the last picture's inputs */
+  int have;
+  unsigned id, next;    /* its number; the last number given */
+  const GpuTexData *td; /* its textures (its slot's) and their build */
+  unsigned tdSerial;
+  GpuOptions opt;
+  int scale, out, aa;
+  u32 npages[2];
+  u8 reg[4 + 0x90 + 2];
+  VC_GeomOut *geo; /* its geometry (the used part) */
+} sR3W;
+static unsigned long long sR3Pics, sR3Same, sR3Ns; /* the worker's: pictures numbered, numbered as the one before, the time it took */
+
+static int R3On(void) {
+  if (sR3 < 0) {
+    const char *e = getenv("BWPORT_3D_REUSE");
+    sR3 = e != NULL && e[0] == '0' ? 0 : e != NULL && strcmp(e, "check") == 0 ? 2 : 1;
+    if (sR3 != 1) Log("bwport: Renderer=gpu: BWPORT_3D_REUSE=%s\n", sR3 ? "check: every picture drawn, the reuse compared" : "0: off");
+  }
+  return sR3;
+}
+
+static void R3Regs(const VCoreState *s, u8 *r) {
+  memcpy(r, s->io9 + VC_REG_DISP3DCNT, 4);
+  memcpy(r + 4, s->io9 + VC_REG_EDGE_COLOR, 0x90); /* 0x330-0x3BF: the edge colours to the toon table */
+  memcpy(r + 4 + 0x90, s->io9 + VC_REG_DISP_1DOT_DEPTH, 2);
+}
+
+static int R3VtxSame(const VC_Vertex *a, const VC_Vertex *b, u32 n) { /* (field by field: a vertex's padding is not defined) */
+  for (u32 i = 0; i < n; i++, a++, b++)
+    if (a->clip[0] != b->clip[0] || a->clip[1] != b->clip[1] || a->clip[2] != b->clip[2] || a->clip[3] != b->clip[3] ||
+        a->color[0] != b->color[0] || a->color[1] != b->color[1] || a->color[2] != b->color[2] || a->tex[0] != b->tex[0] ||
+        a->tex[1] != b->tex[1] || a->sx != b->sx || a->sy != b->sy || a->sz != b->sz || a->clipped != b->clipped)
+      return 0;
+  return 1;
+}
+
+static int R3GeoSame(const VC_GeomOut *a, const VC_GeomOut *b) {
+  return a->nvtx == b->nvtx && a->npoly == b->npoly && a->swap_param == b->swap_param && a->swapped == b->swapped &&
+         a->overflow == b->overflow && memcmp(a->poly, b->poly, a->npoly * sizeof a->poly[0]) == 0 && /* (polygons are cleared first) */
+         memcmp(a->order, b->order, a->npoly * sizeof a->order[0]) == 0 && R3VtxSame(a->vtx, b->vtx, a->nvtx);
+}
+
+/* the worker: the number of sl's picture just made (s->geo final, sl->td built); 0: not to be reused */
+static unsigned R3Id(Slot *sl) {
+  R3On(); /* (numbered also when the reuse is off: an A/B then differs only in the drawing; pass C's screen reuse reads them) */
+  if (sl->tcOk || sTcAB || !sl->tdOk) return sR3W.have = 0, 0u; /* (tcOk: the texture cache drew it; Metal has none) */
+  long long t0 = NowNs();
+  const VCoreState *s = sl->s;
+  const VC_GeomOut *g = &s->geo;
+  u8 reg[sizeof sR3W.reg];
+  R3Regs(s, reg);
+  u32 np[2] = {s->rgn[VC_RGN_TEX].npages, s->rgn[VC_RGN_TEXPAL].npages};
+  unsigned ser = gpu_texdata_serial(sl->td);
+  int same = sR3W.have && sR3W.scale == sScale && sR3W.out == sOut && sR3W.aa == sAA && !memcmp(&sR3W.opt, &sl->opt, sizeof sl->opt) &&
+             !memcmp(sR3W.reg, reg, sizeof reg) && !memcmp(sR3W.npages, np, sizeof np);
+  if (same) same = R3GeoSame(sR3W.geo, g);
+  if (same) /* the slot before's textures are as that picture had them until the worker after this one builds them again */
+    same = sR3W.td == sl->td ? sR3W.tdSerial == ser : gpu_texdata_serial(sR3W.td) == sR3W.tdSerial && gpu_texdata_same(sR3W.td, sl->td);
+  if (!same) {
+    if (sR3W.geo == NULL && (sR3W.geo = malloc(sizeof *sR3W.geo)) == NULL) return sR3W.have = 0, 0u;
+    VC_GeomOut *d = sR3W.geo;
+    d->nvtx = g->nvtx, d->npoly = g->npoly, d->swap_param = g->swap_param, d->swapped = g->swapped, d->overflow = g->overflow;
+    memcpy(d->vtx, g->vtx, g->nvtx * sizeof g->vtx[0]);
+    memcpy(d->poly, g->poly, g->npoly * sizeof g->poly[0]);
+    memcpy(d->order, g->order, g->npoly * sizeof g->order[0]);
+    memcpy(sR3W.reg, reg, sizeof reg);
+    memcpy(sR3W.npages, np, sizeof np);
+    sR3W.opt = sl->opt;
+    sR3W.scale = sScale, sR3W.out = sOut, sR3W.aa = sAA;
+    if (++sR3W.next == 0) sR3W.next = 1;
+    sR3W.id = sR3W.next;
+    sR3W.have = 1;
+  }
+  sR3W.td = sl->td, sR3W.tdSerial = ser; /* (the same bytes, the newer build) */
+  sR3Pics++;
+  sR3Same += same;
+  sR3Ns += (unsigned long long)(NowNs() - t0);
+  return sR3W.id;
+}
+
 /* stage 1 with in-between pictures (a worker): the 2D first (engine B's lines, engine A's layers: the mids reuse them, only the
  * 3D is redone), then for each present slot after the first the 3D's geometry with its vertices blended toward the previous
  * keyframe (IpGather's pairing) and its span records, and last the picture the next tick's first slot shows (this slot's own
@@ -597,26 +758,40 @@ static void TcFrame(Slot *sl) {
 static void Stage1Interp(Slot *sl) {
   VCoreState *s = sl->s;
   long long p0 = sl->pfOn ? NowNs() : 0; /* the readout's parts of the keyframe (libntr-ios-passes.patch; the mids' are not in them) */
+  const int note = SIM_PresentLogOn();
+  long long w0 = note ? NowNs() : 0, wTd = 0, wMid[IP_MAXSLOT] = {0};
+  const int drOn = bwport_diagrec_state == 2; /* Record diagnostics (diag_rec.c) */
+  DrTickInfo dr;
+  if (drOn) memset(&dr, 0, sizeof dr), dr.workNs = NowNs();
   vc_vram_map(s);
   Build2D(sl); /* before the first mid is settled: the mids read the pack */
+  if (note) wTd = NowNs();
   gpu_texdata_build(sl->td, s), sl->tdOk = 1;
   long long tA = NowNs();
+  if (note) wTd = tA - wTd;
   if (p0 != 0) sl->pf2d = (double)(tA - p0) / 1e6 + sl->pfCmp;
   long long gap = IpGather(s, sl->ipSerial, sl->ipNominal, sl->ipTick);
+  if (drOn && sIp.why != 0) bwport_diagrec_key(s, sl->drId, sl->drFrame, sl->drSwapFrame, sl->drSwaps, sIp.haveOld);
   for (int idx = 1; idx <= sl->ipN; idx++) {
     long long off = idx < sl->ipN ? sl->ipOff[idx] : sl->ipNext;
     double f = sIp.valid ? (double)(sl->ipNominal + off - sIp.keyNs) / (double)gap : 2.0;
-    int blend = f > 0.0 && f < 1.0;
+    int blend = sIp.valid && f < 1.0 && (f > 0.0 || SIM_InterpLeadOn()); /* (f at or below 0: the older keyframe, b 4096) */
     IpMetric(idx, f, blend);
+    if (drOn && idx < 9) dr.f[idx] = (float)f, dr.blend |= (unsigned)blend << idx;
+    sl->ipGame[idx] = sIp.valid ? sIp.keyNs + (long long)(((f < 0.0 ? 0.0 : f > 1.0 ? 1.0 : f) - 1.0) * (double)gap) : sIp.keyNs;
     long long t0 = NowNs();
     if (blend) {
-      s32 b = (s32)((1.0 - f) * 4096.0 + 0.5);
+      const double fc = !(f > 0.0) ? 0.0 : f > 1.0 ? 1.0 : f; /* (clamped before the s32 conversion: a huge or NaN f is undefined there) */
+      s32 b = (s32)((1.0 - fc) * 4096.0 + 0.5);
       vc_ip_apply_begin(s, &sIp.old, sIp.map, sIp.texhold, b < 0 ? 0 : b > 4096 ? 4096 : b);
+      vc_ip_apply_keep(s, sIp.keep, sIp.nkeep);
+      vc_ip_apply_enter(s, (const double (*)[16])sIp.enter);
     }
     if (idx < sl->ipN) {
       IpMid *m = &sl->mid[idx];
       if (!blend) {
         MidSettle(m, 2);
+        if (note) wMid[idx] = -(NowNs() - w0);
         continue;
       }
       int ok = GeometryAgain(s);
@@ -624,18 +799,22 @@ static void Stage1Interp(Slot *sl) {
       if (ok) TcFrame(sl); /* from the first geometry, before a mid is settled (the GL thread may draw it at once); a key the
                             * other pictures add samples the texture slots as without the cache */
       if (ok) PrepareInto(sl, &m->prep);
+      m->id3d = ok ? R3Id(sl) : 0; /* (before it is settled: the GL thread reads it then) */
       if (ok && m->prep != NULL) {
         MidSettle(m, 1);
         IC(mids, 1);
         IC(midNs, NowNs() - t0);
+        if (note) wMid[idx] = NowNs() - w0;
       } else {
         MidSettle(m, 2);
+        if (note) wMid[idx] = -(NowNs() - w0);
       }
     } else {
       long long g0 = sl->pfOn ? NowNs() : 0;
       sl->geo = GeometryAgain(s);
       if (blend) vc_ip_apply_end(s);
       if (sl->geo) TcFrame(sl);
+      sl->id3d = sl->geo ? R3Id(sl) : 0;
       long long g1 = g0 != 0 ? NowNs() : 0;
       if (sl->geo) PrepareInto(sl, &sl->prep), sl->prepared = sl->prep != NULL;
       if (g0 != 0) sl->pfGeo = (double)(g1 - g0) / 1e6, sl->pfSpans = (double)(NowNs() - g1) / 1e6;
@@ -644,6 +823,22 @@ static void Stage1Interp(Slot *sl) {
     }
   }
   IC(wholeNs, NowNs() - tA);
+  if (drOn) {
+    dr.nominal = sl->ipNominal, dr.serial = sl->ipSerial, dr.gap = gap, dr.workNs = NowNs() - dr.workNs;
+    dr.id = sl->drId, dr.frame = sl->drFrame, dr.swaps = sl->drSwaps, dr.swapFrame = sl->drSwapFrame;
+    dr.ipN = sl->ipN, dr.why = sIp.why, dr.nl = (int)sIp.key.nl, dr.nv = (int)sIp.key.nv, dr.valid = sIp.valid;
+    bwport_diagrec_tick(&dr);
+  }
+  if (note) { /* I due tick why lists verts unpaired vtpaired gap slots | texdata before-pairing pairing | each mid settled (us from the
+               * start; negative: settled with none) | the end */
+    char b[384];
+    int k = snprintf(b, sizeof b, "I %lld %lld %d %u %u %d %d %lld %d %lld %lld %lld %d %d", sl->gameNs / 1000, sl->ipTick, sIp.why,
+                     (unsigned)sIp.key.nl, (unsigned)sIp.key.nv, sIp.unp, sIp.vtp, gap / 1000, sl->ipN, wTd / 1000, (tA - w0) / 1000,
+                     sIp.recNs / 1000, sIp.uns, sIp.nls);
+    for (int idx = 1; idx < sl->ipN && k > 0 && k < (int)sizeof b - 24; idx++) k += snprintf(b + k, sizeof b - (size_t)k, " %lld", wMid[idx] / 1000);
+    if (k > 0 && k < (int)sizeof b - 24) snprintf(b + k, sizeof b - (size_t)k, " %lld", (NowNs() - w0) / 1000);
+    SIM_PresentLogNote(b);
+  }
 }
 
 /* stage 1 (a worker): vcore alone for a capture frame; else the geometry and engine B */
@@ -652,6 +847,7 @@ static void Stage1(Slot *sl) {
   long long t0 = sl->pfOn ? NowNs() : 0;
   sl->pfGeo = sl->pfSpans = sl->pf2d = 0.0;
   sl->tcOk = 0;
+  sl->id3d = 0;
   if (sl->mode == M_VCORE) {
     vcore_render(s);
     vcore_frame_rgba(s, sl->rgba);
@@ -675,6 +871,14 @@ static void Stage1(Slot *sl) {
   long long t2 = t0 != 0 ? NowNs() : 0;
   Build2D(sl);
   if (sl->geo) gpu_texdata_build(sl->td, s), sl->tdOk = 1, TcFrame(sl);
+  sl->id3d = sl->geo ? R3Id(sl) : 0;
+  if (bwport_diagrec_state == 2) { /* Record diagnostics: a call with no in-between slots (IpGather did not see it) */
+    DrTickInfo dr;
+    memset(&dr, 0, sizeof dr);
+    dr.nominal = SIM_TickNominal(), dr.id = sl->drId, dr.frame = sl->drFrame, dr.swaps = sl->drSwaps, dr.swapFrame = sl->drSwapFrame;
+    dr.why = -1, dr.workNs = t0 != 0 ? NowNs() - t0 : 0;
+    bwport_diagrec_tick(&dr);
+  }
   if (t0 != 0) {
     sl->pfGeo = (double)(t1 - t0) / 1e6;
     sl->pfSpans = (double)(t2 - t1) / 1e6;
@@ -685,8 +889,14 @@ static void Stage1(Slot *sl) {
 /* stage 1 timed for the readout (its parts: Stage1) */
 static void Stage1Timed(Slot *sl) {
   long long t0 = sl->pfOn ? NowNs() : 0;
+  long long w0 = SIM_PresentLogOn() ? NowNs() : 0;
   Stage1(sl);
   sl->pfWhole = t0 != 0 ? (double)(NowNs() - t0) / 1e6 : 0.0;
+  if (w0 != 0) { /* W due uses3d slots the stage's time (us) */
+    char b[96];
+    snprintf(b, sizeof b, "W %lld %d %d %lld", sl->gameNs / 1000, sl->uses3d, sl->ipN, (NowNs() - w0) / 1000);
+    SIM_PresentLogNote(b);
+  }
 }
 
 /* a slot's stage 1 to libntr (the frame thread, the worker joined) */
@@ -918,6 +1128,7 @@ static void MtlFrame(void) {
   }
   sSplit = on;
   gpu_set_pass_hook(on ? MtlHook : NULL);
+  br_mtl_pt_frame(!on && SIM_GpuPassesWanted()); /* (not beside the readout's split: one or the other) */
 }
 static void MtlRelease(void) {
   double ms[GPU_PASS_N + 1];
@@ -973,16 +1184,117 @@ static int RenderTc(Slot *sl, const GpuPrep *p, int mid) {
   return gpu_render_prepared(sCore, s, p);
 }
 
+/* ---- the 3D layer reused, the GL thread's half (R3Id above): the number of the picture the 3D layer holds (0: unknown: a new
+ * core, a failed or test draw), the counts, and the check mode's copy of the layer ---- */
+static unsigned sR3Layer;
+static unsigned long long sR3Key, sR3Mid, sR3KeyUsed, sR3MidUsed, sR3Checked, sR3Differ;
+static uint8_t *sR3Ref, *sR3Tmp;
+static size_t sR3RefN;
+static unsigned sR3RefId;
+
+static int R3Hit(unsigned id) { return sR3 == 1 && id != 0 && id == sR3Layer && SIM_Ablation() == 0 && !SIM_PassTiming(); }
+
+static void R3Read(uint8_t *buf) { /* the 3D layer's bytes (Metal: as they are; GL: gpu_read_3d's words) */
+#ifdef BR_METAL
+  if (sHalf == &kMetal) {
+    gpu_mtl_read_rgba(gpu_mtl_texture(gpu_3d_tex(sCore)), VC_W * sOut, VC_H * sOut, buf);
+    return;
+  }
+#endif
+  gpu_read_3d(sCore, (uint32_t *)buf, NULL);
+}
+
+static void R3Report(void) {
+  unsigned long long n = sR3Key + sR3Mid;
+  if (n == 0 || n % 600 != 0) return;
+  char chk[96] = "";
+  if (sR3 == 2) snprintf(chk, sizeof chk, "; check: %llu compared, %llu differ", sR3Checked, sR3Differ);
+  Log("bwport: Renderer=gpu: 3D reused for %llu of %llu keyframes, %llu of %llu in-betweens; the worker numbered %llu pictures, %llu as "
+      "the one before, %.1f us each%s\n", sR3KeyUsed, sR3Key, sR3MidUsed, sR3Mid, sR3Pics, sR3Same,
+      sR3Pics ? (double)sR3Ns / 1e3 / (double)sR3Pics : 0.0, chk);
+}
+
+/* picture id (mid: an in-between) is to be drawn: 1 when its 3D layer is there already (nothing to draw) */
+static int sDrR3; /* Record diagnostics: the picture being drawn found its 3D layer there already */
+static int R3Reuse(unsigned id, int mid) {
+  int hit = R3Hit(id);
+  sDrR3 = hit;
+  if (mid) sR3Mid++, sR3MidUsed += hit;
+  else sR3Key++, sR3KeyUsed += hit;
+  R3Report();
+  return hit;
+}
+
+/* picture id was drawn into the 3D layer (rc 0) or failed. Check mode: the layer compared with the one drawn before when that was
+ * the same picture (the reuse would have shown that one) */
+static void R3Drawn(unsigned id, int rc) {
+  if (rc != 0 || id == 0 || SIM_Ablation() != 0) {
+    sR3Layer = 0;
+    return;
+  }
+  if (sR3 == 2) {
+    size_t n = (size_t)VC_W * VC_H * sOut * sOut * 4;
+    if (n > sR3RefN) {
+      free(sR3Ref), free(sR3Tmp);
+      sR3Ref = calloc(1, n), sR3Tmp = calloc(1, n);
+      sR3RefN = sR3Ref != NULL && sR3Tmp != NULL ? n : 0;
+      sR3RefId = 0;
+    }
+    if (sR3RefN >= n) {
+      R3Read(sR3Tmp);
+      if (id == sR3Layer && id == sR3RefId) {
+        sR3Checked++;
+        if (memcmp(sR3Tmp, sR3Ref, n) != 0 && ++sR3Differ <= 20) {
+          size_t px = 0;
+          for (size_t i = 0; i < n; i += 4) px += memcmp(sR3Tmp + i, sR3Ref + i, 4) != 0;
+          Log("bwport: Renderer=gpu: 3D REUSE check: picture %u drawn again differs (%zu px)\n", id, px);
+        }
+      }
+      uint8_t *t = sR3Ref;
+      sR3Ref = sR3Tmp, sR3Tmp = t;
+      sR3RefId = id;
+    }
+  }
+  sR3Layer = id;
+}
+
+/* ---- pass C's screen reuse (g07_set_reuse): a screen whose 2D, 3D layer (R3's number) and uniforms are as when it was drawn is
+ * not drawn again. BWPORT_COMPOSE_REUSE=0: off; =check: drawn whole, a kept screen compared (a line every 600 composes) ---- */
+static int C7Mode(void) {
+  static int m = -1;
+  if (m < 0) {
+    const char *e = getenv("BWPORT_COMPOSE_REUSE");
+    m = e != NULL && e[0] == '0' ? 0 : e != NULL && strcmp(e, "check") == 0 ? 2 : 1;
+    if (m != 1) Log("bwport: Renderer=gpu: BWPORT_COMPOSE_REUSE=%s\n", m ? "check: pass C drawn whole, the kept screens compared" : "0: off");
+  }
+  return m;
+}
+static void C7Report(void) {
+  unsigned long long n[5];
+  g07_reuse_counts(sC7, n);
+  if (n[0] == 0 || n[0] % 600 != 0) return;
+  char chk[96] = "";
+  if (C7Mode() == 2) snprintf(chk, sizeof chk, "; check: %llu screens compared, %llu differ", n[3], n[4]);
+  Log("bwport: Renderer=gpu: pass C drew one screen in %llu of %llu composes, none in %llu%s\n", n[1], n[0], n[2], chk);
+}
+
 static unsigned Layer3D(Slot *sl, int *sc) {
   VCoreState *s = sl->s;
   sHalf->drain(); /* libntr's own, not ours */
   int rc;
   /* the textures: uploaded by this frame's in-between pictures already, if it had any */
-  if (sl->prepared && gpu_prep_scale(sl->prep) == sScale) rc = RenderTc(sl, sl->prep, 0);
-  else { /* no records yet (the first frame, a scale change): spans here */
+  if (sl->prepared && gpu_prep_scale(sl->prep) == sScale) {
+    if (R3Reuse(sl->id3d, 0)) { /* the 3D layer is this picture's already */
+      *sc = sOut;
+      return gpu_3d_tex(sCore);
+    }
+    rc = RenderTc(sl, sl->prep, 0);
+    R3Drawn(sl->id3d, rc);
+  } else { /* no records yet (the first frame, a scale change): spans here */
     gpu_use_texdata(sCore, sl->tdOk ? sl->td : NULL);
     gpu_use_tcframe(sCore, sTc, sl->tcOk ? sl->tc : NULL); /* (always: the core runs no cache of its own then) */
     rc = gpu_render_3d(sCore, s);
+    R3Drawn(0, rc);
   }
   if (rc == 0) {
     *sc = sOut;
@@ -1115,6 +1427,31 @@ static int CapRows(const Slot *sl, int bank, uint32_t rows[8]) {
   return any;
 }
 
+/* pass C's captured-bank BG for sl's frame (CapBgFind; GL thread, before each g07_compose_packed): the longest run of its lines
+ * whose bank rows hold this capture at N x (the others stay 1x), or none */
+static void CapBgSet(const Slot *sl) {
+  int y0 = 0, y1 = 0;
+  uint32_t rows[8];
+  if (sl->cbg != 0 && sCap != NULL && g07cap_scale(sCap) == sOut && CapRows(sl, sl->cbgBank, rows))
+    for (int y = 0, run = 0; y < VC_H; y++) {
+      int r = y + sl->cbgOy; /* (0..255 on the lines CapBgFind marked) */
+      run = ((sl->cbgLines[y >> 5] >> (y & 31)) & 1) && ((rows[r >> 5] >> (r & 31)) & 1) ? run + 1 : 0;
+      if (run > y1 - y0) y0 = y + 1 - run, y1 = y + 1;
+    }
+  if (y1 > y0) g07_set_capbg(sC7, g07cap_bank(sCap, sl->cbgBank), sl->cbg, sl->cbgOx, sl->cbgOy, y0, y1, sCapGen[sl->cbgBank]);
+  else g07_set_capbg(sC7, 0, 0, 0, 0, 0, 0, 0);
+  static int log = -1, last[4];
+  if (log < 0) log = getenv("BWPORT_CAPLOG") != NULL;
+  const int now[4] = {sl->cbg, sl->cbgBank, y0, y1};
+  if (log && memcmp(now, last, sizeof now) != 0) { /* (BWPORT_CAPLOG: what a BG showing a captured bank is drawn from) */
+    memcpy(last, now, sizeof now);
+    if (sl->cbg == 0) Log("bwport: caplog f%u capbg none\n", sl->fno);
+    else if (y1 == 0) Log("bwport: caplog f%u capbg BG%d bank %c: no N x rows (1x)\n", sl->fno, sl->cbg, 'A' + sl->cbgBank);
+    else Log("bwport: caplog f%u capbg BG%d bank %c offset %d %d, N x rows %d-%d\n", sl->fno, sl->cbg, 'A' + sl->cbgBank, sl->cbgOx,
+             sl->cbgOy, y0, y1 - 1);
+  }
+}
+
 /* N > 1 (GL or Metal), pass C done: engine A showing a bank (display mode 2) drawn again from its texture where it is valid,
  * then this frame's capture at N x into its bank's texture (docs/gpu.md "Display capture") */
 static void CapHiStage2(Slot *sl, unsigned t3, int sc) {
@@ -1138,24 +1475,28 @@ static void CapHiStage2(Slot *sl, unsigned t3, int sc) {
   unsigned texA = 0;
   if (sl->capHi) texA = g07_compose_capsrc(sC7, s, sl->pack, t3, sc, sc == sOut ? gpu_smaa_weights(sCore) : 0);
   uint32_t rows[8];
-  if (show && CapRows(sl, bankD, rows))
+  if (show && CapRows(sl, bankD, rows)) {
     g07cap_show(sCap, g07_frame_tex(sC7), (vc_io16(s, VC_REG_POWCNT1) >> 15) & 1, bankD, vc_eng16(s, VC_ENG_A, VC_REG_MASTER_BRIGHT),
                 rows);
+    g07_forget(sC7); /* (pass C's output drawn into) */
+  }
   if (!sl->capHi) return;
   const uint8_t *b1 = !(sl->cap & (1u << 25)) && BankLcdc(s, bankD) ? vc_bank(s, bankD) : NULL;
   CapRows(sl, bankD, rows);
   int rc = texA != 0 ? g07cap_capture(sCap, sl->cap, dispcnt, texA, t3, t3 != 0 ? sc : 0, b1, rows) : -1;
   int bank = (sl->cap >> 16) & 3, r0 = (int)((sl->cap >> 18) & 3) * 64, h = kCapH[(sl->cap >> 20) & 3];
   for (int i = 0; i < h; i++) sGlSer[bank][(r0 + i) & 255] = rc == 0 ? sl->capSer : 0;
+  sCapGen[bank]++;
 }
 
 /* stage 2 (the calling thread, the GL context current, the GL state saved by the caller): the frame's picture in sPic */
-static void Stage2(Slot *sl) {
+static void Stage2Run(Slot *sl) {
   VCoreState *s = sl->s;
   const unsigned abl = SIM_Ablation();
   if (abl & 32) return; /* ablate=gpu: no GL/Metal half at all; the picture stays the last one drawn */
+  sDrR3 = 0;
 #ifdef BR_METAL
-  if (sHalf == &kMetal) gpu_mtl_ablate(abl & 31); /* GPU_ABL_R .. GPU_ABL_C */
+  if (sHalf == &kMetal) gpu_mtl_ablate(abl & 31), gpu_mtl_pt_kind(GPU_PT_KEY); /* GPU_ABL_R .. GPU_ABL_C; the passes' kind */
 #endif
   long long tq0 = SIM_PerfOn() ? NowNs() : 0;
   sHalf->drain();
@@ -1178,6 +1519,7 @@ static void Stage2(Slot *sl) {
     sSpanChecks++;
     Log("bwport: Renderer=gpu: pass S self-check %d (frame %d):\n", sSpanChecks, sSpanFrames);
     int n = gpu_spans_check(sCore, s, stderr); /* (draws the frame once more on the way; Layer3D draws it again below) */
+    sR3Layer = 0;
     if (n > 0) {
       Log("bwport: Renderer=gpu: pass S's records are wrong on this GPU (%d integer fields differ): the CPU builds them from now on\n", n);
       gpu_pass_s_off(sCore);
@@ -1193,7 +1535,10 @@ static void Stage2(Slot *sl) {
     sHalf->upload1x(sl->rgba);
     return;
   }
+  g07_set_3d_id(sC7, t3 != 0 && sc == sOut ? sR3Layer : 0);
+  CapBgSet(sl);
   int rc = g07_compose_packed(sC7, s, sl->pack, t3, sc, sc == sOut ? gpu_smaa_weights(sCore) : 0);
+  C7Report();
   if (pass) {
     double cg = sHalf->finish(); /* (Metal: pass C's command buffer's GPU time; GL: the wall time with glFinish) */
     double up = 0.0, r = 0.0, ep = 0.0;
@@ -1226,10 +1571,22 @@ static void Stage2(Slot *sl) {
   sPic.tex = sHalf->picture(g07_frame_tex(sC7));
   sPic.w = VC_W * sOut;
   sPic.h = VC_H * 2 * sOut;
+  SIM_InterpShows(sl->ipN > 0 ? sl->ipGame[sl->ipN] : sl->gameNs);
+  if (bwport_diagrec_state == 2) bwport_diagrec_shows(sl->drId, sl->ipN, sl->id3d, sDrR3), sDrR3 = 0;
   ShotMaybe(sl->fno, NULL);
   if (sCheckDir != NULL) {
     const uint8_t *pic = CheckPicture(sl);
     if (pic != NULL) CheckFrame(sl, pic);
+  }
+}
+
+static void Stage2(Slot *sl) {
+  long long t0 = SIM_PresentLogOn() ? NowNs() : 0;
+  Stage2Run(sl);
+  if (t0 != 0) { /* G due the GL half's CPU time (us) */
+    char b[64];
+    snprintf(b, sizeof b, "G %lld %lld", sl->gameNs / 1000, (NowNs() - t0) / 1000);
+    SIM_PresentLogNote(b);
   }
 }
 
@@ -1282,17 +1639,30 @@ static unsigned InterpTexture(int slot, int *w, int *h, long long waitNs) {
   }
   long long t0 = NowNs();
   GLSave gs;
+  sDrR3 = 0;
+#ifdef BR_METAL
+  if (sHalf == &kMetal) gpu_mtl_pt_kind(GPU_PT_MID); /* (the GPU passes' times: an in-between's command buffer) */
+#endif
   sHalf->save(&gs);
   sHalf->drain();
   gpu_set_options(sCore, &sl->opt);
   unsigned tex = 0;
-  /* the keyframe's VRAM (uploaded once, by the first mid) and its cache frame */
-  if (m->prep != NULL && gpu_prep_scale(m->prep) == sScale && RenderTc(sl, m->prep, 1) == 0 &&
-      g07_compose_packed(sC7, sl->s, sl->pack, gpu_3d_tex(sCore), sOut, gpu_smaa_weights(sCore)) == 0) {
+  /* the keyframe's VRAM (uploaded once, by the first mid) and its cache frame; nothing drawn when the 3D layer is this picture's */
+  int ok3 = m->prep != NULL && gpu_prep_scale(m->prep) == sScale;
+  if (ok3 && !R3Reuse(m->id3d, 1)) {
+    int rc = RenderTc(sl, m->prep, 1);
+    R3Drawn(m->id3d, rc);
+    ok3 = rc == 0;
+  }
+  if (ok3) g07_set_3d_id(sC7, sR3Layer), CapBgSet(sl);
+  if (ok3 && g07_compose_packed(sC7, sl->s, sl->pack, gpu_3d_tex(sCore), sOut, gpu_smaa_weights(sCore)) == 0) {
     tex = sHalf->picture(g07_frame_tex(sC7));
     *w = VC_W * sOut;
     *h = VC_H * 2 * sOut;
+    C7Report();
     sPic.tex = tex; /* the picture a skipped frame shows again */
+    SIM_InterpShows(sl->ipGame[slot]);
+    if (bwport_diagrec_state == 2) bwport_diagrec_shows(sl->drId, slot, m->id3d, sDrR3);
     sPic.w = *w;
     sPic.h = *h;
     IC(midsShown, 1);
@@ -1304,11 +1674,42 @@ static unsigned InterpTexture(int slot, int *w, int *h, long long waitNs) {
   return tex;
 }
 
+/* libntr's cap loop (SIM_SetNextTexture; its early present, above sim_main.cpp's SpPreMark): the picture the next tick's first slot
+ * shows, the GL half (Stage2) of the frame this tick's call launched, drawn now: after this tick's last present, or at the top of
+ * the next tick's frame. The next call would have drawn it after the next tick's game logic and its own gather, so a slot early
+ * in that tick was presented late and its GPU work went in late; libntr now presents it at its slot, and the next call does not
+ * draw it again (done2). 0: none (no frame in the pipeline: a first frame, a capture frame, the pipeline off), the next tick
+ * presents that slot itself. */
+static unsigned NextPicture(int *w, int *h) {
+  Slot *sl = &sSlot[sCur ^ 1];
+  if (!sNextOk || !sl->has || sCore == NULL || sC7 == NULL || sDead || sFatal || (SIM_Ablation() & 32)) return 0;
+  if (!sl->done2) {
+    if (sInflight) { /* (the frame's stage 1 and its in-betweens are done by now: their slots are past) */
+      /* not when it still runs: the join would block the render thread (and the next tick) past the tick's last present, hidden from
+       * the "behind" rule; libntr's next tick presents that slot itself, as for no picture */
+      if (!vcore_task_done(&sThread)) return 0;
+      vcore_task_join(&sThread);
+      sInflight = 0;
+      PerfReport1(sl);
+    }
+    GLSave gs;
+    sHalf->save(&gs);
+    Stage2(sl);
+    sl->done2 = 1;
+    sHalf->restore(&gs);
+  }
+  if (sPic.tex == 0) return 0;
+  *w = sPic.w;
+  *h = sPic.h;
+  return sPic.tex;
+}
+
 static void Destroy(void) {
   if (sC7) g07_destroy(sC7);
   sC7 = NULL;
   if (sCore) gpu_destroy(sCore);
   sCore = NULL;
+  sR3Layer = 0;
   if (sTex1) BGL(DeleteTextures)(1, &sTex1);
   sTex1 = 0;
   if (sCap) g07cap_destroy(sCap);
@@ -1329,6 +1730,7 @@ static void ReleaseAll(void) {
     vcore_task_join(&sThread);
     sInflight = 0;
   }
+  sNextOk = 0;
   Destroy();
   for (int i = 0; i < 2; i++) {
     Slot *sl = &sSlot[i];
@@ -1355,12 +1757,39 @@ static void ReleaseAll(void) {
   sCur = 0;
   sScale = sOut = sAA = 0;
   sIpTick = NULL;
-  sIp.have = sIp.haveOld = sIp.valid = 0;
+  sIp.have = sIp.haveOld = sIp.valid = sIp.mapOk = 0;
+  sR3W.have = 0; /* (its textures were the slots') */
 }
 
 /* libntr: the other renderer is wanted now (the GL context is current) */
+static void GL_APIENTRY LostDeleteN(GLsizei n, const GLuint *p) {
+  (void)n;
+  (void)p;
+}
 static void BridgeIdle(void) {
   if (sHalf->api == GPU_API_GL ? BGL(GetError) != NULL : sInit) ReleaseAll(), sHalf->release();
+}
+
+/* libntr (glr2): the GL context was lost and a new one is current: every GL name this file and the core hold is dead. Nothing
+ * is deleted (a delete of a dead name is GL_INVALID_VALUE, or somebody else's object in the new context): the delete
+ * functions are no-ops while the state is released, then the next frame sets up as the first. */
+static void BridgeGLLost(void) {
+  if (sHalf->api != GPU_API_GL) return;
+  PFNGLDELETETEXTURESPROC dt = bgl.DeleteTextures;
+  PFNGLDELETEQUERIESPROC dq = sTq.DeleteQueries;
+  bgl.DeleteTextures = LostDeleteN;
+  sTq.DeleteQueries = LostDeleteN;
+  gpu_gl_lost_begin();
+  ReleaseAll();
+  TqRelease();
+  gpu_gl_lost_end();
+  bgl.DeleteTextures = dt;
+  sTq.DeleteQueries = dq;
+  memset(&sTq, 0, sizeof sTq); /* (probed again) */
+  sTex1 = 0;
+  sInit = 0;
+  sDead = sErrors = sFatal = 0;
+  sDeadTicks = 0;
 }
 
 static int Setup(int out, int aa) {
@@ -1381,6 +1810,7 @@ static int Setup(int out, int aa) {
     Destroy();
     return -1;
   }
+  g07_set_reuse(sC7, C7Mode());
   if (sHalf->oom()) { /* the allocations above: an integrated GPU shares the system's memory */
     snprintf(err, sizeof err, "out of memory for %dx", scale);
     Log("bwport: Renderer=gpu: %s; vcore draws\n", err);
@@ -1477,9 +1907,10 @@ static unsigned GpuFrame(int *w, int *h) {
   }
   int scale = SIM_RenderScale();
   scale = scale < 1 ? 1 : scale > GPU_MAX_SCALE ? GPU_MAX_SCALE : scale;
-  int aa = SIM_AntialiasWanted() >= 2 ? 2 : 1; /* k x k samples per pixel at any Resolution: the targets stay at N */
+  int aa = SIM_AntialiasWanted() == 2 ? 2 : 1; /* k x k samples per pixel at any Resolution: the targets stay at N */
   if (SIM_AntialiasWanted() == 3) aa = GPU_AA_SMAA; /* libntr-ios-smaa.patch: one sample, SMAA at N > 1 (port/gpu g08_smaa.c) */
-  SIM_RendererAAUsed(aa == GPU_AA_SMAA && scale == 1 ? 1 : aa);
+  int edgeaa = SIM_AntialiasWanted() == 4; /* Smooth edges: one sample, pass P draws the outline with its coverage at N > 1 */
+  SIM_RendererAAUsed(aa == GPU_AA_SMAA && scale == 1 ? 1 : edgeaa ? (scale > 1 ? 4 : 1) : aa);
   if (sCore == NULL || scale != sOut || aa != sAA) {
     if (Setup(scale, aa) != 0) { /* not again until the setting changes (a retry every 5 s compiled the shaders, made the
                                   * targets, failed the same way and flipped the picture between the renderers) */
@@ -1494,6 +1925,9 @@ static unsigned GpuFrame(int *w, int *h) {
   Slot *sl = &sSlot[sCur], *prev = &sSlot[sCur ^ 1];
   /* this slot's own copy: the previous frame's worker may still run on prev's copy */
   sl->opt = (GpuOptions){SIM_GLRendererOption(0), SIM_GLRendererOption(1), SIM_GLRendererOption(2), SIM_GLRendererOption(3), sAA};
+  sl->opt.edgeaa = edgeaa;
+  sl->opt.aalite = aa == 2 && SIM_AntialiasLite(); /* 4 samples (lite): the DS's own antialiasing left out under the samples */
+  sl->opt.exp = SIM_PerfExperiments() & GPU_EXP_ALL; /* PerfExperiments: Exact's pass R cuts' switches (the same picture) */
   sFastWant = SIM_GLRendererOption(4);
   sl->opt.fast = sFastWant && sFastOk > 0;
   if (!sTcEnvRead) {
@@ -1502,6 +1936,7 @@ static unsigned GpuFrame(int *w, int *h) {
     sTcAB = ab != NULL && ab[0] && strcmp(ab, "0") != 0;
   }
   sl->opt.texcache = sTcEnv.texcache, sl->opt.mips = sTcEnv.mips, sl->opt.aniso = sTcEnv.aniso;
+  if (getenv("BWPORT_GPU_EXP") != NULL) sl->opt.exp = sTcEnv.exp; /* (over PerfExperiments) */
   sl->opt.texmag = sTcEnv.texmag, sl->opt.tcmb = sTcEnv.tcmb;
   sl->opt.fog = sTcEnv.fog, sl->opt.color = sTcEnv.color; /* BWPORT_GPU_FOG, BWPORT_GPU_COLOR (above 1x only) */
   { /* the settings (sim_config.ini TextureSmoothing, Filter2D, Fog, Color): the environment variables above still override them */
@@ -1525,6 +1960,7 @@ static unsigned GpuFrame(int *w, int *h) {
     if (sTc == NULL) sTc = gpu_texcache_create(&sl->opt);
     if (sl->tc == NULL) sl->tc = gpu_tcframe_create();
   }
+  sNextOk = 0;
   if (Gather(sl) != 0) {
     sHalf->restore(&gs);
     return 0;
@@ -1532,6 +1968,11 @@ static unsigned GpuFrame(int *w, int *h) {
   sl->has = 1;
   sl->done2 = 0;
   sl->mode = (sl->cap & 0x80000000u) ? M_VCORE : M_GPU;
+  { /* Record diagnostics (diag_rec.c): the call's number and the 3D swap it shows (read here: the game swaps again while the worker runs) */
+    static unsigned sDrId;
+    sl->drId = ++sDrId;
+    SIM_VCapSwapInfo(&sl->drSwaps, &sl->drSwapFrame, &sl->drFrame);
+  }
   sl->pfOn = tA != 0 || SIM_PassTiming(); /* (libntr-ios-passes.patch: the worker times its parts for the row too) */
   long long tB = tA != 0 ? NowNs() : 0;
   if (sInflight) {
@@ -1548,8 +1989,10 @@ static unsigned GpuFrame(int *w, int *h) {
   Skip2D(sl, prev); /* (prev's stage 1 is done: its state and pack stay as they are until the next call's Gather) */
   int first = !prev->has; /* nothing earlier to show: this frame is drawn now (and shown twice) */
   sl->ipN = 0;
+  sl->gameNs = SIM_TickNominal();
   /* (none for a hi-res capture frame, nor for a bank shown at N x: InterpTexture draws neither) */
   const int showsBank = sOut > 1 && ((vc_eng32(sl->s, VC_ENG_A, VC_REG_DISPCNT) >> 16) & 3) == 2;
+  IpTagsWanted();
   if (!first && sPipe && sl->mode == M_GPU && !sl->capHi && !showsBank && SIM_InterpWanted() &&
       (vc_eng32(sl->s, VC_ENG_A, VC_REG_DISPCNT) & 8)) {
     long long off[IP_MAXSLOT];
@@ -1564,6 +2007,7 @@ static unsigned GpuFrame(int *w, int *h) {
     }
   }
   if (!first && sPipe && sl->mode == M_GPU) {
+    sNextOk = 1;
     sInflight = vcore_task_start(&sThread, Worker, sl);
     if (!sInflight) Stage1Timed(sl), PerfReport1(sl);
     /* the previous frame's GL half runs while the worker does this frame's CPU half */
@@ -1588,12 +2032,23 @@ static unsigned GpuFrame(int *w, int *h) {
   return sPic.tex;
 }
 
+#ifdef BR_METAL
+/* the present's skip (sim_main.cpp SpKeep; docs/perf.md "The same picture not sent again"): for pass C's output, the number that
+ * changes whenever it is drawn into (g07_out_gen); 0 for any other picture (vcore's, uploaded): never kept */
+static unsigned long long MtlPicGen(unsigned name) {
+  return sC7 != NULL && sHalf == &kMetal && g07_frame_tex(sC7) != 0 && name == BR_MTL_BASE + g07_frame_tex(sC7) ? g07_out_gen(sC7) : 0;
+}
+#endif
+
 __attribute__((constructor)) static void BridgeInstall(void) {
   SIM_SetRendererIdle(2, BridgeIdle);
+  SIM_SetGLLostHook(BridgeGLLost);
   SIM_SetFrameRendererGL(GpuFrame);
   SIM_SetInterpTexture(InterpTexture);
+  SIM_SetNextTexture(NextPicture);
 #ifdef BR_METAL
   SIM_SetFrameTextureMetal(br_mtl_tex_of); /* the Metal present draws a picture by these names */
+  SIM_SetFrameTextureGen(MtlPicGen);
 #endif
   atexit(IpReport);
 }

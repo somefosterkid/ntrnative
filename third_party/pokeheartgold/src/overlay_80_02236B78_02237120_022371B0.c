@@ -5,42 +5,39 @@
 #include "frontier/overlay_80_02229EE0.h"
 
 #include "heap.h"
+#include "overlay_80_02229EE0.h"
 #include "overlay_80_02236B78.h"
 #include "party.h"
 #include "pokemon.h"
 #include "pokemon_types_def.h"
+#include "overlay_80_battle_factory.h"
 
-void ov80_0222A140(u8 *, Pokemon *, u32);
+void ov80_0222A140(const FrontierPokemon *, Pokemon *, u32);
 
-void ov80_0222A3BC(void *, Party *, Pokemon *);
+s32 ov80_02237120(BattleFactory *factory);
 
-u32 ov80_02237120(s32);
-
-void ov80_022371B0(s32 param_1) {
-    s32 iVar1;
+void ov80_022371B0(BattleFactory *factory) {
+    s32 count;
     Pokemon *ptr;
-    u32 uVar2;
-    u8 *puVar3;
-    s32 iStack_88;
-    u8 auStack_84[112];
+    u32 setId;
+    FrontierPokemon *puVar3;
+    s32 i;
+    FrontierPokemon auStack_84[2];
 
-    for (iVar1 = Party_GetCount(*(Party **)(param_1 + 0x4d4)); 2 < iVar1; iVar1 = iVar1 + -1) {
-        Party_RemoveMon(*(Party **)(param_1 + 0x4d4), iVar1 + -1);
+    for (count = Party_GetCount(factory->playersParty); 2 < count; count--) {
+        Party_RemoveMon(factory->playersParty, count - 1);
     }
-    ov80_0222A52C(auStack_84, (u16 *)(param_1 + 0x584), (u8 *)(param_1 + 0x590), (u32 *)(param_1 + 0x598), (void *)0x0, 2, 0xb, 0xcd);
+    ov80_0222A52C(auStack_84, factory->partnerRentalSetIDs, factory->partnerRentalIVs, factory->partnerRentalPersonalities, NULL, 2, 0xb, 0xcd);
     ptr = AllocMonZeroed(HEAP_ID_FIELD2);
-    iStack_88 = 0;
+    i = 0;
     puVar3 = auStack_84;
-    iVar1 = param_1;
     do {
-        uVar2 = ov80_02237120(param_1);
-        ov80_0222A140(puVar3, ptr, uVar2);
-        ov80_0222A3BC(*(void **)(param_1 + 0x4f8), *(void **)(param_1 + 0x4d4), ptr);
-        puVar3 = puVar3 + 0x38;
-        *(u16 *)(iVar1 + 0x4ec) = *(u16 *)(iVar1 + 0x584);
-        iVar1 = iVar1 + 2;
-        iStack_88 = iStack_88 + 1;
-    } while (iStack_88 < 2);
+        setId = ov80_02237120(factory);
+        ov80_0222A140(puVar3, ptr, setId);
+        ov80_0222A3BC(factory->saveData, factory->playersParty, ptr);
+        puVar3 = puVar3 + 1;
+        factory->playerMonSetIDs[2 + i] = factory->partnerRentalSetIDs[i];
+        i++;
+    } while (i < 2);
     Heap_Free(ptr);
-    return;
 }

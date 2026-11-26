@@ -3,10 +3,7 @@
 #include "pm_string.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021E9E30(Ov112PokewalkerApp *arg0);
-
 u8 ov112_021E9FA4(void *, s32, String *, s32, s32);
-void ov112_021E9F40(void *arg0, s32 arg1);
 
 void ov112_021E9E30(Ov112PokewalkerApp *arg0) {
     String_Delete(arg0->unk_1E458);
@@ -33,6 +30,6 @@ void ov112_021E9E30(Ov112PokewalkerApp *arg0) {
     String_Delete(arg0->unk_1E518);
 }
 
-void ov112_021E9F40(void *arg0, s32 arg1) {
-    ov112_021E9FA4(arg0, arg1, *(void **)((u8 *)arg0 + 0x1E474), 4, 0xF0100);
+void ov112_021E9F40(Ov112PokewalkerApp *arg0, s32 arg1) {
+    ov112_021E9FA4(arg0, arg1, arg0->unk_1E474, 4, 0xF0100);
 }

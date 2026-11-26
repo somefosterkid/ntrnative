@@ -1,8 +1,9 @@
 #include "global.h"
 #include "sprite.h"
 #include "overlay_87_scratch_off_card_app.h"
+#include "overlay_45_wifi_plaza_system.h"
 
-void ov45_0222BD24(void *arg0);
+void ov45_0222BD24(UnkStruct_ov66_0222FBC8 *arg0);
 
 struct CoordinatesS16;
 typedef struct BattleFactoryAppCursorSprite {
@@ -17,8 +18,8 @@ typedef struct BattleFactoryAppCursorSprite {
 } BattleFactoryAppCursor;
 u8 ov45_0222BD2C(BattleFactoryAppCursor *cursor);
 
-void ov45_0222BD24(void *arg0) {
-    *(s8 *)((u8 *)arg0 + 2) = 1;
+void ov45_0222BD24(UnkStruct_ov66_0222FBC8 *arg0) {
+    arg0->unk_02 = 1;
 }
 
 u8 ov45_0222BD2C(BattleFactoryAppCursor *cursor) {

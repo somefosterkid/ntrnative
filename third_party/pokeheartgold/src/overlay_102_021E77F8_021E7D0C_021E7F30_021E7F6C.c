@@ -176,29 +176,7 @@ struct TouchScreenActions {
     TouchScreenHitTableActionStateInternal *actionStates;
 };
 
-typedef int (*EasyChatMainFunc)(EasyChatApp *easyChatApp, int *state);
-
 typedef void (*EasyChatTaskFunc)(EasyChatApp *easyChatApp, int *state);
-
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-} UnkStruct_ov20_021D1F34;
-
-typedef struct {
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u8 unk_06;
-    u8 unk_07;
-    int unk_08;
-} UnkStruct_ov20_021D18BC;
-
-typedef struct {
-    s16 unk_00;
-    s8 unk_02;
-    s8 unk_03;
-} UnkStruct_ov20_021D0F64;
 
 typedef struct {
     BgConfig *unk_00;
@@ -285,7 +263,7 @@ struct UnkStruct_ov20_021D4210_t {
 
 void ov102_021E940C(UnkStruct_ov20_021D2128 *param0, int param1);
 
-s32 ov102_021E79DC(void *, void *, u32);
+void ov102_021E79DC(void *, MailMessage *, s32);
 
 s32 ov102_021E7EEC(void *, s32, s32);
 
@@ -299,9 +277,9 @@ s32 ov102_021EA248(UnkStruct_ov20_021D2128 *, TouchscreenHitbox *, s32);
 
 extern TouchscreenHitbox ov102_021EC634;
 
-s32 ov102_021E7F6C(void *arg0, s32 arg1, s32 arg2, s32 arg3);
+s32 ov102_021E7F6C(EasyChatApp *arg0, s32 arg1, s32 arg2, s32 arg3);
 
-s32 ov102_021E7F6C(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
+s32 ov102_021E7F6C(EasyChatApp *arg0, s32 arg1, s32 arg2, s32 arg3) {
     TouchscreenHitbox sp4;
     s16 sp0[2];
     Sprite *temp_r0;
@@ -312,11 +290,11 @@ s32 ov102_021E7F6C(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
     u32 temp_r4;
     u32 var_r4;
 
-    temp_r0 = ov102_021EA228(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), arg1, arg2, arg3);
+    temp_r0 = ov102_021EA228(((UnkStruct_ov20_021D2128 *)arg0->unk_14), arg1, arg2, arg3);
     Sprite_GetPositionXY(temp_r0, &sp0[1], &sp0[0]);
-    if (((EasyChatApp *)arg0)->unk_66.unk_00 != 0) {
+    if (arg0->unk_66.unk_00 != 0) {
         if (ov102_021E7F30(arg0, *(s16 *)((u8 *)(&sp0) + 2), *(s16 *)(&sp0)) == 0) {
-            ((EasyChatApp *)arg0)->unk_66.unk_00 = 0U;
+            arg0->unk_66.unk_00 = 0U;
             return -1;
         }
         var_r4_2 = (s16)gSystem.touchX;
@@ -325,7 +303,7 @@ s32 ov102_021E7F6C(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
         } else if ((s32)var_r4_2 > 0xE2) {
             var_r4_2 = 0xE2;
         }
-        var_r0_2 = var_r4_2 - *((s16 *)&((EasyChatApp *)arg0)->pad_6E[0]);
+        var_r0_2 = var_r4_2 - arg0->unk_6E;
         if (var_r0_2 < 0) {
             var_r0_2 = 0 - var_r0_2;
         }
@@ -333,30 +311,30 @@ s32 ov102_021E7F6C(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
             return -1;
         }
         Sprite_SetPositionXY(temp_r0, var_r4_2, *(s16 *)(&sp0));
-        *((s16 *)&((EasyChatApp *)arg0)->pad_6E[0]) = var_r4_2;
+        arg0->unk_6E = var_r4_2;
         temp_r4 = var_r4_2 - 0x1C;
-        *((s16 *)&((EasyChatApp *)arg0)->currentWordSlot) = 0;
-        ov102_021E79DC(arg0 + 0x64, arg0 + 8, (u32)((temp_r4 + (temp_r4 >> 0x1F)) << 0x17) >> 0x18);
+        *((s16 *)&arg0->currentWordSlot) = 0;
+        ov102_021E79DC(&arg0->unk_64, &arg0->sentence, (u32)((temp_r4 + (temp_r4 >> 0x1F)) << 0x17) >> 0x18);
         PlaySE(0x5DCU);
-        ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 3);
+        ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 3);
         return -1;
     }
     if (System_GetTouchNew() == 0) {
         return -1;
     }
     if (ov102_021E7EEC(arg0, *(s16 *)((u8 *)(&sp0) + 2), *(s16 *)(&sp0)) != 0) {
-        *((s16 *)&((EasyChatApp *)arg0)->pad_6E[0]) = (s16)gSystem.touchX;
-        ((EasyChatApp *)arg0)->unk_66.unk_00 = 1U;
+        arg0->unk_6E = (s16)gSystem.touchX;
+        arg0->unk_66.unk_00 = 1U;
         PlaySE(0x5DCU);
         return 6;
     }
     var_r0 = TouchscreenHitbox_FindRectAtTouchNew(&ov102_021EC634);
     if (var_r0 == -1) {
-        temp_r0_2 = ov102_021EA238(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14));
+        temp_r0_2 = ov102_021EA238(((UnkStruct_ov20_021D2128 *)arg0->unk_14));
         var_r4 = 0;
         if (temp_r0_2 > 0) {
 loop_19:
-            ov102_021EA248(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), &sp4, (u8)var_r4);
+            ov102_021EA248(((UnkStruct_ov20_021D2128 *)arg0->unk_14), &sp4, (u8)var_r4);
             if (TouchscreenHitbox_PointIsIn(&sp4, (u32)gSystem.touchX, (u32)gSystem.touchY) != 0) {
                 return var_r4 + 4;
             }

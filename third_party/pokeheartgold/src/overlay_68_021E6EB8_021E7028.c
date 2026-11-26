@@ -134,7 +134,11 @@ struct StringTemplateArg {
 
 int TypeIconGfx_GetCharFileId(int moveType);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 TypeIconGfx_GetPlttOverride(u16 moveType);
+#else
 u8 TypeIconGfx_GetPlttOverride(int moveType);
+#endif
 
 NarcId TypeIconGfx_GetNarcId(void);
 

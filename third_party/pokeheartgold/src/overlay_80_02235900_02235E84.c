@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
@@ -1271,7 +1273,6 @@ typedef struct WFCFacilitySelector {
     u16 *subAppResult;
 } WFCFacilitySelector;
 void ov80_02235FEC(WFCFacilitySelector *selector);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void *Frontier_GetData(BattleFrontier *frontier);
 void Frontier_SetData(BattleFrontier *frontier, void *facilityData);
 BattleTower *FrontierFieldSystem_New(SaveData *saveData, BOOL param1, u32 challengeMode);

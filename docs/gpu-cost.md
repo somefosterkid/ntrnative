@@ -1369,3 +1369,259 @@ clock state throughout):
 0.79 -> 0.78-0.81. The plain aa4 row's renderer GPU 329-344 -> 321-331 ms/s (within its spread).
 
 **For the phone:** the 4-sample passes row's E should fall by ~10 % (0.06 of 0.7 on the Mac); P, AA off and battle as before.
+
+## Antialiasing for less: options measured (2026-11-24)
+
+The question (the maintainer's iPhone 16 Pro Max, HG field, gpu 3x, Metal, Smooth motion at 120 Hz): the overlay's GPU busy reads
+40-50 % with antialiasing off and 60-85 % with 4 samples. Is that expected, and what is the cheapest way to fewer jagged edges?
+**Short answer: yes, it is the expected cost of today's 4 samples (pass R runs every sample's coverage, depth and edge step: +70 %
+a render, and with Smooth motion every refresh is a render). In the HG field what 4 samples fixes that you can see is mostly the
+edge-marking outline; an analytic outline (an experiment here; since 2026-11-25 the setting Antialiasing=Smooth edges, below) gets much of that for +4 % of a
+render. SMAA as shipped does almost nothing there.**
+
+**Method.** M2, Metal, `gpu_render --scale 3 --compose gpu --time 60` (back-to-back, min of 2-3 interleaved rounds, the median
+over captures), under the shared timing lock, load 2-5. Captures: HG Cherrygrove (fastcov/cap-hg: f010650..f011450, six; seal's
+cap-pc-A/C/E/G f010800), Black's town and route (cap-btown, cap-br1). "frame" is a whole picture (the 3D passes and pass C in one
+command buffer, gpu_render's `frame GPU`); "in-between" the same with the 2D pack reused (`frame in-between GPU`). The per-pass
+columns come from timing mode (a command buffer each), so they do not add up to the frame. Pictures: the 3D layer (`--hi`) at 3x
+against a reference (Exact at 6x with 4 samples, box-averaged to 3x: 16 samples a pixel). G = the pixels where AA off is >= 12/255
+(max channel) from it, 8.2 % of the 10 HG captures, split into polygon edges ("geo", 2.7 %: a debug render of the last polygon per 6x
+pixel, dilated), the Edge=ds outline ("line", 0.76 %: where AA off differs from Edge=fine) and the rest ("tex", 4.7 %: texel and
+sprite boundaries the 2N grid resamples). Mean error off / 4 samples there: geo 39 / 24, line 59 / 21, tex 25 / 20. *Closure* is
+the share of the off -> 4 samples drop an option gets; *collateral* the pixels it changes by >= 12 outside G. Scripts, logs and crops:
+scratch/aa (sweep.py, summ.py, aa_eval2.py; sheet_roof.png and sheet_mailbox.png: off | outline | SMAA |
+4 samples | reference).
+
+**1. Where the 4-sample cost goes (M2, Metal, 3x, ms, HG medians; Black's town and route have the same shape).**
+
+| mode | S | R | E | P | SMAA | C | frame | in-between |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Exact, AA off | 0.09 | 0.58 | 0.11 | 0.11 | | 0.13 | 1.02-1.05 | 1.01-1.03 |
+| Exact, 4 samples | 0.17 | 1.22 | 0.17 | 0.11 | | 0.13 | 1.76-1.77 | 1.75-1.80 |
+| Exact, SMAA | 0.09 | 0.58 | 0.12 | 0.12 | 0.09 | 0.14 | 1.06-1.07 | 1.08-1.09 |
+| Exact, AA off + outline (experiment) | 0.10 | 0.58 | 0.12 | 0.17 | | 0.13 | 1.08 | 1.07-1.08 |
+| Fast, AA off | | 0.36 | 0.12 | 0.12 | | 0.13 | 0.68-0.70 | 0.67-0.69 |
+| Fast, AA off + outline | | 0.36 | 0.12 | 0.18 | | 0.13 | 0.75 | 0.73 |
+| Fast, 4 samples (direct, the Mac's) | | 1.04 | 0.17 | 0.12 | | 0.14 | 1.42 | 1.40 |
+| Fast, 4 samples (keep, the iOS default) | | 1.23 | 0.18 | 0.12 | | 0.13-0.14 | 1.60-1.64 | 1.58-1.61 |
+| Exact, Resolution 2, AA off / 4 samples | 0.07 / 0.12 | 0.30 / 0.65 | 0.08 / 0.14 | 0.06 / 0.07 | | 0.09 | 0.57 / 0.99 | 0.55 / 0.99 |
+
+The 4-sample premium is +0.73 ms a render (+70 %): pass R +0.64 (2.1x: every sample's coverage, exact depth and edge step; the
+shading is once a pixel already), pass S +0.08 (twice the records), E +0.06; P and C do not change. An in-between costs what a
+keyframe costs (the 3D passes run again on the blended vertices; only the 2D pack is reused), so with Smooth motion at 120 Hz the
+premium is paid 120 times a second, not 60. The present (the panel's 1320 x 2868 drawable and the UI) is not in gpu_render and
+does not change with the setting.
+
+**The phone.** The overlay's busy is the sum of a present's command buffers' GPU time times presents a second (port/src/sysmetrics.c):
+at 120 presents a second 40-50 % is 3.3-4.2 ms a present and 60-85 % is 5.0-7.1 ms, so 4 samples add 1.7-2.9 ms a present, +50-70 %:
+the M2's +70 % of the render with the fixed present part on top. The phone's passes rows of 2026-11-03 (60 Hz, no Smooth, the
+bottom clock) said the same: 3D AA off 5.13 ms, 4 samples 7.48 (+46 %), SMAA 5.90 (SMAA's own part ~0.45: the rows were different
+frames). Nothing is broken; the cost is the method's.
+
+**2. The options (HG captures; cost against Exact AA off).**
+
+| option | M2 frame | closure geo / line / all | collateral | DS look | in-betweens | APIs |
+| --- | --- | --- | --- | --- | --- | --- |
+| 4 samples, Exact (today) | +0.73 (+70 %) | 100 / 100 / 100 % | 0.99 % | every DS rule per sample; sprites and texel edges resampled (slightly soft) | full premium each | both |
+| 4 samples, Fast keep | 1.62 (+56 % over Exact off; +130 % over Fast off) | 102 / 103 / 103 % | 1.30 % | Fast's own small differences | full premium | Metal; GL by layers + pack |
+| 4 samples without the DS's AA (prototype, scratch) | GL: -9.6 % of the 4-sample frame (premium -27 %) | 94 / 88 / 94 % | 1.05 % | the DS AA replaced by the samples' coverage | as 4 samples | both |
+| SMAA as shipped | +0.02-0.03 (+2-3 %); phone ~+0.45 ms | 4 / 1 / 2 % | 0.12 % | the detector skips the outline and the DS-AA'd edges | a post-filter: can crawl | both |
+| SMAA, detector also within 3 px of an edge pixel (prototype, scratch) | ~SMAA's | 12 / 9 / 8 % | 0.52 % | softer but still stepped (crops); smooths some texture near edges | can crawl | both |
+| **outline coverage (experiment, committed)** | **+0.04 (+4 %)**; GL P +0.02 | 0 / 35 / 10 % | 0.07 % | the outline keeps its DS width and colour; only its sides take the edge's coverage | moves with the edge's sub-pixel position | both (pass P only) |
+| Fast AA off + outline coverage | 0.75 (-28 %) | 27 / 41 / 41 % | 0.72 % | Fast's differences | as above | Metal; GL fetch |
+| Resolution 2 + 4 samples | 0.99 (= 3x AA off) | worse: against a 6x reference (nearest-upscaled) error 3.82 all / 8.4 line, 3x AA off 3.06 / 6.0 | | | full premium | both |
+| higher N, downsampled | ~ pixels: 6x is 4x 3x's | | | | | |
+
+Why so little is left for a post-filter: the game keeps DISP3DCNT bit 4 on, so AA off already has the DS's own edge antialiasing
+at N (pass P blends an opaque edge pixel by its coverage with the pixel behind). Polygon colour edges (roofs, the window frames)
+are smooth with AA off; 4 samples adds a finer coverage there and resamples sprites and texels (the "geo" and "tex" parts: in the
+crops partly a sprite's pixel art shifted by a sub-texel, not a jaggy). What stays jagged with AA off is the Edge=ds outline: the
+DS marks the edge pixel (alpha 16, a fixed half blend) and Edge=ds thickens it inward to one DS pixel with full pixels, so its
+inner side is the N grid's staircase (the largest error per pixel, 59/255). SMAA's detector needs two polygons meeting at an
+opaque edge, which the outline's inner side (one polygon on both sides) never is; letting it act near edge pixels smooths some
+of it but less cleanly than coverage, and touches texture art near edges.
+
+Not retried: 4 samples on edge pixels only (docs/gpu.md "Antialiasing: multisampling", aa-2pass: a stencilled second pass was
+slower on the M2, sparse fragments; Metal's discard and stencil costs are in "What is left of E and P"); hardware MSAA for Fast
+(docs/gpu-hwraster.md round four: the DS's plot rules would become approximations and the resolve adds 48 bytes a pixel; the A18's
+Fast 4-sample loss is its per-sample state work, which MSAA does not remove); full analytic coverage in pass R (section 3 above:
+artefacts along every edge without a per-pixel list, and the DS AA at N already gives the opaque edges their coverage).
+
+**The experiment (2026-11-24; since 2026-11-25 Antialiasing=Smooth edges with Edge=ds, the same pixels; shaders/g06_post.frag p_edge_mark_w).** At N > 1,
+one sample, Edge=ds: the outline is the band of one DS pixel (T = N pixels) from the edge line inward. The edge pixel takes its
+DS coverage (p_sample blends it by cov instead of the fixed 16), pixels 1..T-1 are marked as before, and pixel T gets the edge
+colour by the edge pixel's part outside the polygon, (31 - cov) / 31, so the inner side follows the edge's sub-pixel position. The
+walk along an axis meets the column's (row's) edge pixel of an x-major (y-major) edge, whose coverage is along that axis; a pixel
+reached by several walks takes the most. 1x, 4 samples, Edge=fine and every other setting draw as before: on the 10 captures, off,
+4 samples, SMAA and Fast 4 samples are byte-identical to the build before, the experiment at 1x and with 4 samples too, and Metal
+equals GL; gpu_tests pass; gpu_msl.py check passes. Fast takes it too (it shares pass P).
+Known limits: near 45 degrees and at corners the axis model is approximate (one roof crop keeps a one-pixel notch); the outer side
+uses the coverage where the DS uses a half blend (a slightly different fringe from vcore's AA off at N; since 2026-11-25 vcore draws the same rule with Smooth edges).
+
+**Cheap cuts to 4 samples, listed apart:** dropping the DS's AA windows under 4 samples (pass R masks ROW_AA in g_cover2, pass P
+skips the AA blend; scratch/aa/proto_4snoaa.diff): GL on the M2, 6 HG captures, 3 rounds, R+S 2.38 -> 2.14,
+P 0.59 -> 0.53, frame 3.07 -> 2.78 ms (-9.6 %); closure 94 %. The phone's ablation of 2026-11-03 (E_NOAA) had -0.7 ms of R's 4.5,
+before the inner-run cut took part of it. A look change, so an option, not exact. Nothing else in E or P is above 0.05 ms (2026-11-04).
+
+**Recommendation.**
+1. Now, on the phone: antialiasing off is the efficient setting; SMAA as shipped is not worth its pass (2 % of 4 samples' gain here).
+2. Build the outline coverage as an antialiasing choice ("Edges": AA off's cost, the outline smoothed; 4 samples kept for those
+   with GPU to spare). Expected on the maintainer's phone at the same settings: AA off's 40-50 % plus about 1-2 points (pass P's
+   walk; +4 % of a render on the M2), so ~42-52 %, against 60-85 % with 4 samples; with Fast ~30-40 % (Fast's R slot is 1.43 ms
+   against Exact's 3.15 on the A18, AA off). Picture: the outlines close to 4 samples' (sheet_roof.png, sheet_mailbox.png), the rest
+   as AA off, which already has the DS's edge antialiasing.
+3. Build plan, ~2-3 days: (a) the phone A/B first, no code: `tools/ios_device_ab.py --env-b BWPORT_AA=edges` (2026-11-25: the setting), HG field, the
+   maintainer's settings: the busy %, the passes rows' P, the look; (b) the setting (sim_config value, cfgscript, the iOS / Android
+   / desktop menus, the bridge to GpuOptions) mapped to the uniform, replacing the environment read (~1 day); (c) vcore's p19 with
+   the same rule so the CPU renderer and the 1x oracle path agree at N (~0.5 day); (d) the picture sets (picsab2, gpu_fastdiff,
+   vcab) unchanged for every other setting, MTL_DEBUG_LAYER, GLSL ES 3.00 (~0.5 day). Optionally the 4-sample cut above as
+   "4 samples (fast)" if the phone shows >= 0.5 ms.
+
+**Only the phone can confirm:** the busy % with the experiment at the maintainer's settings (the A18's E+P is a larger share of its
+3D than the M2's, so +4 % may be 1-3 points); that the outline reads well at the phone's scale (1 N pixel is ~1.7 panel pixels);
+the 4-sample cut's gain after the inner-run cut.
+
+### Edge=fine, and Smooth edges built as a setting (2026-11-25)
+
+**The maintainer's jagged edges were Edge=fine with antialiasing off** (a phone screenshot: Cherrygrove at night, the house with the
+mailbox and the flowers). Reproduced on the Mac: ss-r30, `BWPORT_BENCH_CLOCK=2026-11-24T00:26:00 BWPORT_HG_WARP=67:561:395
+BWPORT_HG_WARP_DIR=1`, gpu 3x, Metal (capture and scripts: scratch/aa2, NOTES.md; fine_eval.py is aa_eval2.py's
+split for Edge=fine: "line" = AA off != the same frame without edge marking). In the house's crop, against the 16-sample reference
+(G as above: AA off >= 12/255 from it; mean error AA off -> 4 samples):
+
+| part | share of the crop's pixels | error off -> 4 samples | what it is |
+| --- | --- | --- | --- |
+| the fine outline (roof slopes and ridge, the gable, the sides) | 0.23 % of the picture | 44 -> 13 | the edge pixel of the N grid in the edge colour at the DS's fixed half blend: both its sides are the N grid's staircase, a 1-pixel step every 2-3 pixels on a roof slope. The jaggies the maintainer meant |
+| polygon edges inside the house (eaves, the gable's fascia, the window frame) | 0.36 % | 26 -> 12 | the DS's own antialiasing at N already blends them; what is left is its coverage's per-pixel quirks (against a 6x render: left and right edges +-0.2 px apart, rms ~0.25 px), which 4 samples average out. Blending with the pixel across the edge instead of the farthest neighbour gained 4-6 % of the gap: not kept |
+| texel edges (the roof's stripes, the window's art) | 0.43 % | 18 -> 7 | the same texel staircase in every mode (4 samples shade once a pixel too); 4 samples' lower error is its texture position, not smoothing. Only Texture smoothing (bilinear) changes texel edges; colour-0 cut-outs keep the DS's per-texel alpha test in every mode |
+
+**The setting: Antialiasing=Smooth edges** (sim_config.ini `Smooth edges`, BWPORT_AA=edges, cfgscript antialias=edges, gpu_render and
+vcore_render `--aa edges`; the desktop Video window and menu, the iOS and Android sheets; GpuOptions.edgeaa, uEdgeFine bit 1; the
+experiment's BWPORT_GPU_EDGEAA is gone). One sample, N > 1 (at 1x it draws as off and the status says "not drawn"). Edge=ds: the
+experiment above, byte-identical to it. Edge=fine: the band is one pixel (T = 1): the edge pixel takes the edge colour by c / 2 for
+coverage c <= 1/2, else c - 1/4 (blended with the pixel behind), the pixel inside by 3/4 - c / 2, else 1 - c: a line 3/4 of a pixel
+heavy as 4 samples draw it (the outer half at the DS's half blend, the inner half solid), its sides at the edge's sub-pixel position.
+Weights tried (line closure, 6 captures): the band opaque 34 %, 4 samples' 37 % (kept), the DS's half blend everywhere 22 %. Taking
+pixel T's weight only from an edge pixel whose outside lies further along the walk (against the step artefact) changed nothing
+measurable: not kept. vcore draws the same rule (p21_scale.c post_smooth, vcore_set_edge_aa).
+
+**Look** (line closure, the share of AA off -> 4 samples' drop; the night house, HG day x 2, HG's PC, Black's town and route):
+Edge=fine 37 % (the house's crop 56 %), Edge=ds 37 % (43 %); collateral 0.09 %. What a one-sample outline cannot fix: the DS
+coverage's quirks (a near-vertical right edge whose edge pixel reads 4/31 where it is covered: the line steps in a pixel for some
+rows, as AA off's polygon edge does) and the DS's own gaps in the edge flags (a column with no edge pixel has no outline in any
+one-sample mode). The sheets (scratch/aa2/sheet_0_where.png .. sheet_5_mailbox.png: rows Edge=fine and
+Edge=DS; columns off | Smooth edges | 4 samples without the DS's AA | 4 samples | the 16-sample reference, 4x nearest).
+
+**Cost** (M2, Metal, 3x, 7 HG captures with the night house, `gpu_render --compose gpu --time 60`, the median of each capture's
+minimum of 3 interleaved rounds, ms, load 2-4):
+
+| Edge | AA off | Smooth edges | 4 samples | 4 samples without the DS's AA (prototype) |
+| --- | --- | --- | --- | --- |
+| ds: frame / in-between / P | 1.03 / 1.02 / 0.23 | 1.07 / 1.06 / 0.30 | 1.77 / 1.79 / 0.29 | 1.56 / 1.57 / 0.25 |
+| fine: frame / in-between / P | 0.96 / 0.98 / 0.19 | 1.04 / 1.02 / 0.24 | 1.73 / 1.75 / 0.27 | 1.52 / 1.56 / 0.23 |
+| Fast, ds: frame | 0.69 | 0.74 | | |
+
+Smooth edges costs +0.04-0.08 ms a render (+4-8 %; pass P +0.05-0.07), 4 samples +0.74-0.77 (+72-80 %). Expected on the
+maintainer's phone (3x, Smooth motion at 120 Hz): AA off's 40-50 % busy plus 1-3 points, ~42-53 %, against 60-85 % with 4 samples.
+4 samples without the DS's AA (proto_4snoaa.diff, a scratch build: pass R masks ROW_AA, pass P skips the AA blend) on Metal: the
+4-sample premium -29 % (ds) / -28 % (fine), the frame -12 %; GL (2026-11-24) -27 %. A look change (sheets), so an option, not built.
+
+**Checked.** Every existing setting byte-identical before and after (13 captures: AA off, 4 samples, SMAA, Edge=fine off and 4
+samples, Fast off and 4 samples, GL off and 4 samples, 1x); Smooth edges: Metal = GL, Edge=ds = the experiment, Fast = the
+experiment's Fast, 1x = off; vcore against the GPU at 3x differs only where AA off already differs (the night house 71 px against 76,
+HG day Edge=fine 48 against 44). gpu_msl.py check, gpu_tests and vcore_tests pass; gpu_glsl_check's lint and glslang ES and GL pass
+(its Mesa step needs a GL library this Mac lacks). In the game: the status reads "AA smooth edges"; Smooth motion at a pretend 120 Hz
+(BWPORT_PANELHZ=120) with Smooth edges: 60 in-betweens a second, none missed.
+
+**Only the phone can confirm:** the busy % at the maintainer's settings with Smooth edges (`tools/ios_device_ab.py --env-b
+BWPORT_AA=edges`), that the outline reads as smooth at the phone's scale, and the prototype's gain there.
+
+### 4 samples (lite) built as a setting (2026-11-25)
+
+**The setting: Antialiasing=4 samples (lite)** (sim_config.ini `4 samples (lite)`, BWPORT_AA=lite, cfgscript antialias=lite,
+gpu_render and gpu_fastdiff `--aa lite`, tools/mac_gpu_profile.py rows `exact-lite-s0`; the desktop Video window and menus, the
+iOS and Android sheets; GpuOptions.aalite, SIM_AntialiasLite). It is scratch/aa/proto_4snoaa.diff made a choice: 4 samples (k = 2)
+with the DS's own antialiasing left out under them. Pass R draws with programs of its own, `g00_raster.frag#2+R_LITE` and
+`#2f+R_LITE` (GL also `#2c+R_LITE`; src/g00_frame.c raster_prog, src/gpu_mtl.m), whose g_cover2 masks ROW_AA: no coverage
+windows, every covered sample whole, the edge flags the mask's. Passes R (its alike test), E and P see DISP3DCNT with bit 4 clear
+(src/g00_frame.c gpu_disp3d): no antialiasing neighbour in pass E, no edge blend in pass P. Pass S and the records are unchanged.
+Fast keeps its 4 samples' pass R (it computes the coverage either way) and gets E and P as above. vcore draws 4 samples. The status
+says "AA 4 samples (lite)" (title " AA 4s lite").
+
+**First form, not kept:** the mask as a uniform test inside the 4-sample program (no program of its own): the frame fell only
+1.78 -> 1.66 ms against the prototype's 1.56 (R+S 1.34 against 1.25): the window code costs by being there. With programs of its own
+that also leave out the PerfExperiments forms below (uExp is 0 in them): R+S 1.23, frame 1.56, the prototype's.
+
+**Pictures:** byte-identical to the prototype's build (scratch/aa2/gpu_render_noaa `--aa 2`) on 15 captures (HG's field x 6, the
+night house, Black's town x 4 and route x 3, HG's PC) at 3x on Metal, picture and `--hi` layer: plain, Edge=fine and
+Filter=bilinear, 45 of 45; GL = Metal (plain and bilinear) 30 of 30; GL with the texture cache draws (its own `#2c+R_LITE`). Every
+existing setting the same as the base build (c4a61d2b8), 15 of 15 each: AA off, 4 samples, SMAA, Smooth edges, Edge=fine with 4
+samples, Fast off and 4 samples, GL off, 4 samples and the texture cache, Filter=bilinear, 1x with 4 samples, pass C on the GPU.
+(Fast's GL and Metal pictures differ with 4 samples in the base build too.) The look is the aa2 sheets' column "4 samples without
+the DS's AA" (scratch/aa2/sheet_*.png): closure 94 % of 4 samples' (2026-11-24).
+
+**Cost** (M2, Metal, 3x, the 7 HG captures with the night house, `gpu_render --compose gpu --time 100`, the median of each capture's
+minimum of 3-4 interleaved rounds, ms, load 2-5; the frame is gpu_render's frame GPU):
+
+| renderer | AA off: frame / R+S / P | 4 samples | 4 samples (lite) | prototype |
+| --- | --- | --- | --- | --- |
+| Exact | 1.01-1.05 / 0.69 / 0.25 | 1.77-1.80 / 1.41 / 0.31 | 1.56 / 1.23 / 0.27 | 1.56 / 1.24 / 0.26 |
+| Fast | 0.72 / 0.36 / 0.26 | 1.44-1.45 / 1.05 / 0.32 | 1.41 / 1.05 / 0.27 | |
+
+Exact: 4 samples' extra over AA off 0.77 -> 0.53 ms a render (-31 %), the frame -13 %; E unchanged at 0.18. Fast: -0.04 (P's blend).
+In game (tools/mac_gpu_profile.py rows exact-aa4-s0, exact-lite-s0, exact-aa1-s0, Black's town, 3x, Metal, the pretended 120 Hz
+link, paced, so at the clock the governor picked): R 7.10 / 5.77 / 4.24 ms a render, P 0.27 / 0.20 / 0.35, GPU ms a present 2.63 /
+2.31 / 1.94, busy 31 / 28 / 23 %; Fast 4 samples / lite: R 6.96 / 6.48, busy 29 / 28 %.
+
+## Pass R's cuts as settings (2026-11-25): PerfExperiments, for the phone's A/B
+
+**What is in the code** (the "(phone pending)" items above, at c4a61d2b8): every cut merged on 2026-11-03/04 is on by default and had
+no switch; one was never merged.
+
+| cut (section above, commit) | today | switch now (sim_config.ini PerfExperiments bit; iOS row) |
+| --- | --- | --- |
+| inner run: no edge step inside a row's inner run ("Pass R's shading on the A18 Pro", 7550d387d) | on | 1 turns it off; "Pass R: inner run" |
+| g_depth2: g_lin's row constants once a row pair ("Pass R's row-pair cuts", 23db404a5) | on | 2 off; "Pass R: depth in pairs" |
+| g_edge2: the edge step for a row's two samples at once (same section, 25988a3f1) | on | 4 off; "Pass R: edges in pairs" |
+| dq: g_depth2's quotient from pass S's record, t9.w ("Pass R's depth quotient from pass S", d8279d533, branch exp/passr-depth-quotient) | not merged | ported: pass S and the CPU builder always write t9.w (it was free); 8 makes pass R read it; "Pass R: quotient from pass S" |
+| pass S's private arrays and divisions out, s_k under S_COMP (caf6e6c84); pass C's divisions (f72c3c962); pass C in two programs (02d36fb20); pass E's edge marks (94d67b119), its AA neighbours (3a09cc6c6), stage 0's fetches once (b724bfeaa) | on | none: the code they replaced is gone (a switch would carry a second pass S kernel, pass P's walks or its search); E, P and C's parts were 0.01-0.1 ms on the Mac. A phone A/B of these needs two builds (the commit and its parent) |
+
+**How:** GpuOptions.exp (GPU_EXP_R_NOINNER 1, _NODEPTH2 2, _NOEDGE2 4, _DQ 8), the uniform uExp (GpuU grew by 16 bytes to 832), read by
+pass R's programs only (shaders/g03_pixel.glsl: the inner run's test, g_depth_px a sample at a time, the old g_edge_px restored, the
+t9.w fetch); the 4 samples (lite) programs define uExp as 0. Set by sim_config.ini `PerfExperiments=N` (0 the default; cfgscript
+perfexp=N; BWPORT_GPU_EXP=N overrides; gpu_render `--exp N`; tools/mac_gpu_profile.py rows `...-xN`), the iOS sheet's section
+"Performance experiments" (Rendering, after Advanced: four switches, each showing whether its cut is on; applied at the next frame,
+no restart). Not on Android (an A/B aid for the test phone) or the desktop menus (the ini key).
+
+**Pictures:** each form the same as the default, 15 captures x picture and `--hi`: `--exp` 1, 2, 4, 8, 9 and 15 with 4 samples on
+Metal, 15 and 8 on GL, 1 and 15 with AA off (Metal, GL), 15 at 1x, with Edge=fine and with 4 samples (lite): 15 of 15 each. The
+default against the base build: 15 of 15 in every setting (the Part 1 list).
+
+**Mac M2** (Metal, 3x, the 7 HG captures, gpu_render --compose gpu --time 100, the median of each capture's minimum of 3 interleaved
+rounds, ms a frame (R+S); load 1.5-3):
+
+| form | 4 samples | AA off |
+| --- | --- | --- |
+| default (the base build: 1.77-1.78 / 1.04-1.05) | 1.77 (1.40) | 1.05 (0.69) |
+| inner run off (1) | 2.01 (1.58): +0.23 | 1.12 (0.74): +0.07 |
+| depth in pairs off (2) | 1.91 (1.56): +0.14 | = |
+| edges in pairs off (4) | 1.90 (1.51): +0.13 | = |
+| quotient from pass S on (8) | 1.78 (1.42): +0.01, neutral | = |
+
+The default's frame is the base build's within 0.01 (two sweeps), so the switches' tests cost nothing measurable here.
+In game (tools/mac_gpu_profile.py, Black's town, 3x, Metal, the pretended 120 Hz link, rows paced): the paced rows' R follows the
+GPU's clock governor (4 samples 7.10 ms a render in the first row, 6.2-6.6 with each cut off in later rows): no reading of a
+0.1-0.2 ms change; gpu_render's numbers above are the cost.
+
+**The phone A/B (the test phone, one build of this branch):**
+1. Settings: Renderer GPU, Resolution 3x, 3D renderer **Exact**, Antialiasing **4 samples**, Smooth motion **off**, Metrics
+   **Detailed**. The overlay's two GPU lines: `GPU ms/present S .. R .. E .. P .. C .. pres ..` and `= N ms, X% busy`.
+2. Scene: Black's town save (or HG's Cherrygrove), standing still in one spot, no menu open. After each switch wait 10 s, then note R,
+   E + P + C and the `=` total over five overlay updates (one a second).
+3. For each switch in turn (Settings, Rendering, Performance experiments): A (all as shipped: the first three on, the last off), B (one
+   switch flipped), A, B, A. Read **R**, and R / (E + P + C) (E, P and C are not touched, so the ratio cancels the GPU's clock).
+   Expected from the Mac: inner run off +13-16 % of R; depth in pairs off +10 %; edges in pairs off +8 %; quotient on 0. A cut that
+   moves R by less than the A rows' spread is not proven; dq is merged for real only if R falls by 0.1 ms or more.
+4. Once with AA off: inner run off (the only switch that acts there; Mac +7 % of R).
+5. 4 samples (lite) (Part 1): Antialiasing 4 samples, 4 samples (lite) and Off in turn, A B C B A; read R, P and the total. Expected:
+   4 samples' extra over Off down by about a third (the Mac's -31 %; the phone's window share was 0.7 of R's 4.5 ms).

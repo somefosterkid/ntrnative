@@ -50,7 +50,6 @@ int ov96_021ED748(void);
 
 int sub_02099544(void);
 
-u8 *sub_0208FB4C(int param0, void *param1, int param2);
 
 int sub_020961E0(void);
 

@@ -9,7 +9,11 @@ void GF_NNS_SndPlayerGetSeqNo(NNSSndHandle *handle);
 
 void sub_020051A4(u32, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02006C14(u32, u32, u32, u32, u16, u8);
+#else
 void sub_02006C14(u32, u32, u32, u32, u32, u32);
+#endif
 
 void sub_02005DF4(u32 param_1, u32 param_2, u32 param_3);
 

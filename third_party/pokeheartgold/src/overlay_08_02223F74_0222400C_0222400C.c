@@ -34,9 +34,17 @@ struct BagItem {
 
 u16 ov08_02223CD4(BattleBag *, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov08_02223E3C(BattleBag *, u16, u32);
+#else
 void ov08_02223E3C(BattleBag *, s32, u32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov08_02223E74(BattleBag *, u16, s16, u32);
+#else
 void ov08_02223E74(BattleBag *, s32, u32, u32);
+#endif
 
 void ov08_02223F74(ManagedSprite *, u32, u32);
 

@@ -2,11 +2,11 @@
 
 #include "pokeathlon/pokeathlon.h"
 
-void ov96_021E97EC(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *arg3);
+void ov96_021E97EC(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E9820(s32 arg0, u32 arg1, void *arg2, PokeathlonCourseData *arg3);
+void ov96_021E9820(int arg0, int arg1, void *arg2, void *arg3);
 
-void ov96_021E97EC(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *data) {
+void ov96_021E97EC(int arg0, int arg1, void *arg2, void *data) {
     u8 v0;
 
     PokeathlonCourse_IncrementField1EF(data);
@@ -18,7 +18,7 @@ void ov96_021E97EC(s32 arg0, s32 arg1, s32 arg2, PokeathlonCourseData *data) {
     }
 }
 
-void ov96_021E9820(s32 arg0, u32 arg1, void *arg2, PokeathlonCourseData *data) {
+void ov96_021E9820(int arg0, int arg1, void *arg2, void *data) {
     u8 *v0;
 
     v0 = PokeathlonCourse_GetDataCopyArea(data);

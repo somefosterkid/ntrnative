@@ -22,6 +22,8 @@ G07Cap *g07cap_create(int scale, char *err, size_t errlen);
 G07Cap *g07cap_create_metal(int scale, char *err, size_t errlen);
 void g07cap_destroy(G07Cap *k);
 int g07cap_scale(const G07Cap *k);
+/* bank's N x texture (made on first use; a texture name of the API's, for g07_set_capbg) */
+unsigned g07cap_bank(G07Cap *k, int bank);
 
 /* the capture of DISPCAPCNT cnt (enabled, size 1-3: 256 pixels wide) into its bank's texture, rows ((cnt >> 18) & 3) * 64 on
  * (mod 256). dispcnt: engine A's DISPCNT (source B's bank, the read offset's rule). texA: engine A's picture without master

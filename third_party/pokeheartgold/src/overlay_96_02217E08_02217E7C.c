@@ -68,7 +68,11 @@ void ov96_02217E7C(PokeathlonCourseData *data) {
     }
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(PokeathlonCourseData *data, u32 a, u32 b, s32 c, s32 d);
+#else
 void ov96_021E8228(PokeathlonCourseData *data, u8 a, u8 b, s32 c, s32 d);
+#endif
 
 void ov96_02217FD0(Ov96RdPlayer *player, PokeathlonCourseData *data);
 

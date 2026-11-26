@@ -9,7 +9,7 @@
 #include "system.h"
 #include "overlay_82_battle_hall_app.h"
 
-void ov82_0223E8C4(void *arg0);
+void ov82_0223E8C4(BattleHallApp *arg0);
 
 FS_EXTERN_OVERLAY(OVY_80);
 

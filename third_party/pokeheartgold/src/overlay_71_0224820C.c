@@ -40,7 +40,7 @@ TradeTubePhase *ov71_022482EC(TradeSequenceData *arg0);
 void ov71_0224889C(TradeTubePhase *ttPhase);
 void ov71_022489F8(TradeTubePhase *ttPhase);
 void ov71_02248B24(TradeTubePhase *ttPhase);
-s32 ov71_02248E04();
+void ov71_02248E04(SysTask *arg0);
 void ov71_02248358(TradeTubePhase *ptr);
 
 void ov71_0224820C(SysTask *task, void *param) {
@@ -131,7 +131,7 @@ void ov71_02248358(TradeTubePhase *ptr) {
             SysTask_Destroy(sysTask);
         }
         if (ptr->task1 != NULL) {
-            ov71_02248E04();
+            ov71_02248E04(ptr->task1);
         }
         SetMTRNGSeed(ptr->rngSeed);
         Heap_Free(ptr);

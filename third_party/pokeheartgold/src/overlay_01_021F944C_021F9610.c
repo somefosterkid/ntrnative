@@ -16,7 +16,11 @@ int sub_02023EF4(Billboard *);
 
 s32 sub_02023F30(Billboard *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02023EA4(Billboard *, u8);
+#else
 void sub_02023EA4(Billboard *, int);
+#endif
 
 struct GF_2DGfxRawResMan;
 struct ResourceHeap;

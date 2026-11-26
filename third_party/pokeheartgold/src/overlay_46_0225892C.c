@@ -11,6 +11,8 @@
 #include "touchscreen.h"
 #include "unk_02037C94.h"
 #include "yes_no_prompt.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "overlay_45_wifi_plaza_system.h"
 
 s32 ov45_0222A5C0(u32);
 

@@ -13,22 +13,12 @@
 // The picture, the icons of the rows, the buttons of the touch bar and the buttons of the Pokédexes, with the
 // SELECT button
 static const TouchRect sPokedexListTouchHabitat[] = {
-    { 0, 95, 0, 95 },       { 0, 23, 96, 127 },          { 24, 47, 96, 127 },
-    { 48, 71, 96, 127 },    { 72, 95, 96, 127 },         { 96, 119, 96, 127 },
-    { 120, 143, 96, 127 },  { 144, 167, 96, 127 },       { 168, 191, 72, 135 },
-    { 168, 191, 0, 71 },    { 168, 191, 184, 207 },      { 168, 191, 208, 231 },
-    { 168, 191, 232, 255 }, { 98, 122, 0, 64 },          { 121, 145, 0, 64 },
-    { 144, 168, 0, 64 },    { TOUCH_RECT_END, 0, 0, 0 },
+#include "asset/pokedex_list_ui_sPokedexListTouchHabitat.inc"
 };
 
 // The same before the habitat list, when the START button is where the SELECT button goes
 static const TouchRect sPokedexListTouchNoHabitat[] = {
-    { 0, 95, 0, 95 },       { 0, 23, 96, 127 },          { 24, 47, 96, 127 },
-    { 48, 71, 96, 127 },    { 72, 95, 96, 127 },         { 96, 119, 96, 127 },
-    { 120, 143, 96, 127 },  { 144, 167, 96, 127 },       { 168, 191, 40, 103 },
-    { 168, 191, 0, 71 },    { 168, 191, 184, 207 },      { 168, 191, 208, 231 },
-    { 168, 191, 232, 255 }, { 98, 122, 0, 64 },          { 121, 145, 0, 64 },
-    { 144, 168, 0, 64 },    { TOUCH_RECT_END, 0, 0, 0 },
+#include "asset/pokedex_list_ui_sPokedexListTouchNoHabitat.inc"
 };
 
 int PokedexListUI_Main(PokedexListWork *wk) {

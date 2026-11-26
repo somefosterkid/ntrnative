@@ -18,7 +18,7 @@ s32 ov71_022473A0(void **arg0);
 u16 ov71_022473A8(struct TradeSequenceData *arg0);
 u16 ov71_022473B0(struct TradeSequenceData *arg0);
 u16 ov71_022473BC(struct TradeSequenceData *arg0);
-u16 ov71_022473C4(void *arg0);
+u16 ov71_022473C4(TradeSequenceData *arg0);
 
 Sprite *ov71_02247340(u8 *param_1, SpriteResourcesHeader *param_2, s32 param_3, s32 param_4, u32 param_5, NNS_G2D_VRAM_TYPE param_6) {
     Sprite *sprite;
@@ -76,6 +76,6 @@ u16 ov71_022473BC(TradeSequenceData *arg0) {
     return arg0->receivingSpecies;
 }
 
-u16 ov71_022473C4(void *arg0) {
-    return *(u16 *)((u8 *)arg0 + 0x152);
+u16 ov71_022473C4(TradeSequenceData *arg0) {
+    return arg0->receivingForm;
 }

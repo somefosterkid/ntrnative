@@ -22,7 +22,7 @@ s32 ov14_021E884C(UnkStruct_ov14_boxsys *);
 s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 nextState);
 s32 ov14_021F40E8(void *, s32);
 void ov14_021F263C(UnkStruct_ov14_boxapp *arg0);
-s32 ov14_021E76B8();
+void ov14_021E76B8(void *);
 void ov14_021F2690(struct UnkStruct_ov14_boxapp *arg0);
 s32 ov14_021F0B34(UnkStruct_ov14_boxapp *);
 void ov14_021F26F0(void *arg0);
@@ -64,7 +64,7 @@ void ov14_021F263C(UnkStruct_ov14_boxapp *arg0) {
 
 void ov14_021F2690(UnkStruct_ov14_boxapp *arg0) {
     if (arg0->unk2B == 0) {
-        ov14_021E76B8();
+        ov14_021E76B8(arg0);
     } else {
         ov14_021F40E8(arg0, 0);
     }
@@ -80,7 +80,7 @@ void ov14_021F26B4(UnkStruct_ov14_boxapp *arg0) {
 }
 
 void ov14_021F26F0(void *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F0B34(arg0);
 }
 
@@ -90,7 +90,7 @@ void ov14_021F2700(UnkStruct_ov70_022630A4_t_14 *arg0) {
 }
 
 void ov14_021F2718(void *arg0) {
-    ov14_021E76B8();
+    ov14_021E76B8(arg0);
     ov14_021F0CD8(arg0);
 }
 

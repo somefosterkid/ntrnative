@@ -20,7 +20,7 @@ void ov96_021E95F8(PokeathlonCourseData *, void *, u32, s32, u8, u8, u32);
 
 void ov96_0221A56C(void *, u32);
 
-u32 ov96_02215CE8(PokeathlonCourseData *param_1);
+BOOL ov96_02215CE8(PokeathlonCourseData *param_1, int unused);
 
 void ov96_02216390(Ov96RdWork *work);
 void ov96_022165FC(Ov96RdWork *work);
@@ -28,10 +28,10 @@ void ov96_022177D8(Ov96RdSprites *sprites);
 void ov96_02217DBC(Ov96RdWork *work);
 void ov96_022195E8(struct Ov96DigitWork *arg0);
 void ov96_02219FDC(void *ptr);
-s32 ov96_02215D4C(PokeathlonCourseData *arg0);
+BOOL ov96_02215D4C(PokeathlonCourseData *arg0, int unused);
 u32 ov96_02215DBC(PokeathlonCourseData *param_1, s32 param_2);
 
-u32 ov96_02215CE8(PokeathlonCourseData *param_1) {
+BOOL ov96_02215CE8(PokeathlonCourseData *param_1, int unused) {
     u16 uVar1;
     void *arg0;
     u32 uVar2;
@@ -51,7 +51,7 @@ u32 ov96_02215CE8(PokeathlonCourseData *param_1) {
     return 1;
 }
 
-s32 ov96_02215D4C(PokeathlonCourseData *data) {
+BOOL ov96_02215D4C(PokeathlonCourseData *data, int unused) {
     Ov96RdWork *work;
 
     work = PokeathlonCourse_GetHeapAllocPtr4(data);

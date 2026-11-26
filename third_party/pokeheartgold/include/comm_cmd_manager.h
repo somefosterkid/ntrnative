@@ -3,7 +3,15 @@
 
 #include "global.h"
 
-struct CommCmdTable;
+typedef void (*CommCmdRecvFunc)(int, int, void *, void *);
+typedef u32 (*CommCmdSizeFunc)(void);
+typedef void *(*CommCmdAllocFunc)(int, void *, int);
+
+typedef struct CommCmdTable {
+    CommCmdRecvFunc unk_00;
+    CommCmdSizeFunc unk_04;
+    CommCmdAllocFunc unk_08;
+} CommCmdTable;
 
 // CommCmdManager: the comm command dispatcher's state (_021D412C, unk_02033AE0_0340C4_* / _02034170), merged from 3 local
 // copies and the raw-offset users. 0x1C on the DS (the table pointer is 4 bytes there, 8 on the host).

@@ -41,7 +41,7 @@ s32 ov14_021ED414(void *param_1) {
         PlaySE(0x5dc);
         return ov14_021F11F8(param_1, 1);
     case 8:
-        ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 9, 8);
+        ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 9, 8);
         if (((UnkStruct_ov14_boxapp *)param_1)->unk1F == ((UnkStruct_ov14_boxapp *)param_1)->unk25) {
             PlaySE(0x5f3);
             return ov14_021F2270(param_1, 0xc, 0x3d);
@@ -49,11 +49,11 @@ s32 ov14_021ED414(void *param_1) {
         PlaySE(0x5dc);
         return ov14_021F2270(param_1, 0xc, 0xa2);
     case 9:
-        ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 9, 8);
+        ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 9, 8);
         PlaySE(0x5dd);
         return ov14_021F2270(param_1, 6, 0xa3);
     case 10:
-        ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 9, 8);
+        ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 9, 8);
         PlaySE(0x5dd);
         return ov14_021F2270(param_1, 7, 0xa4);
     case (u32)-3:
@@ -67,7 +67,7 @@ s32 ov14_021ED414(void *param_1) {
         PlaySE(0x5dc);
         break;
     case 11:
-        ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 9, 8);
+        ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 9, 8);
     case (u32)-2:
         PlaySE(0x5dc);
         return ov14_021F2270(param_1, 10, 0x39);

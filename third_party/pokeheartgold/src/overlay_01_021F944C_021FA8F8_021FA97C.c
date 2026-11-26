@@ -28,7 +28,6 @@ const BillboardAnim *ov01_021FA2AC(s32 id);
 Billboard *ov01_021FA31C(BillboardList *list, const BillboardResources *resources, const VecFx32 *pos);
 OverworldAnimManager *ov01_021FDE64(FieldEffectManager *fieldEffMan, const BillboardResources *resources, const Billboard *billboard, const VecFx32 *pos, int type, int priority);
 void sub_02023E2C(BillboardResources *resources, void *modelRes, const NNSG3dResTex *texture, const BillboardAnim *anims, const BillboardGfxSequence *gfxSequence);
-const VecFx32 *sub_02023E68(const Billboard *billboard);
 void sub_02023EA4(Billboard *billboard, u8 draw);
 void sub_02023EE0(Billboard *billboard, int animNum);
 int sub_02023EF4(const Billboard *billboard);

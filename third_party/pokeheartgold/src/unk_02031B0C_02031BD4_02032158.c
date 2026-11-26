@@ -1,23 +1,24 @@
 #include "global.h"
 
 #include "string_util.h"
+#include "unk_02031B0C.h"
 
-s32 sub_02032158(void *arg0, void *arg1);
+s32 sub_02032158(ApricornRecord *arg0, ApricornRecord *arg1);
 
-s32 sub_02032158(void *arg0, void *arg1) {
-    if (*(s32 *)arg0 != *(s32 *)arg1) {
+s32 sub_02032158(ApricornRecord *arg0, ApricornRecord *arg1) {
+    if ((s32)arg0->trainerId != (s32)arg1->trainerId) {
         return 0;
     }
-    if (*(u8 *)((u8 *)arg0 + 4) != *(u8 *)((u8 *)arg1 + 4)) {
+    if (arg0->gender != arg1->gender) {
         return 0;
     }
-    if (*(u8 *)((u8 *)arg0 + 6) != *(u8 *)((u8 *)arg1 + 6)) {
+    if (arg0->version != arg1->version) {
         return 0;
     }
-    if (*(u8 *)((u8 *)arg0 + 5) != *(u8 *)((u8 *)arg1 + 5)) {
+    if (arg0->language != arg1->language) {
         return 0;
     }
-    if (StringNotEqual(arg0 + 8, arg1 + 8) == 0) {
+    if (StringNotEqual(arg0->name, arg1->name) == 0) {
         return 1;
     }
     return 0;

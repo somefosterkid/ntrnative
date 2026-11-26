@@ -4,8 +4,6 @@
 
 extern u8 ov86_021E81DC[];
 
-void ov86_021E7688(FrontierRecordsApp *p, u32 idx);
-
 void ov86_021E7688(FrontierRecordsApp *p, u32 idx) {
 
     p->flash.isBg = 1;

@@ -4,7 +4,11 @@
 #include "battle/battle_system.h"
 #include "battle/trainer_ai.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov10_0221F084(BattleSystem *, BattleContext *, u16, u16, u8 *, s32, s32, s32, u8);
+#else
 s32 ov10_0221F084(BattleSystem *, BattleContext *, u16, u16, u8 *, s32, s32, s32, s32);
+#endif
 
 extern const u16 ov10_0222B080[];
 

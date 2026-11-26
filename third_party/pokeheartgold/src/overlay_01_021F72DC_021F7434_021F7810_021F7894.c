@@ -5,7 +5,7 @@
 #include "overlay_01_022053EC.h"
 #if defined(SDK_PORT) || defined(NONMATCHING)
 
-s32 ov01_021F8C88(LocalMapObject *, Billboard *);
+void ov01_021F8C88(LocalMapObject *, Billboard *);
 
 void ov01_021F8D80(LocalMapObject *object, Billboard *animObj, MapObjectBillboardWorkB *a2, u32 facingDir, BOOL flag);
 
@@ -45,7 +45,7 @@ void ov01_021F7894(LocalMapObject *arg0) {
 }
 #else
 
-s32 ov01_021F8C88(LocalMapObject *, Sprite *);
+void ov01_021F8C88(LocalMapObject *, Sprite *);
 
 s32 ov01_021F8D80(LocalMapObject *, Sprite *, u8 *, u32, s32);
 

@@ -20,7 +20,6 @@ struct BattleHallApp;
 
 struct BattleHallAppSprite;
 
-struct BattleHallAppSpriteManager;
 
 struct BgConfig;
 
@@ -88,13 +87,6 @@ struct ApplicationManager {
     ApplicationManager *parent;
     ApplicationManager *child;
 };
-
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 

@@ -44,12 +44,13 @@ void gpu_g06_bind_raster(GLuint prog, const VCoreState *s) {
   GL(ActiveTexture)(GL_TEXTURE0);
 }
 
-void gpu_g06_uni_post(GpuU *u, const VCoreState *s, int edge_fine) {
+void gpu_g06_uni_post(GpuU *u, const VCoreState *s, int edge_fine, int edge_aa) {
   for (int i = 0; i < 8; i++) u->uEdgeCol[i][0] = vc_io16(s, VC_REG_EDGE_COLOR + i * 2) & 0x7FFF;
   for (int i = 0; i < 32; i++) u->uFogTab[i][0] = vc_io8(s, VC_REG_FOG_TABLE + i) & 0x7F;
   u->uFogColor = vc_io32(s, VC_REG_FOG_COLOR);
   u->uFogOffset = vc_io16(s, VC_REG_FOG_OFFSET) & 0x7FFF;
   u->uClearColor = vc_io32(s, VC_REG_CLEAR_COLOR);
-  /* Edge=ds (default): the outline is one DS pixel wide; Edge=fine: one N x pixel (the option comes from the caller) */
-  u->uEdgeFine = edge_fine != 0;
+  /* bit 0: Edge=fine, the outline one N x pixel wide (Edge=ds, the default: one DS pixel); bit 1: Smooth edges, the outline drawn
+   * with its coverage at N > 1 and one sample (g06_post.frag p_edge_mark_w; docs/gpu-cost.md "Antialiasing for less") */
+  u->uEdgeFine = (edge_fine != 0 ? 1u : 0u) | (edge_aa != 0 ? 2u : 0u);
 }

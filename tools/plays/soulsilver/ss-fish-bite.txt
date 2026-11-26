@@ -1,0 +1,9 @@
+# game: soulsilver
+# from: ss-r35pond
+# reaches: Route 35's pond: the Good Rod from the bag (touch taps) facing the water, the cast, the wait, the bite's "!" at about f11820 and, with no key, "The POKeMON got away!" from about f11890 (before the fishcrash fix the app crashed there: the fishing task's raw DS offsets); not in the sweep set (cheat items, badges, party)
+# end: f12000
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=39:371:292 BWPORT_HG_WARP_DIR=1
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f4@f10800
+keys start@f11000 stylus:42,116@f11100-f11110 stylus:235,15@f11250-f11260 stylus:172,127@f11400-f11410 stylus:46,142@f11550-f11560

@@ -3,13 +3,6 @@
 #include "overlay_112_pokewalker_app.h"
 struct Ov112PokewalkerApp;
 
-u8 ov112_021EA08C(struct Ov112PokewalkerApp *arg0, s32 arg1, s32 strno);
-
-void ov112_021EC460(Ov112PokewalkerApp *param_1, u32 param_2, u32 param_3, u32 param_4);
-
-s32 ov112_021EA688(void *, s32);
-s32 ov112_021EC478(Ov112PokewalkerApp *arg0);
-
 void ov112_021EC460(Ov112PokewalkerApp *param_1, u32 param_2, u32 param_3, u32 param_4) {
     u32 uVar1;
 

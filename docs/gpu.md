@@ -218,7 +218,7 @@ R/P/C = in which pass.
 | shadows (46): ID 0 sets the stencil where the depth test fails, others draw where it is set and the ID differs, the stencil cleared after | R (G5) | exact (the stencil is a flag bit in the pixel state) | unchanged; the shadow's outline at N x |
 | alpha test (ALPHA_TEST_REF), alpha 0 never drawn | R (G5) | exact | unchanged |
 | clear colour/depth/ID/fog; the rear-plane bitmap (54) scrolled by CLRIMAGE_OFFSET | R (G6) | exact | the bitmap sampled nearest at (x/N, y/N) |
-| edge marking (51): an edge pixel with a 4-neighbour of another ID and greater depth takes EDGE_COLOR[id >> 3] | P (G6) | exact | neighbours N x pixels away: a 1-N x-pixel outline (`Edge=fine`) or an outline N pixels wide (`Edge=ds`, default: the DS's 1 DS pixel) |
+| edge marking (51): an edge pixel with a 4-neighbour of another ID and greater depth takes EDGE_COLOR[id >> 3] | P (G6) | exact | neighbours N x pixels away: a 1-N x-pixel outline (`Edge=fine`) or an outline N pixels wide (`Edge=ds`, default: the DS's 1 DS pixel); `Antialiasing=Smooth edges` (one sample) draws either with its coverage (docs/gpu-cost.md "Antialiasing for less") |
 | fog (51): density by depth >> 9 from the 32-entry table with the shift, colour and alpha or alpha only | P (G6) | exact (integers) | unchanged per pixel |
 | antialiasing (51): an opaque edge pixel's alpha = its coverage, blended with the farthest 4-neighbour behind | P (G6) | exact (p19's rule; coverage from the record's edge params) | the coverage of the N x pixel (smooth edges at the finer grid); neighbours 1 N x pixel away |
 | the 3D layer's BG0HOFS scroll (55) | C (G7) | exact | the scroll times N |
@@ -252,7 +252,9 @@ The game reads display captures back (the title, the battle intro, capture fades
 picture or the 3D layer into a VRAM bank the game then shows as a BG or reads as data. A capture must hold the DS's
 1x pixels, so a frame with DISPCAPCNT's enable bit runs vcore's whole frame on the CPU (its 3D too) and the bridge
 stores that capture into libntr's bank exactly as today (vcore_bridge.c's StoreCapture); the GPU still draws the N x
-picture shown on that frame. A captured image shown later is 1x (scaled like any BG). Cost: vcore's 3D on capture
+picture shown on that frame. A captured image shown later comes from the N x capture the hi-res capture below drew (at
+Resolution > 1): as engine A's display (display mode 2) and as engine A's bitmap BG shown 1:1 ("a bank shown as a BG" below);
+a scaled or rotated one, engine B's and vcore's (docs/vcore.md: its captures are 1x) stay 1x. Cost: vcore's 3D on capture
 frames only (1-4 ms).
 
 What stays 1x (survey 2026-11-12, BWPORT_CAPLOG=1 logs a line whenever DISPCAPCNT, engine A/B DISPCNT, BG0-3CNT, VRAMCNT A-D or
@@ -292,6 +294,26 @@ Hi-res capture (GL and Metal, Resolution > 1; 2026-11-12, port/gpu/src/g07_captu
   records the number each texture row holds (sGlSer). A row is drawn from the texture when both agree, else from the 1x bytes
   as before. A 1x capture (vcore's M_VCORE, Resolution 1, Metal) resets the rows it wrote.
 - In-between pictures are off for a capHi frame and for a frame showing a bank at N x (InterpTexture draws neither).
+- A bank shown as a BG at N x (2026-11-25; Black's item-get fanfare, about 2.5 s: DISPCAPCNT 81330010 captures the 3D field
+  into bank D, then BG mode 5 shows bank D as BG2, a direct-colour bitmap, with the 3D glow alpha-blended over it; it was 1x).
+  The worker finds engine A's BG2 or BG3 that shows one of banks A-D as it is (CapBgFind, gpu_bridge.c: display mode 1, BG mode
+  3-5 with that BG a 256 x 256 direct-colour bitmap without mosaic; on every line, HDMA included, PA = 0x100, PC = 0, the same
+  BGxCNT, the line's row alone in one bank and the same bank and offsets as the other lines). Before each pass C (in-between
+  pictures too) the GL thread (CapBgSet) hands pass C the bank's N x texture (g07cap_bank; cCapBank, GL unit 5, Metal by name) and
+  the longest run of the BG's lines whose bank rows hold this capture at N x (the validity rule above: a row the CPU rewrote is
+  1x). The plan flags the DS pixels where that BG is the top layer: as it is or under BLDCNT's brightness up / down (x bit 31,
+  the effect in bits 29-30) and as the layer the 3D blends over (y bit 31, rank 1); the N x pass (c_capbg, also the 2D filter's
+  where its pick is the pixel's own) takes those colours from the bank's N x texel (a transparent one keeps the DS pixel's).
+  GpuU's cCapBg, cCapOx, cCapOy, cCapY0, cCapY1 and cCapSer (the captures drawn into the bank: pass C's reuse draws again when
+  the bank's picture changes) are in the reuse key, cCapBg in the plan key. Still 1x: a 2D alpha blend with that BG (the plan has
+  no room for the other colour and both weights), a scaled, rotated or HDMA-distorted BG, a bank shown by engine B (vcore's 1x
+  lines; none seen in the games so far), Resolution 1, and vcore at N x (its captures are 1x). BWPORT_CAPLOG=1 logs "capbg BGn
+  bank X offset ox oy, N x rows y0-y1" (or "capbg none") when it changes. Checked on the Mac at 3x: the item-get (save lab, Mom's
+  Town Map) drawn from the N x capture through the fanfare, Metal and GL, Smooth motion on and off (3 x 3 blocks of the top screen
+  not flat: 9.8 % before, 67-68 % after, the field before it 79 %); BWPORT_COMPOSE_REUSE=check 0 differ; pics_ab 276 of 276
+  pictures equal (also with GPU_COMPOSE=gpu), vcore 46 of 46, gpu_fastdiff 46 of 46; the title's and the encounter's shots equal
+  to the build before; pass C's time on the field unchanged (0.13-0.21 ms a render). Black's encounter swirl draws its capture
+  as a 3D texture (bank D as texture slot 3), not as a BG: still 1x.
 - Metal (2026-11-12, src/g07_capture_mtl.inc, in gpu_mtl.m): the same steps in the frame's command buffer (gpu_mtl_capsrc for
   source A; the capture into a scratch R16Uint and a blit into the bank's rows; display mode 2 as a loading pass over pass C's
   output; the 1x bank upload a ring of GPU_RING buffers). The MSL of g07_capture.frag and its K_SHOW variant comes from

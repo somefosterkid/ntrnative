@@ -6,7 +6,11 @@
 #include "sys_task.h"
 #include "sys_task_api.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021EB10C(u32 *, s32, f32);
+#else
 s32 ov96_021EB10C(u32 *, s32, f32);
+#endif
 
 void ov96_0220D468(SysTask *arg0, void *arg1);
 

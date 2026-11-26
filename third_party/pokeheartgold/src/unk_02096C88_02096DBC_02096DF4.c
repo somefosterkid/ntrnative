@@ -38,7 +38,11 @@ typedef struct JournalEntry JournalEntry;
 
 void ov85_021E9C84(UnkStruct_ov109_021D5140 *param0, int param1, u8 param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 int sub_02037454(void);
 

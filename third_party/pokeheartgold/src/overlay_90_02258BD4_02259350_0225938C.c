@@ -36,7 +36,11 @@ void AddWindowParameterized(BgConfig *bgConfig, Window *window, u8 bgLayer, u8 t
 void FillWindowPixelBuffer(Window *window, u8 val);
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx2(BgConfig *bgConfig, GFBgLayer bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#else
 void LoadUserFrameGfx2(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#endif
 
 Options *Save_PlayerData_GetOptionsAddr(SaveData *saveData);
 

@@ -8,15 +8,19 @@
 #include "sys_task.h"
 #include "unk_0200A090.h"
 
-SysTask *ov69_021E6300();
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov69_021E6300(u32 country);
+#else
+u32 ov69_021E6300(u32 country);
+#endif
 
-s32 ov69_021E758C(void);
+s32 ov69_021E758C(u32 country);
 
 void ov69_021E75A0(VecFx32 *param0);
 u32 ov69_021E75F8(const VecFx32 *param0, const VecFx32 *param1);
 
-s32 ov69_021E758C(void) {
-    if (ov69_021E6300() != 0) {
+s32 ov69_021E758C(u32 country) {
+    if (ov69_021E6300(country) != 0) {
         return 1;
     }
     return 0;

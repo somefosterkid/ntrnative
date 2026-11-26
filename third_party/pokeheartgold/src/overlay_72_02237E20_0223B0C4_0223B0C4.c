@@ -40,11 +40,11 @@ struct Window;
 
 typedef struct MessageBank MessageBank;
 
-String *NewString_ReadMsgData();
+String *NewString_ReadMsgData(MsgData *msgData, s32 msg_no);
 
 typedef struct StringTemplateArg StringTemplateArg;
 
-MessageFormat *MessageFormat_New();
+MessageFormat *MessageFormat_New(enum HeapID heapID);
 
 void MessageFormat_Delete(MessageFormat *template);
 

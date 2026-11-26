@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_45_wifi_plaza_api.h"
 #include "constants/heap.h"
 #include "save.h"
 #include "overlay_45_wifi_plaza_system.h"
@@ -17,11 +19,7 @@ typedef struct PasswordWordBank PasswordWordBank;
 void ov45_0222BCA0(UnkStruct_ov66_0222FBC8 *param0);
 void ov45_0222BCA8(UnkStruct_ov66_0222FBC8 *param0);
 u32 ov45_0222EC68(s32 param0);
-void ov45_0222A404(WiFiPlazaSystem *param0);
-void ov45_0222A414(WiFiPlazaSystem *param0);
-BOOL ov45_0222A424(const WiFiPlazaSystem *param0);
 void ov45_0222A430(WiFiPlazaSystem *param0, BOOL param1);
-void ov45_0222A43C(WiFiPlazaSystem *param0);
 void ov45_0222A450(WiFiPlazaSystem *param0, s32 param1, u32 param2);
 
 u8 ov45_0222A3BC(WiFiPlazaSystem *arg0) {

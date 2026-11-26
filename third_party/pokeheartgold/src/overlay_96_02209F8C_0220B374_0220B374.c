@@ -12,9 +12,17 @@ s32 ov96_0220C490(void *, SpriteSystem *, SpriteManager *);
 
 void ov96_0220C54C(void *, s32, s32, s32, BOOL);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov96_0220D13C(SpriteSystem *, SpriteManager *, s16, u8, u16, u16);
+#else
 ManagedSprite *ov96_0220D13C(SpriteSystem *, SpriteManager *, s16, s16, s32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov96_0220D1A0(SpriteSystem *, SpriteManager *, s16, u8, u16, u16);
+#else
 ManagedSprite *ov96_0220D1A0(SpriteSystem *, SpriteManager *, s16, s16, s32, s32);
+#endif
 
 s32 ov96_0220D200(void *, s32, PokeathlonCourseData *);
 

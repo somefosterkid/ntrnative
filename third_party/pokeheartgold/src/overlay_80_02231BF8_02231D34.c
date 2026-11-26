@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "field/dynamic_terrain_height.h"
@@ -970,7 +972,6 @@ enum MapHeaderID {
 };
 FieldBattleDTO *ov80_02237B8C(BattleCastle *battleCastle, FieldFrontierDTO *fieldData);
 typedef void (*BattleFrontierSubAppCallback)(void *);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void Frontier_LaunchApplication(BattleFrontier *frontier, const OverlayManagerTemplate *appTemplate, void *appArgs, BOOL freeArgsAfter, BattleFrontierSubAppCallback finishCallback);
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {
     location->mapId = mapHeaderID;

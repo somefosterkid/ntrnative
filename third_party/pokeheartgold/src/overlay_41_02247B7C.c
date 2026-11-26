@@ -22,7 +22,7 @@ YesNoResponse ov41_02247B7C(u8 *param_1) {
     YesNoResponse YVar1;
     MenuInputState MVar2;
 
-    YVar1 = YesNoPrompt_HandleInput(*((YesNoPrompt **)&((UnkStruct_ov22_0225A0E4 *)param_1)->unk_6B8));
+    YVar1 = YesNoPrompt_HandleInput(((UnkStruct_ov22_0225A0E4 *)param_1)->unk_6B8);
     switch (YVar1) {
     case YESNORESPONSE_WAIT:
         return YESNORESPONSE_NO_TOUCH;
@@ -33,8 +33,8 @@ YesNoResponse ov41_02247B7C(u8 *param_1) {
         YVar1 = (YesNoResponse)(9);
         break;
     }
-    MVar2 = YesNoPrompt_IsInTouchMode(*((YesNoPrompt **)&((UnkStruct_ov22_0225A0E4 *)param_1)->unk_6B8));
-    *(MenuInputState *)(param_1 + 0x6ec) = MVar2;
+    MVar2 = YesNoPrompt_IsInTouchMode(((UnkStruct_ov22_0225A0E4 *)param_1)->unk_6B8);
+    ((UnkStruct_ov22_0225A0E4 *)param_1)->unk_6EC = MVar2;
     return YVar1;
 }
 

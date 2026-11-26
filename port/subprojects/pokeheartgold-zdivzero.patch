@@ -1,0 +1,34 @@
+DS division by zero in lib/spl/src/spl_emit.c (port/src/ds_divide.c): the DS returns the dividend as the quotient (MWCC calls _s32_div_f, which
+returns at once with r0 untouched), x86-64 traps (the handler gives the same result) and arm64 gives 0. A particle resource with a life time of 1 makes
+each child particle's loop time factor 0xffff / (lifeTime / 2) = 0xffff / 0 (Black's Elesa battle, route leg b gym4-e); the other three
+factors (loopTime, lifeTime) divide by a resource field the same way. SPL_DIV(n, d) is n when d is 0, else n / d: the same result on every host.
+diff --git a/lib/spl/src/spl_emit.c b/lib/spl/src/spl_emit.c
+--- a/lib/spl/src/spl_emit.c
++++ b/lib/spl/src/spl_emit.c
+@@ -10,4 +10,8 @@
+ #include "spl_random.h"
+ #include "spl_resource.h"
++
++// The DS's divide by zero returns the dividend (_s32_div_f: r0 stays the dividend, r1 = 0) and x86 traps (port/src/ds_divide.c
++// catches it); arm64's sdiv gives 0. A particle resource with a life time of 1 makes a child's loop time (life / 2) 0.
++#define SPL_DIV(n, d) ((d) == 0 ? (n) : (n) / (d))
+ 
+ #include <simulator/sim_g3tag.h> // bw-port: Smooth motion's tags
+@@ -268,6 +272,6 @@
+         }
+ 
+-        ptcl->loopTimeFactor = 0xFFFF / res->header->misc.loopFrames;
+-        ptcl->lifeTimeFactor = 0xFFFF / ptcl->lifeTime;
++        ptcl->loopTimeFactor = SPL_DIV(0xFFFF, res->header->misc.loopFrames);
++        ptcl->lifeTimeFactor = SPL_DIV(0xFFFF, ptcl->lifeTime);
+ 
+         ptcl->lifeRateOffset = 0;
+@@ -341,6 +345,6 @@
+         child->texture = childRes->misc.texture;
+ 
+-        child->loopTimeFactor = 0xFFFF / (ptcl->lifeTime / 2);
+-        child->lifeTimeFactor = 0xFFFF / ptcl->lifeTime;
++        child->loopTimeFactor = SPL_DIV(0xFFFF, ptcl->lifeTime / 2);
++        child->lifeTimeFactor = SPL_DIV(0xFFFF, ptcl->lifeTime);
+         child->lifeRateOffset = 0;
+     }

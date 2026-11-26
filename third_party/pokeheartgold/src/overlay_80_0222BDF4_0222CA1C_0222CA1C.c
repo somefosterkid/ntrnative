@@ -4,9 +4,17 @@
 
 #include "sprite_system.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov80_02239700(s32, u16);
+#else
 ManagedSprite *ov80_02239700(s32, u32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov80_02239708(s32, u16, s32);
+#else
 s32 ov80_02239708(s32, u32, s32);
+#endif
 
 s32 sub_0209680C(void *);
 

@@ -23,7 +23,6 @@ struct BattleHallApp;
 
 struct BattleHallAppSprite;
 
-struct BattleHallAppSpriteManager;
 
 struct G2dRenderer;
 
@@ -40,13 +39,6 @@ struct SpriteResourceCollection;
 struct ListMenuItem;
 
 struct Window;
-
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 

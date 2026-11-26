@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove's beach with the follower: turns in place on the sand (taps up, right, down, left, up), then one step west (Smooth motion audit, scratch/ipid)
+# end: f11200
+env BWPORT_HG_WARP=67:540:403 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f4@f11000 right*f4@f11030 down*f4@f11060 left*f4@f11090 up*f4@f11120 left*f18@f11150

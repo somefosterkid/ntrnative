@@ -12,7 +12,7 @@ u32 FrtCmd_200(FrontierScriptContext *param_1);
 s32 FrtCmd_201(FrontierScriptContext *arg0);
 
 u32 FrtCmd_200(FrontierScriptContext *param_1) {
-    FrontierLaunchArgs *pFVar1;
+    FieldFrontierDTO *pFVar1;
 
     pFVar1 = Frontier_GetLaunchArgs(param_1->frontierSystem->unk0);
     sub_020270C4(pFVar1->saveData);

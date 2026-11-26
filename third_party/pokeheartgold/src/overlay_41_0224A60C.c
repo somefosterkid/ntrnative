@@ -15,7 +15,7 @@ void ov41_0224A1DC(void *, u32);
 
 void ov41_0224A1EC(u8 *, s32, u32);
 
-void ov41_0224A8B0(u8 *);
+void ov41_0224A8B0(u8 *param_1, s32 param_2);
 
 void ov41_0224A8D4(u8 *, u32);
 
@@ -157,12 +157,12 @@ void ov41_0224A888(void *arg0);
 void ov41_0224A60C(s32 param_1, u32 param_2, u8 *param_3) {
     switch (param_1) {
     case 0:
-        ov41_0224A8B0(param_3);
+        ov41_0224A8B0(param_3, param_2);
         ov41_0224A918(param_3, 0x680, 0, param_2);
         ov41_0224A1DC(param_3, param_2);
         return;
     case 1:
-        ov41_0224A8B0(param_3 + 0x10);
+        ov41_0224A8B0(param_3 + 0x10, param_2);
         ov41_0224A918(param_3 + 0x10, 0x680, 0, param_2);
         ov41_0224A1DC(param_3 + 0x10, param_2);
         return;
@@ -173,7 +173,7 @@ void ov41_0224A60C(s32 param_1, u32 param_2, u8 *param_3) {
         return;
     case 4:
         if (*(s32 *)(param_3 + 0x60) == 1) {
-            ov41_0224A8B0(param_3 + 0x40);
+            ov41_0224A8B0(param_3 + 0x40, param_2);
             ov41_0224A8D4(param_3 + 0x40, param_2);
             ov41_0224A918(param_3 + 0x40, 0x5e2, 0, param_2);
             ov41_0224A1DC(param_3 + 0x40, param_2);

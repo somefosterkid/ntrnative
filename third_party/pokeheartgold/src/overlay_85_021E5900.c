@@ -85,7 +85,11 @@ int ov85_021E5900(OverlayManager *appMan, int *param1);
 
 void ov85_021E678C(UnkStruct_ov109_021D0F70 *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov85_021E7650(UnkStruct_ov109_021D0F70 *param0);
+#else
 void ov85_021E7650(UnkStruct_ov109_021D0F70 *param0);
+#endif
 
 int ov85_021E5900(OverlayManager *appMan, int *param1) {
     UnkStruct_ov109_021D0F70 *v0;

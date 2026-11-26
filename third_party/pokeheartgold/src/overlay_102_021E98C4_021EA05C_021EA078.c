@@ -34,7 +34,11 @@ s32 ov102_021EAE40(u8 *, s32);
 
 s32 ov102_021EAF44(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov102_021EB0C0(u32 *, u8);
+#else
 s32 ov102_021EB0C0(u32 *, s32);
+#endif
 
 s32 ov102_021EB2EC(void *, s32, s32);
 

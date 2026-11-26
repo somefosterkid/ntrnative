@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
@@ -974,7 +976,6 @@ struct ApplicationManager {
 };
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 typedef struct BattleRegulation BattleRegulation;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void Frontier_SetData(BattleFrontier *frontier, void *facilityData);
 typedef struct Location {
     enum MapHeaderID mapHeaderID;
@@ -1209,7 +1210,11 @@ typedef struct FieldWildBattleMetadata {
     u16 wildMonDefeated;
 } FieldWildBattleMetadata;
 typedef struct BattleArcade BattleArcade;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov80_022313C0(BattleArcade *arcade, u16 resumingFromSave);
+#else
 void ov80_022313C0(BattleArcade *arcade, u16 resumingFromSave);
+#endif
 void *Frontier_GetData(BattleFrontier *frontier);
 void ov80_022314A0(BattleArcade *arcade);
 

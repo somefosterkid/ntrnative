@@ -4,6 +4,7 @@
 
 #include "save.h"
 #include "overlay_45_wifi_plaza_system.h"
+struct UnkStruct_ov66_02230A6C;
 
 struct PasswordWordBank;
 
@@ -59,7 +60,7 @@ void ov45_0222BB58(void *arg0);
 
 void ov45_0222BCB8(s16 *arg0);
 
-u16 ov45_0222CCDC(void *arg0);
+u16 ov45_0222CCDC(struct UnkStruct_ov66_02230A6C *arg0);
 
 void ov45_0222A15C(WiFiPlazaSystem *param0);
 

@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bg_window.h"
@@ -148,7 +150,6 @@ typedef struct FrontierGraphics {
     u8 unk_C2;
     u8 pad_C3[1];
 } FrontierGraphics;
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 
 BOOL ov80_0222DF3C(FrontierScriptContext *ctx);
 

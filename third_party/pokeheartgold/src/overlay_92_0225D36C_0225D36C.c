@@ -24,6 +24,7 @@
 #include "overlay_92_unk_struct_ov116_022649e4.h"
 #include "overlay_92_unk_struct_ov116_02262a8c.h"
 #include "unk_02037C94.h"
+#include "overlay_91_unk_struct_ov115_02260440.h"
 
 struct OverlayManager;
 
@@ -38,13 +39,6 @@ struct UnkStruct_ov114_0225D678_t;
 struct UnkStruct_ov114_0225E854_t;
 
 struct UnkStruct_ov66_0222DFF8_t;
-
-typedef struct {
-    UnkStruct_ov66_02230DBC unk_00;
-    SaveData *saveData;
-    BOOL unk_38;
-    u32 unk_3C;
-} UnkStruct_ov66_02231134;
 
 typedef struct UnkStruct_ov114_0225D678_t UnkStruct_ov114_0225D678;
 

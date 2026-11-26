@@ -4,9 +4,7 @@
 #include "save.h"
 #include "sprite.h"
 #include "sprite_system.h"
-#include "overlay_43_palpad.h"
-
-void ov43_0222DB94(PalPadDetails *, PalPadGfx *, s16);
+#include "overlay_43_palpad_fns.h"
 
 void ov43_0222A9F4(PalPadGfx *, Window *, u32);
 
@@ -19,8 +17,6 @@ void ov43_0222AD40(PalPadGfx *, u32, u32);
 void ov43_0222AD98(PalPadGfx *, u8, u32);
 
 void ov43_0222D8B8(PalPadDetails *, PalPadShared *, PalPadGfx *, enum HeapID);
-
-void ov43_0222DAE8(PalPadDetails *, PalPadShared *, PalPadGfx *, u32, s32, enum HeapID);
 
 void ov43_0222D654(PalPadDetails *details, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID);
 

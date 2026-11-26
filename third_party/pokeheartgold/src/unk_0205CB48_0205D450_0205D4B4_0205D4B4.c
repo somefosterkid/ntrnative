@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "field_system.h"
 #include "field_types_def.h"
 #include "gymmick_init.h"
@@ -176,7 +178,6 @@ enum MovementAction sub_0206234C(int targetDir, enum MovementAction movementActi
 
 enum MovementAction sub_0205D44C(LocalMapObject *, u8, u32);
 
-void sub_0205DA1C(PlayerAvatar *, LocalMapObject *, enum MovementAction);
 
 u32 sub_0205DA34(PlayerAvatar *, LocalMapObject *, u32);
 

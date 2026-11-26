@@ -55,13 +55,12 @@ enum BattleCastleAppState {
 
 void LoadMainBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-void ov83_02244704(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
+void ov83_02244704(BattleCastleOpponentApp *arg0, enum GFBgLayer bgLayer);
 
 void LoadMovesListBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
 void ov82_0223EE6C(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

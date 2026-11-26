@@ -232,9 +232,8 @@ int ov02_0224939C(void *work);
 
 int ov02_02249774(void *work);
 
-u32 ov02_0224C05C(u32 param_1, unsigned char param_2, FieldMoveTaskEnvironment *param_3, u32 param_4);
 
-u32 ov02_0224C87C(u32 param_1, s32 param_2, FieldMoveTaskEnvironment *param_3, u32 param_4);
+u32 ov02_0224C87C(u32 param_1, FieldSystem *param_2, FieldMoveTaskEnvironment *param_3, u32 param_4);
 
 void ov02_0224AAC8(void *a0, void *work);
 
@@ -260,9 +259,7 @@ int ov02_0224C7D4(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveT
 
 int ov02_02249858(void *work);
 
-int ov02_0224C8D0(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
-int ov02_0224C234(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
 int ov02_02249C74(void *work);
 
@@ -280,11 +277,8 @@ int ov02_02249658(void *work);
 
 int ov02_0224C75C(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
-int ov02_0224C93C(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
-int ov02_0224C9B8(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
-int ov02_0224C0B0(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
 int ov02_022498BC(void *work);
 
@@ -324,7 +318,6 @@ int ov02_02249BD8(void *work);
 
 void ov02_0224D310(void *a0, void *a1, void *data);
 
-int ov02_0224C840(TaskManager *taskManager, void *a1, FieldMoveTaskEnvironment *a2);
 
 void ov02_0224D880(void *a0, FieldSystem *fieldSystem, void *work);
 
@@ -332,7 +325,7 @@ int ov02_0224C6DC(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveT
 
 int ov02_0224C2A8(TaskManager *taskManager, FieldSystem *fieldSystem, FieldMoveTaskEnvironment *work);
 
-u32 ov02_0224C698(u32 param_1, s32 param_2, FieldMoveTaskEnvironment *param_3, u32 param_4);
+u32 ov02_0224C698(u32 param_1, FieldSystem *param_2, FieldMoveTaskEnvironment *param_3, u32 param_4);
 
 BOOL ov02_0224AA80(void *a0, void *work);
 
@@ -452,7 +445,6 @@ void ov02_0224D41C(Field3dObjectTask *task);
 
 BOOL ov02_0224D424(Field3dObjectTask *task);
 
-void ov02_0224D43C(Field3dObjectTask *task, FieldSystem *fieldSystem, void *data);
 
 void ov02_0224D468(Field3dObjectTask *task, FieldSystem *fieldSystem, void *data);
 

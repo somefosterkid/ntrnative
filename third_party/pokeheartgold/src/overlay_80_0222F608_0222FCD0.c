@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "field/dynamic_terrain_height.h"
@@ -694,7 +696,6 @@ enum MapHeaderID {
 typedef struct JournalEntry JournalEntry;
 typedef struct BattleFactorySave BattleFactorySave;
 void ov80_0222F44C(FrontierScriptContext *ctx, u16 *args);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void *Frontier_GetData(BattleFrontier *frontier);
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection) {
     location->mapId = mapHeaderID;

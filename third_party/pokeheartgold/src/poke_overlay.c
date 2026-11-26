@@ -51,7 +51,7 @@ static PMiOverlayRegion GetOverlayLoadDestination(FSOverlayID id) {
     if (info.header.ram_address <= end && info.header.ram_address >= start) {
         return OVY_REGION_ITCM;
     }
-    start = (u8 *)HW_DTCM;
+    start = (u8 *)SDK_AUTOLOAD_DTCM_START;
     end = start + HW_DTCM_SIZE;
     if (info.header.ram_address <= end && info.header.ram_address >= start) {
         return OVY_REGION_DTCM;

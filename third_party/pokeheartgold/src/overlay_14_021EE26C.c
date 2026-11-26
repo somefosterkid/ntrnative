@@ -13,7 +13,11 @@ s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 
 s32 ov14_021F3488(void *, s32, s32);
 s32 ov14_021F685C(void *, s32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021E96C8(UnkStruct_ov14_boxapp *app);
 

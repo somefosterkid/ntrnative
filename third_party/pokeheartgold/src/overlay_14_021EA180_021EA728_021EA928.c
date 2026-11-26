@@ -37,7 +37,7 @@ s32 ov14_021EA928(UnkStruct_ov14_boxapp *arg0) {
         break;
     case 2:
         temp_r1_2 = var_r5->unk21;
-        var_r5->unk21 = *(u16 *)var_r4->unk_C;
+        var_r5->unk21 = ((UnkStruct_ov14_dragstate *)var_r4->unk_C)->slot;
         ov14_021E7AD4(arg0, temp_r1_2, temp_r1_2, 2);
         var_r4->unk_10 = 3U;
         break;

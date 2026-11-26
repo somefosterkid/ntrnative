@@ -21,7 +21,11 @@ s32 ov70_02239414(void *);
 s32 ov70_022394B8(void *);
 s32 ov70_02239614(GTSApplicationState *arg0);
 s32 ov70_02239B00(void *);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov70_02240EF4(void *, u32);
+#else
 s32 ov70_02240EF4(void *, u32);
+#endif
 s32 ov70_02241358(void *);
 SysTask *ov70_02245124(void *);
 s32 ov70_02238FF4(void *arg0);

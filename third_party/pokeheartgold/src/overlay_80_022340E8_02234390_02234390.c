@@ -2,7 +2,11 @@
 
 #include "frontier/overlay_80_02238034.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov80_0222A6B8(u8, u16, u16, u16 *, void **, u8 *, u32 *, u8);
+#else
 s32 ov80_0222A6B8(u8, u16, u16, u16 *, void **, u8 *, u32 *, s32);
+#endif
 
 s32 ov80_022380A0(u8, u32, u16 *, u8);
 

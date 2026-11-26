@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "constants/heap.h"
 
@@ -1241,7 +1243,6 @@ struct TVBroadcast {
 
 TVBroadcast *Save_MysteryGift_Get(SaveData *saveData);
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier, s32);
 
 void *Frontier_GetData(BattleFrontier *frontier);
 
@@ -1280,7 +1281,7 @@ void FrontierFieldSystem_0204AD04(void *, SaveData *saveData);
 void FrontierFieldSystem_0204AE20(void *, SaveData *saveData);
 
 BOOL FrtCmd_132(FrontierScriptContext *ctx, s32 arg1) {
-    FieldFrontierDTO *fieldData = Frontier_GetLaunchArgs(ctx->frontierSystem->frontier, arg1);
+    FieldFrontierDTO *fieldData = Frontier_GetLaunchArgs(ctx->frontierSystem->frontier);
 
     u16 functionIndex = FrontierScriptContext_ReadHalfWord(ctx);
     u16 functionArgument = FrontierScript_ReadVar(ctx);

@@ -121,6 +121,7 @@ typedef struct TrainerCardMain {
 // sizeof(TrainerCardMain) == 0x3444
 
 void ov51_021E6038(TrainerCardMain *cardMain);
+void ov51_021E69EC(TrainerCardMain *cardMain);
 void ov51_021E6E60(TrainerCardMain *cardMain);
 void ov51_021E6EF0(TrainerCardMain *cardMain);
 void ov51_021E6DA8(TrainerCardMain *cardMain, BOOL liveIgt);

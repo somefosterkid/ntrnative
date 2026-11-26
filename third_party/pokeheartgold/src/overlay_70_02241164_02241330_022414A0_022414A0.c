@@ -4,7 +4,7 @@
 #include "pokemon.h"
 #include "overlay_70_gtsapplication_state.h"
 
-PlayerProfile *ov70_0224182C(void *);
+PlayerProfile *ov70_0224182C(GTSPokemonListing *);
 
 s32 sub_0202DB64(void *, Pokemon *);
 

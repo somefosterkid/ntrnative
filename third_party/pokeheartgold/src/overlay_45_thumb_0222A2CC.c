@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "error_handling.h"
 #include "constants/heap.h"
 #include "save.h"
@@ -22,11 +24,8 @@ BOOL ov45_0222A2E0(const WiFiPlazaSystem *param0);
 BOOL ov45_0222A2F8(const WiFiPlazaSystem *param0);
 void ov45_0222A310(WiFiPlazaSystem *param0);
 BOOL ov45_0222A324(const WiFiPlazaSystem *param0);
-BOOL ov45_0222A330(const WiFiPlazaSystem *param0);
 BOOL ov45_0222A33C(const WiFiPlazaSystem *param0);
 int ov45_0222A35C(const WiFiPlazaSystem *param0);
-BOOL ov45_0222A374(const WiFiPlazaSystem *param0);
-BOOL ov45_0222A394(const WiFiPlazaSystem *param0);
 BOOL ov45_0222A3A0(const WiFiPlazaSystem *param0);
 
 void ov45_0222A2CC(void *arg0) {

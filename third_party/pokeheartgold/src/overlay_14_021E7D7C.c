@@ -5,8 +5,8 @@
 
 void ov14_021E7D8C(void *arg0, s32 arg1, s32 arg2);
 
-void ov14_021E7D7C(u8 *param_1) {
-    sub_020195C0(*(UnkStruct_0201956C **)(param_1 + 0x2f0));
+void ov14_021E7D7C(UnkStruct_ov14_boxsys *param_1) {
+    sub_020195C0(param_1->unk_2F0);
     return;
 }
 

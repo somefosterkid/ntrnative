@@ -555,7 +555,7 @@ u16 Save_VarsFlags_GetVar4052(SaveVarsFlags *varsFlags);
 BattleCastle *ov80_022324C4(SaveData *saveData, u16 resumingFromSave, u8 challengeType, u16 partySlot1, u16 partySlot2, u16 partySlot3, u16 *param6);
 
 void ov80_02232838(struct BattleCastle *param_1);
-void ov80_02232908(struct BattleCastle *param_1);
+void ov80_02232908(struct BattleCastle *castle, s32 arg1);
 
 BattleCastle *ov80_022324C4(SaveData *saveData, u16 resumingFromSave, u8 challengeType, u16 partySlot1, u16 partySlot2, u16 partySlot3, u16 *param6) {
     static BattleCastle *castle;
@@ -653,6 +653,6 @@ void ov80_02232824(struct BattleCastle *castle, s32 param_2) {
         ov80_02232838(castle);
         return;
     }
-    ov80_02232908(castle);
+    ov80_02232908(castle, param_2);
     return;
 }

@@ -156,16 +156,16 @@ s32 ov07_0222DC54(void *arg0) {
     v1 = 0;
     switch (v0) {
     case 0:
-        ov07_02222748(arg0 + 0x44, ((ScaryFaceSpriteContext *)arg0)->sprite);
-        if (ov07_022222B4(arg0 + 0x68) != 0) {
-            ov07_0222207C(arg0 + 0x68, ((ScaryFaceSpriteContext *)arg0)->sprite, ((ScaryFaceSpriteContext *)arg0)->baseX, ((ScaryFaceSpriteContext *)arg0)->baseY);
+        ov07_02222748(&((ScaryFaceSpriteContext *)arg0)->faceScale, ((ScaryFaceSpriteContext *)arg0)->sprite);
+        if (ov07_022222B4(&((ScaryFaceSpriteContext *)arg0)->facePos) != 0) {
+            ov07_0222207C(&((ScaryFaceSpriteContext *)arg0)->facePos, ((ScaryFaceSpriteContext *)arg0)->sprite, ((ScaryFaceSpriteContext *)arg0)->baseX, ((ScaryFaceSpriteContext *)arg0)->baseY);
         } else {
             *((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) = (s32)(*((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) + 1);
-            ov07_02222AC4(arg0 + 0x8C, 0x10, 0, 0xE, 0x10, 8);
+            ov07_02222AC4(&((ScaryFaceSpriteContext *)arg0)->faceAlpha, 0x10, 0, 0xE, 0x10, 8);
         }
         break;
     case 1:
-        if (ov07_02222AF4(arg0 + 0x8C) != 0) {
+        if (ov07_02222AF4(&((ScaryFaceSpriteContext *)arg0)->faceAlpha) != 0) {
             ManagedSprite_SetDrawFlag(((ScaryFaceSpriteContext *)arg0)->sprite, 0);
             *((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) = (s32)(*((s32 *)&((ScaryFaceSpriteContext *)arg0)->faceState) + 1);
         }

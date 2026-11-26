@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "field_types_def.h"
 #include "map_object.h"
 #include "player_avatar.h"
@@ -14,7 +16,6 @@ s32 sub_0205D2A0(PlayerAvatar *, s32);
 
 s32 sub_0205D2D0(PlayerAvatar *, u32);
 
-s32 sub_0205DA1C(PlayerAvatar *, LocalMapObject *, s32);
 
 s32 sub_0205DA34(PlayerAvatar *, LocalMapObject *, u32);
 

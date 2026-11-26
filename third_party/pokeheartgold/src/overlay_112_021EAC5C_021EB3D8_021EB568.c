@@ -3,14 +3,12 @@
 #include "error_handling.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021EA570();
-
-s32 ov112_021EB568(Ov112PokewalkerApp *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *);
 
 s32 ov112_021EB568(Ov112PokewalkerApp *arg0) {
     s32 temp_r0;
 
-    ov112_021EA570();
+    ov112_021EA570(arg0);
     temp_r0 = arg0->unk_1EC50;
     switch (temp_r0) {
     case 0:

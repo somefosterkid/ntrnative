@@ -10,7 +10,7 @@ void ov80_0222E2B8(FrontierSystem *param_1, void *, u32);
 
 void ov80_0222E328(FrontierSystem *, void *, u32);
 
-void ov80_0222E344(FrontierSystem *, u8, u8, u32, u8);
+void ov80_0222E344(FrontierSystem *, int, u32, u32, int);
 
 void ov80_0222E268(FrontierSystem *param_1, void *param_2, u32 param_3, u8 param_4, u8 *param_5);
 
@@ -27,7 +27,7 @@ void ov80_0222E268(FrontierSystem *param_1, void *param_2, u32 param_3, u8 param
     ov80_0222E328(param_1, param_2, param_3);
     if (param_5 == NULL) {
         pFVar3 = FrontierSystem_GetFrontierMap(param_1);
-        pFVar4 = Frontier_GetLaunchArgs((void *)pFVar3->unk8);
+        pFVar4 = Frontier_GetLaunchArgs(pFVar3->unk8);
         uVar1 = Options_GetTextFrameDelay(pFVar4->options);
         uVar2 = 0;
         uVar5 = 1;

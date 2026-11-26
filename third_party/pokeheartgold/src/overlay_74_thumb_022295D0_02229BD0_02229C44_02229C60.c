@@ -1,6 +1,10 @@
 #include "global.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02037E1C(s8 arg0);
+#else
 void sub_02037E1C(u8 arg0);
+#endif
 
 extern void *ov74_0223D0A4;
 

@@ -6,6 +6,8 @@
 
 #include "script.h"
 
+s32 sub_02054654(const FieldSystem *fieldSystem, s32 arg1, s32 arg2, s32 arg3, s32 arg4, u8 *arg5);
+s32 sub_02054790(const FieldSystem *fieldSystem, s32 arg1, s32 arg2, s32 arg3, s32 arg4, u8 *arg5);
 SoundplateStruct *sub_02054874(FieldSystem *fieldSystem, int x, int z);
 void sub_0205489C(const TerrainCollisionManager **a0, int a1);
 u8 sub_020548EC(const FieldSystem *fieldSystem, int tileX, int tileZ);

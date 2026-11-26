@@ -5,15 +5,11 @@
 #include "overlay_112_pokewalker_app.h"
 #include "screen_fade.h"
 
-void ov112_021EF31C(Ov112PokewalkerLink *, Ov112PokewalkerApp *);
-
 void ov112_021F050C(Ov112SubScreen *);
 
 s32 sub_020935E0(void *arg0, s32);
 
 void sub_02093A40(void *);
-
-u32 ov112_021EF03C(Ov112PokewalkerApp *param_1, s32 arg1);
 
 u32 ov112_021EF03C(Ov112PokewalkerApp *param_1, s32 arg1) {
     s32 iVar1;

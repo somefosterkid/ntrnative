@@ -71,7 +71,11 @@ struct GridMenuCursorPosition {
 
 s32 ov08_02220A8C(ManagedSprite *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov08_02220B3C(BattleParty *battleParty, ManagedSprite *sprite, u16 moveClass);
+#else
 void ov08_02220B3C(BattleParty *battleParty, ManagedSprite *sprite, int moveClass);
+#endif
 
 s32 ov08_02220BB4(BattleParty *, void *, s32 *);
 

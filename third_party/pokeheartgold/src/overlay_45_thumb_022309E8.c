@@ -21,8 +21,8 @@ typedef struct {
 
 void ov45_022309E8(UnkStruct_ov66_02234958 *param0, NARC *param1, u32 param2, enum HeapID heapID);
 
-s32 sub_02018068();
-void ov45_02230A44(void);
+void sub_02018068(Field3dModel *model);
+void ov45_02230A44(Field3dModel *model);
 void ov45_02230A4C(UnkStruct_ov45_02230A4C *arg0, s32 arg1);
 s32 ov45_02230A58(void *arg0);
 s32 sub_020181B0(void *, void *);
@@ -43,8 +43,8 @@ void ov45_022309E8(UnkStruct_ov66_02234958 *param0, NARC *param1, u32 param2, en
     NNS_G3dMdlSetMdlPolygonIDAll(param0->unk_00.model, 20);
 }
 
-void ov45_02230A44(void) {
-    sub_02018068();
+void ov45_02230A44(Field3dModel *model) {
+    sub_02018068(model);
 }
 
 void ov45_02230A4C(UnkStruct_ov45_02230A4C *arg0, s32 alpha) {

@@ -40,7 +40,6 @@ void sub_020182A0(Field3dObject *obj, BOOL visible);
 void sub_02023EA4(Billboard *billboard, u8 draw);
 NNSG3dResMdl *sub_02023FDC(Billboard *billboard);
 void ov45_02230E64(Billboard *param0, void *param1);
-const VecFx32 *sub_02023E68(const Billboard *billboard);
 const VecFx32 *sub_02023E94(const Billboard *billboard);
 NNSG3dResMdl *sub_02023F90(const Billboard *billboard);
 typedef struct GFXTestBox {

@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r29
+# reaches: Route 29's south ledge row with the follower: down over the ledge at 645,407 (the hop and its shadow), then a step on (ledge jump)
+# end: f11300
+env BWPORT_HG_WARP=33:645:406 BWPORT_HG_WARP_DIR=1
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys down*f12@f11000 down*f12@f11200

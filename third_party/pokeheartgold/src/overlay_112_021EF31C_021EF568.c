@@ -4,8 +4,6 @@
 #include "screen_fade.h"
 #include "sound.h"
 
-s32 ov112_021EF568(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EF568(Ov112PokewalkerApp *arg0) {
     arg0->unk_1D750 = arg0->saveData;
     arg0->unk_1D754 = arg0->unk_9DFC;

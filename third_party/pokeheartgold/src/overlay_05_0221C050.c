@@ -8,9 +8,17 @@
 #include "overlay_05_unk_struct_ov10_0221_fb28_t.h"
 #include "battle/trainer_intro_data.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov05_0221D3AC(void *, u8, s16, s16);
+#else
 s32 ov05_0221D3AC(void *, s32, s16, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov05_0221D664(void *, s32, s16, s16);
+#else
 s32 ov05_0221D664(void *, s32, s16, s32);
+#endif
 
 s32 ov05_0221CCF4(void);
 
@@ -57,7 +65,7 @@ s32 ov05_0221C21C(UnkStruct_ov10_0221FB28 *arg0) {
     s8 v2;
     u8 v0;
 
-    if ((ov05_0221DAE0(arg0) == 0) && ((u32) * (u8 *)((u8 *)arg0 + 0xB82) > 0x18U)) {
+    if ((ov05_0221DAE0(arg0) == 0) && ((u32)arg0->unk_B82 > 0x18U)) {
         arg0->unk_B82 = 0U;
         return 1;
     }
@@ -87,10 +95,10 @@ s32 ov05_0221C21C(UnkStruct_ov10_0221FB28 *arg0) {
         v3 = ((s32)LCRandom() % v1) - ((s32)(v1 + ((u32)v1 >> 0x1F)) >> 1);
         v2 = arg0->unk_B7D;
         value = ((s32)LCRandom() % v2) - ((s32)(v2 + ((u32)v2 >> 0x1F)) >> 1);
-        if ((((s32)v3 < 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB78) < 0)) || (((s32)v3 > 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB78) > 0))) {
+        if ((((s32)v3 < 0) && ((s32)arg0->unk_B78 < 0)) || (((s32)v3 > 0) && ((s32)arg0->unk_B78 > 0))) {
             v3 *= -1;
         }
-        if ((((s32)value < 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB7A) < 0)) || (((s32)value > 0) && ((s32) * (s16 *)((u8 *)arg0 + 0xB7A) > 0))) {
+        if ((((s32)value < 0) && ((s32)arg0->unk_B7A < 0)) || (((s32)value > 0) && ((s32)arg0->unk_B7A > 0))) {
             value *= -1;
         }
         ScheduleSetBgPosText(arg0->unk_0C, 3U, BG_POS_OP_SET_ROT, v3 + 0x18);
@@ -116,8 +124,8 @@ s32 ov05_0221C430(UnkStruct_ov10_0221FB28 *arg0) {
     if (arg0->unk_B82 == 8) {
         BeginNormalPaletteFade(FADE_BOTH_SCREENS, FADE_TYPE_BRIGHTNESS_OUT, FADE_TYPE_BRIGHTNESS_OUT, 0x7FFFU, 6, 1, *(enum HeapID *)((u8 *)(*(void **)arg0) + 0x24));
     }
-    if (((u32) * (u8 *)((u8 *)arg0 + 0xB82) >= 8U) && (IsPaletteFadeFinished() == 1)) {
-        *(s8 *)((u8 *)arg0 + 0xB7F) = 2;
+    if (((u32)arg0->unk_B82 >= 8U) && (IsPaletteFadeFinished() == 1)) {
+        ((UnkStruct_ov10_0221FB28 *)arg0)->unk_B7F = 2;
         return 1;
     }
     if (arg0->unk_B82 == 0) {

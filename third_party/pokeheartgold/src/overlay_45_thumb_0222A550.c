@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "constants/heap.h"
 
 #include "save.h"
@@ -26,7 +28,11 @@ void ov45_0222BA3C(WiFiPlazaSystem *param0);
 void ov45_0222BAC4(UnkStruct_ov66_0222F6C4 *param0, const SaveData *saveData);
 void ov45_0222BD5C(UnkStruct_ov66_0222FC68 *param0);
 void ov45_0222BE28(WiFiPlazaSystem *param0, s32 param1);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov45_0222CB74(UnkStruct_ov66_02230A6C *param0, s8 param1, s32 param2);
+#else
 void ov45_0222CB74(UnkStruct_ov66_02230A6C *param0, int param1, s32 param2);
+#endif
 enum PokemonType {
     TYPE_NORMAL = 0,
     TYPE_FIGHTING = 1,
@@ -51,9 +57,6 @@ enum PokemonType {
 void ov45_0222B118(WiFiPlazaSystem *param0, int param1);
 
 BOOL ov45_0222A550(const WiFiPlazaSystem *param0, u32 param1);
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
-WiFiPlazaProfile *ov45_0222A5C0(WiFiPlazaSystem *param0);
-void ov45_0222A5E8(WiFiPlazaSystem *param0, int param1);
 void ov45_0222A704(WiFiPlazaSystem *param0, int param1, s32 param2);
 void ov45_0222A72C(WiFiPlazaSystem *param0, u32 param1);
 void ov45_0222A770(WiFiPlazaSystem *param0, int type1, int type2);

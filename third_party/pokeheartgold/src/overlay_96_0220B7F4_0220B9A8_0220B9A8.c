@@ -8,7 +8,11 @@
 #include "unk_02005D10.h"
 #include "overlay_96_unk_struct_ov96_0220_b9_a8.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220B7F4_0220C40C_0220C54C.c (tools/pokehg_abi.py)
+void ov96_0220C54C(void *, s32, s32, s32, s32);
+#else
 s32 ov96_0220C54C(void *, s32, u8, u8, s32);
+#endif
 
 s32 ov96_0220C578(void *, s32);
 

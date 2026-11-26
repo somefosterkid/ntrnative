@@ -35,13 +35,6 @@ typedef BOOL (*OverlayFunc)(OverlayManager *appMan, int *state);
 
 void *OverlayManager_GetData(OverlayManager *appMan);
 
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
-
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 
 BOOL ov80_0223792C(u8 challengeType);
@@ -62,7 +55,11 @@ BOOL ov82_0223DFBC(BattleHallApp *app);
 
 BOOL ov82_0223E2A4(BattleHallApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov82_0223E2EC(BattleHallApp *app);
+#else
 BOOL ov82_0223E2EC(BattleHallApp *app);
+#endif
 
 BOOL ov82_0223E5D4(BattleHallApp *app);
 

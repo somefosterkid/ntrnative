@@ -3,20 +3,21 @@
 #include "map_object.h"
 #include "overlay_01.h"
 #include "field_types_def.h"
+#include "overlay_01_021F944C.h"
 
 
-u32 ov01_021F771C(MapObjectManager *param_1);
+Billboard *ov01_021F771C(MapObjectManager *param_1);
 
 void ov01_021F7704(LocalMapObject *object) {
-    *(s8 *)((u8 *)(sub_0205F40C(object)) + 0x15) = 0;
+    ((MapObjectBillboardWorkB *)sub_0205F40C(object))->unk_15 = 0;
     MapObject_GetFacingVector(object)->y = 0;
 }
 
-u32 ov01_021F771C(MapObjectManager *param_1) {
+Billboard *ov01_021F771C(MapObjectManager *param_1) {
     LocalMapObject *object;
-    u8 *puVar1;
+    MapObjectBillboardWorkB *work;
 
     object = MapObjectManager_GetFirstActiveObjectByID(param_1, 0xfd);
-    puVar1 = sub_0205F40C(object);
-    return *(u32 *)puVar1;
+    work = (MapObjectBillboardWorkB *)sub_0205F40C(object);
+    return work->billboard;
 }

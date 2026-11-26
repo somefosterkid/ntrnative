@@ -9,7 +9,6 @@ void ov14_021E8048(UnkStruct_0201956C *arg0);
 void ov14_021E805C(UnkStruct_0201956C *arg0);
 void ov14_021E8094(UnkStruct_0201956C *arg0);
 
-s32 sub_02019B1C(UnkStruct_0201956C *, s32, s8 *, s8 *);
 
 void ov14_021E7FB8(UnkStruct_0201956C *a0) {
     s8 v0[2];

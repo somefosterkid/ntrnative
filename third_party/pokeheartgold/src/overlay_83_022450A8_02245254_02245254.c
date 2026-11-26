@@ -16,14 +16,14 @@ void ov83_02245254(u32 param_1, u32 param_2, u16 *param_3, u8 *param_4) {
     return;
 }
 
-u8 ov83_02247768(u8);
+u8 ov83_02247768(u8 numSlots, u8 slot);
 
-void ov83_02245270(struct BattleCastleOpponentApp *param_1);
+void ov83_02245270(struct BattleCastleOpponentApp *param_1, u8 slot);
 
-void ov83_02245270(BattleCastleOpponentApp *param_1) {
+void ov83_02245270(BattleCastleOpponentApp *param_1, u8 slot) {
     s32 iVar1;
 
-    iVar1 = ov83_02247768(param_1->numSlots);
+    iVar1 = ov83_02247768(param_1->numSlots, slot);
     *(u8 *)(param_1->statsUnlocked + iVar1) = 1;
     return;
 }

@@ -24,6 +24,7 @@
 #include "sav_system_info.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "gts_player_data.h"
 
 struct Bag;
 
@@ -300,26 +301,6 @@ typedef struct GameTime {
     s64 firstCompletionTimestamp;
     u32 penaltyInMinutes;
 } GameTime;
-
-typedef struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameStats *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
-} GTSPlayerData;
 
 typedef struct CameraPositionHistory {
     int historySize;
@@ -1544,9 +1525,9 @@ int ov70_022400BC(GTSApplicationState *appState) {
             appState->currentScreenInstruction = GTS_NETHANDLER_PREPARE_FULL_SAVE;
 
             ov70_022409C0(appState, 0);
-            ov70_02240B9C(appState, (Pokemon *)appState->selectedListing.pokemon.bytes, appState->selectedBoxId);
+            ov70_02240B9C(appState, &appState->selectedListing.pokemon, appState->selectedBoxId);
             ov70_02240CE4(appState->playerData->wiFiHistory, &appState->selectedListing);
-            ov70_02240500(appState, (Pokemon *)appState->selectedListing.pokemon.bytes);
+            ov70_02240500(appState, &appState->selectedListing.pokemon);
             break;
         case GTS_RESULT_ALREADY_DEPOSITED:
             appState->commsErrorMessage = errCode;

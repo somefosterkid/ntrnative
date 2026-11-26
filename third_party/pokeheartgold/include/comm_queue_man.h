@@ -17,4 +17,6 @@ typedef struct CommQueueMan {
 
 // sizeof(CommQueueMan) == 0x20
 
+struct UnkStruct_020322D8_t *sub_02033E88(CommQueueMan *queueMan);
+
 #endif // POKEHEARTGOLD_COMM_QUEUE_MAN_H

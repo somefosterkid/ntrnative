@@ -37,7 +37,7 @@ s32 ov91_0225F414(void);
 
 s32 ov91_0225F878(void *, enum HeapID);
 
-s32 ov91_0225FA9C(void *, enum HeapID);
+void ov91_0225FA9C(void *, enum HeapID);
 
 s32 ov91_0225FB80(void *, NARC *, enum HeapID);
 

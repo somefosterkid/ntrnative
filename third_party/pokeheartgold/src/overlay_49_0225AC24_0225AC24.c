@@ -66,12 +66,12 @@ void ov49_0225ACA8(Window *window) {
     SetWindowPaletteNum(window, 2U);
 }
 
-s32 ov49_0225AB14();
+void ov49_0225AB14(UnkStruct_ov70_0225E9C8 *param0);
 
-void ov49_0225ACBC(void);
+void ov49_0225ACBC(UnkStruct_ov70_0225E9C8 *param0);
 
-void ov49_0225ACBC(void) {
-    ov49_0225AB14();
+void ov49_0225ACBC(UnkStruct_ov70_0225E9C8 *param0) {
+    ov49_0225AB14(param0);
 }
 
 void ov49_0225ACC4(Window *arg0, String *arg1);

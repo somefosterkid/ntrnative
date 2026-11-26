@@ -9,9 +9,9 @@ void ov64_021E6260(struct HallOfFameShowcase *arg0);
 
 void ov64_021E6270(void);
 void ov64_021E6274(void);
-s32 ov64_021E6BD8();
-void ov64_021E6278(void);
-void ov64_021E6280(void);
+void ov64_021E6BD8(HallOfFameShowcase *showcase, s32 target);
+void ov64_021E6278(HallOfFameShowcase *showcase, s32 target);
+void ov64_021E6280(HallOfFameShowcase *showcase, s32 target);
 void ov64_021E6288(void);
 void ov64_021E62A8(void);
 
@@ -25,12 +25,12 @@ void ov64_021E6270(void) {
 void ov64_021E6274(void) {
 }
 
-void ov64_021E6278(void) {
-    ov64_021E6BD8();
+void ov64_021E6278(HallOfFameShowcase *showcase, s32 target) {
+    ov64_021E6BD8(showcase, target);
 }
 
-void ov64_021E6280(void) {
-    ov64_021E6BD8();
+void ov64_021E6280(HallOfFameShowcase *showcase, s32 target) {
+    ov64_021E6BD8(showcase, target);
 }
 
 void ov64_021E6288(void) {

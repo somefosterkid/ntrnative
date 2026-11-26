@@ -1,8 +1,9 @@
 #include "global.h"
 
 #include "error_handling.h"
+#include "pokeathlon/pokeathlon.h"
 
-s32 ov96_021E8228(s32, u32, u32, s32, s32);
+void ov96_021E8228(s32, u32, u32, s32, s32);
 
 s32 ov96_021EAF78(s32, s32, s32, VecFx32 *, s32 *, s32 *);
 

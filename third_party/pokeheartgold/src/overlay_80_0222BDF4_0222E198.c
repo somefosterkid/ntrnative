@@ -1,6 +1,8 @@
 #include "global.h"
 
 #include "frontier/frontier.h"
+#include "frontier/frontier_menu_manager.h"
+#include "frontier/frontier_script_manager.h"
 
 #include "player_data.h"
 #include "unk_02034354.h"
@@ -28,9 +30,14 @@ s32 ov80_0222E198(void *arg0);
 s32 FrtCmd_204(FrontierScriptContext *arg0);
 s32 FrtCmd_205(void **arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov80_0222F5D0(FrontierMenuManager *menuManager, BOOL anchorRight);
+void ov80_0222F5EC(FrontierMenuManager *menuManager, BOOL anchorBottom);
+#else
 s32 ov80_0222F5D0(void *, BOOL);
-s32 FrtCmd_206(UnkStruct_FrtCmd_206 *arg0);
 s32 ov80_0222F5EC(s32, BOOL);
+#endif
+s32 FrtCmd_206(UnkStruct_FrtCmd_206 *arg0);
 s32 FrtCmd_207(UnkStruct_FrtCmd_207 *arg0);
 
 s32 ov80_0222E198(void *arg0) {
@@ -49,7 +56,11 @@ s32 ov80_0222E198(void *arg0) {
             v1 = ((WFCFacilitySelector *)v0)->partnersStreakDeletionChoice;
             if (v1 == 0x1 || v1 == 0xFFFE) {
                 v2 = 1;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+                ((FrontierScriptManager *)(*(void **)arg0))->unk_39 = 1;
+#else
                 *(s8 *)((u8 *)(*(void **)arg0) + 0x39) = 1;
+#endif
             } else if (v1 == 0x0) {
                 if (PlayerProfile_GetVersion(sub_02034818(sub_0203769C() ^ 1)) == 0xC) {
                     ((WFCFacilitySelector *)v0)->msgsReceived = 0U;
@@ -62,19 +73,31 @@ s32 ov80_0222E198(void *arg0) {
 }
 
 s32 FrtCmd_204(FrontierScriptContext *ctx) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    *FrontierScript_ReadVarPtr(ctx) = (u16)((FrontierScriptManager *)ctx->frontierSystem)->unk_39;
+#else
     *FrontierScript_ReadVarPtr(ctx) = (u16)ctx->frontierSystem->unk4[0x35];
+#endif
     return 1;
 }
 
 s32 FrtCmd_205(void **arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    ((FrontierScriptManager *)(*arg0))->unk_39 = 0;
+#else
     *(s8 *)((u8 *)(*arg0) + 0x39) = 0;
+#endif
     return 1;
 }
 
 s32 FrtCmd_206(UnkStruct_FrtCmd_206 *arg0) {
     u8 *new_var;
     u8 *v0;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    new_var = (u8 *)&((FrontierScriptManager *)arg0->unk_0)->menuMan;
+#else
     new_var = ((u8 *)(arg0->unk_0)) + 0x60;
+#endif
     v0 = arg0->unk_1C;
     arg0->unk_1C = (u8 *)(v0 + 1);
     ov80_0222F5D0(*((void **)new_var), *v0);
@@ -83,10 +106,16 @@ s32 FrtCmd_206(UnkStruct_FrtCmd_206 *arg0) {
 
 s32 FrtCmd_207(UnkStruct_FrtCmd_207 *arg0) {
     u8 *v0;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    v0 = arg0->unk_1C;
+    arg0->unk_1C = (u8 *)(v0 + 1);
+    ov80_0222F5EC(((FrontierScriptManager *)arg0->unk_0)->menuMan, *v0);
+#else
     s32 *new_var;
     new_var = &(*((s32 *)(((u8 *)(arg0->unk_0)) + 0x60)));
     v0 = arg0->unk_1C;
     arg0->unk_1C = (u8 *)(v0 + 1);
     ov80_0222F5EC(*new_var, *v0);
+#endif
     return 1;
 }

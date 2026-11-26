@@ -8,7 +8,6 @@ s32 ov14_021F32E0(void *);
 
 s32 sub_02019978(void *, s32);
 
-s32 sub_02019B1C(void *, s32, void *, void *);
 
 s32 ov14_021E813C(UnkStruct_ov14_boxapp *arg0) {
     s8 sp0[4];

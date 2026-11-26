@@ -7,6 +7,7 @@
 #include "field_types_def.h"
 #include "filesystem_files_def.h"
 #include "heap.h"
+#include "link_party_select.h"
 #include "list_menu_cursor.h"
 #include "message_format.h"
 #include "msgdata.h"
@@ -25,56 +26,52 @@ BOOL sub_02058D4C(TaskManager *param0);
 void sub_02059538(FieldSystem *fieldSystem, void (*param1)(s32, Party *));
 
 void sub_02059538(FieldSystem *fieldSystem, void (*param1)(s32, Party *)) {
-    Party *temp_r0_4;
-    u32 temp_r0_3;
-    u8 temp_r0_2;
-    void *temp_r0;
+    LinkPartySelect *env;
+    u32 size;
 
     if (fieldSystem->taskman != NULL) {
         return;
     }
-    temp_r0 = Heap_AllocAtEnd(HEAP_ID_FIELD2, 0x8CU);
-    MI_CpuFill8(temp_r0, 0U, 0x8CU);
-    *(s8 *)((u8 *)temp_r0 + 0x43) = 5;
-    *(FieldSystem **)((u8 *)temp_r0 + 0x24) = fieldSystem;
-    *(void (**)(s32, Party *))((u8 *)temp_r0 + 8) = param1;
-    *(MessageFormat **)((u8 *)temp_r0 + 0x28) = MessageFormat_New(HEAP_ID_FIELD2);
-    *(MsgData **)((u8 *)temp_r0 + 0x2C) = NewMsgDataFromNarc(MSGDATA_LOAD_DIRECT, NARC_msgdata_msg, 0xE, HEAP_ID_FIELD2);
-    *(String **)((u8 *)temp_r0 + 0xC) = String_New(0xC8U, HEAP_ID_FIELD2);
-    *(String **)((u8 *)temp_r0 + 0x10) = String_New(0xC8U, HEAP_ID_FIELD2);
-    InitWindow(temp_r0 + 0x14);
-    InitWindow(temp_r0 + 0x54);
-    InitWindow(temp_r0 + 0x64);
-    *(struct ListMenuCursor **)((u8 *)temp_r0 + 0x78) = ListMenuCursorNew(HEAP_ID_FIELD2);
-    *(u8 *)((u8 *)temp_r0 + 0x88) = sub_0203993C();
-    *(void **)((u8 *)temp_r0 + 0x4C) = NULL;
-    *(void **)((u8 *)temp_r0 + 0x48) = NULL;
-    *(Party **)((u8 *)temp_r0 + 0x50) = NULL;
-    *(s8 *)((u8 *)temp_r0 + 0x89) = 0;
-    *(u16 *)((u8 *)temp_r0 + 0x86) = sub_0203769C();
-    *(PlayerProfile **)((u8 *)temp_r0 + 0x74) = sub_02034818(1 ^ *(u16 *)((u8 *)temp_r0 + 0x86));
-    temp_r0_2 = *(u8 *)((u8 *)temp_r0 + 0x88);
-    switch (temp_r0_2) {
+    env = Heap_AllocAtEnd(HEAP_ID_FIELD2, sizeof(LinkPartySelect));
+    MI_CpuFill8(env, 0, sizeof(LinkPartySelect));
+    env->unk_43 = 5;
+    env->fieldSystem = fieldSystem;
+    env->callback = param1;
+    env->msgFormat = MessageFormat_New(HEAP_ID_FIELD2);
+    env->msgData = NewMsgDataFromNarc(MSGDATA_LOAD_DIRECT, NARC_msgdata_msg, 0xE, HEAP_ID_FIELD2);
+    env->unk_0C = String_New(0xC8U, HEAP_ID_FIELD2);
+    env->unk_10 = String_New(0xC8U, HEAP_ID_FIELD2);
+    InitWindow(&env->unk_14);
+    InitWindow(&env->unk_54);
+    InitWindow(&env->unk_64);
+    env->unk_78 = ListMenuCursorNew(HEAP_ID_FIELD2);
+    env->unk_88 = sub_0203993C();
+    env->unk_4C = NULL;
+    env->unk_48 = NULL;
+    env->party = NULL;
+    env->unk_89 = 0;
+    env->unk_86 = sub_0203769C();
+    env->unk_74 = sub_02034818(1 ^ env->unk_86);
+    switch (env->unk_88) {
     case 3:
-        temp_r0_3 = sub_02059B08();
-        *(void **)((u8 *)temp_r0 + 0x4C) = Heap_AllocAtEnd(HEAP_ID_FIELD2, temp_r0_3);
-        *(void **)((u8 *)temp_r0 + 0x48) = Heap_AllocAtEnd(HEAP_ID_FIELD2, temp_r0_3);
-        temp_r0_4 = SaveArray_Party_Alloc(HEAP_ID_FIELD2);
-        *(Party **)((u8 *)temp_r0 + 0x50) = temp_r0_4;
-        Party_InitWithMaxSize(temp_r0_4, 3);
-        *(s8 *)((u8 *)temp_r0 + 0x44) = 5;
-        *(s32 *)((u8 *)temp_r0 + 0x34) = 0x17;
+        size = sub_02059B08();
+        env->unk_4C = Heap_AllocAtEnd(HEAP_ID_FIELD2, size);
+        env->unk_48 = Heap_AllocAtEnd(HEAP_ID_FIELD2, size);
+        env->party = SaveArray_Party_Alloc(HEAP_ID_FIELD2);
+        Party_InitWithMaxSize(env->party, 3);
+        env->unk_44 = 5;
+        env->state = 0x17;
         break;
     case 4:
-        *(s32 *)((u8 *)temp_r0 + 0x34) = 9;
+        env->state = 9;
         break;
     default:
-        if ((*(FieldSystem **)((u8 *)temp_r0 + 0x24))->linkBattleRuleset != NULL) {
-            *(s32 *)((u8 *)temp_r0 + 0x34) = 9;
+        if (env->fieldSystem->linkBattleRuleset != NULL) {
+            env->state = 9;
         } else {
-            *(s32 *)((u8 *)temp_r0 + 0x34) = 0;
+            env->state = 0;
         }
         break;
     }
-    FieldSystem_CreateTask(fieldSystem, sub_02058D4C, temp_r0);
+    FieldSystem_CreateTask(fieldSystem, sub_02058D4C, env);
 }

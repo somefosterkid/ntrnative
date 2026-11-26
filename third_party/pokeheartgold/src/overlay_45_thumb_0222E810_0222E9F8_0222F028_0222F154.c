@@ -5,7 +5,11 @@
 
 s32 ov45_0222F74C();
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov45_022301E0(void *, u32, s32);
+#else
 s32 ov45_022301E0(void *, u16, s32);
+#endif
 
 s32 ov45_02232580();
 

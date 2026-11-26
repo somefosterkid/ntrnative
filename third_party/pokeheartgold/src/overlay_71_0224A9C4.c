@@ -32,21 +32,21 @@ int ov71_0224AA28(TradePokemonRevealPhase *tprPhase, int *subStepCounter);
 void ov71_0224A9C4(void *arg0) {
     if (*((s32 *)&((TradePokemonRevealPhase *)arg0)->scene) != 0) {
         *((s16 *)&((TradePokemonRevealPhase *)arg0)->modelRotation.y) = (s16)(*((s16 *)&((TradePokemonRevealPhase *)arg0)->modelRotation.y) + 0x1000);
-        ov71_022476EC(*((void **)&((TradePokemonRevealPhase *)arg0)->model), arg0 + 0x28);
+        ov71_022476EC(*((void **)&((TradePokemonRevealPhase *)arg0)->model), &((TradePokemonRevealPhase *)arg0)->modelRotation);
         G3X_Reset();
         ov71_022474CC(*((void **)&((TradePokemonRevealPhase *)arg0)->scene));
         RequestSwap3DBuffers(GX_SORTMODE_AUTO, GX_BUFFERMODE_Z);
     }
 }
 
-s32 ov71_0224AB7C();
+s32 ov71_0224AB7C(TradePokemonRevealPhase *tprPhase);
 
 s32 ov71_0224ADE4(void *);
 
 s32 ov71_0224A9F8(void *arg0);
 
 s32 ov71_0224A9F8(void *arg0) {
-    ov71_0224AB7C();
+    ov71_0224AB7C(arg0);
     ov71_0224ADE4(arg0);
     BeginNormalPaletteFade(FADE_BOTH_SCREENS, FADE_TYPE_BRIGHTNESS_IN, FADE_TYPE_BRIGHTNESS_IN, 0x7FFFU, 8, 1, HEAP_ID_57);
     return 1;

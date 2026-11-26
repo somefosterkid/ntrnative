@@ -343,11 +343,15 @@ def macho(text):
 def assemble(cc, cpp_args, f, obj, root=HG):
     """One .s to an object: (file, None) or (file, the first error line)."""
     src = os.path.join(root, f)
-    r = subprocess.run(cc + ["-E", "-P", "-x", "assembler-with-cpp"] + cpp_args + [src], capture_output=True, text=True)
+    r = subprocess.run(cc + ["-E", "-P", "-x", "assembler-with-cpp", "-MD", "-MF", obj + ".d"] + cpp_args + [src],
+                       capture_output=True, text=True)
     if r.returncode:
         return f, (r.stderr.strip().splitlines() or ["cpp failed"])[0]
     dirs = [os.path.dirname(src)] + [os.path.join(root, d) for d in ("asm", "asm/include", "include", ".")]
-    text = natural(host(r.stdout, dirs))
+    seen = set()   # (its .include files: --depfile)
+    text = natural(host(r.stdout, dirs, seen))
+    with open(obj + ".d", "a") as d:
+        d.write("\n" + " ".join(os.path.abspath(x) for x in sorted(seen)) + "\n")
     if COFF:
         text = coff_globals(text)
     if MACHO:
@@ -361,6 +365,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cc", default="cc", help="the build's C compiler with its target flags")
     ap.add_argument("-o", "--output", help="the relocatable object")
+    ap.add_argument("--depfile", help="write its inputs (each data .s, what it #includes and .includes, main.lsf.in, "
+                    "LABELS.txt) as a Makefile depfile: ninja rebuilds the object when a table changes (rp6: a re-pin "
+                    "kept the vendored tree's blanked tables after the tree became the decomp's, with no fill)")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--root", default=HG)
     ap.add_argument("--soulsilver", action="store_true")
@@ -388,6 +395,16 @@ def main():
         with ThreadPoolExecutor(int(os.environ.get("BW_JOBS", os.cpu_count() or 4))) as ex:
             res = list(ex.map(lambda j: assemble(cc, cpp_args, j[0], j[1], a.root), jobs))
         bad = [(f, e) for f, e in res if e]
+        if a.depfile:
+            deps = {os.path.abspath(os.path.join(a.root, p)) for p in ["main.lsf.in", "port/asmdata/LABELS.txt"] + fl
+                    if os.path.exists(os.path.join(a.root, p))}
+            for _, o in jobs:
+                if os.path.exists(o + ".d"):
+                    words = open(o + ".d").read().replace("\\\n", " ").split()
+                    deps.update(w for w in words if not w.endswith(":") and os.path.isfile(w))
+            esc = lambda x: x.replace("\\", "/").replace(" ", "\\ ")
+            with open(a.depfile, "w") as d:
+                d.write(esc(a.output) + ": " + " ".join(esc(x) for x in sorted(deps)) + "\n")
         with open(a.output + ".log", "w") as lg:
             lg.write("".join(f"{f}\t{e}\n" for f, e in bad))
         objs = [o for (f, o), (_, e) in zip(jobs, res) if not e]

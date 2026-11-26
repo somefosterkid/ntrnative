@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_49_getters.h"
+
 #include "overlay_49.h"
 
 struct UnkStruct_ov70_0225CA20_t;
@@ -22,7 +24,6 @@ void ov49_02259154(const UnkStruct_ov70_0225CC54 *param0, VecFx32 *param1);
 
 typedef struct UnkStruct_ov70_02260AD4_t UnkStruct_ov70_02260AD4;
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 
 UnkStruct_ov70_02260AD4 *ov49_0225A008(UnkStruct_ov70_0225DEE8 *param0);
 

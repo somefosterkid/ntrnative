@@ -43,18 +43,18 @@ void ov70_0223AE40(GTSApplicationState *param_1) {
 void ov70_0223AE98(GTSApplicationState *arg0) {
     u8 countryId;
     u8 cityId;
-    void *v0;
+    GTSPokemonListing *v0;
 
-    v0 = &arg0->searchResults[0].pokemon.bytes[0x124 * arg0->selectedSearchResult];
+    v0 = &arg0->searchResults[arg0->selectedSearchResult];
     arg0->genericMessageBuffer = String_New(0xB4U, HEAP_ID_61);
     MessageFormat_ResetBuffers(arg0->stringTemplate);
-    countryId = *(u8 *)((u8 *)v0 + 0x11E);
+    countryId = v0->trainerCountry;
     if (countryId != 0) {
         BufferCountryName(arg0->stringTemplate, 8U, (u32)countryId);
     }
-    cityId = *(u8 *)((u8 *)v0 + 0x11F);
+    cityId = v0->trainerRegion;
     if (cityId != 0) {
-        BufferCityName(arg0->stringTemplate, 9U, (u32) * (u8 *)((u8 *)v0 + 0x11E), (u32)cityId);
+        BufferCityName(arg0->stringTemplate, 9U, (u32)v0->trainerCountry, (u32)cityId);
     }
     arg0->trainerLocationStrings[0] = ReadMsgData_ExpandPlaceholders(arg0->stringTemplate, arg0->gtsMessageLoader, 0x52U, HEAP_ID_61);
     arg0->trainerLocationStrings[1] = ReadMsgData_ExpandPlaceholders(arg0->stringTemplate, arg0->gtsMessageLoader, 0x53U, HEAP_ID_61);

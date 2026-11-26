@@ -1,10 +1,15 @@
 #include "global.h"
 #include "sprite_resources_header.h"
+#include "unk_0200A090.h"
+#include "unk_02009D48.h"
+#include "sprite_transfer.h"
 #include "overlay_91_unk_struct_ov115_02261_adc.h"
 #include "constants/heap.h"
 #include "filesystem_files_def.h"
 #include "struct_defs/resdat_narc_structs.h"
 #include "field/field_3d_model.h"
+#include "unk_02013534.h"
+#include "camera.h"
 
 struct Background;
 
@@ -16,7 +21,7 @@ struct CameraAngle;
 
 struct CameraLookAt;
 
-struct CameraPerspectiveProjection;
+struct CameraPerspective;
 
 struct CameraPositionHistory;
 
@@ -44,7 +49,6 @@ struct SpriteListTemplate;
 
 struct SpriteResource;
 
-struct SpriteResourceCollection;
 
 struct SpriteResourcesHeader;
 
@@ -58,7 +62,6 @@ struct StringTemplateArgHeader;
 
 struct UnkStruct_02012744_t;
 
-struct UnkStruct_02012B20_t;
 
 struct Window;
 
@@ -71,145 +74,16 @@ typedef struct String {
 
 String *String_New(u32 size, u32 heapID);
 
-typedef struct TextOBJ TextOBJ;
-
 typedef struct UnkStruct_02012744_t UnkStruct_02012744;
 
-typedef struct UnkStruct_02012B20_t UnkStruct_02012B20;
-
-typedef struct Background {
-    void *tilemapBuffer;
-    u32 bufferSize;
-    u32 baseTile;
-    int hOffset;
-    int vOffset;
-    u8 mode;
-    u8 size;
-    u8 colorMode;
-    u8 tileSize;
-    u16 rotation;
-    u16 unk22;
-    fx32 xScale;
-    fx32 yScale;
-    int centerX;
-    int centerY;
-} Background;
-
-typedef struct BgConfig {
-    enum HeapID heapID;
-    u16 scrollScheduled;
-    u16 bufferTransferScheduled;
-    struct Background bgs[8];
-} BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
 
 void AddTextWindowTopLeftCorner(BgConfig *bgConfig, Window *window, u8 width, u8 height, u16 baseTile, u8 fillVal);
 
 void RemoveWindow(Window *window);
 
-typedef struct SpriteList SpriteList;
-
-typedef struct Sprite {
-    VecFx32 position;
-    VecFx32 affineTranslation;
-    VecFx32 affineScale;
-    u16 affineZRotation;
-    u8 affineOverwriteMode;
-    u8 flip;
-    u8 overwriteFlags;
-    u8 explicitPalette;
-    u8 explicitPaletteOffset;
-    BOOL explicitMosaic;
-    GXOamMode explicitOamMode;
-    u8 draw;
-    u8 animate;
-    fx32 animSpeed;
-    SpriteList *list;
-
-    u32 animData[29];
-    NNSG2dImageProxy imageProxy;
-    NNSG2dImagePaletteProxy paletteProxy;
-    u32 type;
-    u16 activeAnimID;
-    u8 explicitPriority;
-    u16 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    struct Sprite *prev;
-    struct Sprite *next;
-} Sprite;
-
-struct SpriteList {
-    Sprite *sprites;
-    int capacity;
-    Sprite **freeSprites;
-    int freeSpriteHead;
-    Sprite sentinelData;
-    NNSG2dRendererInstance *renderer;
-    void *rawAnimData;
-    NNSG2dCellAnimBankData *defaultAnimBank;
-    BOOL active;
-};
-
-typedef struct SpriteListTemplate {
-    SpriteList *list;
-    const SpriteResourcesHeader *resourceData;
-    VecFx32 position;
-    u32 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    enum HeapID heapID;
-} SpriteListTemplate;
-
-Sprite *Sprite_Create(const SpriteListTemplate *template);
+Sprite *Sprite_Create(const SimpleSpriteTemplate *template);
 
 void Sprite_SetDrawFlag(Sprite *sprite, BOOL draw);
-
-typedef struct {
-    const UnkStruct_02012744 *unk_00;
-    const Window *unk_04;
-    SpriteList *unk_08;
-    const NNSG2dImagePaletteProxy *unk_0C;
-    const Sprite *unk_10;
-    int unk_14;
-    int unk_18;
-    int unk_1C;
-    int unk_20;
-    int unk_24;
-    int unk_28;
-    enum HeapID heapID;
-} UnkStruct_020127E8;
-
-typedef struct CameraAngle {
-    u16 x;
-    u16 y;
-    u16 z;
-    u16 padding_06;
-} CameraAngle;
-
-typedef struct CameraLookAt {
-    VecFx32 position;
-    VecFx32 target;
-    VecFx32 up;
-} CameraLookAt;
-
-typedef struct CameraPerspectiveProjection {
-    fx32 sinFovY;
-    fx32 cosFovY;
-    fx32 aspectRatio;
-    fx32 nearClip;
-    fx32 farClip;
-} CameraPerspectiveProjection;
 
 typedef struct CameraPositionHistory {
     int historySize;
@@ -223,21 +97,6 @@ typedef struct CameraPositionHistory {
     VecFx32 *positions;
 } CameraPositionHistory;
 
-typedef struct Camera {
-    CameraPerspectiveProjection perspective;
-    CameraLookAt lookAt;
-    fx32 distance;
-    CameraAngle angle;
-    u8 projection;
-    u16 fovY;
-    VecFx32 prevTargetPos;
-    const VecFx32 *targetPos;
-    BOOL trackTargetX;
-    BOOL trackTargetY;
-    BOOL trackTargetZ;
-    CameraPositionHistory *history;
-} Camera;
-
 typedef struct CharTransferAllocation {
     u32 size;
     u32 offset;
@@ -246,13 +105,6 @@ typedef struct CharTransferAllocation {
 } CharTransferAllocation;
 
 BOOL sub_02021AC8(int size, BOOL atEnd, NNS_G2D_VRAM_TYPE vramType, CharTransferAllocation *allocation);
-
-typedef struct NARC {
-    FSFile file;
-    u32 fatbStart;
-    u32 fimgStart;
-    u16 numFiles;
-} NARC;
 
 typedef struct G3DPipelineBuffers {
     enum HeapID heapID;
@@ -272,62 +124,8 @@ typedef struct MessageBank {
     MessageBankEntry entries[];
 } MessageBank;
 
-typedef struct GF_2DGfxRawResObj {
-    int id;
-    void *data;
-} GF_2DGfxRawResObj;
 
-typedef struct GF_2DGfxRawResMan {
-    GF_2DGfxRawResObj *resources;
-    int capacity;
-    int count;
-} GF_2DGfxRawResMan;
 
-typedef struct SpriteResource {
-    GF_2DGfxRawResObj *rawResource;
-    GfGfxResType type;
-    void *data;
-} SpriteResource;
-
-typedef struct SpriteResourceCollection {
-    GF_2DGfxRawResMan *collection;
-    SpriteResource *resources;
-    void *capacity;
-    void *count;
-    GfGfxResType type;
-} SpriteResourceCollection;
-
-SpriteResource *AddPlttResObjFromNarc(SpriteResourceCollection *spriteResources, enum NarcId narcID, int memberIdx, BOOL compressed, int id, NNS_G2D_VRAM_TYPE vramType, int paletteIdx, enum HeapID heapID);
-
-SpriteResource *AddCharResObjFromOpenNarc(SpriteResourceCollection *spriteResources, NARC *narc, int memberIdx, BOOL compressed, int id, NNS_G2D_VRAM_TYPE vramType, enum HeapID heapID);
-
-SpriteResource *AddPlttResObjFromOpenNarc(SpriteResourceCollection *spriteResources, NARC *narc, int memberIdx, BOOL compressed, int id, NNS_G2D_VRAM_TYPE vramType, int paletteIdx, enum HeapID heapID);
-
-SpriteResource *AddCellOrAnimResObjFromOpenNarc(SpriteResourceCollection *spriteResources, NARC *narc, int memberIdx, BOOL compressed, int id, GfGfxResType type, enum HeapID heapID);
-
-void sub_0200A740(SpriteResource *spriteRes);
-
-void CreateSpriteResourcesHeader(SpriteResourcesHeader *resourceHeader,
-    int charResourceID,
-    int plttResourceID,
-    int cellResourceID,
-    int animResourceID,
-    int mcellResourceID,
-    int manimResourceID,
-    BOOL vramTransfer,
-    int priority,
-    SpriteResourceCollection *charResources,
-    SpriteResourceCollection *plttResources,
-    SpriteResourceCollection *cellResources,
-    SpriteResourceCollection *animResources,
-    SpriteResourceCollection *mcellResources,
-    SpriteResourceCollection *manimResources);
-
-BOOL SpriteTransfer_CreateCharTransferTask_UpdateMappingTypeFromHW_AllocAtEnd(const SpriteResource *resource);
-
-BOOL SpriteTransfer_CreatePlttTransferTask(const SpriteResource *resource);
-
-const NNSG2dImagePaletteProxy *SpriteTransfer_GetPaletteProxy(const SpriteResource *resource, NNSG2dImageProxy *imageProxy);
 
 typedef struct StringTemplateArgHeader {
     u8 unused_00;
@@ -350,11 +148,8 @@ typedef struct MessageFormat {
 
 void TextOBJ_SetSpritesDrawFlag(TextOBJ *param0, BOOL param1);
 
-UnkStruct_02012B20 *sub_02013910(const Window *param0, enum HeapID heapID);
 
-int sub_02013948(const UnkStruct_02012B20 *param0, int param1);
 
-TextOBJ *TextOBJ_Create(const UnkStruct_020127E8 *param0, const UnkStruct_02012B20 *param1);
 
 typedef struct {
     fx32 unk_00;
@@ -371,7 +166,7 @@ typedef struct {
     Sprite *unk_34;
     Window unk_38;
     TextOBJ *unk_48;
-    UnkStruct_02012B20 *unk_4C;
+    UnkStruct_02013910 *unk_4C;
     CharTransferAllocation unk_50;
     String *unk_5C;
     SpriteResource *unk_60;
@@ -410,14 +205,14 @@ void ov91_02261580(UnkStruct_ov115_02265788 *param0, UnkStruct_ov115_02261ADC *p
     }
 
     {
-        SpriteListTemplate v1;
+        SimpleSpriteTemplate v1;
 
-        v1.list = param1->unk_1C;
-        v1.resourceData = &param0->unk_10;
+        v1.spriteList = param1->unk_1C;
+        v1.header = &param0->unk_10;
         v1.position.x = (-((fx32)(((64) > 0) ? ((64) * (1 << 12) + 0.5f) : ((64) * (1 << 12) - 0.5f))));
         v1.position.y = ((fx32)(((48) > 0) ? ((48) * (1 << 12) + 0.5f) : ((48) * (1 << 12) - 0.5f)));
         v1.priority = (0 + 1);
-        v1.vramType = NNS_G2D_VRAM_TYPE_2DMAIN;
+        v1.whichScreen = NNS_G2D_VRAM_TYPE_2DMAIN;
         v1.heapID = (enum HeapID)(heapID);
 
         param0->unk_34 = Sprite_Create(&v1);
@@ -427,7 +222,7 @@ void ov91_02261580(UnkStruct_ov115_02265788 *param0, UnkStruct_ov115_02261ADC *p
     {
         int v2;
         BOOL v3;
-        UnkStruct_020127E8 v4;
+        TextOBJTemplate v4;
 
         param0->unk_5C = String_New(16, heapID);
         AddTextWindowTopLeftCorner(param1->unk_00, &param0->unk_38, 3, 2, 0, 0);
@@ -443,17 +238,17 @@ void ov91_02261580(UnkStruct_ov115_02265788 *param0, UnkStruct_ov115_02261ADC *p
 
         sub_0200A740(param0->unk_60);
 
-        v4.unk_00 = param1->unk_1F0;
-        v4.unk_04 = &param0->unk_38;
-        v4.unk_08 = param1->unk_1C;
-        v4.unk_0C = SpriteTransfer_GetPaletteProxy(param0->unk_60, 0L);
-        v4.unk_10 = param0->unk_34;
-        v4.unk_14 = param0->unk_50.offset;
-        v4.unk_18 = -7;
-        v4.unk_1C = -5;
+        v4.fontSystem = param1->unk_1F0;
+        v4.window = &param0->unk_38;
+        v4.spriteList = param1->unk_1C;
+        v4.plttResourceProxy = SpriteTransfer_GetPaletteProxy(param0->unk_60, 0L);
+        v4.sprite = param0->unk_34;
+        v4.offset = param0->unk_50.offset;
+        v4.x = -7;
+        v4.y = -5;
         v4.unk_20 = 0;
         v4.unk_24 = 0;
-        v4.unk_28 = NNS_G2D_VRAM_TYPE_2DMAIN;
+        v4.vram = NNS_G2D_VRAM_TYPE_2DMAIN;
         v4.heapID = (enum HeapID)(heapID);
 
         param0->unk_48 = TextOBJ_Create(&v4, param0->unk_4C);

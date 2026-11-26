@@ -373,10 +373,12 @@ void vc_cmd_poly(VCoreState *s, u32 op, const u32 *param, u32 nparam) {
   case VC_OP_POLYGON_ATTR: st->attr_pending = p0; break; /* GBATEK 43: takes effect at the next BEGIN_VTXS */
   case VC_OP_TEXIMAGE_PARAM:
     st->texparam = p0;
+    s->p23.sv &= ~1; /* (p23's state switch: the stream's own value from here on) */
     if (s->p23.mode == VC_IP_RECORD) vc_ip_tape_op(s, VC_TAPE_TEX, 0, p0);
     break;
   case VC_OP_PLTT_BASE:
     st->pltt = p0 & 0x1FFF;
+    s->p23.sv &= ~2;
     if (s->p23.mode == VC_IP_RECORD) vc_ip_tape_op(s, VC_TAPE_PLTT, 0, st->pltt);
     break;
   case VC_OP_BEGIN_VTXS:
@@ -386,6 +388,7 @@ void vc_cmd_poly(VCoreState *s, u32 op, const u32 *param, u32 nparam) {
     st->count = 0;
     st->polyn = 0;
     if (s->p23.mode == VC_IP_RECORD) vc_ip_tape_op(s, VC_TAPE_BEGIN, st->type, st->attr);
+    if (s->p23.nkeep) vc_ip_draw_kept(s, s->p23.list); /* the older keyframe's lists kept after the one before (p23_interp.h) */
     if (s->p23.mode) vc_ip_begin(s);
     break;
   case VC_OP_END_VTXS: /* GBATEK 44: no effect on the hardware beyond the list's end */
@@ -425,14 +428,15 @@ static void replay_op(VCoreState *s, const VC_IpTapeOp *o, const VC_Vertex **v) 
     st->in_list = 1;
     st->count = 0;
     st->polyn = 0;
+    if (s->p23.nkeep) vc_ip_draw_kept(s, s->p23.list);
     if (s->p23.mode) vc_ip_begin(s);
     break;
   case VC_TAPE_END:
     st->in_list = 0;
     if (s->p23.mode) vc_ip_end(s);
     break;
-  case VC_TAPE_TEX: st->texparam = o->a; break;
-  case VC_TAPE_PLTT: st->pltt = o->a; break;
+  case VC_TAPE_TEX: st->texparam = o->a, s->p23.sv &= ~1; break;
+  case VC_TAPE_PLTT: st->pltt = o->a, s->p23.sv &= ~2; break;
   case VC_TAPE_VIEWPORT:
     st->vp_x1 = (int)(o->a & 0xFF);
     st->vp_y1 = (int)((o->a >> 8) & 0xFF);
@@ -449,6 +453,46 @@ static void replay_op(VCoreState *s, const VC_IpTapeOp *o, const VC_Vertex **v) 
   }
   case VC_TAPE_SWAP: vc_cmd_swap(s, &o->a, 1); break;
   }
+}
+
+/* p23's kept lists (vc_ip_apply_keep): b's lists anchored after a's lists up to upto, in the in-betweens, each vertex moved by its share of
+ * the list's clip-space motion (vc_ip_windows' matrix) and assembled with the list's own state, as new_vertex would have; p14's state is
+ * left as it was (they come between a's lists) */
+void vc_ip_draw_kept(VCoreState *s, int upto) {
+  VC_P23 *p = &s->p23;
+  if (p->mode != VC_IP_APPLY || p->dst == NULL || p->kcur >= p->nkeep || p->keep[p->kcur].after > upto) return;
+  VC_P14 *st = &s->p14;
+  const VC_P14 saved = *st;
+  const double t = (4096 - p->f) / 4096.0; /* the share of the way from b to a */
+  for (; p->kcur < p->nkeep && p->keep[p->kcur].after <= upto; p->kcur++) {
+    if (p->f <= 0) continue; /* a itself: gone, as without Smooth motion */
+    const VC_IpKeep *k = &p->keep[p->kcur];
+    if (k->half && p->f < 2048) continue; /* (M4: its new form is drawn from the middle on, VC_IP_SWAP) */
+    const VC_IpList *l = &p->dst->l[k->list];
+    st->attr = l->attr;
+    st->type = l->type;
+    st->texparam = l->texparam;
+    st->pltt = l->pltt;
+    st->vp_x1 = (int)(l->viewport & 0xFF);
+    st->vp_y1 = (int)((l->viewport >> 8) & 0xFF);
+    st->vp_x2 = (int)((l->viewport >> 16) & 0xFF);
+    st->vp_y2 = (int)((l->viewport >> 24) & 0xFF);
+    st->in_list = 1;
+    st->count = 0;
+    st->polyn = 0;
+    for (u32 j = 0; j < l->n; j++) {
+      const VC_IpVtx *u = &p->dst->v[l->first + j];
+      VC_P14Pend nv;
+      memset(&nv, 0, sizeof nv);
+      nv.ram = -1;
+      vc_ip_moved(u->clip, k->m, t, nv.v.clip);
+      for (int c = 0; c < 3; c++) nv.v.color[c] = u->color[c];
+      nv.v.tex[0] = u->tex[0];
+      nv.v.tex[1] = u->tex[1];
+      assemble(s, &nv);
+    }
+  }
+  *st = saved;
 }
 
 int vc_geo_replay(VCoreState *s) {
@@ -492,6 +536,7 @@ int vc_geo_replay(VCoreState *s) {
     }
     i = l->op1;
   }
+  if (s->p23.mode) vc_ip_end(s); /* (a last list with no END: its texture state put back) */
   memcpy(s->p14.cur, t->cur, sizeof s->p14.cur);
   memcpy(s->p14.pos_result, t->pos_result, sizeof s->p14.pos_result);
   return g->swapped;

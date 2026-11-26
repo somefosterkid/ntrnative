@@ -9,8 +9,6 @@ struct UnkStruct_ov112_021EA230;
 #include "overlay_112_unk_struct_ov112_021_ea230.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021EA2C4(Ov112PokewalkerApp *param_1);
-
 void ov112_021EA2C4(Ov112PokewalkerApp *param_1) {
     NARC *narc;
 

@@ -1,0 +1,7 @@
+# game: soulsilver
+# from: ss-violet
+# reaches: Violet City's west rock (503,261) from below: A talks to it, Yes (the title keys' A presses), Rock Smash cut-in and the rock breaking (cheat items, badges, party)
+# end: f10850
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=73:503:262 BWPORT_HG_WARP_DIR=0
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600

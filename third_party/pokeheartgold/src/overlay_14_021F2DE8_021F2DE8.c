@@ -16,10 +16,10 @@ typedef struct UnkStruct_ov14_021F2DE8_var_r2 {
     u8 unk_0[0x4058];
     s8 unk_4058;
 } UnkStruct_ov14_021F2DE8_var_r2;
-void *ov14_021F2DC4(struct UnkStruct_ov14_boxsys *, BoxPokemon *, void **);
+void *ov14_021F2DC4(struct UnkStruct_ov14_boxsys *, BoxPokemon *, NNSG2dCharacterData **);
 
 void ov14_021F2DE8(void *arg0, u32 arg1) {
-    void *spC;
+    NNSG2dCharacterData *spC;
     void *sp8;
     u32 sp4;
     BoxPokemon *temp_r0;
@@ -38,9 +38,9 @@ void ov14_021F2DE8(void *arg0, u32 arg1) {
             var_r1 = 0;
         } else {
             temp_r0 = ov14_021E60C0(arg0, sp4, var_r4);
-            temp_r0_2 = ov14_021F2DC4(*((void **)&((UnkStruct_ov14_boxapp *)arg0)->sys), temp_r0, &spC);
+            temp_r0_2 = ov14_021F2DC4(((UnkStruct_ov14_boxapp *)arg0)->sys, temp_r0, &spC);
             sp8 = temp_r0_2;
-            MIi_CpuCopy32(*(void **)((u8 *)spC + 0x14), &((UnkStruct_ov14_boxapp *)arg0)->sys->unk_458[0][var_r6], 0x200U);
+            MIi_CpuCopy32(spC->pRawData, &((UnkStruct_ov14_boxapp *)arg0)->sys->unk_458[0][var_r6], 0x200U);
             Heap_Free(temp_r0_2);
             ((UnkStruct_ov14_boxapp *)arg0)->sys->unk_4076[var_r4] = Boxmon_GetIconPalette(temp_r0);
             var_r1 = 1;

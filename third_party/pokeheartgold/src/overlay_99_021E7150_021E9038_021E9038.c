@@ -6,7 +6,7 @@
 
 s32 ov99_021E8518(void *, u32, s32);
 
-s32 ov99_021E86D4(void *, u8, s16, s32, s32, s32);
+void ov99_021E86D4(void *, s32, s16, s32, s32, s32);
 
 void ov99_021E9038(void *arg0);
 

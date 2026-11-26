@@ -67,8 +67,6 @@ void ov112_021F04DC(void *arg0, void *arg1);
 
 s32 ov112_021EF1F0(PCStorage *storage, u32 boxno, u32 slotno, void *arg3);
 
-void ov112_021EF3F8(int box, int slot, Ov112PokewalkerApp *work);
-
 void ov112_021EF3F8(int box, int slot, Ov112PokewalkerApp *work) {
     UnkStruct_ov112_021EF3F8 data;
     UnkStruct_ov112_021EF3F8_Box res;

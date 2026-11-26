@@ -1,7 +1,9 @@
 #ifndef POKEHEARTGOLD_OVERLAY_65_TRADE_ROOM_H
 #define POKEHEARTGOLD_OVERLAY_65_TRADE_ROOM_H
+#include "bg_window.h"
 #include "sprite_resources_header.h"
 
+#include "bg_window.h"
 #include "g2d_renderer.h"
 #include "pokemon_summary_args.h"
 
@@ -13,6 +15,7 @@ struct BgConfig;
 struct ChatotCry;
 struct FieldSystem;
 struct ListMenu;
+struct ListMenuItem;
 struct Menu;
 struct MsgData;
 struct NNSG2dAnimBankData;
@@ -34,11 +37,13 @@ struct SpriteList;
 struct SpriteResource;
 struct SpriteResourceCollection;
 struct String;
-struct StringList;
-struct StringTemplate;
+struct MessageFormat;
 struct SysTask;
+struct TouchscreenListMenu;
+struct TouchscreenListMenuSpawner;
 struct TradeRoomArgs;
 struct WiFiList;
+struct YesNoPrompt;
 
 typedef struct TradeRoom {
     struct FieldSystem *fieldSystem;
@@ -71,9 +76,9 @@ typedef struct TradeRoom {
     int unk_16C;
     int unk_170;
     struct BgConfig *bgConfig;
-    struct StringTemplate *strTemplate;
-    struct StringTemplate *strTemplate2;
-    struct StringTemplate *unread_180;
+    struct MessageFormat *strTemplate;
+    struct MessageFormat *strTemplate2;
+    struct MessageFormat *unread_180;
     struct MsgData *msgLoader;
     struct String *unk_188;
     struct String *playerNameStr;
@@ -91,9 +96,9 @@ typedef struct TradeRoom {
     struct Sprite *detailCardSprites[6];
     struct Sprite *convergeIndicatorSprite;
     struct SysTask *unk_480[7];
-    struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } windows[34];
+    Window windows[34];
     struct Menu *yesNoMenu;
-    struct StringList *actionMenuChoices;
+    struct ListMenuItem *actionMenuChoices;
     struct Menu *actionMenu;
     int yesNoMenuStep;
     int unk_6CC;
@@ -130,16 +135,16 @@ typedef struct TradeRoom {
     int staggerCountdown;
     struct { fx32 x; fx32 y; fx32 z; } playerSlidePath[2];
     struct { fx32 x; fx32 y; fx32 z; } partnerSlidePath[2];
-    u8 partyTransferBuffer[1424][2];
-    u8 chatotCryBuffer[1004][2];
+    u8 partyTransferBuffer[2][1424];
+    u8 chatotCryBuffer[2][1004];
     int pendingRegistrationFlags[32];
     int registrationTargetNetId;
     int friendToDeleteSlot;
-    struct StringTemplate *palPadStrTemplate;
+    struct MessageFormat *palPadStrTemplate;
     struct MsgData *palPadMsgLoader;
-    struct StringList *friendListChoices;
+    struct ListMenuItem *friendListChoices;
     struct ListMenu *friendListMenu;
-    struct { struct BgConfig *bgConfig; u8 bgLayer; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 palette; u16 baseTile : 15; u16 colorMode : 1; void *pixels; } friendListWindow;
+    Window friendListWindow;
     struct WiFiList *wifiList;
     int tradeCompletedCount;
     int syncSaveState;
@@ -148,8 +153,11 @@ typedef struct TradeRoom {
     void *waitDialHandle;
     int connectionTimeoutArmed;
     int connectionTimeoutFrames;
+    struct YesNoPrompt *yesNoPrompt;
+    struct TouchscreenListMenuSpawner *touchListMenuSpawner;
+    struct TouchscreenListMenu *touchListMenu;
 } TradeRoom;
 
-// sizeof(TradeRoom) == 0x36c0
+// sizeof(TradeRoom) == 0x36cc
 
 #endif // POKEHEARTGOLD_OVERLAY_65_TRADE_ROOM_H

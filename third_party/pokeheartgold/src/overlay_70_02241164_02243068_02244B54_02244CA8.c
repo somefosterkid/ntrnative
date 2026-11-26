@@ -14,8 +14,9 @@ struct GTSApplicationState;
 #include "evolution_data.h"
 #include "sav_chatot.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "gts_player_data.h"
 
-struct ApplicationManager;
+struct OverlayManager;
 
 struct SOUND_CHATOT;
 
@@ -39,10 +40,6 @@ struct PlayerProfile;
 
 typedef u16 charcode_t;
 
-typedef struct GTSPlayerData GTSPlayerData;
-
-
-
 enum TradeType {
     TRADE_TYPE_NORMAL = 1,
     TRADE_TYPE_SEND_ONLY,
@@ -56,18 +53,6 @@ enum TradeBackground {
     TRADE_BACKGROUND_WIFI,
 };
 
-
-typedef struct ApplicationManager ApplicationManager;
-
-struct ApplicationManager {
-    OverlayManagerTemplate template;
-    int execState;
-    int procState;
-    void *args;
-    void *data;
-    ApplicationManager *parent;
-    ApplicationManager *child;
-};
 
 typedef struct Menu Menu;
 

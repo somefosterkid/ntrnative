@@ -15,7 +15,7 @@ void ov80_02234A38(ArcadeContext *ctx, FrontierMap *map) {
     NARC *narc;
 
     narc = NARC_New(NARC_a_1_8_3, HEAP_ID_101);
-    GfGfxLoader_LoadScrnDataFromOpenNarc(narc, 0x39, (BgConfig *)map->unk0, GF_BG_LYR_MAIN_3, 0U, 0U, 1, HEAP_ID_101);
-    ScheduleBgTilemapBufferTransfer((BgConfig *)map->unk0, 3U);
+    GfGfxLoader_LoadScrnDataFromOpenNarc(narc, 0x39, map->bgConfig, GF_BG_LYR_MAIN_3, 0U, 0U, 1, HEAP_ID_101);
+    ScheduleBgTilemapBufferTransfer(map->bgConfig, 3U);
     NARC_Delete(narc);
 }

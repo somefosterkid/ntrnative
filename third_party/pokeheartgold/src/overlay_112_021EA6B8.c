@@ -4,8 +4,6 @@
 #include "sprite.h"
 #include "sprite_system.h"
 
-void ov112_021EA6B8(Ov112PokewalkerApp *app, s32 idx, u16 x, u16 y);
-
 void ov112_021EA6D8(Ov112PokewalkerApp *app, s32 idx, s32 anim, u16 x, s32 y);
 
 void ov112_021EA6B8(Ov112PokewalkerApp *app, s32 idx, u16 x, u16 y) {

@@ -81,7 +81,7 @@ void ov40_0222C03C(UnkStruct_0208C06C *arg0) {
     }
 }
 
-s32 ov40_0222DD94();
+BOOL ov40_0222DD94(UnkStruct_0208C06C *param0);
 
 s32 ov40_0222DD9C(void *, s32);
 
@@ -119,7 +119,7 @@ s32 ov40_0222C15C(void *arg0) {
         }
         break;
     case 6:
-        if ((a1 == 0x64) && (ov40_0222DD94() != 0)) {
+        if ((a1 == 0x64) && (ov40_0222DD94(arg0) != 0)) {
             ov40_0222DD9C(arg0, 0x111);
             v1 = 0;
         }

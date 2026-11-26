@@ -2,7 +2,7 @@
 #include "overlay_83_battle_castle_self_app.h"
 struct BattleCastleSelfApp;
 
-s32 ov83_02240DB0();
+void ov83_02240DB0(BattleCastleSelfApp *arg0);
 
 void ov83_02242AB4(struct BattleCastleSelfApp *arg0, s8 arg1, s8 arg2);
 
@@ -16,7 +16,7 @@ void ov83_02242AE0(BattleCastleSelfApp *arg0, u32 arg1);
 void ov83_02242AB4(BattleCastleSelfApp *arg0, s8 arg1, s8 arg2) {
     *((s8 *)&arg0->selectedMonSlot) = arg1;
     *((s8 *)&arg0->previousSlot) = arg2;
-    ov83_02240DB0();
+    ov83_02240DB0(arg0);
 }
 
 void ov83_02242AC0(BattleCastleSelfApp *param_1, u32 param_2, u32 param_3, u32 param_4) {

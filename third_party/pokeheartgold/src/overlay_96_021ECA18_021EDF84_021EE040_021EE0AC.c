@@ -13,7 +13,11 @@ extern s32 ov96_021EDF84(s32 (*)[], Pokeathlon_UnkSubStruct_B00 *);
 
 extern s32 ov96_021EDFFC(u8 *, s32 (*)[]);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov96_021EE040(u8 *, u8 *);
+#else
 s8 ov96_021EE040(u8 *, u8 *);
+#endif
 
 void ov96_021EE0AC(void *arg0, PokeathlonCourseData *arg1);
 

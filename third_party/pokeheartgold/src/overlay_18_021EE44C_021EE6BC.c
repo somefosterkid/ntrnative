@@ -8,9 +8,17 @@ s32 ov18_021EE71C(PokedexAppData *, s32);
 
 s32 ov18_021EE75C(PokedexAppData *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EE7DC(PokedexAppData *, u16, s32);
+#else
 s32 ov18_021EE7DC(PokedexAppData *, s32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov18_021EE834(PokedexAppData *, u16, s32, s32);
+#else
 s32 ov18_021EE834(PokedexAppData *, s32, s32, s32);
+#endif
 
 void ov18_021EE6BC(PokedexAppData *pokedexApp, int species, int a2) {
     ov18_021EE71C(pokedexApp, 7);

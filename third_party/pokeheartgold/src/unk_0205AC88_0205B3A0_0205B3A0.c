@@ -3,39 +3,35 @@
 #include "constants/heap.h"
 
 #include "heap.h"
+#include "unk_0205C924.h"
 
-void sub_0205B380(void *);
+void sub_0205B380(UnkStruct_0205C924 *);
 
-static void sub_0205B3A0(u8 *param_1);
+static void sub_0205B3A0(UnkStruct_0205C95C *param_1);
 
-static void sub_0205B3A0(u8 *param_1) {
-    s32 iVar1;
+static void sub_0205B3A0(UnkStruct_0205C95C *param_1) {
+    int i;
 
-    iVar1 = 0;
-    do {
-        sub_0205B380(param_1);
-        iVar1 = iVar1 + 1;
-        param_1 = param_1 + 0x1c;
-    } while (iVar1 < 0x1e);
-    return;
+    for (i = 0; i < 30; i++) {
+        sub_0205B380(&param_1->unk_00[i]);
+    }
 }
 
-void sub_0205B35C(void *param0);
+void sub_0205B35C(UnkStruct_0205C95C *param0);
 
-void *sub_0205B3B8(enum HeapID param_1);
+UnkStruct_0205C95C *sub_0205B3B8(enum HeapID param_1);
 
-void *sub_0205B3B8(enum HeapID param_1) {
-    void *pvVar1;
+UnkStruct_0205C95C *sub_0205B3B8(enum HeapID param_1) {
+    UnkStruct_0205C95C *log;
 
-    pvVar1 = Heap_Alloc(param_1, 0x350);
-    sub_0205B35C(pvVar1);
-    return pvVar1;
+    log = Heap_Alloc(param_1, sizeof(UnkStruct_0205C95C));
+    sub_0205B35C(log);
+    return log;
 }
 
-void sub_0205B3CC(void *param_1);
+void sub_0205B3CC(UnkStruct_0205C95C *param_1);
 
-void sub_0205B3CC(void *param_1) {
-    sub_0205B3A0((u8 *)param_1);
+void sub_0205B3CC(UnkStruct_0205C95C *param_1) {
+    sub_0205B3A0(param_1);
     Heap_Free(param_1);
-    return;
 }

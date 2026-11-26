@@ -11,5 +11,6 @@ BOOL sub_0205CF60(PlayerAvatar *playerAvatar);
 void sub_0205CFBC(PlayerAvatar *playerAvatar, int direction);
 int sub_0205DD94(PlayerAvatar *avatar, u16 newKeys, u16 heldKeys);
 BOOL sub_0205DE98(PlayerAvatar *playerAvatar);
+void sub_0205DA1C(PlayerAvatar *avatar, LocalMapObject *object, u32 movement);
 
 #endif // POKEHEARTGOLD_UNK_0205CB48_H

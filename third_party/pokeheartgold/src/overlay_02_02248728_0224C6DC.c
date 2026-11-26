@@ -18,7 +18,6 @@ extern u32 ov02_02253820;
 u32 ov02_0224C6DC(void *param_1, FieldSystem *param_2, FieldMoveTaskEnvironment *param_3);
 
 s32 GetFlyWarpData(s32, Location *);
-s32 ov02_0224C840(TaskManager *arg0, void *arg1, FieldMoveTaskEnvironment *arg2);
 
 u32 ov02_0224C6DC(void *param_1, FieldSystem *param_2, FieldMoveTaskEnvironment *param_3) {
     BOOL BVar1;
@@ -115,12 +114,12 @@ u32 ov02_0224C7D4(void *param_1, FieldSystem *param_2, FieldMoveTaskEnvironment 
     return 1;
 }
 
-s32 ov02_0224C840(TaskManager *taskManager, void *arg1, FieldMoveTaskEnvironment *arg2) {
+s32 ov02_0224C840(TaskManager *taskManager, FieldSystem *arg1, FieldMoveTaskEnvironment *arg2) {
     Location location;
     LocalFieldData *localFieldData;
     u16 spawnId;
 
-    localFieldData = Save_LocalFieldData_Get(*(SaveData **)((u8 *)arg1 + 0xC));
+    localFieldData = Save_LocalFieldData_Get(arg1->saveData);
     spawnId = LocalFieldData_GetBlackoutSpawn(localFieldData);
     GetFlyWarpData(spawnId, &location);
     GetSpecialSpawnWarpData(spawnId, LocalFieldData_GetSpecialSpawnWarpPtr(localFieldData));

@@ -102,9 +102,9 @@ void ReloadNoScreensBackground(BattleFactoryApp *app, enum GFBgLayer bgLayer);
 
 void LoadSelectionConfirmBackground(BattleFactoryApp *app, enum GFBgLayer bgLayer);
 
-BOOL ov81_02240008(BattleFactoryApp *app, s32 arg1, s32 arg2, s32 arg3);
+BOOL ov81_02240008(BattleFactoryApp *app);
 
-BOOL ov81_02240008(BattleFactoryApp *app, s32 arg1, s32 arg2, s32 arg3) {
+BOOL ov81_02240008(BattleFactoryApp *app) {
     switch (app->subState) {
     case 0:
         if (ov81_02240FA4(app, 10, app->tradedMon) == 1) {

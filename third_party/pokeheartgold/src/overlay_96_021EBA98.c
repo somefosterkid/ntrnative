@@ -8,12 +8,12 @@
 #include "unk_02005D10.h"
 #include "overlay_96_app_021ed1d0.h"
 
-s32 ov96_021EBA98(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EBA98(PokeathlonCourseData *arg0, u8 *arg1);
 
 s32 ov96_021EDA58(PokeathlonCourseData *);
-s32 ov96_021EBAFC(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EBAFC(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EBA98(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EBA98(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
 
     v0 = *arg1;
@@ -36,7 +36,7 @@ s32 ov96_021EBA98(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021EBAFC(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EBAFC(PokeathlonCourseData *data, u8 *arg1) {
     Ov96App_021ED1D0 *work;
     u8 v0;
 

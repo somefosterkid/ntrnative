@@ -6,20 +6,10 @@
 #include "overlay_112_pokewalker_app.h"
 struct Ov112PokewalkerApp;
 
-s32 ov112_021EA688(u8 *, s32);
-
-s32 ov112_021EEE20(void *arg0);
-
-s32 ov112_021EEE20(void *arg0) {
+s32 ov112_021EEE20(Ov112PokewalkerApp *arg0) {
     ov112_021EA688(arg0, 8);
     return 1;
 }
-
-u8 ov112_021EA08C(struct Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EA5A4(void *, s32);
-
-s32 ov112_021EEE2C(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EEE2C(Ov112PokewalkerApp *arg0) {
     arg0->unk_1E524 = ov112_021EA08C(arg0, 2, 0xD);
@@ -27,11 +17,7 @@ s32 ov112_021EEE2C(Ov112PokewalkerApp *arg0) {
     return 1;
 }
 
-s32 ov112_021EA17C(struct Ov112PokewalkerApp *);
-
 s32 sub_02006B84(void);
-
-s32 ov112_021EEE4C(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EEE4C(Ov112PokewalkerApp *arg0) {
     if ((TextPrinterCheckActive((u8) arg0->unk_1E524) == 0) && (arg0->unk_1F2D6 == 0x1F) && (sub_02006B84() == 0)) {
@@ -50,12 +36,12 @@ s32 ov112_021EEE8C(void *arg0) {
     return 3;
 }
 
-s32 ov112_021EA19C();
+void ov112_021EA19C(Ov112PokewalkerApp *arg0);
 
-s32 ov112_021EEEA0(void);
+s32 ov112_021EEEA0(Ov112PokewalkerApp *arg0);
 
-s32 ov112_021EEEA0(void) {
-    ov112_021EA19C();
+s32 ov112_021EEEA0(Ov112PokewalkerApp *arg0) {
+    ov112_021EA19C(arg0);
     return 4;
 }
 

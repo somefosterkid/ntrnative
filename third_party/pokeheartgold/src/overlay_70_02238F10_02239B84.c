@@ -83,11 +83,11 @@ s32 ov70_0223A0D4(GTSApplicationState *);
 
 s32 ov70_0223A1E4(void *arg0);
 
-s32 ov70_0223A578(MsgData *, MsgData *, MessageFormat *, void *, BoxPokemon *, void *);
+void ov70_0223A578(MsgData *, MsgData *, MessageFormat *, Window *, BoxPokemon *, s16 *);
 
-s32 ov70_0223A72C(MsgData *, void *, void *, void *, void *);
+void ov70_0223A72C(MsgData *, Window *, u16 *, Pokemon *, Window *);
 
-s32 ov70_0223A7E4(void *);
+s32 ov70_0223A7E4(Pokemon *);
 
 s32 ov70_0223F470(void *, void *, void *, void *, s32, s32, s32);
 
@@ -101,10 +101,10 @@ s32 ov70_02239D8C(GTSApplicationState *arg0) {
     ov70_02239FA4(arg0);
     ov70_0223A0D4(arg0);
     ov70_0223A06C(arg0);
-    ov70_0223A578(arg0->gtsMessageLoader, arg0->speciesMessageLoader, arg0->stringTemplate, &arg0->infoWindows[13], Mon_GetBoxMon((Pokemon *)&arg0->receivedListing.pokemon), &arg0->receivedListing.criteria);
-    ov70_0223A72C(arg0->gtsMessageLoader, &arg0->infoWindows[20], arg0->receivedListing.trainerNames, &arg0->receivedListing, &arg0->infoWindows[25]);
+    ov70_0223A578(arg0->gtsMessageLoader, arg0->speciesMessageLoader, arg0->stringTemplate, &arg0->infoWindows[13], Mon_GetBoxMon(&arg0->receivedListing.pokemon), &arg0->receivedListing.criteria.species);
+    ov70_0223A72C(arg0->gtsMessageLoader, &arg0->infoWindows[20], arg0->receivedListing.trainerNames, &arg0->receivedListing.pokemon, &arg0->infoWindows[25]);
     ov70_0223F470(arg0->gtsMessageLoader, arg0->speciesMessageLoader, arg0->stringTemplate, &arg0->infoWindows[22], (s32) arg0->receivedListing.requirements.species, (s32) arg0->receivedListing.requirements.gender, ov70_0223F864(arg0->receivedListing.requirements.level, arg0->receivedListing.requirements.level2, 0));
-    ov70_0223A7E4(&arg0->receivedListing);
+    ov70_0223A7E4(&arg0->receivedListing.pokemon);
     BeginNormalPaletteFade(FADE_MAIN_ONLY, FADE_TYPE_BRIGHTNESS_IN, FADE_TYPE_BRIGHTNESS_IN, 0U, 6, 1, HEAP_ID_61);
     arg0->currentScreenInstruction = 0;
     return 2;

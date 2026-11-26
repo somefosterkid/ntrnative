@@ -17,10 +17,10 @@
 #include "task.h"
 #include "unk_02005D10.h"
 
-void ov02_0224F880(void *arg0, s32 arg1);
-void ov02_0224FC08(void *arg0, Window *window, s32 arg2);
+void ov02_0224F880(FieldSystemUnkSub120 *arg0, s32 arg1);
+void ov02_0224FC08(FieldSystem *arg0, FieldSystemUnkSub120 *arg1, s32 arg2);
 u32 ov02_0224EF94(FieldSystem *arg0);
-s32 ov02_0224F8FC(void *arg0, void *arg1);
+s32 ov02_0224F8FC(FieldSystem *arg0, FieldSystemUnkSub120 *arg1);
 
 BOOL Task_FollowMonInteract(TaskManager *task);
 
@@ -115,10 +115,10 @@ BOOL Task_FollowMonInteract(TaskManager *task) {
         }
         if (sub_0202BA2C(fashionCase, idx, 1)) {
             FashionCase_GiveFashionItem(fashionCase, idx, 1);
-            ov02_0224FC08(fieldSystem, &fieldSystem->unk120->window, 3);
+            ov02_0224FC08(fieldSystem, fieldSystem->unk120, 3);
             PlayFanfare(0x4A7);
         } else {
-            ov02_0224FC08(fieldSystem, &fieldSystem->unk120->window, 2);
+            ov02_0224FC08(fieldSystem, fieldSystem->unk120, 2);
         }
         *state = 5;
         break;
@@ -153,10 +153,10 @@ BOOL Task_FollowMonInteract(TaskManager *task) {
             SetFlag99C(Save_VarsFlags_Get(fieldSystem->saveData));
             flag = 1;
             SetMonData(mon, monDataId, &flag);
-            ov02_0224FC08(fieldSystem, &fieldSystem->unk120->window, 1);
+            ov02_0224FC08(fieldSystem, fieldSystem->unk120, 1);
             PlayFanfare(0x4A7);
         } else {
-            ov02_0224FC08(fieldSystem, &fieldSystem->unk120->window, 0);
+            ov02_0224FC08(fieldSystem, fieldSystem->unk120, 0);
         }
         *state = 5;
         break;

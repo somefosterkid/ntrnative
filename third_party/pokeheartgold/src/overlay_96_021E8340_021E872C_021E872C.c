@@ -29,21 +29,17 @@ u32 ov96_021E872C(s32 param_1, s32 param_2, s32 param_3, s32 param_4, s32 param_
     return 0;
 }
 
-void *ov96_021E883C(u32 param_1, u32 param_2, void *param_3, enum HeapID param_4);
+Ov96System *ov96_021E8770(const CommCmdTable *cmdTable, int cmdCount, PokeathlonCourseData *data, int a3, enum HeapID heapId) {
+    Ov96System *system;
 
-void *ov96_021E8770(int a0, int a1, PokeathlonCourseData *data, int a3, enum HeapID heapId) {
-    u16 *puVar1;
-    void *pvVar2;
-
-    puVar1 = Heap_Alloc(heapId, 8);
-    *puVar1 = (s16)a3;
-    puVar1[1] = 0;
-    *(u32 *)(puVar1 + 2) = 0;
+    system = Heap_Alloc(heapId, sizeof(Ov96System));
+    system->isLocal = (s16)a3;
+    system->sizeCheck = 0;
+    system->handlers = NULL;
     if (a3 == 1) {
-        sub_0203410C((void *)a0, a1, data);
+        sub_0203410C(cmdTable, cmdCount, data);
     } else {
-        pvVar2 = (void *)((ov96_021E883C(a0, a1, (data), heapId)));
-        *(void **)(puVar1 + 2) = pvVar2;
+        system->handlers = ov96_021E883C(cmdTable, cmdCount, data, heapId);
     }
-    return puVar1;
+    return system;
 }

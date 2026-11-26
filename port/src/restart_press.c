@@ -1,6 +1,7 @@
 // "Restart to title" (the settings sheets, libntr's Game menu, cfgscript restart=1): presses the game's own soft-reset
 // combination, L + R + START + SELECT (lib/gfl/src/ui.c GFL_HIDUpdate: all four held in one update and no
-// softResetBlock flag), through the key register as the key script and the keyboard do. The game resets itself as a DS
+// softResetBlock flag), as a pad source of libntr's (SIM_PadExtSet: the main thread's input poll writes the key register, this
+// thread only asks), like the keyboard does. The game resets itself as a DS
 // does, and keeps its rule: the combination is ignored while a save is being written (softResetBlock, save_control_intr.c).
 // The press runs on its own thread so the caller (the UI, the cfgscript step in the frame thread) returns at once, and the
 // keys are held for a few V-blanks: the game reads them once a frame.
@@ -9,7 +10,9 @@
 #include <stdio.h>
 #include <time.h>
 
-#define RESTART_KEYS (PAD_BUTTON_L | PAD_BUTTON_R | PAD_BUTTON_START | PAD_BUTTON_SELECT)
+extern void SIM_PadExtSet(unsigned buttons, int down);   // libntr's sim_main.cpp
+
+#define RESTART_KEYS 0xf0u   // libntr's button bits: 4 L, 5 R, 6 Start, 7 Select
 #define RESTART_HOLD_FRAMES 6
 
 static volatile int sPressing;
@@ -21,7 +24,7 @@ static void *PressThread(void *arg) {
 
     (void)arg;
     clock_gettime(CLOCK_MONOTONIC, &t0);
-    s_reg_PAD_KEYINPUT = (u16)(s_reg_PAD_KEYINPUT & ~RESTART_KEYS);
+    SIM_PadExtSet(RESTART_KEYS, 1);
     // released after a few frames, or after 2 s when no frame runs (the game paused)
     for (;;) {
         clock_gettime(CLOCK_MONOTONIC, &t);
@@ -30,7 +33,7 @@ static void *PressThread(void *arg) {
         }
         nanosleep(&ms, NULL);
     }
-    s_reg_PAD_KEYINPUT = (u16)(s_reg_PAD_KEYINPUT | RESTART_KEYS);
+    SIM_PadExtSet(RESTART_KEYS, 0);
     sPressing = 0;
     return NULL;
 }

@@ -9,9 +9,9 @@ extern s8 _0210F954;
 
 extern s8 _0210F964;
 
-void *sub_0203A534(s32 arg0, s32 arg1, s32 arg2, void *arg3);
+NNSG2dCharacterData *sub_0203A534(s32 arg0, s32 arg1, s32 arg2, void *arg3);
 
-void *sub_0203A534(s32 arg0, s32 arg1, s32 arg2, void *arg3) {
+NNSG2dCharacterData *sub_0203A534(s32 arg0, s32 arg1, s32 arg2, void *arg3) {
     NNSG2dCharacterData *sp0;
     if (arg0) {
         if (arg1 == 0x300010) {
@@ -26,5 +26,5 @@ void *sub_0203A534(s32 arg0, s32 arg1, s32 arg2, void *arg3) {
         DC_FlushRange((void *)arg3, 0x4C0);
     }
     NNS_G2dGetUnpackedBGCharacterData((void *)arg3, &sp0);
-    return (u8 *)sp0;
+    return sp0;
 }

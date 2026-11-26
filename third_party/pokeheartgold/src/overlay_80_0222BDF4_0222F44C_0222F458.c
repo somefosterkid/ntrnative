@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "constants/heap.h"
 #include "filesystem_files_def.h"
@@ -131,7 +133,6 @@ void FrontierScriptContext_Pause(FrontierScriptContext *ctx, FrontierShouldResum
 
 typedef struct JournalEntry JournalEntry;
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 Options *Save_PlayerData_GetOptionsAddr(SaveData *saveData);
 

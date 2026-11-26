@@ -80,7 +80,7 @@ s32 ov14_021EB0E4(void *arg0) {
     SysTask_Destroy(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_0);
     ov14_021F6B10(arg0);
     ov14_021E5EE8(arg0);
-    ov14_021E7D7C(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys));
+    ov14_021E7D7C(((UnkStruct_ov14_boxapp *)arg0)->sys);
     ov14_021F29AC(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys));
     ov14_021F4F00(arg0);
     ov14_021E5DB8(arg0);

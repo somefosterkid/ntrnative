@@ -9,7 +9,7 @@
 
 void ov01_021F8D80(LocalMapObject *object, Billboard *animObj, MapObjectBillboardWorkB *a2, u32 facingDir, BOOL flag);
 
-s32 ov01_021F8C88(LocalMapObject *, Billboard *);
+void ov01_021F8C88(LocalMapObject *, Billboard *);
 
 s32 ov01_02205564(LocalMapObject *);
 
@@ -47,7 +47,9 @@ void ov01_021F7810(LocalMapObject *arg0) {
 
 void ov01_021F8D80(void *, s32, void *, s32, s32);
 
-s32 ov01_021F8C88(LocalMapObject *, s32);
+#if !(defined(SDK_PORT) || defined(NONMATCHING))
+void ov01_021F8C88(LocalMapObject *, s32);
+#endif
 
 s32 ov01_02205564(LocalMapObject *);
 

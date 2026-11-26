@@ -12,9 +12,9 @@
 
 s32 ov02_0224E31C(s32, s32);
 
-BOOL ov02_0224E828(FieldSystem *, s16, s16, u8, fx32, s16 *, s16 *, u8);
+BOOL ov02_0224E828(FieldSystem *, s32, s32, int, fx32, s16 *, s16 *, u8);
 
-BOOL ov02_0224EB48(FieldSystem *, s16, s16, u8, fx32, s16 *, s16 *, u8);
+BOOL ov02_0224EB48(FieldSystem *, s16, s16, u32, fx32, s16 *, s16 *, int);
 
 BOOL ov02_0224EE4C(FieldSystem *, s16, s16, u8, fx32, s16 *, s16 *, u8);
 
@@ -42,7 +42,7 @@ SafariDecorationArgs *SafariDecoration_CreateArgs(FieldSystem *fieldSystem, enum
     pSVar2 = FieldSystem_GetSaveData(fieldSystem);
     dest->saveData = pSVar2;
     dest->menuInputStatePtr = &fieldSystem->menuInputState;
-    dest->unk20 = (u8 *)fieldSystem + 0x111;
+    dest->unk20 = &fieldSystem->unk_111[0];
     sVar3 = PlayerAvatar_GetState(fieldSystem->playerAvatar);
     bVar9 = sVar3 == 2;
     dest->side = bVar9;

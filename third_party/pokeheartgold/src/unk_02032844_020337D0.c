@@ -6,7 +6,11 @@ void sub_020331CC(void *wm_portrecvcallback);
 
 void sub_020337D0(WirelessManagerRecvFunc recvFunction, s32 port);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203314C(u16 *, u16, u16, void *);
+#else
 s32 sub_0203314C(u16 *, s32, s32, void *);
+#endif
 u16 sub_020338F4(void);
 s32 sub_02033800(void *arg0, s32 arg1, s32 arg2, void *arg3);
 s32 sub_02033108(void);

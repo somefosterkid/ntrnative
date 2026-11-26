@@ -2,7 +2,11 @@
 #include "message_format.h"
 #include "overlay_112_sprite_app.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021F1488(s32, u16 *, u8, s32);
+#else
 s32 ov112_021F1488(s32, u16 *, s32, s32);
+#endif
 
 s32 ov112_021F1548(s32, s32, s32);
 

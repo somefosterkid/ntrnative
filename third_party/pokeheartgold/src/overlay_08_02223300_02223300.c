@@ -6,17 +6,17 @@ struct BattleBag;
 
 s32 ov08_02223248(void *, s32);
 
-s32 ov08_022232AC();
+void ov08_022232AC(void *battleBag, int screen);
 
-s32 ov08_022233DC(void *, u8);
+s32 ov08_022233DC(void *, int);
 
 s32 ov08_02223454(void *);
 
 s32 ov08_02223480(void *, s32);
 
-s32 ov08_02223F94(void *, u8);
+s32 ov08_02223F94(void *, int);
 
-s32 ov08_02224134(void *, u8);
+s32 ov08_02224134(void *, int);
 
 s32 ov08_0222421C(void *, s32);
 
@@ -25,7 +25,7 @@ s32 ov08_02224A50(void *, s32);
 void ov08_02223300(struct BattleBag *arg0, u8 arg1);
 
 void ov08_02223300(BattleBag *arg0, u8 arg1) {
-    ov08_022232AC();
+    ov08_022232AC(arg0, arg1);
     ov08_02223248(arg0, arg1);
     BgFillTilemapBufferAndSchedule(arg0->background, 4U, 0U);
     BgFillTilemapBufferAndSchedule(arg0->background, 5U, 0U);

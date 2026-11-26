@@ -5,13 +5,6 @@
 #include "sprite.h"
 #include "overlay_70_gtsapplication_state.h"
 
-typedef struct PokemonIcon {
-    int tileData;
-    int paletteIndex;
-    Sprite *sprite;
-    u8 vramOffset[512];
-} PokemonIcon;
-
 void ov70_0223E0BC(int species, int form, int isEgg, int iconIndex, Sprite *sprite, NARC *narc, PokemonIcon *monIcon);
 
 void ov70_0223E170(BoxPokemon *boxMon, Sprite *iconSprite, Sprite *itemSprite, u16 *species, int iconIndex, NARC *narc, GTSPokemonCriteria *criteria, PokemonIcon *monIcon);

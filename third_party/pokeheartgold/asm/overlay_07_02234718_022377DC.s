@@ -326,27 +326,33 @@
 
 
 
-	.rodata
+	.data
 	.balign 4, 0
 	.global ov07_022377DC
-ov07_022377DC: ; 0x022377DC
-	.byte 0x40, 0x00, 0x20, 0x00
-	.byte 0xC0, 0x00, 0xE0, 0x00, 0x28, 0x00, 0x20, 0x00, 0xD8, 0x00, 0xE0, 0x00, 0x50, 0x00, 0x20, 0x00
-	.byte 0xB0, 0x00, 0xE0, 0x00
+ov07_022377DC:
+	.global hgasset_asm_overlay_07_02234718_022377DC_s_ov07_022377DC
+	.set hgasset_asm_overlay_07_02234718_022377DC_s_ov07_022377DC, ov07_022377DC ; 0x022377DC
+	.byte 0, 0x00, 0, 0x00
+	.byte 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00, 0, 0x00
+	.byte 0, 0x00, 0, 0x00
 
 	.global ov07_022377F4
-ov07_022377F4: ; 0x022377F4
-	.short 0x0150, 0x0070, 0xFE00
-	.short 0xFFB0, 0x0032, 0xFD80
-	.short 0x013C, 0x0070, 0xFE00
-	.short 0xFFC4, 0x0032, 0xFF9C
-	.short 0x0164, 0x0078, 0x0000
-	.short 0xFF9C, 0x002A, 0xFD80
+ov07_022377F4:
+	.global hgasset_asm_overlay_07_02234718_022377DC_s_ov07_022377F4
+	.set hgasset_asm_overlay_07_02234718_022377DC_s_ov07_022377F4, ov07_022377F4 ; 0x022377F4
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0x0000
+	.short 0, 0, 0
 	.global ov07_02237818
 ov07_02237818:
-	.short 0xFFB0, 0x0070, 0xFE00
-	.short 0x0150, 0x0032, 0xFD80
-	.short 0xFFB0, 0x0070, 0xFE00
-	.short 0x0150, 0x0032, 0xFD80
-	.short 0xFFB0, 0x0070, 0xFE00
-	.short 0x0150, 0x0032, 0xFD80
+	.global hgasset_asm_overlay_07_02234718_022377DC_s_ov07_02237818
+	.set hgasset_asm_overlay_07_02234718_022377DC_s_ov07_02237818, ov07_02237818
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0
+	.short 0, 0, 0

@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "overlay_45_wifi_plaza_api.h"
 #include "gf_gfx_planes.h"
 #include "unk_02026E30.h"
 #include "overlay_45_thumb.h"
@@ -115,7 +117,6 @@ void ov49_0225AA2C(UnkStruct_ov70_0225DEE8 *arg0) {
     ov49_0225A7C0(&arg0->unk_3C);
 }
 
-s32 ov45_0222A394(void *);
 
 s32 ov45_0222F294(s32);
 

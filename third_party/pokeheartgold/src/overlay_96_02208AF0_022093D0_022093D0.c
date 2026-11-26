@@ -7,9 +7,9 @@
 
 u16 ov96_0220AD4C(void *arg0);
 
-u32 ov96_022093D0(PokeathlonCourseData *param_1);
+BOOL ov96_022093D0(PokeathlonCourseData *param_1, u8 *unused);
 
-u32 ov96_022093D0(PokeathlonCourseData *param_1) {
+BOOL ov96_022093D0(PokeathlonCourseData *param_1, u8 *unused) {
     u16 value;
     Ov96_0220Data *pvVar2;
     BOOL BVar3;

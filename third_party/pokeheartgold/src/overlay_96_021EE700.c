@@ -14,7 +14,11 @@
 void ov96_021EE700(Window *arg0, MsgData *arg1, String *arg2, s32 arg3, enum Font arg4);
 
 Ov96TextBox *ov96_021EE740(enum HeapID arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021EE944.c (tools/pokehg_abi.py)
+void ov96_021EE9D8(BgConfig *, int, enum HeapID);
+#else
 s32 ov96_021EE9D8(BgConfig *, u8, enum HeapID);
+#endif
 void ov96_021EE75C(Ov96TextBox *arg0, BgConfig *arg1, s32 arg2, s32 arg3, SaveData *arg4);
 void ov96_021EE808(Ov96TextBox *ptr);
 

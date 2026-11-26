@@ -620,6 +620,7 @@ if build_plat
                 meson.current_source_dir() / 'game/route_gen4.c', meson.current_source_dir() / 'game/speed_gen4.c',
                 gen_dir / 'ovltab.c']
   main_files += meson.current_source_dir() / 'game/speed_gen4_spd3.c'   # Save speed, battle intro (spd3)
+  main_files += meson.current_source_dir() / 'game/save_gen4.c'   # Save first (docs/save-first.md)
   foreach s : pl_sources
     if s not in ovl_files
       main_files += s
@@ -750,6 +751,7 @@ if build_hg
   main_files = [meson.current_source_dir() / 'game/game_table.c', meson.current_source_dir() / 'game/route_gen4.c',
                 meson.current_source_dir() / 'game/speed_gen4.c', gen_dir / 'ovltab.c']
   main_files += meson.current_source_dir() / 'game/speed_gen4_spd3.c'   # Save speed, battle intro (spd3)
+  main_files += meson.current_source_dir() / 'game/save_gen4.c'   # Save first (docs/save-first.md)
   foreach s : run_command(python, repo / 'tools/pokehg_cc.py', '--nonmatching', check: true).stdout().strip().split('\n')
     if s not in hg_skip
       main_files += s
@@ -802,8 +804,9 @@ if build_hg
   hg_data = custom_target('hg_data',
     output: 'hg_data.o',
     depend_files: [repo / 'tools/pokehg_asm.py'] + (fs.exists(hg_root / 'port/asmdata/LABELS.txt') ? [hg_root / 'port/asmdata/LABELS.txt'] : []),
+    depfile: 'hg_data.o.d',   # (every data .s and what it includes: a re-pin that changes a table rebuilds it, rp6)
     command: [python, repo / 'tools/pokehg_asm.py', '--cc', ' '.join(b2_ld) + (build_target == 'win64' ? '' : ' -Wa,--noexecstack'),
-              '-o', '@OUTPUT@'])
+              '-o', '@OUTPUT@', '--depfile', '@DEPFILE@'])
   hg_objs += custom_target('hg_o',
     output: 'hg.o',
     input: libs + [hg_data],
@@ -842,17 +845,24 @@ vcore_srcs = run_command(python, repo / 'port/vcore/list_sources.py', repo / 'po
                          check: true).stdout().strip().split('\n')
 vcore_inc = include_directories('vcore/include', 'vcore/src')
 vcore_opts = ['c_std=c11', 'optimization=2', 'warning_level=0']
+# The four cores (vcore, acore, gpu, the bridges) and their unit tests (port/vcore, port/acore: the same three flags in
+# their meson.build) build with the game's settings where they decide a result: signed overflow wraps and no type-punning
+# assumption (the cores read packed DS data through casts), and no fused multiply-add: clang contracts a*b+c on arm64
+# (FMA is baseline there; x86-64 has none), which moved float results by an ulp between the PC and the phones
+core_cargs = ['-fno-strict-aliasing', '-fwrapv', '-ffp-contract=off']
 # vcore renders the 3D, engine B and engine A on threads, the bridge pipelines frames on one more (p20_frame.c, vcore_bridge.c)
 vcore_threads = dependency('threads', native: true)
 vcore_lib = static_library('vcore', vcore_srcs,
   include_directories: vcore_inc,
   override_options: vcore_opts,
+  c_args: core_cargs,
   implicit_include_directories: false,
   dependencies: vcore_threads,
   native: true)
 vbridge = static_library('vbridge', 'bridge/vcore_bridge.c',
   include_directories: vcore_inc,
   override_options: vcore_opts,
+  c_args: core_cargs,
   implicit_include_directories: false,
   native: true)
 
@@ -867,12 +877,13 @@ acore_lib = static_library('acore', acore_srcs,
   include_directories: acore_inc,
   override_options: acore_opts,
   # Apple: its ARM7 tables in group s's section, for tools/port_romfill.py (port/machine/macos_rom_section.h)
-  c_args: is_mac ? ['-DBWPORT_ROM_SHARED', '-include', meson.current_source_dir() / 'machine/macos_rom_section.h'] : [],
+  c_args: core_cargs + (is_mac ? ['-DBWPORT_ROM_SHARED', '-include', meson.current_source_dir() / 'machine/macos_rom_section.h'] : []),
   implicit_include_directories: false,
   native: true)
 abridge = static_library('abridge', 'bridge/acore_bridge.c',
   include_directories: acore_inc,
   override_options: acore_opts,
+  c_args: core_cargs,
   dependencies: vcore_threads,
   implicit_include_directories: false,
   native: true)
@@ -901,7 +912,7 @@ gpu_inc = include_directories('gpu/include', 'gpu/src', 'bridge/glinc', 'vcore/i
 # gpu_msl.py embed fails the build when a GLSL input changed since: docs/gpu-backends.md M1) and the bridge's Metal half
 # (bridge/gpu_bridge_mtl.m: under Present=metal the GPU renderer draws with it). Other platforms: as before.
 gpu_mtl_srcs = []
-gbridge_srcs = ['bridge/gpu_bridge.c']
+gbridge_srcs = ['bridge/gpu_bridge.c', 'bridge/diag_rec.c']   # (diag_rec.c: Record diagnostics, started by the platforms' buttons)
 gpu_mtl_args = []
 if is_mac
   add_languages('objc', native: true)
@@ -919,15 +930,15 @@ gpu_lib = static_library('gpu', gpu_srcs, gpu_shaders_c, gpu_mtl_srcs,
   override_options: vcore_opts,
   implicit_include_directories: false,
   dependencies: vcore_threads,
-  c_args: gpu_mtl_args,
-  objc_args: gpu_mtl_args + ['-fobjc-arc'],
+  c_args: gpu_mtl_args + core_cargs,
+  objc_args: gpu_mtl_args + core_cargs + ['-fobjc-arc'],
   native: true)
 gbridge = static_library('gbridge', gbridge_srcs,
   include_directories: gpu_inc,
   override_options: vcore_opts,
   implicit_include_directories: false,
-  c_args: is_mac ? ['-DBR_METAL'] : [],
-  objc_args: ['-fobjc-arc'],
+  c_args: core_cargs + (is_mac ? ['-DBR_METAL'] : []),
+  objc_args: core_cargs + ['-fobjc-arc'],
   native: true)
 
 # win64 builds as the build machine's (native: true), so meson would give the exe no suffix

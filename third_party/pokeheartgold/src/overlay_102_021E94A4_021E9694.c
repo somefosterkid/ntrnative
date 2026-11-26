@@ -36,7 +36,7 @@ void ov102_021E9694(SysTask *param0, UnkStruct_ov102_021E9694_param1 *param1) {
     s32 v3;
     void *ptr;
     void *v1;
-    void *v2;
+    Ov102App_021E937C *v2;
 
     v0 = param1->unk_14;
     v2 = param1->unk_0;
@@ -55,23 +55,23 @@ void ov102_021E9694(SysTask *param0, UnkStruct_ov102_021E9694_param1 *param1) {
             ov102_021E937C(param1->unk_0);
             v3 = 0;
             do {
-                ptr = ((Ov102App_021E937C *)v2)->unk_1D0[v3];
+                ptr = v2->unk_1D0[v3];
                 if (ptr != NULL) {
                     Heap_Free(ptr);
                 }
-                v1 = ((Ov102App_021E937C *)v2)->unk_1D8[v3];
+                v1 = v2->unk_1D8[v3];
                 if (v1 != NULL) {
                     Heap_Free(v1);
                 }
                 v3 += 1;
             } while (v3 < 2);
             FontID_Release(FONT_SUBSCREEN);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 0U);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 1U);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 2U);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 3U);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 4U);
-            FreeBgTilemapBuffer(*(BgConfig **)((u8 *)v2 + 0x20), 5U);
+            FreeBgTilemapBuffer(v2->unk_20, 0U);
+            FreeBgTilemapBuffer(v2->unk_20, 1U);
+            FreeBgTilemapBuffer(v2->unk_20, 2U);
+            FreeBgTilemapBuffer(v2->unk_20, 3U);
+            FreeBgTilemapBuffer(v2->unk_20, 4U);
+            FreeBgTilemapBuffer(v2->unk_20, 5U);
             reg_GX_POWCNT |= REG_GX_POWCNT_DSEL_MASK;
             ov102_021E94A4(param1);
         }

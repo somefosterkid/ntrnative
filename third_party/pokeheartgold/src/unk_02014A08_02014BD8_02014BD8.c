@@ -6,7 +6,7 @@ void sub_02014A38(BufferManager *bufferManager);
 
 void sub_02014B9C(ScreenScrollManager *screenScrollMgr);
 
-s32 sub_02014D68();
+void sub_02014D68(void);
 
 void sub_02014BD8(ScreenScrollManager *screenScrollMgr);
 

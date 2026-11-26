@@ -4,7 +4,7 @@
 
 s32 sub_02014A60(void *);
 
-s32 sub_02014AA0();
+void sub_02014AA0(void);
 
 s32 sub_02014AB0(s32, void *, s32, s32);
 

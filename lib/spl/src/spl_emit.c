@@ -8,6 +8,15 @@
 #include "spl/spl.h"
 #include "spl_internal.h"
 
+// The DS's divide by zero returns the dividend (_s32_div_f: r0 stays the dividend, r1 = 0) and x86 traps (port/src/ds_divide.c
+// catches it); arm64's sdiv gives 0. A particle resource with a life time of 1 makes a child's loop time (life / 2) 0.
+// The ROM's code is unchanged: only the host build takes the first form.
+#if !defined(__MWERKS__) && !defined(__arm__)
+#define SPL_DIV(n, d) ((d) == 0 ? (n) : (n) / (d))
+#else
+#define SPL_DIV(n, d) ((n) / (d))
+#endif
+
 // The emission of particles: where they start, and their velocities, scales, colors, rotations and life times
 
 // The emitter's cross axes: two unit vectors orthogonal to its emission axis and each other
@@ -274,8 +283,8 @@ void func_020569a4(SPLEmitter *emitter, SPLList *freeList) {
             particle->texture = header->texture;
         }
 
-        particle->loopTimeFactor = 0xffff / resource->header->loopTime;
-        particle->lifeTimeFactor = 0xffff / particle->lifeTime;
+        particle->loopTimeFactor = SPL_DIV(0xffff, resource->header->loopTime);
+        particle->lifeTimeFactor = SPL_DIV(0xffff, particle->lifeTime);
         particle->lifeRateOffset = 0;
         if (header->flags.randomLoopOffset) {
             particle->lifeRateOffset = SPLRandom_Next() >> 24;
@@ -337,8 +346,8 @@ void func_02056684(SPLParticle *parent, SPLEmitter *emitter, SPLList *freeList) 
         particle->age = 0;
         particle->texture = child->texture;
         // From the parent's life time, not the child's
-        particle->loopTimeFactor = 0xffff / (parent->lifeTime / 2);
-        particle->lifeTimeFactor = 0xffff / parent->lifeTime;
+        particle->loopTimeFactor = SPL_DIV(0xffff, parent->lifeTime / 2);
+        particle->lifeTimeFactor = SPL_DIV(0xffff, parent->lifeTime);
         particle->lifeRateOffset = 0;
     }
 }

@@ -7,7 +7,7 @@
 
 s32 ov01_021FA44C(s32 arg0);
 
-s32 ov01_021F8C88(LocalMapObject *, Billboard *);
+void ov01_021F8C88(LocalMapObject *, Billboard *);
 
 s32 sub_02023EE0(Billboard *, s32);
 

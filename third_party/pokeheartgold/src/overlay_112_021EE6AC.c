@@ -11,18 +11,8 @@ struct OverlayManager;
 
 BOOL ov112_021EE6AC(OverlayManager *appMan, int *state);
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-s32 ov112_021EA5A4(void *, s32);
-s32 ov112_021EE6B0(Ov112PokewalkerApp *arg0);
-s32 ov112_021EA17C(Ov112PokewalkerApp *);
-s32 ov112_021EE6D0(Ov112PokewalkerApp *arg0);
-s32 ov112_021EE6F8(Ov112PokewalkerApp *arg0);
-s32 ov112_021EA19C();
-s32 ov112_021EE70C(void);
-s32 ov112_021EE718(Ov112PokewalkerApp *arg0);
-s32 ov112_021EE73C(Ov112PokewalkerApp *arg0);
-s32 ov112_021EE754(Ov112PokewalkerApp *arg0);
-s32 ov112_021EE778(Ov112PokewalkerApp *arg0);
+void ov112_021EA19C(Ov112PokewalkerApp *arg0);
+s32 ov112_021EE70C(Ov112PokewalkerApp *arg0);
 
 BOOL ov112_021EE6AC(OverlayManager *appMan, int *state) {
     return 1;
@@ -48,8 +38,8 @@ s32 ov112_021EE6F8(Ov112PokewalkerApp *arg0) {
     return 3;
 }
 
-s32 ov112_021EE70C(void) {
-    ov112_021EA19C();
+s32 ov112_021EE70C(Ov112PokewalkerApp *arg0) {
+    ov112_021EA19C(arg0);
     return 4;
 }
 

@@ -1,4 +1,7 @@
 #include "global.h"
+
+#include "overlay_49_getters.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
 #include "simple3dmodel.h"
@@ -1421,30 +1424,25 @@ typedef struct TVWifiEpisode {
     TVSegmentInstance details;
 } TVWifiEpisode;
 
-const ListMenuItem *ov49_02259FE8(const UnkStruct_ov70_0225EC20 *param0);
-fx32 ov49_02259FEC(Camera const *camera);
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 UnkStruct_ov70_02261E10 *ov49_02259FF8(UnkStruct_ov70_0225DEE8 *param0);
 UnkStruct_ov70_0225C894 *ov49_0225A000(UnkStruct_ov70_0225DEE8 *param0);
 UnkStruct_ov70_02260AD4 *ov49_0225A008(UnkStruct_ov70_0225DEE8 *param0);
-UnkStruct_ov70_022630A4 *ov49_0225A010(UnkStruct_ov70_0225DEE8 *param0);
 void ov49_0225A018(UnkStruct_ov70_0225DEE8 *param0, BOOL param1);
-u8 ov49_0225A02C(BattleFactoryAppCursor *cursor);
 BOOL ov49_0225A030(PoketchSystem *poketchSys);
 void ov49_0225A034(UnkStruct_ov115_02261C18 *param0, BOOL param1);
 void ov49_0225A038(DistWorldMovingPlatformPropAnimator *animator, BOOL preventDeletion);
 void ov49_0225A03C(UnkStruct_ov70_0225DEE8 *param0, u8 param1);
 int ov49_0225A040(const TVWifiEpisode *param0);
 
-const ListMenuItem *ov49_02259FE8(const UnkStruct_ov70_0225EC20 *param0) {
+WiFiPlazaSystem *ov49_02259FE8(const UnkStruct_ov70_0225DEE8 *param0) {
     return param0->unk_34;
 }
 
-fx32 ov49_02259FEC(Camera const *camera) {
-    return camera->distance;
+UnkStruct_ov70_02263910 *ov49_02259FEC(const UnkStruct_ov70_0225DEE8 *param0) {
+    return param0->unk_38;
 }
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0) {
+UnkStruct_ov70_0225CA20 *ov49_02259FF0(const UnkStruct_ov70_0225DEE8 *param0) {
     return param0->unk_444;
 }
 
@@ -1460,7 +1458,7 @@ UnkStruct_ov70_02260AD4 *ov49_0225A008(UnkStruct_ov70_0225DEE8 *param0) {
     return param0->unk_450;
 }
 
-UnkStruct_ov70_022630A4 *ov49_0225A010(UnkStruct_ov70_0225DEE8 *param0) {
+UnkStruct_ov70_022630A4 *ov49_0225A010(const UnkStruct_ov70_0225DEE8 *param0) {
     return param0->unk_454;
 }
 
@@ -1468,8 +1466,8 @@ void ov49_0225A018(UnkStruct_ov70_0225DEE8 *param0, BOOL param1) {
     param0->unk_04_0 = param1;
 }
 
-u8 ov49_0225A02C(BattleFactoryAppCursor *cursor) {
-    return cursor->currentSlot;
+u8 ov49_0225A02C(const UnkStruct_ov70_0225DEE8 *param0) {
+    return param0->unk_02;
 }
 
 BOOL ov49_0225A030(PoketchSystem *poketchSys) {

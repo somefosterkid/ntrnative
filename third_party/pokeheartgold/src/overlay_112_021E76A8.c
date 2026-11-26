@@ -15,27 +15,14 @@ struct Ov112PokewalkerApp;
 
 s32 ov112_021E59A8(void);
 
-
 s32 ov112_021E76A8(void);
 
-void ov112_021E7768(Ov112PokewalkerApp *arg0);
-s32 ov112_021E795C(Ov112PokewalkerApp *);
 s32 ov112_021E76CC(OverlayManager *arg0);
 void ov112_021E79A8(void *);
 s32 ov112_021E79D0(void);
 s32 ov112_021E79F0(BgConfig *);
-s32 ov112_021E7B18(void *);
-s32 ov112_021E7C18(void *);
-s32 ov112_021E9A78(void *, u8);
-s32 ov112_021E9C98(Ov112PokewalkerApp *);
-s32 ov112_021EA1AC(Ov112PokewalkerApp *);
-s32 ov112_021EA4F4(Ov112PokewalkerApp *);
 s32 ov112_021E7AC8(BgConfig *);
-s32 ov112_021E7C6C(struct Ov112PokewalkerApp *);
-s32 ov112_021E9C10(void *, s32);
-s32 ov112_021E9E30(Ov112PokewalkerApp *);
-s32 ov112_021EA1F8(Ov112PokewalkerApp *arg0);
-void ov112_021E77E4(Ov112PokewalkerApp *arg0);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32);
 
 s32 ov112_021E76A8(void) {
     s32 v0;

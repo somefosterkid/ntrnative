@@ -3,7 +3,11 @@
 #include "pokeathlon/pokeathlon.h"
 #include "overlay_96_unk_struct_ov96_021_f5018.h"
 
-s32 ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+#else
+void ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
+#endif
 
 void ov96_021EAF78(void *, s32, s32, s32 *, s32 *, s32 *);
 

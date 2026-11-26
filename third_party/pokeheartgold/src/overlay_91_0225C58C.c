@@ -10,16 +10,10 @@
 #include "screen_fade.h"
 #include "screen_fade_internal.h"
 #include "save_wifi_history.h"
+#include "overlay_91_unk_struct_ov66_02230dbc.h"
+#include "overlay_91_unk_struct_ov115_02260440.h"
 
 // ov91-93 view of the Wi-Fi Plaza launch record: 0x34 here (embedded by value), the header copy is 0x3c
-typedef struct UnkStruct_ov66_02230DBC {
-    u32 unk_00;
-    UnkStruct_ov66_0222E294 unk_04;
-    UnkStruct_ov66_02232068 unk_08;
-    BOOL unk_1C;
-    struct PlayerProfile *unk_20[4];
-    WiFiPlazaSystem *unk_30;
-} UnkStruct_ov66_02230DBC;
 
 struct OverlayManager;
 
@@ -240,14 +234,6 @@ u32 ov115_02261274(const UnkStruct_ov115_02260D78 *param0);
 void ov115_022612BC(UnkStruct_ov115_02260D78 *param0, const UnkStruct_ov115_022612BC *param1);
 
 void sub_020971F8(UnkStruct_ov115_0226095C *param0);
-
-typedef struct {
-    UnkStruct_ov66_02230DBC unk_00;
-    SaveData *saveData;
-    u8 unk_38;
-    u8 unk_39;
-    u8 padding[2];
-} UnkStruct_ov115_02260440;
 
 int sub_020347A0(void);
 

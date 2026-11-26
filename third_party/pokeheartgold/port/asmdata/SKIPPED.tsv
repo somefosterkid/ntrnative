@@ -42,8 +42,6 @@ ov102_021EC788	INT_RELOC	relocation in an integer field (type u32 holds a pointe
 ov10_0222B0B4	STRUCT_PTR	DS compile error: use of undeclared identifier 'MAX_MOVES'
 ov112_021FF54C	STRUCT_PTR	extent 4 is not a whole number of 12-byte elements
 ov14_021F7D50	INT_RELOC	relocation in an integer field (type unsigned char holds a pointer): the C type has to become a pointer
-ov14_021F7D74	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
-ov14_021F7D78	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
 ov18_021FBE10	INT_RELOC	asm object has 40 non-padding bytes after the C type
 ov27_0225CED8	INT_RELOC	long field (LP64-dependent)
 ov27_0225CF3C	INT_RELOC	long field (LP64-dependent)
@@ -75,11 +73,7 @@ ov45_02254E88	PTRARR	declaration not found in the translation unit of src/overla
 ov45_02254EBC	PTRARR	declaration not found in the translation unit of src/overlay_45_thumb_0222C3A8_0222CDE4_0222CDE4.c
 ov45_02254F1C	PTRARR	declaration not found in the translation unit of src/overlay_45_thumb_022302E4_02230C40_02230CB0.c
 ov47_02259FB0	PTRARR	DS compile error: unknown type name 'UnkUnion_ov68_0225CCA8'
-ov49_02269B48	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov49_02269B50	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov49_02269B68	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov49_02269B88	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
-ov49_02269BE0	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
+ov64_021E6EA8	INT_RELOC	relocation in an integer field (type unsigned char holds a pointer): the C type has to become a pointer
 ov68_021E7D3C	INT_RELOC	declaration not found in the translation unit of src/overlay_68_021E6078_021E6078.c
 ov68_021E7D40	INT_RELOC	declaration not found in the translation unit of src/overlay_68_021E6078_021E6078.c
 ov70_022463EC	PTRARR	DS compile error: unknown type name 'GTSApplicationState'
@@ -120,22 +114,9 @@ ov80_0223BDEC	STRUCT_PTR	declaration not found in the translation unit of src/ov
 ov80_0223BE34	STRUCT_PTR	declaration not found in the translation unit of src/overlay_80_02231BF8_02231C8C.c
 ov80_0223BE44	STRUCT_PTR	declaration not found in the translation unit of src/overlay_80_02231BF8_02231DF8_02231DF8.c
 ov85_021EA51C	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
-ov86_021E7EA8	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
-ov86_021E7EB8	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
 ov90_0225C4FC	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
 ov91_02262754	INT_RELOC	label has no asm layout (not in an analysed asm object)
-ov96_0221A808	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov96_0221A844	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov96_0221A86C	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
-ov96_0221A8E4	INT_RELOC	relocation in an integer field (type unsigned char holds a pointer): the C type has to become a pointer
-ov96_0221AEC4	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
 ov96_0221D9A0	INT_RELOC	relocation in an integer field (type unsigned long holds a pointer): the C type has to become a pointer
-ov96_0221D9C8	INT_RELOC	relocation in an integer field (type unsigned char holds a pointer): the C type has to become a pointer
-ov96_0221DA28	INT_RELOC	relocation in an integer field (type unsigned long holds a pointer): the C type has to become a pointer
-ov96_0221DA50	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov96_0221DA5C	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov96_0221DA6C	INT_RELOC	relocation in an integer field (type unsigned char holds a pointer): the C type has to become a pointer
 ov96_0221DBC8	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
-ov96_0221DC24	INT_RELOC	relocation in an integer field (type u32 holds a pointer): the C type has to become a pointer
 ov96_0221DC68	INT_RELOC	relocation in an integer field (type s32 holds a pointer): the C type has to become a pointer
 sSecretPowerEffectTable	INT_RELOC	long field (LP64-dependent)

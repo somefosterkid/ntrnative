@@ -70,7 +70,7 @@ void ov96_0220B528(void *arg0, s32 arg1) {
     }
     ov96_0220BD38(arg0);
     temp_r2 = *((s32 *)(0x40 + ((u8 *)arg0)));
-    ov96_0220D2AC(arg0 + 0x34, ((u32)(temp_r2 << 0xB)) >> 0x15, (u8)(((u32)(temp_r2 << 0x1E)) >> 0x1E));
+    ov96_0220D2AC(&((UnkStruct_ov96_0220B9A8 *)arg0)->unk_34, ((u32)(temp_r2 << 0xB)) >> 0x15, (u8)(((u32)(temp_r2 << 0x1E)) >> 0x1E));
     ((UnkStruct_ov96_0220B528 *)(((u8 *)arg0) + 0x40))->cnt++;
     if (ManagedSprite_IsAnimated(((UnkStruct_ov96_0220B9A8 *)arg0)->spr10) != 0) {
         temp_r0_2 = (NNSG2dAnimController *)Sprite_GetCellAnim((((UnkStruct_ov96_0220B9A8 *)arg0)->spr10)->sprite);
@@ -87,13 +87,21 @@ void ov96_0220B528(void *arg0, s32 arg1) {
     }
 }
 
-s32 ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+#else
+void ov96_021E8228(PokeathlonCourseData *, u8, u8, s32, s32);
+#endif
 
 s32 ov96_0220C578(void *, s32);
 
 s32 ov96_0220C714(void *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0220C9CC_0220D07C_0220D33C.c (tools/pokehg_abi.py)
+s32 ov96_0220D33C(u32, u32);
+#else
 s32 ov96_0220D33C(u32, u16);
+#endif
 
 typedef struct UnkStruct_ov96_0220B634_Slot {
     u32 pad0 : 18;

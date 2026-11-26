@@ -9,13 +9,13 @@ s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 
 s32 ov14_021F3488(void *, s32, s32);
 
-s32 ov14_021F6654(u8 *, s32);
+void ov14_021F6654(struct UnkStruct_ov14_boxsys *param_1, s32 param_2);
 
 void ov14_021F2734(struct UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F2734(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F6654(*((void * *)&arg0->sys), 0x27);
-    ov14_021F2A18(*((void * *)&arg0->sys), 9, 0);
+    ov14_021F6654(arg0->sys, 0x27);
+    ov14_021F2A18(arg0->sys, 9, 0);
     ov14_021F3488(arg0, 1, 1);
     ov14_021F1090(arg0, 0x3F);
 }

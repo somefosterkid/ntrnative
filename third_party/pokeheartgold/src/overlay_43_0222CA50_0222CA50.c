@@ -3,7 +3,6 @@
 
 #include "bg_window.h"
 #include "overlay_43_unk_struct_ov64_0222_e21_c.h"
-#include "overlay_43_unk_struct_ov64_0222_f0_c4.h"
 #include "overlay_43_unk_struct_ov64_0222_e060.h"
 #include "overlay_43_unk_struct_ov64_0222_f038.h"
 #include "unk_0202C034.h"
@@ -15,6 +14,7 @@
 #include "list_menu.h"
 #include "overlay_43_unk_struct_ov64_02230904.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "font.h"
 #include "overlay_manager.h"
 #include "naming_screen.h"
@@ -254,8 +254,6 @@ int ov64_0222EA70(PalPadMenu *param0, PalPadShared *param1, PalPadGfx *param2, e
 
 void ov43_0222B4BC(PalPadMenu *param0, PalPadGfx *param1, u32 param2, enum HeapID heapID);
 
-void ov43_0222B5A8(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
-
 int ov64_0222F0C4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
 void ov43_0222BB20(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
@@ -268,7 +266,6 @@ BOOL ov64_0222FBA4(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2
 
 void ov64_0222FC1C(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, enum HeapID heapID);
 
-void ov43_0222C378(PalPadRoster *param0, PalPadShared *param1, PalPadGfx *param2, s16 param3, u32 param4, u32 param5, enum HeapID heapID);
 
 void ov43_0222C550(PalPadRoster *param0, PalPadGfx *param1, u32 param2, enum HeapID heapID);
 

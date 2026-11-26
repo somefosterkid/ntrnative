@@ -9,7 +9,11 @@
 /* HDR-OVERLAY end */
 #undef MailMsg_SetMsgBankAndNum
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void MailMsg_SetMsgBankAndNum(MailMessage *mailMessage, u16 msg_bank, u16 msg_no);
+#else
 void MailMsg_SetMsgBankAndNum(MailMessage *mailMessage, s16 msg_bank, u16 msg_no);
+#endif
 
 void ov102_021E79DC(void *arg0, MailMessage *arg1, s32 arg2);
 

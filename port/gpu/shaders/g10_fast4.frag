@@ -54,7 +54,7 @@ layout(location = 4) out uvec4 oA;
 G10_VARY(0) flat in ivec3 vA;
 G10_VARY(1) flat in ivec3 vB;
 G10_VARY(2) flat in ivec3 vC;
-G10_VARY(3) flat in ivec2 vO;
+G10_VARY(3) flat in ivec4 vO;
 G10_VARY(4) flat in vec3 vZ;
 G10_VARY(5) flat in vec3 vIW;
 G10_VARY(6) flat in vec3 vR;
@@ -71,7 +71,8 @@ float pl(vec3 p, vec2 d) { return p.x + p.y * d.x + p.z * d.y; }
 void main() {
   int k = vK;
   ivec2 P = ivec2(gl_FragCoord.xy);
-  ivec2 g0 = P * 4 + 1 - vO; // sample 0 in G relative to vertex 0
+  ivec2 g0 = P * 4 + 1 - vO.xy; // sample 0 in G relative to vertex 0
+  ivec2 blo = (vO.zw << 16) >> 16, bhi = vO.zw >> 16; // the polygon's box widened by the grow (g10_fast4.vert), G from vertex 0
   ivec3 E0 = vA * g0.x + vB * g0.y + vC;
   bvec3 tl = bvec3(uvec3(greaterThan(vA, ivec3(0))) | (uvec3(equal(vA, ivec3(0))) & uvec3(greaterThan(vB, ivec3(0)))));
   // the polygon's edges at the samples (2N pixels along the minor axis, positive inside), for the grown samples and the edge flags
@@ -90,15 +91,19 @@ void main() {
     vec3 amt = mix(vec3(0.984375), vec3(0.875), greaterThan(abs(ey), abs(ex)));
     gr = mix(vec3(0.0), amt, ptl);
   }
-  bool dg0 = ti != 1, dg2 = ti + 2 != nv;
-  uvec4 hit, grown = uvec4(0u);
+  bool dg0 = ti != 1, dg2 = ti + 2 != nv, sl = (vF & 4) != 0; // sl: a sliver (src/g10_fast.c), the gap between edge ti and the
+  uvec4 hit, grown = uvec4(0u);                                  // neighbours' corners outside it: its samples are grown ones
   for (int i = 0; i < 4; i++) {
     ivec3 E = E0 + vA * (2 * (i & 1)) + vB * (2 * (i >> 1));
     bvec3 in3 = bvec3(uvec3(greaterThan(E, ivec3(0))) | (uvec3(equal(E, ivec3(0))) & uvec3(tl)));
     hit[i] = all(in3) ? ~0u : 0u;
     vec3 e3 = e0 + ex * float(i & 1) + ey * float(i >> 1);
-    if (!all(in3) && nv > 0 && (in3.x || !dg0) && (in3.z || !dg2) && all(greaterThanEqual(e3, -gr))) grown[i] = ~0u;
+    ivec2 gi = g0 + 2 * ivec2(i & 1, i >> 1);
+    if (!all(in3) && !sl && nv > 0 && (in3.x || !dg0) && (in3.z || !dg2) && all(greaterThanEqual(e3, -gr)) &&
+        all(greaterThanEqual(gi, blo)) && all(lessThanEqual(gi, bhi)))
+      grown[i] = ~0u;
   }
+  if (sl) grown = hit;
   hit |= grown;
   if (all(equal(hit, uvec4(0u)))) G10_DISCARD; // (the attachments keep their values)
   uvec4 dep;

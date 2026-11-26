@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "overlay_81_battle_factory_app_args.h"
 #include "pokemon_summary_args.h"
 #include "field_system_def.h"
@@ -1074,7 +1076,6 @@ typedef struct Camera Camera;
 
 typedef void (*BattleFrontierSubAppCallback)(void *);
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 void *Frontier_GetData(BattleFrontier *frontier);
 

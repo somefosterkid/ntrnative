@@ -8,21 +8,11 @@
 #include "unk_0205BFF0.h"
 struct FrontierRecordsApp;
 
-void ov86_021E5FBC(struct FrontierRecordsApp *param_1, u32 param_2, s32 param_3);
-
-void ov86_021E6024(struct FrontierRecordsApp *param_1, s32 param_2, s32 param_3, u32 param_4, u32 param_5, enum Font param_6, u32 param_7, s32 param_8);
-
-void ov86_021E6064(struct FrontierRecordsApp *param_1, s32 param_2, s32 param_3, u32 param_4, u32 param_5, enum Font param_6, u32 param_7, s32 param_8);
-
 s32 ov86_021E6484(void *, u32);
 
 s32 sub_0205C01C(u32, u32);
 
 s32 sub_0205C074(u32, u32);
-
-void ov86_021E6114(FrontierRecordsApp *param_1);
-
-void ov86_021E62F4(FrontierRecordsApp *param_1);
 
 void ov86_021E6114(FrontierRecordsApp *param_1) {
     u16 uVar1;

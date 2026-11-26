@@ -307,7 +307,11 @@ struct UnkStruct_02095EAC_t {
     int unk_946C;
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 
 int sub_02037454(void);
 

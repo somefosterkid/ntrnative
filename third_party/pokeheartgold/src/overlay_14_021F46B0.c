@@ -18,7 +18,7 @@ void ov14_021F46B0(UnkStruct_ov14_boxapp *arg0, u8 *arg1, u32 arg2, s32 arg3, u3
     u8 v1;
 
     if (arg2 >= 0x10U) {
-        if (PCStorage_IsBonusWallpaperUnlocked(*((PCStorage * *)&arg0->storage), arg2 - 0x10) == 0) {
+        if (PCStorage_IsBonusWallpaperUnlocked(arg0->storage, arg2 - 0x10) == 0) {
             v1 = 0x28;
         } else {
             v1 = arg2 + 0x10;

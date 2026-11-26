@@ -18,7 +18,7 @@ s32 ov96_0220D408(UnkStruct_ov96_0220E3F0_6A8 *);
 s32 ov96_0220EFD0(u8 *, BgConfig *, enum HeapID);
 s32 ov96_0220F03C(PokeathlonCourseData *);
 s32 ov96_0220F1CC(PokeathlonCourseData *);
-s32 ov96_0220E2DC(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_0220E2DC(PokeathlonCourseData *arg0, u8 *arg1);
 
 void ov96_0220E2A8(PokeathlonCourseData *data) {
     u8 v0;
@@ -29,7 +29,7 @@ void ov96_0220E2A8(PokeathlonCourseData *data) {
     ov96_0220E9A0(data, v0);
 }
 
-s32 ov96_0220E2DC(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_0220E2DC(PokeathlonCourseData *data, u8 *arg1) {
     PokeathlonTally *v2;
     u8 v1;
     UnkStruct_ov96_0220E3F0 *v0;

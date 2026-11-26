@@ -156,6 +156,7 @@ static void fast_r(GpuCore *g, const GpuPrep *p, int ri, GpuU *u) {
     d.colorAttachments[4].loadAction = MTLLoadActionDontCare;
     d.colorAttachments[4].storeAction = MTLStoreActionDontCare;
   }
+  pt_render(d, "g10_fast");
   id<MTLRenderCommandEncoder> e = [cb() renderCommandEncoderWithDescriptor:d];
   e.label = @"g10_fast";
   [e setRenderPipelineState:f->clr->rp];

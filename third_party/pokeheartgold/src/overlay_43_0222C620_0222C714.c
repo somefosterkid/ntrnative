@@ -2,20 +2,18 @@
 
 #include "sprite.h"
 #include "unk_02005D10.h"
-#include "overlay_43_unk_struct_ov64_0222_f0_c4.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
-s32 ov43_0222C714(struct PalPadRoster *arg0);
-
-s32 ov43_0222C714(PalPadRoster *arg0) {
+BOOL ov43_0222C714(PalPadRoster *arg0, PalPadGfx *gfx) {
     u16 v0;
 
     if (Sprite_IsAnimated(arg0->deleteEffect) == 0) {
         return 1;
     }
     v0 = Sprite_GetAnimationFrame(arg0->deleteEffect);
-    if ((u32)(v0 - *((s32 *)&arg0->lastFrame)) >= 2U) {
-        *((s32 *)&arg0->lastFrame) = (s32)v0;
+    if ((u32)(v0 - arg0->lastFrame) >= 2U) {
+        arg0->lastFrame = v0;
         PlaySE(0x628U);
     }
     return 0;

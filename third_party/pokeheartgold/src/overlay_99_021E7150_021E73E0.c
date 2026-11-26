@@ -5,7 +5,11 @@
 
 s32 ov99_021E7198(BgConfig **, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov99_021E738C(BgConfig **, u8, u8);
+#else
 s32 ov99_021E738C(BgConfig **, s16, s16);
+#endif
 
 void ov99_021E73E0(BgConfig **arg0, s32 arg1, s32 arg2);
 

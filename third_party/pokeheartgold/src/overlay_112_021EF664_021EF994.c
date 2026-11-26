@@ -3,10 +3,6 @@
 #include "unk_02005D10.h"
 #include "overlay_112_pokewalker_app.h"
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EF994(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EF994(Ov112PokewalkerApp *arg0) {
     s32 v0;
 

@@ -15,7 +15,11 @@ void ov96_0220AE28(Ov96App_0220A87C *param_1) {
     return;
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov96_0220D13C(SpriteSystem *, SpriteManager *, s16, u8, u16, u16);
+#else
 ManagedSprite *ov96_0220D13C(SpriteSystem *, SpriteManager *, s32, s32, s32, s32);
+#endif
 
 UnkStruct_ov96_0220B148 *ov96_0220AE40(enum HeapID arg0, SpriteSystem *arg1, SpriteManager *arg2, s32 arg3);
 

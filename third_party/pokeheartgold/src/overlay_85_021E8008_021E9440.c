@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "overlay_85.h"
+#include "overlay_85_ov109_021D5140.h"
 
 s32 ov85_021E943C(s32);
 

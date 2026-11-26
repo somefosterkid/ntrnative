@@ -12,10 +12,10 @@ s32 ov14_021F6B28(void *, s32);
 u32 ov14_021F6BC0(UnkStruct_ov14_boxapp *arg0) {
     s32 nextInput;
     u32 v0;
-    void *v1;
+    UnkStruct_ov14_boxsys *v1;
     nextInput = GridInputHandler_GetNextInput(arg0->sys->unk_2C);
     v0 = (u32)GridInputHandler_HandleInput_AllowHold(arg0->sys->unk_2C);
-    v1 = *((void * *)&arg0->sys);
+    v1 = arg0->sys;
     if (v0 < 0xCU) {
         if (ov14_021E8544(arg0->sys->unk_2F0) == 0) {
             if ((v0 >= 7U) && (v0 <= 0xBU)) {

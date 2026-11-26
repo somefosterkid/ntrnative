@@ -9,7 +9,7 @@ s32 ov96_0220BFB4(void *, s32);
 
 s32 ov96_0220C768(ManagedSprite *, s32, s32);
 
-s32 ov96_0220C8B8(ManagedSprite *, s32, s32, s32);
+void ov96_0220C8B8(ManagedSprite *, s32, s32, s32);
 
 typedef struct {
     u32 unk0_0 : 8;

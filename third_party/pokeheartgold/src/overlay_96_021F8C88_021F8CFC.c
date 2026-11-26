@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "sprite.h"
+#include "unk_02013534.h"
 
 void sub_02013728(u32);
 

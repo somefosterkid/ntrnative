@@ -8,15 +8,7 @@
 #include "unk_02030A98.h"
 struct FrontierRecordsApp;
 
-void ov86_021E5FBC(struct FrontierRecordsApp *, u32, s32);
-
-void ov86_021E6024(struct FrontierRecordsApp *, u32, u32, u32, u32, u32, u32, u32);
-
-void ov86_021E6064(struct FrontierRecordsApp *, u32, u32, u32, u32, u32, u32, u32);
-
 u32 ov86_021E6A34(FrontierRecordsApp *param_1);
-
-void ov86_021E690C(FrontierRecordsApp *param_1);
 
 void ov86_021E690C(FrontierRecordsApp *param_1) {
     u8 bVar1;
@@ -26,7 +18,7 @@ void ov86_021E690C(FrontierRecordsApp *param_1) {
     FillWindowPixelBuffer(param_1->windows, 0);
     FillWindowPixelBuffer(&param_1->windows[1], 0);
     FillWindowPixelBuffer(&param_1->windows[2], 0);
-    ov86_021E6024(param_1, 0, 0x19, 0, 0, 0, 0xf0200, 0);
+    ov86_021E6024(param_1, 0, 0x19, 0, 0, FONT_SYSTEM, 0xf0200, 0);
     if (param_1->challengeType == 0) {
         uVar3 = 0x1a;
     } else if (param_1->challengeType == 1) {
@@ -34,18 +26,18 @@ void ov86_021E690C(FrontierRecordsApp *param_1) {
     } else {
         uVar3 = 0x1c;
     }
-    ov86_021E6024(param_1, 0, uVar3, 0xe0, 0, 0, 0xf0200, 1);
+    ov86_021E6024(param_1, 0, uVar3, 0xe0, 0, FONT_SYSTEM, 0xf0200, 1);
     uVar3 = ov86_021E6A34(param_1);
-    ov86_021E6024(param_1, 1, uVar3, 0, 0, 0, 0x10200, 0);
+    ov86_021E6024(param_1, 1, uVar3, 0, 0, FONT_SYSTEM, 0x10200, 0);
     bVar1 = sub_0205C2C0((u32) * &param_1->challengeType);
     uVar2 = FrontierSave_GetStat(param_1->frontierSave, (u32)bVar1, 0xff);
     ov86_021E5FBC(param_1, 0, uVar2);
-    ov86_021E6064(param_1, 1, 0x37, 0x70, 0, 0, 0x10200, 2);
-    ov86_021E6024(param_1, 2, 0x2b, 0, 0, 0, 0x10200, 0);
+    ov86_021E6064(param_1, 1, 0x37, 0x70, 0, FONT_SYSTEM, 0x10200, 2);
+    ov86_021E6024(param_1, 2, 0x2b, 0, 0, FONT_SYSTEM, 0x10200, 0);
     bVar1 = sub_0205C2E8((u32) * &param_1->challengeType);
     uVar2 = FrontierSave_GetStat(param_1->frontierSave, (u32)bVar1, 0xff);
     ov86_021E5FBC(param_1, 0, uVar2);
-    ov86_021E6064(param_1, 2, 0x37, 0x70, 0, 0, 0x10200, 2);
+    ov86_021E6064(param_1, 2, 0x37, 0x70, 0, FONT_SYSTEM, 0x10200, 2);
     ScheduleWindowCopyToVram(param_1->windows);
     ScheduleWindowCopyToVram(&param_1->windows[1]);
     ScheduleWindowCopyToVram(&param_1->windows[2]);

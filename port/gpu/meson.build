@@ -9,6 +9,8 @@ project('gpu', 'c', default_options: ['c_std=c11', 'warning_level=2', 'buildtype
 
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(['-Wno-unused-parameter', '-Wno-unused-function']), language: 'c')
+# the same three flags as the port's build of the core (port/meson.build core_cargs)
+add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing', '-fwrapv', '-ffp-contract=off']), language: 'c')
 
 python = find_program('python3')
 fs = import('fs')
@@ -90,3 +92,5 @@ executable('gpu_crack', 'tools/gpu_crack.c', dependencies: gpu_dep)
 executable('gpu_pxdiff', 'tools/gpu_pxdiff.c', dependencies: gpu_dep)
 executable('gpu_fastdiff', 'tools/gpu_fastdiff.c', dependencies: gpu_dep)
 executable('gpu_up2d', ['tools/gpu_up2d.c', 'tools/up2d_ref.c'], dependencies: gpu_dep) # the 2D filter's reference compare and invariants (tools/up2d_ref.c)
+# textured polygons that look like sprites against gpu_poly_is_sprite's rule (tools/gpu_sprites.c)
+executable('gpu_sprites', 'tools/gpu_sprites.c', dependencies: gpu_dep)

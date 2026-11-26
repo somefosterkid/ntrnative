@@ -6,8 +6,6 @@
 #include "bag_types_def.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021EEA7C(Ov112PokewalkerApp *app);
-
 void ov112_021EEA7C(Ov112PokewalkerApp *app) {
     s32 i;
     for (i = 0; i < 3; i++) {

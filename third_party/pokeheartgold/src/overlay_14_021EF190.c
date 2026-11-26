@@ -18,7 +18,11 @@ s32 ov14_021F2A04(struct UnkStruct_ov14_boxsys *, s32);
 s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021EF1EC(UnkStruct_ov14_boxapp *arg0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EF190(UnkStruct_ov14_boxapp *arg0) {
     u16 *v1;

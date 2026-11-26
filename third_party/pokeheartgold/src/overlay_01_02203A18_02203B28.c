@@ -4,7 +4,6 @@
 #include "overlay_01_02203A18.h"
 #include "unk_02023694.h"
 
-s32 ov01_021F1758(FieldEffectManager *fieldEffMan, s32, s32, s32, s32, s32, s32 *);
 
 void ov01_021F18D4(FieldEffectManager *fieldEffMan, u32 id, u32 memberIndex);
 

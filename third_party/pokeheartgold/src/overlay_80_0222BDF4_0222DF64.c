@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -161,7 +163,6 @@ typedef struct JournalEntry JournalEntry;
 u16 FrontierScriptContext_ReadHalfWord(FrontierScriptContext *ctx);
 FrontierGraphics *FrontierSystem_GetFrontierMap(FrontierScriptManager *scriptMan);
 void ov80_0222F030(FrontierGraphics *param0, Pokemon *param1, enum HeapID heapID, int param3, int param4, int param5, int param6, int param7, int param8, u16 param9);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 BOOL FrtCmd_069(FrontierScriptContext *ctx);
 

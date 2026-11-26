@@ -16,7 +16,13 @@ What was built (all off by default, no change to any picture; vcore tests pass):
   that reach under the camera, drawn unblended beside blended neighbours: lines of the clear colour between them in the
   in-betweens while walking), and lets the geometry
   engine blend a frame's vertices toward the other frame's (clip x y z w, colour, texcoords) before clipping, culling and the
-  viewport transform. The gpu path shares p14, so it gets the same hook.
+  viewport transform. The gpu path shares p14, so it gets the same hook. Since M5 (2026-11-26, docs/interp-sweep.md) the pairing
+  is one system: the tags (owner, instance), identity (key, shape in object space, projection, the matrix's motion) and the rest
+  (first, within a key without the texture's address, the pairs whose motion identity would take, nearest on the screen beyond it;
+  then one key, draw order or nearest within 12 world units after the camera's motion; then the looser key again); the order passes
+  and the 48 px limit went (a tag pair moving more than half the screen beyond the world's motion is no pair, a rest pair more than
+  48 px plainly, beyond the world's motion and beyond its own: since m5fix, BWPORT_INTERP_RESTPX=0 for M5's rest), the w = 0 rule
+  stays.
 - `BWPORT_INTERP_STATS=FILE` (port/bridge/vcore_bridge.c, vcore renderer): one line per drawn frame, the 3D structure against the
   previous frame and what changed in 2D (scroll registers, OAM moves, palettes). `port/vcore/tools/interp_stats.py FILE... [--range A B]` turns the logs into the tables (classes below).
 - `port/vcore/tools/vcore_interp.c` (`build/vcore/vcore_interp A.vcs B.vcs PREFIX [--f 0.5] [--scale N]`): the offline prototype,
@@ -262,3 +268,51 @@ same before and after on gpu; the keyframe / pair / cut counters are identical b
 35 cuts both ways). Live switch test (BWPORT_SMOOTH=on, cap 120, vcore:1,gpu:1,gpu:2,vcore:2,gpu:1,vcore:1/60): PASS, 6 ok. Timings were noisy (pf81 builds on the same
 pool; some runs 43-53 fps with late mids): not a cost measurement.
 NOT done: the Windows exe check; a Pokemon sprite in the battle (MCSS: texture contents rewritten per frame, suspect (c)) was not examined separately.
+
+## Pacing: evenness against lag (2026-11-25; tools/pace_report.py, tools/pace_run.sh, tools/win_pace.sh)
+
+The Mac's pacing change (docs/perf.md "Smooth motion: an even step every refresh": each in-between's slot one refresh (Q) ahead, slots
+chained between ticks; BWPORT_INTERPLEAD=0 BWPORT_SLOTCHAIN=0 = the old pacing) measured on the other platforms, with a tool.
+
+TOOL. `python3 tools/pace_report.py RUN.log` reads a BWPORT_PRESENTLOG (P/S/D lines; the header of the script says what each is) and prints
+presents/s, even steps (the game time shown, per refresh, within 0.6 ms of the mode), repeats, jumps, drops, refresh skips, and the lag
+from the game time a picture shows to its glass time (mean/p50/p90) and the display lag (swap to glass). The game time is only logged by
+the GPU path (BWPORT_RENDERER=gpu): with vcore every P line says -1 and the report has no step/lag. `bash tools/pace_run.sh [-r gpu] HZ...`
+runs the town walk (tools/plays/black/ivf-pace.txt, 60 s, Smooth on, Monitor, BWPORT_PANELHZ=HZ) new against old, alternating, headless
+Linux. `bash tools/win_pace.sh HZ...` the same on the hidden Windows exe in a private copy of a win64 folder (PACE_EXE; HZ 0 = no pretended link).
+tools/port_win64.sh now passes BWPORT_PANELHZ / SMOOTH / FRAMERATE / INTERPLEAD / SLOTCHAIN / PRESENTLOG to the exe.
+
+WINDOWS (hidden exe on a GPU GL driver, the 11-24 22:58 build, one 70 s run each, desktop under other work; Black, town walk, gpu path):
+
+| panel (pretended link) | even steps old -> new | lag game->glass old -> new | presents/s | drops |
+| --- | --- | --- | --- | --- |
+| 120 Hz | 52.9% -> 99.4% | 48.7 -> 56.0 ms (+7.3) | 120.0 / 120.0 | 0 / 0 |
+| 60 Hz | 4.1% -> 100% | 51.7 -> 80.9 ms (+29) | 60.0 / 60.0 | 0 / 0 |
+| 144 Hz | 98.7% -> 98.6% | 51.8 -> 51.8 (no lead) | 143.9 / 143.9 | 2 / 2 |
+| no link (hidden window, real swap) | | not a pacing test: 33 presents/s, no vsync on a hidden window | | |
+
+LINUX (headless Xvfb + llvmpipe, laptop slot, gpu path, 2 alternating passes, the second pass's log): 60 Hz: even 3.5% -> 99.9%, lag
+67.3 -> 79.9 ms, 60.0 presents/s both. 120 and 144 Hz are NOT valid on llvmpipe (software GL makes 72-81 presents/s, skips 2900-3900): use
+the Windows or Mac numbers there.
+
+DECISION: the defaults stay as on the Mac (lead and chain on everywhere). Lag is paid for evenness where the panel's refresh does not
+divide the content: 60 Hz panel 4% -> 100% even for +13..29 ms, 120 Hz 53% -> 99.4% for +7 ms; at 144 Hz Black's old pacing already
+measures 98.7% (nothing to buy, nothing paid on Windows). A player who wants the least latency sets BWPORT_INTERPLEAD=0 (a 60 fps
+content at 60 Hz then judders: 417 jumps in 70 s).
+THE +29 ms AT 60 Hz (pace2, from the 11-25 Windows logs; tools/pace_report.py prints `queue=` and `lag1=` now): not on the glass, the panel
+MODEL's. Its FIFO (LagShown: at = max(first refresh after done, previous at + refresh)) keeps a standing queue once two presents fall in one
+refresh, and with a pretended link the swap never blocks, so nothing drains it. The Windows new-60 run started with two presents of tick 0 five
+ms apart (the timeline restarted behind schedule at the first frame): queue=16.7 ms for the whole run; old-60 had none (0.0). 120 and 144 Hz
+sit at queue 8.3 / 6.9 ms (one refresh) in BOTH old and new. With the queue taken out (lag1 = first refresh after done): 60 Hz 51.7 -> 64.3 ms
+(+12.6, as Linux's +13), 120 Hz 40.4 -> 47.6 (+7.2). So the lead costs about its Q (16.7 / 8.3 / 6.9 ms), as designed. The base ~50 ms:
+game shown = tick due - gap (33.3 ms: Smooth blends between the last two keyframes, so it waits for the newer one; 30 fps content) + the first
+slot's offset from the tick's due (~8 ms, the phase) + ~1 refresh to the glass (the link aim is 2.5 ms after a refresh). A real desktop
+swap has no model: its glass time is the swap's return (+ DWM).
+144 Hz: the old-144 log is identical to new-144 in game time (due - game 32.1 ms both; new-120 33.4, old-120 25.3, so 144's "old" run had
+the lead: BWPORT_INTERPLEAD=0 not in effect there, a bad run, not "lead not applied"). SIM_InterpPace logs "interp pace: lead ... us" once per
+change now: check a fresh 144 pair for lead 0 in the old run.
+NOT done / next: the 60 Hz lag differs by platform (+13 Linux, +29 Windows: the Windows run's `at` includes the swap's own wait, look at
+the S line's done - submit before trusting it); no lead at 144 Hz on Windows (`lag` equal: check sPace.mode and Q in SIM_InterpPace there);
+res1.md recs 2/3/5 (blend from CADisplayLink.targetTimestamp / AChoreographer expected time, EGL_ANDROID_presentation_time, setFrameRate
+59.83) are Apple/Android work, not tried; vcore's bridge does not call SIM_InterpShows (no game time in the log); a real vsync run needs
+a visible-window-equivalent on Windows (the hidden window does not pace).

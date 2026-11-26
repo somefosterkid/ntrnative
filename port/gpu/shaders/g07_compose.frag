@@ -16,6 +16,7 @@ uniform highp usampler2D cPlan;  // 256 x 192, C_PLAN's (c_plan)
 uniform highp usampler2D c3d;    // the 3D layer, RGBA8UI (r6, g6, b6, a5), cScale3d x the DS size
 uniform highp usampler2D cSrc1x; // 256 x 384: rows 0-191 engine A's line (when it is not composed), 192-383 engine B's
 uniform sampler2D cSmaa;         // SMAA's blending weights (RGBA8, the 3D layer's size) when cSmaaOn is 1
+uniform highp usampler2D cCapBank; // the bank BG cCapBg shows, at N x (src/g07_capture.c: R16UI 256 N x 256 N), when cCapBg is set
 layout(location = 0) out vec4 oColor;
 #endif
 // cScale, cScale3d, cHave3d, cSmaaOn, cCompose, cATop, cObjOn, cPrios, cBld, cEva, cEvb, cEvy, cBackdrop, cHofs, cBright:
@@ -127,6 +128,9 @@ uint c_apply(uint e, uint top, uint sec, int wa, int wb) {
 // it (RGB6), 24-25 2 or 3 brightness up or down on the 3D, 1 the 3D blended with the layer beneath by its alpha (else it
 // is drawn opaque: an antialiased edge then shows x's picture in its empty part). y for 2: alpha blending of the top layer
 // (bits 0-23) with the 3D, 24-25 = 1, 26-30 the top's weight, x's 26-30 the 3D's; else bits 0-23 the picture.
+// A captured bank shown as BG cCapBg (docs/gpu.md "Display capture"), when it is the top layer: x bit 31 for 0 and 1 where x's
+// picture is that BG as it is or brightened / darkened (BLDCNT; bits 29-30: 0, 2 or 3), y bit 31 for 1 (it is the layer beneath
+// the 3D). The N x pass reads those from the bank's N x texture (c_capbg); a 2D alpha blend with it stays 1x.
 void main() {
   ivec2 d = ivec2(gl_FragCoord.xy);
   uvec4 st = texelFetch(cStage, d, 0);
@@ -157,12 +161,15 @@ void main() {
   if (k2 < 99) sec = c_cand(k2 & 7, st, objpx);
   else if (k1 < 99) sec = bd;
   int wa, wb;
-  uint c0 = c_bright(c_apply(c_effect(top, sec.kind, fx, wa, wb), top.color, sec.color, wa, wb));
-  uvec2 o = uvec2(c0, 0u);
+  uint e0 = c_effect(top, sec.kind, fx, wa, wb);
+  uint c0 = c_bright(c_apply(e0, top.color, sec.color, wa, wb));
+  bool cap = cCapBg != 0u && top.kind == int(cCapBg);
+  uint capx = cap && e0 != 1u ? 0x80000000u | (e0 << 29) : 0u;
+  uvec2 o = uvec2(c0 | capx, 0u);
   if (k3d < k1) { // the 3D on top of `top`
     bool t2 = ((cBld >> uint(8 + top.kind)) & 1u) != 0u;
     uint e = t2 ? 1u : c_effect(CCand(0, 0u, 0u), -1, fx, wa, wb);
-    o = uvec2(c0 | (1u << 24), top.color | (e << 24));
+    o = uvec2(c0 | (1u << 24) | capx, top.color | (e << 24) | (cap ? 0x80000000u : 0u));
   } else if (k3d < k2) { // the 3D beneath `top`
     uint e = c_effect(top, 0, fx, wa, wb);
     if (e == 1u) o = uvec2(c0 | (2u << 24) | (uint(wb) << 26), top.color | (1u << 24) | (uint(wa) << 26));
@@ -174,9 +181,26 @@ void main() {
   oPlan = o;
 }
 #else
+// the plan pl of DS pixel d with the colours it flagged as BG cCapBg's (x, y bit 31) taken from the bank's N x texel at the N x
+// pixel q, in the rows cCapY0 .. cCapY1 - 1 (the others, and a transparent texel, keep the DS pixel's)
+uvec2 c_capbg(uvec2 pl, ivec2 d, ivec2 q) {
+  if (((pl.x | pl.y) & 0x80000000u) == 0u || d.y < cCapY0 || d.y >= cCapY1) return pl;
+  int N = cScale;
+  uint v = texelFetch(cCapBank, ivec2(((d.x + cCapOx) & 255) * N + q.x - d.x * N, (d.y + cCapOy) * N + q.y - d.y * N), 0).r;
+  if ((v & 0x8000u) == 0u) return pl;
+  uint c = c_rgb6(v);
+  if ((pl.x & 0x80000000u) != 0u) {
+    uint e = (pl.x >> 29) & 3u;
+    pl.x = (pl.x & 0xFF000000u) | c_bright(e == 2u ? c_blend_bright(c, cEvy) : e == 3u ? c_blend_dark(c, cEvy) : c);
+  }
+  if ((pl.y & 0x80000000u) != 0u) pl.y = (pl.y & 0xFF000000u) | c;
+  return pl;
+}
+
 // the N x pixel q of engine A's screen (DS pixel d) from the plan and the 3D layer
 uint c_planned(ivec2 d, ivec2 q) {
   uvec2 pl = texelFetch(cPlan, d, 0).xy;
+  if (cCapBg != 0u) pl = c_capbg(pl, d, q);
   uint c0 = pl.x & 0xFFFFFFu, rank = (pl.x >> 24) & 3u;
   if (rank == 0u) return c0;
   uint l3d = c_3d(q);
@@ -252,6 +276,10 @@ uvec3 up_apply(ivec2 d, ivec2 q, ivec2 f, bool isA) {
   uint cA, cB;
   if (isA && cCompose != 0u) {
     uvec2 plA = texelFetch(cPlan, dA, 0).xy, plB = k.w != 0 ? texelFetch(cPlan, dB, 0).xy : plA;
+    if (cCapBg != 0u) { // (the bank's N x texel where the pick is the pixel's own DS pixel)
+      if (dA == d) plA = c_capbg(plA, d, q);
+      if (k.w != 0 && dB == d) plB = c_capbg(plB, d, q);
+    }
     uint l3d = ((plA.x | plB.x) & (3u << 24)) != 0u ? c_3d(q) : 0u; // (as c_planned: the 3D only where it can show)
     cA = c_planned3(plA, l3d);
     cB = k.w != 0 ? c_planned3(plB, l3d) : cA;

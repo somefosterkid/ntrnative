@@ -34,6 +34,7 @@ import importlib
 import os
 import re
 import shlex
+import traceback
 import shutil
 import subprocess
 import sys
@@ -399,6 +400,32 @@ def load_rows(out):
     return [dict(zip(HEAD, r + [''] * (len(HEAD) - len(r)))) for r in lines[1:]]
 
 
+def drop_harness_rows(out):
+    """resume: a `harness` row is the SWEEP's own error (an exception, a dead exe, no slot), not a verdict on the case: it must not count
+    as done (a stale out dir whose earlier run failed everywhere looked like finished results). Removes those rows from results.tsv,
+    returns how many; the cases then run again."""
+    rows = load_rows(out)
+    keep = [r for r in rows if r['outcome'] != 'harness']
+    if len(keep) == len(rows):
+        return 0
+    with open(os.path.join(out, 'results.tsv'), 'w') as f:
+        f.write('\t'.join(HEAD) + '\n')
+        for r in keep:
+            f.write('\t'.join(str(r.get(h, '')).replace('\t', ' ').replace('\n', ' ') for h in HEAD) + '\n')
+    return len(rows) - len(keep)
+
+
+def write_progress(msg, path=None):
+    """the job's live progress line for the job runner's progress viewer / `submit --progress` ($NTR_PROGRESS on the slot; none elsewhere)"""
+    path = path or os.environ.get('NTR_PROGRESS')
+    if path:
+        try:
+            with open(path, 'w') as f:
+                f.write(msg + '\n')
+        except OSError:
+            pass
+
+
 def summarize(a, ad):
     rows = load_rows(a.out)
     c = collections.Counter(r['outcome'] for r in rows)
@@ -432,11 +459,14 @@ def isolate(a, ad, rows, record_iso):
     for i in range(100, 100 + max(1, a.j)):
         pool.put(i)
 
+    specs = {c[0]: c[4] for c in make_pairs(a.pairs)} if a.pairs else {}   # --pairs keys (p433-153@...): their foe species
+
     def one(r):
-        m = re.match(r'm(\d+)-(\d+)', r['case'])
+        m = re.match(r'[mp](\d+)-(\d+)', r['case'])
         our, foe = int(m.group(1)), int(m.group(2))
+        extra = (specs[r['case']],) if specs.get(r['case']) else ()   # the pair's own foe species / level, kept in both halves
         res = {}
-        for side, case in (('our', (f'i{our}-{sp}', 'moves', our, sp)), ('foe', (f'i{sp}-{foe}', 'moves', sp, foe))):
+        for side, case in (('our', (f'i{our}-{sp}', 'moves', our, sp) + extra), ('foe', (f'i{sp}-{foe}', 'moves', sp, foe) + extra)):
             got = []
             sl = pool.get()
             try:
@@ -468,12 +498,28 @@ def work_units(a, cases):
 
 
 def cmd_run(a, ad):
+    """a shard run through the job runner (--rows: the results leave as the BSROWS line) removes its bs-* work dir when it ends,
+    on failure and on SIGTERM too, unless --keep-work (0.2 GB per shard were left on the build machines)"""
+    if not (a.rows and not a.keep_work and os.path.basename(os.path.abspath(a.out)).startswith('bs-')):
+        return run_core(a, ad)
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    try:
+        return run_core(a, ad)
+    finally:
+        shutil.rmtree(a.out, ignore_errors=True)
+
+
+def run_core(a, ad):
     os.makedirs(a.out, exist_ok=True)
     top = ad.MAX_MOVE if a.what == 'moves' else ad.MAX_SPECIES
     if a.pairs:
         cases = make_pairs(a.pairs)
     else:
         cases = shard_slice(make_cases(ad, a.what, parse_ids(a.ids, top)), a.shard, a.weights)
+    if not a.redo:
+        nh = drop_harness_rows(a.out)
+        if nh:
+            print(f'resume: {nh} harness-error rows of an earlier run in {a.out} do not count as done: they run again', flush=True)
     done = {r['case'] for r in load_rows(a.out)} if not a.redo else set()
     cases = [c for c in cases if c[0] not in done]
     table = Table(a.out)
@@ -495,12 +541,15 @@ def cmd_run(a, ad):
             try:
                 run_batch(a, ad, kind, unit, slot, table.add)
             except Exception as e:   # a harness error is a row, never the end of the sweep
+                traceback.print_exc()
                 for c in unit:
                     table.add(dict(case=c[0], kind=kind, outcome='harness', frames='', top=f'{type(e).__name__}: {e}'[:100], bt_id='',
                                    backtrace='', culprit='', prev='', wall_s=''))
             with lock:
                 nproc[0] += len(unit)
-                print(f'[{time.time() - t0:.0f}s] {nproc[0]}/{len(cases)} cases (worker {slot})', flush=True)
+                msg = f'[{time.time() - t0:.0f}s] {nproc[0]}/{len(cases)} cases (worker {slot})'
+                print(msg, flush=True)
+                write_progress(msg)
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, a.j)) as ex:
@@ -552,6 +601,23 @@ def drop_off(shards, off=None):
     return kept
 
 
+RUN_ID_RE = re.compile(r'^lp_route: (\S+): commit ', re.M)
+
+
+def peek_progress(runner, log_path):
+    """the last progress line of the shard whose runner output is log_path: its run id (the runner's `lp_route: RUN: commit` line) ->
+    `RUNNER --peek RUN progress`; '' while it has no run id / no progress file / the runner cannot peek"""
+    try:
+        m = RUN_ID_RE.search(open(log_path, errors='replace').read())
+        if not m:
+            return ''
+        r = subprocess.run(runner + ['--peek', m.group(1), 'progress'], capture_output=True, text=True, timeout=60)
+        lines = [l for l in r.stdout.splitlines() if l.strip()]
+        return lines[-1][:120] if r.returncode == 0 and lines else ''
+    except (OSError, subprocess.SubprocessError):
+        return ''
+
+
 def cmd_submit(a, ad):
     """jobs through the runner: `--shards bd:3,bd:3,laptop:1` = MACHINE[:WEIGHT] per job. The jobs of one machine share ONE slice of
     the case list (the machine's weights summed) and ONE dynamic queue (each instance takes the next unit: no straggler holds a
@@ -567,7 +633,7 @@ def cmd_submit(a, ad):
         groups.setdefault(s[0], []).append(float(s[1]) if len(s) > 1 else 1.0)
     names = list(groups)
     weights = ','.join(f'{sum(groups[m]):g}' for m in names)
-    rid = time.strftime('%m%d%H%M%S')
+    rid = time.strftime('%m%d%H%M%S') + f'{os.getpid() % 1000:03d}'   # two submits in one second must not share out dirs or queues
     base = a.remote_out or '/tmp'
     procs = []
     t0 = time.time()
@@ -577,15 +643,27 @@ def cmd_submit(a, ad):
             inner = (f'python3 tools/battle_sweep.py run --adapter {a.adapter} --game {a.game} --what {a.what} --ids {a.ids} -j {a.j} '
                      f'--batch {a.batch} --case-frames {a.case_frames} --watchdog {a.watchdog} --shard {g}/{len(names)} --weights {weights} '
                      f'--queue /tmp/bsq-{rid}-{g} --out {base}/bs-{tag} --redo --rows' + (' --isolate' if a.isolate else '')
-                     + (f' --pairs {a.pairs}' if a.pairs else ''))
-            cmd = runner + ['--commit', a.commit, '--hg', '--family', 'hgss', '--no-port', '--on', m, '--wait', str(a.wait), '--cmd', inner]
+                     + (f' --pairs {a.pairs}' if a.pairs else '') + (' --keep-work' if a.keep_work else ''))
+            cmd = runner + ['--commit', a.commit] + list(getattr(ad, 'RUNNER_ARGS', ['--hg', '--family', 'hgss', '--no-port'])) \
+                + ['--on', m, '--wait', str(a.wait), '--cmd', inner]
             log = open(os.path.join(a.out, f'shard-{g}{chr(96 + k)}.log'), 'w')
             procs.append((f'{g}{chr(96 + k)}', m, subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT, cwd=a.cwd or None), log))
             print(f'job {g}{chr(96 + k)} on {m} (slice {g}/{len(names)}, machine weight {sum(groups[m]):g}): started', flush=True)
     table = Table(a.out)
     open(table.path, 'w').write('\t'.join(HEAD) + '\n')
+    tp = time.time()
     for tag, m, p, log in procs:
-        rc = p.wait()
+        while a.progress:   # --progress SECS: one line per live shard every SECS (each shard's own `[Ns] n/N cases` line, via the runner's --peek)
+            try:
+                rc = p.wait(timeout=max(1, tp + a.progress - time.time()))
+                break
+            except subprocess.TimeoutExpired:
+                tp = time.time()
+                for t2, m2, p2, _ in procs:
+                    if p2.poll() is None:
+                        print(f'progress {t2} on {m2}: {peek_progress(runner, os.path.join(a.out, f"shard-{t2}.log")) or "(no progress yet)"}', flush=True)
+        else:
+            rc = p.wait()
         log.close()
         n = 0
         for line in open(os.path.join(a.out, f'shard-{tag}.log'), errors='replace'):
@@ -688,11 +766,13 @@ def main():
     ap.add_argument('--port-hang', type=int, default=30, help="the stall rule of port_run (--hang): wall seconds without a V-blank")
     ap.add_argument('--max-log', type=int, default=300, help='the watchdog also ends an instance whose log is over this many MB')
     ap.add_argument('--rows', action='store_true', help='print BSROW lines (a shard run through a remote job runner)')
+    ap.add_argument('--keep-work', action='store_true', help='a --rows shard keeps its /tmp/bs-* work dir (default: removed when the shard ends)')
     ap.add_argument('--shards', default='local:1', help='submit: MACHINE:WEIGHT,...')
     ap.add_argument('--commit', default='HEAD')
     ap.add_argument('--wait', type=int, default=900)
     ap.add_argument('--cwd')
     ap.add_argument('--md', help='report: write the markdown here')
+    ap.add_argument('--progress', type=int, default=0, metavar='SECS', help='submit: print each live shard\'s progress line every SECS')
     ap.add_argument('--remote-out', help="submit: each job keeps its out dir under this path on its machine (default /tmp)")
     a = ap.parse_args()
     ad = load_adapter(a.adapter)

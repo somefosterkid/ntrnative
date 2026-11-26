@@ -5,7 +5,11 @@ struct BgConfig;
 struct SysTask;
 struct SysTaskQueue;
 typedef struct BgConfig BgConfig;
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/bg_window.c (tools/pokehg_abi.py)
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
+#else
 void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+#endif
 enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,

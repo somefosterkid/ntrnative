@@ -3618,7 +3618,7 @@ u32 MapObject_GetPreviousXCoord(void *);
 
 u32 MapObject_GetPreviousZCoord(void *);
 
-void ov01_02205990(int a0, int x, int z, void *);
+void ov01_02205990(int a0, int x, int z, FollowMon *);
 
 typedef struct {
     int a[4];
@@ -3685,7 +3685,7 @@ BOOL ov01_021E98F0(FieldSystem *fieldSystem, UnkStruct_ov5_021D432C *param1, con
                 int prevX = MapObject_GetPreviousXCoord(v0);
                 int prevZ = MapObject_GetPreviousZCoord(v0);
 
-                ov01_02205990((enum MovementAction)(v8), prevX, prevZ, (u8 *)fieldSystem + 0xe4);
+                ov01_02205990((enum MovementAction)(v8), prevX, prevZ, &fieldSystem->followMon);
             }
         } else {
             ((0) ? (void)0 : GF_AssertFail());

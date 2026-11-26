@@ -10,13 +10,17 @@
 
 #include "overlay_96_ov96_rd_work.h"
 
-s32 ov96_021E60C0(PokeathlonCourseData *data, s32 a, s32 b);
+PokeathlonMonPerf *ov96_021E60C0(PokeathlonCourseData *data, s32 a, s32 b);
 
 u32 ov96_021E6104(void);
 
-s32 ov96_021E6138(s32 a);
+s32 ov96_021E6138(PokeathlonMonPerf *a);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021EAA00.c (tools/pokehg_abi.py)
+struct Ov96SpriteSetElem *ov96_021EAA04(struct Ov96SpriteSet *set, s32 idx);
+#else
 struct Ov96SpriteSetElem *ov96_021EAA04(struct Ov96SpriteSet *set, u8 idx);
+#endif
 
 void ov96_021EAA20(struct Ov96SpriteSetElem *elem);
 
@@ -50,7 +54,11 @@ void ov96_02218578(Ov96RdObj *obj, s32 a);
 
 void ov96_0221918C(PokeathlonCourseData *data);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0221935C.c (tools/pokehg_abi.py)
+Ov96RdStats *ov96_0221935C(PokeathlonCourseData *data, u32 a, u32 b);
+#else
 Ov96RdStats *ov96_0221935C(PokeathlonCourseData *data, u8 a, u8 b);
+#endif
 
 typedef struct Ov96NarcPair {
     u32 a;

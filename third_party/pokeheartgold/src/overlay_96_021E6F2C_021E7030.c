@@ -4,13 +4,13 @@
 
 void ov96_021E7658(PokeathlonCourseData *param_1, s32 param_2);
 
-u32 ov96_021E7030(PokeathlonCourseData *param_1);
+BOOL ov96_021E7030(PokeathlonCourseData *param_1, u8 *unused);
 
-u32 ov96_021E7030(PokeathlonCourseData *param_1) {
+BOOL ov96_021E7030(PokeathlonCourseData *param_1, u8 *unused) {
     u16 uVar1;
     u16 *puVar2;
     u32 iVar3;
-    void (*pcVar4)();
+    PokeathlonStateHandlerFunc pcVar4;
     u16(*pauVar5)[2];
 
     puVar2 = (u16 *)ov96_021E8A20(param_1->filler_304 + 0x78);
@@ -23,9 +23,9 @@ u32 ov96_021E7030(PokeathlonCourseData *param_1) {
         pauVar5 = (u16(*)[2])(*pauVar5 + 1);
         iVar3 = iVar3 + -1;
     } while (iVar3 != 0);
-    pcVar4 = *(void (**)())(param_1->state + 8);
+    pcVar4 = param_1->state->funcs[2];
     if (pcVar4 != NULL) {
-        (*pcVar4)(param_1, 0);
+        pcVar4(param_1, 0);
     }
     ov96_021E7658(param_1, param_1->currentParticipantIndex & 0xff);
     PokeathlonCourse_SetStateField07(param_1, 0x17);

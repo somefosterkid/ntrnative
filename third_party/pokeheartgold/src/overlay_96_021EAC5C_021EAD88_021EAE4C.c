@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "sprite.h"
+#include "field_types_def.h"
 
 Sprite *ov96_021E8BAC(s32 param_1);
 

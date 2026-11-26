@@ -15,9 +15,9 @@ s32 ov96_02205C94(PokeathlonCourseData *);
 
 s32 ov96_02205D30(PokeathlonCourseData *);
 
-s32 ov96_0220549C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_0220549C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_0220549C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_0220549C(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
     Ov96HurdleWork *v1;
 

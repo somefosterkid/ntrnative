@@ -29,7 +29,11 @@ enum MovementState {
     MOVEMENT_STATE_REVERSE,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02033AE0(CommRing *ring, u8 *buffer, s16 size);
+#else
 void sub_02033AE0(CommRing *ring, u8 *buffer, int size);
+#endif
 
 void sub_02035AE0(s32 arg0);
 

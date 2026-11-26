@@ -1,20 +1,17 @@
 #include "global.h"
 
 #include "bg_window.h"
+#include "overlay_112_pokewalker_app.h"
 
-void ov112_021EA570(void *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *arg0);
 
-s32 ov112_021E9A78(void *, u8);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32);
 
-s32 ov112_021E9C10(void *, s32);
-
-void ov112_021EB90C(void *arg0, s32 arg1);
-
-void ov112_021EB90C(void *arg0, s32 arg1) {
-    *(s32 *)((u8 *)arg0 + 4) = 2;
+void ov112_021EB90C(Ov112PokewalkerApp *arg0, s32 arg1) {
+    arg0->unk_4 = 2;
     ov112_021E9C10(arg0, arg1);
     ov112_021E9A78(arg0, 1);
-    FillBgTilemapRect(*(BgConfig **)((u8 *)arg0 + 0x18), 1U, 0U, 0U, 0U, 0x20U, 0x18U, 0x10U);
-    BgCommitTilemapBufferToVram(*(BgConfig **)((u8 *)arg0 + 0x18), 1U);
+    FillBgTilemapRect(arg0->bgConfig, 1U, 0U, 0U, 0U, 0x20U, 0x18U, 0x10U);
+    BgCommitTilemapBufferToVram(arg0->bgConfig, 1U);
     ov112_021EA570(arg0);
 }

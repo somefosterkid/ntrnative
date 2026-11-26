@@ -15,7 +15,11 @@
 
 void *ov90_02258E54(void *, NARC *, s32, s32, s32, s32, s32, s32, enum HeapID);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+Sprite *ov90_02258EB4(void *, s32, s32, s32, u16, enum HeapID);
+#else
 Sprite *ov90_02258EB4(void *, s32, s16, s32, s32, enum HeapID);
+#endif
 
 void ov90_0225B59C(void *arg0, BgConfig **arg1, s32 *arg2, void *arg3, NARC *arg4, enum HeapID arg5);
 

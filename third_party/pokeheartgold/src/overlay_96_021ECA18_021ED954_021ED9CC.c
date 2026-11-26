@@ -2,7 +2,11 @@
 
 #include "math_util.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021ECA18_021EDCEC_021EDCEC.c (tools/pokehg_abi.py)
+s32 ov96_021EDCEC(void *, unsigned int, unsigned int, unsigned int);
+#else
 s32 ov96_021EDCEC(void *, u8, u8, u8);
+#endif
 
 s32 ov96_021ED9CC(void *arg0);
 

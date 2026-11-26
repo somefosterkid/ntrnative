@@ -1,10 +1,19 @@
 #include "global.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
-s32 ov83_02245D48(void *arg0);
+s32 ov83_02245D48(BattleCastleOpponentApp *arg0);
 
-s32 ov83_02246114(u8 *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02246114(BattleCastleOpponentApp *arg0, s32 arg1);
+#else
+void ov83_02246114(BattleCastleOpponentApp *arg0, s32 arg1);
+#endif
 
-s32 ov83_02246988(u8 *);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02246988(BattleCastleOpponentApp *param_1);
+#else
+void ov83_02246988(BattleCastleOpponentApp *param_1);
+#endif
 
 void ov83_0224691C(void *arg0, s32 arg1);
 

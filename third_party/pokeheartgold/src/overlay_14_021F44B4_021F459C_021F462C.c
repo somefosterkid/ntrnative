@@ -33,7 +33,7 @@ void ov14_021F462C(UnkStruct_ov14_boxapp *arg0) {
     do {
         MI_CpuCopy8(spC->pRawData, dest, 0x240);
         ov14_021F46B0(arg0, dest, var_r5, 0x1E, 0x240);
-        ov14_021F2C1C(*((void * *)&arg0->sys), var_r6, dest, 0x240);
+        ov14_021F2C1C(arg0->sys, var_r6, dest, 0x240);
         var_r6 += 1;
         var_r5 += 1;
         sp4 += 1;

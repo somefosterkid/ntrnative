@@ -57,7 +57,7 @@ struct String;
 
 struct StringList;
 
-struct StringTemplate;
+struct MessageFormat;
 
 struct TrainerInfo;
 
@@ -183,9 +183,9 @@ enum Gender {
     GENDER_NONE = 2,
 };
 
-typedef struct StringTemplate StringTemplate;
+typedef struct MessageFormat MessageFormat;
 
-void BufferPlayersName(StringTemplate *template, u32 idx, const TrainerInfo *playerInfo);
+void BufferPlayersName(MessageFormat *template, u32 idx, const TrainerInfo *playerInfo);
 
 
 
@@ -206,20 +206,6 @@ enum BgLayer {
     BG_LAYER_MAX,
 };
 
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
 
 enum BattleCastleOpponentAppWindow {
     OPPONENT_APP_WINDOW_HEADER = 0,
@@ -351,13 +337,11 @@ void LoadMovesListBackground(BattleCastleOpponentApp *app, enum BgLayer bgLayer)
 
 void LoadSubScreenBackground(BattleCastleOpponentApp *app, enum BgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 void PrintStaticMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u16 xOffset, u16 yOffset, enum TextAlignment alignment);
 
-void ov82_0223EFB4(BattleCastleOpponentApp *app, u32 idx, s32 num, u32 maxDigits, enum PaddingMode paddingMode);
 
 void ChangeState(BattleCastleOpponentApp *app, int *state, enum BattleCastleAppState newState);
 

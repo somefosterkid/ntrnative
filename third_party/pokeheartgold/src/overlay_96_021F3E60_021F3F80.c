@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "sprite.h"
+#include "overlay_96_ov96_mon_icon_work.h"
 
 struct Sprite *ov96_021EB408(enum HeapID *, s32, s32, u8, u8);
 

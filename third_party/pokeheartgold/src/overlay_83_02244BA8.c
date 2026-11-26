@@ -17,9 +17,9 @@ u8 ov83_0224484C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOff
 
 void ov83_02244BA8(BattleCastleSelfApp *app, Window *window, u32 xOffset, u32 yOffset, u8 font, u8 gender);
 
-u8 ov83_022447E0(u8 *, u8 *, u32, u32, u32, u32, u8, u8, u8, u8);
-void ov83_02247944(void *, u32);
-void ov83_02244BEC(u8 *param_1);
+u8 ov83_022447E0(BattleCastleOpponentApp *app, Window *window, u32, u32, u32, u32, u8, u8, u8, u8);
+void ov83_02247944(Window *window, u32);
+void ov83_02244BEC(BattleCastleOpponentApp *param_1);
 
 void ov83_02244BA8(BattleCastleSelfApp *app, Window *window, u32 xOffset, u32 yOffset, u8 font, u8 gender) {
     u32 entryID;
@@ -42,15 +42,15 @@ void ov83_02244BA8(BattleCastleSelfApp *app, Window *window, u32 xOffset, u32 yO
     ov83_0224484C(app, window, entryID, xOffset, yOffset, 0xFF, fgColor, shadowColor, bgColor, font);
 }
 
-void ov83_02244BEC(u8 *param_1) {
+void ov83_02244BEC(BattleCastleOpponentApp *param_1) {
     u8 uVar1;
     u32 uVar2;
 
-    uVar1 = ov83_022447E0(param_1, param_1 + 0x60, 5, 0, 5, 0xff, 1, 2, 0, 0);
-    ((BattleCastleOpponentApp *)param_1)->printerID = uVar1;
-    uVar2 = Options_GetFrame(((BattleCastleOpponentApp *)param_1)->options);
-    ov83_02247944(param_1 + 0xd0, uVar2);
-    uVar1 = ov83_022447E0(param_1, param_1 + 0xd0, 4, 1, 1, 0xff, 1, 2, 0xf, 1);
-    ((BattleCastleOpponentApp *)param_1)->printerID = uVar1;
+    uVar1 = ov83_022447E0(param_1, &param_1->windows[1], 5, 0, 5, 0xff, 1, 2, 0, 0);
+    param_1->printerID = uVar1;
+    uVar2 = Options_GetFrame(param_1->options);
+    ov83_02247944(&param_1->windows[8], uVar2);
+    uVar1 = ov83_022447E0(param_1, &param_1->windows[8], 4, 1, 1, 0xff, 1, 2, 0xf, 1);
+    param_1->printerID = uVar1;
     return;
 }

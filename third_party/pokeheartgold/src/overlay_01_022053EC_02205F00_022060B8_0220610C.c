@@ -11,11 +11,11 @@
 #include "task.h"
 #include "vram_transfer_manager.h"
 
-s32 ov01_021F771C(MapObjectManager *);
+Billboard *ov01_021F771C(MapObjectManager *);
 
 u32 ov01_02206088(u32 spriteId);
 
-s32 sub_02023FB0();
+s32 sub_02023FB0(Billboard *);
 
 s32 ov01_0220610C(TaskManager *arg0);
 
@@ -25,8 +25,8 @@ s32 ov01_0220610C(TaskManager *arg0) {
     NNSG3dResTex *temp_r0_4;
     s32 temp_r5;
     s32 temp_r5_2;
-    s32 temp_r6_2;
-    s32 temp_r6_3;
+    Billboard *temp_r6_2;
+    Billboard *temp_r6_3;
     u32 *temp_r0;
     u32 temp_r0_2;
     u32 temp_r7;
@@ -59,7 +59,7 @@ s32 ov01_0220610C(TaskManager *arg0) {
             }
             BlendPalette(temp_r4->palette, temp_r4->blended, 0x20U, (u8) temp_r4->level, 0xFFFFU);
             temp_r6_2 = ov01_021F771C(temp_r6->mapObjectManager);
-            temp_r5 = sub_02023FB0();
+            temp_r5 = sub_02023FB0(temp_r6_2);
             GF_CreateNewVramTransferTask(NNS_GFD_DST_3D_TEX_PLTT, (u32)(sub_02023FB0(temp_r6_2) << 0x10) >> 0xD, temp_r4->blended, ((u32)(0xFFFF0000 & temp_r5) >> 0x10) * 8);
             temp_r4->timer = (u8) temp_r4->delay;
         }
@@ -75,7 +75,7 @@ s32 ov01_0220610C(TaskManager *arg0) {
             }
             BlendPalette(temp_r4->palette, temp_r4->blended, 0x20U, (u8) temp_r4->level, 0xFFFFU);
             temp_r6_3 = ov01_021F771C(temp_r6->mapObjectManager);
-            temp_r5_2 = sub_02023FB0();
+            temp_r5_2 = sub_02023FB0(temp_r6_3);
             GF_CreateNewVramTransferTask(NNS_GFD_DST_3D_TEX_PLTT, (u32)(sub_02023FB0(temp_r6_3) << 0x10) >> 0xD, temp_r4->blended, ((u32)(0xFFFF0000 & temp_r5_2) >> 0x10) * 8);
             temp_r4->timer = (u8) temp_r4->delay;
         }

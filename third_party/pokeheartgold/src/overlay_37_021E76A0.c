@@ -11,7 +11,11 @@
 
 int ov37_021E76A0(int param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02038C1C(s8 maxNumConnection);
+#else
 void sub_02038C1C(int maxNumConnection);
+#endif
 int sub_02037454(void);
 u16 sub_0203769C(void);
 void ov37_021E76C0(UnkStruct_02095EAC *param0);

@@ -4,7 +4,11 @@
 
 #include "pokemon.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov18_021F1294(PokedexAppData *, s32, s16, s16, u32);
+#else
 void ov18_021F1294(PokedexAppData *, s32, u32, u32, u32);
+#endif
 
 void ov18_021F3CA8(PokedexAppData *, u32, u8 *, u8 *);
 

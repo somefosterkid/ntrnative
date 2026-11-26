@@ -19,7 +19,7 @@ s32 ov108_021E853C(void *, SpriteList *);
 extern ResdatIdList ov108_021EA97C;
 void ov108_021E83F0(SafariAreaCustomizer *arg0);
 void ov108_021E844C(SafariAreaCustomizer *arg0);
-s32 ov108_021E852C();
+void ov108_021E852C(void *arg0);
 void ov108_021E846C(SafariAreaCustomizer *arg0);
 
 s32 ov108_021E82E0(SafariAreaCustomizer *arg0, s32 arg1) {
@@ -97,7 +97,7 @@ void ov108_021E846C(SafariAreaCustomizer *arg0) {
     SpriteManager *spriteManager;
 
     if (arg0->unk_348 != NULL) {
-        ov108_021E852C();
+        ov108_021E852C(arg0->unk_348);
     }
     spriteManager = arg0->spriteManager;
     if (spriteManager != NULL) {

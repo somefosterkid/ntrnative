@@ -3,15 +3,7 @@
 #include "overlay_112_pokewalker_app.h"
 #include "unk_02005D10.h"
 
-void ov112_021EA51C(void *, u32);
-
-s32 ov112_021EC7B8(Ov112PokewalkerApp *);
-
-void ov112_021EC7D0(Ov112PokewalkerApp *);
-
 extern void *ov112_021FF0C4;
-
-void ov112_021ECDA0(Ov112PokewalkerApp *param_1, s32 param_2);
 
 void ov112_021ECDA0(Ov112PokewalkerApp *param_1, s32 param_2) {
     s32 iVar1;

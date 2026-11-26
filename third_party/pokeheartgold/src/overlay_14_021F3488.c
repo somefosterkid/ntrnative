@@ -54,11 +54,11 @@ extern ManagedSpriteTemplate ov14_021F8210;
 extern ManagedSpriteTemplate ov14_021F8244;
 
 void ov14_021F35BC(UnkStruct_ov14_boxapp *arg0) {
-    void *v0;
+    UnkStruct_ov14_boxsys *v0;
 
-    v0 = ((void *)arg0->sys);
-    ((UnkStruct_ov14_boxsys *)v0)->sprites[2] = SpriteSystem_NewSpriteWithYOffset(((UnkStruct_ov14_boxsys *)v0)->unk_2F4, ((SpriteManager *)((UnkStruct_ov14_boxsys *)v0)->unk_2F8), &ov14_021F8210, 0x200000);
-    ((UnkStruct_ov14_boxsys *)v0)->sprites[3] = SpriteSystem_NewSpriteWithYOffset(((UnkStruct_ov14_boxsys *)v0)->unk_2F4, ((SpriteManager *)((UnkStruct_ov14_boxsys *)v0)->unk_2F8), &ov14_021F8244, 0x200000);
-    ManagedSprite_SetDrawFlag(((UnkStruct_ov14_boxsys *)v0)->sprites[2], 0);
-    ManagedSprite_SetDrawFlag(((UnkStruct_ov14_boxsys *)v0)->sprites[3], 0);
+    v0 = arg0->sys;
+    v0->sprites[2] = SpriteSystem_NewSpriteWithYOffset(v0->unk_2F4, ((SpriteManager *)v0->unk_2F8), &ov14_021F8210, 0x200000);
+    v0->sprites[3] = SpriteSystem_NewSpriteWithYOffset(v0->unk_2F4, ((SpriteManager *)v0->unk_2F8), &ov14_021F8244, 0x200000);
+    ManagedSprite_SetDrawFlag(v0->sprites[2], 0);
+    ManagedSprite_SetDrawFlag(v0->sprites[3], 0);
 }

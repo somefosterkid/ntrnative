@@ -15,7 +15,11 @@ s32 ov96_021E637C(PokeathlonCourseData *);
 
 BOOL ov96_021E667C(PokeathlonCourseData *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov96_021E8318(PokeathlonCourseData *, s16);
+#else
 s32 ov96_021E8318(PokeathlonCourseData *, u16);
+#endif
 
 s32 ov96_021FA6D0(PokeathlonCourseData *, UnkStruct_ov96_021F94A8 *);
 
@@ -25,9 +29,9 @@ s32 ov96_021FB630(PokeathlonCourseData *);
 
 void ov96_021FB808(UnkStruct_ov96_021F94A8 *, s32);
 
-s32 ov96_021F9240(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F9240(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F9240(PokeathlonCourseData *arg0, u8 *arg1) {
+BOOL ov96_021F9240(PokeathlonCourseData *arg0, u8 *arg1) {
     s32 temp_r5;
     u16 temp_r2;
     u32 var_r5;

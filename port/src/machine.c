@@ -30,6 +30,38 @@
 
 #include "port_game.h"
 
+// The machine's ranges are whole sections of globals (the linker's start/end symbols): the snapshot, the restore and the dirty-page
+// scan read and write them as bytes. An AddressSanitizer build has a poisoned redzone after each global, so memcpy/memset over
+// a range (their interceptors check all of it) reported a global-buffer-overflow in Snapshot at boot (the same class as
+// ovl.c's PortOvl_Copy). In an ASan build these are volatile byte loops in no_sanitize functions; elsewhere memcpy/memset.
+#if defined(__SANITIZE_ADDRESS__)
+#define MACH_ASAN 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define MACH_ASAN 1
+#endif
+#endif
+#ifdef MACH_ASAN
+__attribute__((no_sanitize("address"), noinline)) static void MachCopy(void *d, const void *s, size_t n) {
+    volatile unsigned char *dp = d;
+    const volatile unsigned char *sp = s;
+
+    while (n-- != 0) {
+        *dp++ = *sp++;
+    }
+}
+__attribute__((no_sanitize("address"), noinline)) static void MachFill(void *d, int v, size_t n) {
+    volatile unsigned char *dp = d;
+
+    while (n-- != 0) {
+        *dp++ = (unsigned char)v;
+    }
+}
+#else
+#define MachCopy memcpy
+#define MachFill memset
+#endif
+
 #include <fcntl.h>
 #include <time.h>
 #ifdef __APPLE__
@@ -158,11 +190,13 @@ static BOOL AllZero(const u8 *p, size_t n) {
 
     for (; i + 8 <= n; i += 8) {
         u64 w;
-        memcpy(&w, p + i, 8);
+        MachCopy(&w, p + i, 8);
         acc |= w;
     }
     for (; i < n; i++) {
-        acc |= p[i];
+        u8 b;   // (lfx3) through MachCopy too: a plain p[i] is instrumented in ASan builds
+        MachCopy(&b, p + i, 1);
+        acc |= b;
     }
     return acc == 0;
 }
@@ -198,7 +232,7 @@ static void Snapshot(void) {
 
         if (!r->zero) {
             r->copy = malloc(r->size ? r->size : 1);
-            memcpy(r->copy, r->start, r->size);
+            MachCopy(r->copy, r->start, r->size);
             kept += r->size;
         } else {
             size_t first, n, j;
@@ -213,7 +247,7 @@ static void Snapshot(void) {
                 PageSpan(r, first, j, &p, &len);
                 if (vec[j] != 0 && len != 0 && !AllZero(p, len)) {
                     r->copy = realloc(r->copy, (r->nPages + 1) * sPage);
-                    memcpy(r->copy + r->nPages * sPage, p, len);
+                    MachCopy(r->copy + r->nPages * sPage, p, len);
                     r->pages[r->nPages++] = j;
                 }
             }
@@ -237,7 +271,7 @@ void PORT_MachineKeep(const void *p, size_t n) {
         Range *r = &sRanges[i];
 
         if (!r->zero && r->copy != NULL && b >= r->start && b + n <= r->start + r->size) {
-            memcpy(r->copy + (b - r->start), b, n);
+            MachCopy(r->copy + (b - r->start), b, n);
         }
     }
 }
@@ -249,7 +283,7 @@ static void Restore(void) {
         Range *r = &sRanges[i];
 
         if (!r->zero) {
-            memcpy(r->start, r->copy, r->size);
+            MachCopy(r->start, r->copy, r->size);
         } else {
             size_t first, n, j, k = 0;
             unsigned char *vec = InUse(r, &first, &n);
@@ -260,10 +294,10 @@ static void Restore(void) {
 
                 PageSpan(r, first, j, &p, &len);
                 if (k < r->nPages && r->pages[k] == j) {
-                    memcpy(p, r->copy + k * sPage, len);
+                    MachCopy(p, r->copy + k * sPage, len);
                     k++;
                 } else if (vec[j] != 0 && len != 0) {
-                    memset(p, 0, len);
+                    MachFill(p, 0, len);
                 }
             }
             free(vec);
@@ -277,11 +311,13 @@ static u64 HashBytes(u64 h, const u8 *p, size_t n) {
 
     for (; i + 8 <= n; i += 8) {
         u64 w;
-        memcpy(&w, p + i, 8);
+        MachCopy(&w, p + i, 8);
         h = (h ^ w) * 0x100000001b3ULL;
     }
     for (; i < n; i++) {
-        h = (h ^ p[i]) * 0x100000001b3ULL;
+        u8 b;
+        MachCopy(&b, p + i, 1);
+        h = (h ^ b) * 0x100000001b3ULL;
     }
     return h;
 }

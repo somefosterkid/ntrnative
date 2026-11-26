@@ -131,7 +131,7 @@ void ov49_022651E8(UnkStruct_ov70_02268E44 *param0, UnkStruct_ov70_0225DEE8 *par
     param0->unk_20 = 4;
 
     for (v0 = 0; v0 < 4 - 1; v0++) {
-        ov49_0225A37C((struct UnkStruct_ov70_0225DEE8_t *)((enum PlazaMinigame)(param1)), (enum PlazaMinigame)(UnkEnum_ov66_022324D0_00 + v0), 0);
+        ov49_0225A37C(param1, (enum PlazaMinigame)(UnkEnum_ov66_022324D0_00 + v0), 0);
         v1 = ov49_0225A30C(param1, 1, 38);
         ov49_0225A144(param1, v1, v0);
     }

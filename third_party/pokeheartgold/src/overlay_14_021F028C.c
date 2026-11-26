@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 struct UnkStruct_ov14_boxapp;
@@ -25,7 +26,7 @@ s32 ov14_021F08BC(void *);
 s32 ov14_021F3190(void *, u32, s32);
 s32 ov14_021F3F6C(void *);
 void ov14_021F039C(struct UnkStruct_ov14_boxapp *arg0, u8 arg1);
-s32 ov14_021F3044(void *);
+void ov14_021F3044(void *);
 s32 ov14_021F3488(void *, s32, s32);
 s32 ov14_021F34C8(UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F685C(void *, u32, s32, s32);
@@ -63,7 +64,7 @@ void ov14_021F028C(void *arg0, s32 arg1) {
     ov14_021F29E4(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), 0, 2);
     if (ov14_021E8544(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0) == 1) {
         ov14_021E84A4(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0);
-        if ((u32)(*(s32 *)((u8 *)(*(void **)arg0) + 8) - 2) <= 1U) {
+        if ((u32)(((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 - 2) <= 1U) {
             ov14_021E8248(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
             ov14_021E82A8(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
         }
@@ -89,7 +90,7 @@ void ov14_021F0314(void *arg0, s32 arg1) {
     ov14_021F29E4(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), 1, 4);
     if (ov14_021E8544(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0) == 1) {
         ov14_021E84A4(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0);
-        if ((u32)(*(s32 *)((u8 *)(*(void **)arg0) + 8) - 2) <= 1U) {
+        if ((u32)(((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8 - 2) <= 1U) {
             ov14_021E8248(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
             ov14_021E82A8(((u8 *)((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0));
         }
@@ -162,10 +163,10 @@ void ov14_021F0594(UnkStruct_ov14_boxapp *arg0, u32 arg1) {
     Pokemon *mon;
 
     arg0->unk21 = arg1;
-    ov14_021F3190(*((void * *)&arg0->sys), arg0->unk21, 0);
+    ov14_021F3190(arg0->sys, arg0->unk21, 0);
     ov14_021F3F6C(arg0);
     mon = Party_GetMonByIndex(arg0->party, arg1 - 0x1E);
-    if ((ov14_021E6480(arg0, arg1 - 0x1E) == 0) && (PCStorage_CountMonsInBox(*((PCStorage * *)&arg0->storage), (u32) arg0->unk1F) == 0)) {
+    if ((ov14_021E6480(arg0, arg1 - 0x1E) == 0) && (PCStorage_CountMonsInBox(arg0->storage, (u32) arg0->unk1F) == 0)) {
         ov14_021F6928(arg0, 0x28, 8);
     } else if (ItemIdIsMail((u16)GetMonData(mon, 6, NULL)) == 1) {
         ov14_021F6928(arg0, 0x28, 6);

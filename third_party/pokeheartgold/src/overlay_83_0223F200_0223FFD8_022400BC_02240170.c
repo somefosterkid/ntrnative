@@ -6,7 +6,11 @@ struct BattleCastleSelfApp;
 #include "overlay_80_02237A70.h"
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_83_022401A4.c (tools/pokehg_abi.py)
+void ov83_022401A4(void *, Window *, s32, u8);
+#else
 s32 ov83_022401A4(void *, Window *, u8, s32);
+#endif
 
 void ov83_02240170(struct BattleCastleSelfApp *arg0, Window *arg1);
 

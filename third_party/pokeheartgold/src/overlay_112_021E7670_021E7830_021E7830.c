@@ -4,6 +4,7 @@
 
 #include "bg_window.h"
 #include "gf_3d_loader.h"
+#include "overlay_112_pokewalker_app.h"
 #include "overlay_manager.h"
 #include "screen_fade.h"
 #include "sprite.h"
@@ -66,8 +67,7 @@ void ov112_021E9C94(void *data);
 BOOL ov112_021E7830(OverlayManager *man, int *state);
 
 BOOL ov112_021E7830(OverlayManager *man, int *state) {
-    u8 *data = OverlayManager_GetData(man);
-    u32 *words = (u32 *)data;
+    Ov112PokewalkerApp *data = OverlayManager_GetData(man);
 
     switch (*state) {
     case 0:
@@ -76,19 +76,19 @@ BOOL ov112_021E7830(OverlayManager *man, int *state) {
         }
         break;
     case 1:
-        *state = ov112_021FF54C[words[0]].init(data);
+        *state = ov112_021FF54C[data->unk_0].init(data);
         break;
     case 2:
-        *state = ov112_021FF54C[words[0]].main(data);
-        BgSetPosTextAndCommit((BgConfig *)words[0x18 / 4], (BgPosAdjustOp)(5), (BgPosAdjustOp)(0), *(u16 *)(data + 0x1F2E0));
+        *state = ov112_021FF54C[data->unk_0].main(data);
+        BgSetPosTextAndCommit(data->bgConfig, (BgPosAdjustOp)(5), (BgPosAdjustOp)(0), data->unk_1F2E0);
         break;
     case 3:
-        *state = ov112_021FF54C[words[0]].exit(data);
-        if (words[1] == 0xB) {
+        *state = ov112_021FF54C[data->unk_0].exit(data);
+        if (data->unk_4 == 0xB) {
             BeginNormalPaletteFade((FadeMode)(0), (FadeType)(0), (FadeType)(0), 0x7FFF, (FadeMode)(6), (HeapID)(1), (HeapID)(0x9A));
             *state = 4;
         } else {
-            words[0] = words[1];
+            data->unk_0 = data->unk_4;
             ov112_021E9C94(data);
         }
         break;
@@ -98,8 +98,8 @@ BOOL ov112_021E7830(OverlayManager *man, int *state) {
         }
         break;
     }
-    if (*(u32 *)(data + 0x1E52C) != 0) {
-        SpriteSystem_DrawSprites(*(SpriteManager **)(data + 0x1E52C));
+    if (data->spriteManager != NULL) {
+        SpriteSystem_DrawSprites(data->spriteManager);
     }
     return 0;
 }

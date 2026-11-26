@@ -4,12 +4,12 @@ struct UnkStruct_0208C06C;
 #include "unk_02005D10.h"
 #include "overlay_40_unk_struct_0208_c06_c.h"
 
-s32 ov40_02230864();
+void ov40_02230864(UnkStruct_0208C06C *param0);
 
-void ov40_02230944(void);
+void ov40_02230944(UnkStruct_0208C06C *param0);
 
-void ov40_02230944(void) {
-    ov40_02230864();
+void ov40_02230944(UnkStruct_0208C06C *param0) {
+    ov40_02230864(param0);
     PlaySE(0x57BU);
 }
 

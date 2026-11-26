@@ -5,18 +5,12 @@
 #include "overlay_112_pokewalker_app.h"
 struct Ov112PokewalkerApp;
 
-u8 ov112_021EA08C(struct Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EFA1C(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EFA1C(Ov112PokewalkerApp *arg0) {
     PlayFanfare(0x4A2U);
     arg0->unk_1E524 = ov112_021EA08C(arg0, 0, 0x37);
     arg0->unk_C = 8;
     return 0x23;
 }
-
-s32 ov112_021EFA44(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EFA44(Ov112PokewalkerApp *arg0) {
     if (arg0->unk_1F376 != 0) {
@@ -27,8 +21,6 @@ s32 ov112_021EFA44(Ov112PokewalkerApp *arg0) {
     }
     return 0xA;
 }
-
-s32 ov112_021EFA74(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EFA74(Ov112PokewalkerApp *arg0) {
     arg0->unk_1E524 = ov112_021EA08C(arg0, 0, 0x36);

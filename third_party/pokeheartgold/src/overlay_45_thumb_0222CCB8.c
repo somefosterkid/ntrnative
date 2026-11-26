@@ -7,7 +7,7 @@ struct SaveData;
 
 void ov45_0222CCB8(UnkStruct_ov66_02230A6C *param0);
 
-u16 ov45_0222CCDC(void *arg0);
+u16 ov45_0222CCDC(UnkStruct_ov66_02230A6C *arg0);
 
 extern void *ov45_02254A84;
 s32 ov45_0222CCE4(u32 param_1);
@@ -21,8 +21,8 @@ void ov45_0222CCB8(UnkStruct_ov66_02230A6C *param0) {
     }
 }
 
-u16 ov45_0222CCDC(void *arg0) {
-    return *(u16 *)((u8 *)arg0 + 0x4A);
+u16 ov45_0222CCDC(UnkStruct_ov66_02230A6C *arg0) {
+    return arg0->unk_4A;
 }
 
 s32 ov45_0222CCE4(u32 param_1) {

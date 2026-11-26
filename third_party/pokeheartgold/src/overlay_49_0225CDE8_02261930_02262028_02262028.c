@@ -1,5 +1,8 @@
 #include "global.h"
+
+struct UnkStruct_ov70_02263344_t;
 #include "overlay_49_unk_struct_ov70_02266af0.h"
+#include "pm_string.h"
 
 #include "overlay_45_thumb.h"
 #include "unk_02005D10.h"
@@ -7,6 +10,7 @@
 #include "unk_02035900.h"
 #include "unk_020379A0.h"
 #include "unk_02037C94.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
 
 typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
@@ -52,9 +56,9 @@ s32 ov45_0222F430(void);
 
 s32 ov49_02259FE8(UnkStruct_ov70_0225DEE8 *);
 
-s32 ov49_0225A08C(UnkStruct_ov70_0225DEE8 *, s32);
+void ov49_0225A08C(UnkStruct_ov70_0225DEE8 *, const String *);
 
-s32 ov49_0225A09C(UnkStruct_ov70_0225DEE8 *, s32);
+void ov49_0225A09C(UnkStruct_ov70_0225DEE8 *, const String *);
 
 s32 ov49_0225A0AC(UnkStruct_ov70_0225DEE8 *);
 
@@ -76,25 +80,23 @@ s32 ov49_0225A2C4(UnkStruct_ov70_0225DEE8 *);
 
 s32 ov49_0225A2F8(UnkStruct_ov70_0225DEE8 *);
 
-s32 ov49_0225A30C(UnkStruct_ov70_0225DEE8 *, s32, s32);
+String *ov49_0225A30C(UnkStruct_ov70_0225DEE8 *, int, u32);
 
-s32 ov49_0225A37C(UnkStruct_ov70_0225DEE8 *, int, s32);
+String *ov49_0225A37C(UnkStruct_ov70_0225DEE8 *, int, s32);
 
 void *ov49_0225EF3C();
 
-s32 ov49_0225EF40(s32, s32);
+s32 ov49_0225EF40(struct UnkStruct_ov70_02263344_t *, s32);
 
-s32 ov49_0225EF68(s32);
+s32 ov49_0225EF68(struct UnkStruct_ov70_02263344_t *);
 
-void *ov49_0225EF84(s32);
+void *ov49_0225EF84(struct UnkStruct_ov70_02263344_t *);
 
-u32 ov49_0225EF88(s32);
+u32 ov49_0225EF88(struct UnkStruct_ov70_02263344_t *);
 
-s32 ov49_0225EF8C(s32, s32);
+s32 ov49_0225EF8C(struct UnkStruct_ov70_02263344_t *, s32);
 
-s32 ov49_0225EF90(s32);
-
-
+s32 ov49_0225EF90(struct UnkStruct_ov70_02263344_t *);
 
 
 
@@ -104,9 +106,11 @@ s32 ov49_0225EF90(s32);
 
 
 
-s32 ov49_02262028(s32 arg0, UnkStruct_ov70_0225DEE8 *arg1, s32 arg2);
 
-s32 ov49_02262028(s32 arg0, UnkStruct_ov70_0225DEE8 *arg1, s32 arg2) {
+
+BOOL ov49_02262028(struct UnkStruct_ov70_02263344_t * arg0, UnkStruct_ov70_0225DEE8 *arg1, u32 arg2);
+
+BOOL ov49_02262028(struct UnkStruct_ov70_02263344_t * arg0, UnkStruct_ov70_0225DEE8 *arg1, u32 arg2) {
     s32 sp34;
     s32 sp30;
     s32 sp2C;
@@ -116,15 +120,15 @@ s32 ov49_02262028(s32 arg0, UnkStruct_ov70_0225DEE8 *arg1, s32 arg2) {
     u32 sp1C;
     s32 sp18;
     s32 sp14;
-    s32 sp10;
+    struct UnkStruct_ov70_02263344_t * sp10;
     s32 temp_r0_2;
     s32 temp_r0_6;
     s32 temp_r0_9;
     s32 temp_r5;
     s32 temp_r5_2;
-    s32 var_r0;
+    String *var_r0;
     s32 var_r0_2;
-    s32 var_r0_3;
+    String *var_r0_3;
     s32 var_r2;
     s32 var_r4;
     s32 var_r6;

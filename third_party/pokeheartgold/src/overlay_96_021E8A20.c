@@ -3,10 +3,13 @@
 #include "constants/heap.h"
 
 #include "error_handling.h"
+#include "comm_cmd_manager.h"
+#include "pokeathlon/pokeathlon.h"
 #include "heap.h"
 #include "overlay_96_sprite_res_man.h"
 #include "unk_02009D48.h"
 #include "unk_0200A090.h"
+#include "pokeathlon/pokeathlon.h"
 
 void *ov96_021E8A20(void *ptr);
 
@@ -14,17 +17,58 @@ void *ov96_021E8A20(void *ptr) {
     return ptr;
 }
 
-extern s32 ov96_0221AEC4;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021E96F8(int, int, void *, void *);
+void ov96_021E9718(int, int, void *, void *);
+void ov96_021E9784(int, int, void *, void *);
+void ov96_021E97B8(int, int, void *, void *);
+void ov96_021E97EC(int, int, void *, void *);
+void ov96_021E9820(int, int, void *, void *);
+void ov96_021E9858(int, int, void *, void *);
+void ov96_021E9870(int, int, void *, void *);
+void ov96_021E98D0(int, int, void *, void *);
+void ov96_021E98F4(int, int, void *, void *);
+void ov96_021E9994(int, int, void *, void *);
+void ov96_021E99B8(int, int, void *, void *);
+u32 ov96_021E99F4(void);
+u32 ov96_021E99F8(void);
+u32 ov96_021E99FC(void);
+u32 ov96_021E9A04(void);
+u32 ov96_021E9A10(void);
+u32 ov96_021E9A14(void);
+u32 ov96_021E9A18(void);
+u32 ov96_021E9A1C(void);
+u32 ov96_021E9A24(void);
+u32 sub_020342B8(void);
+void *ov96_021E9A2C(int, void *, int);
+void *ov96_021E9A38(int, void *, int);
+void *ov96_021E9A48(int, void *, int);
+void *ov96_021E9A54(int, void *, int);
+void *ov96_021E9A68(int, void *, int);
 
-s32 ov96_021E8A24(void);
+const CommCmdTable ov96_0221AEC4[] = {
+    { ov96_021E96F8, ov96_021E99F4, NULL },
+    { ov96_021E9718, ov96_021E99F8, NULL },
+    { ov96_021E9784, ov96_021E99FC, NULL },
+    { ov96_021E97B8, ov96_021E9A04, NULL },
+    { ov96_021E97EC, ov96_021E9A10, ov96_021E9A38 },
+    { ov96_021E9820, ov96_021E9A14, NULL },
+    { ov96_021E9858, sub_020342B8, ov96_021E9A2C },
+    { ov96_021E9870, ov96_021E9A14, NULL },
+    { ov96_021E98D0, ov96_021E9A14, NULL },
+    { ov96_021E98F4, ov96_021E9A18, ov96_021E9A54 },
+    { ov96_021E9994, ov96_021E9A1C, ov96_021E9A48 },
+    { ov96_021E99B8, ov96_021E9A24, ov96_021E9A68 },
+};
+#else
+extern const CommCmdTable ov96_0221AEC4[];
+#endif
 
-s32 ov96_021E8A24(void) {
-    return (s32)&ov96_0221AEC4;
+const CommCmdTable *ov96_021E8A24(void) {
+    return ov96_0221AEC4;
 }
 
-s32 ov96_021E8A2C(void);
-
-s32 ov96_021E8A2C(void) {
+int ov96_021E8A2C(void) {
     return 0xC;
 }
 

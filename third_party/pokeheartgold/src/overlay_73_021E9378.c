@@ -8,6 +8,7 @@ struct WifiBattleTowerAppState;
 #include "bg_window.h"
 #include "render_window.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+struct WifiBattleTowerDownloadData;
 
 s32 ov73_021E83EC(void *, s32, s32);
 
@@ -61,7 +62,12 @@ s32 ov73_021EA180(void *);
 
 s32 sub_0202D678(void *, u8, u8, RTCDate *);
 
-s32 sub_0202D7C0(void *, void *, u8, u8);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0202D7C0(struct WifiBattleTowerDownloadData *, void *, s8, s8);
+#else
+s32 sub_0202D7C0(struct WifiBattleTowerDownloadData *, void *, u8, u8);
+#endif
+
 
 s32 ov73_021E944C(WifiBattleTowerAppState *arg0);
 
@@ -148,7 +154,7 @@ s32 ov73_021E9598(WifiBattleTowerAppState *arg0) {
 s32 ov72_02237C30(s32, s32, s32, void *);
 
 
-s32 sub_0202D7F0(void *, s32 *);
+s32 sub_0202D7F0(struct WifiBattleTowerDownloadData *, s32 *);
 
 s32 ov73_021E95CC(WifiBattleTowerAppState *arg0);
 

@@ -56,8 +56,8 @@ s32 ov41_02247150(OverlayManager *man, s32 *state) {
     if (stateMgr != NULL) {
         MenuInputStateMgr_SetState(stateMgr, *((enum MenuInputState *)&((UnkStruct_ov22_0225A0E4 *)v1)->unk_6EC));
     }
-    YesNoPrompt_Destroy(*((YesNoPrompt **)&((UnkStruct_ov22_0225A0E4 *)v1)->unk_6B8));
-    WindowArray_Delete(*((Window **)&((UnkStruct_ov22_0225A0E4 *)v1)->unk_6BC), 1);
+    YesNoPrompt_Destroy(((UnkStruct_ov22_0225A0E4 *)v1)->unk_6B8);
+    WindowArray_Delete(((UnkStruct_ov22_0225A0E4 *)v1)->unk_6BC, 1);
     ov41_022476A8(v1);
     ov41_02248F6C(v1 + 0x498);
     ov41_02247568(v1);

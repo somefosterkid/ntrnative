@@ -1,8 +1,10 @@
 #include "global.h"
 
-#include "player_avatar.h"
+#include "unk_0205CB48.h"
 
-s32 sub_0205DA1C(PlayerAvatar *, LocalMapObject *, s32);
+#include "player_avatar.h"
+#include "pokemon_types_def.h"
+
 
 void sub_0205DFD4(PlayerAvatar *arg0, s32 arg1);
 

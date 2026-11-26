@@ -16,8 +16,8 @@ void ov14_021F1128(struct UnkStruct_ov14_boxapp *arg0);
 s32 ov14_021F29E4(UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F48B4(void *);
 s32 ov14_021F57B8(void *);
-s32 ov14_021F1004();
-s32 ov14_021F11F8(struct UnkStruct_ov14_boxapp *arg0);
+void ov14_021F1004(UnkStruct_ov14_boxapp *arg0, s32 arg1);
+s32 ov14_021F11F8(struct UnkStruct_ov14_boxapp *arg0, s32 arg1);
 
 void ov14_021F1128(UnkStruct_ov14_boxapp *arg0) {
     ov14_021F2A18(((void *)arg0->sys), 9, 0);
@@ -42,13 +42,13 @@ s32 ov14_021F1170(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
     GridInputHandler_SetNextLastUnk0FInputs(arg0->sys->unk_2C, 8, v0, v0);
     DpadMenuBox_GetPosition(GridInputHandler_GetDpadBox(arg0->sys->unk_2C, 8), &py[1], &py[0]);
     ManagedSprite_SetPositionXY(arg0->sys->sprites[9], (s16) py[1], (s16) py[0]);
-    ov14_021F29E4(*((void * *)&arg0->sys), 9, 8);
-    ov14_021F2A18(*((void * *)&arg0->sys), 9, 1);
+    ov14_021F29E4(arg0->sys, 9, 8);
+    ov14_021F2A18(arg0->sys, 9, 1);
     return 0x3D;
 }
 
-s32 ov14_021F11F8(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F1004();
+s32 ov14_021F11F8(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
+    ov14_021F1004(arg0, arg1);
     GridInputHandler_SetNextInput(arg0->sys->unk_2C, (s32)(u8)((s32) arg0->unk25 % 6));
     GridInputHandler_SetButtonInputMode(arg0->sys->unk_2C, 1);
     return 0x3D;

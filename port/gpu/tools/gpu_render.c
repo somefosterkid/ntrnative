@@ -84,7 +84,7 @@ static int usage(void) {
 
 int main(int argc, char **argv) {
   const char *in = NULL, *out = NULL, *out3d = NULL, *outhi = NULL, *outv = NULL;
-  int scale = 1, aa = 1, quiet = 0, api = GPU_API_ES, times = 0, spans_check = 0, gap = 0, ablate = 0, filter2d = -1;
+  int scale = 1, aa = 1, edgeaa = 0, aalite = 0, exp = -1, quiet = 0, api = GPU_API_ES, times = 0, spans_check = 0, gap = 0, ablate = 0, filter2d = -1;
   /* G7: --compose gpu = engine A composited by the GPU (pass C), the screens at N x; --3d-from vcore = pass C's 3D
    * input is vcore's own 1x layer (the 1x byte-exact check). $GPU_COMPOSE / $GPU_3D_FROM set the defaults (vcore_check
    * runs the tool with a fixed command line). */
@@ -96,7 +96,12 @@ int main(int argc, char **argv) {
     else if (!strcmp(argv[i], "--hi") && i + 1 < argc) outhi = argv[++i];
     else if (!strcmp(argv[i], "--dump-vram") && i + 1 < argc) outv = argv[++i];
     else if (!strcmp(argv[i], "--scale") && i + 1 < argc) scale = atoi(argv[++i]);
-    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) aa = !strcmp(argv[i + 1], "smaa") ? GPU_AA_SMAA : atoi(argv[i + 1]), i++;
+    else if (!strcmp(argv[i], "--aa") && i + 1 < argc) {
+      edgeaa = !strcmp(argv[i + 1], "edges"); /* Antialiasing=Smooth edges: one sample, the outline with its coverage */
+      aalite = !strcmp(argv[i + 1], "lite"); /* Antialiasing=4 samples (lite): 4 samples without the DS's antialiasing */
+      aa = !strcmp(argv[i + 1], "smaa") ? GPU_AA_SMAA : edgeaa ? 1 : aalite ? 2 : atoi(argv[i + 1]), i++;
+    }
+    else if (!strcmp(argv[i], "--exp") && i + 1 < argc) exp = (int)strtol(argv[++i], NULL, 0) & GPU_EXP_ALL; /* pass R's cuts' switches */
     else if (!strcmp(argv[i], "--time") && i + 1 < argc) times = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--gap") && i + 1 < argc) gap = atoi(argv[++i]);
     else if (!strcmp(argv[i], "--ablate") && i + 1 < argc) ablate = atoi(argv[++i]);
@@ -151,6 +156,9 @@ int main(int argc, char **argv) {
   if (metal && ablate) gpu_mtl_ablate((unsigned)ablate);
   GpuOptions gopt;
   gpu_options_from_env(&gopt);
+  gopt.edgeaa = edgeaa;
+  gopt.aalite = aalite;
+  if (exp >= 0) gopt.exp = exp; /* (else BWPORT_GPU_EXP's) */
   gpu_set_options(g, &gopt);
   static uint32_t vc3d[VC_W * VC_H];
   memcpy(vc3d, s->f3d.out, sizeof vc3d); /* vcore's own 3D layer (G7's 1x input, --3d-from vcore) */

@@ -7,7 +7,8 @@
 # Prints: the V-blanks between the player's tile changes, the player's tile < the follower's tile : follow state at each
 # change, and the step ends the field saw (PLAYER_MOVE_STATE_END frames: wild encounters and step counters run on them).
 # MODE=2 (BWPORT_MOVELOG4=2) also logs the pixel position each V-blank it moves. OUT=DIR keeps the logs (default
-# ~/.cache/bwport/speed4); each run has its own run dir there, so several can run at once.
+# ~/.cache/bwport/speed4); each run has its own run dir there, so several can run at once (speed4_table.sh gives each table its own OUT).
+# TMO = the port_run watchdog in seconds (default 600: 150 killed runs on a loaded machine).
 cd "$(git rev-parse --show-toplevel)" || exit 2
 game=$1; save=$2; dir=$3; kind=$4; sp=$5; hold=${6:-120}
 keep=${OUT:-$HOME/.cache/bwport/speed4}
@@ -17,6 +18,7 @@ else
     pre="start@f7700 a@f8300 a@f8700 a@f9100 b@f10600"; st=${7:-11000}
 fi
 tag=${game}_${save}_${kind}${sp}
+[ -z "${OUT:-}" ] && bash tools/speed4_prune.sh "$keep" 2>/dev/null   # the default dir only (never a caller's OUT): newest 5 runs / 2 days
 mkdir -p "$keep/run_$tag"
 if [ "$kind" = run ]; then
     keys="$pre b*f$((hold + 20))@f$st $dir*f$hold@f$st"; export BWPORT_RUNSPEED=$sp BWPORT_WALKSPEED=1
@@ -25,7 +27,7 @@ else
 fi
 export BWPORT_SURFSPEED=1 BWPORT_MOVELOG4=${MODE:-1}
 python3 tools/port_run.py --no-build --dir "$keep/run_$tag" --game "$game" --save "$save" --keys "$keys" \
-    --frames $((st + hold + 90)) --skip 1 -t 150 > "$keep/$tag.run" 2>&1
+    --frames $((st + hold + 90)) --skip 1 -t ${TMO:-600} > "$keep/$tag.run" 2>&1
 log=$(sed -n 's/^port_run: \(.*log\.txt\),.*/\1/p' "$keep/$tag.run" | tail -1)
 grep -h "^move4" "$log" > "$keep/$tag.log"
 # the tiles after the hold starts (the first dt counts from the last tile change before it)

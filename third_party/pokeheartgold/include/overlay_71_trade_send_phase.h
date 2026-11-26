@@ -1,6 +1,8 @@
 #ifndef POKEHEARTGOLD_OVERLAY_71_TRADE_SEND_PHASE_H
 #define POKEHEARTGOLD_OVERLAY_71_TRADE_SEND_PHASE_H
 
+#include "bg_window.h"
+
 // TradeSendPhase: merged by tools/hg/promote.py from 5 m2c local copies (1 variants, base
 // src/overlay_71_02246B58_02247A10_02247A10.c) and 8 accesses; fields at every accessed offset, pads elsewhere.
 
@@ -27,7 +29,7 @@ typedef struct TradeSendPhase {
     struct Sprite *sprites[2];
     struct { void *cellBuffer; void *animBuffer; struct NNSG2dCellDataBank *cellBank; struct NNSG2dAnimBankData *animBank; } animResources;
     struct BgConfig *bgConfig;
-    struct { struct BgConfig *bgConfig; u8 bgId; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 paletteNum; u16 baseTile : 15; u16 colorMode : 1; void *pixelBuffer; } window;
+    Window window;
     struct String *string0;
     struct String *string1;
     struct Trade3DScene *scene;

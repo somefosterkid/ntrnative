@@ -1,6 +1,8 @@
 #include "global.h"
 
 #include "bg_window.h"
+#include "yes_no_prompt.h"
+#include "overlay_65_trade_room.h"
 
 s32 ov65_0221DE24(void *, s32, s32);
 
@@ -14,7 +16,7 @@ s32 ov65_0221F7E0(void *);
 
 u8 ov65_0221FB90(void *, s32, s32, void *, void *);
 
-u32 ov65_0221FC54(BgConfig *, s32, void *, void *, s32);
+s32 ov65_0221FC54(BgConfig *, void *, s32 *, YesNoPrompt **, s32);
 
 extern s32 ov65_0221F258;
 
@@ -26,7 +28,7 @@ s32 ov65_0221F120(void *arg0) {
     s32 temp_r0_2;
     u32 temp_r0;
 
-    temp_r0 = ov65_0221FC54(*(BgConfig **)((u8 *)arg0 + 0x180), (s32)(arg0 + 0x664), arg0 + 0x670, arg0 + 0x36C0, (s32)(0));
+    temp_r0 = ov65_0221FC54(((TradeRoom *)arg0)->bgConfig, &((TradeRoom *)arg0)->yesNoMenu, &((TradeRoom *)arg0)->yesNoMenuStep, &((TradeRoom *)arg0)->yesNoPrompt, 0);
     switch (temp_r0) {
     case 0:
         break;

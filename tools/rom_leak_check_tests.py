@@ -71,6 +71,67 @@ def test_all():
     print("ok scan")
 
 
+def test_trivial_filters():
+    """The noise filters drop counters and short flag runs, not a long table that takes the same few steps."""
+    def u32(vals):
+        return struct.pack("<%di" % len(vals), *vals)
+    r = random.Random(3)
+    flags = [r.randrange(2) for _ in range(80)]          # a 0/1 table: steps -1, 0, 1, no period
+    assert not R.trivial(u32(flags), 4)
+    assert R.trivial(u32(flags[:14]), 4)                  # 14 flags: under MIN_BITS, a chance match
+    assert R.trivial(u32([i // 2 for i in range(40)]), 4)  # 0, 0, 1, 1, 2, 2 ...
+
+    assert R.trivial(u32(sum(([i, i - 1] for i in range(1, 20)), [])), 4)  # 1, 0, 2, 1, 3, 2 ...
+    assert R.trivial(u32([0, 1] * 25), 4)                 # a 0/1 alternation: steps -1, 1 repeat with period 2
+    tbl = [r.randrange(1, 200) for _ in range(30)]       # a real table: many steps
+    assert not R.trivial(u32(tbl), 4)
+    print("ok trivial_filters")
+
+
+def test_shadow():
+    """A short run through the same data (another file holding the first 40 bytes) must not hide the 48-byte run of the
+    ROM, and a partial run with a changed checker must not replace the stored full results (ov124 first-tile table)."""
+    r2 = random.Random(11)
+    big = bytes(r2.randrange(256) for _ in range(5000))
+    other = bytes(r2.randrange(256) for _ in range(16)) + big[1008:1048] + bytes(r2.randrange(256) for _ in range(300))
+    with tempfile.TemporaryDirectory() as tmp:
+        roms = []
+        for name, blob in (("a", other), ("b", big)):   # "a" first: its entry for the shared window comes first
+            ext = os.path.join(tmp, name + "_ext")
+            os.makedirs(os.path.join(ext, "files"))
+            os.makedirs(os.path.join(ext, "arm9"))
+            open(os.path.join(ext, "arm9", "arm9.bin"), "wb").write(blob)
+            rom = os.path.join(tmp, name + ".nds")
+            open(rom, "wb").write(blob)
+            roms.append((name, rom, ext))
+        cache = os.path.join(tmp, "cache")
+        R.build_cache(roms, cache)
+        R.build_index(roms, cache)
+        data = big[1008:1056]
+        got = R.scan_stream(data)
+        assert got and got[0][1] == 48, got
+        # the stored result of a full run survives a partial run of another checker version
+        old = R.REPO
+        R.REPO = os.path.join(tmp, "repo")
+        os.makedirs(R.REPO)
+        try:
+            open(os.path.join(R.REPO, "x.bin"), "wb").write(data)
+            open(os.path.join(R.REPO, "y.bin"), "wb").write(big[2000:2100])
+            R.scan_cached(["x.bin"], roms, cache, 2)
+            fn = os.path.join(cache, "scan_results.pkl")
+            before = open(fn, "rb").read()
+            saved = R.code_version
+            R.code_version = lambda: "other checker"
+            try:
+                R.scan_cached(["y.bin"], roms, cache, 2, full=False)
+            finally:
+                R.code_version = saved
+            assert open(fn, "rb").read() == before
+        finally:
+            R.REPO = old
+    print("ok shadow")
+
+
 def test_modules():
     """A ROM without a dsd extract: its overlays' decompressed images (tools/rom_modules.py) are searched too."""
     import rom_modules
@@ -211,7 +272,9 @@ def test_file_args():
 if __name__ == "__main__":
     test_file_args()
     test_all()
+    test_trivial_filters()
     test_static()
+    test_shadow()
     test_modules()
     test_result_cache()
     test_where()

@@ -1,5 +1,9 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
+#include "overlay_49_getters.h"
+
 #include "bg_window.h"
 #include "list_menu.h"
 #include "pm_string.h"
@@ -37,9 +41,7 @@ enum PlazaMinigame {
     UnkEnum_ov66_022324D0_12 = UnkEnum_ov66_022324D0_02 + 1,
 };
 
-BOOL ov45_0222A330(const WiFiPlazaSystem *param0);
 
-BOOL ov45_0222A374(const WiFiPlazaSystem *param0);
 
 typedef struct UnkStruct_ov70_0225CA20_t UnkStruct_ov70_0225CA20;
 
@@ -49,9 +51,7 @@ UnkStruct_ov70_0225CC54 *ov49_02258DAC(UnkStruct_ov70_0225CA20 *param0);
 
 void ov49_02258EEC(UnkStruct_ov70_0225CA20 *param0, UnkStruct_ov70_0225CC54 *param1, int param2);
 
-WiFiPlazaSystem *ov49_02259FE8(UnkStruct_ov70_0225DEE8 *param0);
 
-UnkStruct_ov70_0225CA20 *ov49_02259FF0(UnkStruct_ov70_0225DEE8 *param0);
 
 void ov49_0225A08C(UnkStruct_ov70_0225DEE8 *param0, const String *param1);
 

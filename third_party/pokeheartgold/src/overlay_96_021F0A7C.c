@@ -5,11 +5,11 @@
 #include "screen_fade.h"
 #include "overlay_96_ov96_arena_work.h"
 
-s32 ov96_021F0A7C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F0A7C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F0B58(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F0B58(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F0A7C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F0A7C(PokeathlonCourseData *data, u8 *arg1) {
     u8 v1;
     Ov96ArenaWork *work;
 
@@ -39,11 +39,15 @@ s32 ov96_021E667C(PokeathlonCourseData *);
 
 s32 ov96_021F107C(PokeathlonCourseData *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021F1170(PokeathlonCourseData *);
+#else
 s32 ov96_021F1170(PokeathlonCourseData *);
+#endif
 
-s32 ov96_021F0AE0(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021F0AE0(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021F0AE0(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F0AE0(PokeathlonCourseData *data, u8 *arg1) {
     u8 v0;
     Ov96ArenaWork *work;
 
@@ -71,7 +75,7 @@ s32 ov96_021F0AE0(PokeathlonCourseData *data, u8 *arg1) {
     return 0;
 }
 
-s32 ov96_021F0B58(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021F0B58(PokeathlonCourseData *data, u8 *arg1) {
     s32 index;
     Ov96ArenaWork *work;
     PokeathlonCourseData *pokeathlonCourseData;

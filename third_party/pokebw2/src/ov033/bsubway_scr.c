@@ -25,13 +25,7 @@ static const u8 sWifiRankLoseLimits[12] = { 0, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0 }
 // by rank
 // clang-format off
 static const u8 sBattlePointRewards[7][10] = {
-    { 3, 3, 3, 0, 0, 0, 0, 0, 0, 0 },
-    { 5, 6, 7, 8, 9, 10, 10, 10, 10, 10 },
-    { 3, 3, 3, 0, 0, 0, 0, 0, 0, 0 },
-    { 5, 6, 7, 8, 9, 10, 10, 10, 10, 10 },
-    { 3, 3, 3, 0, 0, 0, 0, 0, 0, 0 },
-    { 5, 6, 7, 8, 9, 10, 10, 10, 10, 10 },
-    { 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 },
+#include "asset/bsubway_scr_sBattlePointRewards.inc"
 };
 
 // clang-format on

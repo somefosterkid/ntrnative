@@ -67,27 +67,29 @@ u16 *StringFillEOS(u16 *str, u32 n) {
     return StringFill(str, EOS, n);
 }
 
+static u32 hgasset_ConvertUIntToDecimalString__power_of_10[] __attribute__((section(BWPORT_DATA_SECTION))) = {
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    };
+
 u16 *ConvertUIntToDecimalString(u16 *dest, u32 num, PrintingMode strconvmode, u32 ndigits) {
     static const u16 _digit_strcode[] = {
         CHAR_JP_0, CHAR_JP_1, CHAR_JP_2, CHAR_JP_3, CHAR_JP_4, CHAR_JP_5, CHAR_JP_6, CHAR_JP_7, CHAR_JP_8, CHAR_JP_9, CHAR_JP_A, CHAR_JP_B, CHAR_JP_C, CHAR_JP_D, CHAR_JP_E, CHAR_JP_F
 
     };
-    static const u32 _power_of_10[] = {
-        1,
-        10,
-        100,
-        1000,
-        10000,
-        100000,
-        1000000,
-        10000000,
-        100000000,
-        1000000000,
-    };
+    
     u32 denom;
     u16 digit;
 
-    for (denom = _power_of_10[ndigits - 1]; denom != 0; denom /= 10) {
+    for (denom = hgasset_ConvertUIntToDecimalString__power_of_10[ndigits - 1]; denom != 0; denom /= 10) {
         digit = num / denom;
         num -= denom * digit;
         if (strconvmode == PRINTING_MODE_LEADING_ZEROS) {
@@ -104,4 +106,11 @@ u16 *ConvertUIntToDecimalString(u16 *dest, u32 num, PrintingMode strconvmode, u3
     }
     *dest = EOS;
     return dest;
+}
+
+// tools/hg_assets.py: the tables above are blanks, port/src/asset_load.c fills them from the ROM at start
+void PORT_AssetAdd(const char *game, const char *name, void *p, unsigned long size, const char *layout);
+__attribute__((constructor)) static void hgasset_register_src_string_util_c_0(void) {
+    PORT_AssetAdd("IPKE", "src/string_util.c:hgasset_ConvertUIntToDecimalString__power_of_10", (void *)&hgasset_ConvertUIntToDecimalString__power_of_10, sizeof(hgasset_ConvertUIntToDecimalString__power_of_10), "u8");
+    PORT_AssetAdd("IPGE", "src/string_util.c:hgasset_ConvertUIntToDecimalString__power_of_10", (void *)&hgasset_ConvertUIntToDecimalString__power_of_10, sizeof(hgasset_ConvertUIntToDecimalString__power_of_10), "u8");
 }

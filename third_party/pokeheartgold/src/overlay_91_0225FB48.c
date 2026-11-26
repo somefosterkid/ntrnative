@@ -11,84 +11,30 @@
 #include "obj_pltt_transfer.h"
 #include "pm_string.h"
 #include "unk_0200B150.h"
+#include "unk_0200A090.h"
+#include "unk_02013534.h"
 #include "overlay_91_unk_struct_ov115_02261_adc.h"
+#include "overlay_93_unk_struct_ov117_02261280_t.h"
 
-struct FontOAM;
+struct TextOBJ;
 struct G3DPipelineBuffers;
-struct MessageLoader;
+struct MsgData;
 struct SpriteList;
 struct SpriteResource;
 struct SpriteResourceCollection;
-struct StringTemplate;
+struct MessageFormat;
 struct UnkStruct_02012744_t;
 struct UnkStruct_02012B20_t;
 struct UnkStruct_ov114_02025CAD4_t;
-typedef struct FontOAM FontOAM;
-typedef struct UnkStruct_02012744_t UnkStruct_02012744;
 typedef struct UnkStruct_02012B20_t UnkStruct_02012B20;
-typedef struct SpriteList SpriteList;
-typedef struct Sprite {
-    VecFx32 position;
-    VecFx32 affineTranslation;
-    VecFx32 affineScale;
-    u16 affineZRotation;
-    u8 affineOverwriteMode;
-    u8 flip;
-    u8 overwriteFlags;
-    u8 explicitPalette;
-    u8 explicitPaletteOffset;
-    BOOL explicitMosaic;
-    GXOamMode explicitOamMode;
-    u8 draw;
-    u8 animate;
-    fx32 animSpeed;
-    SpriteList *list;
-
-    u32 animData[29];
-    NNSG2dImageProxy imageProxy;
-    NNSG2dImagePaletteProxy paletteProxy;
-    u32 type;
-    u16 activeAnimID;
-    u8 explicitPriority;
-    u16 priority;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    struct Sprite *prev;
-    struct Sprite *next;
-} Sprite;
-struct SpriteList {
-    Sprite *sprites;
-    int capacity;
-    Sprite **freeSprites;
-    int freeSpriteHead;
-    Sprite sentinelData;
-    NNSG2dRendererInstance *renderer;
-    void *rawAnimData;
-    NNSG2dCellAnimBankData *defaultAnimBank;
-    BOOL active;
-};
 BOOL SpriteList_Delete(SpriteList *collection);
-typedef struct UnkStruct_ov114_02025CAD4_t UnkStruct_ov114_0225CAD4;
 enum RotationAxis {
     ROTATION_AXIS_X = 0,
     ROTATION_AXIS_Y,
     ROTATION_AXIS_Z,
     ROTATION_AXIS_COUNT
 };
-typedef struct Easy3DObject {
-    NNSG3dRenderObj renderObj;
-    VecFx32 position;
-    VecFx32 scale;
-    BOOL visible;
-    u16 rotation[ROTATION_AXIS_COUNT];
-    u8 padding_76[2];
-} Easy3DObject;
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
-typedef struct MessageLoader MessageLoader;
-typedef struct SpriteResource SpriteResource;
-typedef struct SpriteResourceCollection SpriteResourceCollection;
-void Destroy2DGfxResObjMan(SpriteResourceCollection *spriteResources);
-typedef struct StringTemplate StringTemplate;
-void sub_020135AC(UnkStruct_02012744 *param0);
 typedef struct {
     fx32 unk_00;
     fx32 unk_04;
@@ -104,7 +50,7 @@ typedef struct {
     Window unk_0C;
 } UnkStruct_ov115_022617E8;
 typedef struct {
-    Easy3DObject unk_00[3];
+    Field3dObject unk_00[3];
     Field3dModel unk_168[3];
     Field3DModelAnimation unk_198[6];
     u16 unk_210;
@@ -142,8 +88,8 @@ typedef struct {
 } UnkStruct_ov115_02264A40;
 typedef struct {
     Sprite *unk_00;
-    Easy3DObject unk_04;
-    Easy3DObject unk_7C;
+    Field3dObject unk_04;
+    Field3dObject unk_7C;
     BOOL unk_F4;
     const UnkStruct_ov115_022622F8 *unk_F8;
     u16 unk_FC;
@@ -181,7 +127,7 @@ typedef struct {
     UnkStruct_ov115_02261304 unk_08;
 } UnkStruct_ov115_02261ADC_sub1;
 typedef struct {
-    Easy3DObject unk_00[3];
+    Field3dObject unk_00[3];
     Field3dModel unk_168[3];
     Field3DModelAnimation unk_198[3];
     fx32 unk_1D4;
@@ -203,7 +149,7 @@ typedef struct {
     SpriteResourcesHeader unk_10;
     Sprite *unk_34;
     Window unk_38;
-    FontOAM *unk_48;
+    TextOBJ *unk_48;
     UnkStruct_02012B20 *unk_4C;
     UnkStruct_02021AC8 unk_50;
     String *unk_5C;

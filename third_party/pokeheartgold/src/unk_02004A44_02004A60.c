@@ -2,11 +2,19 @@
 
 #include "sound.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+int GBSounds_GetDSSeqNoByGBSeqNo(u16);
+#else
 int GBSounds_GetDSSeqNoByGBSeqNo(u32);
+#endif
 
 void GF_SetCurrentPlayingBGM(u16);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02004AB8(u16);
+#else
 void sub_02004AB8(u32);
+#endif
 
 void sub_02004A60(u32 param_1);
 

@@ -1363,7 +1363,7 @@ u16 sub_0203769C(void);
 
 int sub_020378AC(int networkId);
 
-void sub_0203A914();
+void sub_0203A914(void);
 
 BOOL ov12_0223A260(OverlayManager *appMan);
 

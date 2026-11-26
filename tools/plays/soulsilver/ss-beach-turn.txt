@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-guide
+# reaches: Cherrygrove City's western beach, warped into the shallow water at 536,403 facing north: turns in place to every side (a control: no player vanishing or doubling at any capture stride)
+# end: f11500
+env BWPORT_HG_WARP=67:536:403 BWPORT_HG_WARP_DIR=0
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys up*f3@f11000 right*f3@f11030 down*f3@f11060 left*f3@f11090 up*f3@f11120 down*f3@f11150 right*f3@f11180 left*f3@f11210 up*f3@f11240 right*f3@f11270 down*f3@f11300 left*f3@f11330 down*f3@f11360 up*f3@f11390 right*f3@f11420 down*f3@f11450

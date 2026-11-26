@@ -11,7 +11,7 @@ void ov108_021E6A58(SafariAreaCustomizer *arg0);
 
 void ov108_021E78F4(SafariAreaCustomizer *arg0, s32 arg1, u32 arg2);
 
-s32 ov108_021E7CD8(void *, u8);
+s32 ov108_021E7CD8(void *, u32);
 
 s32 ov108_021E62B4(SafariAreaCustomizer *arg0);
 

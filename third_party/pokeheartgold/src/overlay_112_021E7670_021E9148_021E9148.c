@@ -12,8 +12,6 @@
 #include "text.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021E9148(u8 *param_1, Ov112PokewalkerApp *param_2, u8 *param_3, u8 *param_4);
-
 void ov112_021E9148(u8 *param_1, Ov112PokewalkerApp *param_2, u8 *param_3, u8 *param_4) {
     MsgData *msgData;
     String *pSVar1;

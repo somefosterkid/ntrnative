@@ -1,6 +1,7 @@
 #include "global.h"
 
 #include "unk_0201010C.h"
+#include "screen_fade_internal.h"
 
 s32 sub_02013220(u32, s32, s32, s32);
 

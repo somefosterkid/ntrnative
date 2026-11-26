@@ -20,7 +20,8 @@ crashed), no-spawn (the map has no event to stand on), exit (the frame cap: a ba
 timeout (any other end).
 
 Out dir (resumable: maps already in sweep.tsv are skipped; --redo runs them again):
-    sweep.tsv          one line per map: map id, name, verdict, frame, top function, backtrace id, last zone, zones, wall s
+    sweep.tsv          one line per map: map id, name, verdict, frame, top function, backtrace id, last zone, zones, wall s, note
+                       (needs-session: a failing run on a comm map, NEEDS_SESSION: not a crash group; the reason is in note)
     crash_groups.tsv   by top function: top function, map (the first), count, backtrace, save, kind, all maps
     summary.txt        verdict counts; crash groups by count
     maps/<id>/         warp.txt (the hook's lines), run.txt (the tail of port_run's output), log.txt.gz + bt.txt (crash / heap /
@@ -62,7 +63,22 @@ def exe_or_exit(a):
 RELOAD = 'start*f10@f1000 start*f10@f1300 a*f10@f1600'
 WALK_FROM = 1800   # V-blank: the warp is over by then (the first free frame ~1660, the map up ~90 frames later) (--walk-from)
 FRAME_RE = re.compile(r'^#(\d+)\s+(?:0x[0-9a-f]+ in )?(\S+) \(.*?\)(?: at (\S+):(\d+))?(?: from (\S+))?$')
-HEAD = ['map', 'name', 'verdict', 'frame', 'top', 'bt_id', 'last_zone', 'zones', 'wall_s']
+HEAD = ['map', 'name', 'verdict', 'frame', 'top', 'bt_id', 'last_zone', 'zones', 'wall_s', 'note']
+# Comm maps (Union Room crash analysis, 11-25): a direct warp into a room whose scripts need the link session (no entry task made it) is not a
+# port crash. A failing verdict (crash, hang, stub, heap, timeout, no-field) there is reported as `needs-session` with the reason in the
+# `note` column and kept out of crash_groups.tsv; an `ok` row stays ok. 466 is measured (pts1 group 4, the 11-25 sweep: sub_0205C820 <-
+# ScrCmd_142, no session without the reception flow); the others are the same shape by their scripts' names.
+NEEDS_SESSION = {
+    2: 'Underground: a comm / session map (needs the link session)',
+    333: 'Communication Club Colosseum 2P: the session is made by the Union Room / Cable Club flow, not by a warp',
+    334: 'Communication Club Colosseum 4P: the session is made by the Union Room / Cable Club flow, not by a warp',
+    411: 'Record Mixing Room: a comm room (needs the link session)',
+    466: 'Union Room: ScrCmd_142 (sub_0205C820) runs without the session the reception flow creates (a direct warp skips it)',
+}
+SESSION_FAIL = ('crash', 'hang', 'stub', 'timeout', 'no-field')   # not heap: a heap-check finding is memory corruption, a session cannot explain it
+def needs_session(mid, verdict):
+    """the note of a failing run on comm map MID (None: a real finding or an ok run)"""
+    return NEEDS_SESSION.get(int(mid)) if verdict in SESSION_FAIL else None
 # the interaction sweep's landing where a map's first-visit scene needs another tile than the first warp's (ptc3, 11-16): the Fight
 # Area's scene walks the player along a fixed path that only fits the western start (5 tiles west of the rival, same row); from
 # the north gate's tile the path ends in Route 225's zone, which deletes the map's objects under the rival's running walk, and the
@@ -193,14 +209,17 @@ def run_map(a, mid, name, tile, slot):
     warp = open(os.path.join(d, 'warp.txt')).read() if os.path.exists(os.path.join(d, 'warp.txt')) else ''
     zones = [int(z) for z in re.findall(r'^zone (\d+)', warp, re.M)]
     verdict, frame, top, text, bid = classify(line, log, warp, mid)
-    if verdict in ('crash', 'hang', 'stub', 'heap'):
+    note = needs_session(mid, verdict) or ''
+    if note:
+        verdict = 'needs-session'
+    if verdict in ('crash', 'hang', 'stub', 'heap') or note:
         with gzip.open(os.path.join(d, 'log.txt.gz'), 'wt') as f:
             f.write(log)
         open(os.path.join(d, 'bt.txt'), 'w').write(line + '\n' + text + '\n')
     shutil.rmtree(out_dir, ignore_errors=True)
     last = zones[-1] if zones else ''
     return [os.path.basename(d), name, verdict, frame, top, bid, last, ','.join(map(str, dict.fromkeys(zones))),
-            f'{wall:.0f}'], text
+            f'{wall:.0f}', note], text
 
 
 def parse_maps(spec, maps):
@@ -219,6 +238,15 @@ def parse_maps(spec, maps):
 def summarize(a, maps):
     path = os.path.join(a.out, 'sweep.tsv')
     rows = [l.rstrip('\n').split('\t') for l in open(path)][1:] if os.path.exists(path) else []
+    changed = False
+    for r in rows:   # rows an older run wrote (9 columns, no note): a failure on a comm map is not a crash group
+        r += [''] * (len(HEAD) - len(r))
+        note = needs_session(r[0], r[2])
+        if note:
+            r[2], r[9], changed = 'needs-session', note, True
+    if changed:
+        with open(path, 'w') as f:
+            f.write('\t'.join(HEAD) + '\n' + ''.join('\t'.join(r) + '\n' for r in rows))
     verdicts = collections.Counter(r[2] for r in rows)
     groups = collections.OrderedDict()
     for r in sorted(rows, key=lambda r: int(r[0])):
@@ -244,6 +272,10 @@ def summarize(a, maps):
         lines.append(f'{len(g["maps"]):5}  {kind:5}  {top}   ({m0} {maps.get(m0, ("?",))[0]}; maps {",".join(g["maps"][:12])}'
                      f'{" ..." if len(g["maps"]) > 12 else ""})')
     open(os.path.join(a.out, 'summary.txt'), 'w').write('\n'.join(lines) + '\n')
+    ns = [r for r in rows if r[2] == 'needs-session']
+    if ns:
+        lines += ['', 'needs-session (comm maps, not crashes): ' + '; '.join(f'{r[0]} {r[1]}: {r[4]}' for r in ns)]
+        open(os.path.join(a.out, 'summary.txt'), 'w').write('\n'.join(lines) + '\n')
     print('\n'.join(lines[:1] + lines[1:30]))
 
 
@@ -298,7 +330,7 @@ def main():
         name, events = maps.get(mid, ('?', None))
         tile = spawn(events) if events else None
         if tile is None:
-            row, text = [mid, name, 'no-spawn', '', '', '', '', '', '0'], ''
+            row, text = [mid, name, 'no-spawn', '', '', '', '', '', '0', ''], ''
         else:
             slot = slots.get()
             try:

@@ -27,17 +27,17 @@ void ov49_0225D394(UnkStruct_ov70_02260BB8 *arg0, UnkStruct_ov70_022610B8 *arg1)
     } while (v0 < 3);
 }
 
-u8 ov49_0225D3BC(s32 arg0, void *arg1, s32 arg2);
+u8 ov49_0225D3BC(u8 *arg0, u8 *arg1, s32 arg2);
 
-u8 ov49_0225D3BC(s32 arg0, void *arg1, s32 arg2) {
+u8 ov49_0225D3BC(u8 *arg0, u8 *arg1, s32 arg2) {
     if (arg2 >= 3) {
         GF_AssertFail();
     }
-    if ((u32) * (u16 *)((u8 *)arg1 + 2) >= 0x12U) {
+    if ((u32) * (u16 *)(arg1 + 2) >= 0x12U) {
         GF_AssertFail();
     }
-    if (*(s32 *)((u8 *)(arg0 + (0xC * *(u16 *)((u8 *)arg1 + 2)) + (arg2 * 4)) + 0x3BC) != 0) {
-        return *(u8 *)((u8 *)(arg1 + arg2) + 0xB8);
+    if (*(s32 *)((arg0 + 0x3BC) + (0xC * *(u16 *)(arg1 + 2)) + (arg2 * 4)) != 0) {
+        return *(arg1 + arg2 + 0xB8);
     }
     return 0U;
 }

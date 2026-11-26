@@ -9,15 +9,15 @@ Sprite *ov96_021EB5B8(void *);
 void ov96_021EB63C(void *arg0, s32 arg1);
 
 BOOL ov96_021ED1D0(PokeathlonCourseData *param0);
-BOOL ov96_021EB678(PokeathlonCourseData *param0);
+BOOL ov96_021EB678(PokeathlonCourseData *param0, int unused);
 s32 ov96_021ED47C(PokeathlonCourseData *data);
-s32 ov96_021EB680(PokeathlonCourseData *data);
+BOOL ov96_021EB680(PokeathlonCourseData *data, int unused);
 s32 ov96_021ED48C(PokeathlonCourseData *data);
-s32 ov96_021EB688(PokeathlonCourseData *data);
-BOOL ov96_021EB690(PokeathlonCourseData *param0);
+BOOL ov96_021EB688(PokeathlonCourseData *data, int unused);
+BOOL ov96_021EB690(PokeathlonCourseData *param0, int unused);
 
-s32 ov96_021EB698(PokeathlonCourseData *data);
-s32 ov96_021EB6A0(PokeathlonCourseData *data);
+BOOL ov96_021EB698(PokeathlonCourseData *data, int unused);
+BOOL ov96_021EB6A0(PokeathlonCourseData *data, int unused);
 
 void ov96_021EB63C(void *arg0, s32 arg1) {
     u8 *v0;
@@ -44,26 +44,26 @@ void ov96_021EB63C(void *arg0, s32 arg1) {
     }
 }
 
-BOOL ov96_021EB678(PokeathlonCourseData *param0) {
+BOOL ov96_021EB678(PokeathlonCourseData *param0, int unused) {
     return ov96_021ED1D0(param0);
 }
 
-s32 ov96_021EB680(PokeathlonCourseData *data) {
+BOOL ov96_021EB680(PokeathlonCourseData *data, int unused) {
     return ov96_021ED47C(data);
 }
 
-s32 ov96_021EB688(PokeathlonCourseData *data) {
+BOOL ov96_021EB688(PokeathlonCourseData *data, int unused) {
     return ov96_021ED48C(data);
 }
 
-BOOL ov96_021EB690(PokeathlonCourseData *param0) {
+BOOL ov96_021EB690(PokeathlonCourseData *param0, int unused) {
     return ov96_021ED1D0(param0);
 }
 
-s32 ov96_021EB698(PokeathlonCourseData *data) {
+BOOL ov96_021EB698(PokeathlonCourseData *data, int unused) {
     return ov96_021ED47C(data);
 }
 
-s32 ov96_021EB6A0(PokeathlonCourseData *data) {
+BOOL ov96_021EB6A0(PokeathlonCourseData *data, int unused) {
     return ov96_021ED48C(data);
 }

@@ -72,7 +72,11 @@ void sub_02005228(u16 seqno) {
 
 s32 Sound_ClearBGMPauseFlags(void);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02005060(u8);
+#else
 s32 sub_02005060(s32);
+#endif
 
 void sub_02005260(u16 arg0);
 

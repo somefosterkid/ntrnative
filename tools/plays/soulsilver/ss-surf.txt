@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r35pond
+# reaches: Route 35's pond with the follower: the Surf prompt and the Surf Pokemon (the title keys' A presses talk to the water), left across the water, then right back onto the shore (Surf start and end; cheat items, badges, party)
+# end: f11300
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=39:371:292 BWPORT_HG_WARP_DIR=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f24@f10950 right*f40@f11150

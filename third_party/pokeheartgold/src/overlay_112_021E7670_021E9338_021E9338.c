@@ -3,8 +3,6 @@
 #include "pokewalker.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021E9338(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021E9338(Ov112PokewalkerApp *arg0) {
     u16 sp0[2];
 

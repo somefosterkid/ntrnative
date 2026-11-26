@@ -68,7 +68,7 @@ chunks (4-byte tag, u32 size, data padded to 4):
 | VRAM | 0xA4000 | banks A-I, each its own memory, in order (A-D 128K, E 64K, F G 16K, H 32K, I 16K) | `vram`, `vc_bank(s, b)` |
 | PLTT | 0x800 | A BG, A OBJ, B BG, B OBJ (0x200 each) | `pltt`, `vc_pal()` |
 | OAM  | 0x800 | A, B | `oam`, `vc_oam()` |
-| GX3D | words | the 3D commands of the frame the 3D layer shows: per entry a header `op \| n << 8 \| flags << 16` (flags 1 prologue, 2 from a display list, 4 a register write) and n parameters; a prologue first rebuilds the geometry engine's state (matrices, stacks, lights, material) | `gx`, `gx_words` |
+| GX3D | words | the 3D commands of the frame the 3D layer shows: per entry a header `op \| n << 8 \| flags << 16` (flags 1 prologue, 2 from a display list, 4 a register write, 8 a tag: op 0 with 3 parameters owner, inst, state, which only Smooth motion's RECORD reads, docs/interp-sweep.md M3; the DS's NOP has none, so every reader steps over it) and n parameters; a prologue first rebuilds the geometry engine's state (matrices, stacks, lights, material) | `gx`, `gx_words` |
 | LSHT | 256x384x4 | libntr's own picture (RGBA8) | `lsht` |
 | L3D  | 256x192x4 | libntr's 3D layer | `l3d` |
 

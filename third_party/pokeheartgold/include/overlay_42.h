@@ -3,15 +3,12 @@
 
 #include "global.h"
 
+#include "overlay_42_unk_struct_ov44_02232914.h"
 #include "bg_window.h"
 #include "palette.h"
 #include "sprite.h"
 #include "unk_02009D48.h"
 
-typedef struct UnkStruct_ov44_02232914 {
-    s16 unk0;
-    s16 unk2;
-} UnkStruct_ov44_02232914;
 
 typedef struct UnkStruct_ov42_02228CDC {
     u16 unk0;

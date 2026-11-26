@@ -117,13 +117,13 @@ u8 ov08_0221C9A4(BattleParty *battleParty) {
     return 21;
 }
 
-s32 ov08_0221D6CC(void *, u8);
+s32 ov08_0221D6CC(void *, int);
 
 s32 ov08_0221DD70(void *, u32);
 
-s32 ov08_02220C5C(void *, u8);
+s32 ov08_02220C5C(void *, int);
 
-s32 ov08_022221CC(void *, u8);
+s32 ov08_022221CC(void *, int);
 
 s32 ov08_0221C9C8(BattleParty *arg0);
 

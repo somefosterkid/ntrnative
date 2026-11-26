@@ -3,7 +3,11 @@
 #include "sprite_system.h"
 #include "overlay_96_app_0221040c.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov96_022104D8(SpriteSystem *, SpriteManager *, s16, u8, u16, u16);
+#else
 ManagedSprite *ov96_022104D8(SpriteSystem *, SpriteManager *, s16, s32, s32, s32);
+#endif
 
 void ov96_0221065C(Ov96App_0221040C *arg0) {
     ManagedSprite *managedSprite;

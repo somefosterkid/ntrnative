@@ -1,7 +1,7 @@
 #include "global.h"
 #include "pokeathlon/pokeathlon.h"
 
-s32 ov96_02213514();
+s32 ov96_02213514(VecFx32 *arg0, VecFx32 *arg1);
 
 s32 ov96_02213534(void *arg0, void *arg1, u8 arg2);
 
@@ -10,7 +10,7 @@ u32 _s32_div_f(s32, u32);
 void ov96_0221359C(PokeathlonCourseData *param_1, u8 *param_2, s32 param_3, s32 param_4, u8 *param_5);
 
 s32 ov96_02213534(void *arg0, void *arg1, u8 arg2) {
-    if (ov96_02213514() >= (s32)FX_SinCosTable_[((arg2 >> 4) * 2) + 1]) {
+    if (ov96_02213514(arg0, arg1) >= (s32)FX_SinCosTable_[((arg2 >> 4) * 2) + 1]) {
         return 1;
     }
     return 0;

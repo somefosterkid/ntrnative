@@ -4,9 +4,9 @@
 
 #include "screen_fade.h"
 
-s32 ov96_022021D4(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_022021D4(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_022021D4(PokeathlonCourseData *arg0, u8 *arg1) {
+BOOL ov96_022021D4(PokeathlonCourseData *arg0, u8 *arg1) {
     unsigned char new_var;
     u8 *temp_r5;
     u32 var_r4;

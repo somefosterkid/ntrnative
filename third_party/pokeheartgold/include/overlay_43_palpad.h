@@ -11,8 +11,6 @@
 #include "sprite_resources_header.h"
 
 struct BgConfig;
-struct CharSprite;
-struct CharSpriteManager;
 struct CodeEntryArgs;
 struct GF_2DGfxResMan;
 struct ListMenuItem;
@@ -28,6 +26,8 @@ struct SpriteList;
 struct SpriteResource;
 struct String;
 struct TouchscreenListMenu;
+struct UnkStruct_ov42_02227060;
+struct UnkStruct_ov42_02227114;
 struct TouchscreenListMenuSpawner;
 struct YesNoPrompt;
 
@@ -114,6 +114,17 @@ typedef struct PalPadPanelLayout {
     u8 height;
 } PalPadPanelLayout;
 
+typedef struct PalPadCursorBox {
+    s16 x;
+    s16 y;
+    u8 width;
+    u8 height;
+    u8 bgLayer;
+    u8 palette;
+    u8 selectedPalette;
+    u8 pad_09;
+} PalPadCursorBox;
+
 typedef struct PalPadWindowSpec {
     u8 x;
     u8 y;
@@ -124,7 +135,7 @@ typedef struct PalPadWindowSpec {
 typedef struct PalPadRosterPage {
     PalPadPanelLayout layout;
     Window window;
-    struct CharSprite *icons[8];
+    struct UnkStruct_ov42_02227114 *icons[8];
 } PalPadRosterPage;
 
 typedef struct PalPadRoster {
@@ -135,7 +146,7 @@ typedef struct PalPadRoster {
     PalPadRosterPage pages[3];
     s16 scrollStep;
     u16 scrollDir;
-    struct CharSpriteManager *trainerIcons;
+    struct UnkStruct_ov42_02227060 *trainerIcons;
     Window returnWindow;
     Window msgWindow;
     struct String *msgText;

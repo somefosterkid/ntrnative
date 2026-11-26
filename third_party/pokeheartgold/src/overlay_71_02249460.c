@@ -3,12 +3,13 @@
 #include "sys_task.h"
 #include "heap.h"
 #include "system.h"
+#include "bg_window.h"
 
 typedef struct UnkStruct_ov71_022494A0_Heap_Alloc {
     void *unk_0;
     s32 unk_4;
     u8 unk_8[0x1C];
-    s32 unk_24;
+    struct BgConfig *unk_24;
     s32 unk_28;
     u8 unk_2C[0x8];
     u8 unk_34;
@@ -69,7 +70,7 @@ void ov71_0224903C(BallPathState *bpState);
 
 void ov71_02249460(SysTask *unused, void *param);
 
-s32 ov71_02247384(void *);
+struct BgConfig *ov71_02247384(void *);
 s32 ov71_02249988(void *);
 void *ov71_022494A0(void *arg0);
 s32 ov71_022497C8(void *);

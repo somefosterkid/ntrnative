@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "constants/heap.h"
 #include "player_data.h"
 #include "overlay_45_unk_struct_ov66_0222e294.h"
@@ -129,7 +131,6 @@ typedef struct SaveDataState {
     volatile BOOL locked;
 } SaveDataState;
 
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 
 void ov45_0222A844(const WiFiPlazaProfile *profile, PlayerProfile *param1, enum HeapID heapID);
 

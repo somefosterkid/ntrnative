@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "field_types_def.h"
 #include "player_avatar.h"
 #include "follow_mon.h"
@@ -8,7 +10,6 @@
 
 u32 sub_0205D2A0(PlayerAvatar *param_1, s32 param_2);
 
-s32 sub_0205DA1C(PlayerAvatar *, LocalMapObject *, s32);
 s32 sub_0206234C(s32, s32);
 void sub_0205D2D0(PlayerAvatar *arg0, s32 arg1);
 

@@ -12,10 +12,13 @@
  *   t4: L.t, R.t, row flags (GPU_ROW_*), x0 (the fractions' origin: vcore's xs, before the clamp)
  *   t5: the edge-flag mask: pixels lo1, hi1, lo2, hi2 of the merged runs (p16's emask, plus the row's last pixel); an
  *       empty run is lo > hi
- *   without antialiasing: t6 = lo3, hi3, lo4, hi4 and t7 = lo5, hi5, lo6, hi6 (more runs of the mask; t8, t9 unused);
+ *   without antialiasing: t6 = lo3, hi3, lo4, hi4 and t7 = lo5, hi5, lo6, hi6 (more runs of the mask; t8, t9.xyz unused);
  *   with antialiasing (GPU_ROW_AA), the two edges' coverage windows (p16's aa_edge) as
  *   t6: left lo, hi, cov0 + 1 (0: the X-major formula), ax        t7: left k, dx, dy, unused
- *   t8: right lo, hi, (cov0 + 1) + 64 sh, ax                      t9: right k, dx, dy, unused
+ *   t8: right lo, hi, (cov0 + 1) + 64 sh, ax                      t9: right k, dx, dy, dq
+ *   t9.w (both layouts): dq = floor((floor(t1.w) - floor(t1.z)) / t0.w) when t0.w is 1 .. 65535 (else 0): pass R's
+ *       exact depth (shaders/g03_pixel.glsl g_depth2) reads it instead of dividing a pixel under GPU_EXP_R_DQ (dq in
+ *       [-2^24, 2^24]: a whole float)
  *   (k = the row - ay of the edge; a pixel outside lo..hi has full coverage; cov0 >= 0 is that pixel's coverage)
  *   t10: low parts (value - (float)value of the doubles above) of L.z, R.z; the inner run lo, hi
  *   t11: low parts of L.t, R.t, L.s, R.s

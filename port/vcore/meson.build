@@ -8,6 +8,8 @@ project('vcore', 'c', default_options: ['c_std=c11', 'warning_level=2', 'buildty
 
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(['-Wno-unused-parameter', '-Wno-unused-function']), language: 'c')
+# the same three flags as the port's build of the core (port/meson.build core_cargs)
+add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing', '-fwrapv', '-ffp-contract=off']), language: 'c')
 
 python = find_program('python3')
 list = files('list_sources.py')
@@ -23,7 +25,6 @@ vcore_dep = declare_dependency(link_with: libvcore, include_directories: inc, de
 vcore_tests = executable('vcore_tests', tsrcs, dependencies: vcore_dep)
 executable('vcore_render', 'tools/vcore_render.c', dependencies: vcore_dep)
 executable('vcore_interp', 'tools/vcore_interp.c', dependencies: vcore_dep)
-executable('vcore_ipscan', 'tools/vcore_ipscan.c', dependencies: vcore_dep)
 executable('vcore_texscan', 'tools/vcore_texscan.c', dependencies: vcore_dep)
 executable('vcore_ipsweep', 'tools/vcore_ipsweep.c', dependencies: vcore_dep)
 test('vcore unit tests', vcore_tests, args: ['-q'])

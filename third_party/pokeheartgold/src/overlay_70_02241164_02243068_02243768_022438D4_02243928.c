@@ -28,52 +28,49 @@ extern void ov70_02243EB8(void *a, void *b, void *c, int d);
 
 extern void ov70_02238F9C(void *sprite, int x, int y);
 
-int ov70_02243928(u8 *work);
+int ov70_02243928(UnkStruct_ov70_02242E58 *work);
 
-int ov70_02243928(u8 *work) {
+int ov70_02243928(UnkStruct_ov70_02242E58 *work) {
     int i;
-    int off;
     int n;
     int idx;
     Sprite **new_var;
-    sub_02019688(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), 0, 0x64, 0x20, 1);
-    sub_02019B08(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), 0);
+    sub_02019688(((void *)work->unk_1C), 0, 0x64, 0x20, 1);
+    sub_02019B08(((void *)work->unk_1C), 0);
     ov70_0224190C(work, 5);
-    MI_CpuFill8(work + 0x64, 1, 0x1A);
-    ov70_02243E8C(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), ((void *)((UnkStruct_ov70_02242E58 *)work)->unk_24), *((void **)(work + 4)), (((UnkStruct_ov70_02242E58 *)work)->unk_3C) + 0x6E, 2, 0xF0E02);
+    MI_CpuFill8(work->unk_64, 1, 0x1A);
+    ov70_02243E8C(((void *)work->unk_1C), ((void *)work->unk_24), work->unk_4, (work->unk_3C) + 0x6E, 2, 0xF0E02);
     i = 1;
-    off = 0x10;
     do {
-        int r = ov70_02243FD4(work, (ov70_02245E84[((UnkStruct_ov70_02242E58 *)work)->unk_3C] + i) - 1);
+        int r = ov70_02243FD4(work, (ov70_02245E84[work->unk_3C] + i) - 1);
         int color;
         if (r > 0) {
             color = 0xF0E02;
-            *(((work + i) + ov70_02245E84[((UnkStruct_ov70_02242E58 *)work)->unk_3C]) + 0x63) = 1;
+            work->unk_64[(i + ov70_02245E84[work->unk_3C]) - 1] = 1;
         } else {
             color = 0x80902;
-            *(((work + i) + ov70_02245E84[((UnkStruct_ov70_02242E58 *)work)->unk_3C]) + 0x63) = 0;
+            work->unk_64[(i + ov70_02245E84[work->unk_3C]) - 1] = 0;
         }
-        ov70_02243E8C(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), ((void *)((UnkStruct_ov70_02242E58 *)work)->unk_24), (*((u8 **)(work + 4))) + off, ov70_02245FA0[(i + ov70_02245F58[(((UnkStruct_ov70_02242E58 *)work)->unk_3C) * 2]) - 1], 5, color);
+        ov70_02243E8C(((void *)work->unk_1C), ((void *)work->unk_24), work->unk_4 + i, ov70_02245FA0[(i + ov70_02245F58[(work->unk_3C) * 2]) - 1], 5, color);
         i++;
-        off += 0x10;
     } while (i < 4);
-    ov70_02243EB8(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), ((u8 *)((UnkStruct_ov70_02242E58 *)work)->unk_24), (*((u8 **)(work + 4))) + 0xE0, 0x44);
-    sub_020196E8(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_1C), 0, 0x10, 0);
-    Sprite_SetAnimCtrlSeq(((UnkStruct_ov70_02242E58 *)work)->unk_C, 0x2F);
-    idx = ((UnkStruct_ov70_02242E58 *)work)->unk_3E;
+    ov70_02243EB8(((void *)work->unk_1C), work->unk_24, &work->unk_4[14], 0x44);
+    sub_020196E8(((void *)work->unk_1C), 0, 0x10, 0);
+    Sprite_SetAnimCtrlSeq(work->unk_C, 0x2F);
+    idx = work->unk_3E;
     if (idx < 0) {
-        ((UnkStruct_ov70_02242E58 *)work)->unk_48 = 0;
+        work->unk_48 = 0;
     } else {
-        ((UnkStruct_ov70_02242E58 *)work)->unk_48 = idx;
+        work->unk_48 = idx;
     }
-    n = (((UnkStruct_ov70_02242E58 *)work)->unk_48) * 2;
-    ov70_02238F9C(((void *)((UnkStruct_ov70_02242E58 *)work)->unk_C), (ov70_02245E26[n] + 0x10) << 3, ov70_02245E27[n] << 3);
-    Sprite_SetDrawFlag(((UnkStruct_ov70_02242E58 *)work)->unk_C, 1);
-    new_var = (Sprite **)(work + 0x18);
+    n = (work->unk_48) * 2;
+    ov70_02238F9C(((void *)work->unk_C), (ov70_02245E26[n] + 0x10) << 3, ov70_02245E27[n] << 3);
+    Sprite_SetDrawFlag(work->unk_C, 1);
+    new_var = &work->unk_18;
     if ((*new_var) != 0L) {
         Sprite_SetDrawFlag(*new_var, 1);
     }
-    ((UnkStruct_ov70_02242E58 *)work)->unk_4C = 0x15;
+    work->unk_4C = 0x15;
     return -1;
 }
 

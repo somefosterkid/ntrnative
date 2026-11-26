@@ -14,6 +14,10 @@
 #include "overlay_41_unk_struct_ov22_0225_a0_e4.h"
 #include "overlay_41_unk_struct_ov22_0225ab54.h"
 #include "overlay_41_unk_struct_ov22_02258ee4.h"
+#include "overlay_41_unk_struct_ov22_02258A48.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 void ov41_022490AC(void);
 
@@ -26,36 +30,10 @@ struct SoftwareSpritePalette;
 struct SysTask;
 struct SysTaskQueue;
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
 typedef struct SoftwareSpriteChars SoftwareSpriteChars;
 typedef struct SoftwareSpritePalette SoftwareSpritePalette;
 typedef struct SoftwareSprite SoftwareSprite;
 typedef struct SoftwareSpriteManager SoftwareSpriteManager;
-typedef struct UnkStruct_ov22_02258A48_t {
-    void *unk_00;
-    void (*unk_04)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_08)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_0C)(struct UnkStruct_ov22_02258A48_t *param0);
-    void (*unk_10)(struct UnkStruct_ov22_02258A48_t *param0);
-    s16 unk_14;
-    s16 unk_16;
-    u8 unk_18;
-    u8 padding[3];
-} UnkStruct_ov22_02258A48;
 void ov41_02249418(UnkStruct_ov22_02258EE4 *param0);
 void ov41_02249480(UnkStruct_ov22_02258EE4 *param0, int param1, int param2, int param3, int param4, int param5);
 void ov41_022490B0(UnkStruct_ov22_02258A48 *param0);

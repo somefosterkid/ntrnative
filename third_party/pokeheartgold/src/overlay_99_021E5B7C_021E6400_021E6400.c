@@ -1,5 +1,6 @@
 #include "global.h"
 #include "overlay_99_pokeathlon_course_record.h"
+#include "sprite_system.h"
 struct PokeathlonCourseRecord;
 
 s32 ov98_0221E5C0(void *);

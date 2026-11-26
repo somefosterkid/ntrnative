@@ -36,7 +36,11 @@ enum TaskState {
 
 BOOL sub_02036438(int param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8 param0);
+#else
 s32 sub_0203772C(u16 param0);
+#endif
 
 int sub_02033B4C(CommRing *ring, u8 *buffer, int size);
 

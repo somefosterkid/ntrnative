@@ -14,8 +14,8 @@ struct SND_WORK {
     /* 0x00094 */ NNSSndHeapHandle heap;
     /* 0x00098 */ u8 heap_buf[SND_HEAP_SIZE];
     /* 0xBEB78 */ NNSSndHandle unk_BEB78[SND_HANDLE_MAX];
-    /* 0xBEB9C */ u32 unk_BEB9C;
-    /* 0xBEBA0 */ u32 unk_BEBA0;
+    /* 0xBEB9C */ NNSSndWaveOutHandle unk_BEB9C;
+    /* 0xBEBA0 */ NNSSndWaveOutHandle unk_BEBA0;
     /* 0xBEBA4 */ u32 unk_BEBA4;
     /* 0xBEBA8 */ u8 unk_BEBA8[0x18];
     /* 0xBEBC0 */ u8 unk_BEBC0[16];

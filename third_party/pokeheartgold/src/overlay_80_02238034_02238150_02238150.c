@@ -19,7 +19,7 @@ u32 ov80_02238344(u8);
 
 u16 ov80_02238444(ArcadeContext *);
 
-BattleSetup *BattleArcade_NewBattleSetup(ArcadeContext *ctx, FrontierLaunchArgs *args) {
+BattleSetup *BattleArcade_NewBattleSetup(ArcadeContext *ctx, FieldFrontierDTO *args) {
     s32 sp20[12];
     s32 sp1C;
     Party *sp18;
@@ -44,7 +44,7 @@ BattleSetup *BattleArcade_NewBattleSetup(ArcadeContext *ctx, FrontierLaunchArgs 
     sp10 = (s32)BattleArcade_GetMonCount(ctx->type, 0);
     spC = (s32)BattleArcade_GetOpponentMonCount(ctx->type, 0);
     temp_r0 = BattleSetup_New(HEAP_ID_FIELD2, ov80_02238344(ctx->type));
-    sub_02051D18(temp_r0, NULL, args->saveData, args->mapId, args->bagCursor, args->unk1C);
+    sub_02051D18(temp_r0, NULL, args->saveData, args->mapHeaderID, args->bagCursor, args->subscreenCursorOn);
     temp_r0->battleBg = BATTLE_BG_BATTLE_ARCADE;
     temp_r0->terrain = TERRAIN_BATTLE_ARCADE;
     temp_r0->weatherType = ctx->weather;

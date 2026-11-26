@@ -6,6 +6,7 @@
 #include "pm_string.h"
 #include "overlay_90_app_0225a2b0.h"
 #include "overlay_90_app_0225a2b0_2.h"
+#include "player_data.h"
 
 s32 ov90_0225927C(void *, s32);
 

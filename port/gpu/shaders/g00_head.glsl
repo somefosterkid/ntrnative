@@ -68,6 +68,14 @@ layout(std140) uniform GpuU {
   int uR;            // pass S's fragment form: a band's rows
   float aLuma;       // SMAA edges: the luma step an edge needs (0..1)
   uint uHiPrec;      // above 1x only (src/g00_frame.c, g07_compose.c): bit 0 Fog=smooth (pass P), bit 1 Color=full (P, C, SMAA)
+  uint cCapBg;       // pass C: a captured bank shown as a BG at N x (g07_set_capbg): 0 none, else that BG of engine A (2 or 3)
+  int cCapOx;        // pass C: DS pixel (x, y) of that BG is the bank's texel (x + cCapOx) & 255 of bank row y + cCapOy
+  int cCapOy;
+  int cCapY0;        // pass C: the DS rows cCapY0 .. cCapY1 - 1 are drawn from the bank's N x texture (it holds them)
+  int cCapY1;
+  uint cCapSer;      // pass C: the captures drawn into that texture so far (pass C's reuse sees a new picture in it)
+  uint uExp;         // pass R: GpuOptions.exp, the cuts' switches for an A/B (GPU_EXP_*, include/gpu.h); 0 the defaults
+  uint uPad1;        // (std140: the block's size a multiple of 16)
 };
 
 // the pixel flags (vcore's VC_F3_*)

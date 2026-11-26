@@ -133,7 +133,7 @@ int ov112_021F3018(OverlayManager *param_1, int *param_2) {
     if (iVar1 != 0) {
         remainder = *((s8 *)(((u8 *)arg0) + 0x13d));
         if (remainder != 0) {
-            *((s8 *)(((u8 *)arg0) + 0x13d)) = remainder + (-1);
+            ((Ov112SpriteApp *)arg0)->curIdx = remainder + (-1);
         }
         ov112_021F2CC4(arg0);
         PlaySE(0x5dc);
@@ -141,7 +141,7 @@ int ov112_021F3018(OverlayManager *param_1, int *param_2) {
         iVar1 = ov112_021F0EFC(arg0);
         if (iVar1 != 0) {
             remainder = ((s32)((*((u8 *)(((u8 *)arg0) + 0x13d))) + 1)) % ((s32)(*((u8 *)(((u8 *)arg0) + 0x13e))));
-            *((u8 *)(((u8 *)arg0) + 0x13d)) = remainder;
+            ((Ov112SpriteApp *)arg0)->curIdx = remainder;
             ov112_021F2CC4(arg0);
             PlaySE(0x5dc);
         } else {

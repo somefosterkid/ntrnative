@@ -6,7 +6,11 @@
 #include "overlay_80_02235900.h"
 #include "overlay_80_wfcfacility_selector.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov80_02236040(void *, void *, u16);
+#else
 s32 ov80_02236040(void *, void *, u32);
+#endif
 
 s32 FrtCmd_175(FrontierScriptContext *ctx) {
     u16 *v1;

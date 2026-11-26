@@ -25,7 +25,7 @@ void ov45_0222DB98(UnkStruct_ov66_0223177C *param0, const UnkStruct_ov66_02231AB
 typedef struct PasswordWordBank PasswordWordBank;
 void ov45_0222C370(WiFiPlazaSystem *param0, int param1);
 
-void ov45_0222C388(void *arg0);
+void ov45_0222C388(UnkStruct_ov66_022302B0 *arg0);
 
 void ov45_0222C3A8(s32 *arg0);
 
@@ -41,9 +41,9 @@ void ov45_0222C370(WiFiPlazaSystem *param0, int param1) {
     ov45_0222DB98(param0->unk_04.unk_00, &v0);
 }
 
-void ov45_0222C388(void *arg0) {
+void ov45_0222C388(UnkStruct_ov66_022302B0 *arg0) {
     memset(arg0, 0, 0x194U);
-    MIi_CpuClear32(-1U, arg0 + 0x50, 0x6CU);
+    MIi_CpuClear32(-1U, arg0->unk_50, 0x6CU);
 }
 
 void ov45_0222C3A8(s32 *arg0) {

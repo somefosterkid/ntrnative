@@ -337,7 +337,7 @@ def main():
     a = ap.parse_args()
     a.out = os.path.abspath(a.out)
     os.makedirs(os.path.join(a.out, 'maps'), exist_ok=True)
-    maps = S.read_maps()
+    maps = S.read_maps(a.game)
     if a.summary:
         summarize(a, maps)
         return

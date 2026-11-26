@@ -13,25 +13,25 @@ s32 ov83_022444C0(void);
 
 s32 ov83_022444E0(BgConfig *);
 
-s32 ov83_0224465C(void *, s32);
+s32 ov83_0224465C(BattleCastleOpponentApp *arg0, s32);
 
 s32 ov83_022446D0(void);
 
-s32 ov83_02244704(void *, s32);
+s32 ov83_02244704(BattleCastleOpponentApp *arg0, s32);
 
 s32 ov83_0224474C(void);
 
-s32 ov83_02244780(void *, s32);
+s32 ov83_02244780(BattleCastleOpponentApp *arg0, s32);
 
 void ov83_02244394(struct BattleCastleOpponentApp *arg0);
 
 void ov83_02244394(BattleCastleOpponentApp *arg0) {
     reg_GX_POWCNT &= 0xFFFF7FFF;
     ov83_022444C0();
-    ov83_022444E0(*((void **)&arg0->bgConfig));
-    *((PaletteData * *)&arg0->unk_2B0) = PaletteData_Init(HEAP_ID_107);
-    PaletteData_AllocBuffers(*((PaletteData * *)&arg0->unk_2B0), PLTTBUF_MAIN_OBJ, 0x200U, HEAP_ID_107);
-    PaletteData_AllocBuffers(*((PaletteData * *)&arg0->unk_2B0), PLTTBUF_MAIN_BG, 0x200U, HEAP_ID_107);
+    ov83_022444E0(arg0->bgConfig);
+    arg0->plttData = PaletteData_Init(HEAP_ID_107);
+    PaletteData_AllocBuffers(arg0->plttData, PLTTBUF_MAIN_OBJ, 0x200U, HEAP_ID_107);
+    PaletteData_AllocBuffers(arg0->plttData, PLTTBUF_MAIN_BG, 0x200U, HEAP_ID_107);
     ov83_0224465C(arg0, 3);
     ov83_022446D0();
     ov83_02244704(arg0, 2);
@@ -42,10 +42,10 @@ void ov83_02244394(BattleCastleOpponentApp *arg0) {
 
 s32 ov83_02246E08(void *, Party *, s32);
 
-void ov83_02244408(void *arg0);
+void ov83_02244408(BattleCastleOpponentApp *arg0);
 
-void ov83_02244408(void *arg0) {
-    ov83_02246E08(arg0 + 0x2C8, *((void **)&((BattleCastleOpponentApp *)arg0)->opponentsParty), (u8)ov80_02237D8C(((BattleCastleOpponentApp *)arg0)->challengeType));
+void ov83_02244408(BattleCastleOpponentApp *arg0) {
+    ov83_02246E08(&arg0->spriteMan, arg0->opponentsParty, (u8)ov80_02237D8C(arg0->challengeType));
 }
 
 void ov83_0224442C(BgConfig *arg0);

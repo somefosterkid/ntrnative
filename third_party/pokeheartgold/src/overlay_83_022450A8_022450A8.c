@@ -1,10 +1,11 @@
 #include "global.h"
 
 #include "unk_02035900.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
-void ov83_02245248(void *arg0);
+void ov83_02245248(BattleCastleOpponentApp *arg0);
 
-void ov83_02245104(void *arg0, u16 cmd);
+void ov83_02245104(BattleCastleOpponentApp *arg0, u16 cmd);
 
 void ov83_0224517C(void *arg0, u16 cmd, u16 slot);
 

@@ -31,8 +31,13 @@ s32 TrainerCardMainApp_Exit(OverlayManager *manager, s32 *state) {
     TextFlags_SetCanTouchSpeedUpPrint(0);
     TextFlags_SetCanABSpeedUpPrint(0);
     MenuInputStateMgr_SetState(v0->args->settings.menuInputStatePtr, (enum MenuInputState)v0->inTouchMode);
+#if defined(SDK_PORT)
+    Main_SetVBlankIntrCB(NULL, NULL);
+    OverlayManager_FreeData(manager);
+#else
     OverlayManager_FreeData(manager);
     Main_SetVBlankIntrCB(NULL, NULL);
+#endif
     Heap_Destroy(HEAP_ID_25);
     GF_SndHandleSetPlayerVolume(1U, 0x7FU);
     return 1;

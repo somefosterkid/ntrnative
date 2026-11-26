@@ -7,6 +7,7 @@
 #include "gf_gfx_loader.h"
 
 #include "overlay_112_hitbox.h"
+#include "overlay_112_pokewalker_app.h"
 
 // The asm table has 5 entries (the screens 0..4) and ov112_021FF528 follows it directly; the callers pass 5 too (the assert allows it), so
 // on the DS entry 5 is the first word of ov112_021FF528 = ov112_021F3664, a hitbox list with only the back button. The PC table spells that
@@ -64,10 +65,6 @@ TouchscreenHitbox *ov112_021FF514[6] = {
 };
 #endif
 
-void ov112_021E98A4(void *arg0);
-
-void ov112_021E98E8(u8 *param_1, u16 param_2);
-
 int ov112_021E9888(s32 param_1) {
     if ((5 + 1) <= param_1) {
         GF_AssertFail();
@@ -75,17 +72,17 @@ int ov112_021E9888(s32 param_1) {
     return TouchscreenHitbox_FindRectAtTouchNew(ov112_021FF514[param_1]);
 }
 
-void ov112_021E98A4(void *arg0) {
+void ov112_021E98A4(Ov112PokewalkerApp *arg0) {
     NARC *narc;
 
     narc = NARC_New(NARC_a_2_4_7, HEAP_ID_154);
     ToggleBgLayer(5U, 0U);
-    GfGfxLoader_LoadScrnDataFromOpenNarc(narc, 0x12, *(BgConfig **)((u8 *)arg0 + 0x18), GF_BG_LYR_SUB_1, 0U, 0U, 1, HEAP_ID_154);
+    GfGfxLoader_LoadScrnDataFromOpenNarc(narc, 0x12, arg0->bgConfig, GF_BG_LYR_SUB_1, 0U, 0U, 1, HEAP_ID_154);
     ToggleBgLayer(5U, 1U);
     NARC_Delete(narc);
 }
 
-void ov112_021E98E8(u8 *param_1, u16 param_2) {
+void ov112_021E98E8(Ov112PokewalkerApp *param_1, u16 param_2) {
     ToggleBgLayer(5, param_2);
     return;
 }

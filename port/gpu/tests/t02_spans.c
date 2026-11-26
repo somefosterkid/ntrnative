@@ -1,7 +1,10 @@
 /* port/gpu G2's unit tests: the packing of a VC_Span into a record (src/g02_spans.c) and the walk's records for a
  * hand-made polygon. A plain main (exit 1 on a failure): build/gpu/gpu_tests. OWNED BY G2. */
 #include "g02_spans.h"
+#include "g10_fast.h"
+#include "vcore.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +36,10 @@ static void t_plain(void) {
   CHECK(r.t[5][0] == 10 && r.t[5][1] == 11 && r.t[5][2] == 19 && r.t[5][3] == 20);
   CHECK(r.t[6][0] > r.t[6][1]); /* no third run */
   CHECK(ov == 0);
+  CHECK(r.t[9][3] == 8); /* dq = floor((200 - 100) / 12) */
+  v.L.z = 300.5;
+  gpu_span_pack(&r, &v, 1, 0, &ov);
+  CHECK(r.t[9][3] == -9); /* floor((200 - 300) / 12) */
 }
 
 static void t_mask_merge(void) {
@@ -175,6 +182,55 @@ static void t_s32(int dy0, int dy1, int full) {
   if (s32_fails) fails++;
 }
 
+/* gpu_fast_build's buffer (src/g10_fast.c): flat decagons at 1x take more than a polygon's share of the first reservation (their fan
+ * triangles clipped to the box, the slivers along their neighbours: about 95 vertices against 90), then wire-frame decagons write 60
+ * each. Before each polygon grew the buffer for its bands, 1000 + 60 of them wrote past its end (a heap overflow: a crash here) */
+static void t_fast_capacity(void) {
+  VCoreState *s = vcore_create();
+  GpuSpans *sp = calloc(1, sizeof *sp);
+  GpuFast f;
+  memset(&f, 0, sizeof f);
+  CHECK(s != NULL && sp != NULL);
+  if (s == NULL || sp == NULL) return;
+  sp->opt_set = 1, sp->aa = 1;
+  VC_GeomOut *g = &s->geo;
+  unsigned r = 1; /* (a fixed sequence: the same polygons on every system) */
+  for (int k = 0; k < 1060; k++) {
+    VC_Poly *p = &g->poly[k];
+    g->order[k] = (u16)k;
+    if (k >= 500 && k < 1000) { /* the first 500 again */
+      *p = g->poly[k - 500];
+      continue;
+    }
+    memset(p, 0, sizeof *p);
+    p->nv = 10, p->attr = k < 1000 ? 31u << 16 : 0, p->viewport = 255u << 16 | 191u << 24, p->ymax = 191;
+    double cx = 128, cy = 96, rx = 80, ry = 80;
+    if (k < 1000) {
+      r = r * 1103515245u + 12345u, cx = 20 + (r >> 16) % 216;
+      r = r * 1103515245u + 12345u, cy = 20 + (r >> 16) % 152;
+      rx = 60, ry = 3;
+    }
+    for (int i = 0; i < 10; i++) {
+      if (k > 1000) { /* the wire-frames share the first one's vertices */
+        p->v[i] = g->poly[1000].v[i];
+        continue;
+      }
+      VC_Vertex *v = &g->vtx[g->nvtx];
+      memset(v, 0, sizeof *v);
+      v->sx = (s32)(cx + rx * cos(6.283185307179586 * i / 10)), v->sy = (s32)(cy + ry * sin(6.283185307179586 * i / 10));
+      v->sz = 1000, v->clip[3] = 4096;
+      p->v[i] = (u16)g->nvtx++;
+    }
+  }
+  g->npoly = 1060;
+  CHECK(gpu_fast_build(&f, sp, s, 1) == 0);
+  CHECK(f.ntri <= f.captri);
+  CHECK(f.ntri > 1000 * 90 + 60 * 60); /* (the case: the filled ones took more than their share) */
+  gpu_fast_free(&f);
+  free(sp);
+  vcore_destroy(s);
+}
+
 int main(int argc, char **argv) {
   if (argc == 3) { /* gpu_tests DY0 DY1: the 32-bit forms on every edge with dy0 <= dy <= dy1 (a few minutes for the range 0..2048) */
     t_s32(atoi(argv[1]), atoi(argv[2]), 1);
@@ -186,6 +242,7 @@ int main(int argc, char **argv) {
   t_overflow();
   t_empty_and_clamp();
   t_aa_and_flags();
+  t_fast_capacity();
   printf("gpu_tests: %s (%d failed)\n", fails ? "FAIL" : "PASS", fails);
   return fails ? 1 : 0;
 }

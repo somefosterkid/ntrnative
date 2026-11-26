@@ -8,19 +8,21 @@
 #include "sprite_system.h"
 #include "sys_task.h"
 
+// the layout of NightmareContext (overlay_07_02226F04_02228D64_02228D64.c)
 typedef struct UnkStruct_ov07_02228D08_ptr {
-    u8 unk_0;
-    u8 unk_1[0xB];
-    void *unk_C;
-    SpriteManager *unk_10;
-    u8 unk_14[0x4];
-    ManagedSprite *unk_18;
-    u8 unk_1C;
-    u8 unk_1D[0x23];
-    s16 unk_40;
-    s16 unk_42;
-    u8 unk_44[0x20];
-    u8 unk_64;
+    u8 state;
+    u8 unused;
+    u8 sLotoId;
+    u8 unused2;
+    Point2D monPos;
+    struct BgConfig *bgConfig;
+    BattleAnimSystem *system;
+    SpriteManager *pokemonSpriteManager;
+    Pokepic *monSprite;
+    ManagedSprite *xluSprite;
+    XYTransformContext shake;
+    XYTransformContext pos;
+    XYTransformContext alpha;
 } UnkStruct_ov07_02228D08_ptr;
 
 void ov07_02232020(BattleAnimSystem *system, int targets, BattleAnimSpriteInfo *sprites, int *count);
@@ -65,17 +67,17 @@ void ov07_02228D08(SysTask *arg0, void *param);
 
 void ov07_02228D08(SysTask *arg0, void *param) {
     UnkStruct_ov07_02228D08_ptr *ptr = param;
-    if (ptr->unk_0 == 0) {
-        if (ov07_022222B4((void *)&ptr->unk_40) == 0) {
-            ptr->unk_0 = (u8)(ptr->unk_0 + 1);
+    if (ptr->state == 0) {
+        if (ov07_022222B4((void *)&ptr->pos) == 0) {
+            ptr->state = (u8)(ptr->state + 1);
         }
-        ov07_022227D8((void *)&ptr->unk_1C);
-        ov07_02222AF4((void *)&ptr->unk_64);
-        ManagedSprite_SetPositionXY(ptr->unk_18, ptr->unk_40, ptr->unk_42);
-        ManagedSprite_TickFrame(ptr->unk_18);
-        SpriteSystem_DrawSprites(ptr->unk_10);
+        ov07_022227D8((void *)&ptr->shake);
+        ov07_02222AF4((void *)&ptr->alpha);
+        ManagedSprite_SetPositionXY(ptr->xluSprite, ptr->pos.x, ptr->pos.y);
+        ManagedSprite_TickFrame(ptr->xluSprite);
+        SpriteSystem_DrawSprites(ptr->pokemonSpriteManager);
         return;
     }
-    ov07_0221C448(ptr->unk_C, arg0);
+    ov07_0221C448(ptr->system, arg0);
     Heap_Free(ptr);
 }

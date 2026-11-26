@@ -33,9 +33,9 @@ void ov96_022193E4(Ov96RdWork *work);
 void ov96_022195C8(void *arg0);
 void *ov96_02219F7C(PokeathlonCourseData *, enum HeapID);
 
-s32 ov96_02215AC4(PokeathlonCourseData *arg0);
+BOOL ov96_02215AC4(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_02215AC4(PokeathlonCourseData *arg0) {
+BOOL ov96_02215AC4(PokeathlonCourseData *arg0, int unused) {
     u32 temp_r0;
     PokeathlonRecord1 *temp_r0_3;
     u8 temp_r6;

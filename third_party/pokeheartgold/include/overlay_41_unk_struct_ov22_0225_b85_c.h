@@ -7,7 +7,7 @@
 // src/overlay_41_0224BA10_0224BC04_0224BC04.c) and 12 accesses; fields at every accessed offset, pads elsewhere.
 
 struct BgConfig;
-struct DressUpPhoto;
+struct SaveFashionDataSub;
 struct NARC;
 struct NNSG2dImagePaletteProxy;
 struct NNSG2dImageProxy;
@@ -26,7 +26,7 @@ struct UnkStruct_ov22_0225B1BC_t;
 struct Window;
 
 typedef struct UnkStruct_ov22_0225B85C {
-    struct DressUpPhoto *photo;
+    struct SaveFashionDataSub *photo;
     struct UnkStruct_02029C88_t *unk_04;
     u32 unk_08;
     u32 unk_0C;

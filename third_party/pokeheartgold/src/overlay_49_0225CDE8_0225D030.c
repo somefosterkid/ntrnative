@@ -2,18 +2,22 @@
 
 s32 sub_020182B0(u8 *, void *, void *, void *);
 
-void ov49_0225D030(u8 *arg0, u8 *arg1);
+void ov49_0225D030(u8 *arg0, VecFx32 *arg1);
 
-void ov49_0225D030(u8 *arg0, u8 *arg1) {
-    sub_020182B0(arg0 + 4, arg1, arg1 + 4, arg1 + 8);
+void ov49_0225D030(u8 *arg0, VecFx32 *arg1) {
+    sub_020182B0(arg0 + 4, arg1, &arg1->y, &arg1->z);
 }
 
-s32 sub_020182A0(void *);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_020182A0(void *arg0, s32 arg1);
+#else
+void sub_020182A0(void *arg0, s32 arg1);
+#endif
 
-void ov49_0225D040(u8 *arg0);
+void ov49_0225D040(u8 *arg0, s32 arg1);
 
-void ov49_0225D040(u8 *arg0) {
-    sub_020182A0(arg0 + 4);
+void ov49_0225D040(u8 *arg0, s32 arg1) {
+    sub_020182A0(arg0 + 4, arg1);
 }
 
 s32 ov49_0225D04C(void *arg0);

@@ -14,7 +14,7 @@ u32 ov96_021E75E4(PokeathlonCourseData *arg0) {
     u32 temp_r6;
     u8 *temp_r1;
     void *temp_r3;
-    void *temp_r4;
+    s32 temp_r4;
 
     sp0 = PokeathlonCourse_GetDataCopyArea(arg0);
     if (ov96_021E5F24(arg0) != 0) {
@@ -35,5 +35,5 @@ u32 ov96_021E75E4(PokeathlonCourseData *arg0) {
     temp_r3 = PokeathlonCourse_GetSystem(arg0);
     temp_r1 = sp0 + 0x28;
     sp0 = temp_r1;
-    return ov96_021E87B4(0x1E, temp_r1, temp_r4, (s32)temp_r3);
+    return ov96_021E87B4(0x1E, temp_r1, temp_r4, temp_r3);
 }

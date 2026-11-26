@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "pokemon_summary_args.h"
 #include "sprite_resources_header.h"
 #include "field_system_def.h"
@@ -1100,7 +1102,6 @@ typedef struct BattleFrontierSave BattleFrontierSave;
 typedef struct Camera Camera;
 u16 *FrontierScript_ReadVarPtr(FrontierScriptContext *ctx);
 u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 enum BattleFrontierStatsIndex sub_0205C1F0(u8 challengeType);
 int sub_0205C268(u32 statIndex);
 BattleFrontierSave *Save_Frontier_GetStatic(SaveData *saveData);

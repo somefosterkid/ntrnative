@@ -9,7 +9,11 @@
 /* HDR-OVERLAY end */
 #undef StartBrightnessTransition
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void StartBrightnessTransition(u16 stepCount, s16 targetBrightness, s16 startBrightness, GXBlendPlaneMask surfaceMask, u32 screenMask);
+#else
 void StartBrightnessTransition(u8 stepCount, s16 targetBrightness, s16 startBrightness, GXBlendPlaneMask surfaceMask, u32 screenMask);
+#endif
 
 void ov07_0221D2F4(void *arg0, s32 arg1);
 

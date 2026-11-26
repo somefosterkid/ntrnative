@@ -2,23 +2,16 @@
 #include "text.h"
 #include "overlay_112_pokewalker_app.h"
 
-s32 ov112_021EA570();
-
-s32 ov112_021EB388(Ov112PokewalkerApp *arg0);
-
-s32 ov112_021EB3B8(Ov112PokewalkerApp *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *);
 
 s32 ov112_021E7CA4(void *, s32, s32);
-s32 ov112_021E9F40(void *, s32);
 u8 ov112_021E9FA4(void *, s32, String *, s32, s32);
-s32 ov112_021EA51C(void *, s32);
 extern void *ov112_021FF090;
-s32 ov112_021EB3D8(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EB388(Ov112PokewalkerApp *arg0) {
     s32 v0;
 
-    ov112_021EA570();
+    ov112_021EA570(arg0);
     if (arg0->unk_1EC50 == 0) {
         v0 = 3;
     } else {
@@ -28,11 +21,7 @@ s32 ov112_021EB388(Ov112PokewalkerApp *arg0) {
     return 0x1A;
 }
 
-s32 ov112_021EC460(Ov112PokewalkerApp *, s32, s32, s32);
-
-s32 ov112_021EB3A8(void *arg0);
-
-s32 ov112_021EB3A8(void *arg0) {
+s32 ov112_021EB3A8(Ov112PokewalkerApp *arg0) {
     ov112_021EC460(arg0, 0, 2, 0xC);
     return 0x18;
 }

@@ -58,6 +58,10 @@ void gpu_options_from_env(GpuOptions *o) {
   o->filter = env_is("BWPORT_GPU_FILTER", "bilinear");
   o->aa = 1;
   o->fast = env_is("BWPORT_RENDERER3D", "fast");
+  o->edgeaa = 0; /* Antialiasing=Smooth edges (the caller's; gpu_render --aa edges) */
+  o->aalite = 0; /* Antialiasing=4 samples (lite) (the caller's; gpu_render --aa lite) */
+  const char *ex = getenv("BWPORT_GPU_EXP"); /* pass R's cuts' switches (GPU_EXP_*; the setting PerfExperiments is the caller's) */
+  o->exp = ex != NULL ? (int)strtol(ex, NULL, 0) & GPU_EXP_ALL : 0;
   o->texcache = env_is("BWPORT_GPU_TEXCACHE", "exact") ? GPU_TC_EXACT : env_is("BWPORT_GPU_TEXCACHE", "on") ? GPU_TC_ON : GPU_TC_OFF;
   const char *e = getenv("BWPORT_GPU_TEXMIPS");
   o->mips = e != NULL && (!strcmp(e, "1") || !strcmp(e, "on"));
@@ -215,6 +219,9 @@ void gpu_destroy(GpuCore *g) {
   if (g->prog_rc != g->prog_r) gpu_gl_program_done(g->prog_rc);
   gpu_gl_program_done(g->prog_r);
   if (g->prog_rf != g->prog_r) gpu_gl_program_done(g->prog_rf);
+  GLuint lite[] = {g->prog_rl, g->prog_rlf, g->prog_rlc};
+  for (int i = 0; i < 3; i++)
+    if (lite[i] != 0 && lite[i] != g->prog_r) gpu_gl_program_done(lite[i]);
   gpu_gl_program_done(g->prog_p);
   gpu_gl_program_done(g->prog_e);
   gpu_gl_program_done(g->prog_pf);
@@ -407,8 +414,27 @@ static void tex_unit(GLuint prog, int unit, const char *name, GLuint tex) {
   GL(BindTexture)(GL_TEXTURE_2D, tex);
   GL(Uniform1i)(gpu_gl_uniform(prog, name), unit);
 }
-/* pass R's program: Filter=bilinear where it applies (uFilter, N > 1) has its own (shaders/g04_texture.glsl's G_FILTER) */
+/* pass R's program made at its first use; on failure the plain one, said once */
+static GLuint raster_one(GpuCore *g, GLuint *slot, const char *fs, const char *without) {
+  if (*slot == 0) {
+    char err[512];
+    *slot = gpu_gl_program("g00_full.vert", fs, err, sizeof err);
+    if (*slot == 0) {
+      fprintf(stderr, "gpu: %s; %s\n", err, without);
+      *slot = g->prog_r;
+    }
+  }
+  return *slot;
+}
+/* pass R's program: Filter=bilinear where it applies (uFilter, N > 1) has its own (shaders/g04_texture.glsl's G_FILTER); 4 samples
+ * (lite) its own of each (shaders/g03_pixel.glsl's R_LITE) */
 static GLuint raster_prog(GpuCore *g, int tcache) {
+  if (g->opt.aalite && g->k == 2) {
+    const char *w = "drawn as 4 samples";
+    if (tcache && (!g->opt.filter || g->scale <= g->k)) return raster_one(g, &g->prog_rlc, "g00_raster.frag#2c+R_LITE", w);
+    if (!g->opt.filter || g->scale <= g->k) return raster_one(g, &g->prog_rl, "g00_raster.frag#2+R_LITE", w);
+    return raster_one(g, &g->prog_rlf, "g00_raster.frag#2f+R_LITE", w);
+  }
   if (tcache && (!g->opt.filter || g->scale <= g->k)) { /* (Filter=bilinear keeps its own for now: the cache's sampling is exact) */
     if (g->prog_rc == 0) {
       char err[512];
@@ -432,6 +458,14 @@ static GLuint raster_prog(GpuCore *g, int tcache) {
   return g->prog_rf;
 }
 
+/* DISP3DCNT as passes R, E and P see it: with 4 samples (lite) its antialiasing bit (4) off, so pass R's alike test, pass E's
+ * neighbour search and pass P's edge blend do not run (pass R's coverage windows are left out by its R_LITE programs, raster_prog;
+ * pass S still writes them: the records are the same) */
+static uint32_t gpu_disp3d(const GpuCore *g, const VCoreState *s) {
+  uint32_t d = vc_io16(s, VC_REG_DISP3DCNT);
+  return g->opt.aalite && g->k == 2 ? d & ~0x10u : d;
+}
+
 void gpu_uni_raster(GpuU *u, const GpuCore *g, const VCoreState *s, const GpuPrep *p) {
   memset(u, 0, sizeof *u);
   u->uScale = g->scale;
@@ -439,13 +473,14 @@ void gpu_uni_raster(GpuU *u, const GpuCore *g, const VCoreState *s, const GpuPre
   u->uBandRows = BAND_DS_ROWS * g->scale;
   u->uTilesX = TILES_X;
   u->uTileW = TILE_DS_COLS * g->scale;
-  u->uDisp3d = vc_io16(s, VC_REG_DISP3DCNT);
+  u->uDisp3d = gpu_disp3d(g, s);
   u->uSwap = p->swap_param;
   u->uClearColor = vc_io32(s, VC_REG_CLEAR_COLOR);
   u->uClearDepth = vc_io16(s, VC_REG_CLEAR_DEPTH);
   u->uFlat = getenv("GPU_FLAT") != NULL;
   u->uFilter = g->opt.filter != 0;
   u->uAlphaRef = vc_io32(s, VC_REG_ALPHA_TEST_REF) & 0x1F;
+  u->uExp = (uint32_t)g->opt.exp;
   gpu_g06_uni_raster(u, s);
 }
 
@@ -455,15 +490,15 @@ void gpu_uni_edge(GpuU *u, const GpuCore *g, const VCoreState *s) {
   u->uSnap = g->k;
   u->uClearColor = vc_io32(s, VC_REG_CLEAR_COLOR);
   u->uEdgeFine = g->opt.edge != 0; /* stage 3's thickening (k = 2) */
-  u->uDisp3d = vc_io16(s, VC_REG_DISP3DCNT); /* stage 0's antialiasing neighbours (k = 2) */
+  u->uDisp3d = gpu_disp3d(g, s); /* stage 0's antialiasing neighbours (k = 2) */
 }
 
 void gpu_uni_post(GpuU *u, const GpuCore *g, const VCoreState *s) {
   memset(u, 0, sizeof *u);
   u->uScale = g->scale;
   u->uSnap = g->k;
-  u->uDisp3d = vc_io16(s, VC_REG_DISP3DCNT);
-  gpu_g06_uni_post(u, s, g->opt.edge);
+  u->uDisp3d = gpu_disp3d(g, s);
+  gpu_g06_uni_post(u, s, g->opt.edge, g->opt.edgeaa && g->k == 1); /* Smooth edges: one sample only */
   if (g->scale > g->k) u->uHiPrec = (g->opt.fog ? 1u : 0u) | (g->opt.color ? 2u : 0u); /* N > 1 only */
 }
 
@@ -554,7 +589,7 @@ int gpu_render_prepared(GpuCore *g, VCoreState *s, const GpuPrep *p) {
     tex_unit(pr, 2, "uBand", g->t_band[ri]);
     tex_unit(pr, 3, "uList", g->t_list[ri]);
     gpu_g04_bind(pr, 4, g->t_tex[g->tr], g->t_pal[g->tr]);
-    if (tcache && pr == g->prog_rc && pr != g->prog_r) g12_gl_bind(g->tcgl, pr, ri), g->tc_polys = tcache;
+    if (tcache && (pr == g->prog_rc || pr == g->prog_rlc) && pr != g->prog_r) g12_gl_bind(g->tcgl, pr, ri), g->tc_polys = tcache;
     gpu_g06_bind_raster(pr, s);
     gpu_uni_raster(&u, g, s, p);
     gpu_gl_uniforms(&u);

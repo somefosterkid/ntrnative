@@ -1,6 +1,10 @@
 #include "global.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 sub_020208CC(void *);
+#else
 s32 sub_020208CC(void *);
+#endif
 
 s32 sub_02020910(void *arg0, u32 arg1);
 

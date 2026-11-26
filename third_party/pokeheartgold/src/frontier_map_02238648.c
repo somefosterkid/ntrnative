@@ -68,7 +68,7 @@ struct FollowMon;
 
 struct FrontierFieldSystem;
 
-struct FrontierLaunchArgs;
+struct FieldFrontierDTO;
 
 struct FrontierMap;
 
@@ -209,14 +209,14 @@ FrontierMap *FrontierMap_Init(void *data);
 
 FrontierMap *FrontierMap_Init(void *data) {
     FrontierMapInternal *map;
-    FrontierLaunchArgs *args;
+    FieldFrontierDTO *args;
     PlayerProfile *profile;
     u8 scene;
     int i;
 
     args = Frontier_GetLaunchArgs(data);
     profile = Save_PlayerData_GetProfile(args->saveData);
-    scene = args->unk20;
+    scene = args->sceneID;
     Main_SetVBlankIntrCB(NULL, NULL);
     HBlankInterruptDisable();
     GfGfx_DisableEngineAPlanes();

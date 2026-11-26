@@ -389,7 +389,7 @@ void ov12_0225C18C(SysTask *arg0, void *arg1) {
         Pokepic_SetAttr((((MonShowData *)arg1)->battlerData)->monSprite, 0xD, 0);
         Pokepic_SetAttr((((MonShowData *)arg1)->battlerData)->monSprite, 0x2C, 0);
         Pokepic_SetAttr((((MonShowData *)arg1)->battlerData)->monSprite, 6, 1);
-        *((s32 *)&((MonShowData *)arg1)->btlMonObjData) = 0;
+        ((MonShowData *)arg1)->btlMonObjData = NULL;
         *((void **)&((MonShowData *)arg1)->btlMonObjData) = ov07_0221FDFC(*(BattleSystem **)arg1, 5);
         ((MonShowData *)arg1)->state = (u8)(((MonShowData *)arg1)->state + 1);
         break;

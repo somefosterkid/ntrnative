@@ -18,14 +18,17 @@
 #include "g02_spans.h"
 
 enum { GPU_FAST_V = 12 };
-enum { GPU_FAST_ALLEDGE = 1, GPU_FAST_COV0 = 2 }; /* every pixel an edge pixel (lines, dots); coverage 0 (dots); flags >> 4 & 15:
-                                                    * a filled polygon's vertices, flags >> 8: the fan triangle's i */
+enum { GPU_FAST_ALLEDGE = 1, GPU_FAST_COV0 = 2, GPU_FAST_SLIVER = 4 }; /* every pixel an edge pixel (lines, dots); coverage 0 (dots); a
+                                                                        * sliver (g10_fast.c: its pixels grown ones); flags >> 4 & 15:
+                                                                        * a filled polygon's vertices, flags >> 8: the fan triangle's i */
 
 typedef struct GpuFast {
   float *tri;  /* triangles: ntri vertices */
   int ntri, captri;
-  float (*pe)[4]; /* polygon k's edge j at VC_POLY_MAXV k + j: a, b, c of a x + b y + c, the distance inside along the minor axis */
+  float (*pe)[4]; /* polygon k's edge j at VC_POLY_MAXV k + j: a, b, c of a x + b y + c, the distance inside along the minor axis;
+                   * the fourth word 1 when the edge is inner (shared with a neighbour, g10_fast.c fast_seams), else 0 */
   int cappe;
+  struct GpuFastSeams *seams; /* g10_fast.c's: the frame's filled polygons on the grid, their edges and the grid over them */
 } GpuFast;
 
 /* the polygon table (sp->poly, sp->npoly: as gpu_spans_build makes it, without rows) and f's vertices for the polygons of s->geo

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_14.h"
 struct UnkStruct_ov14_boxapp;
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
@@ -16,7 +17,11 @@ u32 ov14_021E7930(void *, u32);
 s32 ov14_021E81B4(void *);
 s32 ov14_021E87BC(void *);
 s32 ov14_021F4428(void *);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F4530(void *);
+#else
 s32 ov14_021F4530(void *);
+#endif
 s32 ov14_021F459C(void *);
 s32 ov14_021F58B8(void *);
 s32 ov14_021E8560(void *);
@@ -34,7 +39,7 @@ void ov14_021ED6D0(void *arg0) {
     ov14_021F2A18(((void *)((UnkStruct_ov14_boxapp *)arg0)->sys), 9, 0);
     ov14_021F5EB4(arg0, 0);
     ov14_021E8328(((UnkStruct_ov14_boxapp *)arg0)->sys->unk_2F0);
-    v0 = *(s32 *)((u8 *)(*(void **)arg0) + 8);
+    v0 = ((UnkStruct_ov14_boxapp *)arg0)->unk_0->unk8;
     if (v0 == 1) {
         ov14_021F6AC0(arg0, 2, 0x1E);
         ov14_021F0234(arg0, ov14_021E95B4, 0x52);

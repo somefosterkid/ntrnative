@@ -530,7 +530,7 @@ BOOL BattleArcade_MultiplayerCheck(u8 challengeType);
 
 /* DS: the callers were built against the wider return type below; the PC takes the definition's (abilint RET) */
 #if defined(SDK_PORT) || defined(NONMATCHING)
-u8 sub_0205C2C0(u8 challengeType);
+u8 sub_0205C2C0(u32 challengeType);
 #else
 enum BattleFrontierStatsIndex sub_0205C2C0(u8 challengeType);
 #endif

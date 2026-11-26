@@ -46,6 +46,7 @@ void vc_gx_command(VCoreState *s, u32 op, const u32 *param, u32 nparam) {
            op == VC_OP_END_VTXS || op == VC_OP_VIEWPORT || op == VC_OP_BOX_TEST || op == VC_OP_POS_TEST)
     vc_cmd_poly(s, op, param, nparam);
   else if (op == VC_OP_SWAP_BUFFERS) vc_cmd_swap(s, param, nparam);
+  else if (op == VC_OP_NOP && nparam == 3) vc_ip_tag(s, param); /* a tag (flag 8; Smooth motion's pairing, RECORD only) */
 }
 
 /* load (or multiply C = M * C) the matrices the current mode selects: 0 proj, 1 pos, 2 pos+vec, 3 tex */

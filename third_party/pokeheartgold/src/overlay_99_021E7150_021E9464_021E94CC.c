@@ -1,10 +1,11 @@
 #include "global.h"
 
 #include "error_handling.h"
+#include "pokeathlon/pokeathlon_save.h"
 
-u16 ov98_0221F01C(s32, u32);
+u16 ov98_0221F01C(const Pokeathlon_RecordsSolo *, u32);
 
-s32 ov99_021E9430(void *, u32, s32);
+void *ov99_021E9430(void *, u32, s32);
 
 void ov99_021E94CC(void *arg0, u16 arg1, u32 arg2, s32 arg3);
 

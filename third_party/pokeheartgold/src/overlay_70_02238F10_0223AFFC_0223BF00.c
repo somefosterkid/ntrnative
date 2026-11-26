@@ -7,7 +7,7 @@ s32 ov70_02238D84(void *, s32, s32);
 
 s32 ov70_0223CAC4(void *, s32, s32, s32, s32);
 
-s32 ov70_0223CC68(void *, void *, s32, s32);
+s32 ov70_0223CC68(GTSPokemonRequirements *, GTSPokemonRequirements *, s32, s32);
 
 s32 ov70_02241234(void *);
 

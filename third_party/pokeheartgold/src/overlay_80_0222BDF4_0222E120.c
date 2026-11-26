@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bag_cursor.h"
@@ -83,7 +85,6 @@ struct FrontierScriptManager {
 typedef struct WiFiList WiFiList;
 int ov00_021E6EBC(void);
 typedef struct JournalEntry JournalEntry;
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 void sub_0202C4B0(WiFiList *wiFiList, int param1);
 WiFiList *sub_0202C6F4(SaveData *saveData);
 

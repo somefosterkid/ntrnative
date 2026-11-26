@@ -8,7 +8,7 @@ s32 ov14_021E9434(UnkStruct_ov14_boxapp *app);
 s32 ov14_021E9450(UnkStruct_ov14_boxapp *app);
 s32 ov14_021E94A8(UnkStruct_ov14_boxapp *app);
 s32 ov14_021E94BC(UnkStruct_ov14_boxapp *app);
-s32 ov14_021E80A8();
+s32 ov14_021E80A8(void *);
 s32 ov14_021E9518(UnkStruct_ov14_boxapp *app);
 
 s32 sub_02019978(void *, s32);
@@ -52,7 +52,7 @@ s32 ov14_021E94BC(UnkStruct_ov14_boxapp *arg0) {
     return 1;
 }
 s32 ov14_021E9518(UnkStruct_ov14_boxapp *app) {
-    if (ov14_021E80A8() != 0) {
+    if (ov14_021E80A8(app) != 0) {
         return 1;
     }
     return 0;

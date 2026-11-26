@@ -42,7 +42,11 @@ s32 ov49_0225F0D8(s32, void *, s32);
 void ov49_0225EF98(s32 arg0, u32 arg1, void *arg2, s32 arg3);
 s32 ov49_0225F110(s32, void *, void *);
 void ov49_0225EFC4(s32 arg0, u32 arg1, void *arg2, void *arg3);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov49_0225F10C(void *, s8);
+#else
 s32 ov49_0225F10C(void *, s32);
+#endif
 
 void ov49_0225EEF8(void *param_1) {
     s32 iVar1;

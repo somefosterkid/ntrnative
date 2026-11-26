@@ -7,6 +7,7 @@
 #include "pm_string.h"
 #include "screen_fade.h"
 #include "gf_gfx_planes.h"
+#include "player_data.h"
 
 struct BgConfig;
 

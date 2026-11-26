@@ -6,7 +6,11 @@
 #include "overlay_12_field_battle_dto.h"
 #include "overlay_80_frontier_opponent.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov80_0222A4EC(void *, u16, s32, u8, s32, s32, s32);
+#else
 s32 ov80_0222A4EC(void *, u16, s32, s32, s32, s32, s32);
+#endif
 
 u8 ov80_0223796C(s32, s32);
 

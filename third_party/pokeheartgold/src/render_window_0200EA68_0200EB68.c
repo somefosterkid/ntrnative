@@ -2,7 +2,11 @@
 
 #include "bg_window.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0200EA68(Window *, s32, u8, s8, u8, u8 arg5);
+#else
 s32 sub_0200EA68(Window *, s32, s32, s32, s32, s32 arg5);
+#endif
 
 void sub_0200EB68(Window *window, s32 a1);
 

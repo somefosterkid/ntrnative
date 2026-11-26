@@ -179,6 +179,9 @@ int pthread_setname_np(pthread_t t, const char *name);
 #endif
 
 // (libntr's sim_main.cpp / sim_touch.cpp, where the build has them: not every platform's libntr does)
+#ifdef __ANDROID__
+int bwport_android_settings_is_open_peek(void);   // android_settings.c (read only: the timeout is the main thread's)
+#endif
 float SIM_PresentRate(void) __attribute__((weak));
 int SIM_InBackground(void) __attribute__((weak));
 extern volatile int PORT_LauncherUp;   // machine.c: the launcher runs
@@ -286,6 +289,9 @@ static void *HangWatch(void *arg)
 
         HwSleep();
         held = PORT_LauncherUp || (SIM_InBackground != NULL && SIM_InBackground());
+#ifdef __ANDROID__
+        held = held || bwport_android_settings_is_open_peek();   // (lfx1) the game stands still behind the Java dialog, as the Apple half's sheet
+#endif
         if (held) {
             after = 5;
         } else if (after > 0) {

@@ -3,13 +3,13 @@
 #include "pokeathlon/pokeathlon.h"
 #include "pokeathlon/pokeathlon_save.h"
 
-s32 ov96_021E87EC(u32 param_1, void *param_2, u32 param_3, s16 *param_4);
+s32 ov96_021E87EC(u32 param_1, void *param_2, u32 param_3, Ov96System *);
 
 u32 ov96_021E9A10(void);
 
-u32 ov96_021E6A00(PokeathlonCourseData *param_1);
+BOOL ov96_021E6A00(PokeathlonCourseData *param_1, u8 *unused);
 
-u32 ov96_021E6A00(PokeathlonCourseData *param_1) {
+BOOL ov96_021E6A00(PokeathlonCourseData *param_1, u8 *unused) {
     PokeathlonSave *pokeathlonSave;
     Pokeathlon_UnkSubStruct_B00 *src;
     u32 uVar3;

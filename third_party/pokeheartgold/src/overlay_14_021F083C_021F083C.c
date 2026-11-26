@@ -12,7 +12,6 @@ s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 
 void ov14_021F08BC(UnkStruct_ov14_boxapp *);
 void ov14_021F3190(UnkStruct_ov14_boxsys *, u32, u32);
 void ov14_021F3F6C(UnkStruct_ov14_boxapp *);
-void ov14_021F6408(UnkStruct_ov14_boxapp *, u32);
 s32 ov14_021E8FD4(UnkStruct_ov14_boxapp *app);
 void ov14_021F083C(UnkStruct_ov14_boxapp *param_1, u8 param_2);
 

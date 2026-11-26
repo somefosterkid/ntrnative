@@ -77,7 +77,7 @@ void BG_ClearCharDataRange(u8 bgLayer, u32 size, u32 offset, enum HeapID heapID)
 
 void BgClearTilemapBufferAndCommit(BgConfig *bgConfig, u8 bgLayer);
 
-void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void ScheduleSetBgPosText(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 void sub_02088630(BgConfig *bgConfig);
 

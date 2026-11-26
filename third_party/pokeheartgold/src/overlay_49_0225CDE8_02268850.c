@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "heap.h"
 #include "overlay_49_unk_struct_ov70_0226_c6f8.h"
 
@@ -21,11 +23,9 @@ void ov49_02268850(UnkStruct_ov70_0226C6F8 *ptr) {
 
 s32 ov45_0222A288(void *, s32);
 
-s32 ov45_0222A330(void *);
 
 s32 ov45_0222A35C(void *);
 
-s32 ov45_0222A374(void *);
 
 s32 ov45_0222A3A0(void *);
 
@@ -107,7 +107,11 @@ void ov49_02268870(UnkStruct_ov70_0226C6F8 *arg0) {
     ov49_02268A7C(arg0->unk_18);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov49_02269154(void *);
+#else
 s32 ov49_02269154(void *);
+#endif
 
 void ov49_02268968(UnkStruct_ov70_0226C6F8 *arg0);
 

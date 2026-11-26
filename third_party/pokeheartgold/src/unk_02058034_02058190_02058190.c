@@ -428,7 +428,11 @@ typedef struct Party {
     struct { struct { u8 unk_00[5]; } aprijuiceModifiers[6]; } extra;
 } Party;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/unk_02068FC8_02068FC8.c (tools/pokehg_abi.py)
+void sub_02068FC8(int badgesInteractable, int liveTimeDisplay, int gymLeadersToHide, int trainerAppearance, FieldSystem *fieldSystem, TrainerCase *trainerCase);
+#else
 void sub_02068FC8(u8 badgesInteractable, u8 liveTimeDisplay, u8 gymLeadersToHide, u8 trainerAppearance, FieldSystem *fieldSystem, TrainerCase *trainerCase);
+#endif
 
 void sub_02058038(FieldSystem *fieldSystem);
 

@@ -4,9 +4,9 @@
 
 #include "overlay_manager.h"
 
-s32 ov96_021E6814(PokeathlonCourseData *arg0);
+BOOL ov96_021E6814(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6814(PokeathlonCourseData *data) {
+BOOL ov96_021E6814(PokeathlonCourseData *data, u8 *unused) {
     PokeathlonCourseArgs *pokeathlonCourseArgs;
 
     if (OverlayManager_Run(data->subOverlay) != 0) {

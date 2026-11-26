@@ -16,7 +16,7 @@
 
 void ov14_021F5718(u8 *param_1, void *param_2, u32 param_3, u32 param_4, u32 param_5);
 void ov14_021F57B8(u8 *param_1);
-void ov14_021F58B8(u8 *param_1);
+void ov14_021F58B8(UnkStruct_ov14_boxapp *param_1);
 
 u8 ov14_021F4F24(Window *param_1, String *param_2, u32 param_3, u32 param_4, enum Font param_5, u32 param_6, s32 param_7);
 
@@ -48,7 +48,7 @@ void ov14_021F57B8(u8 *param_1) {
     PCStorage_GetBoxName(((PCStorage *)((UnkStruct_ov14_boxapp *)param_1)->storage), (u32) ((UnkStruct_ov14_boxapp *)param_1)->unk25, pSVar1);
     ov14_021F4F24(&WStack_1c, pSVar1, 0x30, 0, FONT_SYSTEM, 0x10200, 2);
     String_Delete(pSVar1);
-    ov14_021F4EA0(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), &WStack_1c, 0);
+    ov14_021F4EA0(((UnkStruct_ov14_boxapp *)param_1)->sys, &WStack_1c, 0);
     RemoveWindow(&WStack_1c);
     InitWindow(&WStack_1c);
     AddTextWindowTopLeftCorner(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_14, &WStack_1c, 5, 2, 0, 0);
@@ -61,34 +61,34 @@ void ov14_021F57B8(u8 *param_1) {
         pSVar1);
     ov14_021F4F24(&WStack_1c, ((UnkStruct_ov14_boxapp *)param_1)->sys->unk_28, 0x14, 0, FONT_SYSTEM, 0x10200, 2);
     String_Delete(pSVar1);
-    ov14_021F4EA0(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), &WStack_1c, 1);
+    ov14_021F4EA0(((UnkStruct_ov14_boxapp *)param_1)->sys, &WStack_1c, 1);
     RemoveWindow(&WStack_1c);
     return;
 }
 
-void ov14_021F58B8(u8 *param_1) {
+void ov14_021F58B8(UnkStruct_ov14_boxapp *param_1) {
     BOOL BVar1;
     String *string;
     u32 uVar2;
     Window WStack_1c;
 
     InitWindow(&WStack_1c);
-    AddTextWindowTopLeftCorner(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_14, &WStack_1c, 0xc, 2, 0, 0);
-    uVar2 = (u32) *((u8 *)&((UnkStruct_ov14_boxapp *)param_1)->sys->unk_44D);
+    AddTextWindowTopLeftCorner(param_1->sys->unk_14, &WStack_1c, 0xc, 2, 0, 0);
+    uVar2 = (u32) *((u8 *)&param_1->sys->unk_44D);
     if (uVar2 >= 0x10) {
-        BVar1 = PCStorage_IsBonusWallpaperUnlocked(*(PCStorage **)(param_1 + 4), uVar2 - 0x10);
+        BVar1 = PCStorage_IsBonusWallpaperUnlocked(param_1->storage, uVar2 - 0x10);
         if (BVar1 == 0) {
-            string = NewString_ReadMsgData(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_20, 0x3b);
+            string = NewString_ReadMsgData(param_1->sys->unk_20, 0x3b);
         } else {
-            string = NewString_ReadMsgData(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_20,
-                *((u8 *)&((UnkStruct_ov14_boxapp *)param_1)->sys->unk_44D) + 0x23);
+            string = NewString_ReadMsgData(param_1->sys->unk_20,
+                *((u8 *)&param_1->sys->unk_44D) + 0x23);
         }
     } else {
-        string = NewString_ReadMsgData(((UnkStruct_ov14_boxapp *)param_1)->sys->unk_20, uVar2 + 0x23);
+        string = NewString_ReadMsgData(param_1->sys->unk_20, uVar2 + 0x23);
     }
     ov14_021F4F24(&WStack_1c, string, 0x30, 0, FONT_SYSTEM, 0x10200, 2);
     String_Delete(string);
-    ov14_021F4EA0(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), &WStack_1c, 0);
+    ov14_021F4EA0(param_1->sys, &WStack_1c, 0);
     RemoveWindow(&WStack_1c);
     return;
 }

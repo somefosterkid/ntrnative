@@ -19,7 +19,7 @@ extern TouchscreenHitbox ov108_021EA7D0;
 
 s32 ov108_021E66AC(SafariAreaCustomizer *arg0);
 
-s32 ov108_021E7700(void *, s32, s32, s32);
+u8 ov108_021E7700(void *, s32, s32, s32);
 void ov108_021E6804(SafariAreaCustomizer *arg0);
 void ov108_021E6850(SafariAreaCustomizer *arg0);
 

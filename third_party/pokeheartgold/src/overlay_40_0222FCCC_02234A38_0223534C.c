@@ -1,4 +1,5 @@
 #include "global.h"
+#include "touchscreen.h"
 #include "sys_task.h"
 #include "overlay_40_unk_struct_ov62_02233310.h"
 #include "overlay_40_unk_struct_ov62_022312b0.h"
@@ -15,6 +16,9 @@
 #include "gf_gfx_planes.h"
 #include "sprite_system.h"
 #include "overlay_93_unk_struct_ov117_02261280_t.h"
+#include "overlay_40_unk_struct_0208_b878.h"
+#include "overlay_41_unk_struct_ov22_0225af8c.h"
+#include "overlay_41_unk_struct_ov22_0225b1bc.h"
 
 struct BgConfig;
 
@@ -95,14 +99,6 @@ typedef struct UnkStruct_02030A80_t {
 
 typedef struct UnkStruct_0202F41C_t UnkStruct_0202F41C;
 
-typedef struct {
-    int unk_00;
-    enum HeapID heapID;
-    int unk_08;
-    int unk_0C;
-    fx32 unk_10;
-} UnkStruct_0208B284;
-
 void PaletteData_BlendPalettes(PaletteData *paletteData, enum PaletteBufferId bufferID, u16 toBlend, u8 fraction, u16 target);
 
 typedef struct CharTransferAllocation {
@@ -111,36 +107,6 @@ typedef struct CharTransferAllocation {
     u16 vramType;
     u16 atEnd;
 } CharTransferAllocation;
-
-typedef struct {
-    NARC *unk_00;
-    SpriteSystem *unk_04;
-    SpriteManager *unk_08;
-    PaletteData *unk_0C;
-} UnkStruct_0208B878_sub1;
-
-typedef struct {
-    ManagedSprite *unk_00;
-    s16 unk_04;
-    s16 unk_06;
-    int unk_08;
-    int unk_0C;
-} UnkStruct_0208B878_sub2;
-
-typedef struct {
-    UnkStruct_0208B878_sub1 unk_00;
-    UnkStruct_0208B284 unk_10;
-    UnkStruct_0208B878_sub2 unk_24[12];
-    int unk_E4;
-    int unk_E8;
-    int unk_EC;
-    BOOL unk_F0;
-    SysTask *unk_F4;
-    int unk_F8;
-    int unk_FC;
-    int unk_100;
-    int unk_104;
-} UnkStruct_0208B878;
 
 typedef struct {
     BOOL unk_00;
@@ -177,27 +143,11 @@ struct UnkStruct_020F3DCC_t {
 
 typedef struct UnkStruct_02012B20_t UnkStruct_02012B20;
 
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
-
 typedef struct {
     ManagedSprite *unk_00;
     u8 padding_04[8];
     BOOL unk_0C;
-    TouchScreenRect *unk_10;
+    TouchscreenHitbox *unk_10;
     TextOBJ *unk_14;
     UnkStruct_02012B20 *unk_18;
     CharTransferAllocation unk_1C;
@@ -654,7 +604,7 @@ typedef struct {
     int unk_1C;
     int unk_20;
     u32 unk_24;
-    const TouchScreenRect *unk_28;
+    const TouchscreenHitbox *unk_28;
 } UnkStruct_ov62_02248CDC;
 
 void SetBgPriority(u8 bgLayer, u8 priority);
@@ -684,7 +634,7 @@ typedef struct {
     BgConfig *unk_10;
     PaletteData *unk_14;
     TouchHitboxController *unk_18;
-    TouchScreenRect unk_1C[5];
+    TouchscreenHitbox unk_1C[5];
     BOOL unk_30;
     MsgData *unk_34;
     MsgData *unk_38;
@@ -765,15 +715,6 @@ typedef struct {
     UnkStruct_0208C06C_sub2 unk_41D8;
     SysTask *unk_41E8;
 } UnkStruct_0208C06C;
-
-typedef struct {
-    BgConfig *unk_00;
-    int unk_04;
-    int unk_08;
-    enum HeapID heapID;
-} UnkStruct_ov22_0225AF8C;
-
-typedef struct UnkStruct_ov22_0225B1BC_t UnkStruct_ov22_0225B1BC;
 
 void ov41_0224B57C(UnkStruct_ov22_0225B1BC *param0);
 

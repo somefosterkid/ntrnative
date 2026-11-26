@@ -14,7 +14,7 @@ lib/dpw/src/dpw_battle_tower.c 244  # SDK / third-party constants (same in every
 lib/dpw/src/dpw_internal.h 61  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dpw/src/dpw_tr.c 55  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/include/dwc/gp.h 69  # GameSpy SDK strings (pokebw2's gp.h, was lib/dwc/src/gs/gp/*.c's): the same in every DWC game
-lib/dwc/src/ac/dwc_ac_search.c 53  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ac/dwc_ac_search.c 108  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/dwc/src/ac/dwc_ac_wcm.c 48  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/auth/AuthService.c 398  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/auth/dwc_ca_baltimore_cybertrust.c 256  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
@@ -34,15 +34,15 @@ lib/dwc/src/crypt/crypt.c 65  # SDK / third-party constants (same in every DS ga
 lib/dwc/src/gamespy/md5c.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables (was lib/dwc/src/gs/md5c.c)
 lib/dwc/src/ghttp/ghttpBuffer.c 60  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/ghttp/ghttpCommon.c 74  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/dwc/src/ghttp/ghttpEncryption.c 1210  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/ghttp/ghttpEncryption.c 1289  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/dwc/src/ghttp/ghttpMain.c 53  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 lib/dwc/src/ghttp/ghttpProcess.c 119  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/gs/xml.c 293  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/dwc/src/gt2/gt2.c 552  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/gt2/gt2.c 674  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/dwc/src/nd/nd.c 142  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/nhttp/nhttp_request.c 59  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/dwc/src/sake/sakeMain.c 82  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/dwc/src/sake/sakeRequest.c 71  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/dwc/src/sake/sakeMain.c 152  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
+lib/dwc/src/sake/sakeRequest.c 112  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/dwc/src/sc/sciInterface.c 484  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/vct/vct_adpcm.c 356  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/dwc/src/vct/vct_session.c 265  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
@@ -64,11 +64,11 @@ lib/nitro/src/fx/fx_atanidx.c 262  # SDK / third-party constants (same in every 
 lib/nitro/src/fx/fx_sincos.c 16385  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitro/src/math/math_md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/nitro/src/os/os_protectionRegion.c 102  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/nitro/src/os/os_reset_itcm.c 64  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/os/os_reset_itcm.c 129  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/nitro/src/rtc/convert.c 51  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/nitro/src/snd/snd_util.c 1794  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitro/src/snd/snd_util.c 2050  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/nitro/src/wm/wm_standard.c 51  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-lib/nitrowifi/src/ssl/md5.c 454  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
+lib/nitrowifi/src/ssl/md5.c 714  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/nnsys/include/nnsys/g3d.h 115  # NitroSystem bit masks (powers of two) and array sizes as u32: coincidences with Black's arm9 and Black 2's ov257; no ROM data
 lib/nnsys/src/snd/sndarc_loader.c 51  # literal 0s in code that happen to line up with a run of zero words; no data
 lib/nnsys/src/snd/sndarc_stream.c 356  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
@@ -77,7 +77,7 @@ lib/twl/src/card/card_hash.c 64  # SDK / third-party constants (same in every DS
 lib/twl/src/ssp_jpegdec.c 1539  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 lib/twl/src/ssp_jpegenc.c 484  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
 port/acore/src/p02_adpcm.c 356  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
-port/acore/src/p06_tables.c 1793  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
+port/acore/src/p06_tables.c 2049  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data; limit raised by the fixed checker 2026-11-26 (lk3)
 port/acore/tests/t05_capture.c 50  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/acore/tests/t15_commands.c 51  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/gpu/src/g08_smaa_area.inc 179200  # SMAA's area texture (MIT, port/gpu/LICENSE-SMAA): third-party data, not the game's
@@ -86,8 +86,6 @@ port/src/route_test.c 54  # the test-cheat comment and code (no tables in the ch
 port/src/stb_image.h 134  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stb_image_write.h 488  # our own copy of an algorithm table (SMAA lookup, JPEG, sine ...), not game data
 port/src/stub_online.c 48  # a run of small u32 constants that also occurs in Black 2's ROM; flagged once the file changed (SOCInAddr)
-src/ov208/zukan_detail_form.c 177  # float sprite offsets (-13.9f) that the checker reads as the digit pairs 13, 9: chance match with B2's bytes, no game data
-src/system/pm_voice.c 50  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 tools/brief.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 tools/complete_check.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 tools/playbook.py 55  # this tool's own test constants / a table of ROM-independent numbers
@@ -95,38 +93,14 @@ tools/port_assets.py 50  # python regex/brace-depth code whose digits read as sm
 tools/prep.py 106  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 tools/respell_check.py 51  # coincidence: a run of small integers (0, 1, -1, indices) packed as u32 that a decompressed Black 2 / White 2 module also holds; no ROM data
 third_party/pokebw2/src/system/box_savedata.c 122  # GFL_ASSERT expression text (assert message), not data
-src/ov129/codein.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/system/mcss.c 57  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/system/pm_voice.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/system/poke_regulation.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/system/printsys.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/field_3dbg.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/field_actor_billboard.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/field_light.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/field_player_grid.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/field_rail_func.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov036/fld3d_ci.c 63  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov204/wifi_note.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov309/fmission_app.c 53  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov310/research_list.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov028/union_main.c 53  # GFL_ASSERT expression text (assert message), not data
-third_party/pokebw2/src/ov322/pkwd_book.c 53  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/ov102/gimmick_roller_coaster.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/src/gfl/net.c 51  # GFL_ASSERT expression text (assert message), not data
 third_party/pokebw2/src/gfl/net_state.c 144  # GFL_ASSERT expression text (assert message), not data
 third_party/pokebw2/src/gfl/net_system.c 59  # GFL_ASSERT expression text (assert message), not data
 third_party/pokebw2/src/gfl/savedata.c 50  # GFL_ASSERT expression text (assert message), not data
-third_party/pokebw2/src/gfl/touchpanel.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov115/gimmick_league_center.c 57  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov139/frame_list.c 68  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov167/btl_client.c 64  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov167/btl_server_flow_sub.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov255/box2_bmp.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov255/box2_obj.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov255/box2_seq.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov321/pkwd_count.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov324/pkwd_briefing.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-third_party/pokebw2/src/ov326/win_record.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 third_party/pokebw2/config/b2_us/arm9/overlays/ov011/symbols.txt 301  # symbol names with address digits that look like bytes; no game data
 third_party/pokebw2/config/b2_us/arm9/overlays/ov168/symbols.txt 51  # symbol names with address digits that look like bytes; no game data
 third_party/pokebw2/config/b2_us/arm9/overlays/ov260/symbols.txt 108  # symbol names with address digits that look like bytes; no game data
@@ -142,26 +116,15 @@ third_party/pokebw2/src/ov012/delivery_beacon.c 82  # GFL_ASSERT expression text
 third_party/pokebw2/src/ov028/union_subproc.c 156  # GFL_ASSERT expression text (assert message), not data (and the same condition in an if)
 third_party/pokebw2/src/ov034/union_oneself.c 66  # GFL_ASSERT expression text (assert message), not data
 third_party/pokebw2/src/ov036/union_mine_pms.c 88  # GFL_ASSERT expression text (assert message), not data
-third_party/pokebw2/src/ov205/codein.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-lib/gfl/src/clact.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
 lib/gfl/src/net.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 lib/gfl/src/net_state.c 256  # decompiled code's own constants (a literal-pool coincidence), not a table
 lib/gfl/src/savedata.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov021/field_3dbg.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov021/ov021_021a0448.c 102  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov021/ov021_021c6ea8.c 50  # decompiled code's own constants (a literal-pool coincidence), not a table
 src/ov039/gimmick_roller_coaster.c 52  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov046/ov046_021f36c0.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov067/frame_list.c 68  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov093/btl_client.c 64  # decompiled code's own constants (a literal-pool coincidence), not a table
 src/ov128/wifi_note.c 55  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov170/box2_obj.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/ov217/research_list.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
-src/system/poke_regulation.c 51  # decompiled code's own constants (a literal-pool coincidence), not a table
 port/vcore/src/vc_state.c 55  # our own C (vcs loader + vc_info); the token stream matches a small-number gym grid by chance, no game data
 third_party/pokeheartgold/asm/macros/movement.inc 138  # HG/SS decomp: movement command numbers in macro bodies, chance match of another game's file
-third_party/pokeheartgold/asm/overlay_70_02237F64_0223826C_02246358.s 72  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum
-third_party/pokeheartgold/asm/overlay_70_02237F64_0224613C.s 150  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum
+third_party/pokeheartgold/asm/overlay_70_02237F64_0223826C_02246358.s 257  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum; limit raised by the fixed checker 2026-11-26 (lk3)
+third_party/pokeheartgold/asm/overlay_70_02237F64_0224613C.s 893  # HG/SS decomp: the GTS server URL strings (.asciz), the same text in Platinum; limit raised by the fixed checker 2026-11-26 (lk3)
 third_party/pokeheartgold/include/bg_window.h 55  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/include/constants/battle.h 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/include/map_object.h 63  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
@@ -171,41 +134,30 @@ third_party/pokeheartgold/src/battle/battle_system.c 133  # HG/SS decomp: number
 third_party/pokeheartgold/src/naming_screen.c 60  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_10_trainer_ai_0221BF44.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_10_trainer_ai_0221C038.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_14_021EE3C8_021EE3C8.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_43_0222C024_0222C024.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_44_0222CDAC.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_80_02229EE0_0222A480.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_80_02230B8C_02230D0C_02230D0C.c 52  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_80_02236B78_02237254.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_80_022372D8_02237980.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_80_02237A70_02237E30.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/overlay_80_02238034_02238444.c 66  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_96_021E8340_021E8340.c 59  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_96_021EFB58.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/overlay_96_022000E4_022002F8_022000E4.c 55  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
-third_party/pokeheartgold/src/scrcmd_c.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
+third_party/pokeheartgold/src/overlay_83_02244DF4_02244E24.c 51  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 third_party/pokeheartgold/src/unk_020632B0_0206402C_020640A4_020641EC.c 63  # HG/SS decomp: numbers in code (case labels, call args, enum/flag values), chance match of another game's bytes
 port/gpu/src/g10_fast.c 106  # our code's constants matching HeartGold ov054 by chance (--where: code lines), not a table
 lib/nnsys/src/g3d/anm/nsbca.c 67  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-src/ov091/plist_menu.c 59  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
-src/ov010/game_beacon_set.c 51  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
-src/ov112/mus_item_data.c 51  # decompiled code's own constants matching HeartGold ov096 by chance (--where: code lines), not a table
 private/saves/b2-champ.bin 56  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
-private/saves/hg-out2.bin 278  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote
+private/saves/hg-out2.bin 792  # private test save (never exported: tools/public_exclude.txt private/): save data the game wrote; limit raised by the fixed checker 2026-11-26 (lk3)
 lib/dwc/src/nhttp/nhttp_stdlib.c 49  # SDK / third-party constants (same in every DS game): sine, CRC, MD5, SHA, JPEG, ADPCM, HW tables
-port/subprojects/libntr/components/ichneumon/FP_fullI_v4t_LE.a 5205  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/components/ichneumon/FP_fullI_v4t_LE.a 5841  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data; limit raised by the fixed checker 2026-11-26 (lk3)
 port/subprojects/libntr/include/nitro/wm/common/wm.h 125  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/include/simulator/glad/glad.h 118  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/include/twl/mi/common/dma.h 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/include/twl/rtc/common/type_ex.h 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
-port/subprojects/libntr/include/twl/specfiles/default.bnr 1697  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/include/twl/specfiles/default.bnr 1866  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data; limit raised by the fixed checker 2026-11-26 (lk3)
 port/subprojects/libntr/libraries/card/src/card_hash.c 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/dgt/prebuilt/libdgt.a 3853  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/fs/src/fs_overlay.c 128  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/fx/src/fx_atanidx.c 325  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/fx/src/fx_sincos.c 16449  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/rtc/src/convert.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
-port/subprojects/libntr/libraries/sim/src/imgui/imgui_draw.cpp 1051  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/sim/src/imgui/imgui_draw.cpp 1155  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data; limit raised by the fixed checker 2026-11-26 (lk3)
 port/subprojects/libntr/libraries/sim/src/sim_audio.cpp 598  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/sim/src/sim_main.cpp 189  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/packagefiles/libntr-ours.patch 125  # our changes to libntr as a diff (public export): its sim_main.cpp hunks hold two chance runs of small integer literals (GL code), the same chance matches sim_main.cpp has above; not game data
@@ -213,7 +165,7 @@ port/subprojects/libntr/libraries/sim7/src/snd/snd_channel.c 598  # libntr (MIT,
 port/subprojects/libntr/libraries/sim7/src/wm/wmsp_system.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/snd/src/snd_util.c 2942  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/spi/src/mic_arm7_2.c 243  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
-port/subprojects/libntr/libraries/std/include/unicode2sjis.h 1861  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+port/subprojects/libntr/libraries/std/include/unicode2sjis.h 2068  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data; limit raised by the fixed checker 2026-11-26 (lk3)
 port/subprojects/libntr/libraries/wl_arm7/include/DbgChar.h 132  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/wl_arm7/include/Global.h 196  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/wl_arm7/src/Diag.c 332  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
@@ -221,3 +173,30 @@ port/subprojects/libntr/libraries/wl_arm7/src/WlNic.c 125  # libntr (MIT, upstre
 port/subprojects/libntr/libraries/wm/src/wm_standard.c 112  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/wm_arm7/src/wmsp_indicate.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
 port/subprojects/libntr/libraries/wm_arm7/src/wmsp_system.c 115  # libntr (MIT, upstream cybervisi0n/libntr, tools/libntr_fold.py): third-party SDK code, tables and a prebuilt library, not game data
+
+lib/dwc/src/ghttp/ghttpConnection.c 78  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+lib/dwc/src/sc/sciWebServices.c 50  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+lib/dwcutil/src/dwc_mov_wh.c 48  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+lib/msl/include/ctype.h 48  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+lib/nitro/sdk/nitro/pad/common/pad.h 51  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+lib/nnsys/include/nnsys/g2d.h 52  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+port/subprojects/libntr/include/nitro/pad/common/pad.h 51  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+port/subprojects/libntr/include/twl/nwm/common/nwm.h 51  # found by the fixed checker 2026-11-26 (lk3.md): Nintendo SDK / third-party text or table (same in every game)
+private/saves/w-gym3-2.bin 370  # found by the fixed checker 2026-11-26 (lk3.md): pattern / small-number coincidence, not a table
+private/saves/w-gym3-3.bin 118  # found by the fixed checker 2026-11-26 (lk3.md): pattern / small-number coincidence, not a table
+src/ov217/research_graph.c 49  # found by the fixed checker 2026-11-26 (lk3.md): pattern / small-number coincidence, not a table
+third_party/pokebw2/src/ov112/gimmick_aspertia_city.c 51  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokebw2/src/ov120/gimmick_league_champion.c 49  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokebw2/src/ov129/sp_poke_gimmick.c 55  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokebw2/src/ov310/research_graph.c 49  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/asm/overlay_70.s 72  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/asm/overlay_72.s 371  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/asm/overlay_72_02237BD0_0223B5C4.s 303  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/port/nonmatching/ov70_022381A4.c 50  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_109_021E5968.c 51  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_70_02237F64_02237FB4.c 50  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_70_02237F64_0223826C_0223826C.c 50  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_72_02237BD0_02237C30.c 50  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_88_0225983C.c 50  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/overlay_96_02209F8C_0220AF64_0220B0A4.c 51  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out
+third_party/pokeheartgold/src/unk_02014A08_02014A08.c 49  # found by the fixed checker 2026-11-26 (lk3.md): HG/BW2 decomp: a coincidence pattern, an SDK/network string or an HG table to vendor out

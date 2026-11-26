@@ -13,7 +13,11 @@ s32 ov96_02218934(void *);
 
 s32 ov96_02218A50(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_02218DF8(void *, void *);
+#else
 s32 ov96_02218DF8(void *, void *);
+#endif
 
 s32 ov96_02218EB8(void *);
 

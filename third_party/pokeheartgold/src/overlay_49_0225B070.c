@@ -9,8 +9,8 @@ struct ListMenuItem;
 void ov49_0225B070(UnkStruct_ov70_0225EC20 *param0);
 
 void ov49_0225B0D4(void);
-s32 ov49_0225B124();
-void ov49_0225B0D8(void);
+void ov49_0225B124(Window *window);
+void ov49_0225B0D8(Window *window);
 
 void ov49_0225B070(UnkStruct_ov70_0225EC20 *param0) {
     u16 v0;
@@ -39,6 +39,6 @@ void ov49_0225B070(UnkStruct_ov70_0225EC20 *param0) {
 void ov49_0225B0D4(void) {
 }
 
-void ov49_0225B0D8(void) {
-    ov49_0225B124();
+void ov49_0225B0D8(Window *window) {
+    ov49_0225B124(window);
 }

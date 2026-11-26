@@ -4,10 +4,10 @@
 
 #include "error_handling.h"
 
-s32 ov96_021E6BC0(PokeathlonCourseData *arg0);
+BOOL ov96_021E6BC0(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6BC0(PokeathlonCourseData *data) {
-    (*(s32(**)(PokeathlonCourseData *, s32))((u8 *)data->state + 0xC))(data, 0);
+BOOL ov96_021E6BC0(PokeathlonCourseData *data, u8 *unused) {
+    data->state->funcs[3](data, 0);
     if (data->heapAllocPtr4 != NULL) {
         GF_AssertFail();
     }

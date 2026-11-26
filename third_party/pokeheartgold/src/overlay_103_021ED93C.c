@@ -37,7 +37,11 @@ void ov103_021ED97C(MailBoxWork *work);
 s32 ov103_021EDE7C(void *);
 s32 ov103_021EE860(u8 *param_1);
 void ov103_021ED99C(void *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov103_021EDC68(void *, s8, s16, u32);
+#else
 s32 ov103_021EDC68(void *, s32, u16, u32);
+#endif
 s32 ov103_021ED9AC(MailBoxWork *work);
 
 void ov103_021ED93C(void *arg0) {

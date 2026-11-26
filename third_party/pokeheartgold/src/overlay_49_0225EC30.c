@@ -13,7 +13,11 @@ typedef struct UnkStruct_ov70_022610B8_t UnkStruct_ov70_022610B8;
 
 void ov49_0225D4C8(UnkStruct_ov70_022610B8 *param0, fx32 param1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225D4D0(UnkStruct_ov70_022610B8 *param0, s8 param1, s8 param2);
+#else
 void ov49_0225D4D0(UnkStruct_ov70_022610B8 *param0, u8 param1, u8 param2);
+#endif
 
 void ov49_0225D4F0(UnkStruct_ov70_022610B8 *param0, fx32 param1, fx32 param2, fx32 param3);
 

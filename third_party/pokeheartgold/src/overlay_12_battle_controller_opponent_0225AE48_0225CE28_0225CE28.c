@@ -62,7 +62,7 @@ typedef struct BgConfig {
     struct Background bgs[8];
 } BgConfig;
 
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 typedef struct SpriteResourcesHeaderList {
     SpriteResourcesHeader *headers;

@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "constants/heap.h"
 
 #include "bg_window.h"
@@ -154,7 +156,6 @@ struct FrontierGraphics {
 };
 void ov80_0223965C(FrontierGraphics *param0, u16 param1);
 void ov80_02239B7C(SpriteManager *param0, u16 param1);
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 ManagedSprite *ov80_0223968C(FrontierGraphics *param0, u16 param1, u16 param2);
 void ov80_02239708(FrontierGraphics *param0, u16 param1, int param2);
 u32 FrontierScriptContext_ReadWord(FrontierScriptContext *ctx);

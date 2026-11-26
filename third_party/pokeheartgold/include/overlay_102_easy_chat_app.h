@@ -4,21 +4,31 @@
 // EasyChatApp: merged by tools/hg/promote.py from 50 m2c local copies (3 variants, base
 // src/overlay_102_021E87B4_021E8C64_021E8CA4.c) and 59 accesses; fields at every accessed offset, pads elsewhere.
 
+#include "mail_message_types.h"
+
 struct EasyChatArgs;
 struct EasyChatWordList;
 struct TouchScreenActions;
 struct UnkStruct_ov20_021D2128_t;
 
+typedef struct { u16 unk_00; u16 unk_02; u16 unk_04; u8 unk_06; u8 unk_07; int unk_08; } UnkStruct_ov20_021D18BC;
+typedef struct { s16 unk_00; s8 unk_02; s8 unk_03; } UnkStruct_ov20_021D0F64;
+typedef struct { u8 unk_00; u8 unk_01; } UnkStruct_ov20_021D1F34;
+typedef struct { s8 unk_00; s8 unk_01; } UnkStruct_ov20_021D1F34_b;
+
+struct EasyChatApp;
+typedef int (*EasyChatMainFunc)(struct EasyChatApp *easyChatApp, int *state);
+
 typedef struct EasyChatApp {
     struct EasyChatArgs *args;
     u32 type;
-    struct { u16 type; u16 id; u16 words[2]; } sentence;
+    MailMessage sentence;
     u16 words[2];
     struct UnkStruct_ov20_021D2128_t *unk_14;
     struct EasyChatWordList *unk_18;
     int state;
-    void *mainFunc;
-    void *nextMainFunc;
+    EasyChatMainFunc mainFunc;
+    EasyChatMainFunc nextMainFunc;
     int taskFuncState;
     void *taskFunc;
     u16 pressedKeys;
@@ -34,16 +44,24 @@ typedef struct EasyChatApp {
     u16 currentWordSlot;
     u16 categoryCursorPos;
     u16 prevCategoryCursorPos;
-    struct { u16 unk_00; u16 unk_02; u16 unk_04; u8 unk_06; u8 unk_07; int unk_08; } unk_54;
-    struct { s16 unk_00; s8 unk_02; s8 unk_03; } unk_60;
-    u8 unk_64;
-    u8 pad_65[6];
+    UnkStruct_ov20_021D18BC unk_54;
+    UnkStruct_ov20_021D0F64 unk_60;
+    UnkStruct_ov20_021D0F64 unk_64;
+    u8 pad_68[2];
+    u8 unk_6A;
     u8 mode;
-    struct { u8 unk_00; u8 unk_01; } unk_66;
-    u8 pad_6E[0x6];
+    UnkStruct_ov20_021D1F34 unk_66;
+    s16 unk_6E;
+    UnkStruct_ov20_021D1F34_b unk_70;
+    u8 pad_72[2];
     u32 unk_74;
 } EasyChatApp;
 
 // sizeof(EasyChatApp) == 0x78
+
+void ov102_021E7A4C(EasyChatApp *easyChatApp, EasyChatMainFunc mainFunc);
+int ov102_021E7AA4(EasyChatApp *easyChatApp, int *state);
+int ov102_021E8240(EasyChatApp *easyChatApp, int *state);
+int ov102_021E8D1C(EasyChatApp *easyChatApp, int *state);
 
 #endif // POKEHEARTGOLD_OVERLAY_102_EASY_CHAT_APP_H

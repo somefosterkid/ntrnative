@@ -632,8 +632,8 @@ enum MapHeaderID {
 
 typedef struct MapObject MapObject;
 
-s32 ov01_021FCB90(void *, s32);
-s32 ov01_021FCBCC(void *arg0);
+s32 ov01_021FCB90(FishingTask *, s32);
+s32 ov01_021FCBCC(FishingTask *arg0);
 
 static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID, int warpId, int x, int z, int faceDirection)
 {
@@ -682,27 +682,27 @@ BOOL ov01_021FC914(FishingTask *fishingTask, PlayerAvatar *playerAvatar, MapObje
     return 0 ;
 }
 
-s32 ov01_021FC934(void *arg0, void *arg1, void *arg2) {
+s32 ov01_021FC934(FishingTask *arg0, void *arg1, void *arg2) {
     OverworldAnimManager *a0;
 
-    *(s32 *)((u8 *)arg0 + 0x10) = (s32)(*(s32 *)((u8 *)arg0 + 0x10) + 1);
-    a0 = *(OverworldAnimManager **)((u8 *)arg0 + 0x24);
+    arg0->counter = (s32)(arg0->counter + 1);
+    a0 = arg0->unk_24;
     if (a0 != 0) {
         sub_02068B48(a0);
-        *(s32 *)((u8 *)arg0 + 0x24) = 0;
+        arg0->unk_24 = NULL;
     }
-    if ((s32) * (s32 *)((u8 *)arg0 + 0x10) > 0xF) {
-        *(s32 *)((u8 *)arg0 + 0x10) = 0;
-        *(s32 *)((u8 *)arg0 + 0xC) = 8;
+    if (arg0->counter > 0xF) {
+        arg0->counter = 0;
+        arg0->fishingTask = 8;
         ov01_021FCB90(arg0, 0x34);
     }
     return 0;
 }
 
-s32 ov01_021FC968(void *arg0, void *arg1, void *arg2) {
+s32 ov01_021FC968(FishingTask *arg0, void *arg1, void *arg2) {
     if (ov01_021FCBCC(arg0) == 0) {
         return 0;
     }
-    *(s32 *)((u8 *)arg0 + 0xC) = 9;
+    arg0->fishingTask = 9;
     return 1;
 }

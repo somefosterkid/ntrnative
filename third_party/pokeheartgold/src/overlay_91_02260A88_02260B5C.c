@@ -15,7 +15,11 @@ enum RotationAxis {
     ROTATION_AXIS_COUNT
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_020182E0(Field3dObject *obj, s16 angle, enum RotationAxis axis);
+#else
 void sub_020182E0(Field3dObject *obj, u16 angle, enum RotationAxis axis);
+#endif
 
 typedef struct {
     u16 unk_00;

@@ -18,7 +18,11 @@ u8 ov82_0223F6C4(u8);
 s32 ov82_0223F6E4(void *);
 s32 ov82_0223FCB0(void *, void *);
 s32 ov82_0223FCFC(void *, s32);
-s32 ov82_0223FD78(void *, u32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov82_0223FD78(Window *, u8);
+#else
+s32 ov82_0223FD78(Window *, u32);
+#endif
 s32 ov82_0223FDC8(YesNoPrompt *, BgConfig *, u8);
 u8 sub_02030BD0(u8, u8 *);
 
@@ -31,7 +35,7 @@ void ov82_0223F814(s32 netID, s32 unused, void *data, void *context) {
     if (netID != sub_0203769C()) {
         v0 = *(u16 *)((u8 *)data + 2);
         if (v0 != 0) {
-            *(s8 *)((u8 *)context + 0x27D) = (s8)v0;
+            ((BattleHallApp *)context)->partnersDecision = v0;
         }
     }
 }
@@ -43,14 +47,14 @@ void ov82_0223F834(BattleHallApp *arg0) {
     }
 }
 
-void ov82_0223F84C(void *arg0) {
+void ov82_0223F84C(BattleHallApp *arg0) {
     s32 v0;
     u8 v1;
 
-    ov82_0223FCB0(*((void **)&((BattleHallApp *)arg0)->monSprite), 0);
-    ov82_0223FD78(arg0 + 0x4C, Options_GetFrame(((BattleHallApp *)arg0)->options));
-    BufferTypeName(((MessageFormat *)((BattleHallApp *)arg0)->strTemplate), 0U, ov80_02237920(((BattleHallApp *)arg0)->cursorPos));
-    v1 = sub_02030BD0(ov82_0223F6C4(((BattleHallApp *)arg0)->cursorPos), *((void **)&((BattleHallApp *)arg0)->typeRanks)) + 1;
+    ov82_0223FCB0(*((void **)&arg0->monSprite), 0);
+    ov82_0223FD78(&arg0->windows[0], Options_GetFrame(arg0->options));
+    BufferTypeName(((MessageFormat *)arg0->strTemplate), 0U, ov80_02237920(arg0->cursorPos));
+    v1 = sub_02030BD0(ov82_0223F6C4(arg0->cursorPos), *((void **)&arg0->typeRanks)) + 1;
     if ((u32)v1 > 0xAU) {
         v1 = 0xA;
     }
@@ -60,15 +64,15 @@ void ov82_0223F84C(void *arg0) {
     } else {
         v0 = 0x18;
     }
-    *((s8 *)&((BattleHallApp *)arg0)->printerID) = ov82_0223EF7C(arg0, v0, 1);
-    ov82_0223FCFC(*((void **)&((BattleHallApp *)arg0)->cursorSprite), 0);
-    ov82_0223FDC8(*((void **)&((BattleHallApp *)arg0)->unk_8C), *((void **)&((BattleHallApp *)arg0)->bgConfig), *((u8 *)&((BattleHallApp *)arg0)->pad_90[0]));
-    *((s8 *)&((BattleHallApp *)arg0)->yesNoMenuOpen) = 1;
+    *((s8 *)&arg0->printerID) = ov82_0223EF7C(arg0, v0, 1);
+    ov82_0223FCFC(*((void **)&arg0->cursorSprite), 0);
+    ov82_0223FDC8(*((void **)&arg0->unk_8C), *((void **)&arg0->bgConfig), *((u8 *)&arg0->pad_90[0]));
+    *((s8 *)&arg0->yesNoMenuOpen) = 1;
 }
 
-void ov82_0223F8E4(void *arg0) {
+void ov82_0223F8E4(BattleHallApp *arg0) {
     ov82_0223F90C(arg0);
-    ov82_0223F5E0(((BattleHallApp *)arg0)->bgConfig, ((BattleHallApp *)arg0)->cursorPos, 0);
-    ScheduleBgTilemapBufferTransfer(((BattleHallApp *)arg0)->bgConfig, 3U);
-    ov82_0223FCFC(*((void **)&((BattleHallApp *)arg0)->cursorSprite), 1);
+    ov82_0223F5E0(arg0->bgConfig, arg0->cursorPos, 0);
+    ScheduleBgTilemapBufferTransfer(arg0->bgConfig, 3U);
+    ov82_0223FCFC(*((void **)&arg0->cursorSprite), 1);
 }

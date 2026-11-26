@@ -5,7 +5,11 @@
 #include "field_types_def.h"
 #include "unk_02035900.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_02057384(u8);
+#else
 s32 sub_02057384(s32);
+#endif
 
 s32 sub_02057D74(void);
 

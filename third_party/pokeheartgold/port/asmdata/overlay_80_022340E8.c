@@ -6,6 +6,11 @@
 
 /* type copied from src/overlay_80_022340E8_02234E50.c:33 (defined in a .c file) */
 typedef void (*BattleArcadeEffectFunc)(BattleArcade *, Party *, u8);
+/* type copied from src/overlay_80_022340E8_02235208.c:36 (defined in a .c file) */
+typedef struct ArcadeData_0223DCA0 {
+    const u16 *unk_00[3];
+    const u16 *itemPools[3];
+} ArcadeData_0223DCA0;
 
 extern char ov80_02234ECC[];
 extern char ov80_02234F28[];
@@ -31,12 +36,15 @@ extern char ov80_0223531C[];
 extern char ov80_02235320[];
 extern char ov80_0223BEA8[];
 extern char ov80_0223BED8[];
+extern char ov80_0223BEEC[];
+extern char ov80_0223BF02[];
+extern char ov80_0223BF18[];
 extern char ov80_0223BF32[];
-extern const u16 *ov80_0223DCA0[3];
 extern BattleArcadeEffectFunc ov80_0223DCB8[32];
+extern ArcadeData_0223DCA0 ov80_0223DCA0;
 
-/* ov80_0223DCA0: asm overlay_80_022340E8.s data+0x0 (12 bytes) */
-const u16 *ov80_0223DCA0[3] = { (const unsigned short *)&ov80_0223BEA8, (const unsigned short *)&ov80_0223BF32, (const unsigned short *)&ov80_0223BED8 };
+/* ov80_0223DCA0: asm overlay_80_022340E8.s data+0x0 (24 bytes) */
+ArcadeData_0223DCA0 ov80_0223DCA0 = { { (const unsigned short *)&ov80_0223BEA8, (const unsigned short *)&ov80_0223BF32, (const unsigned short *)&ov80_0223BED8 }, { (const unsigned short *)&ov80_0223BEEC, (const unsigned short *)&ov80_0223BF18, (const unsigned short *)&ov80_0223BF02 } };
 
 /* ov80_0223DCB8: asm overlay_80_022340E8.s data+0x18 (128 bytes) */
 BattleArcadeEffectFunc ov80_0223DCB8[32] = { (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234ECC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234F28, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234FAC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235024, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_0223509C, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235118, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022351AC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235208, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235264, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234ECC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234F28, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02234FAC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235024, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_0223509C, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235118, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022351AC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235208, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235264, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352BC, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352C8, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352D0, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352D8, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352E0, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352E8, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_022352F4, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235300, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_0223530C, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235314, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235318, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_0223531C, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235320, (void (*)(struct BattleArcade *, struct Party *, unsigned char))&ov80_02235318 };

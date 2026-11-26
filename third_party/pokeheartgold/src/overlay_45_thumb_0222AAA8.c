@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "player_data.h"
 #include "constants/heap.h"
 #include "save.h"
@@ -44,8 +46,6 @@ u32 ov45_0222AAC8(const WiFiPlazaProfile *profile);
 BOOL ov45_0222AADC(const WiFiPlazaProfile *profile);
 int ov45_0222AAEC(const WiFiPlazaProfile *profile, u32 index);
 void ov45_0222AB0C(const WiFiPlazaProfile *profile, UnkStruct_ov66_0222E908 *param1);
-PlayerProfile *ov45_0222AB1C(const WiFiPlazaSystem *param0);
-BOOL ov45_0222AB28(const WiFiPlazaSystem *param0, u32 param1);
 
 u8 ov45_0222AAA8(void *arg0) {
     if (ov45_0222D79C(*(u16 *)((u8 *)arg0 + 0x3C), *(u8 *)((u8 *)arg0 + 0x3E)) == 0) {

@@ -23,6 +23,7 @@
 #include "field_types_def.h"
 #include "quadratic_interpolation_task.h"
 #include "overlay_01_screen_slice_effect.h"
+#include "linear_interpolation_task.h"
 
 s32 ov01_021EFE34(void *, s32, s32, s32);
 
@@ -633,14 +634,14 @@ void ov01_021EFFB0(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4) {
     ov01_021EFE34(arg0, arg1, arg2, arg4);
 }
 
-s32 ov01_021EFE44();
+s32 ov01_021EFE44(LinearInterpolationTaskS32 *task);
 
 s32 ov01_021EFFBC(void *arg0);
 
 s32 ov01_021EFFBC(void *data) {
     s32 v0;
 
-    v0 = ov01_021EFE44();
+    v0 = ov01_021EFE44(data);
     SysTask_CreateOnVWaitQueue(ov01_021EFFD8, data, 0xAU);
     return v0;
 }

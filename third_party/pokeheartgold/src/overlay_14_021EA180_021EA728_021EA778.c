@@ -10,9 +10,17 @@
 s32 ov14_021EA778(UnkStruct_ov14_boxapp *param_1);
 
 void ov14_021F3B3C(void *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov14_021E7960(s16, s16);
+#else
 u32 ov14_021E7960(s32, s32);
+#endif
 s32 ov14_021E79AC(s32, s32, u8 *);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F395C(struct UnkStruct_ov14_boxsys *, s16, s16);
+#else
 void ov14_021F395C(struct UnkStruct_ov14_boxsys *, s32, s32);
+#endif
 void ov14_021F3B5C(void *);
 
 s32 ov14_021E6AA0(UnkStruct_ov14_boxapp *, s32, s32);
@@ -45,16 +53,16 @@ s32 ov14_021EA778(UnkStruct_ov14_boxapp *param_1) {
     sub_02019978(((u8 *)param_1->sys->unk_2F0), 0xf);
     switch (((UnkStruct_ov14_boxsys *)iVar4)->unk_10) {
     case 0:
-        ov14_021F391C(*((void **)&param_1->sys), 1);
-        ov14_021F29E4(*((void **)&param_1->sys), 0xb, 1);
-        ov14_021F2A18(*((void **)&param_1->sys), 0xb, 1);
+        ov14_021F391C(param_1->sys, 1);
+        ov14_021F29E4(param_1->sys, 0xb, 1);
+        ov14_021F2A18(param_1->sys, 0xb, 1);
         ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 1;
         break;
 
     case 1:
-        iVar3 = ov14_021F2A04(*((void **)&param_1->sys), 0xb);
+        iVar3 = ov14_021F2A04(param_1->sys, 0xb);
         if (iVar3 == 0) {
-            ov14_021F391C(*((void **)&param_1->sys), 0);
+            ov14_021F391C(param_1->sys, 0);
             ov14_021F3B3C(((void *)param_1->sys));
             ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 2;
         }
@@ -80,8 +88,8 @@ s32 ov14_021EA778(UnkStruct_ov14_boxapp *param_1) {
             ov14_021E7AD4(param_1, uVar5, uVar1, 2);
             ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 3;
         } else {
-            ov14_021F395C(*((void **)&param_1->sys), (s32)((s16)auStack_1c), (s32)((s16)uStack_20));
-            ov14_021F3B5C(*((void **)&((UnkStruct_ov14_boxapp *)new_var2)->sys));
+            ov14_021F395C(param_1->sys, (s32)((s16)auStack_1c), (s32)((s16)uStack_20));
+            ov14_021F3B5C(((UnkStruct_ov14_boxapp *)new_var2)->sys);
             *((u32 *)&param_1->sys->unk_40B8) = auStack_1c;
             *((u32 *)&param_1->sys->unk_40BC) = uStack_20;
         }
@@ -91,24 +99,24 @@ s32 ov14_021EA778(UnkStruct_ov14_boxapp *param_1) {
         iVar3 = ov14_021E7B8C(param_1);
         if (iVar3 == 0) {
             PlaySE(0x5ea);
-            new_var = (UnkStruct_0201956C **)((((u8 *)param_1->sys)) + 0x2f0);
+            new_var = &param_1->sys->unk_2F0;
             ov14_021E8620(*new_var);
             ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 4;
         }
         break;
 
     case 4:
-        ov14_021F391C(*((void **)&param_1->sys), 1);
-        ov14_021F29E4(*((void **)&param_1->sys), 0xb, 2);
+        ov14_021F391C(param_1->sys, 1);
+        ov14_021F29E4(param_1->sys, 0xb, 2);
         ov14_021F40E8(param_1, 0);
         ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 5;
         break;
 
     case 5:
-        iVar3 = ov14_021F2A04(*((void **)&param_1->sys), 0xb);
+        iVar3 = ov14_021F2A04(param_1->sys, 0xb);
         if (iVar3 == 0) {
-            ov14_021F2A18(*((void **)&param_1->sys), 0xb, 0);
-            ov14_021F391C(*((void **)&param_1->sys), 0);
+            ov14_021F2A18(param_1->sys, 0xb, 0);
+            ov14_021F391C(param_1->sys, 0);
             ((UnkStruct_ov14_boxsys *)iVar4)->unk_10 = 6;
         }
         break;

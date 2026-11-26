@@ -18,7 +18,7 @@ void ov83_022401A4(struct BattleCastleSelfApp *arg0, Window *arg1, s32 arg2, u8 
 
 void ov83_02240238(struct BattleCastleSelfApp *param_1, Window *param_2, s32 param_3, u32 param_4);
 u8 ov83_0223FC48(void *, void *, u32, u32, u32, u32, u8, u8, u8, u8);
-void ov83_02247944(void *, u32);
+void ov83_02247944(Window *window, u32);
 void ov83_02240290(void *param_1);
 
 void ov83_022401A4(BattleCastleSelfApp *arg0, Window *arg1, s32 slot, u8 arg3) {

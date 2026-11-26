@@ -10,7 +10,7 @@ s32 ov49_0225EF88(void *arg0);
 
 s32 ov49_0225EF8C(void *, s32);
 
-s32 ov49_02262AC4(void *arg0, void *arg1) {
+BOOL ov49_02262AC4(struct UnkStruct_ov70_02263344_t * arg0, struct UnkStruct_ov70_0225DEE8_t * arg1, u32 arg2) {
     s32 v0;
 
     v0 = ov49_0225EF88(arg0);

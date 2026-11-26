@@ -33,7 +33,7 @@ u32 ov70_0223A3DC(GTSApplicationState *param_1) {
     if (iVar1 == 1) {
         ov70_02238D60(param_1);
         ListMenuItems_Delete(param_1->unk_11AC);
-        piVar2 = (Pokemon *)&param_1->receivedListing.pokemon;
+        piVar2 = &param_1->receivedListing.pokemon;
         iVar1 = ov70_0223E76C(piVar2);
         if ((iVar1 != 0) && (iVar1 = Party_GetCount(*(Party **)((u8 *)param_1->playerData + 8)), iVar1 == 6)) {
             ov70_0223A4F4(param_1, 0x24, 1, 0, 0xf0f, piVar2);

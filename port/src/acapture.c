@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 extern void (*SIM_sndCaptureHook)(const SNDCommand *list);
 #include "port_game.h"
@@ -94,7 +95,10 @@ static u32 R32(const u8 *p) {
     return (u32)p[0] | (u32)p[1] << 8 | (u32)p[2] << 16 | (u32)p[3] << 24;
 }
 
-static void Chunk(const char *tag, const void *a, u32 an, const void *b, u32 bn) {
+// (lfx3, crv4 #6) the PXI thread (Hook -> Chunk) and the quit path (acapture_close from bwport_quit_flush) write and close sOut:
+// one lock around every write and around the close, so a close never runs under a write (fclose + fwrite on a freed FILE)
+static pthread_mutex_t sOutLock = PTHREAD_MUTEX_INITIALIZER;
+static void ChunkLocked(const char *tag, const void *a, u32 an, const void *b, u32 bn) {
     if (!sOut) return;
     u8 h[8];
     u32 sz = an + bn, pad = (4 - (sz & 3)) & 3;
@@ -105,6 +109,11 @@ static void Chunk(const char *tag, const void *a, u32 an, const void *b, u32 bn)
     if (an) fwrite(a, 1, an, sOut);
     if (bn) fwrite(b, 1, bn, sOut);
     if (pad) fwrite(zero, 1, pad, sOut);
+}
+static void Chunk(const char *tag, const void *a, u32 an, const void *b, u32 bn) {
+    pthread_mutex_lock(&sOutLock);
+    ChunkLocked(tag, a, an, b, bn);
+    pthread_mutex_unlock(&sOutLock);
 }
 
 // FNV-1a over 8-byte words (then the odd bytes): the live path hashes every loaded bank and wave archive again at each
@@ -292,14 +301,19 @@ static void Info(void) {
 }
 
 static void Close(void) {
-    if (sClosed || !sOut) return;
+    pthread_mutex_lock(&sOutLock);
+    if (sClosed || !sOut) {
+        pthread_mutex_unlock(&sOutLock);
+        return;
+    }
     sClosed = 1;
     u8 e[8];
     u64 t = sTo != 0xFFFFFFFFu ? (u64)(sTo - sFrom) * FRAME_CYCLES : sLastNow + FRAME_CYCLES;
     W64(e, t);
-    Chunk("END ", e, 8, NULL, 0);
+    ChunkLocked("END ", e, 8, NULL, 0);
     fclose(sOut);
     sOut = NULL;
+    pthread_mutex_unlock(&sOutLock);
     fprintf(stderr, "acapture: %llu lists, %llu commands, %llu wakes, %llu MEM (%llu bytes), to frame %u\n",
             (unsigned long long)sNLists, (unsigned long long)sNCmds, (unsigned long long)sNWake,
             (unsigned long long)sNMem, (unsigned long long)sMemBytes, sLastFrame);

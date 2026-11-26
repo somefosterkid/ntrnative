@@ -1,17 +1,18 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
+#include "overlay_49_getters.h"
+
 #include "heap.h"
 #include "overlay_49_unk_struct_ov70_0226_c6f8.h"
 
 s32 ov45_0222A324(void *);
 
-s32 ov45_0222A330(void *);
 
 s32 ov45_0222A35C(void *);
 
-s32 ov45_0222A374(void *);
 
-s32 ov45_0222A394(void *);
 
 s32 ov45_0222A3A0(void *);
 
@@ -25,9 +26,7 @@ u8 ov45_0222A3EC(struct UnkStruct_ov66_0222DFF8_t *);
 
 s32 ov49_02258BEC(void *, s32);
 
-void *ov49_02259FE8(void *);
 
-void *ov49_02259FF0(void *);
 
 void *ov49_02259FF8(void *);
 

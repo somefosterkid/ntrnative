@@ -23,31 +23,31 @@ typedef struct UnkStruct_ov65_0221E144 {
 
 extern u8 _0221FD34;
 
-void ov65_0221E06C(void *arg0, s32 arg1);
+void ov65_0221E06C(TradeRoom *arg0, s32 arg1);
 
-void ov65_0221E06C(void *arg0, s32 arg1) {
+void ov65_0221E06C(TradeRoom *arg0, s32 arg1) {
     if (arg1 == 0) {
-        *((Party **)&((TradeRoom *)arg0)->summaryArgs.party) = (Party *)((TradeRoom *)arg0)->playerParty;
-        *((s8 *)&((TradeRoom *)arg0)->summaryArgs.partyCount) = (s8)Party_GetCount(*(Party **)((u8 *)(((void *)((TradeRoom *)arg0)->args)) + 8));
-        *((void **)&((TradeRoom *)arg0)->summaryArgs.unk28) = NULL;
-        sub_0208AD34(arg0 + 0xC, sub_02034818((u32)sub_0203769C()));
+        *((Party **)&arg0->summaryArgs.party) = (Party *)arg0->playerParty;
+        *((s8 *)&arg0->summaryArgs.partyCount) = (s8)Party_GetCount(*(Party **)((u8 *)(((void *)arg0->args)) + 8));
+        *((void **)&arg0->summaryArgs.unk28) = NULL;
+        sub_0208AD34(&arg0->summaryArgs, sub_02034818((u32)sub_0203769C()));
     } else {
-        *((Party **)&((TradeRoom *)arg0)->summaryArgs.party) = (Party *)((TradeRoom *)arg0)->partnerParty;
-        *((s8 *)&((TradeRoom *)arg0)->summaryArgs.partyCount) = (s8)Party_GetCount(((TradeRoom *)arg0)->partnerParty);
-        *((void **)&((TradeRoom *)arg0)->summaryArgs.unk28) = (void *)(arg0 + 0x2E20 + (0x3EC * (1 ^ sub_0203769C())));
-        sub_0208AD34(arg0 + 0xC, sub_02034818(sub_0203769C() ^ 1));
+        *((Party **)&arg0->summaryArgs.party) = (Party *)arg0->partnerParty;
+        *((s8 *)&arg0->summaryArgs.partyCount) = (s8)Party_GetCount(arg0->partnerParty);
+        *((void **)&arg0->summaryArgs.unk28) = (void *)arg0->chatotCryBuffer[1 ^ sub_0203769C()];
+        sub_0208AD34(&arg0->summaryArgs, sub_02034818(sub_0203769C() ^ 1));
     }
-    *((s8 *)&((TradeRoom *)arg0)->summaryArgs.unk11) = 1;
-    *((s8 *)&((TradeRoom *)arg0)->summaryArgs.partySlot) = (s8)((s32) *((s32 *)&((TradeRoom *)arg0)->selectedSlot[0]) % 6);
-    *((s8 *)&((TradeRoom *)arg0)->summaryArgs.unk12) = 1;
-    *((s16 *)&((TradeRoom *)arg0)->summaryArgs.moveToLearn) = 0;
-    *((u32 *)&((TradeRoom *)arg0)->summaryArgs.unk2C) = sub_02088288(*(SaveData **)((u8 *)(((void *)((TradeRoom *)arg0)->args)) + 0x10));
-    *((s32 *)&((TradeRoom *)arg0)->summaryArgs.natDexEnabled) = (s32) * (s32 *)((u8 *)(((void *)((TradeRoom *)arg0)->args)) + 0x2C);
-    *((s32 *)&((TradeRoom *)arg0)->summaryArgs.options) = (s32) * (s32 *)((u8 *)(((void *)((TradeRoom *)arg0)->args)) + 0x18);
-    *((SaveSpecialRibbons **)&((TradeRoom *)arg0)->summaryArgs.ribbons) = Save_SpecialRibbons_Get(*(SaveData **)((u8 *)(((void *)((TradeRoom *)arg0)->args)) + 0x10));
-    sub_02089D40(arg0 + 0xC, &_0221FD34);
-    *((OverlayManager **)&((TradeRoom *)arg0)->appMan) = OverlayManager_New(&gOverlayTemplate_PokemonSummary, arg0 + 0xC, HEAP_ID_26);
-    *((s32 *)&((TradeRoom *)arg0)->summarySide) = arg1;
+    *((s8 *)&arg0->summaryArgs.unk11) = 1;
+    *((s8 *)&arg0->summaryArgs.partySlot) = (s8)((s32) *((s32 *)&arg0->selectedSlot[0]) % 6);
+    *((s8 *)&arg0->summaryArgs.unk12) = 1;
+    *((s16 *)&arg0->summaryArgs.moveToLearn) = 0;
+    *((u32 *)&arg0->summaryArgs.unk2C) = sub_02088288(*(SaveData **)((u8 *)(((void *)arg0->args)) + 0x10));
+    *((s32 *)&arg0->summaryArgs.natDexEnabled) = (s32) * (s32 *)((u8 *)(((void *)arg0->args)) + 0x2C);
+    *((s32 *)&arg0->summaryArgs.options) = (s32) * (s32 *)((u8 *)(((void *)arg0->args)) + 0x18);
+    *((SaveSpecialRibbons **)&arg0->summaryArgs.ribbons) = Save_SpecialRibbons_Get(*(SaveData **)((u8 *)(((void *)arg0->args)) + 0x10));
+    sub_02089D40(&arg0->summaryArgs, &_0221FD34);
+    *((OverlayManager **)&arg0->appMan) = OverlayManager_New(&gOverlayTemplate_PokemonSummary, &arg0->summaryArgs, HEAP_ID_26);
+    *((s32 *)&arg0->summarySide) = arg1;
 }
 
 u8 ov65_0221FB90(void *, s32, s32, MsgData *, MessageFormat *);

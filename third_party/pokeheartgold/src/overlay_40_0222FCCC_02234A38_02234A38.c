@@ -7,6 +7,17 @@
 #include "overlay_40_unk_struct_ov62_022312b0.h"
 #include "constants/heap.h"
 #include "palette.h"
+#include "pm_string.h"
+#include "mail_message_types.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "unk_02013534.h"
+#include "save.h"
+#include "msgdata.h"
+#include "pokepic.h"
+#include "overlay_40_unk_struct_ov62_02241204.h"
+#include "overlay_41_unk_struct_ov22_0225af8c.h"
+#include "overlay_41_unk_struct_ov22_0225b1bc.h"
 
 struct BgConfig;
 
@@ -36,21 +47,13 @@ struct MessageFormat;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct TouchHitboxController;
 
 struct UnkStruct_020F3DCC_t;
 
 struct UnkStruct_ov22_0225B1BC_t;
-
-typedef struct String String;
-
-typedef struct MailMessage {
-    u16 type;
-    u16 id;
-    u16 words[2];
-} MailMessage;
 
 typedef struct DressUpPhoto DressUpPhoto;
 
@@ -84,24 +87,6 @@ typedef struct UnkStruct_02030A80_t {
 
 void PaletteData_BlendPalettes(PaletteData *paletteData, enum PaletteBufferId bufferID, u16 toBlend, u8 fraction, u16 target);
 
-typedef struct ManagedSprite ManagedSprite;
-
-typedef struct SpriteSystem SpriteSystem;
-
-typedef struct SpriteManager SpriteManager;
-
-typedef struct SysTaskManager SysTaskManager;
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
 
 typedef struct UnkStruct_020F3DCC_t UnkStruct_020F3DCC;
 
@@ -116,8 +101,6 @@ struct UnkStruct_020F3DCC_t {
     int unk_1C;
     const UnkStruct_020F3DCC *unk_20;
 };
-
-typedef struct TextOBJ TextOBJ;
 
 enum TouchScreenButtonState {
     TOUCH_BUTTON_NOT_PRESSED = -1,
@@ -185,49 +168,6 @@ typedef struct {
     UnkStruct_ov62_02239DA4_sub1 unk_7C;
 } UnkStruct_ov61_0222AFC0;
 
-typedef struct SaveData SaveData;
-
-typedef struct MsgData MsgData;
-
-typedef struct PokepicManager PokepicManager;
-
-typedef struct MessageFormat MessageFormat;
-
-typedef struct {
-    int unk_00;
-    int unk_04;
-    u64 unk_08;
-} UnkStruct_ov62_02249380;
-
-typedef struct {
-    const UnkStruct_ov62_02249380 *unk_00;
-    int unk_04;
-    int unk_08;
-    int unk_0C;
-    int unk_10;
-    int unk_14;
-    int unk_18;
-    int unk_1C;
-    int unk_20;
-    u32 unk_24;
-    const TouchscreenHitbox *unk_28;
-} UnkStruct_ov62_02248CDC;
-
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
-
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
 
 typedef void (*TouchScreenHitTableAction)(u32, enum TouchScreenButtonState, void *);
@@ -239,15 +179,6 @@ TouchHitboxController *TouchHitboxController_Create(const TouchscreenHitbox *hit
 void TouchHitboxController_Destroy(TouchHitboxController *buttonAction);
 
 void TouchHitboxController_IsTriggered(TouchHitboxController *buttonAction);
-
-typedef struct {
-    BgConfig *unk_00;
-    int unk_04;
-    int unk_08;
-    enum HeapID heapID;
-} UnkStruct_ov22_0225AF8C;
-
-typedef struct UnkStruct_ov22_0225B1BC_t UnkStruct_ov22_0225B1BC;
 
 typedef struct {
     UnkStruct_ov61_0222AFC0 unk_00;
@@ -262,13 +193,6 @@ BOOL ov40_0222DA00(int *param0, int *param1, int param2, int param3);
 
 BOOL ov40_0222DA84(int *param0, int param1);
 
-typedef struct {
-    UnkStruct_02030A80 *unk_00;
-    ManagedSprite *unk_04;
-    ManagedSprite *unk_08;
-    Window unk_0C[8];
-} UnkStruct_ov62_022323B8;
-
 void ov40_0222DED0(UnkStruct_0208C06C *param0, int param1);
 
 void ov40_0222DFB0(UnkStruct_0208C06C *param0);
@@ -276,14 +200,6 @@ void ov40_0222DFB0(UnkStruct_0208C06C *param0);
 void ov40_022307DC(UnkStruct_0208C06C *param0, int param1, int param2);
 
 void ov40_02230944(UnkStruct_0208C06C *param0);
-
-typedef struct {
-    int unk_00;
-    int unk_04;
-    u16 *unk_08;
-    MsgData *unk_0C;
-    BOOL unk_10;
-} UnkStruct_ov62_0223E01C_sub1;
 
 void GfGfx_EngineATogglePlanes(u8 layerMask, u8 enable);
 

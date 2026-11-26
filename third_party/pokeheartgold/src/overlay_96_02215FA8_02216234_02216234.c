@@ -11,7 +11,7 @@ void ov96_02216200(PokeathlonCourseData *arg0);
 
 void ov96_02217820(Ov96RdSprites *sprites);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
 
 s32 ov96_021E8324(PokeathlonCourseData *, void (*)(PokeathlonCourseData *));
 

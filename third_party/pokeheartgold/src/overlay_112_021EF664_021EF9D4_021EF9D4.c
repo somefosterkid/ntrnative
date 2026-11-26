@@ -3,10 +3,6 @@
 #include "message_format.h"
 #include "overlay_112_pokewalker_app.h"
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, u32, u32);
-
-u32 ov112_021EF9D4(Ov112PokewalkerApp *param_1);
-
 u32 ov112_021EF9D4(Ov112PokewalkerApp *param_1) {
     u32 uVar1;
 

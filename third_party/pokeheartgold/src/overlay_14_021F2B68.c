@@ -58,11 +58,11 @@ s32 ov14_021F4380(u8 *);
 void ov14_021F2BB8(struct UnkStruct_ov14_boxapp *arg0);
 
 void ov14_021F2BB8(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F4278(*((void **)&arg0->sys));
-    ov14_021F4380(*((void **)&arg0->sys));
+    ov14_021F4278(*((void * *)&arg0->sys));
+    ov14_021F4380(*((void * *)&arg0->sys));
     ov14_021F2D1C(arg0->sys);
-    ov14_021F3E70(*((void **)&arg0->sys));
-    ov14_021F37F4(*((void **)&arg0->sys));
+    ov14_021F3E70(arg0->sys);
+    ov14_021F37F4(arg0->sys);
     ov14_021F35BC(arg0);
-    ov14_021F3CB4(*((void **)&arg0->sys));
+    ov14_021F3CB4(arg0->sys);
 }

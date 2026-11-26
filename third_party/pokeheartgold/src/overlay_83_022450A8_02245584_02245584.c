@@ -7,13 +7,13 @@ struct BattleCastleOpponentApp;
 #include "unk_02035900.h"
 #include "overlay_83_battle_castle_opponent_app.h"
 
-s32 ov83_02244AD8(void *, Window *, u32, u32, u8);
+s32 ov83_02244AD8(BattleCastleOpponentApp *param_1, Window *param_2, u32, u32, u8);
 
-s32 ov83_02244B40(void *, Window *, u32, u32, u8);
+s32 ov83_02244B40(BattleCastleOpponentApp *app, Window *window, u32, u32, u8);
 
 s32 ov83_02244DF4(void *, u16 *, u16 *, u16 *, u16 *);
 
-void ov83_02245584(struct BattleCastleOpponentApp *arg0, Window *arg1);
+void ov83_02245584(BattleCastleOpponentApp *arg0, Window *arg1);
 
 void ov83_02245584(BattleCastleOpponentApp *arg0, Window *arg1) {
     u16 x, y, px, py, qx, qy;

@@ -5,6 +5,7 @@ struct UnkStruct_ov14_boxapp;
 #include "unk_02005D10.h"
 #include "unk_02019BA4.h"
 #include "unk_02020A0C.h"
+#include "overlay_14_move_owner.h"
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 #include "overlay_14_box_unk_0201956C.h"
@@ -48,11 +49,11 @@ s32 ov14_021EDF28(UnkStruct_ov14_boxapp *arg0) {
     s32 nextInput;
     u8 v0;
 
-    nextInput = *(s32 *)((u8 *)(arg0->sys->unk_C) + 0xE4);
+    nextInput = ((MoveSet *)arg0->sys->unk_C)->from;
     PlaySE(0x5EAU);
     ov14_021E637C(arg0);
     ov14_021F08F0(arg0);
-    ov14_021F6678(*((void * *)&arg0->sys), 0x28);
+    ov14_021F6678(arg0->sys, 0x28);
     v0 = arg0->unk21;
     if (v0 == 0xFF) {
         ov14_021F685C(arg0, 0U, 0, 0x27);

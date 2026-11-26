@@ -2,8 +2,6 @@
 #include "overlay_102_easy_chat_app.h"
 struct EasyChatApp;
 
-s32 ov102_021E7A4C(void *, s32 *);
-
 u32 ov102_021E7B18(void *);
 
 u32 ov102_021E7BF8(void *);
@@ -11,8 +9,6 @@ u32 ov102_021E7BF8(void *);
 s32 ov102_021E8D50(void *, s32 *);
 
 s32 ov102_021E9464(void *);
-
-extern s32 ov102_021E8240;
 
 extern s32 ov102_021E8D94;
 
@@ -47,7 +43,7 @@ s32 ov102_021E7C84(EasyChatApp *arg0, u32 *arg1) {
         break;
     case 4:
         if (ov102_021E9464(*((void **)&arg0->unk_14)) != 0) {
-            ov102_021E7A4C(arg0, &ov102_021E8240);
+            ov102_021E7A4C(arg0, ov102_021E8240);
         }
         break;
     }

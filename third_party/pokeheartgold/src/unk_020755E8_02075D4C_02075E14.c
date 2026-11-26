@@ -1002,7 +1002,11 @@ enum EvolutionState {
 void sub_02075E14(EvolutionData *evolutionData);
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL sub_02005D10(u8 bgmID);
+#else
 BOOL sub_02005D10(u16 bgmID);
+#endif
 
 EggHatchParticleSystem *sub_02077604(EggHatchParticleSystemArgs *param0);
 

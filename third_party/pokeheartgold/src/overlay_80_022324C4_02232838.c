@@ -7,7 +7,11 @@
 #include "overlay_80_battle_castle.h"
 #include "overlay_80_02237A70.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov80_0222A6B8(u8, u16, u16, void *, void *, void *, void *, u8);
+#else
 s32 ov80_0222A6B8(s32, u16, u16, void *, void *, void *, void *, s32);
+#endif
 
 
 u8 ov80_02237B58(u8, s32);

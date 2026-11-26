@@ -5,11 +5,7 @@
 #include "text.h"
 #include "overlay_112_pokewalker_app.h"
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-
-s32 ov112_021EA570(void *);
-
-s32 ov112_021EC1A8(Ov112PokewalkerApp *arg0);
+void ov112_021EA570(Ov112PokewalkerApp *);
 
 s32 ov112_021EC1A8(Ov112PokewalkerApp *arg0) {
     arg0->unk_1E524 = ov112_021EA08C(arg0, 0, 0x21);
@@ -18,8 +14,6 @@ s32 ov112_021EC1A8(Ov112PokewalkerApp *arg0) {
     return 0x13;
 }
 
-s32 ov112_021EC1E4(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EC1E4(Ov112PokewalkerApp *arg0) {
     if (TextPrinterCheckActive((u8) * &arg0->unk_1E524) == 0) {
         arg0->unk_4 = 0xB;
@@ -27,8 +21,6 @@ s32 ov112_021EC1E4(Ov112PokewalkerApp *arg0) {
     }
     return 0x13;
 }
-
-s32 ov112_021EC208(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EC208(Ov112PokewalkerApp *arg0) {
     FillBgTilemapRect(arg0->bgConfig, 2U, 0U, 0U, 0U, 0x20U, 0x18U, 0x10U);
@@ -40,8 +32,6 @@ s32 ov112_021EC208(Ov112PokewalkerApp *arg0) {
     return 0x15;
 }
 
-s32 ov112_021EC284(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EC284(Ov112PokewalkerApp *arg0) {
     if (TextPrinterCheckActive((u8) * &arg0->unk_1E524) == 0) {
         arg0->unk_4 = 0;
@@ -49,8 +39,6 @@ s32 ov112_021EC284(Ov112PokewalkerApp *arg0) {
     }
     return 0x15;
 }
-
-s32 ov112_021EC2A8(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EC2A8(Ov112PokewalkerApp *arg0) {
     if ((s32) arg0->unk_1F370 >= 0) {
@@ -61,8 +49,6 @@ s32 ov112_021EC2A8(Ov112PokewalkerApp *arg0) {
     return 0x1D;
 }
 
-s32 ov112_021EC2E4(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EC2E4(Ov112PokewalkerApp *arg0) {
     if (TextPrinterCheckActive((u8) * &arg0->unk_1E524) == 0) {
         return 0x18;
@@ -71,10 +57,6 @@ s32 ov112_021EC2E4(Ov112PokewalkerApp *arg0) {
 }
 
 s32 ov112_021E9290(void *, void *, void *, s32);
-
-s32 ov112_021EA688(void *, s32);
-
-s32 ov112_021EC304(Ov112PokewalkerApp *arg0);
 
 s32 ov112_021EC304(Ov112PokewalkerApp *arg0) {
     arg0->unk_1F2D0 = 0;

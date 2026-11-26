@@ -10,20 +10,20 @@ struct UnkStruct_ov61_0222C664;
 #include "text.h"
 #include "overlay_39_unk_struct_ov61_0222_c664.h"
 
-void ov39_02228B04(void *arg0, MsgData *arg1, s32 arg2, u32 arg3);
+void ov39_02228B04(UnkStruct_ov61_0222C664 *arg0, MsgData *arg1, s32 arg2, u32 arg3);
 
-void ov39_02228B04(void *arg0, MsgData *msgData, s32 strno, u32 textSpeed) {
+void ov39_02228B04(UnkStruct_ov61_0222C664 *arg0, MsgData *msgData, s32 strno, u32 textSpeed) {
     String *string;
 
     string = NewString_ReadMsgData(msgData, strno);
-    StringExpandPlaceholders(((MessageFormat *)((UnkStruct_ov61_0222C664 *)arg0)->unk_20), ((UnkStruct_ov61_0222C664 *)arg0)->unk_34, string);
+    StringExpandPlaceholders(((MessageFormat *)arg0->unk_20), arg0->unk_34, string);
     String_Delete(string);
-    FillWindowPixelBuffer(arg0 + 0x44, 0xFU);
-    DrawFrameAndWindow2(arg0 + 0x44, 0, 1U, 0xAU);
-    *((s32 *)&((UnkStruct_ov61_0222C664 *)arg0)->unk_40) = (s32)AddTextPrinterParameterized(arg0 + 0x44, FONT_MESSAGE, ((UnkStruct_ov61_0222C664 *)arg0)->unk_34, 0U, 0U, textSpeed, NULL);
-    *((s32 *)&((UnkStruct_ov61_0222C664 *)arg0)->unk_8C) = 0;
+    FillWindowPixelBuffer(&arg0->unk_44, 0xFU);
+    DrawFrameAndWindow2(&arg0->unk_44, 0, 1U, 0xAU);
+    *((s32 *)&arg0->unk_40) = (s32)AddTextPrinterParameterized(&arg0->unk_44, FONT_MESSAGE, arg0->unk_34, 0U, 0U, textSpeed, NULL);
+    *((s32 *)&arg0->unk_8C) = 0;
     if ((textSpeed == 0xFF) || (textSpeed == 0)) {
-        *((s32 *)&((UnkStruct_ov61_0222C664 *)arg0)->unk_40) = 0xFF;
+        *((s32 *)&arg0->unk_40) = 0xFF;
     }
 }
 

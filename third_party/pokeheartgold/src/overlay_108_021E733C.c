@@ -6,7 +6,11 @@ struct SafariAreaCustomizer;
 
 void ov108_021E756C(SafariAreaCustomizer *param_1);
 
-ManagedSprite *ov108_021E8540(void *, u16, u16, s32, s32, s32, s32, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+ManagedSprite *ov108_021E8540(void *, s32, s32, u8, u8, u8, u8, s32);
+#else
+ManagedSprite *ov108_021E8540(void *, s32, s32, s32, s32, s32, s32, s32);
+#endif
 
 extern UnmanagedSpriteTemplate ov108_021EA7F8;
 

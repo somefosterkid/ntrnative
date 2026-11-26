@@ -21,6 +21,8 @@
 #include <SDL2/SDL.h>
 #endif
 
+extern void SIM_Quit(int code) __attribute__((noreturn));   // libntr's sim_main.cpp
+
 void PORT_ResetSystem(u32 parameter, const char *caller) {
     (void)parameter;
     fprintf(stderr, "bwport: the game reset the system (from %s): starting again\n", caller ? caller : "?");
@@ -40,7 +42,7 @@ void PORT_ResetSystem(u32 parameter, const char *caller) {
                              "The game reset itself, as the DS does when it restarts.\n"
                              "The save is kept. Open the app again to start over.",
                              NULL);
-    exit(0);
+    SIM_Quit(0);   // libntr's one way out: the worker and the audio device first (exit() ran atexit under live threads)
 #else
     PORT_MachineReset();   // machine.c: back to the title in this process; never returns
 #endif

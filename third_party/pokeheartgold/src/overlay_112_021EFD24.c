@@ -5,8 +5,6 @@
 
 void ov112_021EFD24(u16 *arg0, s16 arg1);
 
-s32 ov112_021EFD4C(Ov112PokewalkerApp *arg0);
-
 void ov112_021EFD24(u16 *arg0, s16 arg1) {
     s32 v1;
     u16 *v0;

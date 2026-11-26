@@ -6,7 +6,6 @@
 #include "overlay_14_unk_struct_ov14_boxsys.h"
 #include "overlay_14_box_funcs.h"
 
-s32 ov14_021F2BE8(void *, u32);
 void ov14_021F2C04(void *arg0);
 
 void ov14_021F2C04(void *arg0) {
@@ -14,7 +13,7 @@ void ov14_021F2C04(void *arg0) {
 
     v0 = 0;
     do {
-        ov14_021F2BE8(arg0, v0);
+        ov14_021F2BE8((UnkStruct_ov14_boxsys *)arg0, v0);
         v0 += 1;
     } while (v0 < 0x45U);
 }

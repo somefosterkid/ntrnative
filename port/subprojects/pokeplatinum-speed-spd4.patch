@@ -6,25 +6,101 @@ WALK_FAST (2x) or WALK_FASTER (4x), and the Surf action WALK_FAST (4 frames) for
 stops the Surf legs ver58 and ver62), through PortSpeed4_WalkAction / PortSpeed4_SurfAction, which ask port/game/speed_gen4.c (the
 WalkSpeed / SurfSpeed settings, Black's). The player's action speed follows, which the following object (unk_02069BE0.c) reads. Run
 speed: the run action (RUN_*, 4 px a frame for 4 frames, the run animation) is remade by unk_020655F4.c's own Step0 (PortSpeed4_InitRun)
-for the player's object only (local id 0xFF): 8 px for 2 frames at 2x and 4x, the run's animation; no new movement-action rows (the
+for the player's object only (local id 0xFF): 8 px for 2 frames at 2x, 16 px for 1 at 4x, the run's animation, which
+map_object.c sub_02062A14 keeps through the step's frames; at 4x player_move.c reports the 1-frame step's end and land_data.c's
+tracker looks twice a frame to see each step's start and end (docs/speed-options.md); no new movement-action rows (the
 game's checks for "is the player running", which read the action code, still see RUN). Jumps, deep snow's slower steps and the turn
 keep the game's. At every default setting each hunk is exactly the game's own code path. The DS build never sees the patch.
 diff --git a/src/map_object.c b/src/map_object.c
 index 2c543ac..d2f667c 100644
 --- a/src/map_object.c
 +++ b/src/map_object.c
-@@ -1385,7 +1385,12 @@ void sub_02062A0C(MapObject *mapObj, u32 param1)
+@@ -1385,7 +1385,14 @@ void sub_02062A0C(MapObject *mapObj, u32 param1)
  }
  
-+// bw-port: Run speed 4x: a 1-frame step sets its animation (the run's MAP_OBJ_UNK_A0_09) and back to 0 in the same map-object
-+// update, so the sprite code that reads it here would draw the player standing; in the field frame of such a step it reads the
-+// step's animation (port/game/speed_gen4.c PortSpeed4_Step1FAnim; the stored value at every other frame and setting).
-+u32 PortSpeed4_Step1FAnim(const void *mapObj, u32 anim);
++// bw-port: Run speed 2x and 4x: the player's faster run step sets its animation (the run's MAP_OBJ_UNK_A0_09) and back to 0 at its
++// end; the sprite code that reads it here takes that 0 as the pause between two steps, after which the run animation goes back
++// to a multiple of 4 of its frames, so the 2-frame step (2x) drew the run's first pose for good and the 1-frame step (4x, set and
++// reset in one map-object update) drew the player standing. Through the step's frames it reads the step's animation
++// (port/game/speed_gen4.c PortSpeed4_RunStepAnim; the stored value at every other frame and setting).
++u32 PortSpeed4_RunStepAnim(const void *mapObj, u32 anim);
 +
  u32 sub_02062A14(const MapObject *mapObj)
  {
 -    return mapObj->unk_A0;
-+    return PortSpeed4_Step1FAnim(mapObj, mapObj->unk_A0);
++    return PortSpeed4_RunStepAnim(mapObj, mapObj->unk_A0);
+ }
+ 
+diff --git a/src/overlay005/land_data.c b/src/overlay005/land_data.c
+index e2f9db162..12d8a5693 100644
+--- a/src/overlay005/land_data.c
++++ b/src/overlay005/land_data.c
+@@ -663,13 +663,24 @@ static BOOL LandDataManager_SetMapsToLazyLoaderManager(LandDataManager *landData
+     return TRUE;
+ }
+ 
++// bw-port: Run speed 4x (docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The tracked target's check below looks at
++// the player's position once a field frame and needs two looks a tile: one that sees the step start (a step into another
++// quadrant of a map queues the next map pair: LandDataManager_CheckLazyLoadNextMapPair) and one that sees it a whole tile on
++// (LandDataManager_UpdateTrackedTargetValues). Run 4x's 1-frame step moves a whole tile between two looks, so only every other
++// tile's start was seen; a step into a new quadrant seen only at its end left the next maps unloaded and the player's tiles were
++// read from the map beside them (HG/SS Cherrygrove: the sea's behaviour and height, the player sank and could only turn).
++// PortSpeed4_TrackLooks (port/game/speed_gen4.c) is 2 at Run 4x, so a step's start and its end are both seen in its frame (a
++// second look at a longer step sees what the first saw and does nothing); 1, the game's look, at every other setting.
++int PortSpeed4_TrackLooks(void);
++
+ void LandDataManager_Tick(FieldSystem *fieldSystem, LandDataManager *landDataMan)
+ {
+     MapLazyLoader *activeLazyLoader = &landDataMan->mapLazyLoaderMan[landDataMan->activeLazyLoaderManIndex].loader;
+     MapLazyLoaderTrackedTarget *trackedTarget = &landDataMan->lazyLoaderTrackedTarget;
++    int looks;
+ 
+     // Here, we check for movements from the tracked target and start lazy loading maps if necessary.
+-    if (landDataMan->inDistortionWorld == FALSE && trackedTarget->tracking == TRUE) {
++    for (looks = PortSpeed4_TrackLooks(); looks > 0 && landDataMan->inDistortionWorld == FALSE && trackedTarget->tracking == TRUE; looks--) {
+         if (trackedTarget->moving) {
+             GF_ASSERT(*trackedTarget->lowerMovementCoord <= *trackedTarget->higherMovementCoord);
+ 
+diff --git a/src/player_avatar.c b/src/player_avatar.c
+index 472beb172..8c9eb7797 100644
+--- a/src/player_avatar.c
++++ b/src/player_avatar.c
+@@ -285,7 +285,26 @@ int PlayerAvatar_GetZPos(PlayerAvatar *const playerAvatar)
+  * @return xPosPrev
+  */
++// bw-port: Run 4x (docs/speed-options.md "Platinum and HeartGold/SoulSilver"): only a following object's code (unk_02069BE0.c)
++// reads the player's previous tile, in its own update after the player's, where the game's step is still under way and its
++// previous tile is the one it left. The 1-frame step (unk_020655F4.c PortSpeed4_InitRun) has ended there, its previous tile set to
++// its current one, so through that step's frame these return the tile it left (port/game/speed_gen4.c PortSpeed4_Step1FPrev). At
++// every other setting and frame the game's values.
++void PortSpeed4_Step1FPrev(const void *mapObj, int x, int z, int *prevX, int *prevZ);
++
++static void PortSpeed4_PosPrev(PlayerAvatar *const playerAvatar, int *x, int *z)
++{
++    MapObject *mapObj = PlayerAvatar_GetMapObject(playerAvatar);
++
++    *x = MapObject_GetXPrev(mapObj);
++    *z = MapObject_GetZPrev(mapObj);
++    PortSpeed4_Step1FPrev(mapObj, MapObject_GetX(mapObj), MapObject_GetZ(mapObj), x, z);
++}
++
+ int PlayerAvatar_XPosPrev(PlayerAvatar *const playerAvatar)
+ {
+-    return MapObject_GetXPrev(PlayerAvatar_GetMapObject(playerAvatar));
++    int x, z;
++
++    PortSpeed4_PosPrev(playerAvatar, &x, &z);
++    return x;
+ }
+ 
+@@ -297,5 +316,8 @@ int PlayerAvatar_XPosPrev(PlayerAvatar *const playerAvatar)
+ int PlayerAvatar_ZPosPrev(PlayerAvatar *const playerAvatar)
+ {
+-    return MapObject_GetZPrev(PlayerAvatar_GetMapObject(playerAvatar));
++    int x, z;
++
++    PortSpeed4_PosPrev(playerAvatar, &x, &z);
++    return z;
  }
  
 diff --git a/src/player_move.c b/src/player_move.c
@@ -130,20 +206,21 @@ index 93d032e..3b72687 100644
  
              PlayerAvatar_IncrementStepsRecord(playerAvatar);
 diff --git a/src/unk_020655F4.c b/src/unk_020655F4.c
-index f9c6ec5..90479a7 100644
+index f9c6ec5c5..18925fc99 100644
 --- a/src/unk_020655F4.c
 +++ b/src/unk_020655F4.c
-@@ -612,7 +612,30 @@ static BOOL MovementAction_WalkFastestEast_Step0(MapObject *mapObj)
+@@ -612,7 +612,31 @@ static BOOL MovementAction_WalkFastestEast_Step0(MapObject *mapObj)
  }
  
 +// bw-port: Run speed (the port's RunSpeed setting; docs/speed-options.md "Platinum and HeartGold/SoulSilver"). The run action is
 +// 4 px a frame for 4 frames with the run animation; for the player's own object it is 8 px for 2 frames at 2x and 16 px for 1 at
 +// 4x (the new movement actions this would otherwise need are this one action with its own numbers: only the player's object,
-+// local id 0xFF, takes them; an NPC's run is the game's). The 1-frame step starts and ends in one update, so it is noted
-+// (PortSpeed4_NoteStep1F): player_move.c PlayerAvatar_UpdatePlayerMoveState reports its end and map_object.c sub_02062A14 keeps
-+// its run animation for the frame. At the default setting it is exactly the game's run.
++// local id 0xFF, takes them; an NPC's run is the game's). Each step is noted (PortSpeed4_NoteRunStep): map_object.c sub_02062A14
++// keeps its run animation through its frames, player_move.c PlayerAvatar_UpdatePlayerMoveState reports the end of the 1-frame
++// step, which starts and ends in one update, and player_avatar.c PlayerAvatar_XPosPrev gives a following object the tile that step
++// left. At the default setting it is exactly the game's run.
 +int PortSpeed4_RunSteps(void);
-+void PortSpeed4_NoteStep1F(void *mapObj, u32 anim);
++void PortSpeed4_NoteRunStep(void *mapObj, u32 anim, int frames, int fromX, int fromZ, int toX, int toZ);
 +
 +static void PortSpeed4_InitRun(MapObject *mapObj, int dir)
 +{
@@ -151,9 +228,9 @@ index f9c6ec5..90479a7 100644
 +
 +    if (steps != 0 && MapObject_GetLocalID(mapObj) == 0xFF) {
 +        MovementAction_InitWalk(mapObj, dir, FX32_CONST(4) << steps, 4 >> steps, MAP_OBJ_UNK_A0_09);
-+        if ((4 >> steps) == 1) {
-+            PortSpeed4_NoteStep1F(mapObj, MAP_OBJ_UNK_A0_09);   // 4x: its end and its animation
-+        }
++        // its animation, the 1-frame step's end and the tile it left (a following object)
++        PortSpeed4_NoteRunStep(mapObj, MAP_OBJ_UNK_A0_09, 4 >> steps, MapObject_GetXPrev(mapObj), MapObject_GetZPrev(mapObj),
++                               MapObject_GetX(mapObj), MapObject_GetZ(mapObj));
 +    } else {
 +        MovementAction_InitWalk(mapObj, dir, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
 +    }
@@ -165,21 +242,21 @@ index f9c6ec5..90479a7 100644
 +    PortSpeed4_InitRun(mapObj, DIR_NORTH);
      return TRUE;
  }
-@@ -620,5 +643,5 @@ static BOOL MovementAction_RunNorth_Step0(MapObject *mapObj)
+@@ -620,5 +644,5 @@ static BOOL MovementAction_RunNorth_Step0(MapObject *mapObj)
  static BOOL MovementAction_RunSouth_Step0(MapObject *mapObj)
  {
 -    MovementAction_InitWalk(mapObj, DIR_SOUTH, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
 +    PortSpeed4_InitRun(mapObj, DIR_SOUTH);
      return TRUE;
  }
-@@ -626,5 +649,5 @@ static BOOL MovementAction_RunSouth_Step0(MapObject *mapObj)
+@@ -626,5 +650,5 @@ static BOOL MovementAction_RunSouth_Step0(MapObject *mapObj)
  static BOOL MovementAction_RunWest_Step0(MapObject *mapObj)
  {
 -    MovementAction_InitWalk(mapObj, DIR_WEST, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);
 +    PortSpeed4_InitRun(mapObj, DIR_WEST);
      return TRUE;
  }
-@@ -632,5 +655,5 @@ static BOOL MovementAction_RunWest_Step0(MapObject *mapObj)
+@@ -632,5 +656,5 @@ static BOOL MovementAction_RunWest_Step0(MapObject *mapObj)
  static BOOL MovementAction_RunEast_Step0(MapObject *mapObj)
  {
 -    MovementAction_InitWalk(mapObj, DIR_EAST, FX32_CONST(4), 4, MAP_OBJ_UNK_A0_09);

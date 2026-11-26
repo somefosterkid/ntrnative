@@ -8,8 +8,8 @@
 
 void ov49_02258830(void **param0, NARC *param1, u32 param2, u32 heapID);
 
-s32 sub_02018068();
-void ov49_0225D574(void);
+void sub_02018068(Field3dModel *model);
+void ov49_0225D574(Field3dModel *model);
 s32 sub_020181A4(void *);
 void ov49_0225D57C(s32 *arg0, void *arg1, s32 arg2);
 s32 ov49_0225D5A0(s32 *arg0, void *arg1, s32 arg2);
@@ -32,8 +32,8 @@ void ov49_0225D528(Field3dModel *param0, NARC *param1, u32 param2, u32 heapID) {
     }
 }
 
-void ov49_0225D574(void) {
-    sub_02018068();
+void ov49_0225D574(Field3dModel *model) {
+    sub_02018068(model);
 }
 
 void ov49_0225D57C(s32 *arg0, void *arg1, s32 arg2) {

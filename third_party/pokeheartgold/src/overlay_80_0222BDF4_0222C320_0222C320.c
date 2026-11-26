@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "sys_task.h"
 #include "constants/heap.h"
@@ -7,7 +8,6 @@ struct BattleFrontier;
 
 struct BgConfig;
 
-struct FrontierAnimCmd;
 
 struct FrontierMenuManager;
 
@@ -120,7 +120,6 @@ typedef struct UnkStruct_ov63_0222D77C_t UnkStruct_ov63_0222D77C;
 
 void FrontierScriptContext_Pause(FrontierScriptContext *ctx, FrontierShouldResumeScriptFunc shouldResume);
 
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 
 extern void ov80_0222E5B0(FrontierMenuManager *menuManager);
 

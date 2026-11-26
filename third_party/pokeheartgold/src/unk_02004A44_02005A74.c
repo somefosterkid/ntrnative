@@ -76,14 +76,22 @@ enum SoundSystemParam {
 
     SOUND_SYSTEM_PARAM_54,
 };
-void sub_02005AB0(u8 sLotoId, u16 bgmID, int fadeOutFrames, int fadeInFrames, u8 bankState, void *unused2);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02005AB0(u32 param_1, u32 param_2, u16 param_3, u32 param_4, u8 param_5);
+#else
+void sub_02005AB0(unsigned int sLotoId, unsigned int bgmID, int fadeOutFrames, int fadeInFrames, u8 bankState, void *unused2);
+#endif
 
 BOOL sub_02005A74(u8 sLotoId, u16 bgmID, int fadeOutFrames, int waitFrames, int fadeInFrames, u8 bankState, void *unused2);
 
 BOOL sub_02005A74(u8 sLotoId, u16 bgmID, int fadeOutFrames, int waitFrames, int fadeInFrames, u8 bankState, void *unused2) {
     int *fadeFrames = GF_SdatGetAttrPtr(SOUND_SYSTEM_PARAM_FOLLOW_UP_FADE_FRAMES);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    sub_02005AB0(sLotoId, bgmID, fadeOutFrames, waitFrames, bankState);
+#else
     sub_02005AB0(sLotoId, bgmID, fadeOutFrames, waitFrames, bankState, unused2);
+#endif
     *fadeFrames = fadeInFrames;
     GF_SndSetState(SOUND_SYSTEM_STATE_FADE_OUT_FADE_IN);
 

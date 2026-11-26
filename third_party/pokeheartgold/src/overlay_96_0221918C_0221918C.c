@@ -8,7 +8,11 @@
 
 #include "overlay_96_ov96_rd_obj.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_0221935C.c (tools/pokehg_abi.py)
+Ov96RdStats *ov96_0221935C(PokeathlonCourseData *data, unsigned int a, unsigned int b);
+#else
 Ov96RdStats *ov96_0221935C(PokeathlonCourseData *data, u8 a, u8 b);
+#endif
 
 #define OV96_FX(v) ((s32)((v) > 0 ? 0.5f + (f32)((v) << 12) : (f32)((v) << 12) - 0.5f))
 

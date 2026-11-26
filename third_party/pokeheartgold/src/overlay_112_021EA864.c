@@ -10,17 +10,19 @@ typedef struct UnkStruct_ov112_021EA9BC {
     ManagedSprite *unk_1E568;
 } UnkStruct_ov112_021EA9BC;
 
-s32 ov112_021EA6D8(void *, s32, s32, s32, s32);
-
 void ov112_021EA864(void *arg0);
 
-void ov112_021EA984(Ov112PokewalkerApp *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021EA6D8(void *, s32, s32, u16, s32);
+#else
+s32 ov112_021EA6D8(void *, s32, s32, s32, s32);
+#endif
+
+void ov112_021EAA34(Ov112PokewalkerApp *arg0, u16 arg1, s32 arg2);
 
 s32 ov112_021EA9A0(u8 *arg0);
 void ov112_021EA9BC(UnkStruct_ov112_021EA9BC *arg0, void *arg1);
-void ov112_021EAA10(void *arg0);
-
-void ov112_021EAA34(Ov112PokewalkerApp *arg0, u16 arg1, s32 arg2);
+void ov112_021EAA10(Ov112PokewalkerApp *arg0);
 
 void ov112_021EA864(void *arg0) {
     void *v0;
@@ -113,9 +115,9 @@ void ov112_021EA9BC(UnkStruct_ov112_021EA9BC *arg0, void *arg1) {
     ManagedSprite_SetAnim(arg0->unk_1E564, 0x18);
 }
 
-void ov112_021EAA10(void *arg0) {
-    ManagedSprite_SetDrawFlag(*(ManagedSprite **)((u8 *)arg0 + 0x1E568), 0);
-    ManagedSprite_SetDrawFlag(*(ManagedSprite **)((u8 *)arg0 + 0x1E564), 0);
+void ov112_021EAA10(Ov112PokewalkerApp *arg0) {
+    ManagedSprite_SetDrawFlag(arg0->sprites[14], 0);
+    ManagedSprite_SetDrawFlag(arg0->sprites[13], 0);
 }
 
 void ov112_021EAA34(Ov112PokewalkerApp *arg0, u16 x, s32 y) {

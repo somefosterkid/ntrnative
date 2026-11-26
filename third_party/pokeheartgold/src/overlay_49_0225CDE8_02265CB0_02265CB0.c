@@ -189,7 +189,11 @@ void ov49_02265CB0(UnkStruct_ov70_02269204 *param0, UnkStruct_ov70_02269800 *par
     param1->unk_954.val5.unk_00 = 0xff;
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_020182E0(Field3dObject *obj, s16 angle, enum RotationAxis axis);
+#else
 void sub_020182E0(Field3dObject *obj, u16 angle, enum RotationAxis axis);
+#endif
 
 u32 ov49_02258E60(const UnkStruct_ov70_0225CC54 *param0, int param1);
 

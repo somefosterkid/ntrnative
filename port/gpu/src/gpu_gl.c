@@ -505,6 +505,48 @@ void gpu_gl_unpack_release(void) {
   memset(unpack, 0, sizeof unpack);
 }
 
+/* a lost GL context (gpu.h gpu_gl_lost_begin / _end) */
+static void GL_APIENTRY lost_del(GLsizei n, const GLuint *p) {
+  (void)n;
+  (void)p;
+}
+static void GL_APIENTRY lost_del1(GLuint p) { (void)p; }
+static GpuGL lost_saved;
+static int lost_on;
+
+void gpu_gl_lost_begin(void) {
+  if (lost_on) return;
+  lost_on = 1;
+  lost_saved = gpu_gl;
+  gpu_gl.DeleteFramebuffers = (PFNGLDELETEFRAMEBUFFERSPROC)lost_del;
+  gpu_gl.DeleteTextures = (PFNGLDELETETEXTURESPROC)lost_del;
+  gpu_gl.DeleteVertexArrays = (PFNGLDELETEVERTEXARRAYSPROC)lost_del;
+  gpu_gl.DeleteQueries = (PFNGLDELETEQUERIESPROC)lost_del;
+  gpu_gl.DeleteBuffers = (PFNGLDELETEBUFFERSPROC)lost_del;
+  gpu_gl.DeleteProgram = (PFNGLDELETEPROGRAMPROC)lost_del1;
+  gpu_gl.DeleteShader = (PFNGLDELETESHADERPROC)lost_del1;
+}
+
+void gpu_gl_lost_end(void) {
+  if (lost_on) {
+    gpu_gl.DeleteFramebuffers = lost_saved.DeleteFramebuffers;
+    gpu_gl.DeleteTextures = lost_saved.DeleteTextures;
+    gpu_gl.DeleteVertexArrays = lost_saved.DeleteVertexArrays;
+    gpu_gl.DeleteQueries = lost_saved.DeleteQueries;
+    gpu_gl.DeleteBuffers = lost_saved.DeleteBuffers;
+    gpu_gl.DeleteProgram = lost_saved.DeleteProgram;
+    gpu_gl.DeleteShader = lost_saved.DeleteShader;
+    lost_on = 0;
+  }
+  for (int i = 0; i < 64; i++) free(data_caps[i].shadow);
+  memset(data_caps, 0, sizeof data_caps);
+  memset(unpack, 0, sizeof unpack);
+  unpack_next = 0;
+  gpu_gl_programs_forget(); /* the programs and the uniform buffers */
+  ubo_next = 0;
+  uni_forget();
+}
+
 static void data_rows(GLenum fmt, GLenum type, int texel_bytes, const unsigned char *data, int first, int nrows, int ntexels) {
   /* rows first..first+nrows-1 of data (ntexels in all, the last row may be partial) */
   if (nrows <= 0) return;

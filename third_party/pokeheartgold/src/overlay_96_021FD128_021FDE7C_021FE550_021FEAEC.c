@@ -12,9 +12,9 @@ s32 ov96_021EB52C(void *, s32, s32);
 
 s32 ov96_021EB588(void *, s32 *);
 
-void ov96_021FEAEC(void *arg0, s32 arg1, s32 arg2, s32 arg3);
+void ov96_021FEAEC(void *arg0, s32 arg1);
 
-void ov96_021FEAEC(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
+void ov96_021FEAEC(void *arg0, s32 arg1) {
     s32 sp8[3];
     s32 sp4;
     void *sp0;

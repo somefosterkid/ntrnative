@@ -16,14 +16,13 @@ typedef enum GF_GraphicsResourceType GF_GraphicsResourceType;
 
 extern ObjCharTransferTemplate ov91_02261C64;
 
-void ov91_0225FA9C(u8 *param_1, enum HeapID param_2);
+void ov91_0225FA9C(UnkStruct_ov115_02261ADC *param_1, enum HeapID param_2);
 
-void ov91_0225FA9C(u8 *param_1, enum HeapID param_2) {
+void ov91_0225FA9C(UnkStruct_ov115_02261ADC *param_1, enum HeapID param_2) {
     SpriteList *pSVar1;
     GF_2DGfxResMan *pGVar2;
     UnkStruct_02013534 *pUVar3;
     GfGfxResType type;
-    u8 *iVar4;
     ObjCharTransferTemplate OStack_24;
 
     NNS_G2dInitOamManagerModule();
@@ -36,18 +35,26 @@ void ov91_0225FA9C(u8 *param_1, enum HeapID param_2) {
     ObjPlttTransfer_Reset();
     G2dRenderer_SetObjCharTransferReservedRegion(NNS_G2D_VRAM_TYPE_2DMAIN, GX_OBJVRAMMODE_CHAR_1D_128K);
     G2dRenderer_SetPlttTransferReservedRegion(NNS_G2D_VRAM_TYPE_2DMAIN);
-    pSVar1 = G2dRenderer_Init(0x80, (G2dRenderer *)(param_1 + 0x20), param_2);
-    ((UnkStruct_ov115_02261ADC *)param_1)->unk_1C = pSVar1;
-    G2dRenderer_SetSubSurfaceCoords((G2dRenderer *)(param_1 + 0x20), 0, 0x200000);
+    pSVar1 = G2dRenderer_Init(0x80, &param_1->unk_20, param_2);
+    param_1->unk_1C = pSVar1;
+    G2dRenderer_SetSubSurfaceCoords(&param_1->unk_20, 0, 0x200000);
     type = GF_GFX_RES_TYPE_CHAR;
-    iVar4 = param_1;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    do {
+        pGVar2 = Create2DGfxResObjMan(0x10, type, param_2);
+        param_1->unk_1AC[type] = pGVar2;
+        type = (GF_GraphicsResourceType)(type + GF_GFX_RES_TYPE_PLTT);
+    } while ((s32)type < 4);
+#else
+    u8 *iVar4 = (u8 *)param_1;
     do {
         pGVar2 = Create2DGfxResObjMan(0x10, type, param_2);
         *(GF_2DGfxResMan **)(iVar4 + 0x148) = pGVar2;
         type = (GF_GraphicsResourceType)(type + GF_GFX_RES_TYPE_PLTT);
         iVar4 = iVar4 + 4;
     } while ((s32)type < 4);
+#endif
     pUVar3 = FontSystem_NewInit(8, param_2);
-    *((UnkStruct_02013534 **)&((UnkStruct_ov115_02261ADC *)param_1)->unk_1F0) = pUVar3;
+    param_1->unk_1F0 = pUVar3;
     return;
 }

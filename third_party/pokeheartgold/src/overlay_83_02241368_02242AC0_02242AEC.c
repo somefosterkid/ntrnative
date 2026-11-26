@@ -9,7 +9,11 @@ void ov83_0224773C(void *, u32, u32);
 
 void ov83_02247988(u16 *, u16 *, u32, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+TouchscreenListMenu *ov83_02247CCC(TouchscreenListMenuSpawner *, TouchscreenListMenuHeader *, u8, u8, u8);
+#else
 TouchscreenListMenu *ov83_02247CCC(TouchscreenListMenuSpawner *, TouchscreenListMenuHeader *, u32, u32, u8);
+#endif
 
 extern const u8 _02247D0C[];
 

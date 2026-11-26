@@ -17,8 +17,8 @@ s32 ov14_021F3190(void *, u32, s32);
 void ov14_021F1580(struct UnkStruct_ov14_boxapp *arg0, u8 arg1);
 
 void ov14_021F1540(UnkStruct_ov14_boxapp *arg0) {
-    ov14_021F29E4(*((void **)&arg0->sys), 9, 8);
-    if (PCStorage_CountMonsAndEggsInBox(*((PCStorage * *)&arg0->storage), (u32) arg0->unk25) == 0x1E) {
+    ov14_021F29E4(arg0->sys, 9, 8);
+    if (PCStorage_CountMonsAndEggsInBox(arg0->storage, (u32) arg0->unk25) == 0x1E) {
         PlaySE(0x5F3U);
     } else {
         PlaySE(0x5DDU);
@@ -26,7 +26,11 @@ void ov14_021F1540(UnkStruct_ov14_boxapp *arg0) {
     ov14_021F2270(arg0, 0xC, 0x66);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EA254(UnkStruct_ov14_boxapp *app);
 

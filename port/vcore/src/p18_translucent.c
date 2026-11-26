@@ -64,10 +64,12 @@ int vc_p18_is_translucent(const VCoreState *s, const VC_Poly *p) {
  * polygons are always rendered last, even with auto-sort disabled. */
 void vc_cmd_swap(VCoreState *s, const u32 *param, u32 nparam) {
   VC_GeomOut *g = &s->geo;
-  u32 n = g->npoly, k = 0, i;
+  if (s->p23.nkeep) vc_ip_draw_kept(s, 0x7FFFFFFF); /* the older keyframe's lists kept after a's last (p23_interp.h) */
+  u32 n, k = 0, i;
   g->swap_param = nparam ? (param[0] & 3) : 0;
   g->swapped = 1;
   if (s->p23.mode == VC_IP_RECORD) vc_ip_tape_op(s, VC_TAPE_SWAP, 0, g->swap_param);
+  n = g->npoly;
   if (n > VC_MAX_POLYS) n = VC_MAX_POLYS;
   for (i = 0; i < n; i++) g->poly[i].translucent = (u8)vc_p18_is_translucent(s, &g->poly[i]);
   /* opaque pass */

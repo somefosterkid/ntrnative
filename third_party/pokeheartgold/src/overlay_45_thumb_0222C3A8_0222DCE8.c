@@ -25,7 +25,11 @@ void ov45_0222DCFC(void *arg0) {
     ov45_0222DECC(arg0 + 8);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov45_0222DEE0(void *);
+#else
 s32 ov45_0222DEE0(void *);
+#endif
 
 void ov45_0222DD08(u8 *arg0);
 
@@ -33,7 +37,11 @@ void ov45_0222DD08(u8 *arg0) {
     ov45_0222DEE0(arg0 + 8);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov45_0222DEF4(void *);
+#else
 s32 ov45_0222DEF4(void *);
+#endif
 
 void ov45_0222DD14(u8 *arg0);
 
@@ -41,20 +49,20 @@ void ov45_0222DD14(u8 *arg0) {
     ov45_0222DEF4(arg0 + 8);
 }
 
-s32 ov45_0222DF14(u8 *);
+s32 ov45_0222DF14(u8 *arg0, u32 arg1);
 
-void ov45_0222DD20(u8 *arg0);
+void ov45_0222DD20(u8 *arg0, u32 arg1);
 
-void ov45_0222DD20(u8 *arg0) {
-    ov45_0222DF14(arg0 + 8);
+void ov45_0222DD20(u8 *arg0, u32 arg1) {
+    ov45_0222DF14(arg0 + 8, arg1);
 }
 
-s32 ov45_0222DF58(void *);
+s32 ov45_0222DF58(void *arg0, u32 arg1);
 
-void ov45_0222DD2C(u8 *arg0);
+void ov45_0222DD2C(u8 *arg0, u32 arg1);
 
-void ov45_0222DD2C(u8 *arg0) {
-    ov45_0222DF58(arg0 + 8);
+void ov45_0222DD2C(u8 *arg0, u32 arg1) {
+    ov45_0222DF58(arg0 + 8, arg1);
 }
 
 u16 ov45_0222DF50(void *);

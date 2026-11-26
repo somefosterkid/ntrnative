@@ -22,8 +22,9 @@
 void MIi_CpuClearFast(u32 value, void *dest, u32 size);
 
 // nitro/mi.h: the DMA channels' registers as pokebw2's array (lib/gfl/src/dma_vblank.c). libntr's PC registers are
-// the variables s_reg_MI_DMA0SAD, DMA0DAD, DMA0CNT ... DMA3CNT, defined one after another as the DS lays them out:
-// its own MI_DMA_REGADDR (nitro/mi/dma.h) reads them as this array
+// bytes of the contiguous page s_ioreg9 at their hardware offsets (simulator/ioreg_map.h): REG_DMA0SAD_ADDR points
+// at 0xB0, and channel n's src, dest, cnt follow at the DS's 12-byte stride: its own MI_DMA_REGADDR (nitro/mi/dma.h)
+// reads them as this array
 typedef struct MIDmaRegs {
     vu32 src;
     vu32 dest;

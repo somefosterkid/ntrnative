@@ -38,6 +38,17 @@ typedef struct GpuOptions {
   int aa; /* multisampling k (1 or 2: k x k samples per output pixel, on the N k grid the spans are built on): dot, line and edge
           * act on the N grid, a polygon is shaded once per output pixel (docs/gpu.md "Antialiasing"); a GpuCore's is its own.
           * GPU_AA_SMAA: one sample per pixel and SMAA on the 3D layer after pass P (N > 1; docs/gpu.md "Antialiasing: SMAA") */
+  /* Antialiasing=Smooth edges: with one sample (aa 1) at N > 1 the edge-marking outline (Edge=ds and Edge=fine) is drawn with
+   * its coverage, its sides following the edge's sub-pixel position (pass P; docs/gpu-cost.md "Antialiasing for less"); 0 the DS's */
+  int edgeaa;
+  /* Antialiasing=4 samples (lite): with 4 samples (aa 2) the DS's own antialiasing is left out under the samples: pass R takes no
+   * coverage windows (each sample's coverage is whole, the edge flags only the mask's) and passes E and P see DISP3DCNT's
+   * antialiasing bit as off (no neighbour search, no edge blend). The samples' coverage smooths the edges instead; a look
+   * change, about 30 % of 4 samples' extra cost saved (docs/gpu-cost.md "4 samples (lite)"); 0 the DS's */
+  int aalite;
+  /* Exact's pass R cuts as switches, for an A/B on a phone (GPU_EXP_*; BWPORT_GPU_EXP, gpu_render --exp; sim_config.ini
+   * PerfExperiments): 0 = the defaults. Each form draws the same picture (docs/gpu-cost.md "Pass R's cuts as settings") */
+  int exp;
   int fast; /* the fast 3D renderer (docs/gpu-hwraster.md: the GPU's own rasterizer, close to the DS, not exact): no span records,
              * triangles (prep and core; a core without it draws exact: gpu_fast_supported). BWPORT_RENDERER3D=fast|exact */
   /* G12, the texture cache (src/g12_*.c): texcache GPU_TC_* (BWPORT_GPU_TEXCACHE=off|exact|on; exact: the layers sampled at the
@@ -54,6 +65,14 @@ typedef struct GpuOptions {
              * off|identity|scale2x|mmpx */
 } GpuOptions;
 enum { GPU_AA_SMAA = 3 };
+/* GpuOptions.exp: each bit turns one of Exact's pass R cuts from its default (shaders/g03_pixel.glsl; uExp) */
+enum {
+  GPU_EXP_R_NOINNER = 1,  /* off: the inner run's skip (7550d387d): the edge step for every pixel of a row */
+  GPU_EXP_R_NODEPTH2 = 2, /* off: g_depth2 (4 samples): the exact depth a sample at a time (g_depth_px) */
+  GPU_EXP_R_NOEDGE2 = 4,  /* off: g_edge2 (4 samples): the edge step a sample at a time (g_edge_px) */
+  GPU_EXP_R_DQ = 8,       /* on: g_depth2 reads dz's quotient from pass S's record (t9.w) instead of dividing a pixel */
+  GPU_EXP_ALL = 15
+};
 enum { GPU_TC_OFF = 0, GPU_TC_EXACT = 1, GPU_TC_ON = 2 };
 void gpu_options_from_env(GpuOptions *o);
 /* dot and line act in the CPU half (the prep), edge and filter in the GL half (the core): set both, per frame is fine */
@@ -67,6 +86,12 @@ const char *gpu_fast_how(const GpuCore *g);
  * reason in err. */
 GpuCore *gpu_create(GpuGetProc getproc, int api, int scale, int aa, char *err, size_t errlen);
 void gpu_destroy(GpuCore *g);
+/* The GL context was lost (Android: the surface went) and a new one is current. gpu_gl_lost_begin makes every glDelete* the core
+ * calls do nothing (the names belong to the dead context: deleting them is GL_INVALID_VALUE, or deletes somebody else's
+ * object); then the caller destroys what it holds (gpu_destroy ...); gpu_gl_lost_end puts the functions back and forgets the
+ * core's own caches (data textures, unpack and uniform buffers, programs). */
+void gpu_gl_lost_begin(void);
+void gpu_gl_lost_end(void);
 int gpu_scale(const GpuCore *g);   /* N */
 int gpu_samples(const GpuCore *g); /* samples per pixel: 1 or 4 */
 
@@ -94,6 +119,9 @@ typedef struct GpuTexData GpuTexData;
 GpuTexData *gpu_texdata_create(void);
 void gpu_texdata_destroy(GpuTexData *t);
 void gpu_texdata_build(GpuTexData *t, const VCoreState *s);
+/* t's last build's number (each build a new one), and whether a and b hold the same bytes (the port's 3D reuse) */
+unsigned gpu_texdata_serial(const GpuTexData *t);
+int gpu_texdata_same(const GpuTexData *a, const GpuTexData *b);
 /* the next gpu_render_prepared / gpu_render_3d takes the textures from t, built from the s it is given, and uploads nothing
  * when that build is up already (NULL, the default: it flattens s itself). Good for one call. */
 void gpu_use_texdata(GpuCore *g, const GpuTexData *t);
@@ -175,9 +203,33 @@ void *gpu_mtl_texture(unsigned name);       /* the id<MTLTexture> (__bridge), NU
 void *gpu_mtl_device(void);                 /* the id<MTLDevice> the core uses */
 void *gpu_mtl_command_buffer(void);         /* the frame's id<MTLCommandBuffer>: a present can encode into it before the commit */
 void gpu_mtl_commit(int wait);              /* commits the frame's command buffer (nothing when none); wait: until the GPU is done */
+void gpu_mtl_read_rgba(void *tex, int w, int h, uint8_t *dst); /* a texture of 4-byte texels read back as they are, top row first
+                                                                * (the frame's command buffer goes first; test aids) */
 /* the device and queue to use (id<MTLDevice>, id<MTLCommandQueue>, __bridge): before the first gpu_create(GPU_API_METAL), else the
  * system's default device and a queue of the core's own */
 void gpu_mtl_use(void *device, void *queue);
+/* the passes' GPU times (docs/perf.md "Where the cost goes"): with them on, every render and compute encoder of the frame's command
+ * buffers and the present's render pass get GPU timestamps at their stage boundaries (MTLCounterSampleBuffer: Apple GPUs; the
+ * command buffers, the passes and the pictures stay as they are, nothing waits), summed by encoder label (the pipeline's key; the
+ * present's "present") and, per command buffer, as the union of its encoders' intervals by kind. Off (the default): one branch an
+ * encoder. */
+enum { GPU_PT_KEY, GPU_PT_MID, GPU_PT_PRESENT, GPU_PT_KINDS, GPU_PT_LABELS = 24 };
+typedef struct GpuPassTimes {
+  int nlab;                                /* labels so far (only ever added: totals of two calls subtract by index) */
+  char name[GPU_PT_LABELS][48];            /* the encoder's label (the last one also takes any label past the table) */
+  double ms[GPU_PT_LABELS];                /* GPU ms: a render pass's fragment stage (start to end), a compute pass's whole */
+  double vms[GPU_PT_LABELS];               /* a render pass's vertex stage (it runs ahead, beside earlier passes' fragments) */
+  unsigned long long n[GPU_PT_LABELS];     /* encoders */
+  double kind_ms[GPU_PT_KINDS];            /* GPU busy ms: the union of every timed stage's interval, each command buffer's share */
+  double kind_span[GPU_PT_KINDS];          /* the command buffers' GPUEndTime - GPUStartTime (a check: kind_ms stays under it) */
+  unsigned long long kind_n[GPU_PT_KINDS]; /* command buffers */
+  unsigned long long untimed, bad;         /* encoders not timed (no room) and samples thrown away (invalid, out of order) */
+  double ns_tick;                          /* the GPU timestamp's ns a tick (0: not calibrated yet) */
+} GpuPassTimes;
+int gpu_mtl_pt_on(int on);                    /* once a frame; 1 = the times run (on and the device has the counters) */
+void gpu_mtl_pt_kind(int kind);               /* the kind of the frame's command buffer(s) from now on: GPU_PT_KEY or GPU_PT_MID */
+void gpu_mtl_pt_present(void *rpd, void *cb); /* a present's MTLRenderPassDescriptor and command buffer, before its encoder */
+void gpu_mtl_pt_get(GpuPassTimes *t);         /* the totals since the start */
 
 /* ---- a headless context for the tools (EGL; Mesa's surfaceless platform first) ---- */
 typedef struct GpuCtx GpuCtx;

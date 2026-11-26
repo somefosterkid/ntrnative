@@ -9,7 +9,7 @@ extern void ov108_021E7700(void *data, int a1, int a2, int a3);
 
 void ov108_021E7EB0(SafariAreaCustomizer *base);
 
-extern void ov108_021E7CD8(void *data, u8 a1);
+extern void ov108_021E7CD8(void *data, u32 a1);
 
 int ov108_021E5E68(SafariAreaCustomizer *data);
 

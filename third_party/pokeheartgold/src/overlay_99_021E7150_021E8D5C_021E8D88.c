@@ -7,7 +7,11 @@ ManagedSprite *ov98_0221E6E0(void *, s32 *);
 
 s32 ov99_021E8518(void *, u32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_99_021E7150_021E86D4_021E86D4.c (tools/pokehg_abi.py)
+void ov99_021E86D4(void *, s32, u8, s32, s32, s32);
+#else
 s32 ov99_021E86D4(void *, u8, s16, s16, s32, s32);
+#endif
 
 extern s32 ov99_021EA394;
 

@@ -21,9 +21,9 @@ s32 ov96_021EA894(void *);
 
 SysTask *ov96_02200EEC(void *);
 
-s32 ov96_021FCE10(PokeathlonCourseData *arg0);
+BOOL ov96_021FCE10(PokeathlonCourseData *arg0, int unused);
 
-s32 ov96_021FCE10(PokeathlonCourseData *data) {
+BOOL ov96_021FCE10(PokeathlonCourseData *data, int unused) {
     Ov96RowerWork *v0;
 
     v0 = PokeathlonCourse_GetHeapAllocPtr4(data);

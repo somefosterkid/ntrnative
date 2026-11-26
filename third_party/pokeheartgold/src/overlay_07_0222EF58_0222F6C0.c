@@ -26,15 +26,15 @@ static s32 ov07_0222F6C0(void *arg0) {
     switch (v0) {
     case 0:
         *((s32 *)&((MementoContext *)arg0)->spriteDelay) = (s32)(*((s32 *)&((MementoContext *)arg0)->spriteDelay) - 1);
-        ov07_022222F0(arg0 + 0x70, ((MementoContext *)arg0)->defenderSprite);
+        ov07_022222F0(&((MementoContext *)arg0)->defenderPos, ((MementoContext *)arg0)->defenderSprite);
         if ((s32) *((s32 *)&((MementoContext *)arg0)->spriteDelay) < 0) {
             *((s32 *)&((MementoContext *)arg0)->spriteState) = (s32)(*((s32 *)&((MementoContext *)arg0)->spriteState) + 1);
         }
         break;
     case 1:
-        ov07_022222F0(arg0 + 0x70, ((MementoContext *)arg0)->defenderSprite);
-        v1 = ov07_0222260C(arg0 + 0x28);
-        ov07_02222644(arg0 + 0x28, &x, &y);
+        ov07_022222F0(&((MementoContext *)arg0)->defenderPos, ((MementoContext *)arg0)->defenderSprite);
+        v1 = ov07_0222260C(&((MementoContext *)arg0)->scale);
+        ov07_02222644(&((MementoContext *)arg0)->scale, &x, &y);
         if (*((s32 *)&((MementoContext *)arg0)->defenderFlipped) == 1) {
             x = 0.0f - x;
         }

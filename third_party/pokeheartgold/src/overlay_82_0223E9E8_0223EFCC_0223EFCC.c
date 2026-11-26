@@ -24,7 +24,6 @@ struct BattleHallApp;
 
 struct BattleHallAppSprite;
 
-struct BattleHallAppSpriteManager;
 
 struct G2dRenderer;
 
@@ -63,13 +62,6 @@ void CopyU16ArrayToString(String *dst, const charcode_t *src);
 Pokemon *Party_GetMonByIndex(const Party *party, int slot, u32);
 
 u32 GetMonData(Pokemon *mon, int param, void *dest);
-
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 

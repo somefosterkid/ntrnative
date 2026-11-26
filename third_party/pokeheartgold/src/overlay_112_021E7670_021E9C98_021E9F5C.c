@@ -7,8 +7,6 @@
 
 u8 ov112_021E9FA4(void *, s32, String *, s32, s32);
 
-void ov112_021E9F5C(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2, s32 arg3);
-
 void ov112_021E9F5C(Ov112PokewalkerApp *arg0, s32 arg1, s32 strno, s32 arg3) {
     String *string;
 

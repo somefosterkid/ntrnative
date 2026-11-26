@@ -11,20 +11,20 @@ s32 ov14_021E9618(UnkStruct_ov14_boxapp *app);
 s32 sub_02019978(void *, s32);
 s32 ov14_021E95C8(UnkStruct_ov14_boxapp *arg0) {
     u16 v0;
-    void *v1;
+    UnkStruct_ov14_boxsys *v1;
 
-    v1 = ((void *)arg0->sys);
-    v0 = ((UnkStruct_ov14_boxsys *)v1)->unk_10;
+    v1 = arg0->sys;
+    v0 = v1->unk_10;
     switch (v0) {
     case 0:
         if (ov14_021E9434(arg0) == 0) {
-            ((UnkStruct_ov14_boxsys *)v1)->unk_10 = (u16)(((UnkStruct_ov14_boxsys *)v1)->unk_10 + 1);
+            v1->unk_10 = (u16)(v1->unk_10 + 1);
         }
     default:
         break;
     case 1:
-        if (sub_02019978(((void *)((UnkStruct_ov14_boxsys *)v1)->unk_2F0), 0xC) == 0) {
-            ((UnkStruct_ov14_boxsys *)v1)->unk_10 = 0U;
+        if (sub_02019978(((void *)v1->unk_2F0), 0xC) == 0) {
+            v1->unk_10 = 0U;
             return 0;
         }
         break;

@@ -651,8 +651,6 @@ static inline void Location_Set(Location *location, enum MapHeaderID mapHeaderID
     location->direction = faceDirection;
 }
 
-BillboardResources *ov01_021F1824(UnkStruct_ov5_021DF8FC *param0, u32 param1, void *param2, BillboardGfxSequence *param3, void *param4, TextureResource *param5, const BillboardAnim *param6);
-
 BillboardResources *ov01_021F1824(UnkStruct_ov5_021DF8FC *param0, u32 param1, void *param2, BillboardGfxSequence *param3, void *param4, TextureResource *param5, const BillboardAnim *param6) {
     BillboardResources *v0 = 0L;
 

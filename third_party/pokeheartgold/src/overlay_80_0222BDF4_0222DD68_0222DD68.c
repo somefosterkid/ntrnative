@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "frontier/frontier_script_context.h"
 #include "frontier/overlay_80_0222BDF4.h"
 #include "library/spl_emitter.h"
@@ -24,7 +26,6 @@ enum CameraProjection {
 
 ParticleSystem *ov80_022399A4(FrontierParticleSystem *fps, int index, int narcIdx, enum CameraProjection projection);
 
-void *sub_0209680C(void *);
 
 s32 FrtCmd_065(FrontierScriptContext *ctx);
 

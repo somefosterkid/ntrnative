@@ -11,9 +11,9 @@ s32 ov96_021E637C(PokeathlonCourseData *);
 
 s32 ov96_0220EFD0(u8 *, BgConfig *, enum HeapID);
 
-s32 ov96_0220E22C(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_0220E22C(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_0220E22C(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_0220E22C(PokeathlonCourseData *data, u8 *arg1) {
     u8 v1;
     UnkStruct_ov96_0220E3F0 *v0;
 

@@ -7,14 +7,14 @@
 void ov14_021F5FBC(void *param_1, s32 param_2);
 
 void ov14_021F5FBC(void *param_1, s32 param_2) {
-    FillWindowPixelBuffer((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x200), 0);
-    FillWindowPixelBuffer((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x210), 0);
-    FillWindowPixelBuffer((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x220), 0);
-    FillWindowPixelBuffer((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x230), 0);
-    CopyWindowPixelsToVram_TextMode((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x200));
-    CopyWindowPixelsToVram_TextMode((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x210));
-    CopyWindowPixelsToVram_TextMode((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x220));
-    CopyWindowPixelsToVram_TextMode((Window *)(((u8 *)((UnkStruct_ov14_boxapp *)param_1)->sys) + 0x230));
+    FillWindowPixelBuffer(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[29], 0);
+    FillWindowPixelBuffer(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[30], 0);
+    FillWindowPixelBuffer(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[31], 0);
+    FillWindowPixelBuffer(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[32], 0);
+    CopyWindowPixelsToVram_TextMode(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[29]);
+    CopyWindowPixelsToVram_TextMode(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[30]);
+    CopyWindowPixelsToVram_TextMode(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[31]);
+    CopyWindowPixelsToVram_TextMode(&((UnkStruct_ov14_boxapp *)param_1)->sys->windows[32]);
     if (param_2 == 0) {
         ov14_021F5950(param_1, 0x21, 0x51, 0);
         return;

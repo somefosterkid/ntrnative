@@ -14,9 +14,9 @@ void ov96_021E966C(PokeathlonCourseData *param_1, s32 *param_2, s32 param_3, s32
 
 void ov96_0221A56C(u32 param_1, s32 param_2);
 
-u32 ov96_021FCD84(PokeathlonCourseData *param_1);
+BOOL ov96_021FCD84(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_021FCD84(PokeathlonCourseData *param_1) {
+BOOL ov96_021FCD84(PokeathlonCourseData *param_1, int unused) {
     u16 field;
     s32 *gfx;
     int i;

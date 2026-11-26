@@ -8,9 +8,9 @@
 
 s32 ov96_021ED8DC(PokeathlonCourseData *);
 
-s32 ov96_021EB6C8(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EB6C8(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_021EB6C8(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EB6C8(PokeathlonCourseData *data, u8 *arg1) {
     Ov96App_021ED1D0 *work;
     u8 v0;
 

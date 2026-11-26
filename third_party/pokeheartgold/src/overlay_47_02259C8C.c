@@ -12,7 +12,11 @@ void ov47_02259C8C(void *arg0, s32 arg1, enum HeapID arg2);
 void ov47_02259D24(void *arg0);
 void *ov47_02258D18(void *, s32);
 void *ov47_02259D40(void *arg0, void *arg1);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+String *ov47_02258D44(void *, s32);
+#else
 void *ov47_02258D44(void *, s32);
+#endif
 void *ov47_02259D58(void *arg0, void *arg1, s32 arg2);
 
 void ov47_02259C8C(void *arg0, s32 arg1, enum HeapID heapID) {

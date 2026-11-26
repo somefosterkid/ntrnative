@@ -175,7 +175,9 @@ static void SetKey(const KeyPress *k, int down) {
         vu16 *xy = (vu16 *)HW_BUTTON_XY_BUF;
         *xy = (u16)(down ? *xy & ~k->mask : *xy | k->mask);
     } else {
-        s_reg_PAD_KEYINPUT = (u16)(down ? s_reg_PAD_KEYINPUT & ~k->mask : s_reg_PAD_KEYINPUT | k->mask);
+        // (lfx1) an atomic and/or: the main thread's PadSrcSet (libntr) changes other bits of the same register
+        if (down) __atomic_fetch_and(&s_reg_PAD_KEYINPUT, (u16)~k->mask, __ATOMIC_SEQ_CST);
+        else __atomic_fetch_or(&s_reg_PAD_KEYINPUT, (u16)k->mask, __ATOMIC_SEQ_CST);
     }
 }
 

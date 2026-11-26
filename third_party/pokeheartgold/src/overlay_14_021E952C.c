@@ -5,7 +5,7 @@
 #include "overlay_14_unk_struct_ov14_boxapp.h"
 #include "overlay_14_box_funcs.h"
 
-s32 ov14_021E80A8();
+s32 ov14_021E80A8(void *);
 s32 ov14_021E8514(void *);
 s32 ov14_021E952C(UnkStruct_ov14_boxapp *app);
 s32 ov14_021E9554(UnkStruct_ov14_boxapp *app);
@@ -16,7 +16,7 @@ s32 ov14_021E954C(UnkStruct_ov14_boxapp *app);
 
 s32 sub_02019978(void *, s32);
 s32 ov14_021E952C(UnkStruct_ov14_boxapp *arg0) {
-    if (ov14_021E80A8() == 0) {
+    if (ov14_021E80A8(arg0) == 0) {
         return 0;
     }
     ov14_021E8514(((u8 *)arg0->sys->unk_2F0));

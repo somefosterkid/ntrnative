@@ -8,7 +8,11 @@
 
 s32 ov103_021EE3E4(void *, String *, s32, s32, s32, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov103_021EE9C8(MailBoxWork *, s32, u8);
+#else
 s32 ov103_021EE9C8(MailBoxWork *, s32, u32);
+#endif
 
 void ov103_021EE930(MailBoxWork *arg0);
 

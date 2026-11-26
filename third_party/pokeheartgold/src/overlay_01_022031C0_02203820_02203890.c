@@ -9,12 +9,12 @@
 #include "overlay_01_021F1348.h"
 #include "overlay_01_022031C0.h"
 
-u32 ov01_021F771C(MapObjectManager *param_1);
+Billboard *ov01_021F771C(MapObjectManager *param_1);
 
 
 s32 ov01_022039E0(u32);
 
-s32 sub_02023E78(s32, void *);
+s32 sub_02023E78(Billboard *, void *);
 
 extern s32 ov01_022094B0;
 

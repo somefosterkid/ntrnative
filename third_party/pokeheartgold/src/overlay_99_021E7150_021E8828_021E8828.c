@@ -9,7 +9,7 @@ struct PokeathlonEventRecord;
 
 s32 ov99_021E87D0(void *);
 
-s32 ov99_021E89A4();
+s32 ov99_021E89A4(void *param_1);
 
 s32 ov99_021E8FEC(void *, s32);
 
@@ -25,7 +25,7 @@ void ov99_021E8828(PokeathlonEventRecord *arg0) {
     s32 *var_r6;
     s32 var_r4;
 
-    ov99_021E89A4();
+    ov99_021E89A4(arg0);
     ov99_021E9038(arg0);
     ov99_021E87D0(arg0);
     var_r6 = &ov99_021EA35A;

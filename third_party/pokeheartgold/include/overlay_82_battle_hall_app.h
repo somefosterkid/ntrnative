@@ -1,6 +1,7 @@
 #ifndef POKEHEARTGOLD_OVERLAY_82_BATTLE_HALL_APP_H
 #define POKEHEARTGOLD_OVERLAY_82_BATTLE_HALL_APP_H
 
+#include "bg_window.h"
 #include "g2d_renderer.h"
 
 // BattleHallApp: merged by tools/hg/promote.py from 12 m2c local copies (5 variants, base
@@ -28,6 +29,13 @@ struct SpriteResource;
 struct SpriteResourceCollection;
 struct String;
 struct StringTemplate;
+
+typedef struct BattleHallAppSpriteManager {
+    struct SpriteList *spriteList;
+    G2dRenderer renderer;
+    struct GF_2DGfxResMan *resourceCollection[4];
+    struct SpriteResource *resources[2][4];
+} BattleHallAppSpriteManager;
 
 typedef struct BattleHallApp {
     struct ApplicationManager *unused;
@@ -59,7 +67,7 @@ typedef struct BattleHallApp {
     struct String *yesNoStrs[2];
     u16 unused3[8];
     struct BgConfig *bgConfig;
-    struct { struct BgConfig *bgConfig; u8 bgId; u8 tilemapLeft; u8 tilemapTop; u8 width; u8 height; u8 paletteNum; u16 baseTile : 15; u16 colorMode : 1; void *pixelBuffer; } windows[4];
+    Window windows[4];
     u32 unk_8C;
     u8 pad_90[0x4];
     struct PaletteData *plttData;
@@ -67,7 +75,7 @@ typedef struct BattleHallApp {
     struct Options *options;
     struct SaveData *saveData;
     struct PokemonSummary *monSummary;
-    struct { struct SpriteList *spriteList; G2dRenderer renderer; struct SpriteResourceCollection *resourceCollection[4]; struct SpriteResource *resources[4][2]; } spriteMan;
+    BattleHallAppSpriteManager spriteMan;
     struct BattleHallAppSprite *cursorSprite;
     struct BattleHallAppSprite *monSprite;
     int monIndex;

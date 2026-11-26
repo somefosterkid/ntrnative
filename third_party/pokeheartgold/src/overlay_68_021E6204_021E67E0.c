@@ -3,7 +3,11 @@
 #include "bg_window.h"
 #include "overlay_68_move_relearner.h"
 
-void ov68_021E66F0(MoveRelearner *, u8, u8);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov68_021E66F0(MoveRelearner *, s32, s8);
+#else
+void ov68_021E66F0(MoveRelearner *, s32, u8);
+#endif
 
 s32 ov68_021E70BC(MoveRelearner *);
 

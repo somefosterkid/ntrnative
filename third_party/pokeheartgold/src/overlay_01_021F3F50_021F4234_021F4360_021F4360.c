@@ -13,9 +13,9 @@
 
 void ov01_021F3F50(SaveInfo *, const FieldSystem *);
 
-s32 ov01_021F3F9C(MessageFormat *, void *);
+void ov01_021F3F9C(MessageFormat *, SaveInfo *);
 
-s32 ov01_021F4044(void *);
+int ov01_021F4044(SaveInfo *);
 
 SaveInfoWindow *ov01_021F4360(FieldSystem *fieldSystem, enum HeapID heapID, u8 a2) {
     SaveInfoWindow *saveInfoWin;

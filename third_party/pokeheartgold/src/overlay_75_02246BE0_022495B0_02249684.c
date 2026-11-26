@@ -107,30 +107,30 @@ void ov75_02249684(Window *param0, String *param1, int param2, int param3, int p
     AddTextPrinterParameterizedWithColor(param0, FONT_MESSAGE, param1, param2, param3, 0, param5, 0L);
 }
 
-static void ov75_022496B8(void *arg0, s32 strno) {
+static void ov75_022496B8(UnkStruct_ov98_02247704 *arg0, s32 strno) {
     String *string;
 
     string = String_New(0x100U, HEAP_ID_116);
-    ReadMsgDataIntoString(((MsgData *)((UnkStruct_ov98_02247704 *)arg0)->unk_30), strno, string);
-    StringExpandPlaceholders(((MessageFormat *)((UnkStruct_ov98_02247704 *)arg0)->unk_20), ((UnkStruct_ov98_02247704 *)arg0)->unk_40, string);
-    FillWindowPixelBuffer(arg0 + 0x68, 0xFU);
-    DrawFrameAndWindow1(arg0 + 0x68, 1, 0x1FU, 0xBU);
-    AddTextPrinterParameterized(arg0 + 0x68, FONT_MESSAGE, ((UnkStruct_ov98_02247704 *)arg0)->unk_40, 0U, 0U, 0U, NULL);
-    *((s32 *)&((UnkStruct_ov98_02247704 *)arg0)->unk_44) = 0xFF;
+    ReadMsgDataIntoString(((MsgData *)arg0->unk_30), strno, string);
+    StringExpandPlaceholders(((MessageFormat *)arg0->unk_20), arg0->unk_40, string);
+    FillWindowPixelBuffer(&arg0->unk_68, 0xFU);
+    DrawFrameAndWindow1(&arg0->unk_68, 1, 0x1FU, 0xBU);
+    AddTextPrinterParameterized(&arg0->unk_68, FONT_MESSAGE, arg0->unk_40, 0U, 0U, 0U, NULL);
+    *((s32 *)&arg0->unk_44) = 0xFF;
     String_Delete(string);
 }
 
-void ov75_0224971C(void *arg0, s32 arg1, s32 arg2);
+void ov75_0224971C(UnkStruct_ov98_02247704 *arg0, s32 arg1, s32 arg2);
 
-void ov75_0224971C(void *arg0, s32 arg1, s32 num) {
+void ov75_0224971C(UnkStruct_ov98_02247704 *arg0, s32 arg1, s32 num) {
     s32 v6;
 
     v6 = arg1;
     if (v6 == -1) {
         v6 = 0xB;
     }
-    BufferIntegerAsString(((MessageFormat *)((UnkStruct_ov98_02247704 *)arg0)->unk_20), 0U, num, 5U, PRINTING_MODE_LEADING_ZEROS, 1);
-    ClearFrameAndWindow2(arg0 + 0x48, 1);
+    BufferIntegerAsString(((MessageFormat *)arg0->unk_20), 0U, num, 5U, PRINTING_MODE_LEADING_ZEROS, 1);
+    ClearFrameAndWindow2(&arg0->unk_48, 1);
     ov75_022496B8(arg0, v6);
 }
 

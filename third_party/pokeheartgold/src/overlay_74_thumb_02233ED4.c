@@ -1,6 +1,10 @@
 #include "global.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov74_02233DBC(s16);
+#else
 s32 ov74_02233DBC(s32);
+#endif
 
 #include "pm_agb_save.h"
 

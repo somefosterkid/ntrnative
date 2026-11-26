@@ -6,14 +6,14 @@ struct BattleCastleOpponentApp;
 #include "unk_02005D10.h"
 #include "overlay_83_battle_castle_opponent_app.h"
 
-void ov83_02244CD4(void *arg0, s32 *arg1, s32 arg2);
+void ov83_02244CD4(BattleCastleOpponentApp *arg0, s32 *arg1, s32 arg2);
 
-void ov83_02244CD4(void *arg0, s32 *arg1, s32 arg2) {
-    *(s8 *)((u8 *)arg0 + 8) = 0;
+void ov83_02244CD4(BattleCastleOpponentApp *arg0, s32 *arg1, s32 arg2) {
+    arg0->subState = 0;
     *arg1 = arg2;
 }
 
-s32 ov83_02244D0C(void *, u32, s32);
+s32 ov83_02244D0C(BattleCastleOpponentApp *arg0, u32, s32);
 
 s32 ov83_022450A8(void *, u16, u16);
 

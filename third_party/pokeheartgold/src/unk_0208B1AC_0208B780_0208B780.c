@@ -2,7 +2,11 @@
 
 #include "sprite.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0208B85C(u8 *param_1, s32 param_2, s32 param_3, s8 param_4, s32 param_5);
+#else
 s32 sub_0208B85C(u8 *param_1, s32 param_2, s32 param_3, s32 param_4, s32 param_5);
+#endif
 
 void sub_0208B780(Sprite **sprites, s32 param_2, s32 param_3, s32 param_4, s32 param_5, s32 param_6, s32 param_7);
 

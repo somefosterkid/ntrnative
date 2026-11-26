@@ -76,7 +76,11 @@ ManagedSprite *ov80_02239BB8(SpriteSystem *param0, SpriteManager *param1, u16 pa
 
 ManagedSprite *ov80_0223968C(FrontierGraphics *param0, u16 param1, u16 param2);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov80_02239BE8(ManagedSprite *param0);
+#else
 void ov80_02239BE8(ManagedSprite *param0);
+#endif
 void ov80_022396D8(FrontierGraphics *param0, u16 param1);
 ManagedSprite *ov80_02239700(FrontierGraphics *param0, u16 param1);
 

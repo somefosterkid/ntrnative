@@ -21,6 +21,10 @@
 #include "unk_02013534.h"
 #include "overlay_93_unk_struct_ov117_02261280_t.h"
 #include "pokepic.h"
+#include "overlay_40_unk_struct_0208_b878.h"
+#include "overlay_40_unk_struct_ov62_02241204.h"
+#include "overlay_41_unk_struct_ov22_0225af8c.h"
+#include "overlay_41_unk_struct_ov22_0225b1bc.h"
 
 struct DressUpPhoto;
 
@@ -84,44 +88,6 @@ typedef struct UnkStruct_02030A80_t {
 } UnkStruct_02030A80;
 
 typedef struct UnkStruct_0202F41C_t UnkStruct_0202F41C;
-
-typedef struct {
-    int unk_00;
-    enum HeapID heapID;
-    int unk_08;
-    int unk_0C;
-    fx32 unk_10;
-} UnkStruct_0208B284;
-
-typedef struct {
-    NARC *unk_00;
-    SpriteSystem *unk_04;
-    SpriteManager *unk_08;
-    PaletteData *unk_0C;
-} UnkStruct_0208B878_sub1;
-
-typedef struct {
-    ManagedSprite *unk_00;
-    s16 unk_04;
-    s16 unk_06;
-    int unk_08;
-    int unk_0C;
-} UnkStruct_0208B878_sub2;
-
-typedef struct {
-    UnkStruct_0208B878_sub1 unk_00;
-    UnkStruct_0208B284 unk_10;
-    UnkStruct_0208B878_sub2 unk_24[12];
-    int unk_E4;
-    int unk_E8;
-    int unk_EC;
-    BOOL unk_F0;
-    SysTask *unk_F4;
-    int unk_F8;
-    int unk_FC;
-    int unk_100;
-    int unk_104;
-} UnkStruct_0208B878;
 
 typedef struct {
     BOOL unk_00;
@@ -615,26 +581,6 @@ typedef struct {
 
 typedef struct {
     int unk_00;
-    int unk_04;
-    u64 unk_08;
-} UnkStruct_ov62_02249380;
-
-typedef struct {
-    const UnkStruct_ov62_02249380 *unk_00;
-    int unk_04;
-    int unk_08;
-    int unk_0C;
-    int unk_10;
-    int unk_14;
-    int unk_18;
-    int unk_1C;
-    int unk_20;
-    u32 unk_24;
-    const TouchscreenHitbox *unk_28;
-} UnkStruct_ov62_02248CDC;
-
-typedef struct {
-    int unk_00;
     BOOL unk_04;
     u32 unk_08;
     u32 unk_0C;
@@ -737,27 +683,11 @@ typedef struct {
 } UnkStruct_0208C06C;
 
 typedef struct {
-    BgConfig *unk_00;
-    int unk_04;
-    int unk_08;
-    enum HeapID heapID;
-} UnkStruct_ov22_0225AF8C;
-
-typedef struct UnkStruct_ov22_0225B1BC_t UnkStruct_ov22_0225B1BC;
-
-typedef struct {
     UnkStruct_ov61_0222AFC0 unk_00;
     UnkStruct_ov61_0222AE80 unk_80;
 } UnkStruct_ov61_0222BC90;
 
 void ov40_0222BF80(UnkStruct_0208C06C *param0, int param1);
-
-typedef struct {
-    UnkStruct_02030A80 *unk_00;
-    ManagedSprite *unk_04;
-    ManagedSprite *unk_08;
-    Window unk_0C[8];
-} UnkStruct_ov62_022323B8;
 
 void ov40_0222DED0(UnkStruct_0208C06C *param0, int param1);
 
@@ -770,14 +700,6 @@ void ov40_02230CDC(UnkStruct_0208C06C *param0, int param1, int param2, int param
 UnkStruct_ov62_022349A8 *ov40_0223D540(UnkStruct_0208C06C *param0);
 
 BOOL ov40_0223D5CC(UnkStruct_0208C06C *param0);
-
-typedef struct {
-    int unk_00;
-    int unk_04;
-    u16 *unk_08;
-    MsgData *unk_0C;
-    BOOL unk_10;
-} UnkStruct_ov62_0223E01C_sub1;
 
 BOOL sub_020879E0(UnkStruct_0208B878 *param0, BOOL param1);
 

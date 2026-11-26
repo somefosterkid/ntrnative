@@ -310,8 +310,6 @@ struct GTSBoxPokemonCriteria {
 void ov70_0223D208(GTSApplicationState *appState);
 
 void ov70_0223D208(GTSApplicationState *appState) {
-    GTSApplicationState *var_r4;
-    GTSApplicationState *var_r4_2;
     GTSApplicationState *var_r5;
     s32 var_r4_3;
     s32 var_r6;
@@ -319,25 +317,20 @@ void ov70_0223D208(GTSApplicationState *appState) {
 
     var_r5 = appState;
     var_r6 = 0;
-    var_r4 = var_r5;
     do {
-        Sprite_Delete(*(Sprite **)((u8 *)var_r4 + 0xF04));
-        var_r4 = (void *)((u8 *)var_r4 + (4));
+        Sprite_Delete(var_r5->boxArrowSprites[var_r6]);
         var_r6 += 1;
     } while (var_r6 < 2);
     Sprite_Delete(var_r5->cursorSprite);
     var_r6_2 = 0;
-    var_r4_2 = var_r5;
     do {
-        Sprite_Delete(var_r4_2->boxSlotIconSprites[0]);
-        Sprite_Delete(var_r4_2->boxSlotItemSprites[0]);
+        Sprite_Delete(var_r5->boxSlotIconSprites[var_r6_2]);
+        Sprite_Delete(var_r5->boxSlotItemSprites[var_r6_2]);
         var_r6_2 += 1;
-        var_r4_2 = (void *)((u8 *)var_r4_2 + (4));
     } while (var_r6_2 < 0x1E);
     var_r4_3 = 0;
     do {
-        Sprite_Delete(var_r5->selectPokemonPartySprites[0]);
+        Sprite_Delete(var_r5->selectPokemonPartySprites[var_r4_3]);
         var_r4_3 += 1;
-        var_r5 = (void *)((u8 *)var_r5 + (4));
     } while (var_r4_3 < 6);
 }

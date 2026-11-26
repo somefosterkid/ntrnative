@@ -1,0 +1,10 @@
+# game: soulsilver
+# from: ss-r35pond
+# reaches: Route 35's pond, ss-fish-bite's cast and wait with one more key, A at f11835: bite + A: the line is reeled in (ov01_021FC934, after A on the bite) (cheat items, badges, party; in the sweep set)
+# end: f12150
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=39:371:292 BWPORT_HG_WARP_DIR=1
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys left*f4@f10800
+keys start@f11000 stylus:42,116@f11100-f11110 stylus:235,15@f11250-f11260 stylus:172,127@f11400-f11410 stylus:46,142@f11550-f11560
+keys a@f11835

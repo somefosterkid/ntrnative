@@ -15,10 +15,6 @@
 #include "pm_string.h"
 #include "overlay_112_pokewalker_app.h"
 
-void ov112_021E7B18(Ov112PokewalkerApp *param_1);
-
-void ov112_021E7C18(Ov112PokewalkerApp *arg0);
-void ov112_021E7C6C(Ov112PokewalkerApp *arg0);
 void ov112_021E7CA4(Ov112PokewalkerApp *arg0, enum GFBgLayer arg1, s32 arg2);
 
 void ov112_021E7B18(Ov112PokewalkerApp *param_1) {

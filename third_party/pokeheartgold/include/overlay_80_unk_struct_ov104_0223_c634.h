@@ -18,4 +18,7 @@ typedef struct UnkStruct_ov104_0223C634 {
 
 // sizeof(UnkStruct_ov104_0223C634) == 0x3c
 
+struct BattleFrontier;
+UnkStruct_ov104_0223C634 *sub_0209686C(struct BattleFrontier *frontier, s32 idx);
+
 #endif // POKEHEARTGOLD_OVERLAY_80_UNK_STRUCT_OV104_0223_C634_H

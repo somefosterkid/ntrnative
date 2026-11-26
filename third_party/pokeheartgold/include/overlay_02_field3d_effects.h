@@ -59,7 +59,8 @@ typedef struct UnkStruct_ov6_02248140 {
 typedef struct UnkStruct_ov6_02248498 {
     UnkStruct_ov6_02248140 unk_00[2];
     NNSFndAllocator unk_1B8;
-    u32 unk_1C8;
+    u16 unk_1C8;
+    u16 unk_1CA;
 } UnkStruct_ov6_02248498; // 0x1CC
 
 void ov02_0224D7B0(Ov02App_0224D880 *env);

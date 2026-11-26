@@ -37,13 +37,13 @@
 #include "overlay_73_wifi_battle_tower_app_state.h"
 #include "field/terrain_collision_manager.h"
 
-s32 ov96_021E87EC(s32, void *, s32, void *);
+s32 ov96_021E87EC(s32, void *, s32, Ov96System *);
 
 s32 sub_02031B10(void);
 
-s32 ov96_021E7514(PokeathlonCourseData *arg0);
+BOOL ov96_021E7514(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E7514(PokeathlonCourseData *arg0) {
+BOOL ov96_021E7514(PokeathlonCourseData *arg0, u8 *unused) {
     if (ov96_021E87EC(0x21, arg0->heapAllocPtr2, sub_02031B10(), arg0->system) != 0) {
         PokeathlonCourse_SetStateField07(arg0, 0x26U);
     }
@@ -52,9 +52,9 @@ s32 ov96_021E7514(PokeathlonCourseData *arg0) {
 
 void sub_020321A0(SaveApricornBox *, void *, int, int);
 
-u32 ov96_021E7544(PokeathlonCourseData *param_1);
+BOOL ov96_021E7544(PokeathlonCourseData *param_1, u8 *unused);
 
-u32 ov96_021E7544(PokeathlonCourseData *param_1) {
+BOOL ov96_021E7544(PokeathlonCourseData *param_1, u8 *unused) {
     u8 uVar1;
     u16 uVar2;
     SaveApricornBox *pSVar3;
@@ -74,9 +74,9 @@ u32 ov96_021E7544(PokeathlonCourseData *param_1) {
 
 s32 ov96_021E7718(void *);
 
-s32 ov96_021E7590(PokeathlonCourseData *arg0);
+BOOL ov96_021E7590(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E7590(PokeathlonCourseData *arg0) {
+BOOL ov96_021E7590(PokeathlonCourseData *arg0, u8 *unused) {
     if (GF_heap_c_dummy_return_true(HEAP_ID_POKEATHLON) == 0) {
         GF_AssertFail();
     }
@@ -1057,8 +1057,8 @@ static inline void inline_ov61_0222C3B0_sub(SysTask *param0, void *param1) {
     }
 }
 
-BOOL ov96_021E75B8(FieldSystem *fieldSystem, TVEpisode *episode);
+BOOL ov96_021E75B8(PokeathlonCourseData *data, u8 *unused);
 
-BOOL ov96_021E75B8(FieldSystem *fieldSystem, TVEpisode *episode) {
+BOOL ov96_021E75B8(PokeathlonCourseData *data, u8 *unused) {
     return FALSE;
 }

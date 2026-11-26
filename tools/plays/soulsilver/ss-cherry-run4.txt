@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: Cherrygrove City by day, warped to 553,403 and held B + right at Run 4x along the road below the house with the mailbox, past the man NPC and the next house's window (to x 564, where the road ends): Smooth motion at a fast scroll (the test iPhone, HeartGold: the window, the mailbox's flag and the man's shadow drawn beside them; docs/interp-sweep.md)
+# end: f11120
+env BWPORT_HG_WARP=67:553:403 BWPORT_HG_WARP_DIR=3 BWPORT_RUNSPEED=4 BWPORT_BENCH_CLOCK=2026-10-29T12:00:00
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys b*f150@f11000 right*f150@f11000

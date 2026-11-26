@@ -11,6 +11,7 @@ struct Options;
 struct OverlayManager;
 struct Party;
 struct PCBoxArgs;
+struct PokemonSummaryArgs;
 struct PokemonStorageSystem;
 struct UnkStruct_ov14_boxsys;
 
@@ -24,6 +25,7 @@ typedef struct UnkStruct_ov14_boxapp {
     union {                           // DS 0x18 the sub app's args
         struct NamingScreenArgs *unk_18;
         struct BagView *bagView;
+        struct PokemonSummaryArgs *summaryArgs; // ov14_021E89B8
     };
     u16 unk_1C;
     u8 unk_1E[0x1];

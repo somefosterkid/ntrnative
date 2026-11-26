@@ -278,7 +278,7 @@ static const char *const kField[GPU_SPAN_TEXELS][4] = {
     {"xs", "xe", "den_f", "den_z"},     {"L.w", "R.w", "L.z", "R.z"},     {"L.c0", "L.c1", "L.c2", "L.s"},
     {"R.c0", "R.c1", "R.c2", "R.s"},    {"L.t", "R.t", "flags", "x0"},   {"t5.x", "t5.y", "t5.z", "t5.w"},
     {"t6.x", "t6.y", "t6.z", "t6.w"},   {"t7.x", "t7.y", "t7.z", "t7.w"}, {"t8.x", "t8.y", "t8.z", "t8.w"},
-    {"t9.x", "t9.y", "t9.z", "t9.w"},   {"lo L.z", "lo R.z", "in.lo", "in.hi"}, {"lo L.t", "lo R.t", "lo L.s", "lo R.s"}};
+    {"t9.x", "t9.y", "t9.z", "dq"},   {"lo L.z", "lo R.z", "in.lo", "in.hi"}, {"lo L.t", "lo R.t", "lo L.s", "lo R.s"}};
 static int kind(int t, int c) {
   if (t >= 1 && t <= 3) return 1;
   if (t == 4 && c < 2) return 1;

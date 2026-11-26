@@ -4,7 +4,11 @@
 
 #include "math_util.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_0220FB98(UnkStruct_ov96_0220E3F0_Record *param_1, s8 param_2, s8 param_3);
+#else
 void ov96_0220FB98(UnkStruct_ov96_0220E3F0_Record *param_1, u8 param_2, u8 param_3);
+#endif
 
 s32 ov96_0220FF68(u32 param_1);
 

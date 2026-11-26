@@ -101,10 +101,7 @@ typedef struct FieldSystemUnkSub120_Sub818 {
 typedef struct FieldSystemUnkSub120 {
     Window window;
     String *string;
-    NarcId narcId;
-    u8 unk18[596];
-    NarcId unk26C;
-    u8 unk270[1396];
+    u8 unk14[0x7D0];
     FieldSystemUnkSub120_Sub7E4 unk7E4[5];
     u32 unk80C;
     u16 unk810;

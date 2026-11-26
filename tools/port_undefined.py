@@ -485,6 +485,20 @@ def game_definitions(syms):
     return found
 
 
+# the port's hooks into the generated Gen 4 trees (port/subprojects/poke*-speed-spd4.patch, -route.patch): port/game/speed_gen4.c and
+# route_gen4.c define every one of them, so a stub for one is never right
+PORT_HOOK = re.compile(r"^Port(Speed4|Route4)_")
+
+
+def port_definitions(syms, root=None):
+    """{symbol: why} of the undefined symbols that are port hooks (PORT_HOOK): the exe would link a stub for something the
+    port's own sources define, so an object that calls it is stale. ivf2 11-25: a slot's incremental build kept an object
+    compiled from a patch set no longer applied, the exe called PortSpeed4_TrackLooks (no source defines it any more) and
+    the stub aborted 69 chain legs in. (Not a scan of port/ for any defined name: the link's undefined set has names a
+    port file defines for another platform.)"""
+    return {s: "it is a port hook (port/game/speed_gen4.c, route_gen4.c define them all)" for s in syms if PORT_HOOK.match(s)}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("builddir", type=Path)
@@ -554,7 +568,12 @@ def main():
         print(f"error: {sym} is undefined, but {where} defines it: a plain `inline` definition emits no symbol under C99;"
               " give that file a stand-in under port/extern with an extern declaration (tools/port_sources.py)",
               file=sys.stderr)
-    if bad or (new and a.fail_on_data):
+    stale = port_definitions({s for s in refs if not is_data(s, kinds, called, addressed)})
+    for sym, where in sorted(stale.items()):
+        print(f"error: {sym} is undefined, but {where}: the exe would link its abort stub, so an object that calls it is stale "
+              "(compiled from a patch set or source that is no longer there: touch/rebuild what calls it; tools/pokegen4.py keep_mtimes)",
+              file=sys.stderr)
+    if bad or stale or (new and a.fail_on_data):
         sys.exit(1)
 
 

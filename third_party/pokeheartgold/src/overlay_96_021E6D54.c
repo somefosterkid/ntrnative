@@ -6,11 +6,10 @@
 #include "heap.h"
 #include "sound_02004A44.h"
 
-s32 ov96_021E87B0(void *, s32);
 
-s32 ov96_021E6D54(PokeathlonCourseData *arg0);
+BOOL ov96_021E6D54(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6D54(PokeathlonCourseData *data) {
+BOOL ov96_021E6D54(PokeathlonCourseData *data, u8 *unused) {
     u8 *v0;
 
     if (PokeathlonCourse_RunSubStateLoop(data) != 0) {
@@ -35,14 +34,14 @@ s32 ov96_021E6D54(PokeathlonCourseData *data) {
     return 0;
 }
 
-s32 ov96_021E87EC(s32, u32, u32, void *);
+s32 ov96_021E87EC(s32, void *, s32, Ov96System *);
 
-s32 ov96_021E6DE8(PokeathlonCourseData *arg0);
+BOOL ov96_021E6DE8(PokeathlonCourseData *arg0, u8 *unused);
 
-s32 ov96_021E6DE8(PokeathlonCourseData *data) {
-    if (data->field_3A4[3] != 0U) {
+BOOL ov96_021E6DE8(PokeathlonCourseData *data, u8 *unused) {
+    if (data->field_3A4.active != 0U) {
         if (ov96_021E5F24(data) == 0) {
-            if (ov96_021E87EC(0x1C, data->field_3A4[0], data->field_3A4[2], data->system) != 0) {
+            if (ov96_021E87EC(0x1C, data->field_3A4.sendData, data->field_3A4.size, data->system) != 0) {
                 PokeathlonCourse_SetStateField07(data, 0x26U);
             }
         } else {

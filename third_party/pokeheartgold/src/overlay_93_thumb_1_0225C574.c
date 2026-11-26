@@ -51,7 +51,6 @@ int ov93_0225CA8C(OverlayManager *appMan, int *param1);
 
 int ov93_0225CD10(OverlayManager *appMan, int *param1);
 
-int ov93_02262598(OverlayManager *appMan, int *param1);
 
 int ov93_022625BC(OverlayManager *appMan, int *param1);
 

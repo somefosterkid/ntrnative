@@ -15,6 +15,7 @@
 #include "struct_defs/resdat_narc_structs.h"
 #include "gf_gfx_planes.h"
 #include "font.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
 struct OverlayManager;
 
@@ -107,7 +108,11 @@ enum BattleCastleOpponentAppWindow {
     NUM_OPPONENT_APP_WINDOWS,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov83_02247944(Window *window, u8 frame);
+#else
 void ov83_02247944(Window *window, int frame);
+#endif
 
 enum TextAlignment {
     TEXT_ALIGN_LEFT,
@@ -142,95 +147,27 @@ enum BattleCastleAppState {
     STATE_FADE_OUT
 };
 
-typedef struct BattleCastleOpponentApp {
-    OverlayManager *appMan;
-    BattleFrontierSave *frontier;
-    u8 subState;
-    u8 challengeType;
-    u8 printerID;
-    u8 unused;
-    u8 previousSlot;
-    u8 selectedMonSlot;
-    u8 levelAdjustment;
-    u8 arrowSpriteVisible : 1;
-    u8 listMenuIsOpen : 1;
-    u8 simpleMenuIsOpen : 1;
-    u8 syncPurchaseState : 5;
-    u8 syncPurchaseAction;
-    u8 slotID;
-    u8 selectedLevelAdjustment;
-    u8 selectedMenuEntry;
-    u8 numSlots;
-    u8 exitSlot;
-    u8 syncDelay;
-    u8 msgsReceived;
-    u16 menuPos;
-    u16 unused2;
-    u16 monMenuListPos;
-    u16 monMenuCursorPos;
-    MsgData *msgLoader;
-    MessageFormat *strTemplate;
-    String *displayStr;
-    String *fmtStr;
-    String *simpleMenuStr[3];
-    u16 unused3[8];
-    BgConfig *bgConfig;
-    Window windows[NUM_OPPONENT_APP_WINDOWS];
-    ListMenu2DTemplate simpleMenuTemplate;
-    ListMenu2D *simpleMenu;
-    ListMenuItem simpleStrList[3];
-    ListMenu *listMenu;
-    ListMenuItem *listMenuStrList;
-    PaletteData *plttData;
-    FontSpecialCharsContext *specialChars;
-    u8 unk_148[368];
-    Options *options;
-    SaveData *saveData;
-    BattleCastleSave *castleSave;
-    BattleCastlePersistentSave *persistentSave;
-    BattleCastleAppSpriteManager spriteMan;
-    BattleCastleAppSprite *monSprites[4];
-    BattleCastleAppSprite *ballSprites[4];
-    BattleCastleAppSprite *arrowSprite;
-    BattleCastleAppSprite *cursorSprite;
-    BattleCastleAppSprite *partnerCursorSprite;
-    BattleCastleAppSprite *barSprites[4];
-    BattleCastleAppSprite *flagSprites[4][2];
-    BattleCastleAppSprite *sparklesSprite;
-    BattleCastleAppSprite *selectedMonSprite;
-    u16 *selectedMonSlotOut;
-    u8 *identityUnlocked;
-    u8 *levelAdjustments;
-    u8 *statsUnlocked;
-    Party *opponentsParty;
-    NARC *narc;
-    u16 commPayload[40];
-    u8 partnersSelectedSlot;
-    u8 partnerSlot;
-    u8 pad_3D2[4];
-    u8 partnerIsExiting;
-    u8 partnersRanks[3];
-    u16 partnersCP;
-    u32 unused4;
-} BattleCastleOpponentApp;
-
 BOOL ov83_022432B4(BattleCastleOpponentApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
 BOOL ov83_022433F8(BattleCastleOpponentApp *app);
+#else
+BOOL ov83_022433F8(BattleCastleOpponentApp *app);
+#endif
 
 BOOL ov83_02243C88(BattleCastleOpponentApp *app);
 
-BOOL ov83_02243D7C(BattleCastleOpponentApp *app);
+BOOL ov83_02243D7C(BattleCastleOpponentApp *arg0);
 
 BOOL ov83_02243DE8(BattleCastleOpponentApp *app);
 
-void ov83_02244CD4(BattleCastleOpponentApp *app, int *state, enum BattleCastleAppState newState);
+void ov83_02244CD4(BattleCastleOpponentApp *arg0, s32 *arg1, enum BattleCastleAppState newState);
 
-u8 ov83_022448AC(BattleCastleOpponentApp *app, int entryID, u8 font);
+u8 ov83_022448AC(BattleCastleOpponentApp *param_1, int entryID, u8 font);
 
-void ov83_02245074(BattleCastleOpponentApp *app);
+void ov83_02245074(BattleCastleOpponentApp *param_1);
 
-void ov83_022459A0(BattleCastleOpponentApp *app);
+void ov83_022459A0(BattleCastleOpponentApp *unused);
 
 void ov83_022459AC(BattleCastleOpponentApp *app);
 
@@ -242,7 +179,6 @@ void LoadMovesListBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLaye
 
 void LoadSubScreenBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

@@ -18,7 +18,7 @@ void ov18_021F4A6C(void *arg0) {
     SpriteSystem_LoadAnimResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x6B, 1, 0xC55A);
     SpriteSystem_LoadCellResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x70, 1, 0xC55B);
     SpriteSystem_LoadAnimResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x71, 1, 0xC55B);
-    if (PlayerProfile_GetTrainerGender(*(PlayerProfile **)((u8 *)(*(void **)arg0) + 4)) == 0) {
+    if (PlayerProfile_GetTrainerGender(((PokedexAppData *)arg0)->args->playerProfile) == 0) {
         SpriteSystem_LoadCharResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x69, 1, 1, 0xC59B);
         SpriteSystem_LoadCharResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x69, 1, 2, 0xC59C);
         SpriteSystem_LoadCharResObjFromOpenNarc(((PokedexAppData *)arg0)->unk_0668, ((PokedexAppData *)arg0)->unk_066C, ((PokedexAppData *)arg0)->gfxNarc, 0x6F, 1, 2, 0xC59D);

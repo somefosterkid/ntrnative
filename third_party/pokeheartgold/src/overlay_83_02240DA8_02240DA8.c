@@ -5,6 +5,7 @@ struct BattleCastleSelfApp;
 
 #include "unk_02005D10.h"
 #include "overlay_83_battle_castle_self_app.h"
+#include "battle_castle_app_sprite.h"
 
 void ov83_02240DA8(BattleCastleSelfApp *arg0, s32 *arg1, s32 arg2);
 
@@ -27,7 +28,11 @@ void ov83_02240DB0(BattleCastleSelfApp *arg0) {
     ov83_02240DE0(arg0, arg0->selectedMonSlot, 0);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_02240E70(void *, s32 *, s32 *, u8);
+#else
 s32 ov83_02240E70(void *, s32 *, s32 *, u32);
+#endif
 
 s32 ov83_02242814(void *, s32);
 

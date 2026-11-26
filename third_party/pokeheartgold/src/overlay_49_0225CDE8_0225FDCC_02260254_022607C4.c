@@ -1,15 +1,22 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+#include "overlay_49_unk_struct_ov70_0226da18.h"
+
 #include "error_handling.h"
 #include "overlay_42.h"
+#include "list_menu_items.h"
+#include "overlay_45_unk_struct_ov66_0222e294.h"
+#include "pm_string.h"
+#include "save.h"
 
-void IncrementGameStat119(s32 arg0);
+struct UnkStruct_ov70_022630A4_t;
+typedef struct UnkStruct_ov70_022630A4_t UnkStruct_ov70_022630A4;
 
-void ov45_0222A4C8(u32, u32);
 
-void ov45_0222A5E8(u32, u32);
+void ov45_0222A4C8(WiFiPlazaSystem *param0, int param1);
 
-void ov45_0222B118(u32, u32);
+void ov45_0222B118(WiFiPlazaSystem *param0, int param1);
 
 u32 ov49_02258DAC(u32 arg0);
 
@@ -26,13 +33,13 @@ void ov49_02258EAC(u32, u32, u32, int);
 
 void ov49_02258EEC(u32, u32, u32);
 
-u32 ov49_02259FE8(void *);
+WiFiPlazaSystem *ov49_02259FE8(void *);
 
-u32 ov49_02259FEC(void *);
+u16 *ov49_02259FEC(void *);
 
 u32 ov49_02259FF0(void *);
 
-u32 ov49_0225A010(void *);
+UnkStruct_ov70_022630A4 *ov49_0225A010(void *);
 
 void ov49_0225A034(void *, u32);
 
@@ -62,23 +69,32 @@ void ov49_0225EF8C(void *, u32);
 
 void ov49_0225EF90(void *);
 
-void ov49_0225EF98(u32, u32, u8 *, u32);
+void ov49_0225EF98(UnkStruct_ov70_022630A4 *, u32, const UnkStruct_ov70_0226DA18 *, void *);
 
-void ov49_0225EFC4(u32, u32, u8 *, u8 *);
+void ov49_0225EFC4(UnkStruct_ov70_022630A4 *, u32, const UnkStruct_ov70_0226DA18 *, void *);
 
-extern u32 ov49_02269B38;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B38;
 
-extern u32 ov49_02269B88;
+extern const UnkStruct_ov70_0226DA18 ov49_02269B88;
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov49_02262028(struct UnkStruct_ov70_02263344_t * param0, struct UnkStruct_ov70_0225DEE8_t * param1, u32 param2);
 
-u32 ov49_022607C4(void *param_1, void *param_2, void *param_3);
+// asm keeps the DS copy (4-byte callback pointer and a literal 0); the 64-bit port emits 4-byte pointers (wordmix.py): the PC
+// build uses this C definition instead.
+const UnkStruct_ov70_0226DA18 ov49_02269B88 = { ov49_02262028, NULL };
+#endif
 
-u32 ov49_022607C4(void *param_1, void *param_2, void *param_3) {
+
+u32 ov49_022607C4(void *param_1, void *param_2, u32 param_3);
+
+u32 ov49_022607C4(void *param_1, void *param_2, u32 param_3) {
     UnkStruct_ov49_022607C4 sp24;
     u8 bVar2;
     u32 uVar6;
+    UnkStruct_ov70_022630A4 *pUnk;
     u32 uVar5;
     u32 uVar7;
-    u32 uVar8;
+    WiFiPlazaSystem *uVar8;
     u32 uStack_38;
     BOOL bVar1;
     u8 uVar3;
@@ -91,7 +107,7 @@ u32 ov49_022607C4(void *param_1, void *param_2, void *param_3) {
     u32 unaff_r5;
 
     pcVar4 = (u8 *)ov49_0225EF84(param_1);
-    uVar5 = ov49_0225A010(param_2);
+    pUnk = ov49_0225A010(param_2);
     uVar6 = ov49_02259FF0(param_2);
     uVar7 = ov49_02258DAC(uVar6);
     uVar8 = ov49_02259FE8(param_2);
@@ -123,9 +139,9 @@ u32 ov49_022607C4(void *param_1, void *param_2, void *param_3) {
             GF_AssertFail();
             break;
         }
-        uVar6 = ov49_02259FE8(param_2);
-        ov45_0222A5E8(uVar6, 0xc);
-        ov49_0225EFC4((u32)((unsigned char *)(uVar5)), (u32)((unsigned char *)(param_3)), (unsigned char *)(&ov49_02269B88), puVar10);
+        uVar8 = ov49_02259FE8(param_2);
+        ov45_0222A5E8(uVar8, 0xc);
+        ov49_0225EFC4(pUnk, param_3, &ov49_02269B88, puVar10);
         break;
     case 1:
         if (*pcVar4 == 8) {
@@ -156,15 +172,15 @@ u32 ov49_022607C4(void *param_1, void *param_2, void *param_3) {
         ov45_0222B118(uVar8, uStack_38);
         sVar12 = ov49_02258E60(uVar7, 6);
         bVar2 = ov42_022282A4(sVar12);
-        puVar11 = (u16 *)ov49_02259FEC(param_2);
+        puVar11 = ov49_02259FEC(param_2);
         sp24 = ov49_02258E34(uVar7);
         puVar11[3] = 2;
         *puVar11 = sp24.x / 0x10;
         puVar11[1] = sp24.y / 0x10;
         puVar11[2] = (u16)bVar2;
         puVar11[4] = (u16)(u8)pcVar4[2];
-        uVar5 = ov49_02259FE8(param_2);
-        ov45_0222A4C8(uVar5, 1);
+        uVar8 = ov49_02259FE8(param_2);
+        ov45_0222A4C8(uVar8, 1);
         ov49_0225EF68(param_1);
         return 1;
     case 3:
@@ -226,11 +242,11 @@ u32 ov49_022607C4(void *param_1, void *param_2, void *param_3) {
         break;
     case 7:
         ov49_0225EF68(param_1);
-        uVar5 = ov49_02259FE8(param_2);
-        ov45_0222A5E8(uVar5, 1);
+        uVar8 = ov49_02259FE8(param_2);
+        ov45_0222A5E8(uVar8, 1);
         ov49_02258EEC(uVar6, uVar7, 1);
-        uVar5 = ov49_0225A010(param_2);
-        ov49_0225EF98((u32)((unsigned char *)(uVar5)), (u32)((unsigned char *)(param_3)), (unsigned char *)(&ov49_02269B38), 0);
+        pUnk = ov49_0225A010(param_2);
+        ov49_0225EF98(pUnk, param_3, &ov49_02269B38, 0);
     }
     return 0;
 }

@@ -81,6 +81,10 @@ static int build_mask(const VC_Span *v, int m, Iv *out) {
   return k;
 }
 
+static int fdiv32(int n, int d) { /* floor(n / d), d > 0 */
+  return n >= 0 ? (int)((uint32_t)n / (uint32_t)d) : -(int)(((uint32_t)-n + (uint32_t)d - 1) / (uint32_t)d);
+}
+
 static float lo_part(double v) { return (float)(v - (double)(float)v); }
 
 /* the inner run (t10.zw, g02_spans.h): lo .. hi with the antialiasing window w (DS pixels w[0] .. w[1] when mm > 1) cut away; a
@@ -164,6 +168,8 @@ void gpu_span_pack(GpuSpan *r, const VC_Span *v, int m, int extra, int *overflow
       tb[2] = (float)e[s]->dy;
     }
   }
+  int dz = v->den_z * m; /* t9.w: g_depth2's quotient, floor((floor(R.z) - floor(L.z)) / den_z) of the record's floats */
+  if (dz >= 1 && dz < 65536) r->t[9][3] = (float)fdiv32((int)floorf(r->t[1][3]) - (int)floorf(r->t[1][2]), dz);
   float *in = r->t[10] + 2; /* the inner run: between the mask's first two runs, out of both windows */
   in[0] = r->t[5][1] + 1.0f;
   in[1] = r->t[5][2] - 1.0f;
@@ -177,10 +183,6 @@ void gpu_span_pack(GpuSpan *r, const VC_Span *v, int m, int extra, int *overflow
  * the GLSL line for line. tests/t02_spans.c checks them against p16's s64 forms (vc_span_t_*) over the whole range. The
  * slope has 18 fraction bits (p16's VCN knob is not followed). Bounds, with |dx| <= 4096, dy <= 3072 (the 16 x grid):
  * a slope step S |k| <= |dx| 2^18 <= 2^30 within the edge's rows (k <= dy), so S k needs no split. */
-
-static int fdiv32(int n, int d) { /* floor(n / d), d > 0 */
-  return n >= 0 ? (int)((uint32_t)n / (uint32_t)d) : -(int)(((uint32_t)-n + (uint32_t)d - 1) / (uint32_t)d);
-}
 
 int gpu_s32_edge_span(const VC_SpanSeg *e, int y, int *lo, int *hi, int *rd) {
   if (y < e->ay || y > e->by) return 0;

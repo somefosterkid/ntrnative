@@ -2,6 +2,7 @@
 #include "sprite_resources_header.h"
 #include "constants/heap.h"
 #include "bg_window.h"
+#include "screen_fade_internal.h"
 
 struct Background;
 
@@ -161,7 +162,7 @@ BOOL sub_02012D34(UnkStruct_02012D34 *param0, UnkStruct_02013034 *param1, enum H
 
 int sub_02012DE4(int param0, int param1, enum HeapID heapID, UnkStruct_02013034 *param3);
 
-void sub_02012E6C(const Window *param0, const UnkStruct_02013034 *param1, NNSG2dImageProxy *param2, int param3, int param4, enum HeapID heapID);
+void sub_02012E6C(void *arg0, void *arg1, s32 arg2, s32 arg3, enum GFScreen arg4, HardwareWindowSettings *arg5, s32 arg6, s32 arg7);
 
 UnkStruct_02013034 *sub_02013188(enum HeapID heapID);
 

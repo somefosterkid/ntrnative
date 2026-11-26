@@ -1,4 +1,6 @@
 #include "global.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "constants/heap.h"
 #include "bg_window.h"
@@ -991,7 +993,6 @@ struct ApplicationManager {
 
 typedef void (*BattleFrontierSubAppCallback)(void *);
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier);
 
 void *Frontier_GetData(BattleFrontier *frontier);
 

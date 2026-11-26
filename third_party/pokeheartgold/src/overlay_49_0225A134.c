@@ -58,7 +58,11 @@ void ov49_0225A144(UnkStruct_ov70_0225DEE8 *param0, const String *param1, u32 pa
 void ov49_0225A154(UnkStruct_ov70_0225DEE8 *param0);
 BOOL ov49_0225A164(const UnkStruct_ov70_0225DEE8 *param0, u32 param1);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225AF30(UnkStruct_ov70_0225EC20 *, const ListMenuTemplate *, UnkStruct_ov70_0225E4EC *, u16, u16, s32, u8, u8, u8);
+#else
 void ov49_0225AF30(UnkStruct_ov70_0225EC20 *, const ListMenuTemplate *, UnkStruct_ov70_0225E4EC *, s32, s32, s32, s32, s32, s32);
+#endif
 void ov49_0225A174(UnkStruct_ov70_0225DEE8 *arg0, const ListMenuTemplate *arg1, s32 arg2, s32 arg3);
 
 void ov49_0225A134(UnkStruct_ov70_0225DEE8 *param0) {

@@ -4,7 +4,11 @@
 #include "system.h"
 #include "unk_02005D10.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov59_0223A48C(Ov59ApricornApp *, s32);
+#else
 s32 ov59_0223A48C(Ov59ApricornApp *, s32);
+#endif
 
 s32 ov59_0223A58C(Ov59ApricornApp *arg0);
 

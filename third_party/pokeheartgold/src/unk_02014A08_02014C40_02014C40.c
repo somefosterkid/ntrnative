@@ -2,7 +2,7 @@
 #include "screen_scroll_manager.h"
 struct ScreenScrollManager;
 
-s32 sub_02014D68();
+void sub_02014D68(void);
 
 s32 sub_02014D70(void *);
 

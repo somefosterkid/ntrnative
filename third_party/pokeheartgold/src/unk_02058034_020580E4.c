@@ -891,7 +891,11 @@ typedef struct FieldWildBattleMetadata {
 
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02037D8C(SaveData *saveData, s8 commType, s8 contestRegulation, const LinkBattleRuleset *battleRegulation, BOOL unusedBool);
+#else
 void sub_02037D8C(SaveData *saveData, int commType, int contestRegulation, const LinkBattleRuleset *battleRegulation, BOOL unusedBool);
+#endif
 
 BOOL sub_02037474(void);
 
@@ -913,7 +917,11 @@ void sub_020580E4(FieldSystem *fieldSystem, int commType, int regulation) {
     sub_020582F4(sub_02058304, 0);
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02037DD4(SaveData *saveData, s8 commType, s8 contestRegulation, const LinkBattleRuleset *battleRegulation, BOOL unusedBool);
+#else
 void sub_02037DD4(SaveData *saveData, int commType, int contestRegulation, const LinkBattleRuleset *battleRegulation, BOOL unusedBool);
+#endif
 
 void sub_0205832C(void);
 

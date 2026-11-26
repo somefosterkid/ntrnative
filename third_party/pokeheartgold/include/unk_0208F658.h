@@ -23,7 +23,7 @@ void sub_0208F74C(int senderNetId, int unused, void *data, void *fieldSystemPtr)
 void sub_0208F77C(u32 param_1, u32 param_2, SavePalPad *param_3, u8 *param_4);
 void sub_0208F7A8(u32 param_1, u32 param_2, void *param_3, u8 *param_4);
 
-void sub_0208F7E0(void *arg0, s32 arg1);
+void sub_0208F7E0(void *arg0, void *arg1);
 s32 sub_0208F7E8(void);
 s32 sub_0208F7F0(void);
 s32 sub_0208F7F4(void);

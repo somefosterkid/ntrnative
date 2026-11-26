@@ -17,14 +17,22 @@ s32 ov14_021F2270(void *, s32, s32);
 s32 ov14_021E6070(void *, u32, s32, void *);
 s32 ov14_021E7588(void *arg0, s32 arg1);
 s32 ov14_021E765C(void *);
-s32 ov14_021E76B8(void *);
+void ov14_021E76B8(void *);
 s32 ov14_021E884C(UnkStruct_ov14_boxsys *);
 s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 nextState);
 s32 ov14_021F0244(void *, s32);
 s32 ov14_021F028C(void *, s32);
 s32 ov14_021F0314(void *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F0418(void *, u8);
+#else
 s32 ov14_021F0418(void *, u32);
+#endif
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F04D4(void *, u8);
+#else
 s32 ov14_021F04D4(void *, u32);
+#endif
 s32 ov14_021F1128(void *);
 s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F40E8(void *, s32);
@@ -45,7 +53,7 @@ extern s32 ov14_021F7D2C;
 static void ov14_prev_input(void *arg0) {
 }
 
-s32 ov14_021EDA4C(void *arg0) {
+s32 ov14_021EDA4C(UnkStruct_ov14_boxapp *arg0) {
     u32 r5;
     u32 r1;
 
@@ -63,7 +71,7 @@ s32 ov14_021EDA4C(void *arg0) {
             return ov14_021F0418(arg0, r5);
         }
         if (ov14_021E8544(EX(arg0)) == 1) {
-            r5 = *((u8 *)arg0 + 0x21);
+            r5 = arg0->unk21;
             ov14_021F7AC4(ST(arg0), r5, GridInputHandler_GetNextInput(GH(arg0)));
             GridInputHandler_SetNextInput(GH(arg0), r5);
             ov14_021E84A4(EX(arg0));
@@ -80,7 +88,7 @@ s32 ov14_021EDA4C(void *arg0) {
     r5 = ov14_021F6E8C(arg0);
     switch (r5) {
     case 0x22:
-        if (Party_GetCount(((UnkStruct_ov14_boxapp *)arg0)->party) != 6) {
+        if (Party_GetCount(arg0->party) != 6) {
             PlaySE(0x5DD);
         } else {
             PlaySE(0x5F3);
@@ -88,7 +96,7 @@ s32 ov14_021EDA4C(void *arg0) {
         return ov14_021F2270(arg0, 4, 0xA7);
     case 0x23:
         PlaySE(0x5DD);
-        ((UnkStruct_ov14_boxapp *)arg0)->unk2C = 0x23;
+        arg0->unk2C = 0x23;
         return ov14_021F2270(arg0, 5, 0x97);
     case 0x24:
         PlaySE(0x5DD);
@@ -98,7 +106,7 @@ s32 ov14_021EDA4C(void *arg0) {
         PlaySE(0x5DD);
         return ov14_021F2270(arg0, 7, 0x9B);
     case 0x26:
-        r5 = *((u8 *)arg0 + 0x21);
+        r5 = arg0->unk21;
         ov14_021F7AC4(ST(arg0), r5, GridInputHandler_GetNextInput(GH(arg0)));
         GridInputHandler_SetNextInput(GH(arg0), r5);
         PlaySE(0x5DC);

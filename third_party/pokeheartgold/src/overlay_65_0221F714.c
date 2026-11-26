@@ -10,7 +10,7 @@ void ov65_0221F714(struct TradeRoom *arg0);
 
 void ov65_0221F748(Sprite *sprite, int x, int y);
 
-void ov65_0221F760(void *arg0);
+void ov65_0221F760(TradeRoom *arg0);
 
 void ov65_0221F714(TradeRoom *arg0) {
     *((s32 *)&arg0->bgScrollOffset) = (s32)(*((s32 *)&arg0->bgScrollOffset) + 2);
@@ -27,6 +27,6 @@ void ov65_0221F748(Sprite *sprite, int x, int y) {
     Sprite_SetMatrix(sprite, &pos);
 }
 
-void ov65_0221F760(void *arg0) {
-    *((WaitingIcon **)&((TradeRoom *)arg0)->waitDialHandle) = WaitingIcon_New(arg0 + 0x5B4, 0x3D9U);
+void ov65_0221F760(TradeRoom *arg0) {
+    arg0->waitDialHandle = WaitingIcon_New(&arg0->windows[23], 0x3D9U);
 }

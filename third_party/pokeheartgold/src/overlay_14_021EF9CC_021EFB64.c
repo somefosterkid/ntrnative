@@ -18,15 +18,27 @@ s32 ov14_021E765C(void *);
 s32 ov14_021E88F8(void *);
 s32 ov14_021F0234(UnkStruct_ov14_boxapp *app, UnkFuncPtr_ov14_boxtask task, s32 nextState);
 s32 ov14_021F0244(void *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F1CDC(void *, u8);
+#else
 s32 ov14_021F1CDC(void *, s32);
+#endif
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov14_021F1D6C(void *, u16);
+#else
 s32 ov14_021F1D6C(void *, s32);
+#endif
 s32 ov14_021F2270(void *, s32, s32);
 s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 u8 ov14_021F6A24(void);
 u32 ov14_021F75C8(void *);
 s32 ov14_021F7AC4(UnkStruct_ov14_boxsys *, s32, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov14_021F40DC(void *);
+#else
 s32 ov14_021F40DC(void *);
+#endif
 
 s32 ov14_021EA674(UnkStruct_ov14_boxapp *app);
 
@@ -36,15 +48,15 @@ s32 ov14_021EFB64(UnkStruct_ov14_boxapp *arg0) {
     u32 temp_r0_4;
     s32 temp_r0_2;
     u8 temp_r5;
-    void *temp_r1;
-    void *temp_r2;
+    UnkStruct_ov14_boxsys *temp_r1;
+    UnkStruct_ov14_boxsys *temp_r2;
 
     temp_r0_2 = ov14_021F6A24();
     if (temp_r0_2 != -1U) {
         if (ov14_021E6070(arg0, temp_r0_2 + 0x1E, 0xAC, 0) != 0) {
             PlaySE(0x5EBU);
-            temp_r2 = ((void *)arg0->sys);
-            System_GetTouchNewCoords(temp_r2 + 0x40B8, temp_r2 + 0x40BC);
+            temp_r2 = arg0->sys;
+            System_GetTouchNewCoords(&temp_r2->unk_40B8, &temp_r2->unk_40BC);
             ov14_021E7588(arg0, temp_r0_2 + 0x1E);
             ov14_021F2A18(((void *)arg0->sys), 9, 0);
             return ov14_021F1D6C(arg0, temp_r0_2 + 0x1E);
@@ -56,9 +68,9 @@ s32 ov14_021EFB64(UnkStruct_ov14_boxapp *arg0) {
             ov14_021E84A4(arg0->sys->unk_2F0);
             ov14_021E8328(arg0->sys->unk_2F0);
             ov14_021F40DC(arg0);
-            temp_r1 = ((void *)arg0->sys);
-            if (((UnkStruct_ov14_boxsys *)temp_r1)->unk_88C8 != 0) {
-                ov14_021E88F8(*((void **)&((UnkStruct_ov14_boxsys *)temp_r1)->unk_2F0));
+            temp_r1 = arg0->sys;
+            if (temp_r1->unk_88C8 != 0) {
+                ov14_021E88F8(*((void **)&temp_r1->unk_2F0));
             }
             return ov14_021F0234(arg0, ov14_021EA674, 0x8C);
         }

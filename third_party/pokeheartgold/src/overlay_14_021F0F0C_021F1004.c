@@ -27,8 +27,8 @@ void ov14_021F1004(UnkStruct_ov14_boxapp *arg0, s32 arg1) {
     ov14_021F57B8(arg0);
     temp_r0 = *((s32 *)&arg0->sys);
     if (arg1 > 0) {
-        ov14_021F29E4(*((void **)&arg0->sys), 5, 4);
+        ov14_021F29E4(arg0->sys, 5, 4);
         return;
     }
-    ov14_021F29E4(*((void **)&arg0->sys), 4, 2);
+    ov14_021F29E4(arg0->sys, 4, 2);
 }

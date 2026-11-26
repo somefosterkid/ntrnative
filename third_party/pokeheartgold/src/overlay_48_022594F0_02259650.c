@@ -20,7 +20,7 @@ void ov48_02259650(void **param_1) {
         puVar2 = puVar2 + 1;
     } while (iVar1 < 5);
     Heap_Free((void *)*param_1);
-    ((u8 *)&gSystem)[0x69] = 0;
+    gSystem.screensFlipped = 0;
     GfGfx_SwapDisplay();
     return;
 }

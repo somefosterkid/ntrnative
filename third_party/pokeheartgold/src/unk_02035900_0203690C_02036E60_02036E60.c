@@ -39,7 +39,11 @@ u8 sub_02035FF0(void);
 
 BOOL sub_02036E60(u8 *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 sub_0203772C(u8 param0);
+#else
 s32 sub_0203772C(u16 param0);
+#endif
 
 BOOL sub_02036DA0(u8 *param0);
 

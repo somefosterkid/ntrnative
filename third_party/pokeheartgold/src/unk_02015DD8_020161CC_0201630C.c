@@ -34,11 +34,19 @@ void sub_02015FC4(SoftwareSprite *sprite, s16 x, s16 y);
 
 void sub_02015FD8(SoftwareSprite *sprite, s16 x, s16 y);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02015FE0(SoftwareSprite *sprite, s16 x, s16 y);
+#else
 void sub_02015FE0(SoftwareSprite *sprite, int x, int y);
+#endif
 
 void sub_02015FF4(SoftwareSprite *sprite, int priority);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02015FFC(SoftwareSprite *sprite, s8 alpha);
+#else
 void sub_02015FFC(SoftwareSprite *sprite, u8 alpha);
+#endif
 
 void sub_02016004(SoftwareSprite *sprite, NNSG2dImageAttr *attributes);
 

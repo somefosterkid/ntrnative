@@ -9,10 +9,29 @@
 #pragma pop_macro("BattleEvent_CallHandlers")
 
 #include <stdio.h>
+#include <stdlib.h>
+#include "battle/btl_main.h"
 #include "port_route.h"
+
+extern BtlPokeCon *gPortSweepPokeCon;   // the server's Pokemon (port/include/port_bw_sweep_battle.h; BtlServerFlow is private to its file)
 
 void BattleEvent_CallHandlers(BtlServerFlow *flow, u32 event) {
     BattleEvent_CallHandlers_game(flow, event);
+    if (getenv("BWPORT_BW_TESTLIST") != NULL) {   // the battle sweep (port/include/port_bw_sweep_battle.h): both sides always hit, use no PP,
+        if (event == 0x32) {                       // and no hit takes more than an eighth of the defender's HP (at least 1)
+            BattleEventVar_SetValue(0x51, 1);
+        } else if (event == 0x4e) {
+            BattleEventVar_SetValue(0x20, 0);
+        } else if (event == 0x47 && gPortSweepPokeCon != NULL) {
+            BattleMon *def = GetPokeParam(gPortSweepPokeCon, (u8)BattleEventVar_GetValue(4));
+            int cap = def->core.hp / 8 > 0 ? def->core.hp / 8 : 1;
+
+            if ((int)BattleEventVar_GetValue(0x32) > cap) {
+                BattleEventVar_SetValue(0x32, (uintptr_t)cap);
+            }
+        }
+        return;
+    }
     if ((event == 0x47 || event == 0x13 || event == 0x32 || event == 0x4e || event == 0x80) && PortRoute_CheatWin(PORT_ROUTE_GAME)) {
         if (event == 0x4e) {   // the PP a move uses (func_ov093_021c07d4): attacker var 3, amount var 0x20: the player's
             // moves use none, so a long leg never runs its first move dry (the pilot only presses A: a move with no PP

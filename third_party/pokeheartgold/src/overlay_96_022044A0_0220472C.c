@@ -2,61 +2,72 @@
 
 #include "error_handling.h"
 
-s32 ov96_0220472C(s32 arg0, void *arg1, void *arg2);
+typedef struct Ov96SortKey {
+    u8 unk_00[6];
+    u16 key;
+} Ov96SortKey;
 
-s32 ov96_0220472C(s32 arg0, void *arg1, void *arg2) {
+typedef struct Ov96SortNode {
+    struct Ov96SortNode *prev;
+    struct Ov96SortNode *next;
+    Ov96SortKey *data;
+} Ov96SortNode;
+
+s32 ov96_0220472C(s32 arg0, Ov96SortKey **arg1, Ov96SortKey **arg2);
+
+s32 ov96_0220472C(s32 arg0, Ov96SortKey **arg1, Ov96SortKey **arg2) {
     s32 sp0;
-    void *sp4;
+    Ov96SortKey **sp4;
     u8 sp8;
-    s32 nodes[10][3];
+    Ov96SortNode nodes[10];
     u8 n;
     u8 i;
     u8 j;
-    s32 *node;
-    s32 *cur;
-    s32 *p;
+    Ov96SortNode *node;
+    Ov96SortNode *cur;
+    Ov96SortNode *p;
     u16 key;
 
     sp0 = arg0;
     sp4 = arg1;
-    nodes[0][0] = (s32)nodes[1];
-    nodes[0][1] = (s32)nodes[1];
-    nodes[0][2] = 0;
+    nodes[0].prev = &nodes[1];
+    nodes[0].next = &nodes[1];
+    nodes[0].data = NULL;
     sp8 = 0;
     n = sp8;
     i = n;
     do {
         if ((s32)i / 3 != sp0) {
-            node = nodes[n + 1];
-            node[2] = ((s32 *)sp4)[i];
-            node[1] = 0;
-            node[0] = 0;
-            cur = nodes[0];
+            node = &nodes[n + 1];
+            node->data = sp4[i];
+            node->next = NULL;
+            node->prev = NULL;
+            cur = &nodes[0];
             for (j = 0; j < n; j += 1) {
-                cur = (s32 *)cur[1];
-                if (*(u16 *)((u8 *)(s32 *)cur[2] + 6) < *(u16 *)((u8 *)(s32 *)node[2] + 6)) {
-                    ((void **)cur[0])[1] = (u8 *)node;
-                    node[0] = cur[0];
-                    node[1] = (s32)cur;
-                    cur[0] = (s32)node;
+                cur = cur->next;
+                if (cur->data->key < node->data->key) {
+                    cur->prev->next = node;
+                    node->prev = cur->prev;
+                    node->next = cur;
+                    cur->prev = node;
                     break;
                 }
             }
             if (j == n) {
-                cur[1] = (s32)node;
-                node[0] = (s32)cur;
+                cur->next = node;
+                node->prev = cur;
             }
             n += 1;
         }
         i += 1;
     } while (i < 12);
     j = 0;
-    key = *(u16 *)((u8 *)(s32 *)((void **)nodes[0][1])[2] + 6);
-    p = nodes[0];
+    key = nodes[0].next->data->key;
+    p = &nodes[0];
     for (; j < 9; j += 1) {
-        p = (s32 *)p[1];
-        ((s32 *)arg2)[j] = p[2];
-        if (key == *(u16 *)((u8 *)((void **)arg2)[j] + 6)) {
+        p = p->next;
+        arg2[j] = p->data;
+        if (key == arg2[j]->key) {
             sp8 = (u8)(sp8 + 1);
         }
     }

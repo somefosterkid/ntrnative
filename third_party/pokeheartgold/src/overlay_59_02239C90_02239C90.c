@@ -48,11 +48,11 @@ void ov59_02239C90(SysTask *task, void *data) {
 
 u8 sub_02031C08(void *);
 
-s32 sub_02032004(void *);
+s32 sub_02032004(void *arg0, s32 arg1, s32 arg2, s32 arg3);
 
-void ov59_02239D08(Ov59ApricornApp *arg0, s32 arg1);
+void ov59_02239D08(Ov59ApricornApp *arg0, s32 arg1, s32 arg2, s32 arg3);
 
-void ov59_02239D08(Ov59ApricornApp *arg0, s32 arg1) {
+void ov59_02239D08(Ov59ApricornApp *arg0, s32 arg1, s32 arg2, s32 arg3) {
     s32 var_r4;
     u8 var_r6;
 
@@ -71,7 +71,7 @@ void ov59_02239D08(Ov59ApricornApp *arg0, s32 arg1) {
         BufferIntegerAsString(arg0->msgFormat, 1U, (s32) arg0->quantity, 2U, PRINTING_MODE_LEFT_ALIGN, 1);
         break;
     case 21:
-        ReadMsgDataIntoString(arg0->msgData, sub_02032004(&arg0->juice) + 0x13, arg0->unk_64);
+        ReadMsgDataIntoString(arg0->msgData, sub_02032004(&arg0->juice, arg1, arg2, arg3) + 0x13, arg0->unk_64);
         BufferString(arg0->msgFormat, 0U, arg0->unk_64, 2, 0, 2);
         BufferIntegerAsString(arg0->msgFormat, 1U, (s32) arg0->unk_15, 3U, PRINTING_MODE_LEFT_ALIGN, 1);
         BufferIntegerAsString(arg0->msgFormat, 2U, (s32) arg0->unk_16, 3U, PRINTING_MODE_LEFT_ALIGN, 1);

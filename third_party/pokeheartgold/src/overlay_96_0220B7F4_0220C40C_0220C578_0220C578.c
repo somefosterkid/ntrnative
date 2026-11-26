@@ -19,7 +19,11 @@ typedef struct {
     u32 t : 8;
 } UnkStruct_ov96_0220C578;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021E8228.c (tools/pokehg_abi.py)
+void ov96_021E8228(PokeathlonCourseData *param_1, u32 param_2, u32 param_3, s32 param_4, u32 param_5);
+#else
 void ov96_021E8228(PokeathlonCourseData *param_1, u32 param_2, u8 param_3, s32 param_4, u32 param_5);
+#endif
 
 void ov96_0220C7FC(UnkStruct_ov96_0220C578 *param_1);
 

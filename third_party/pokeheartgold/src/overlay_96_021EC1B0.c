@@ -12,7 +12,7 @@
 
 s32 ov96_021ED0C8(u32 *);
 
-s32 ov96_021EC1B0(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_021EC1B0(PokeathlonCourseData *arg0, u8 *arg1);
 
 s32 ov96_021EAC5C(Ov96SpriteSetElem *, s32);
 s32 ov96_021EAD78(Ov96SpriteSetElem *);
@@ -20,7 +20,7 @@ void ov96_021EC218(SysTask *arg0, void *arg1);
 void ov96_021EC298(Ov96App_021ED1D0 *arg0, s32 arg1);
 s32 ov96_021EC2E0(Ov96App_021ED1D0 *arg0);
 
-s32 ov96_021EC1B0(PokeathlonCourseData *data, u8 *arg1) {
+BOOL ov96_021EC1B0(PokeathlonCourseData *data, u8 *arg1) {
     Ov96App_021ED1D0 *work;
     u8 v0;
 

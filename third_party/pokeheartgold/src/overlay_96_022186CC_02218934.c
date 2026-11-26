@@ -1,4 +1,5 @@
 #include "global.h"
+#include "overlay_01_choose_starter_app.h"
 
 s32 _ll_mul(s32, s32, s32, s32);
 

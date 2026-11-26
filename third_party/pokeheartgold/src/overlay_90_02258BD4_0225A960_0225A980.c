@@ -537,15 +537,15 @@ void ov90_02259EE0(UnkStruct_ov114_0225DAC0 *param0, s16 param1, s16 param2);
 
 void ov90_0225B6B0(UnkStruct_ov114_0225F578 *param0, u32 param1);
 
-BOOL ov90_0225B6C4(UnkStruct_ov114_0225F578 *param0, UnkStruct_ov114_0225CEF0 *param1);
+BOOL ov90_0225B6C4(UnkStruct_ov114_0225F578 *param0, UnkStruct_ov114_0225CEF0 *param1, s32 arg2);
 
 void ov90_0225BAA0(UnkStruct_ov114_0225E854 *param0);
 
 void ov90_0225B954(UnkStruct_ov114_0225E854 *param0);
 
-void ov90_0225AE4C(SysTask *param0, void *param1);
+void ov90_0225AE4C(SysTask *param0, void *param1, s32 arg2);
 
-void ov90_0225AE4C(SysTask *param0, void *param1) {
+void ov90_0225AE4C(SysTask *param0, void *param1, s32 arg2) {
     UnkStruct_ov114_0225E854 *v0 = param1;
     BOOL v1;
 
@@ -636,7 +636,7 @@ void ov90_0225AE4C(SysTask *param0, void *param1) {
         }
         break;
     case 7:
-        v1 = ov90_0225B6C4(&v0->unk_26C, &v0->unk_4C);
+        v1 = ov90_0225B6C4(&v0->unk_26C, &v0->unk_4C, arg2);
 
         if (v1 == 1) {
             if (v0->unk_09 == 1) {

@@ -246,7 +246,7 @@ static int HostMain(void *arg) {
     }
     for (;;) {
         SDL_SemWaitTimeout(t->wake, 100);   // (a backstop, as WaitTurn's; the checks below run again)
-        if (!t->busy) {
+        if (!__atomic_load_n(&t->busy, __ATOMIC_ACQUIRE)) {
             continue;
         }
         if (t->cancelled) {
@@ -301,7 +301,7 @@ void PORT_CreateThread(OSThread *thread, void (*func)(void *), void *arg, void *
     t->arg = arg;
     t->prio = prio;
     t->cancelled = FALSE;
-    t->busy = TRUE;
+    __atomic_store_n(&t->busy, TRUE, __ATOMIC_RELEASE);   // publishes game/func/arg/prio to HostMain's unlocked read (arm64)
 
     memset(thread, 0, sizeof(*thread));
     thread->priority = prio;

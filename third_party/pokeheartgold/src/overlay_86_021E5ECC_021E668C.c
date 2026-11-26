@@ -5,8 +5,6 @@
 #include "overlay_86_frontier_records_app.h"
 #include "pm_string.h"
 
-void ov86_021E668C(FrontierRecordsApp *arg0, s32 arg1);
-
 void ov86_021E668C(FrontierRecordsApp *arg0, s32 strno) {
     MsgData *msgData;
     String *string;

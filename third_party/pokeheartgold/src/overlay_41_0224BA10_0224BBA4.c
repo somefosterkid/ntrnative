@@ -38,9 +38,9 @@ s32 ov41_022466B8(void *);
 
 SysTask *ov41_0224B5C8(void *);
 
-void ov41_0224BBF0(void *arg0);
+void ov41_0224BBF0(UnkStruct_ov22_0225B85C *arg0);
 
-void ov41_0224BBF0(void *arg0) {
-    ov41_0224B5C8(*(void **)((u8 *)arg0 + 0x10));
-    ov41_022466B8(arg0 + 0x14);
+void ov41_0224BBF0(UnkStruct_ov22_0225B85C *arg0) {
+    ov41_0224B5C8(arg0->unk_10);
+    ov41_022466B8(&arg0->unk_14);
 }

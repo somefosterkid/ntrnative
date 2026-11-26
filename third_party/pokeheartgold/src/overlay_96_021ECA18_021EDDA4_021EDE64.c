@@ -6,7 +6,11 @@
 #include "overlay_96_app_021ede64.h"
 #include "overlay_96_app_021ed1d0.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/overlay_96_021ECA18_021ECBF4.c (tools/pokehg_abi.py)
+s32 ov96_021ECC4C(Ov96PlayerSlot *, s32);
+#else
 s32 ov96_021ECC4C(Ov96PlayerSlot *, u8);
+#endif
 
 u32 ov96_021EE264(Ov96RankEntry *, s32);
 

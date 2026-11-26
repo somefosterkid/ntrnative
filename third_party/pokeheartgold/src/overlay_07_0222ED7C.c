@@ -54,7 +54,7 @@ void ov07_0222EDF0(void *arg0);
 
 void ov07_0222EDF0(void *arg0) {
     *((s32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = 0;
-    ov07_02222590(arg0 + 0x1C, 0xA, 9, 0xA, 8, 0xA, 2);
+    ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 0xA, 9, 0xA, 8, 0xA, 2);
 }
 
 s32 ov07_022226C4(Pokepic *, s16, s32, s32, s32);
@@ -71,23 +71,23 @@ s32 ov07_0222EE14(void *arg0) {
     v1 = 0;
     switch (v0) {
     case 0:
-        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
         } else {
             *((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = (u32)(*((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) + 1);
-            ov07_02222590(arg0 + 0x1C, 9, 0xB, 8, 0xF, 0xA, 2);
+            ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 9, 0xB, 8, 0xF, 0xA, 2);
         }
         break;
     case 1:
-        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
         } else {
             *((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) = (u32)(*((u32 *)&((TormentSpriteContext *)arg0)->attackerScaleState) + 1);
-            ov07_02222590(arg0 + 0x1C, 0xB, 0xA, 0xF, 0xA, 0xA, 2);
+            ov07_02222590(&((TormentSpriteContext *)arg0)->scale, 0xB, 0xA, 0xF, 0xA, 0xA, 2);
         }
         break;
     case 2:
-        if (ov07_02222788(arg0 + 0x1C, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
+        if (ov07_02222788(&((TormentSpriteContext *)arg0)->scale, ((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite)) != 0) {
             ov07_022226C4(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), ((TormentSpriteContext *)arg0)->attackerY, ((TormentSpriteContext *)arg0)->attackerOffset, *((s32 *)&((TormentSpriteContext *)arg0)->scale.data[4]), 0);
         } else {
             Pokepic_SetAttr(((Pokepic *)((TormentSpriteContext *)arg0)->attackerSprite), 0xC, 0x100);

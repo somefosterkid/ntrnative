@@ -2,26 +2,22 @@
 #include "pokeathlon/pokeathlon.h"
 #include "heap.h"
 
-void ov96_021E8988(s32 *param_1, s32 param_2, void *param_3, size_t param_4);
+s32 sub_02036FD8(s32, void *, s32);
 
-void sub_02036FD8(s32, void *, size_t);
+void ov96_021E88FC(Ov96Handlers *);
 
-void ov96_021E87EC(s32 param_1, void *param_2, size_t param_3, u16 *param_4);
+BOOL ov96_021E87EC(s32 cmd, void *data, s32 size, Ov96System *system);
 
-s32 ov96_021E88FC(void *);
-
-void ov96_021E87EC(s32 param_1, void *param_2, size_t param_3, u16 *param_4) {
-    if (*param_4 == 1) {
-        sub_02036FD8(param_1, param_2, param_3);
-        return;
+BOOL ov96_021E87EC(s32 cmd, void *data, s32 size, Ov96System *system) {
+    if (system->isLocal == 1) {
+        return sub_02036FD8(cmd, data, size);
     }
-    ov96_021E8988(*(s32 **)(param_4 + 2), param_1, param_2, param_3);
-    return;
+    return ov96_021E8988(system->handlers, cmd, data, size);
 }
 
-void ov96_021E8810(void *ptr) {
-    if (*(u16 *)ptr == 0) {
-        ov96_021E88FC(*(void **)((u8 *)ptr + 4));
+void ov96_021E8810(Ov96System *ptr) {
+    if (ptr->isLocal == 0) {
+        ov96_021E88FC(ptr->handlers);
     }
     Heap_Free(ptr);
 }

@@ -3,37 +3,24 @@
 #include "sys_task_api.h"
 #include "overlay_90.h"
 #include "sprite.h"
+#include "overlay_90_unk_struct_ov114_0225fab8.h"
 
 void ov90_0225BDE4(SysTask *task, void *data);
 
-void ov90_0225BD84(void *arg0);
+void ov90_0225BD84(UnkStruct_ov114_0225FAB8 *arg0);
 
-typedef struct {
-    Sprite *unk_00[2];
-    s16 unk_08;
-    s16 unk_0A;
-    u8 unk_0C[2][192];
-    SysTask *unk_18C;
-    GXWndPlane unk_190;
-    GXWndPlane battlerType;
-    int unk_194;
-} UnkStruct_ov114_0225FAB8;
 void ov90_0225BDE4(SysTask *param0, void *param1);
 
-void ov90_0225BD84(void *arg0) {
+void ov90_0225BD84(UnkStruct_ov114_0225FAB8 *arg0) {
     s32 v0;
 
-    memset(arg0 + 0xCC, 0, 0xC0U);
-    v0 = 0;
-    if ((s32)(0x17 - ((UnkStruct_ov114_0225FAB8 *)arg0)->unk_0A) > 0) {
-        do {
-            *(s8 *)((u8 *)(arg0 + v0) + 0x115) = 1;
-            *(s8 *)((u8 *)(arg0 + (0x79 - v0)) + 0xCC) = 1;
-            v0 += 1;
-        } while (v0 < (s32)(0x17 - ((UnkStruct_ov114_0225FAB8 *)arg0)->unk_0A));
+    memset(arg0->unk_0C[1], 0, sizeof(arg0->unk_0C[1]));
+    for (v0 = 0; v0 < 23 - arg0->unk_0A; v0++) {
+        arg0->unk_0C[1][(96 - 23) + v0] = 1;
+        arg0->unk_0C[1][(96 + 2 + 23) - v0] = 1;
     }
-    if (((UnkStruct_ov114_0225FAB8 *)arg0)->unk_18C == NULL) {
-        ((UnkStruct_ov114_0225FAB8 *)arg0)->unk_18C = SysTask_CreateOnVWaitQueue(ov90_0225BDE4, arg0, 0U);
+    if (arg0->unk_18C == NULL) {
+        arg0->unk_18C = SysTask_CreateOnVWaitQueue(ov90_0225BDE4, arg0, 0);
     }
 }
 

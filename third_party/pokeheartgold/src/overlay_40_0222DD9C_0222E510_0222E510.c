@@ -8,6 +8,16 @@
 #include "filesystem_files_def.h"
 #include "palette.h"
 #include "struct_defs/resdat_narc_structs.h"
+#include "sprite.h"
+#include "sprite_system.h"
+#include "unk_02013534.h"
+#include "pm_string.h"
+#include "mail_message_types.h"
+#include "save.h"
+#include "msgdata.h"
+#include "pokepic.h"
+#include "touch_hitbox_controller.h"
+#include "overlay_40_unk_struct_ov62_02241204.h"
 
 struct BgConfig;
 
@@ -35,7 +45,7 @@ struct MessageFormat;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct TouchHitboxController;
 
@@ -45,26 +55,6 @@ struct UnkStruct_02030A80_t;
 
 struct UnkStruct_020F3DCC_t;
 
-typedef struct ManagedSprite ManagedSprite;
-
-typedef struct SpriteSystem SpriteSystem;
-
-typedef struct SpriteManager SpriteManager;
-
-typedef struct ManagedSpriteTemplate {
-    s16 x;
-    s16 y;
-    s16 z;
-    u16 animIdx;
-    int priority;
-    int plttIdx;
-    enum NNS_G2D_VRAM_TYPE vramType;
-    int resources[GF_GFX_RES_TYPE_MAX];
-    int bgPriority;
-    BOOL vramTransfer;
-} ManagedSpriteTemplate;
-
-u8 SpriteSystem_LoadPaletteBuffer(PaletteData *paletteData, enum PaletteBufferId bufferID, SpriteSystem *spriteSys, SpriteManager *spriteMan, enum NarcId narcID, int memberIdx, BOOL compressed, int paletteIdx, enum NNS_G2D_VRAM_TYPE vramType, int resourceID);
 
 BOOL SpriteSystem_LoadCellResObj(SpriteSystem *spriteSys, SpriteManager *spriteMan, enum NarcId narcID, int memberIdx, BOOL compressed, int resourceID);
 
@@ -72,24 +62,8 @@ BOOL SpriteSystem_LoadAnimResObj(SpriteSystem *spriteSys, SpriteManager *spriteM
 
 ManagedSprite *SpriteSystem_NewSprite(SpriteSystem *spriteSys, SpriteManager *spriteMan, const ManagedSpriteTemplate *template);
 
-void ManagedSprite_SetAnim(ManagedSprite *managedSprite, u32 animID);
 
-void ManagedSprite_SetPaletteOverrideOffset(ManagedSprite *managedSprite, int paletteOffset);
 
-BOOL SpriteSystem_LoadCharResObjAtEndWithHardwareMappingType(SpriteSystem *spriteSys, SpriteManager *spriteMan, enum NarcId narcID, int memberIdx, BOOL compressed, enum NNS_G2D_VRAM_TYPE vramType, int resourceID);
-
-typedef struct SysTaskManager SysTaskManager;
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
 
 typedef struct UnkStruct_02030A80_t UnkStruct_02030A80;
 
@@ -107,49 +81,7 @@ struct UnkStruct_020F3DCC_t {
     const UnkStruct_020F3DCC *unk_20;
 };
 
-typedef struct TextOBJ TextOBJ;
-
-typedef struct String String;
-
-typedef struct MailMessage {
-    u16 type;
-    u16 id;
-    u16 words[2];
-} MailMessage;
-
-typedef struct SaveData SaveData;
-
-typedef struct MsgData MsgData;
-
-typedef struct PokepicManager PokepicManager;
-
-typedef struct MessageFormat MessageFormat;
-
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
-
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
-
-typedef struct TouchHitboxController TouchHitboxController;
-
-typedef struct {
-    UnkStruct_02030A80 *unk_00;
-    ManagedSprite *unk_04;
-    ManagedSprite *unk_08;
-    Window unk_0C[8];
-} UnkStruct_ov62_022323B8;
 
 typedef struct {
     u16 unk_00;
@@ -269,18 +201,18 @@ void ov40_0222E510(UnkStruct_ov62_022323B8 *param0, UnkStruct_0208C06C *param1) 
         v8.x = 72 + 4;
         v8.y = 64 - 4;
         v8.z = 0;
-        v8.animIdx = 0;
-        v8.priority = 0;
-        v8.plttIdx = 0;
-        v8.vramType = NNS_G2D_VRAM_TYPE_2DMAIN;
+        v8.animation = 0;
+        v8.drawPriority = 0;
+        v8.pal = 0;
+        v8.vram = NNS_G2D_VRAM_TYPE_2DMAIN;
         v8.bgPriority = 0;
         v8.vramTransfer = 0;
-        v8.resources[0] = 100000;
-        v8.resources[1] = 100000;
-        v8.resources[2] = 100000;
-        v8.resources[3] = 100000;
-        v8.resources[4] = -1;
-        v8.resources[5] = -1;
+        v8.resIdList[0] = 100000;
+        v8.resIdList[1] = 100000;
+        v8.resIdList[2] = 100000;
+        v8.resIdList[3] = 100000;
+        v8.resIdList[4] = -1;
+        v8.resIdList[5] = -1;
 
         param0->unk_04 = SpriteSystem_NewSprite(param1->unk_14.unk_04, param1->unk_14.unk_08, &v8);
         v2 = GetMonIconPaletteEx(v1, v3, v0);

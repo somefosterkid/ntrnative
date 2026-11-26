@@ -1,9 +1,11 @@
 #include "global.h"
 
+#include "unk_0205CB48.h"
+
 #include "map_object.h"
 #include "player_avatar.h"
+#include "pokemon_types_def.h"
 
-s32 sub_0205DA1C(PlayerAvatar *, LocalMapObject *, s32);
 
 s32 sub_0206234C(u32, s32);
 

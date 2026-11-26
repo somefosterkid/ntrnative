@@ -3,7 +3,7 @@
 #include "unk_02005D10.h"
 #include "overlay_102_pmsinput_work.h"
 
-s32 ov102_021E839C();
+s32 ov102_021E839C(void *param_1);
 
 s32 ov102_021E83E4(void *);
 
@@ -26,7 +26,7 @@ void ov102_021E848C(void *arg0, s32 *arg1) {
     s32 v1;
     s32 v2;
 
-    v0 = ov102_021E839C();
+    v0 = ov102_021E839C(arg0);
     switch (v0) {
     case 1:
         PlaySE(0x5DCU);
@@ -62,7 +62,7 @@ void ov102_021E848C(void *arg0, s32 *arg1) {
                 *((s16 *)&((PMSInputWork *)arg0)->categoryPosSaved) = (s16)v2;
 block_14:
                 PlaySE(0x5DCU);
-                ov102_021E874C(arg0 + 0x54, arg0);
+                ov102_021E874C(&((PMSInputWork *)arg0)->wordWin, arg0);
                 *((s32 **)&((PMSInputWork *)arg0)->mainProc) = &ov102_021E87B4;
                 ov102_021E940C(*((void **)&((PMSInputWork *)arg0)->vwk), 0xB);
                 *arg1 = 1;

@@ -5,8 +5,6 @@
 #include "palette.h"
 #include "sprite_system.h"
 
-void ov86_021E5CDC(void *data);
-
 void ov86_021E5CDC(void *data) {
     FrontierRecordsApp *app = data;
 

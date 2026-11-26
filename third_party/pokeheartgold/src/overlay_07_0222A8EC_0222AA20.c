@@ -39,7 +39,11 @@ void ov07_0222A8D8(ManagedSprite *sprite);
 
 void ov07_02222EF8(PaletteFadeContext *ctx);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, u8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#else
 PaletteFadeContext *ov07_02222F10(PaletteData *paletteData, enum HeapID heapID, enum PaletteBufferId bufferID, u16 index, u16 count, s8 stepFrames, s8 step, u8 startFrac, u8 endFrac, u16 color, int priority);
+#endif
 
 void ov07_02231E08(BattleAnimSystem *system, int spriteAlpha, int bgAlpha);
 

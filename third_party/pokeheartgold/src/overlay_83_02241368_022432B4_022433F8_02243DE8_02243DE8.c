@@ -24,6 +24,7 @@
 #include "message_printer.h"
 #include "struct_defs/resdat_narc_structs.h"
 #include "gf_gfx_planes.h"
+#include "overlay_83_battle_castle_opponent_app.h"
 
 struct BattleCastleSelfApp;
 
@@ -72,7 +73,7 @@ enum BattleCastleAppState {
 
 void LoadMainBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-void ov83_02244704(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
+void ov83_02244704(BattleCastleOpponentApp *arg0, enum GFBgLayer bgLayer);
 
 void LoadMovesListBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
@@ -80,7 +81,6 @@ void LoadItemSelectBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
 void ov82_0223EE6C(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

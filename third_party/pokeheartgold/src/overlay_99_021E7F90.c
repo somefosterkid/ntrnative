@@ -3,12 +3,13 @@ struct PokeathlonMedals;
 
 #include "sprite_system.h"
 #include "overlay_99_pokeathlon_medals.h"
+struct PokeathlonSpriteContext;
 
 SpriteSystem *ov98_0221E5C0(void *);
 
 SpriteManager *ov98_0221E5D0(void *);
 
-s32 ov98_0221E8A8(void *, s32 *, s32, s32, s32);
+s32 ov98_0221E8A8(struct PokeathlonSpriteContext *, s32 *, s32, s32, s32);
 
 s32 ov99_021E7F64(void *);
 

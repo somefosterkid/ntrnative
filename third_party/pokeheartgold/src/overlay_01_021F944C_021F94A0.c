@@ -8,7 +8,7 @@
 s32 ov01_021F96E4(void *);
 
 
-SysTask *ov01_021FA314();
+BOOL ov01_021FA314(BillboardList *list);
 
 void ov01_021F94A0(void *arg0);
 
@@ -20,8 +20,7 @@ void ov01_021FA75C(UnkStruct_ov5_021ED0A4 *param0, LocalMapObject *param1, Billb
 void ov01_021F94A0(void *arg0) {
     ov01_021FA8F8(arg0);
     ov01_021F96E4(arg0);
-    ov01_021FA1D0(arg0);
-    ov01_021FA314();
+    ov01_021FA314(ov01_021FA1D0(arg0));
     ov01_021F9890(arg0);
 }
 

@@ -15,16 +15,16 @@ void ov41_02247C7C(UnkStruct_ov22_0225A0E4 *arg0, s32 strno) {
     String *string;
     String *v0;
 
-    FillWindowPixelBuffer(*((Window * *)&arg0->unk_6BC), 0xFU);
+    FillWindowPixelBuffer(arg0->unk_6BC, 0xFU);
     msgData = NewMsgDataFromNarc(MSGDATA_LOAD_DIRECT, NARC_msgdata_msg, 0xD7, HEAP_ID_13);
     v0 = NewString_ReadMsgData(msgData, strno);
     string = String_New(0x100U, HEAP_ID_13);
-    StringExpandPlaceholders(*((MessageFormat * *)&arg0->unk_6E8), string, v0);
-    AddTextPrinterParameterizedWithColor(*((Window * *)&arg0->unk_6BC), FONT_MESSAGE, string, 0U, 0U, 0U, 0x1020FU, NULL);
+    StringExpandPlaceholders(arg0->unk_6E8, string, v0);
+    AddTextPrinterParameterizedWithColor(arg0->unk_6BC, FONT_MESSAGE, string, 0U, 0U, 0U, 0x1020FU, NULL);
     String_Delete(string);
     String_Delete(v0);
     DestroyMsgData(msgData);
-    CopyWindowToVram(*((Window * *)&arg0->unk_6BC));
+    CopyWindowToVram(arg0->unk_6BC);
 }
 
 void ov41_02247D00(void *arg0);

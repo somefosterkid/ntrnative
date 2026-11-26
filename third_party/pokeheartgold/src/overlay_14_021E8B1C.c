@@ -16,7 +16,7 @@
 s32 ov14_021E7960(s16, s16);
 
 s32 ov14_021E65C4(void *);
-s32 ov14_021E6CF8(void *, u8, s32);
+s32 ov14_021E6CF8(void *, u32, s32);
 s32 ov14_021E70B0(void *, s32);
 s32 ov14_021E7148(void *, void *);
 s32 ov14_021E8434(void *);
@@ -64,13 +64,13 @@ s32 ov14_021E8B3C(UnkStruct_ov14_021E8B3C *arg0) {
     return 0;
 }
 
-s32 ov14_021E8B80(void *arg0) {
+s32 ov14_021E8B80(UnkStruct_ov14_boxapp *arg0) {
     NamingScreenArgs *namingScreenArgs;
 
-    namingScreenArgs = ((UnkStruct_ov14_boxapp *)arg0)->unk_18;
-    PCStorage_SetBoxName(*(PCStorage **)((u8 *)arg0 + 4), (u32) ((UnkStruct_ov14_boxapp *)arg0)->unk25, namingScreenArgs->nameInputString);
-    *((s16 *)&((UnkStruct_ov14_boxapp *)arg0)->unk_1C) = (s16)namingScreenArgs->noInput;
-    NamingScreen_DeleteArgs(((UnkStruct_ov14_boxapp *)arg0)->unk_18);
+    namingScreenArgs = arg0->unk_18;
+    PCStorage_SetBoxName(arg0->storage, (u32) arg0->unk25, namingScreenArgs->nameInputString);
+    *((s16 *)&arg0->unk_1C) = (s16)namingScreenArgs->noInput;
+    NamingScreen_DeleteArgs(arg0->unk_18);
     return 0;
 }
 
@@ -83,28 +83,28 @@ s32 ov14_021E8BA4(UnkStruct_ov14_boxapp *arg0) {
     s32 v8;
     s32 v9;
     u16 v2;
-    void *v3;
-    void *v4;
-    void *v5;
-    void *v6;
+    UnkStruct_ov14_boxsys *v3;
+    UnkStruct_ov14_boxsys *v4;
+    UnkStruct_ov14_boxsys *v5;
+    UnkStruct_ov14_boxsys *v6;
 
-    v6 = *((void * *)&arg0->sys);
-    v7 = ov14_021E8514(*((s32 *)&((UnkStruct_ov14_boxsys *)v6)->unk_2F0));
+    v6 = arg0->sys;
+    v7 = ov14_021E8514(*((s32 *)&v6->unk_2F0));
     v8 = sub_02019978(((u8 *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_2F0), 8);
     v0 = sub_02019978(((u8 *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_2F0), 9);
     v1 = sub_02019978(((u8 *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_2F0), 0xA);
-    v2 = ((UnkStruct_ov14_boxsys *)v6)->unk_10;
+    v2 = v6->unk_10;
     switch (v2) {
     case 0:
         if (System_GetTouchHeldCoords(&x, &y) == 0) {
             v9 = 0xFF;
             if (*((u8 *)&arg0->unk23[1]) != 0) {
-                v4 = *((void * *)&arg0->sys);
-                v9 = ov14_021E79D8((s16) *((u32 *)&((UnkStruct_ov14_boxsys *)v4)->unk_40B8), (s16) *((u32 *)&((UnkStruct_ov14_boxsys *)v4)->unk_40BC));
+                v4 = arg0->sys;
+                v9 = ov14_021E79D8((s16) *((u32 *)&v4->unk_40B8), (s16) *((u32 *)&v4->unk_40BC));
             }
             if (v9 == 0xFF) {
-                v5 = *((void * *)&arg0->sys);
-                v9 = ov14_021E7960((s16) *((u32 *)&((UnkStruct_ov14_boxsys *)v5)->unk_40B8), (s16) *((u32 *)&((UnkStruct_ov14_boxsys *)v5)->unk_40BC));
+                v5 = arg0->sys;
+                v9 = ov14_021E7960((s16) *((u32 *)&v5->unk_40B8), (s16) *((u32 *)&v5->unk_40BC));
             }
             ov14_021E6CF8(arg0, arg0->unk21, v9);
             ov14_021F40E8(arg0, 0);
@@ -112,11 +112,11 @@ s32 ov14_021E8BA4(UnkStruct_ov14_boxapp *arg0) {
                 arg0->unk21 = ov14_021E70B0(arg0, arg0->unk21);
             }
             ov14_021E8434(((u8 *)((UnkStruct_ov14_boxsys *)arg0->sys)->unk_2F0));
-            ov14_021E8824(*((void * *)&arg0->sys));
-            ((UnkStruct_ov14_boxsys *)v6)->unk_10 = 1U;
+            ov14_021E8824(arg0->sys);
+            v6->unk_10 = 1U;
         } else {
-            v3 = *((void * *)&arg0->sys);
-            ManagedSprite_SetPositionXY(*(ManagedSprite **)((u8 *)(v3 + (*(u8 *)((u8 *)(v3 + arg0->unk21) + 0x4094) * 4)) + 0x2FC), (s16)x, (s16)((s16)y - 8));
+            v3 = arg0->sys;
+            ManagedSprite_SetPositionXY(v3->sprites[v3->unk_4094[arg0->unk21]], (s16)x, (s16)((s16)y - 8));
             ov14_021F4174(arg0);
             *((u32 *)&((UnkStruct_ov14_boxsys *)arg0->sys)->unk_40B8) = x;
             *((u32 *)&((UnkStruct_ov14_boxsys *)arg0->sys)->unk_40BC) = y;
@@ -125,10 +125,10 @@ s32 ov14_021E8BA4(UnkStruct_ov14_boxapp *arg0) {
         break;
     case 1:
         if ((ov14_021E65C4(arg0) == 0) && (v7 == 0) && (v8 == 0) && (v0 == 0) && (v1 == 0)) {
-            ov14_021E7148(arg0, *(void **)((u8 *)v6 + 0xC));
+            ov14_021E7148(arg0, v6->unk_C);
             ov14_021F4174(arg0);
             ov14_021F40E8(arg0, *((s32 *)&((UnkStruct_ov14_boxsys *)arg0->sys)->unk_40C4));
-            ((UnkStruct_ov14_boxsys *)v6)->unk_10 = 0U;
+            v6->unk_10 = 0U;
             return 0;
         }
         break;

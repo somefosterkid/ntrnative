@@ -4,11 +4,11 @@
 #include "overlay_44_02232E9C.h"
 #include "overlay_00_nintendo_wfcmanager.h"
 
-extern void *_0221A680;
+extern NintendoWFCManager *_0221A680;
 
-void ov00_021E6CA4(void (*func)(u32)) {
+void ov00_021E6CA4(void (*func)(u32 errorCode)) {
     if (_0221A680 != NULL) {
-        *(void (**)(u32))((u8 *)_0221A680 + 0xFC0) = func;
+        _0221A680->fatalErrorCallback = func;
     }
 }
 
@@ -22,6 +22,6 @@ void ov00_021E6CB8(void) {
 }
 
 void ov00_021E6CCC(UnkStruct_ov44_02231958 *arg0, s32 arg1) {
-    *((UnkStruct_ov44_02231958 **)&((NintendoWFCManager *)_0221A680)->friendStatusesBuffer) = arg0;
-    *((s32 *)&((NintendoWFCManager *)_0221A680)->friendStatusSize) = arg1;
+    *((UnkStruct_ov44_02231958 **)&_0221A680->friendStatusesBuffer) = arg0;
+    *((s32 *)&_0221A680->friendStatusSize) = arg1;
 }

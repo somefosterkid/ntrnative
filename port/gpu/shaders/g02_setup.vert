@@ -457,6 +457,10 @@ void s_build(int rec) {
   }
   s0 = s_f(vec4(float(px0), float(px1), float(den_f * m), float(den_z * m)));
   s1 = s_f(vec4(L.w.x, R.w.x, L.z.x, R.z.x));
+  // t9.w (free in both layouts): pass R's g_depth2 quotient once a record instead of once a pixel (g02_spans.c gpu_span_pack;
+  // pass R reads it under GPU_EXP_R_DQ)
+  int dzm = den_z * m;
+  if (dzm >= 1 && dzm < 65536) s9.w = floatBitsToUint(float(s_fdiv(int(floor(R.z.x)) - int(floor(L.z.x)), dzm)));
   s2 = s_f(vec4(L.c, L.s.x));
   s3 = s_f(vec4(R.c, R.s.x));
   vec2 inner = vec2(r01.y + 1.0, r01.z - 1.0); // between the mask's first two runs (g02_spans.c gpu_span_inner)

@@ -22,9 +22,9 @@ s32 ov96_02207870(void *);
 
 
 
-s32 ov96_022052B0(PokeathlonCourseData *arg0, u8 *arg1);
+BOOL ov96_022052B0(PokeathlonCourseData *arg0, u8 *arg1);
 
-s32 ov96_022052B0(PokeathlonCourseData *arg0, u8 *arg1) {
+BOOL ov96_022052B0(PokeathlonCourseData *arg0, u8 *arg1) {
     s32 sp5C[10];
     s32 sp34[10];
     s32 sp20[5];

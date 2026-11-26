@@ -18,8 +18,8 @@ void ov41_02247D64(UnkStruct_ov22_0225A0E4 *arg0) {
     template.x = 0x19;
     template.y = 4;
     template.ignoreTouchFlag = (u8)(*((s32 *)&arg0->unk_6EC));
-    YesNoPrompt_Reset(*((YesNoPrompt * *)&arg0->unk_6B8));
-    YesNoPrompt_InitFromTemplate(*((YesNoPrompt * *)&arg0->unk_6B8), &template);
+    YesNoPrompt_Reset(arg0->unk_6B8);
+    YesNoPrompt_InitFromTemplate(arg0->unk_6B8, &template);
     ov41_02247D34(arg0, 2);
     reg_G2_BG0CNT = (u16)(2 | (reg_G2_BG0CNT & (~3)));
     reg_G2_BG1CNT = (u16)(1 | (reg_G2_BG1CNT & (~3)));

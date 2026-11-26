@@ -7,7 +7,11 @@
 
 s32 ov96_021E6454(PokeathlonCourseData *, s32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_0220DC7C(UnkStruct_ov96_0220E3F0_Hud *, u8 *, PokeathlonCourseData *);
+#else
 s32 ov96_0220DC7C(UnkStruct_ov96_0220E3F0_Hud *, u8 *, PokeathlonCourseData *);
+#endif
 
 s32 ov96_0220DEAC(UnkStruct_ov96_0220E3F0_Hud *, u8 *, PokeathlonCourseData *);
 

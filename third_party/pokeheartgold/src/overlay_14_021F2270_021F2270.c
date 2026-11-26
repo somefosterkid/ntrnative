@@ -10,7 +10,6 @@ s32 ov14_021F2270(struct UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2);
 
 u8 sub_02019B10(UnkStruct_0201956C *, s32);
 
-s32 sub_02019B1C(UnkStruct_0201956C *, s32, s8 *, s8 *);
 
 s32 ov14_021F2270(UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2) {
     u16 sp4;

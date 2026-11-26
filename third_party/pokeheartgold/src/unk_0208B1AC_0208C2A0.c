@@ -7,7 +7,11 @@
 
 u8 sub_0208ACDC(void *, u8);
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/unk_0208B1AC_0208C0E8.c (tools/pokehg_abi.py)
+void sub_0208C250(void *, u8, s32);
+#else
 s32 sub_0208C250(void *, s32, u8);
+#endif
 
 void sub_0208C2A0(PokemonSummary *arg0) {
     s32 v1;

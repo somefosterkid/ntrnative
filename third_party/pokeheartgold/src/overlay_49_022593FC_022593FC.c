@@ -15,7 +15,11 @@ s32 ov49_022593FC(s32 *arg0) {
 void ov49_0225940C(void) {
 }
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov49_0225927C(void *, s16, s8, s8);
+#else
 s32 ov49_0225927C(void *, s32, s32, s32);
+#endif
 
 void ov49_02259410(UnkStruct_ov42_02228110 **arg0, void *arg1);
 

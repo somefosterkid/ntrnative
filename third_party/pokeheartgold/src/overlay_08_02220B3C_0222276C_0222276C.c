@@ -62,7 +62,7 @@ s32 ov08_02223480(BattleBag *, s32);
 
 s32 ov08_02223BF4(BattleBag *);
 
-s32 ov08_02223F94(BattleBag *, u8);
+s32 ov08_02223F94(BattleBag *, int);
 
 s32 ov08_02224A50(BattleBag *, s32);
 

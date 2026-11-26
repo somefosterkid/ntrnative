@@ -1,4 +1,7 @@
 #include "global.h"
+#include "overlay_80_frontier_anim.h"
+
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "sys_task.h"
@@ -36,7 +39,6 @@ struct FieldBattleDTO;
 struct FieldFrontierDTO;
 
 
-struct FrontierAnimCmd;
 
 struct FrontierMenuManager;
 
@@ -382,11 +384,9 @@ typedef struct BattleRecords {
 
 typedef struct CaptureAttempt CaptureAttempt;
 
-typedef struct FrontierAnimCmd FrontierAnimCmd;
 
 typedef void (*BattleFrontierSubAppCallback)(void *);
 
-FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier, s32);
 
 void Frontier_LaunchApplication(BattleFrontier *frontier, const ApplicationManagerTemplate *appTemplate, void *appArgs, BOOL freeArgsAfter, BattleFrontierSubAppCallback finishCallback);
 
@@ -477,7 +477,7 @@ BOOL FrtCmd_110(FrontierScriptContext *ctx, s32 arg1);
 BOOL FrtCmd_110(FrontierScriptContext *ctx, s32 arg1) {
     int v0;
     FieldBattleDTO *dto;
-    FieldFrontierDTO *fieldData = Frontier_GetLaunchArgs(ctx->frontierSystem->frontier, arg1);
+    FieldFrontierDTO *fieldData = Frontier_GetLaunchArgs(ctx->frontierSystem->frontier);
 
     dto = Heap_Alloc(HEAP_ID_FIELD2, 468);
     MI_CpuClear8(dto, 468);

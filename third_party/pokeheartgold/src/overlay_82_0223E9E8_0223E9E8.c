@@ -271,7 +271,7 @@ struct BattleHallApp {
 
 void ov82_0223EB3C(void *arg0);
 
-void ov82_0223EB9C(void *arg0);
+void ov82_0223EB9C(BattleHallApp *arg0);
 
 void ov82_0223F580(BattleHallApp *app, BgConfig *bgConfig);
 

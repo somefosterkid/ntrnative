@@ -64,7 +64,7 @@ s32 ov01_021F6C4C(void *arg0) {
     v1 = ov01_021F6B00((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem));
     v0 = ov01_021F6B10((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem));
     if ((v1 == 3) && (v0 == 1)) {
-        ov01_021F6ABC((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem), 3, 3, arg0 + 0x90);
+        ov01_021F6ABC((((UnkStruct_ov5_021EAE78 *)arg0)->fieldSystem), 3, 3, &((UnkStruct_ov5_021EAE78 *)arg0)->unk_90);
         return 1;
     }
     return 0;

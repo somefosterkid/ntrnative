@@ -1,19 +1,17 @@
 #include "global.h"
-struct Ov02FollowApp;
-
 #include "message_format.h"
 #include "msgdata.h"
 #include "pm_string.h"
-#include "overlay_02_follow_app.h"
+#include "field_system.h"
 
-s32 ov02_0224FC74(struct Ov02FollowApp *arg0, void *arg1);
+s32 ov02_0224FC74(FieldSystemUnkSub120 *arg0, FieldSystemUnkSub120_Sub7E4 *arg1);
 
-s32 ov02_0224FC74(Ov02FollowApp *arg0, void *arg1) {
+s32 ov02_0224FC74(FieldSystemUnkSub120 *arg0, FieldSystemUnkSub120_Sub7E4 *arg1) {
     s32 v0;
 
     v0 = 0;
-    *((s8 *)&arg0->unk_810[93]) = 0;
-    if (*(u8 *)((u8 *)arg1 + 7) != 0) {
+    arg0->unk86D = 0;
+    if (arg1->unk7 != 0) {
         v0 = 1;
     }
     return v0;

@@ -15,7 +15,7 @@ struct PokemonSpriteTransforms;
 struct TransformData;
 typedef struct PokepicTemplate PokepicTemplate;
 typedef struct BgConfig BgConfig;
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 void BgCommitTilemapBufferToVram(BgConfig *bgConfig, u8 bgLayer);
 void BG_LoadScreenTilemapData(BgConfig *bgConfig, u8 bgLayer, void *src, u32 size);
 void BgTilemapRectChangePalette(BgConfig *bgConfig, u8 bgLayer, u8 x, u8 y, u8 width, u8 height, u8 palette);

@@ -77,7 +77,7 @@ enum BattleCastleAppState {
     STATE_FADE_OUT
 };
 
-void ov83_022433B8(BattleCastleOpponentApp *app);
+void ov83_022433B8(BattleCastleOpponentApp *arg0);
 
 BOOL ov83_022450A8(BattleCastleOpponentApp *app, u16 cmd, u16 slot);
 
@@ -89,7 +89,6 @@ void LoadMovesListBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLaye
 
 void LoadSubScreenBackground(BattleCastleOpponentApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleOpponentApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 

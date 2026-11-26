@@ -4,7 +4,11 @@
 
 u32 GF_GetBankInfoBySeqNo(u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void GF_SetCurrentPlayingBGM(u16);
+#else
 void GF_SetCurrentPlayingBGM(u32);
+#endif
 
 void sub_02004A60(u32);
 

@@ -840,7 +840,11 @@ void ov40_0222FA88(UnkStruct_ov62_0223359C *param0);
 
 void ov40_0222FE68(UnkStruct_0208C06C *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *ov40_0222FE98(NARC *param0);
+#else
 void ov40_0222FE98(NARC *param0);
+#endif
 
 void ov40_02230944(UnkStruct_0208C06C *param0);
 

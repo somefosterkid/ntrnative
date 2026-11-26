@@ -27,6 +27,7 @@
 #include "overlay_45_unk_struct_ov66_02234798.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
 #include "frontier_graphics.h"
+#include "frontier_launch.h"
 #include "overlay_80_field_frontier_dto.h"
 #include "frontier/frontier_script_context.h"
 #include "overlay_41_sprite_resource_collection.h"
@@ -1115,8 +1116,6 @@ void Frontier_FreeMap(BattleFrontier *frontier);
 void sub_02096780(BattleFrontier *frontier);
 void Frontier_LoadOverlays(void);
 void Frontier_UnloadOverlays(void);
-enum ChoiceStep Frontier_GetLaunchArgs(ChooseStarterApp *app);
-BOOL sub_0209680C(EncounterEffect *encEffect);
 
 void Frontier_CreateMap(BattleFrontier *frontier) {
     frontier->graphics = FrontierMap_Init(frontier);
@@ -1152,10 +1151,10 @@ void Frontier_UnloadOverlays(void) {
     UnloadOverlayByID(FS_OVERLAY_ID(OVY_42));
 }
 
-enum ChoiceStep Frontier_GetLaunchArgs(ChooseStarterApp *app) {
-    return app->choiceStep;
+FieldFrontierDTO *Frontier_GetLaunchArgs(BattleFrontier *frontier) {
+    return frontier->fieldData;
 }
 
-BOOL sub_0209680C(EncounterEffect *encEffect) {
-    return encEffect->hBlankFlag;
+FrontierGraphics *sub_0209680C(BattleFrontier *frontier) {
+    return frontier->graphics;
 }

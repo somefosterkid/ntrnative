@@ -171,7 +171,9 @@ static const BGSetup data_ov124_021d4c24 = {
 };
 
 // The first tile of the picture of each page
-static const u32 data_ov124_021d4c04[PICTURE_PAGE_COUNT] = { 12, 20, 20, 16, 16, 16, 16, 16 };
+static const u32 data_ov124_021d4c04[PICTURE_PAGE_COUNT] = {
+#include "asset/cg_help_data_ov124_021d4c04.inc"
+};
 
 // pokebw2's sBGSetupText
 static const BGSetup data_ov124_021d4c44 = {

@@ -5,7 +5,11 @@
 #include "overlay_01_021F4704.h"
 
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u8 ov01_021F635C(u32, const u8, void *);
+#else
 s8 ov01_021F635C(u32, s32, void *);
+#endif
 
 s32 ov01_021F654C(struct MapLoadManager *arg0, s32 arg1, s32 arg2, s8 *arg3);
 

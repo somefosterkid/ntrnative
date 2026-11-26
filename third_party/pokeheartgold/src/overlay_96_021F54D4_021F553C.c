@@ -27,9 +27,9 @@ void ov96_021F74C8(UnkStruct_ov96_021F74A4 *);
 
 void ov96_021F7738(void *);
 
-u32 ov96_021F553C(PokeathlonCourseData *param_1);
+BOOL ov96_021F553C(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_021F553C(PokeathlonCourseData *param_1) {
+BOOL ov96_021F553C(PokeathlonCourseData *param_1, int unused) {
     UnkStruct_ov96_021F5018 *work;
     s32 i;
 

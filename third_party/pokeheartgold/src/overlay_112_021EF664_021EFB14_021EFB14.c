@@ -9,27 +9,13 @@
 
 s32 ov112_021E7CA4(void *, s32, s32);
 
-s32 ov112_021E9A78(void *, u8);
-
-s32 ov112_021E9C10(void *, s32);
-
-s32 ov112_021E9F5C(Ov112PokewalkerApp *, s32, s32, s32);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32);
 
 u8 ov112_021E9FD8(Ov112PokewalkerApp *, s32, String *, s32);
 
-s32 ov112_021EA670(void *, s32);
-
-s32 ov112_021EA688(void *, s32);
-
-s32 ov112_021EA6B8(void *, s32, u16, u16);
-
-s32 ov112_021EAB78(void *, s32, u32, u32);
-
 s32 ov112_021EFAD4(void *, void *);
 
-s32 ov112_021EFB14(void *arg0);
-
-s32 ov112_021EFB14(void *arg0) {
+s32 ov112_021EFB14(Ov112PokewalkerApp *arg0) {
     s32 var_r4;
     u8 *var_r7;
     Ov112PokewalkerApp *var_r5;

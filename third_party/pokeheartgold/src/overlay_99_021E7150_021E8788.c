@@ -4,7 +4,7 @@ struct PokeathlonEventRecord;
 #include "gf_gfx_loader.h"
 #include "overlay_99_pokeathlon_event_record.h"
 
-s32 ov99_021E86D4(void *, s32, u8, s32, s32, s32);
+void ov99_021E86D4(void *, s32, u8, s32, s32, s32);
 
 s32 ov99_021E89EC(void *);
 
@@ -40,13 +40,13 @@ void ov99_021E87D0(PokeathlonEventRecord *arg0) {
     GfGfxLoader_GXLoadPalWithSrcOffsetFromOpenNarc(arg0->narc, 0x33, GF_PAL_LOCATION_SUB_BG, (u32)srcOffset, GF_PAL_SLOT_1_OFFSET, 0x20U, *((enum HeapID *)&arg0->heapId));
 }
 
-s32 ov99_021E89A4();
+s32 ov99_021E89A4(void *param_1);
 
 s32 ov99_021E9038(void *);
 
 void ov99_021E8818(void *arg0);
 
 void ov99_021E8818(void *arg0) {
-    ov99_021E89A4();
+    ov99_021E89A4(arg0);
     ov99_021E9038(arg0);
 }

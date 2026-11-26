@@ -8,9 +8,17 @@ struct BattleBag;
 
 u16 ov08_02223CD4(void *, u32);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov08_02223E3C(void *, u16, s32);
+#else
 s32 ov08_02223E3C(void *, s32, s32);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov08_02223E74(void *, u16, s16, s32);
+#else
 s32 ov08_02223E74(void *, s32, s32, s32);
+#endif
 
 s32 ov08_02223F74(ManagedSprite *, s32, s32);
 

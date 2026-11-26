@@ -11,7 +11,11 @@
 /* HDR-OVERLAY end */
 #undef sub_02037E1C
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02037E1C(s8 arg0);
+#else
 void sub_02037E1C(u8 arg0);
+#endif
 
 /* HDR-OVERLAY done */
 s32 sub_020582F4(s32 *, u16);

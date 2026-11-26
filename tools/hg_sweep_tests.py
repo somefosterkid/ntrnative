@@ -45,9 +45,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(sum(k.startswith('x@') for k in one.split()), 1)
         self.assertGreater(frames, 100)
 
-    @unittest.skipUnless(all(os.path.exists(os.path.join(hg_sweep.TREE, p)) for p in (
-        'include/constants/maps.h', 'src/data/map_headers.h', 'files/fielddata/eventdata/zone_event')),
-        'no generated tree with the zone events')
+    @unittest.skipUnless(os.path.exists(os.path.join(hg_sweep.TREE, 'include/constants/maps.h')) and os.path.exists(
+        os.path.join(hg_sweep.REPO, 'orig/baserom_hg_us.nds')), 'no generated tree / HeartGold ROM')
     def test_map_table(self):
         maps = hg_sweep.read_maps()
         self.assertEqual(maps[60][0], 'MAP_NEW_BARK')

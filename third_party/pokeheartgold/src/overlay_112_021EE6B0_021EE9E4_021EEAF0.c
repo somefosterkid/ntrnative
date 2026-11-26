@@ -46,9 +46,12 @@ extern u64 _u32_div_f(u32 a, u32 b);
 
 extern void ov112_021EE9A4(Pokemon *mon, void *a1, void *a2, u32 a3, int a4);
 
-extern void ov112_021EE9E4(Pokemon *mon, u32 a1, void *a2, u32 a3, int a4);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+extern void ov112_021EE9E4(Pokemon *mon, u32 a1, Ov112PokewalkerMonRec *a2, u16 a3, int a4);
+#else
+extern void ov112_021EE9E4(Pokemon *mon, u32 a1, Ov112PokewalkerMonRec *a2, u32 a3, int a4);
+#endif
 
-void ov112_021EEAF0(Ov112PokewalkerApp *work, int useWalkerBox);
 
 void ov112_021EEAF0(Ov112PokewalkerApp *work, int useWalkerBox) {
     PCStorage *storage;

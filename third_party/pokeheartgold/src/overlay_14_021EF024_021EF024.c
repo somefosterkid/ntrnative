@@ -36,26 +36,26 @@ s32 ov14_021EF024(UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2) {
     u16 temp_r2;
     u16 temp_r7;
     u8 temp_r2_2;
-    void *temp_r0;
+    UnkStruct_ov14_boxsys *temp_r0;
 
-    if (ov14_021F2A04(*((void * *)&arg0->sys), 0xB, arg2) == 1) {
+    if (ov14_021F2A04(arg0->sys, 0xB, arg2) == 1) {
         return 0x7F;
     }
-    ov14_021F391C(*((void * *)&arg0->sys), 0);
-    ov14_021F2A18(*((void * *)&arg0->sys), 0xB, 0);
+    ov14_021F391C(arg0->sys, 0);
+    ov14_021F2A18(arg0->sys, 0xB, 0);
     temp_r4 = ((u16 *)arg0->sys->unk_C);
     temp_r7 = ov14_021E6070(arg0, *temp_r4, 6, 0);
-    ov14_021E6094(arg0, *temp_r4, 6, *((void * *)&arg0->sys) + 0x88C8);
+    ov14_021E6094(arg0, *temp_r4, 6, &arg0->sys->unk_88C8);
     if (ov14_021E64D0(ov14_021E60C0(arg0, arg0->unk1F, *temp_r4)) == 1) {
         temp_r2 = *temp_r4;
-        ov14_021F2ED0(arg0, arg0->unk1F, temp_r2, *(u8 *)((u8 *)(*((void * *)&arg0->sys) + temp_r2) + 0x4094));
+        ov14_021F2ED0(arg0, arg0->unk1F, temp_r2, arg0->sys->unk_4094[temp_r2]);
     }
     ov14_021E7588(arg0, *temp_r4);
     arg0->sys->unk_88C8 = temp_r7;
-    ov14_021E6094(arg0, (u16) arg0->unk21, 6, *((void * *)&arg0->sys) + 0x88C8);
+    ov14_021E6094(arg0, (u16) arg0->unk21, 6, &arg0->sys->unk_88C8);
     if (ov14_021E64D0(ov14_021E60C0(arg0, arg0->unk1F, (u16) arg0->unk21)) == 1) {
         temp_r2_2 = arg0->unk21;
-        ov14_021F2ED0(arg0, arg0->unk1F, (u16)temp_r2_2, *(u8 *)((u8 *)(*((void * *)&arg0->sys) + temp_r2_2) + 0x4094));
+        ov14_021F2ED0(arg0, arg0->unk1F, (u16)temp_r2_2, arg0->sys->unk_4094[temp_r2_2]);
     }
     if (arg0->sys->unk_88C8 == 0) {
         arg0->unk21 = (u8)*temp_r4;
@@ -68,11 +68,11 @@ s32 ov14_021EF024(UnkStruct_ov14_boxapp *arg0, s32 arg1, s32 arg2) {
         return ov14_021F0234(arg0, ov14_021E94BC, 0x75);
     }
     PlaySE(0x5EBU);
-    temp_r0 = *((void * *)&arg0->sys);
-    ov14_021F3844(temp_r0, ((UnkStruct_ov14_boxsys *)temp_r0)->unk_88C8);
-    ov14_021F391C(*((void * *)&arg0->sys), 1);
-    ov14_021F29E4(*((void * *)&arg0->sys), 0xB, 1);
-    ov14_021F2A18(*((void * *)&arg0->sys), 0xB, 1);
-    ov14_021F39D0(*((void * *)&arg0->sys));
+    temp_r0 = arg0->sys;
+    ov14_021F3844(temp_r0, temp_r0->unk_88C8);
+    ov14_021F391C(arg0->sys, 1);
+    ov14_021F29E4(arg0->sys, 0xB, 1);
+    ov14_021F2A18(arg0->sys, 0xB, 1);
+    ov14_021F39D0(arg0->sys);
     return ov14_021F0234(arg0, ov14_021EA728, 0x80);
 }

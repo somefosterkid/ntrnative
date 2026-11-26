@@ -10,6 +10,7 @@
 #include "player_data.h"
 #include "pm_string.h"
 #include "save.h"
+#include "overlay_46_unk_struct_ov67_0225d210.h"
 
 typedef struct MessageBankEntry MessageBankEntry;
 
@@ -53,18 +54,6 @@ struct StringTemplate {
     StringTemplateArg *args;
     String *templateBuf;
 };
-
-typedef struct {
-    StringTemplate *unk_00;
-    MsgData *unk_04;
-    Window unk_08;
-    String *unk_18;
-    String *unk_1C;
-    u32 unk_20;
-    void *unk_24;
-    u32 unk_28;
-    u32 unk_2C;
-} UnkStruct_ov67_0225D210;
 
 void ov46_022592EC(UnkStruct_ov67_0225D210 *param0, BgConfig *param1, u32 param2, u32 param3, u32 param4, u32 param5, u32 param6, u32 param7, u32 param8, SaveData *saveData, enum HeapID heapID);
 

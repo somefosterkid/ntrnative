@@ -4,18 +4,6 @@
 #include "error_handling.h"
 #include "unk_02033AE0.h"
 
-typedef int (*UnkFuncPtr_02032868)(void);
-
-typedef u8 *(*UnkFuncPtr_0203290C)(int, void *, int);
-
-typedef void (*UnkFuncPtr_020F8E60)(int, int, void *, void *);
-
-typedef struct CommCmdTable {
-    UnkFuncPtr_020F8E60 unk_00;
-    UnkFuncPtr_02032868 unk_04;
-    UnkFuncPtr_0203290C unk_08;
-} CommCmdTable;
-
 void sub_02037974(void);
 
 extern const CommCmdTable _020F6980[22];
@@ -25,7 +13,7 @@ void sub_02034170(int param0, int cmd, int param2, void *param3);
 s32 sub_020342C8(void);
 
 void sub_02034170(int param0, int cmd, int param2, void *param3) {
-    UnkFuncPtr_020F8E60 v0;
+    CommCmdRecvFunc v0;
 
     if (cmd < 22) {
         v0 = _020F6980[cmd].unk_00;
@@ -53,7 +41,7 @@ int sub_020341DC(int cmd);
 
 int sub_020341DC(int cmd) {
     int v0 = 0;
-    UnkFuncPtr_02032868 v1;
+    CommCmdSizeFunc v1;
 
     if (cmd < 22) {
         v1 = _020F6980[cmd].unk_04;
@@ -94,7 +82,7 @@ BOOL sub_02034244(int cmd) {
 void *sub_02034280(int cmd, int netId, int param2);
 
 void *sub_02034280(int cmd, int netId, int param2) {
-    UnkFuncPtr_0203290C v0;
+    CommCmdAllocFunc v0;
 
     if (cmd < 22) {
         v0 = _020F6980[cmd].unk_08;

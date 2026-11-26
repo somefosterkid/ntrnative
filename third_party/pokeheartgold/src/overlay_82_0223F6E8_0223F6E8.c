@@ -21,7 +21,6 @@ struct BattleHallApp;
 
 struct BattleHallAppSprite;
 
-struct BattleHallAppSpriteManager;
 
 struct G2dRenderer;
 
@@ -38,13 +37,6 @@ struct SpriteResourceCollection;
 struct ListMenuItem;
 
 struct Window;
-
-typedef struct BattleHallAppSpriteManager {
-    SpriteList *spriteList;
-    G2dRenderer renderer;
-    SpriteResourceCollection *resourceCollection[4];
-    SpriteResource *resources[2][4];
-} BattleHallAppSpriteManager;
 
 typedef struct BattleHallAppSprite BattleHallAppSprite;
 
@@ -75,11 +67,23 @@ enum BattleHallAppState {
     STATE_CLOSE_MESSAGE,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223F74C(BattleHallApp *app, s16 dummy);
+#else
 void ov82_0223F74C(BattleHallApp *app, u16 dummy);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223F770(BattleHallApp *app, s16 cmd, s16 cursorPos);
+#else
 void ov82_0223F770(BattleHallApp *app, u16 cmd, u16 cursorPos);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov82_0223F808(BattleHallApp *app, s16 cmd, s16 decision);
+#else
 void ov82_0223F808(BattleHallApp *app, u16 cmd, u16 decision);
+#endif
 
 void ov82_0223EDF0(BattleHallApp *app, enum GFBgLayer bgLayer);
 

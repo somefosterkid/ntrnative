@@ -700,7 +700,11 @@ typedef struct {
 
 void sub_02013938(UnkStruct_02012B20 *param0);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+SysTask *TextOBJ_Destroy(FontOAM *param0);
+#else
 void TextOBJ_Destroy(FontOAM *param0);
+#endif
 
 void ov40_0222D55C(UnkStruct_0208C06C *param0);
 

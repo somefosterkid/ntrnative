@@ -21,17 +21,31 @@ static int IpTexHoldThr(void) {
 static struct {
   VC_IpRec key, old, spare;
   int *map;
-  u8 *texhold; /* per key list: its texcoords step (vc_ip_texhold), not blended */
+  u8 *texhold; /* per key list: its texcoords step (vc_ip_texhold), not blended; M4's state bits (vc_ip_state) */
+  u8 *how;     /* per key list: how it was paired (vc_ip_pair_how): VC_IP_HOW_ID 1 identity, _TAG 2, _REST 3, no pair now: _JUMPED 4 (a
+                * tag pair that jumped), _BEHIND 5 (the camera plane), else 0 (M4's cut, vc_ip_cut_id, counts 1 and 2 as proven) */
   int *step[2]; /* per list and axis: the cell step vc_ip_texhold saw (the key's: step[stepi], the old's: the other), for steady scrolls */
   size_t stepcap;
   int stepi;
   size_t mapcap;
+  int *pmap; /* the pair before's map (old's lists to the keyframe before it, then in spare) when pmapOk: vc_ip_windows' history */
+  size_t pmapcap;
+  int mapOk, pmapOk;
+  VC_IpKeep *keep; /* old's lists drawn in the in-betweens too (vc_ip_windows, vc_ip_apply_keep) */
+  double enter[VC_IP_NENTER][16]; /* the key's entering lists' motion by projection (vc_ip_windows, vc_ip_apply_enter) */
+  size_t keepcap;
+  int nkeep;
   int have, haveOld, valid;
   long long serial, keyNs, oldNs;
+  /* the last call's keyframe (the present log's I lines): why 0 a repeat, 1 paired, 2 a cut, 3 no pair; the key's lists left
+   * unpaired and its vertices paired; the record and pairing's time */
+  int why, unp, vtp, uns, nls; /* (uns, nls: the unpaired lists and all lists that may be on the screen) */
+  long long recNs;
 } sIp;
 static struct {
   unsigned long long calls, keyframes, repeats, pairs, nopair, cut, mids, midsShown, midsLate, midsNone, nextMid, nextPlain;
-  unsigned long long lists, listsPaired, verts, vertsPaired, gapClamped;
+  unsigned long long lists, listsPaired, listsNew, listsKept, verts, vertsPaired, gapClamped; /* (listsNew: VC_IP_NEW, not drawn before their
+                                                                                     * keyframe; listsKept: old's, drawn until it, vc_ip_keep) */
   unsigned long long recNs, midNs, plainNs, wholeNs, glNs;
   unsigned long long waits, waitNs, waitMax, waitCpuNs; /* gpu path: the GL thread waited for a mid's CPU half (InterpTexture), how often and how long */
   unsigned long long glCpuNs, glWallNs; /* gpu path: the GL thread's CPU time and the wall time since the first in-between (InterpTexture) */
@@ -40,6 +54,12 @@ static struct {
 } sIc;
 static unsigned long long sIpVerifyN, sIpVerifyBad; /* BWPORT_INTERP_VERIFY (vcore bridge) */
 #define IC(x, n) __atomic_fetch_add(&sIc.x, (unsigned long long)(n), __ATOMIC_RELAXED)
+
+/* the game's tags (docs/interp-sweep.md M3; INTERP-ARCH 2.3): asked for while Smooth motion is on, so the pairing tells an instance's
+ * lists from its copies (p23_interp.c tag_pair); BWPORT_INTERP_TAGS=0: never (the stream as before M3). Each frame, by the bridge that
+ * draws it (a tag the game sends goes into the next frame's stream) */
+void SIM_G3TagEnable(int on); /* libntr (simulator/sim_g3tag.h): the game's tags for the pairing, on while Smooth motion is */
+static void IpTagsWanted(void) { SIM_G3TagEnable(SIM_InterpWanted() && vc_ip_tags_on()); }
 
 static long long NowNs(void) {
   struct timespec t;
@@ -131,6 +151,7 @@ static void IpMetric(int idx, double f, int blend) {
     const VC_IpList *l = &k->l[i];
     if (l->n == 0) continue;
     int m = sIp.valid && blend ? sIp.map[i] : -1;
+    if (m == VC_IP_NEW) continue; /* not drawn before its keyframe (vc_ip_blend_list) */
     const VC_IpList *dl = m >= 0 ? &sIp.old.l[m] : NULL;
     int hold = m >= 0 && sIp.texhold != NULL ? sIp.texhold[i] : 0;
     IpBox sh, kb, ob;
@@ -175,8 +196,8 @@ static void IpReport(void) {
   unsigned long long c = sIc.calls ? sIc.calls : 1;
   fprintf(fp, "calls %llu keyframes %llu repeats %llu pairs-valid %llu no-pair(first/3Doff) %llu cut %llu gap-clamped %llu\n", sIc.calls,
           sIc.keyframes, sIc.repeats, sIc.pairs, sIc.nopair, sIc.cut, sIc.gapClamped);
-  fprintf(fp, "lists %llu paired %llu (%.1f%%) vertices %llu paired %llu (%.1f%%)\n", sIc.lists, sIc.listsPaired,
-          sIc.lists ? 100.0 * sIc.listsPaired / sIc.lists : 0.0, sIc.verts, sIc.vertsPaired,
+  fprintf(fp, "lists %llu paired %llu (%.1f%%) new %llu kept %llu vertices %llu paired %llu (%.1f%%)\n", sIc.lists, sIc.listsPaired,
+          sIc.lists ? 100.0 * sIc.listsPaired / sIc.lists : 0.0, sIc.listsNew, sIc.listsKept, sIc.verts, sIc.vertsPaired,
           sIc.verts ? 100.0 * sIc.vertsPaired / sIc.verts : 0.0);
   fprintf(fp, "mids-drawn %llu shown %llu late %llu none %llu ; next-slot pictures: in-between %llu plain %llu\n", sIc.mids,
           sIc.midsShown, sIc.midsLate, sIc.midsNone, sIc.nextMid, sIc.nextPlain);
@@ -201,7 +222,7 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
   long long tA = NowNs();
   IC(calls, 1);
   if (serial != sIp.serial) { /* the present timeline started again: no keyframes known */
-    sIp.have = sIp.haveOld = sIp.valid = 0;
+    sIp.have = sIp.haveOld = sIp.valid = sIp.mapOk = 0;
     sIp.serial = serial;
   }
   s->p23.rec = sIp.spare;
@@ -210,6 +231,7 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
   VC_IpRec cur = s->p23.rec;
   memset(&s->p23.rec, 0, sizeof s->p23.rec);
   if (!sIp.have || !IpSame(&cur, &sIp.key)) { /* a new keyframe */
+    if (vc_ip_state_on()) vc_ip_texsig(s, &cur); /* (M4: the bytes its textures sample now, for the next pair's state test) */
     VC_IpRec recycled = sIp.old;
     sIp.old = sIp.key;
     sIp.haveOld = sIp.have;
@@ -218,7 +240,18 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
     sIp.spare = recycled;
     sIp.oldNs = sIp.keyNs;
     sIp.keyNs = nominal;
+    const int prevValid = sIp.valid; /* (the pair before was made and not a cut: its steps are known, vc_ip_nostep) */
     sIp.valid = 0;
+    sIp.nkeep = 0;
+    if (sIp.mapOk) { /* the map of the pair just before (old to spare), for vc_ip_keep */
+      if (sIp.pmapcap < sIp.old.nl + 1) {
+        sIp.pmapcap = sIp.old.nl * 2 + 64;
+        sIp.pmap = (int *)realloc(sIp.pmap, sIp.pmapcap * sizeof(int));
+      }
+      memcpy(sIp.pmap, sIp.map, sIp.old.nl * sizeof(int));
+    }
+    sIp.pmapOk = sIp.mapOk;
+    sIp.mapOk = 0;
     if (sIp.stepcap < 2 * (size_t)sIp.key.nl + 2) {
       sIp.stepcap = 4 * (size_t)sIp.key.nl + 64;
       for (int k = 0; k < 2; k++) sIp.step[k] = (int *)realloc(sIp.step[k], sIp.stepcap * sizeof(int));
@@ -231,17 +264,30 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
         sIp.mapcap = sIp.key.nl * 2 + 64;
         sIp.map = (int *)realloc(sIp.map, sIp.mapcap * sizeof(int));
         sIp.texhold = (u8 *)realloc(sIp.texhold, sIp.mapcap);
+        sIp.how = (u8 *)realloc(sIp.how, sIp.mapcap);
       }
       VC_IpStats st;
-      vc_ip_pair(&sIp.key, &sIp.old, sIp.map, 48.0, &st);
+      vc_ip_pair_how(&sIp.key, &sIp.old, sIp.map, sIp.how, 48.0, &st);
+      sIp.mapOk = 1;
+      if (sIp.keepcap < sIp.old.nl + 1) {
+        sIp.keepcap = sIp.old.nl * 2 + 64;
+        sIp.keep = (VC_IpKeep *)realloc(sIp.keep, sIp.keepcap * sizeof *sIp.keep);
+      }
+      sIp.nkeep = vc_ip_windows(&sIp.key, &sIp.old, sIp.map, sIp.pmapOk ? &sIp.spare : NULL, sIp.pmapOk ? sIp.pmap : NULL, &st, sIp.keep,
+                                sIp.enter);
       IC(lists, sIp.key.nl);
       IC(verts, sIp.key.nv);
       IC(vertsPaired, st.vt_paired);
+      IC(listsNew, st.fresh);
       for (u32 i = 0; i < sIp.key.nl; i++) IC(listsPaired, sIp.map[i] >= 0);
-      vc_ip_texhold(&sIp.key, &sIp.old, sIp.map, sIp.texhold, IpTexHoldThr(), IP_TEXHOLD_PX, sIp.step[sIp.stepi ^ 1], sIp.step[sIp.stepi]);
+      vc_ip_texhold(&sIp.key, &sIp.old, sIp.map, sIp.texhold, IpTexHoldThr(), IP_TEXHOLD_PX,
+                    prevValid ? sIp.step[sIp.stepi ^ 1] : vc_ip_nostep, sIp.step[sIp.stepi]);
+      /* M4: a texture state switching at the middle, alpha blended, kept lists whose bytes changed dropped (vc_ip_state) */
+      sIp.nkeep = vc_ip_state(s, &sIp.key, &sIp.old, sIp.map, sIp.texhold, sIp.keep, sIp.nkeep);
+      IC(listsKept, sIp.nkeep);
       for (u32 i = 0; i < sIp.key.nl; i++) {
         if (sIp.map[i] < 0) continue;
-        IC(texHeld, sIp.texhold[i] != 0);
+        IC(texHeld, (sIp.texhold[i] & 3) != 0);
         const VC_IpList *p = &sIp.key.l[i], *q = &sIp.old.l[sIp.map[i]];
         int mx = 0;
         for (u32 j = 0; j < p->n && j < q->n; j++)
@@ -254,21 +300,31 @@ static long long IpGather(VCoreState *s, long long serial, long long nominal, lo
         for (int t = 16; t <= 2048 && mx >= t; t *= 2) bk++;
         IC(texHist[bk], 1);
       }
-      /* a cut (fewer than half the vertices pair) shows the new frame at once, as without interpolation */
-      if (st.vt_paired * 2 >= sIp.key.nv && !vc_ip_scene_cut(sIp.map, (int)sIp.key.nl, NULL)) {
+      /* a cut (vc_ip_cut_id: of the lists on the screen, fewer than half the vertices pair through identity or a tag, or the proven
+       * pairs move by more than half the screen; BWPORT_INTERP_CUTID=0: vc_ip_cut's counts) shows the new frame at once, as without
+       * interpolation */
+      sIp.vtp = (int)st.vt_paired;
+      vc_ip_scene_cut(sIp.map, (int)sIp.key.nl, &sIp.unp);
+      if (!vc_ip_cut_id(&sIp.key, &sIp.old, sIp.map, sIp.how, &sIp.uns, &sIp.nls)) {
         sIp.valid = 1;
+        sIp.why = 1;
         IC(pairs, 1);
       } else {
+        sIp.why = 2;
         IC(cut, 1);
       }
     } else {
+      sIp.why = 3;
+      sIp.unp = sIp.vtp = sIp.uns = sIp.nls = 0;
       IC(nopair, 1);
     }
   } else {
     sIp.spare = cur;
+    sIp.why = 0;
     IC(repeats, 1);
   }
   long long tB = NowNs();
+  sIp.recNs = tB - tA;
   IC(recNs, tB - tA);
   long long gap = sIp.keyNs - sIp.oldNs;
   if (gap < tick) gap = tick;

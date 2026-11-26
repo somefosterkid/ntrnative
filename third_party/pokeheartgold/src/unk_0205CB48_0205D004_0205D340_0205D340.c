@@ -4,9 +4,17 @@
 #include "field_types_def.h"
 #include "player_avatar.h"
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0205D3A8(PlayerAvatar *, LocalMapObject *, void *, u32, u16, u16);
+#else
 void sub_0205D3A8(PlayerAvatar *, LocalMapObject *, void *, u32, u32, u16);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0205D640(PlayerAvatar *, LocalMapObject *, void *, u32, u16, u16);
+#else
 void sub_0205D640(PlayerAvatar *, LocalMapObject *, void *, u32, u32, u16);
+#endif
 
 void sub_0205D340(PlayerAvatar *param_1, void *param_2, u32 param_3, u32 param_4, u16 param_5);
 

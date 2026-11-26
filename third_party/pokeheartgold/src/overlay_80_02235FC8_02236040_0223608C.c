@@ -986,7 +986,7 @@ typedef struct UnkStruct_ov80_02235FC8_02236040_0223608C_8175 {
     BattleRegulation *battleRegulation;
     FieldMoveContext *fieldMoveContext;
     FieldSystem *fieldSystem;
-    u8 pad_20[4];
+    MenuInputStateMgr *menuInputStatePtr;
     u8 mode;
     u8 type;
     u8 selectedMonSlot;
@@ -1433,6 +1433,6 @@ void ov80_0223608C(BattleFrontier *frontier, WFCFacilitySelector *selector, Fiel
         GF_ASSERT(FALSE);
     }
 
-    *(u32 **)&selector->partyMenu->pad_20 = (u32 *)fieldSystem + 67;
+    selector->partyMenu->menuInputStatePtr = &fieldSystem->menuInputState;
     Frontier_LaunchApplication(frontier, &gOverlayTemplate_PartyMenu, selector->partyMenu, FALSE, NULL);
 }

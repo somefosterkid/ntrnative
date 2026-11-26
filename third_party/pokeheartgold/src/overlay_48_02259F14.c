@@ -12,18 +12,11 @@
 #include "sys_task.h"
 #include "text.h"
 #include "unk_0200A090.h"
+#include "yes_no_prompt.h"
+#include "overlay_48_unk_struct_ov69_0225ddc8.h"
 
-struct YesNoTouchMenu;
-typedef struct YesNoTouchMenu YesNoTouchMenu;
-void YesNoPrompt_Destroy(YesNoTouchMenu *menu);
-typedef struct {
-    u32 unk_00;
-    u32 unk_04;
-    u32 unk_08;
-    String *unk_0C;
-    Window unk_10;
-    YesNoTouchMenu *unk_20;
-} UnkStruct_ov69_0225DDC8;
+struct YesNoPrompt;
+void YesNoPrompt_Destroy(YesNoPrompt *menu);
 
 void ov48_02259F14(UnkStruct_ov69_0225DDC8 *param0);
 void ov48_02259F48(UnkStruct_ov69_0225DDC8 *param0);

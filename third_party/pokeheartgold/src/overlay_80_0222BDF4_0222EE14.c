@@ -1,5 +1,6 @@
 #include "global.h"
 #include "overlay_80_unk_struct_ov104_0223_c634.h"
+#include "overlay_80_frontier_anim.h"
 #include "sys_task.h"
 #include "constants/heap.h"
 #include "font.h"
@@ -214,20 +215,6 @@ typedef struct {
     u8 unk_13;
 } UnkStruct_ov63_0222CE44;
 typedef struct UnkStruct_ov63_0222D77C_t UnkStruct_ov63_0222D77C;
-typedef struct FrontierAnimCmd {
-    u16 action;
-    u16 count;
-} FrontierAnimCmd;
-typedef struct FrontierAnimData {
-    u8 state;
-    u8 elapsed;
-    s16 delay;
-    u16 localID;
-    u8 *totalMovementCount;
-    const FrontierAnimCmd *animCmd;
-    UnkStruct_ov63_0222D77C *unk_10;
-    UnkStruct_ov104_0223C634 *frontierObj;
-} FrontierAnimData;
 void ov80_0222EFD0(UnkStruct_ov63_0222CCB8 *param0, UnkStruct_ov63_0222BEC0 *param1, int param2, int action);
 s32 ov42_02228188(const UnkStruct_ov63_0222BEC0 *param0, int param1);
 void ov42_02229200(UnkStruct_ov63_0222CE44 *param0, u16 param1);

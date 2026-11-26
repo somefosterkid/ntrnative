@@ -23,7 +23,7 @@ typedef struct UnkStruct_ov70_0225CC54_t UnkStruct_ov70_0225CC54;
 typedef struct UnkStruct_ov63_0222BE18_t UnkStruct_ov63_0222BE18;
 typedef struct UnkStruct_ov63_0222D848_t UnkStruct_ov63_0222D848;
 typedef struct UnkStruct_ov66_02234548_t UnkStruct_ov66_02234548;
-void ov80_0222A3D4(UnkStruct_ov66_02234548 *param0);
+void ov80_0222A3D4(Sprite *sprite, u8 animID);
 typedef struct {
     fx32 unk_00;
     fx32 unk_04;
@@ -69,12 +69,16 @@ struct UnkStruct_ov70_0225CC54_t {
 void ov80_0222A400(Sprite *sprite, s16 x, s16 y, u8 isSelected);
 
 void ov83_022475EC(BattleCastleAppSprite *sprite, Pokemon *mon);
-void ov83_02247600(UnkStruct_ov70_0225CA20 *param0);
+void ov83_02247600(BattleCastleAppSprite *, u8);
 void ov83_0224760C(BattleCastleAppSprite *sprite, u8 isSelected);
 BOOL ov83_02247624(BattleCastleAppSprite *sprite);
 
 void ov83_0224755C(BattleCastleAppSprite *sprite, BOOL flag);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov83_02247568(void *, u16, u16);
+#else
 s32 ov83_02247568(void *, s32, s32);
+#endif
 s32 ov83_022475D4(void *, s32);
 void ov83_02247630(void *arg0, s32 arg1, s32 arg2);
 
@@ -82,8 +86,8 @@ void ov83_022475EC(BattleCastleAppSprite *sprite, Pokemon *mon) {
     Sprite_SetPalOffsetRespectVramOffset(sprite->sprite, Pokemon_GetIconPalette(mon));
 }
 
-void ov83_02247600(UnkStruct_ov70_0225CA20 *param0) {
-    ov80_0222A3D4(param0->unk_04);
+void ov83_02247600(BattleCastleAppSprite *sprite, u8 animID) {
+    ov80_0222A3D4(sprite->sprite, animID);
 }
 
 void ov83_0224760C(BattleCastleAppSprite *sprite, u8 isSelected) {

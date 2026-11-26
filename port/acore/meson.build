@@ -8,6 +8,8 @@ project('acore', 'c', default_options: ['c_std=c11', 'warning_level=2', 'buildty
 
 cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(['-Wno-unused-parameter', '-Wno-unused-function']), language: 'c')
+# the same three flags as the port's build of the core (port/meson.build core_cargs)
+add_project_arguments(cc.get_supported_arguments(['-fno-strict-aliasing', '-fwrapv', '-ffp-contract=off']), language: 'c')
 
 python = find_program('python3')
 list = files('list_sources.py')

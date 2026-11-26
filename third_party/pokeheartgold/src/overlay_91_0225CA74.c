@@ -64,7 +64,7 @@ struct UnkStruct_ov115_0226095C_t {
     BOOL unk_80;
     u8 unk_84[4];
 };
-void ov91_0225D2EC(UnkStruct_ov115_02260D78 *param0);
+void ov91_0225D2EC(UnkStruct_ov115_02260D78 *param0, const UnkStruct_ov115_02265AD0 *param1);
 void ov91_0225CD84(UnkStruct_ov115_02260BE4 *param0, u32 param1, u32 param2);
 typedef struct {
     u32 unk_00[4];
@@ -79,7 +79,7 @@ s32 ov91_0225D2E8(const UnkStruct_ov115_02260D78 *param0);
 u32 ov91_0225D37C(const UnkStruct_ov115_02260D78 *param0);
 
 void ov91_0225CA74(UnkStruct_ov115_0226095C *param0, const UnkStruct_ov115_02265AD0 *param1, u32 param2);
-void ov91_0225CA90(void *param0);
+void ov91_0225CA90(void *param0, const UnkStruct_ov115_02265AD0 *param1);
 void ov91_0225CA9C(UnkStruct_ov115_0226095C *param0, u32 param1, u32 param2);
 void ov91_0225CABC(UnkStruct_ov115_0226095C *param0, const UnkStruct_ov115_02265AD4 *param1, u32 param2);
 void ov91_0225CAEC(UnkStruct_ov115_0226095C *param0, u32 param1, u32 param2);
@@ -92,10 +92,10 @@ void ov91_0225CA74(UnkStruct_ov115_0226095C *param0, const UnkStruct_ov115_02265
     ov91_0225CD74(param0->unk_30, param1, v0);
 }
 
-void ov91_0225CA90(void *param0) {
+void ov91_0225CA90(void *param0, const UnkStruct_ov115_02265AD0 *param1) {
     UnkStruct_ov115_0226095C *v0 = param0;
 
-    ov91_0225D2EC(v0->unk_34);
+    ov91_0225D2EC(v0->unk_34, param1);
 }
 
 void ov91_0225CA9C(UnkStruct_ov115_0226095C *param0, u32 param1, u32 param2) {

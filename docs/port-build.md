@@ -43,7 +43,17 @@ ROMs, extract/ or a ~/ref checkout skips itself): one line per file, one summary
   port/machine/linux-ccache.ini keep the OBJECTS' ccache keys equal across checkouts. The .pch itself is never cached: the launcher
   `port/machine/ccache-nopch` runs a `-o X.pch` / `-emit-pch` / `-x c-header` compile without ccache (a cached .pch names its
   writer's build dir and generated headers, e.g. gen/nitro/fx/fx_const.h, and fails "could not find file" in every other dir once
-  that one is deleted: 11-21, twice). So each build dir makes its own .pch and its objects mostly miss across dirs (2 of 14 hit).
+  that one is deleted: 11-21, twice). So each build dir made its own .pch and its objects missed across dirs (2 of 14 hit; ccx1 11-26,
+  same commit in a second dir, Black only, private cache: 8.6% hits; the machines' cumulative rates were 29% desktop, 0-38% BD, caches full
+  at 40 / 7 GB of one-dir-only results). The launcher now also writes `X.pch.sum` (sha256 of the compile flags + the header preprocessed
+  with `-E -P`, the checkout and build dir paths rewritten to `@R` / `@B`; no .sum when anything fails) and runs the object compiles with
+  `CCACHE_PCH_EXTSUM=1` (ccache's `pch_external_checksum`: it hashes the .sum instead of the .pch). Same text and flags = the same key in
+  every dir; a changed prefix header = a new sum (checked: one added typedef in port_prefix.h, 99.9% misses, reverted 100% hits). Same
+  commit in a second dir, Black only: 8.6% -> 100% hits, 587 -> 100 CPU-s. `tools/ccache_nopch_tests.py` tests the launcher.
+  Meson keeps a dir's compilers and does not watch the native files, so a dir made before that change kept `ccache clang` and went on
+  restoring another slot's .pch ("file .../w_rename.h has been modified since the precompiled header ... was built: size changed",
+  11-25: the desktop's slot2/slot3, four agents lost builds). `tools/port_wraps.py` (`stale_launcher`) now runs `meson setup --wipe` on
+  such a dir once (options and native files are kept; the objects miss once, like a new dir: ~25 min on a loaded desktop).
 - Black 2, White 2, Platinum, HeartGold, SoulSilver have a PCH too since tb3c (11-20), by a PROBE library, not c_pch (next bullet is why):
   `pch/pch_probe.c` (an empty source) compiled as `b2_pchprobe`/`w2_pchprobe`/`pl_pchprobe`/`hg_pchprobe` with the target's flags minus the
   section `-include` and `c_pch: pch/gen4_prefix.h` (an empty header: what goes into their .pch is their own `-include` list, port_plat.h ...;
@@ -57,6 +67,19 @@ ROMs, extract/ or a ~/ref checkout skips itself): one line per file, one summary
   in: without it every PCH compile says could_not_use_precompiled_header, 17267 of 17405 in a first try), pch on, all games, job 1 on
   slot6 (empty cache: wall 589 s, 17405 misses), job 2 on slot2 (another checkout path): 16244 hits of 17405 (93.3%), wall 109 s;
   the 1161 misses are the objects with the build dir in their name (ovltab/ovlmark ...) and the probes.
+- The two ways a slot's .pch came back wrong (11-25; both look like "file .../w_rename.h has been modified since the precompiled header
+  ... was built: size changed" on a compile that never touched that header): (1) the cache KEY. With sloppiness `pch_defines` ccache keys
+  a .pch by its preprocessed text, which has no `#define` lines, so two port_rename lists (White's w_rename.h, -included into the prefix)
+  that differ only in names the prefix never uses got one key and the last stored .pch came back for both. tools/port_rename.py writes
+  `_Static_assert(1, "port_rename PREFIX N SHA1")` (a line the preprocessor keeps) into the header, so a different list is a different
+  key (queued with the HG/SS re-pin, rp5-sq); it only matters while a .pch goes through ccache at all, i.e. in a dir without the
+  launcher, which is cause (2). (2) a STALE
+  build dir: meson keeps the compilers it saw at setup and ignores a changed native file, so a dir made before the launcher existed went on
+  through `ccache clang` and fetched other slots' .pch. tools/port_wraps.py `stale_launcher` wipes such a dir once with `meson setup
+  --wipe` (queued, pfx1-sq: the first version also judged a BWPORT_SYSROOT dir stale on every run, because the sysroot's native file
+  names the launcher by another path, and wiped it each time; now only the last native file defining `c` counts; the first build of a wiped dir is a cold
+  one, ~25 min on a loaded desktop). A "size changed" .pch error in a slot is about the dir's compiler (does build.ninja use
+  `ccache-nopch`?), not about the source.
 - (the old finding, why not c_pch) NOT through c_pch on Black 2, White 2, Platinum, HeartGold, SoulSilver (their c_args carry `-include gnu_*_section.h`, a `#pragma clang section`):
   clang bakes the PCH-time `-include` list into the .pch and skips the same names when the .pch is used, and the pragma state is not
   stored in a .pch, so 885 objects put their statics in .bss/.data instead of .plovlbss/.hgovldata (found by comparing every object of

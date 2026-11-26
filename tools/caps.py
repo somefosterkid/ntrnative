@@ -8,7 +8,8 @@
 PLAY is a tools/plays NAME (its header's `# game:` picks the game), SPEC the BWPORT_VCAPTURE frame spec (7500-9200/8).
 The cache is $BW_CAPS (default ~/bw-cache/caps), one directory per (game, play, spec, KEY). KEY hashes the files that
 change what a capture records: the play script and its runner, libntr's capture writer and the patches that hook it
-(KEYFILES), plus the game's source tree with --src (a game-code change can move a frame: use it when yours does).
+(KEYFILES), plus the game's source tree with --src (a game-code change can move a frame: use it when yours does), and whether
+BWPORT_VCAPTURE_TAGS is on (tagged captures are a set of their own).
 Captures hold ROM data: the cache lives outside the repo, never commit it. Concurrent calls wait on one lock per entry.
 """
 import fcntl, hashlib, os, re, shutil, subprocess, sys
@@ -16,7 +17,8 @@ import fcntl, hashlib, os, re, shutil, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.environ.get('BW_CAPS') or os.path.expanduser('~/bw-cache/caps')
 KEYFILES = ['tools/play_script.py', 'port/subprojects/libntr/libraries/sim/src/sim_vcapture.cpp',
-            'port/subprojects/libntr/libraries/sim/src/sim_g3_CommandProcessor.cpp']
+            'port/subprojects/libntr/libraries/sim/src/sim_g3_CommandProcessor.cpp',
+            'port/subprojects/pokeplatinum-tags.patch', 'port/subprojects/pokeheartgold-tags.patch']
 SRC_TREES = ['src', 'include', 'port/src', 'port/game']
 
 
@@ -35,6 +37,8 @@ def key(play_path, src):
         h.update(p.encode())
         if os.path.exists(os.path.join(REPO, p)):
             h.update(open(os.path.join(REPO, p), 'rb').read())
+    if os.environ.get('BWPORT_VCAPTURE_TAGS', '0') not in ('', '0'):
+        h.update(b'tags')  # Smooth motion's tags in the stream (libntr's simulator/sim_g3tag.h): a set of its own
     if src:
         # tracked files' content, working-tree state included (git ls-files + hash-object)
         out = subprocess.run(['git', 'ls-files', '-z', '--'] + SRC_TREES, cwd=REPO, capture_output=True).stdout

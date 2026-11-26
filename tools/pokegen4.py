@@ -11,7 +11,7 @@ tools/pokehg_gen.py + pokehg_cc.py for HeartGold/SoulSilver; docs/platinum.md, d
 
 Not run on its own.
 """
-import collections, functools, hashlib, json, multiprocessing, os, re, shlex, subprocess, sys
+import collections, functools, hashlib, json, multiprocessing, os, re, shlex, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -78,17 +78,25 @@ def snapshot(root):
 
 def keep_mtimes(root, snap):
     """snap's mtime back on root's files whose content is still snap's (a checkout and patch rewrite every patched file:
-    without this ninja rebuilds them all); the count of files set back. No build may run between snapshot and this."""
+    without this ninja rebuilds them all); the count of files set back. No build may run between snapshot and this.
+    A file whose content is NOT snap's gets the current time: the vendored copy (pokehg_gen.py) brings back a file a patch
+    changed last time and none changes now with the vendored tree's own, old mtime, older than the object compiled from the
+    patched content, and ninja kept that object (ivf2 11-25: a slot's exe called PortSpeed4_TrackLooks, which the commit's
+    patch no longer called; the stub for the symbol nothing defined aborted)."""
     n = 0
+    now = time.time_ns()
     for rel, (h, t) in snap.items():
         p = os.path.join(root, rel)
         try:
             st = os.stat(p)
+            same = hashlib.sha1(open(p, 'rb').read()).hexdigest() == h
         except FileNotFoundError:
             continue
-        if st.st_mtime_ns != t and hashlib.sha1(open(p, 'rb').read()).hexdigest() == h:
+        if same and st.st_mtime_ns != t:
             os.utime(p, ns=(st.st_atime_ns, t))
             n += 1
+        elif not same:
+            os.utime(p, ns=(st.st_atime_ns, now))
     return n
 
 
@@ -150,6 +158,9 @@ def base_args():
     i = 1
     while i < len(a):
         x = a[i]
+        if x == '-Xclang':                 # a cc1 flag with its argument (-fno-pch-timestamp, -fno-validate-pch, -include-pch FILE:
+            i += 2                         # Black's PCH): both go; the argument alone is no driver flag (clang: unknown argument)
+            continue
         if x in ('-o', '-MF', '-MQ', '-c'):
             i += 2
             continue

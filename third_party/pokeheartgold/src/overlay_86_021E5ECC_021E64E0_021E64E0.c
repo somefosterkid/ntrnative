@@ -10,16 +10,6 @@
 #include "unk_0205BFF0.h"
 struct FrontierRecordsApp;
 
-void ov86_021E5FBC(struct FrontierRecordsApp *, u32, u32);
-
-void ov86_021E6024(struct FrontierRecordsApp *, u32, u32, u32, u32, u32, u32, u32);
-
-void ov86_021E6064(struct FrontierRecordsApp *, u32, u32, u32, u32, u32, u32, u32);
-
-void ov86_021E668C(void *, s32);
-
-void ov86_021E64E0(FrontierRecordsApp *param_1);
-
 void ov86_021E64E0(FrontierRecordsApp *param_1) {
     u16 uVar1;
     FrontierSave *pFVar2;
@@ -33,7 +23,7 @@ void ov86_021E64E0(FrontierRecordsApp *param_1) {
     FillWindowPixelBuffer(&param_1->windows[1], 0);
     FillWindowPixelBuffer(&param_1->windows[2], 0);
     FillWindowPixelBuffer(&param_1->windows[3], 0);
-    ov86_021E6024(param_1, 0, 0x18, 0, 0, 0, 0xf0200, 0);
+    ov86_021E6024(param_1, 0, 0x18, 0, 0, FONT_SYSTEM, 0xf0200, 0);
     if (param_1->challengeType == 0) {
         uVar5 = 0x1a;
     } else if (param_1->challengeType == 1) {
@@ -41,10 +31,10 @@ void ov86_021E64E0(FrontierRecordsApp *param_1) {
     } else {
         uVar5 = 0x1c;
     }
-    ov86_021E6024(param_1, 0, uVar5, 0xe0, 0, 0, 0xf0200, 1);
+    ov86_021E6024(param_1, 0, uVar5, 0xe0, 0, FONT_SYSTEM, 0xf0200, 1);
     ov86_021E668C(param_1, param_1->species);
-    ov86_021E6064(param_1, 1, 0x33, 0, 0, 0, 0x10200, 0);
-    ov86_021E6024(param_1, 2, 0x1d, 0, 0, 0, 0x10200, 0);
+    ov86_021E6064(param_1, 1, 0x33, 0, 0, FONT_SYSTEM, 0x10200, 0);
+    ov86_021E6024(param_1, 2, 0x1d, 0, 0, FONT_SYSTEM, 0x10200, 0);
     pFVar2 = Save_Frontier_GetStatic(param_1->saveData);
     iVar3 = sub_0205C11C(param_1->challengeType);
     uVar4 = sub_0205C11C(param_1->challengeType);
@@ -57,8 +47,8 @@ void ov86_021E64E0(FrontierRecordsApp *param_1) {
         uVar1 = FrontierSave_GetStat(param_1->frontierSave, uVar4, 0xff);
     }
     ov86_021E5FBC(param_1, 0, uVar1);
-    ov86_021E6064(param_1, 2, 0x32, 0x70, 0, 0, 0x10200, 2);
-    ov86_021E6024(param_1, 3, 0x2b, 0, 0, 0, 0x10200, 0);
+    ov86_021E6064(param_1, 2, 0x32, 0x70, 0, FONT_SYSTEM, 0x10200, 2);
+    ov86_021E6024(param_1, 3, 0x2b, 0, 0, FONT_SYSTEM, 0x10200, 0);
     a1 = sub_020312C4(param_1->saveData, 0xb, &auStack_18);
     if (auStack_18 != 1) {
         uVar4 = 0;
@@ -70,7 +60,7 @@ void ov86_021E64E0(FrontierRecordsApp *param_1) {
         Heap_Free(a1);
     }
     ov86_021E5FBC(param_1, 0, uVar4);
-    ov86_021E6064(param_1, 3, 0x32, 0x70, 0, 0, 0x10200, 2);
+    ov86_021E6064(param_1, 3, 0x32, 0x70, 0, FONT_SYSTEM, 0x10200, 2);
     ScheduleWindowCopyToVram(param_1->windows);
     ScheduleWindowCopyToVram(&param_1->windows[1]);
     ScheduleWindowCopyToVram(&param_1->windows[2]);

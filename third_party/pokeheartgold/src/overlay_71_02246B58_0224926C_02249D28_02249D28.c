@@ -61,7 +61,6 @@ typedef struct BallArrivalPathState {
     fx16 rotationSpeed;
 } BallArrivalPathState;
 
-int ov71_0224A18C(TradeBallArrivalPhase *arrivalPhase, int *unused);
 
 int ov71_0224A1C4(TradeBallArrivalPhase *arrivalPhase, int *state);
 

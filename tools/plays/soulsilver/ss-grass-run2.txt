@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-r30
+# reaches: Route 29, warped to 664,400 facing west and held B + left at Run 2x into the tall grass west of the sign (657,400 to 652,400): the grass shake each step starts, at a fast scroll (Smooth motion sweep, tools/interp_sweep_set.txt; ss-r29 / hg-r29 walk into the same grass at Walk 1x)
+# end: f11100
+env BWPORT_HG_WARP=33:664:400 BWPORT_HG_WARP_DIR=2 BWPORT_RUNSPEED=2
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys b*f100@f11000 left*f100@f11000

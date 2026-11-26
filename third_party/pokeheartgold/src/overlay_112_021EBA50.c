@@ -8,10 +8,6 @@ struct OverlayManager;
 
 BOOL ov112_021EBA50(OverlayManager *appMan, int *state);
 
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-s32 ov112_021EBA54(Ov112PokewalkerApp *arg0);
-s32 ov112_021EBA6C(Ov112PokewalkerApp *arg0);
-
 BOOL ov112_021EBA50(OverlayManager *appMan, int *state) {
     return 1;
 }

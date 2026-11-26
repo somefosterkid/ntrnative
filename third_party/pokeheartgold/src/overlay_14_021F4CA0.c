@@ -13,16 +13,16 @@ struct UnkStruct_ov14_boxsys;
 void ov14_021F4CA0(UnkStruct_ov14_boxapp *arg0) {
     u32 v0;
 
-    ov14_021F2A18(*((void * *)&arg0->sys), 4, 0);
-    ov14_021F2A18(*((void * *)&arg0->sys), 5, 0);
-    ov14_021F2A18(*((void * *)&arg0->sys), 6, 0);
-    ov14_021F2A18(*((void * *)&arg0->sys), 7, 0);
-    ov14_021F2A18(*((void * *)&arg0->sys), 8, 0);
+    ov14_021F2A18(arg0->sys, 4, 0);
+    ov14_021F2A18(arg0->sys, 5, 0);
+    ov14_021F2A18(arg0->sys, 6, 0);
+    ov14_021F2A18(arg0->sys, 7, 0);
+    ov14_021F2A18(arg0->sys, 8, 0);
     v0 = 0;
     do {
-        ov14_021F2A18(*((void * *)&arg0->sys), v0 + 0xF, 0);
+        ov14_021F2A18(arg0->sys, v0 + 0xF, 0);
         v0 += 1;
     } while (v0 < 6U);
-    TextOBJ_SetSpritesDrawFlag(*(TextOBJ **)((u8 *)(*((void * *)&arg0->sys)) + 0x414), 0);
-    TextOBJ_SetSpritesDrawFlag(*(TextOBJ **)((u8 *)(*((void * *)&arg0->sys)) + 0x424), 0);
+    TextOBJ_SetSpritesDrawFlag(arg0->sys->textObjs[0].textObj, 0);
+    TextOBJ_SetSpritesDrawFlag(arg0->sys->textObjs[1].textObj, 0);
 }

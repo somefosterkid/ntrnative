@@ -19,15 +19,15 @@ extern char ov43_0222ED82[];
 extern char ov43_0222EDE8[];
 extern char ov43_0222EE2E[];
 extern const PalPadWindowSpec *const ov43_0222F10C[8];
-extern void (*_0222F0E0[3])(void *, u32, u32, u32);
-extern void (*ov43_0222F12C[8])(void *, u32, u32, u32);
+extern void (*_0222F0E0[3])(PalPadDetailsSlot *, PalPadShared *, PalPadGfx *, u32);
+extern void (*ov43_0222F12C[8])(PalPadDetailsSlot *, PalPadShared *, PalPadGfx *, u32);
 
 /* _0222F0E0: asm overlay_43.s data+0x0 (12 bytes) */
-void (*_0222F0E0[3])(void *, u32, u32, u32) = { (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222DFB0, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222EA40, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222EBD8 };
+void (*_0222F0E0[3])(PalPadDetailsSlot *, PalPadShared *, PalPadGfx *, u32) = { (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222DFB0, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222EA40, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222EBD8 };
 
 /* ov43_0222F10C: asm overlay_43.s data+0x2C (32 bytes) */
 const PalPadWindowSpec *const ov43_0222F10C[8] = { (const struct PalPadWindowSpec *)&ov43_0222EDE8, (const struct PalPadWindowSpec *)&ov43_0222ED6F, (const struct PalPadWindowSpec *)&ov43_0222ED82, (const struct PalPadWindowSpec *)&ov43_0222EE2E, (const struct PalPadWindowSpec *)&ov43_0222ED5F, (const struct PalPadWindowSpec *)&ov43_0222ED6B, (const struct PalPadWindowSpec *)&ov43_0222ED67, (const struct PalPadWindowSpec *)&ov43_0222ED63 };
 
 /* ov43_0222F12C: asm overlay_43.s data+0x4C (32 bytes) */
-void (*ov43_0222F12C[8])(void *, u32, u32, u32) = { (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222DFB0, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222EA40, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222E0E8, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222E220, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222E5B4, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222E78C, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222E904, (void (*)(void *, unsigned long, unsigned long, unsigned long))&ov43_0222EBD8 };
+void (*ov43_0222F12C[8])(PalPadDetailsSlot *, PalPadShared *, PalPadGfx *, u32) = { (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222DFB0, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222EA40, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222E0E8, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222E220, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222E5B4, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222E78C, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222E904, (void (*)(struct PalPadDetailsSlot *, struct PalPadShared *, struct PalPadGfx *, unsigned long))&ov43_0222EBD8 };
 

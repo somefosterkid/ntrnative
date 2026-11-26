@@ -112,9 +112,17 @@ enum SummarySprite {
     SUMMARY_SPRITE_MAX = 77,
 };
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0208BB8C(PokemonSummary *summaryScreen, u16 move);
+#else
 void sub_0208BB8C(PokemonSummary *summaryScreen, u32 move);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_0208D9A0(PokemonSummary *summaryScreen, u16 move);
+#else
 void sub_0208D9A0(PokemonSummary *summaryScreen, u32 move);
+#endif
 
 void sub_0208DAD4(PokemonSummary *summaryScreen, u32);
 

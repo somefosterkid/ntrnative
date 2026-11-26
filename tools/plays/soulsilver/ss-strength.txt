@@ -1,0 +1,8 @@
+# game: soulsilver
+# from: ss-ucave
+# reaches: Union Cave B1F: A at the boulder (6,13) from the west, Yes (the title keys' A presses), the Strength cut-in, then pushing the boulder east (cheat items, badges, party)
+# end: f12500
+env BWPORT_HG_CHEAT=items,badges,party BWPORT_HG_WARP=153:5:13 BWPORT_HG_WARP_DIR=3
+keys start@f7700 a@f8300 a@f8700 a@f9100
+keys b@f10600
+keys a@f10800 a*f6@f11000 a*f6@f11200 a*f6@f11400 a*f6@f11600 a*f6@f12000 right*f20@f12200 right*f20@f12350

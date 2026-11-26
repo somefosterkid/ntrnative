@@ -695,3 +695,122 @@ samples where a texel boundary lands one sample over (texture coordinates in fp3
 silhouette, Exact's dark outline is dashed where Fast's is solid. No change. Not seen here: the Windows exe's own GL path
 (Zink with fragment interlock: llvmpipe has no interlock, so gpu_fastdiff falls back to Exact when fetch is turned off); if the
 holder still sees garbling only with Fast there, capture the frame (BWPORT_VCAPTURE) on that machine and run gpu_fastdiff on it.
+
+### Seams between polygons and the edge-on line (2026-11-24, seal)
+
+Two root causes, both Fast's own, behind the black dashes at Cherrygrove's ledges on the phone (Fast keep, 3x) and a column of a
+roof's colour up a house wall:
+1. **The DS's spans are inclusive, the GPU's rule is not.** Along an edge two neighbours share, the DS draws the edge's pixels
+   with both polygons (the later wins) and leaves a right edge's coverage-0 pixel to the neighbour (p16 ends the span before it).
+   The GPU gives a shared-edge pixel to exactly one of the two (top-left rule), so g10_fast.frag's coverage-0 skip, which assumed
+   the DS's behaviour, left such pixels to nobody: holes, and edge marking made each a dash. g10_fast.c fast_seams now sorts every
+   filled polygon's edges on a grid: inner (a neighbour's edge runs along it, interiors opposite, the same depth within the two
+   planes' slopes, so a polygon passing in front never counts) or silhouette; the coverage and the coverage-0 skip come from the
+   silhouette edges only (pe[3]). Where a neighbour's corner lies outside an edge (a T-junction, a partial overlap) a sliver fan
+   fills the gap as grown pixels, AA off and with 4 samples (GPU_FAST_SLIVER).
+2. **The grow of an edge-on polygon was unbounded.** A grown pixel or sample is never farther from its polygon than the grow
+   (under one pixel), so none lies outside the polygon's box widened by it, but nothing enforced that: a house wall seen exactly
+   edge-on (pc-E f011000, polygon 313, all four corners within a pixel of one vertical line) had its grown lines meet far up the
+   screen (g10_fast4.vert), and its edges, all on that line, bound nothing along it. g10_fast4.frag now takes a grown sample only
+   inside the box (it rides on the fan vertices' free word, b.w; 4 compares, every form); AA off, the moved fan triangles are
+   clipped to it (clip_tri), which replaces grow_poly's 2-pixel pull-back of a sharp corner (a threshold that cut the grow short
+   beside the corner: with every vertex nudged by 1/256-1/64 px, 14 T-junction gaps over the 213 HG frames).
+3. fast_seams kept at most VC_POLY_MAXV - nv corners a polygon and merged an edge's parts into the first one met, so its result
+   hung on the order the grid met the pairs (27 of 1248 frame/configs changed when the cells were walked backwards); now a union
+   and up to SEAM_INS corners, and each pair is tested once.
+
+Sort sweep (fsort: every Fast gap and hole against Exact by cause; Cherrygrove 27 + all 213 frames, Black's town 26, route 1 29,
+the Pokemon Center set 7 x 24; keyframes and in-betweens). Holes before -> after:
+- AA off 1x/2x/3x/4x: town 48/82/131/180 (ip 47/88/135/183) -> 0; HG 213 9/18/30/38 (ip 34/32/49/46) -> 0; Pokemon Center
+  4x 12 -> 0. 4 samples: HG 1x/2x 1/1 (T-junctions) and ip 3x 1 -> 0.
+- Left: the town's 8-14 class-d gaps a resolution (a polygon's own pixel another polygon draws: no hole) and HG's 1-5 "other".
+- Jittered (BWPORT_FAST_JITTER, AA off; it cannot move 4 samples): HG holes 8-49 a resolution -> 0, gaps 14 -> 1.
+Against Exact, 90 captures (gpu_fastdiff): the line at pc-E 3x keep gone (149 rows), specks there 487 -> 365, and the game at that
+spot (Fast keep 3x) matches Exact's run; specks 4 samples 1x-4x 15754/32903/58646/101088 -> 15549/32431/58136/100310, AA off 1x
+9256 -> 8223, 3x 43946 -> 43265; differ +1.7-2.4 % AA off (inner-edge pixels drawn whole), -0.1-0.2 % with 4 samples.
+Exact byte-identical. gpu_msl.py check, gpu_glsl_check (names, lint, glslang ES and GL), gpu_tests pass.
+
+Cost (M2, 3x, min of 5 x 50, interleaved with the 865cceda4 build, under the lock, load about 2). The GPU's pass R: AA off
+0.20-0.40 -> 0.21-0.42 ms (+4-6 %), 4 samples direct 0.65-1.15 -> 0.65-1.16 (+1-3 %), keep +1-2.5 %; Exact 0.44-0.71 and
+0.95-1.49. The CPU (gpu_fastdiff's cpu column): 0.02-0.07 -> 0.06-0.32 ms AA off, 0.02-0.04 -> 0.05-0.24 with 4 samples
+(gpu_fast_build alone over 20 captures: 0.043 -> 0.21 ms, of which the seam analysis 0.13 and the box clip 0.04). The analysis
+was 0.18-0.23 ms before its rewrite (each edge in its box's cells with its key, a window over the offsets, each pair once).
+Still to do: the analysis is not yet under 0.1 ms; the phone is the check for the dashes and the line (the M2 shows neither now).
+
+### A Cherrygrove house's roof: the inner edges' coverage, and the DS's rows (2026-11-25, roof)
+
+The test phone (Fast against Exact, gpu 3x, the house with the mailbox and the flower box) showed ragged stripes on the roof,
+bumps where the eave's two sides meet at the peak, and a more stepped outline. Reproduced on the Mac at that spot (SoulSilver
+ss-r30 warped to Cherrygrove 561,395: a capture, f010700, and game shots; AA off, 4 samples keep, Smooth edges):
+1. **The stepped eave and the bumps at the peak: a regression of the seam fix (2026-11-24).** It drew inner-edge pixels at whole
+   coverage, so pass P's DS antialiasing no longer softened the crease where the roof meets its eave (hard stairs, AA off and Smooth
+   edges; 4 samples were not touched), and the eave's grown pixels across that edge always lost (+256) to the roof drawn before it,
+   leaving single roof pixels inside the eave at the start of each stair (the bumps). 865cceda4 and BWPORT_FAST_SEAM=0 draw the crease
+   soft, as Exact does. g10_fast.frag now takes the coverage from every edge; only a silhouette's coverage 0 leaves a pixel out (the
+   holes stay sealed); an inner edge's coverage-0 pixel, the neighbour's on the DS, takes the silhouettes' coverage (with 0 it showed
+   what lay behind it: specks along tile seams); a grown pixel across an inner edge competes at the edge's depth without the 256, as
+   the DS's span draws the shared pixel with both neighbours. The same program draws Fast on GL.
+2. **The ragged stripes are the DS's, so Exact's, not Fast's.** On the Mac Exact's stripes are the ragged ones (at 1x too) and Fast's
+   are straight: the DS interpolates each row between its own ends (p16 vc_span_row: pixel xs, the row's first, takes the left edge's
+   value at the edge itself, f = (x - xs) / den), so a texel boundary steps back and forth by up to a pixel from row to row, where
+   the GPU's plane is the same for every row. The stripes' edges on the right half of the roof (3x) reverse direction 123 times in
+   Exact against 26 in Fast with AA off, 67 against 36 with 4 samples. So the two phone pictures look swapped: the one sent as Fast
+   has Exact's ragged stripes and soft crease, the one sent as Exact has Fast's straight stripes, hard crease and bumps.
+3. **Measured** (gpu_fastdiff over the 90 captures, differing pixels / specks, AA off, before -> after): 1x 710093 / 8223 -> 684534 /
+   8293, 2x 1741644 / 18585 -> 1684935 / 18882, 3x 2960834 / 43265 -> 2876458 / 43362, 4x 4369597 / 75215 -> 4253703 / 76056 (865cceda4:
+   693353 / 9256, 1706183 / 20012, 2910619 / 43946, 4298749 / 76149); the house at 3x 15169 -> 13795 (865cceda4 13996). 4 samples
+   unchanged. The seal sweeps (the three sets, all of HG's 213 frames, the Pokemon Center A-G, 1x-4x, keyframes and in-betweens, AA
+   off; the three sets with 4 samples direct and keep): line for line 2026-11-24's final, 0 holes. pc-E f011000: the line stays gone
+   (3x keep unchanged; AA off specks 366 -> 342). Exact byte-identical (50 of 50 pictures). Cost (M2, 3x, min of 5 x 50 interleaved,
+   under the lock): Fast's R slot AA off 0.32-0.42 -> 0.33-0.42 ms (Exact's R + S 0.50-0.72), the CPU unchanged.
+4. **Not done: the DS's rows in Fast** (the root of most of what still differs: the "interp" pixels). A prototype, g10_row in both
+   fragment programs (a polygon of 3 or 4 vertices: its row's bounding edges from the edge functions, the vertex shader passing all
+   of them with 4 samples too; xs, den and the edges' value points by p16's rules, Y-major at the edge's own x on the row, X-major at
+   its sample; the colour and texture coordinates read from the plane at the point the DS gives the pixel), gives Fast Exact's stripes
+   (reversals 107 and 63) and cuts the differing pixels over the 90 captures by 37-42 % AA off and 23-30 % with 4 samples (specks -8 to
+   -31 %), but as written it costs Fast's R +40-60 % AA off and +25 % with 4 samples, Fast then no cheaper than Exact (five divisions
+   and a search over five edges a fragment). Next: each edge's x as a + b y per fan triangle, the search on y alone.
+
+### The seam fix on GL (llvmpipe), Smooth edges, cracks at 4x/8x, a jitter sweep (2026-11-25, fst1)
+
+Setup: Mesa llvmpipe (GLES 3, framebuffer fetch), `tools/fast_seam_ab.sh` (A/B over `tools/gpu_fd.py`: BWPORT_FAST_SEAM=0, the old rule,
+against the default 3). Sets: Black's town (play town-lab, 58 captures), HG New Bark (hg-door, 61), Platinum Twinleaf (town-walk, every
+4th of 213: 54); 1x/2x/3x; AA off and 4 samples. The real GPU in WSL (Mesa d3d12 on the RX 7900 GRE) has no Fast: gpu_info says "fast 3D
+no" (no framebuffer fetch, no fragment interlock), so the numbers below are llvmpipe's; the phone and the M2 remain the GPU checks.
+
+**Holes (gaps: Exact has a polygon, Fast none): 0 with SEAM=0 and 0 with SEAM=3 on all three sets at 1x/2x/3x, AA off and 4 samples.**
+llvmpipe's top-left rule already gives a shared-edge pixel to one polygon, so the Mac's town holes (48-183 with the old rule) do not occur
+here; the fix has nothing to close on GL for these captures and the A/B can only show what it costs. Fast against Exact, SEAM 0 -> 3
+(llvmpipe, differ = mean % of pixels that differ):
+- AA off, differ: Black 1x 19.99 -> 20.66, 2x 11.72 -> 12.03, 3x 8.42 -> 8.60; HG 1x 6.47 -> 7.28, 2x 3.48 -> 3.81, 3x 2.38 -> 2.57; Pt
+  1x 6.81 -> 7.28, 2x 4.31 -> 4.53, 3x 3.18 -> 3.32 (+0.2-0.8 points: inner-edge pixels drawn whole, as the Mac saw +1.7-2.4 %).
+- AA off, specks: Black 2073/1492/2749 -> 1970/1416/2583 (1x/2x/3x), HG 4957/7484/11149 -> 4632/7232/9674, Pt 3452/7120/9526 ->
+  3289/7291/9347 (down 2-13 %, Pt 2x up 2 %); extras Black 1746/352/291 -> 1853/372/369, HG 507/628/940 -> 503/607/915, Pt 397/165/369 ->
+  435/157/365 (mixed, +- 20 %).
+- 4 samples: differ unchanged to 0.04 points (Black 1x 14.90 -> 14.94, HG 7.02 -> 7.06, Pt 6.86 -> 6.90; every other cell within 0.01);
+  specks within 2 % (Black 3546/8540/13773 -> 3546/8545/13773, HG 8196/11219/18478 -> 8355/11135/18342, Pt 9583/18682/22378 ->
+  9742/18617/22402); extras 0.
+Mean Fast-vs-Exact (3 sets, AA off) therefore rises on GL; the Mac's 3.84 -> 3.90 % (llvmpipe, ivf1) is the same sign at 4 samples.
+
+**Cracks in Exact** (`bash tools/fast_seam_ab.sh crack 4 8`; gpu_crack: GPU_FLAT coverage at N x inside vcore's silhouette eroded by 2 DS
+pixels): HG New Bark 61 captures, HG route 29 16, Platinum Twinleaf 53, Black's town 58, B2 Hugh fight 16 (in B2/W2's own tree), W2 route 19
+15: 0 cracks at 4x and 8x in all of them (silhouettes 10-176 M N x pixels summed). Exact is crack-free by construction on every game.
+
+**Jitter sweep** (BWPORT_FAST_JITTER=D, now also 2..256: every vertex moved by 1/4D .. 1/D px, a hash of its position; AA off and 4 samples,
+1x and 3x, every 8th of the sets; gaps / extras / specks, SEAM 0 -> 3, 1/16, 1/8, 1/4, 1/2 px):
+- Gaps (holes): Black 0 everywhere; HG 1x AA off 14-16 and 3x 40 at every level, SEAM 0 = SEAM 3 (these do not move with the jitter or the
+  fix: not seams, HG's "other" holes (docs above) and the class-d polygon's own pixel); Pt 1x 0 -> 0 (1/2 px: 4 -> 0), 3x 0/0/1/18 -> 0/0/1/13.
+  4 samples: 0 gaps at every level and size. So the seam fix keeps its holes closed up to 1/2 px of vertex wobble on GL; no level where it stops.
+- Extras (AA off): the fix ADDS pixels under jitter on Platinum: 1x 283/309/344/425 -> 623/666/681/747, 3x 384/472/609/663 -> 1465/1549/1689/1735
+  (Black 1x +170 / +170 / +150 / +135, HG 1x +180-+160; Black/HG 3x -40..-120 fewer). Specks Pt 1x +540-+640, 3x +1000-+1030. Without
+  jitter the same Pt cells are 397 -> 435 and 369 -> 365: it is jitter plus the fix (slivers/inner-edge full coverage over a wobbled
+  neighbour). 4 samples: unchanged (+- 1 %). This is the one regression of the fix found here; not yet traced to a polygon (use
+  `gpu_fd.py ... --worst`, `gpu_fastdiff --polys` on a Pt capture with BWPORT_FAST_JITTER=8, SEAM 0 vs 3).
+
+**Smooth edges on GL** (look: `gpu_render --aa edges --scale 3 --hi`, Exact and Fast, Edge=ds and Edge=fine, vs AA off and 4 samples,
+crops of Black's roof outline and HG's roof ridge at 4x zoom): the one-sample outline is visibly smoother than AA off in both edge looks,
+Fast and Exact alike, close to the 4-sample picture on Black's outline (the staircase becomes a coverage ramp); on HG's roof (no outline
+drawn: edge marking is off there) edges changes only a few pixels. Mean absolute error from the same renderer's 4-sample picture (0-255 sums
+over three channels): Black exact ds 3.000 -> 2.909, fine 2.992 -> 2.829; fast ds 2.980 -> 2.858, fine 2.827 -> 2.686; HG exact
+4.525 -> 4.344 / 4.517 -> 4.256, fast 4.497 -> 4.290 / 4.460 -> 4.171; Pt 4.60 -> 4.56 / 4.62 -> 4.55, fast 4.50 -> 4.46 / 4.53 -> 4.46.
+Fast AA off shows its own thicker, rougher rim on a slanted ridge (the top/left grow), which Smooth edges does not touch.

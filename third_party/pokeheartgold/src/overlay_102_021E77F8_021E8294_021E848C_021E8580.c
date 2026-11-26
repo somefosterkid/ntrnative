@@ -2,7 +2,7 @@
 #include "overlay_102_pmsinput_work.h"
 struct PMSInputWork;
 
-s32 ov102_021E7A58();
+s32 ov102_021E7A58(void *);
 
 s32 ov102_021E8294(void *, void *);
 
@@ -11,7 +11,7 @@ s32 ov102_021E848C(void *, void *);
 void ov102_021E8580(struct PMSInputWork *arg0, void *arg1);
 
 void ov102_021E8580(PMSInputWork *arg0, void *arg1) {
-    if (ov102_021E7A58() == 0) {
+    if (ov102_021E7A58(arg0) == 0) {
         if (*((s32 *)&arg0->ktChangeFunc) == 0) {
             ov102_021E8294(arg0, arg1);
             return;

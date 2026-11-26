@@ -8,10 +8,10 @@
 
 s32 ov75_02249780(void *, void *, s32);
 
-void ov75_02246CB8(void *arg0);
+void ov75_02246CB8(UnkStruct_ov98_02246E88 *arg0);
 
-void ov75_02246CB8(void *arg0) {
-    ov75_02249780(*((void **)&((UnkStruct_ov98_02246E88 *)arg0)->unk_114), arg0 + 0xBC, 0x73);
+void ov75_02246CB8(UnkStruct_ov98_02246E88 *arg0) {
+    ov75_02249780(*((void **)&arg0->unk_114), &arg0->unk_9C.email[0], 0x73);
 }
 
 struct OverlayManager;

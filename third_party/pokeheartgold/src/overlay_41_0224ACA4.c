@@ -397,7 +397,11 @@ enum PaletteLoadLocation {
     PAL_LOAD_SUB_OBJEXT,
 };
 void LoadFontPal1(enum PaletteLoadLocation palLocation, u32 palSlotOffset, enum HeapID heapID);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx2(BgConfig *bgConfig, u32 bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#else
 void LoadUserFrameGfx2(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#endif
 typedef struct Window Window;
 Window *AllocWindows(enum HeapID heapID, s32 numWindows);
 void InitWindow(Window *window);

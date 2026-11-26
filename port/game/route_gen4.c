@@ -52,6 +52,7 @@
 #include "terrain_collision_manager.h"
 #include "constants/quadrant.h"
 #include "generated/abilities.h"
+#include "generated/movement_types.h"
 #include "generated/bg_event_dirs.h"
 #include "generated/bg_event_types.h"
 #include "generated/vars_flags.h"
@@ -79,7 +80,7 @@
 #include "port_route_map.h"
 
 void PortRoute4_Frame(FieldSystem *fieldSystem);
-void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
+void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fpx, int fpz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
 void PortRoute4_StartMenu(const StartMenu *menu, int saveOption, int pokemonOption, int bagOption);
 void PortRoute4_YesNo(int row);
 void PortRoute4_Saved(void);
@@ -958,6 +959,14 @@ void PortRoute4_BattleMenu(int kind, int arg) {
     sLast = kind;
 }
 
+// The evolution task after a battle (evolution.c Evolution_Main, every frame; pokeplatinum-route5.patch; pte2): its "should a move be
+// deleted?" question (states PRINT_SHOULD_A_MOVE_BE_DELETED .. PROCESS_INPUT_SHOULD_A_MOVE_BE_DELETED, its cursor starts on Yes) is
+// answered No, as the battle's own forget-a-move question: a Yes opens the summary screen to pick a move, where the pilot's A
+// never ends the leg. The "stop trying to teach it?" question that follows takes the default A (Yes: not learned).
+void PortRoute4_EvoMenu(int noQuestion) {
+    gPortRouteYesNo = noQuestion ? 2 : 0;
+}
+
 // An ability that turns a move type into no damage (the type chart does not know them): a Levitate target against Ground,
 // Volt Absorb / Lightning Rod / Motor Drive against Electric, Water Absorb / Dry Skin against Water, Flash Fire against Fire.
 // Without this the pilot keeps a Ground move against a floating target for ever (route 214's Chingling).
@@ -983,6 +992,7 @@ static int PortRoute4_AbilityNoDamage(int ability, int moveType) {
 // is a status move (eff 0); fixed-damage moves have power 1. No usable move hurts it: the A's move (Gen 5 switches; not here).
 // BWPORT_PT_TESTSLOT (the battle sweep, Pr4_TestSlot below) answers instead, without the pilot.
 static int Pr4_TestSlot(int input, const u16 *moves);
+static int Pr4_TestList(BattleSystem *battleSys, int battler);   // BWPORT_PT_TESTLIST: the sweep's case list, below
 
 int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const u16 *moves, const u8 *ppCur, int invalidMoves) {
     BattleContext *ctx = BattleSystem_GetBattleContext(battleSys);
@@ -990,6 +1000,9 @@ int PortRoute4_BattleMove(BattleSystem *battleSys, int battler, int input, const
 
     if (input >= 1 && input <= 4) {
         Pr4_IntBattle(100);
+    }
+    if (input >= 1 && input <= 4 && getenv("BWPORT_PT_TESTLIST") != NULL) {
+        return Pr4_TestList(battleSys, battler);
     }
     if (input >= 1 && input <= 4 && getenv("BWPORT_PT_TESTSLOT") != NULL) {
         return Pr4_TestSlot(input, moves);
@@ -1058,7 +1071,18 @@ int PortRoute4_TargetCursorKeep(int button, const u8 *present) {
 // a burn or the hail fainted the lead in chains whose frames the speed options moved). Not covered: status moves, stat drops.
 // BWPORT_NOENCOUNTER=1 (PortRoute_NoEncounter, the pilot's E:on / E:off): no wild encounter on a step (walking, surfing;
 // field_control.c Field_CheckWildEncounter, as a Repel would); fishing, scripts, trainers and the Pal Park still happen.
+// BWPORT_PT_TESTLIST (the battle sweep, Pr4_TestList below): both sides always hit and use no PP, no hit takes more than an eighth
+// of the defender's HP and no script loss (recoil, a self-KO) its last one: neither Pokemon faints.
+static int Pr4_SweepOn(void) {
+    return getenv("BWPORT_PT_TESTLIST") != NULL;
+}
+
 int PortRoute4_CheatSide(BattleSystem *battleSys, int battler) {
+    if (Pr4_SweepOn()) {
+        fprintf(stderr, "sweep: exec battler %d move %u at V-blank %u\n", battler,
+                (unsigned)BattleSystem_GetBattleContext(battleSys)->moveTemp, (unsigned)OS_GetVBlankCount());
+        return 1;
+    }
     return (PortRoute_CheatWin(PORT_ROUTE_GAME) || getenv("BWPORT_PT_TESTHIT") != NULL) && BattleSystem_GetBattlerSide(battleSys, battler) == 0;
 }
 
@@ -1076,6 +1100,11 @@ void PortRoute4_CheatSpeed(BattleSystem *battleSys, int battler1, int battler2, 
 int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, int damage, int defenderHP) {
     int n = damage;
 
+    if (Pr4_SweepOn()) {   // a loss is negative: at most an eighth of the defender's HP (at least 1)
+        int cap = defenderHP / 8 > 0 ? defenderHP / 8 : 1;
+
+        return damage < 0 && -damage > cap ? -cap : damage;
+    }
     if (damage == 0 || !PortRoute_CheatWin(PORT_ROUTE_GAME)) {
         return damage;
     }
@@ -1090,6 +1119,11 @@ int PortRoute4_CheatDamage(BattleSystem *battleSys, int attacker, int defender, 
 
 // The HP change a battle script applies to `battler` (hpCalcTemp: < 0 a loss): with the cheat on, a loss of the player's side is 0.
 int PortRoute4_CheatHpCalc(BattleSystem *battleSys, int battler, int hpCalc) {
+    if (Pr4_SweepOn()) {   // a loss never takes the last HP
+        int hp = BattleSystem_GetBattleContext(battleSys)->battleMons[battler].curHP;
+
+        return hpCalc < 0 && -hpCalc >= hp ? (hp > 1 ? 1 - hp : 0) : hpCalc;
+    }
     if (hpCalc >= 0 || !PortRoute_CheatWin(PORT_ROUTE_GAME) || BattleSystem_GetBattlerSide(battleSys, battler) != 0) {
         return hpCalc;
     }
@@ -1184,6 +1218,67 @@ static int Pr4_TestSlot(int input, const u16 *moves) {
     return slot + 1;
 }
 
+extern void PORT_SweepCase(int k, const char *what);   // port/src/run_frames.c (the sweep's case lines)
+extern void PORT_SweepEnd(const char *why, int exitNow);
+
+// BWPORT_PT_TESTLIST=O:F,O:F,... (the battle sweep, tools/battle_sweep.py; needs BWPORT_PT_TESTBATTLE): one case per turn. At each
+// move menu the next pair is applied to the battle's own Pokemon (the BattleMons, as Transform or Mimic do): our first slot knows move
+// O, every slot of the foe move F (so the AI's pick is F), PP full, HP full, status cleared. The menu's answer is slot 1.
+// (The wild foe's AI picks after our menu's answer: F applies to the same turn.) Past the last pair: `sweep: end list`, exit 0
+// with BWPORT_PT_TESTEXIT. The first foe move is the battle's own spec. A battle that ends earlier (a blown-away wild Pokemon)
+// prints `sweep: end battle` from Pr4_TestFrame; the harness resumes after that case. Twin of HeartGold's PortRoute4_TestList.
+static u16 sListOur[1024], sListFoe[1024];
+static int sListN = -1, sListPos;
+
+static void Pr4_ListParse(void) {
+    const char *p = getenv("BWPORT_PT_TESTLIST");
+    int o, f, n;
+
+    sListN = 0;
+    while (p != NULL && sListN < 1024 && sscanf(p, "%d:%d%n", &o, &f, &n) == 2) {
+        sListOur[sListN] = (u16)o;
+        sListFoe[sListN++] = (u16)f;
+        p += n;
+        if (*p == ',') {
+            p++;
+        }
+    }
+}
+
+static int Pr4_TestList(BattleSystem *battleSys, int battler) {
+    BattleContext *ctx = BattleSystem_GetBattleContext(battleSys);
+    int k, b, i;
+    char what[48];
+
+    if (sListN < 0) {
+        Pr4_ListParse();
+    }
+    k = sListPos++;
+    if (k >= sListN) {
+        PORT_SweepEnd("list", getenv("BWPORT_PT_TESTEXIT") != NULL);
+        return 1;
+    }
+    for (b = 0; b < BattleSystem_GetMaxBattlers(battleSys); b++) {
+        BattleMon *m = &ctx->battleMons[b];
+
+        m->curHP = (s32)m->maxHP;
+        m->status = 0;
+        m->statusVolatile = 0;
+        if (BattleSystem_GetBattlerSide(battleSys, b) != BattleSystem_GetBattlerSide(battleSys, battler)) {
+            for (i = 0; i < 4; i++) {
+                m->moves[i] = sListFoe[k];
+                m->ppCur[i] = 35;
+            }
+        } else if (b == battler) {
+            m->moves[0] = sListOur[k];
+            m->ppCur[0] = 35;
+        }
+    }
+    snprintf(what, sizeof what, "our %u foe %u", (unsigned)sListOur[k], (unsigned)sListFoe[k]);
+    PORT_SweepCase(k, what);
+    return 1;
+}
+
 static void Pr4_TestBattle(FieldSystem *fs) {
     const char *e = getenv("BWPORT_PT_TESTBATTLE"), *p;
     int species = 0, level = 0, oppSpecies, oppLevel, n = 0, setOur = 0, setOpp = 0;
@@ -1255,6 +1350,9 @@ static void Pr4_TestFrame(FieldSystem *fs, int free) {
     } else if (sPr4TestState == 2 && free) {
         sPr4TestState = 3;
         fprintf(stderr, "test: battle over at V-blank %u\n", (unsigned)OS_GetVBlankCount());
+        if (Pr4_SweepOn()) {
+            PORT_SweepEnd("battle", getenv("BWPORT_PT_TESTEXIT") != NULL);
+        }
         if (getenv("BWPORT_PT_TESTEXIT") != NULL) {
             _exit(0);
         }
@@ -2024,16 +2122,25 @@ static void Pr4_LDump(FieldSystem *fs) {
     }
 }
 
+void PortSave4_Frame(FieldSystem *fs);   // port/game/save_gen4.c: "Save first" (not a test hook: it runs in every game)
+
 void PortRoute4_Frame(FieldSystem *fs) {
     static PortRouteState rs = {PORT_ROUTE_GAME, 0xffff, 0, 0, 1, -1, -1, 0, 0};
+
+    PortSave4_Frame(fs);
 
     Pr4_Sweep(fs, Pr4_FieldUp(fs), Pr4_FieldUp(fs) && !fs->processManager->pause && !FieldSystem_IsRunningTask(fs));
     Pr4_ScriptHook(fs, Pr4_FieldUp(fs) && !fs->processManager->pause && !FieldSystem_IsRunningTask(fs));
     Pr4_IntFrame(fs, Pr4_FieldUp(fs), Pr4_FieldUp(fs) && !fs->processManager->pause && !FieldSystem_IsRunningTask(fs));
     Pr4_PoketchHook(fs, Pr4_FieldUp(fs) && !fs->processManager->pause && !FieldSystem_IsRunningTask(fs));
     if (Pr4_FieldUp(fs)) {
+        // the follower: a partner trainer of the follow-the-player movement type (unk_02069BE0.c), -1 = none
+        MapObject *partner = fs->mapObjMan != NULL ? MapObjMan_GetLocalMapObjByMovementType(fs->mapObjMan, MOVEMENT_TYPE_FOLLOW_PLAYER) : NULL;
+
         sPr4Fs = fs;
-        PortSpeed4_MoveLog(PlayerAvatar_GetXPos(fs->playerAvatar), PlayerAvatar_GetZPos(fs->playerAvatar), PlayerAvatar_GetPos(fs->playerAvatar)->x >> FX32_SHIFT, PlayerAvatar_GetPos(fs->playerAvatar)->z >> FX32_SHIFT, -1, -1, -1,
+        PortSpeed4_MoveLog(PlayerAvatar_GetXPos(fs->playerAvatar), PlayerAvatar_GetZPos(fs->playerAvatar), PlayerAvatar_GetPos(fs->playerAvatar)->x >> FX32_SHIFT, PlayerAvatar_GetPos(fs->playerAvatar)->z >> FX32_SHIFT,
+                           partner != NULL ? MapObject_GetX(partner) : -1, partner != NULL ? MapObject_GetZ(partner) : -1,
+                           partner != NULL ? MapObject_GetPos(partner)->x >> FX32_SHIFT : -1, partner != NULL ? MapObject_GetPos(partner)->z >> FX32_SHIFT : -1, -1,
                            PlayerAvatar_GetPlayerMoveState(fs->playerAvatar));
         Pr4_FlySlot(fs);
         Pr4_PropDump(fs);
@@ -2114,6 +2221,10 @@ void PortRoute4_Frame(FieldSystem *fs) {
 #include "save_vars_flags.h"
 #include "constants/flags.h"
 #include "constants/vars.h"
+#include "constants/maps.h"
+#include "gymmick.h"
+#include "save_misc_data.h"
+#include "unk_020648EC.h"
 #include "port_route_story.h"
 #include "save_pokegear.h"
 #include "overlay_01_021F6830.h"
@@ -2122,6 +2233,7 @@ void PortRoute4_Frame(FieldSystem *fs) {
 #include "overlay_27_ov27task_data.h"
 #include "sys_task.h"
 #include "update_dex_received.h"
+#include "use_item_on_mon.h"
 #include "constants/items.h"
 #include "constants/moves.h"
 #include "constants/pokegear_card.h"
@@ -2132,10 +2244,11 @@ void PortRoute4_Frame(FieldSystem *fs) {
 #include <unistd.h>
 
 #include "port_route.h"
+#include "port_route_cheat.h"
 #include "port_route_map.h"
 
 void PortRoute4_Frame(FieldSystem *fieldSystem);
-void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
+void PortSpeed4_MoveLog(int gx, int gz, int px, int pz, int fgx, int fgz, int fpx, int fpz, int fstate, int moveState);   // port/game/speed_gen4.c (BWPORT_MOVELOG4)
 void PortRoute4_StartMenu(FieldSystem *fieldSystem);
 void PortRoute4_SaveStart(void);
 void PortRoute4_SaveEnd(void);
@@ -2223,6 +2336,7 @@ static u16 sPr4A[PORT_MAP_N][PORT_MAP_N];
 static u8 sPr4Have[PORT_MAP_N][PORT_MAP_N];
 static fx32 sPr4H[PORT_MAP_N][PORT_MAP_N];
 static u8 sPr4HOk[PORT_MAP_N][PORT_MAP_N];   // the tile's height is known (its chunk's terrain is loaded)
+static u8 sPr4Lava[PORT_MAP_N][PORT_MAP_N];   // Blackthorn Gym: a magma tile off the platforms (the game's collision says blocked)
 
 // a warp tile's PortMapWarp.dir (the facing arriving there + 1: 0 up, 1 down, 2 left, 3 right; 0 none): Platinum's mapping
 static int Pr4_WarpDir(u8 b) {
@@ -2247,6 +2361,66 @@ static int Pr4_WarpDir(u8 b) {
     return 0;
 }
 
+// Blackthorn Gym (docs/hgss.md "Blackthorn Gym"): the three platforms ride over magma. The game's tile collision is
+// Gymmick_CheckCollision (field/gymmick/blackthorn.c GymmickCheckCollision_Blackthorn): a tile on a platform's floor is free, a
+// magma tile off the platforms is blocked; the raw attributes say neither (magma has no collision bit). Pr4_Fill asks the gym
+// per tile while it is up (the grid then shows a magma tile as 'L', a platform's floor as walkable) so the planner walks the
+// platforms where they are now. BWPORT_BTDUMP=1 also prints (stderr, "bt:" lines) the platforms' x, z and rotation each time
+// they change and, whenever more of the zone's attributes are known, the raw map ('#' collision bit, 'M' magma without it,
+// '.' other, '?' not loaded) for tools/blackthorn_solve.py.
+static int Pr4_BtActive(FieldSystem *fs) {
+    return fs->location->mapId == MAP_BLACKTHORN_GYM && fs->unk4 != NULL && fs->unk4->unk24 != NULL &&
+           Save_Gymmick_GetType(Save_GetGymmickPtr(fs->saveData)) == GYMMICK_BLACKTHORN;
+}
+
+static void Pr4_BtDump(FieldSystem *fs) {
+    static int sSig[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1}, sKnown = -1;
+    static char sRow[96][33];
+    GymmickUnion *g;
+    int sig[9], i, x, z, known = 0, mw, mh;
+
+    if (getenv("BWPORT_BTDUMP") == NULL) {
+        return;
+    }
+    g = Save_Gymmick_AssertMagic_GetData(Save_GetGymmickPtr(fs->saveData), GYMMICK_BLACKTHORN);
+    for (i = 0; i < 3; i++) {
+        sig[i * 3] = g->blackthorn.x[i];
+        sig[i * 3 + 1] = g->blackthorn.z[i];
+        sig[i * 3 + 2] = g->blackthorn.rot[i];
+    }
+    if (memcmp(sig, sSig, sizeof sig) != 0) {
+        memcpy(sSig, sig, sizeof sig);
+        fprintf(stderr, "bt: platforms P0 %d %d %d P1 %d %d %d P2 %d %d %d player %d,%d (V-blank %u)\n", sig[0], sig[1], sig[2], sig[3],
+                sig[4], sig[5], sig[6], sig[7], sig[8], (int)PlayerAvatar_GetXCoord(fs->playerAvatar),
+                (int)PlayerAvatar_GetZCoord(fs->playerAvatar), (unsigned)OS_GetVBlankCount());
+    }
+    mw = MapMatrix_GetWidth(fs->mapMatrix) * 32;
+    mh = MapMatrix_GetHeight(fs->mapMatrix) * 32;
+    if (mw > 32 || mh > 96) {
+        return;
+    }
+    for (z = 0; z < mh; z++) {
+        for (x = 0; x < mw; x++) {
+            u16 a;
+            char k = '?';
+
+            if (Pr4_Attr(x, z, &a)) {
+                k = (a >> 15) & 1 ? '#' : MetatileBehavior_IsMagma((u8)(a & 0xff)) ? 'M' : '.';
+                known++;
+            }
+            sRow[z][x] = k;
+        }
+        sRow[z][mw] = 0;
+    }
+    if (known > sKnown) {
+        sKnown = known;
+        fprintf(stderr, "bt: raw %d x %d, %d tiles known\n", mw, mh, known);
+        for (z = 0; z < mh; z++) {
+            fprintf(stderr, "bt: raw %02d %s\n", z, sRow[z]);
+        }
+    }
+}
+
 static void Pr4_Fill(PortMap *m) {
     static const int dx[4] = {0, 0, -1, 1}, dz[4] = {-1, 1, 0, 0};
     FieldSystem *fs = sPr4Fs;
@@ -2255,7 +2429,7 @@ static void Pr4_Fill(PortMap *m) {
     LocalMapObject *self, *obj;
     const VecFx32 *ppos;
     fx32 py;
-    int x, z, d, i;
+    int x, z, d, i, bt;
     s32 idx;
 
     memset(m, 0, sizeof *m);
@@ -2281,6 +2455,7 @@ static void Pr4_Fill(PortMap *m) {
     m->rail = 0;
     m->nline = m->nlever = m->nplace = m->narm = 0;
     m->wind = m->gust = m->windHold = 0;
+    bt = Pr4_BtActive(fs);
     for (z = 0; z < PORT_MAP_N; z++) {
         for (x = 0; x < PORT_MAP_N; x++) {
             int gx = m->x0 + x, gz = m->z0 + z;
@@ -2288,6 +2463,15 @@ static void Pr4_Fill(PortMap *m) {
             u8 hsrc = 1;   // CALCULATED_HEIGHT_SOURCE_NONE (0): no height data (yet) for the tile
 
             sPr4Have[z][x] = (u8)Pr4_Attr(gx, gz, &sPr4A[z][x]);
+            sPr4Lava[z][x] = 0;
+            if (bt && sPr4Have[z][x]) {   // the gym's own collision (Gymmick_CheckCollision): a platform's floor is free, magma off it blocked
+                BOOL col = FALSE;
+
+                if (Gymmick_CheckCollision(fs, (u32)gx, (u32)gz, 0, &col)) {
+                    sPr4Lava[z][x] = col ? 1 : 0;
+                    sPr4A[z][x] = (u16)((sPr4A[z][x] & 0x7fff) | (col ? 0x8000 : 0));
+                }
+            }
             sPr4H[z][x] = sPr4Have[z][x] ? tc->getHeight(fs, py, gx * PR4_TILE + PR4_TILE / 2, gz * PR4_TILE + PR4_TILE / 2, &hsrc) : 0;
             sPr4HOk[z][x] = hsrc != 0;   // a chunk whose attributes are in and whose terrain heights are not (the next one, loading)
                                          // reads height 0: no cliff test against it (it made Route 32's way south a 48-unit wall)
@@ -2318,7 +2502,7 @@ static void Pr4_Fill(PortMap *m) {
                       : MetatileBehavior_IsJumpEast(b)  ? '>'
                       : MetatileBehavior_IsWaterfall(b) ? 'F'   // a waterfall wall: F:waterfall climbs it from the water in front (the player surfs)
                       : MetatileBehavior_IsWhirlpool(b) ? 'W'   // a whirlpool: F:whirlpool crosses it from the water in front (std_field_whirlpool)
-                      : coll                            ? '#'
+                      : coll                            ? (sPr4Lava[z][x] ? 'L' : '#')
                       : MetatileBehavior_IsSurfableWater(b) ? '~'
                       : MetatileBehavior_IsTallGrass(b) || MetatileBehavior_IsVeryTallGrass(b) ? ','
                                                                                                 : '.';
@@ -2370,6 +2554,9 @@ static void Pr4_Fill(PortMap *m) {
                 c->pass |= (unsigned char)(1 << d);
             }
         }
+    }
+    if (bt) {
+        Pr4_BtDump(fs);
     }
     PortMap_OpenUnloaded(m);
     // the zone's events (MapEvents: tile units already)
@@ -2731,6 +2918,14 @@ void PortRoute4_BattleMenu(int kind, int arg) {
         fprintf(stderr, "pilot: battle menu %d arg %d at V-blank %u\n", kind, arg, (unsigned)OS_GetVBlankCount());
     }
     sLast = kind;
+}
+
+// The evolution task after a battle (unk_020755E8_02075D4C_02075E14.c sub_02075E14, every frame; hbp2): its "should a move be
+// deleted?" question (states PRINT_SHOULD_A_MOVE_BE_DELETED .. PROCESS_INPUT_SHOULD_A_MOVE_BE_DELETED, its cursor starts on Yes) is
+// answered No, as the battle's own forget-a-move question: a Yes opens the summary screen to pick a move, where the pilot's A
+// never ends the leg. The "stop trying to teach it?" question that follows takes the default A (Yes: not learned).
+void PortRoute4_EvoMenu(int noQuestion) {
+    gPortRouteYesNo = noQuestion ? 2 : 0;
 }
 
 // the move menu's answer (1..4 the slot + 1, else a cancel): PortRoute_BestMove on CalculateTypeEffectiveness (x40) x power
@@ -3144,6 +3339,83 @@ static void Pr4_AppCheat(FieldSystem *fs, int free) {
         Save_Daycare_SetEggCycleCounter(Save_Daycare_Get(save), 254);
     }
     fprintf(stderr, "test: app cheat %s at V-blank %u\n", e, (unsigned)OS_GetVBlankCount());
+}
+
+// The pilot's X: cheats (port/include/port_route_cheat.h; tokens X:money X:item X:mon X:badge X:work X:flag X:heal of port/src/route_test.c,
+// as Gen 5s PortStory_Cheat: the pilot queues one in gPortRouteCheat, this runs it on the next frame
+// the field is up, with the game's own functions on the save (money, bag, party, trainer badges, vars and flags), logs one "cheat:" line
+// and sets done. Test-only, like the battle cheat; a route leg uses it only as a stand-in the brief names. X:mon:SPECIES:LEVEL[:LEAD[:MOVE]]
+// adds the Pokemon (GiveMon: the party, the dex), the lead flag swaps it to slot 0, MOVE is set as its move slot 0 (Pr4_FlySlot then
+// finds a Fly user). The story-moving kinds R:script and X:warp have no HG consumer: refused (done = 2), never silently skipped.
+static void Pr4_RouteCheat(FieldSystem *fs, int up) {
+    PortRouteCheat *c = &gPortRouteCheat;
+    SaveData *save = fs->saveData;
+    PlayerProfile *prof;
+    Party *party;
+    int ok, n;
+
+    if (!c->pending || !up) {
+        return;
+    }
+    c->pending = 0;
+    prof = Save_PlayerData_GetProfile(save);
+    party = SaveArray_Party_Get(save);
+    switch (c->kind) {
+    case PORT_CHEAT_WORK:
+        if (c->a < VAR_BASE || c->a >= VAR_BASE + NUM_VARS) {
+            fprintf(stderr, "cheat: work 0x%x is out of range\n", c->a);
+            break;
+        }
+        fprintf(stderr, "cheat: work 0x%x was %u, set to %d\n", c->a, (unsigned)FieldSystem_VarGet(fs, (u16)c->a), c->b);
+        FieldSystem_VarSet(fs, (u16)c->a, (u16)c->b);
+        break;
+    case PORT_CHEAT_FLAG:
+        if (c->a < 1 || c->a >= TEMP_FLAG_BASE + PORT_STORY_NTEMP) {
+            fprintf(stderr, "cheat: flag 0x%x is out of range\n", c->a);
+            break;
+        }
+        fprintf(stderr, "cheat: flag 0x%x was %d, set to %d\n", c->a, (int)FieldSystem_FlagCheck(fs, (u16)c->a), c->b);
+        if (c->b) {
+            FieldSystem_FlagSet(fs, (u16)c->a);
+        } else {
+            FieldSystem_FlagClear(fs, (u16)c->a);
+        }
+        break;
+    case PORT_CHEAT_MONEY:
+        PlayerProfile_SetMoney(prof, (u32)c->a);
+        fprintf(stderr, "cheat: money set to %u\n", (unsigned)PlayerProfile_GetMoney(prof));
+        break;
+    case PORT_CHEAT_ITEM:
+        ok = Bag_AddItem(Save_Bag_Get(save), (u16)c->a, (u16)c->b, HEAP_ID_FIELD2);
+        fprintf(stderr, "cheat: item %d x%d %s, bag holds %d\n", c->a, c->b, ok ? "added" : "NOT added",
+                (int)Bag_GetQuantity(Save_Bag_Get(save), (u16)c->a, HEAP_ID_FIELD2));
+        break;
+    case PORT_CHEAT_MON:
+        ok = GiveMon(HEAP_ID_FIELD2, save, c->a, c->b, 0, 0, 0, 4, 24);
+        n = Party_GetCount(party);
+        if (ok && c->d > 0) {   // move slot 0 (full PP): the field-move menus read real move slots
+            MonSetMoveInSlot(Party_GetMonByIndex(party, n - 1), (u16)c->d, 0);
+        }
+        if (ok && c->c == 1 && n > 1) {   // :1 = the lead
+            Party_SwapSlots(party, n - 1, 0);
+        }
+        fprintf(stderr, "cheat: mon %d level %d %s, party %d%s%s\n", c->a, c->b, ok ? "added" : "NOT added (party full)", n,
+                ok && c->c == 1 ? " (lead)" : "", ok && c->d > 0 ? " (move 1 set)" : "");
+        break;
+    case PORT_CHEAT_BADGE:
+        PlayerProfile_SetBadgeFlag(prof, c->a);
+        fprintf(stderr, "cheat: badge %d added, badges %d\n", c->a, (int)PlayerProfile_CountBadges(prof));
+        break;
+    case PORT_CHEAT_HEAL:   // X:heal: the Pokemon Center's own heal (ScrCmd_HealParty)
+        HealParty(party);
+        fprintf(stderr, "cheat: party healed (HP, status, PP), party %d\n", (int)Party_GetCount(party));
+        break;
+    default:
+        fprintf(stderr, "cheat: kind %d (R:script / X:warp) has no HG consumer: refused\n", c->kind);
+        c->done = 2;
+        return;
+    }
+    c->done = 1;
 }
 
 // The crash sweep's debug warp (tools/hg_sweep.py, docs/hgss.md "Crash sweep"; crash finding only, never in a route or a
@@ -3761,12 +4033,17 @@ static void Pr4_TouchYesNo(FieldSystem *fs) {
     }
 }
 
+void PortSave4_Frame(FieldSystem *fs);   // port/game/save_gen4.c: "Save first" (not a test hook: it runs in every game)
+
 void PortRoute4_Frame(FieldSystem *fs) {
     static PortRouteState rs = {"HG", 0xffff, 0, 0, 1, -1, -1, 0, 0};
+
+    PortSave4_Frame(fs);
 
     PORT_StateHook = PortRoute_StateLine;   // port/src/run_frames.c prints it at the frame cap
     rs.game = Pr4_Game();
     Pr4_AppCheat(fs, Pr4_FieldUp(fs) && !fs->processManager->isPaused && !FieldSystem_TaskIsRunning(fs));
+    Pr4_RouteCheat(fs, Pr4_FieldUp(fs));
     Pr4_Sweep(fs, Pr4_FieldUp(fs), Pr4_FieldUp(fs) && !fs->processManager->isPaused && !FieldSystem_TaskIsRunning(fs));
     Pr4_ScriptHook(fs, Pr4_FieldUp(fs), Pr4_FieldUp(fs) && !fs->processManager->isPaused && !FieldSystem_TaskIsRunning(fs));
     Pr4_IntFrame(fs, Pr4_FieldUp(fs), Pr4_FieldUp(fs) && !fs->processManager->isPaused && !FieldSystem_TaskIsRunning(fs));
@@ -3776,7 +4053,9 @@ void PortRoute4_Frame(FieldSystem *fs) {
         sPr4Fs = fs;
         PortSpeed4_MoveLog((int)PlayerAvatar_GetXCoord(fs->playerAvatar), (int)PlayerAvatar_GetZCoord(fs->playerAvatar), p->x >> FX32_SHIFT, p->z >> FX32_SHIFT,
                            fs->followMon.active ? (int)MapObject_GetXCoord(fs->followMon.mapObject) : -1,
-                           fs->followMon.active ? (int)MapObject_GetZCoord(fs->followMon.mapObject) : -1, (int)fs->followMon.unk1C,
+                           fs->followMon.active ? (int)MapObject_GetZCoord(fs->followMon.mapObject) : -1,
+                           fs->followMon.active ? MapObject_GetPositionVector(fs->followMon.mapObject)->x >> FX32_SHIFT : -1,
+                           fs->followMon.active ? MapObject_GetPositionVector(fs->followMon.mapObject)->z >> FX32_SHIFT : -1, (int)fs->followMon.unk1C,
                            (int)PlayerAvatar_GetPlayerMoveState(fs->playerAvatar));
         Pr4_TouchYesNo(fs);
         Pr4_FlySlot(fs);

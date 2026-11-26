@@ -9,7 +9,11 @@
 
 typedef struct ArcadeContext {
     u32 unk0[2];
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    struct BattleCastleSave *unk8;
+#else
     u32 unk8;
+#endif
     BattleSetup *battleSetup;
     u8 type;
     u8 unk11;

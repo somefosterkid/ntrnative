@@ -41,6 +41,9 @@
 #include "overlay_41_unk_struct_ov22_0225b1bc.h"
 #include "field/terrain_collision_manager.h"
 #include "filesystem_files_def.h"
+#include "touchscreen.h"
+#include "constants/heap.h"
+#include "overlay_41_unk_struct_ov22_022597BC.h"
 
 void ov96_021EAF60(Ov96SpriteSet *set, s32 index, s32 screens, void *pltt) {
     ov96_021E8BF4(set->man, index, screens, pltt);
@@ -96,21 +99,6 @@ typedef struct SpriteAnimFrame {
 
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
 
-typedef union {
-    struct {
-        u8 top;
-        u8 bottom;
-        u8 left;
-        u8 right;
-    } rect;
-
-    struct {
-        u8 code;
-        u8 x;
-        u8 y;
-        u8 r;
-    } circle;
-} TouchScreenRect, TouchscreenHitbox;
 
 void ov22_0225B588(UnkStruct_ov22_0225A0E4 *param0, UnkStruct_ov22_02255CB8 *param1, const UnkStruct_ov22_0225B4E4 *param2, enum HeapID heapID);
 

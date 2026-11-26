@@ -3,7 +3,11 @@
 
 s32 ov102_021E8F6C(struct EasyChatApp *app);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov102_021E8F84(struct EasyChatApp *app);
+#else
 s32 ov102_021E8F84(struct EasyChatApp *app);
+#endif
 
 void ov102_021EA874(EasyChatSentenceView *view) {
     s32 v1;

@@ -5,7 +5,7 @@
 #include "sprite.h"
 #include "overlay_96_unk_struct_ov96_021_f94a8.h"
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, u32, s32, s32);
 
 s32 ov96_021EAC0C(s32 *, s32);
 
@@ -31,7 +31,11 @@ s32 ov96_021FB6B4(UnkStruct_ov96_021F94A8 *, u32, s32);
 
 s32 ov96_021FB6C8(UnkStruct_ov96_021F94A8 *, UnkStruct_ov96_021FAB24 *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_021FBCB8(PokeathlonCourseData *, UnkStruct_ov96_021FAB24 *);
+#else
 s32 ov96_021FBCB8(PokeathlonCourseData *, UnkStruct_ov96_021FAB24 *);
+#endif
 
 s32 ov96_021FBEA0(u8 *param_1);
 

@@ -161,6 +161,12 @@ def test_write_stubs_makes_data_a_zeroed_block_and_functions_traps():
         assert 'long called_fn(void) { static int said; return bwport_undefined("called_fn"' in text
 
 
+def test_port_definitions_flags_port_hooks_only():
+    got = U.port_definitions({"PortSpeed4_TrackLooks", "PortRoute4_MoveLog", "libfn", "PORT_Other", "other_gap"})
+    assert sorted(got) == ["PortRoute4_MoveLog", "PortSpeed4_TrackLooks"], got
+    assert U.port_definitions(set()) == {}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

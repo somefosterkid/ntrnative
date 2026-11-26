@@ -5497,7 +5497,7 @@ Overlay OVY_14
     Object src/overlay_14_021F1100_021F1100.c
     Object src/overlay_14_021F1128.c
     Object src/overlay_14_021F1228_021F1228.c
-    Object asm/overlay_14_021F1228.s
+    Object src/overlay_14_021F129C.c
     Object src/overlay_14_021F131C.c
     Object src/overlay_14_021F1504.c
     Object src/overlay_14_021F1540.c

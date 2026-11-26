@@ -43,7 +43,7 @@ u32 ov14_021EE3C8(void *param_1) {
         }
         break;
     case 9:
-        ov14_021F29E4(*((void **)&((UnkStruct_ov14_boxapp *)param_1)->sys), 9, 8);
+        ov14_021F29E4(((UnkStruct_ov14_boxapp *)param_1)->sys, 9, 8);
     case -2:
         PlaySE(0x5dc);
         return ov14_021F1534(param_1, 0);

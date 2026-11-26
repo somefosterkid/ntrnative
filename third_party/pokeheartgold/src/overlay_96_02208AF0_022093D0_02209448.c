@@ -66,9 +66,9 @@ void *ov96_0220C93C(PokeathlonCourseData *data, enum HeapID heapID);
 
 void ov96_0220C9CC(Ov96RivalSet *arg0);
 
-u32 ov96_02209448(PokeathlonCourseData *param_1);
+BOOL ov96_02209448(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_02209448(PokeathlonCourseData *param_1) {
+BOOL ov96_02209448(PokeathlonCourseData *param_1, int unused) {
     u8 uVar1;
     Ov96_0220Data *data;
     s32 iVar13;

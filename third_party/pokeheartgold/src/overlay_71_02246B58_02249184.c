@@ -35,6 +35,6 @@ void ov71_02249184(SysTask *arg0, void *arg1) {
         }
     }
     ov71_0224903C(arg1);
-    ov71_022476C4(*(void **)arg1, arg1 + 0x14);
-    ov71_022476EC(*(void **)arg1, arg1 + 0x20);
+    ov71_022476C4(*(void **)arg1, &((BallPathState *)arg1)->currentPos);
+    ov71_022476EC(*(void **)arg1, &((BallPathState *)arg1)->rotation);
 }

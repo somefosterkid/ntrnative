@@ -4,8 +4,6 @@
 
 extern u8 ov86_021E81DC[];
 
-void ov86_021E78B8(FrontierRecordsApp *app, s32 arg1);
-
 void ov86_021E78B8(FrontierRecordsApp *app, s32 arg1) {
     u32 temp_r1;
 

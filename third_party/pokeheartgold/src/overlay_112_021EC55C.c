@@ -6,27 +6,12 @@
 #include "overlay_112_pokewalker_app.h"
 struct Ov112PokewalkerApp;
 
-s32 ov112_021EA688(void *, s32);
-
-s32 ov112_021EC460(struct Ov112PokewalkerApp *, s32, s32, s32);
-
-s32 ov112_021EC55C(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021E7CA4(void *, s32, s32);
-s32 ov112_021E9F40(void *, s32);
-u8 ov112_021EA08C(struct Ov112PokewalkerApp *, s32, s32);
-s32 ov112_021ED2F4(Ov112PokewalkerApp *);
-s32 ov112_021EC640(Ov112PokewalkerApp *arg0);
-s32 ov112_021EC67C(Ov112PokewalkerApp *arg0);
 s32 ov112_021EC69C(void);
 s32 ov112_021EC6C0(void *arg0);
 s32 ov112_021EC6D8(void);
 s32 ov112_021EC6F8(void);
-s32 ov112_021EC70C(Ov112PokewalkerApp *arg0);
-s32 ov112_021E9A78(void *, u8);
-s32 ov112_021E9C10(void *, s32);
-s32 ov112_021EC778(Ov112PokewalkerApp *arg0);
-s32 ov112_021EC7B8(Ov112PokewalkerApp *arg0);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32);
 
 s32 ov112_021EC55C(Ov112PokewalkerApp *arg0) {
     s32 v0;

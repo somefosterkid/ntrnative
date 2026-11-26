@@ -4,6 +4,8 @@
 // FrontierGraphics: merged by tools/hg/promote.py from 14 m2c local copies (1 variants, base
 // src/frontier_map_0223885C.c) and 31 accesses; fields at every accessed offset, pads elsewhere.
 
+#include "overlay_42_unk_struct_ov44_02232914.h"
+
 struct BattleFrontier;
 struct BgConfig;
 struct FrontierParticleSystem;
@@ -27,7 +29,7 @@ typedef struct FrontierGraphics {
     struct FrontierParticleSystem *particleSys;
     struct UnkStruct_ov63_0222BE18_t *unk_14;
     struct UnkStruct_ov63_0222BCE8_t *unk_18;
-    struct { s16 unk_00; s16 unk_02; } unk_1C;
+    UnkStruct_ov44_02232914 unk_1C;
     void *unk_20;
     struct UnkStruct_ov63_0222D1C0_t *unk_24;
     struct UnkStruct_ov63_0222D1C0_t *unk_28;

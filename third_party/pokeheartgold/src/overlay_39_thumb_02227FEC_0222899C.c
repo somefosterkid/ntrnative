@@ -17,29 +17,29 @@ void ov39_0222899C(Window *window, String *string, s32 arg2, u32 y, s32 arg4, u3
     AddTextPrinterParameterizedWithColor(window, FONT_MESSAGE, string, ov39_02228964(window, string, arg2, arg4, color, 1), y, 0U, color, NULL);
 }
 
-static void ov39_022289D0(void *arg0, s32 strno) {
+static void ov39_022289D0(UnkStruct_ov61_0222C664 *arg0, s32 strno) {
     String *string;
 
     string = String_New(0x100U, HEAP_ID_124);
-    ReadMsgDataIntoString(((MsgData *)((UnkStruct_ov61_0222C664 *)arg0)->unk_2C), strno, string);
-    StringExpandPlaceholders(((MessageFormat *)((UnkStruct_ov61_0222C664 *)arg0)->unk_20), ((UnkStruct_ov61_0222C664 *)arg0)->unk_3C, string);
-    FillWindowPixelBuffer(arg0 + 0x64, 0xFU);
-    DrawFrameAndWindow1(arg0 + 0x64, 1, 0x1FU, 0xBU);
-    AddTextPrinterParameterized(arg0 + 0x64, FONT_MESSAGE, ((UnkStruct_ov61_0222C664 *)arg0)->unk_3C, 0U, 0U, 0U, NULL);
-    *((s32 *)&((UnkStruct_ov61_0222C664 *)arg0)->unk_40) = 0xFF;
+    ReadMsgDataIntoString(((MsgData *)arg0->unk_2C), strno, string);
+    StringExpandPlaceholders(((MessageFormat *)arg0->unk_20), arg0->unk_3C, string);
+    FillWindowPixelBuffer(&arg0->unk_64, 0xFU);
+    DrawFrameAndWindow1(&arg0->unk_64, 1, 0x1FU, 0xBU);
+    AddTextPrinterParameterized(&arg0->unk_64, FONT_MESSAGE, arg0->unk_3C, 0U, 0U, 0U, NULL);
+    *((s32 *)&arg0->unk_40) = 0xFF;
     String_Delete(string);
 }
 
-void ov39_02228A34(void *arg0, s32 arg1, s32 arg2);
+void ov39_02228A34(UnkStruct_ov61_0222C664 *arg0, s32 arg1, s32 arg2);
 
-void ov39_02228A34(void *arg0, s32 arg1, s32 num) {
+void ov39_02228A34(UnkStruct_ov61_0222C664 *arg0, s32 arg1, s32 num) {
     s32 v0;
 
     v0 = arg1;
     if (v0 == -1) {
         v0 = 0xB;
     }
-    BufferIntegerAsString(((MessageFormat *)((UnkStruct_ov61_0222C664 *)arg0)->unk_20), 0U, num, 5U, PRINTING_MODE_LEADING_ZEROS, 1);
-    ClearFrameAndWindow2(arg0 + 0x44, 1);
+    BufferIntegerAsString(((MessageFormat *)arg0->unk_20), 0U, num, 5U, PRINTING_MODE_LEADING_ZEROS, 1);
+    ClearFrameAndWindow2(&arg0->unk_44, 1);
     ov39_022289D0(arg0, v0);
 }

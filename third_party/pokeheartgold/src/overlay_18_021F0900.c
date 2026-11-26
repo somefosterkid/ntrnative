@@ -11,10 +11,10 @@ void ov18_021F0900(PokedexAppData *pokedexApp) {
     ov18_021F0928(pokedexApp);
 }
 
-s32 ov18_021F0D7C();
+s32 ov18_021F0D7C(PokedexAppData *param_1);
 
 void ov18_021F0918(PokedexAppData *pokedexApp) {
-    ov18_021F0D7C();
+    ov18_021F0D7C(pokedexApp);
     ov18_021EE388(pokedexApp);
 }
 

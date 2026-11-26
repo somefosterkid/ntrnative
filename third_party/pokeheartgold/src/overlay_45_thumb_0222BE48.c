@@ -3,7 +3,7 @@
 #include "save.h"
 #include "overlay_45_wifi_plaza_system.h"
 
-void ov45_0222BE48(void *arg0);
+void ov45_0222BE48(UnkStruct_ov66_0222FC68 *arg0);
 
 struct PlttTransferTask;
 typedef struct PlttTransferTask PlttTransferTask;
@@ -24,9 +24,9 @@ void ov45_0222BE54(PlttTransferTaskManager *manager);
 void ov45_0222BE5C(UnkStruct_ov66_0222FC68 *param0);
 BOOL ov45_0222BE74(const UnkStruct_ov66_0222FC68 *param0);
 
-void ov45_0222BE48(void *arg0) {
-    *(s16 *)((u8 *)arg0 + 0x24) = 1;
-    *(s16 *)((u8 *)arg0 + 0x26) = 0;
+void ov45_0222BE48(UnkStruct_ov66_0222FC68 *arg0) {
+    arg0->unk_24 = 1;
+    arg0->unk_26 = 0;
 }
 
 void ov45_0222BE54(PlttTransferTaskManager *manager) {

@@ -93,7 +93,7 @@ enum BgOffsetUpdateOp {
     BG_OFFSET_UPDATE_SUB_Y,
 };
 typedef struct BgConfig BgConfig;
-void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, u8 bgOffsetUpdateOp, int val);
+void BgSetPosTextAndCommit(BgConfig *bgConfig, u8 bgLayer, int bgOffsetUpdateOp, int val);
 
 void ov07_0221D4B0(SysTask *task, void *param);
 void ov07_0221D4FC(SysTask *task, void *param);

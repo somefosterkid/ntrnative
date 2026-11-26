@@ -131,7 +131,11 @@ void ov42_0222839C(UnkStruct_ov63_0222BEC0 *param0, UnkStruct_ov63_0222CC3C para
 void ov42_022283AC(UnkStruct_ov63_0222BEC0 *param0, UnkStruct_ov63_0222CC3C param1);
 void ov49_02258DB4(UnkStruct_ov70_0225CC54 *param0, UnkStruct_ov63_0222CC3C param1);
 UnkStruct_ov63_0222CC3C ov42_022282F4(const UnkStruct_ov63_0222BEC0 *param0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov49_0225927C(UnkStruct_ov70_0225CA20 *param0, s16 param1, s8 param2, s8 param3);
+#else
 void ov49_0225927C(UnkStruct_ov70_0225CA20 *param0, s32 param1, s32 param2, s32 param3);
+#endif
 typedef struct {
     UnkStruct_ov63_0222CC3C unk_00;
     u16 unk_04;

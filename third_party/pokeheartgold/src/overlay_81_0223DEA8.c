@@ -20,13 +20,25 @@ s32 ov81_0223F38C(void *);
 
 s32 ov81_0223F6A8(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov81_0223F770(void *);
+#else
 s32 ov81_0223F770(void *);
+#endif
 
 s32 ov81_0223FBAC(void *);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u32 ov81_0223FC74(void *);
+#else
 s32 ov81_0223FC74(void *);
+#endif
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+BOOL ov81_02240008(void *);
+#else
 s32 ov81_02240008(void *);
+#endif
 
 s32 ov81_02240048(void *);
 

@@ -6,15 +6,6 @@
 
 s32 ov112_021E9290(void *, void *, void *, s32);
 
-s32 ov112_021EA5A4(void *, s32);
-
-s32 ov112_021EC460(Ov112PokewalkerApp *, s32, s32, s32);
-
-s32 ov112_021EE464(Ov112PokewalkerApp *arg0);
-
-s32 ov112_021EA688(void *, s32);
-s32 ov112_021EE4B8(Ov112PokewalkerApp *arg0);
-
 s32 ov112_021EE464(Ov112PokewalkerApp *arg0) {
     void *sum;
     sum = (void *)&arg0->unk_1F2E8[0];

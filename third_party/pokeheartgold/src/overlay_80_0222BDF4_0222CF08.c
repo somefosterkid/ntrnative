@@ -81,7 +81,11 @@ u16 FrontierScript_ReadVar(FrontierScriptContext *ctx);
 BOOL FrtCmd_121(FrontierScriptContext *ctx);
 
 s32 FrtCmd_120(void **arg0) {
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    sub_0200F450((WaitingIcon *)((FrontierScriptManager *)(*arg0))->savingIcon);
+#else
     sub_0200F450(*(WaitingIcon **)((u8 *)(*arg0) + 0x7C));
+#endif
     return 0;
 }
 

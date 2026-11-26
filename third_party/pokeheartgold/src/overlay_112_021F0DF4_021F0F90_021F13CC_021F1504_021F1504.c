@@ -4,7 +4,11 @@
 #include "pm_string.h"
 #include "overlay_112_sprite_app.h"
 
-s32 ov112_021F1488(void *, u16 *, s32, u16);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+s32 ov112_021F1488(void *, u16 *, u8, u32);
+#else
+s32 ov112_021F1488(void *, u16 *, s32, u32);
+#endif
 
 void ov112_021F1504(Ov112SpriteApp *arg0, u32 arg1);
 

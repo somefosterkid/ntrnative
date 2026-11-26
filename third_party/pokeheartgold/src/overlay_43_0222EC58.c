@@ -5,13 +5,12 @@
 #include "font.h"
 #include "message_format.h"
 #include "msgdata.h"
-#include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "pm_string.h"
 #include "text.h"
 
 void ov43_0222EC58(PalPadDetailsSlot *slot, u32 windowIndex, u32 windowOffset, PalPadShared *shared, PalPadGfx *gfx, u32 entryID, u32 xOffset, u32 yOffset, u32 color, String *string, String *fmtString, u32 align);
 u8 ov43_0222ECD4(Window *window, PalPadShared *unused, PalPadGfx *gfx, s32 entryID, u32 x, u32 y, u32 color);
-void ov43_0222ED18(PalPadDetails *details, s32 delta);
 
 void ov43_0222EC58(PalPadDetailsSlot *slot, u32 windowIndex, u32 windowOffset, PalPadShared *shared, PalPadGfx *gfx, u32 entryID, u32 xOffset, u32 yOffset, u32 color, String *string, String *fmtString, u32 align) {
     u32 uVar1;

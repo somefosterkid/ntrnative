@@ -44,7 +44,7 @@
 #include "save_palpad.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
 
-s32 ov01_021FC1E0(void *);
+void ov01_021FC1E0(FieldSystem *);
 
 struct ApplicationManager;
 struct AreaDataManager;
@@ -868,28 +868,28 @@ typedef struct BerryPatchManager BerryPatchManager;
 static inline void inline_ov61_0222C3B0_sub_1(UnkStruct_ov61_0222C3B0 *);
 BOOL ov01_021FC2C4(FieldSystem *fieldSystem);
 
-void ov01_021FC1FC(void *arg0) {
+void ov01_021FC1FC(FieldSystem *arg0) {
     s16 plttData;
 
     plttData = 0x7FFF;
     GfGfx_EngineATogglePlanes(4U, 0U);
     reg_G2_BG2CNT = 3 | (reg_G2_BG2CNT & ~3);
     BG_LoadPlttData(2U, &plttData, 2U, 0xC4U);
-    BG_FillCharDataRange(*(BgConfig **)((u8 *)arg0 + 8), GF_BG_LYR_SUB_1_F, 2U, 1U, 2U);
-    BgFillTilemapBufferAndCommit(*(BgConfig **)((u8 *)arg0 + 8), 2U, 0x6002U);
+    BG_FillCharDataRange(arg0->bgConfig, GF_BG_LYR_SUB_1_F, 2U, 1U, 2U);
+    BgFillTilemapBufferAndCommit(arg0->bgConfig, 2U, 0x6002U);
     GfGfx_EngineATogglePlanes(4U, 1U);
     ov01_021FC1E0(arg0);
 }
 
-void ov01_021FC260(void *arg0) {
+void ov01_021FC260(FieldSystem *arg0) {
     s16 plttData;
 
     plttData = 0x7FFF;
     GfGfx_EngineATogglePlanes(8U, 0U);
     reg_G2_BG3CNT = (reg_G2_BG3CNT & ~3) | 3;
     BG_LoadPlttData(3U, &plttData, 2U, 0xC4U);
-    BG_FillCharDataRange(*(BgConfig **)((u8 *)arg0 + 8), GF_BG_LYR_MAIN_3, 2U, 1U, 2U);
-    BgFillTilemapBufferAndCommit(*(BgConfig **)((u8 *)arg0 + 8), 3U, 0x6002U);
+    BG_FillCharDataRange(arg0->bgConfig, GF_BG_LYR_MAIN_3, 2U, 1U, 2U);
+    BgFillTilemapBufferAndCommit(arg0->bgConfig, 3U, 0x6002U);
     GfGfx_EngineATogglePlanes(8U, 1U);
     ov01_021FC1E0(arg0);
 }

@@ -35,13 +35,17 @@ void ov65_0221DE8C(SaveData *saveData);
 void ov65_0221DEA0(PlayerProfile *trainerInfo, SavePalPad *source, SavePalPad *destination);
 void ov65_0221DF0C(SOUND_CHATOT *chatotCryData);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov65_0221CB5C(void *);
+#else
 s32 ov65_0221CB5C(void *);
-s32 ov65_0221DBF4(void *);
+#endif
+void ov65_0221DBF4(u32 *direction);
 s32 ov65_0221DD34(s32, void *, s32);
 extern s32 ov65_0221E144;
 extern s32 ov65_0221E9A8;
 extern s32 ov65_0221F3F4;
-s32 ov65_0221DF1C(void *arg0);
+s32 ov65_0221DF1C(TradeRoom *arg0);
 
 void ov65_0221DE64(int netId, Party *party, int index) {
     if (sub_020373B4(netId)) {
@@ -77,24 +81,24 @@ void ov65_0221DF0C(SOUND_CHATOT *chatotCryData) {
     sub_02036FD8(TRADE_CMD_SEND_CHATOT_CRY, chatotCryData, 1000);
 }
 
-s32 ov65_0221DF1C(void *arg0) {
+s32 ov65_0221DF1C(TradeRoom *arg0) {
     s32 v0;
 
     if (2 & gSystem.newKeys) {
         PlaySE(0x5DCU);
-        *((s32 *)&((TradeRoom *)arg0)->selectedSlot[0]) = 0xC;
+        arg0->selectedSlot[0] = 0xC;
         ov65_0221CB5C(arg0);
-        ov65_0221DD34(*((s32 *)&((TradeRoom *)arg0)->selectedSlot[0]), *((void **)&((TradeRoom *)arg0)->cursorSprites[0]), 0);
+        ov65_0221DD34(arg0->selectedSlot[0], arg0->cursorSprites[0], 0);
     } else {
-        ov65_0221DBF4(arg0 + 0x158);
-        if ((1 & gSystem.newKeys) && (*((s32 *)&((TradeRoom *)arg0)->pendingDirection[0]) == 0)) {
-            v0 = *((s32 *)&((TradeRoom *)arg0)->selectedSlot[0]);
+        ov65_0221DBF4(arg0->pendingDirection);
+        if ((1 & gSystem.newKeys) && (*((s32 *)&arg0->pendingDirection[0]) == 0)) {
+            v0 = arg0->selectedSlot[0];
             if (v0 == 0xC) {
-                *((s32 **)&((TradeRoom *)arg0)->subStepCallback) = &ov65_0221E144;
+                arg0->subStepCallback = &ov65_0221E144;
             } else if (v0 < 6) {
-                *((s32 **)&((TradeRoom *)arg0)->subStepCallback) = &ov65_0221E9A8;
+                arg0->subStepCallback = &ov65_0221E9A8;
             } else if ((v0 >= 6) && (v0 < 0xC)) {
-                *((s32 **)&((TradeRoom *)arg0)->subStepCallback) = &ov65_0221F3F4;
+                arg0->subStepCallback = &ov65_0221F3F4;
             }
         }
     }

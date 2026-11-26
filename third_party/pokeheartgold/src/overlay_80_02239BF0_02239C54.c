@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "frontier_launch.h"
+
 #include "bg_window.h"
 #include "palette.h"
 #include "sprite.h"
@@ -145,7 +147,6 @@ typedef struct FrontierGraphics {
     u8 pad_C3[1];
 } FrontierGraphics;
 void ov80_0222EFD0(UnkStruct_ov63_0222CCB8 *param0, UnkStruct_ov63_0222BEC0 *param1, int param2, int action);
-FrontierGraphics *sub_0209680C(BattleFrontier *frontier);
 
 void ov80_02239C54(BattleFrontier *param0);
 BOOL ov80_02239C80(BattleFrontier *param0, UnkStruct_ov104_0223C634 *param1);

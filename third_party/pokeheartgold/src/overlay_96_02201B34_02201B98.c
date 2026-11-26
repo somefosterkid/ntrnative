@@ -24,9 +24,9 @@ void ov96_02203A30(void *);
 
 void ov96_022043B8(void *);
 
-u32 ov96_02201B98(PokeathlonCourseData *param_1);
+BOOL ov96_02201B98(PokeathlonCourseData *param_1, int unused);
 
-u32 ov96_02201B98(PokeathlonCourseData *param_1) {
+BOOL ov96_02201B98(PokeathlonCourseData *param_1, int unused) {
     Ov96_02203468Work *puVar1;
     Window *window;
     s32 iVar2;

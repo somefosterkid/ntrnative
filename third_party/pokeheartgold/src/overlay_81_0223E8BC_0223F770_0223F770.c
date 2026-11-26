@@ -16,9 +16,9 @@ void ov81_02242D88(BattleFactoryAppPanelSprite *panelSprite, BOOL draw);
 
 void ov81_02242E08(BattleFactoryAppPanelSprite *panelSprite, int palIndex);
 
-u32 ov81_0223F770(BattleFactoryApp *app, u32 param_2, u32 param_3, u32 param_4);
+u32 ov81_0223F770(BattleFactoryApp *app);
 
-u32 ov81_0223F770(BattleFactoryApp *app, u32 param_2, u32 param_3, u32 param_4) {
+u32 ov81_0223F770(BattleFactoryApp *app) {
     u8 uVar1;
     u32 uVar2;
     u32 uVar3;

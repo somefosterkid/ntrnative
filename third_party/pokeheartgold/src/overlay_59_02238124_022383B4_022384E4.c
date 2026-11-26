@@ -9,7 +9,7 @@ s32 ov59_02238C40(Ov59ApricornApp *, s32);
 
 s32 ov59_02238D90(Ov59ApricornApp *);
 
-s32 ov59_02238E98();
+void ov59_02238E98(Ov59ApricornApp *work);
 
 s32 ov59_02238FF4(Ov59ApricornApp *, s32);
 
@@ -22,7 +22,7 @@ s32 ov59_022384E4(Ov59ApricornApp *arg0) {
     temp_r1 = arg0->state;
     switch (temp_r1) {
     case 0:
-        ov59_02238E98();
+        ov59_02238E98(arg0);
         ov59_02238C40(arg0, 8);
         ov59_02238FF4(arg0, 1);
         arg0->state = (u16)(arg0->state + 1);

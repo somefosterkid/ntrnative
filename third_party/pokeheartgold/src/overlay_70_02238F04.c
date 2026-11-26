@@ -9,13 +9,16 @@
 #include "overlay_41_sprite_resource_collection.h"
 #include "evolution_data.h"
 #include "list_menu.h"
+#include "sav_chatot.h"
+#include "gts_player_data.h"
+#include "overlay_73_wifi_battle_tower_app_state.h"
 
 struct AffineSpriteListTemplate;
-struct ApplicationManager;
-struct ApplicationManagerTemplate;
+struct OverlayManager;
+struct OverlayManagerTemplate;
 struct BgConfig;
 struct BoxPokemon;
-struct ChatotCry;
+struct SOUND_CHATOT;
 struct ColoredArrow;
 struct DWCstInetControl;
 struct EvolutionData;
@@ -32,7 +35,7 @@ struct GTSTradedPokemonLocation;
 struct ListMenu;
 struct ListMenuTemplate;
 struct Menu;
-struct MessageLoader;
+struct MsgData;
 struct NARC;
 struct Options;
 struct Pokemon;
@@ -42,41 +45,25 @@ struct SpriteResource;
 struct SpriteResourceCollection;
 struct SpriteResourcesHeader;
 struct String;
-struct StringList;
-struct StringTemplate;
+struct ListMenuItem;
+struct MessageFormat;
 struct SysTask;
-struct SysTaskManager;
+struct SysTaskQueue;
 struct TradeAnimationTemplate;
-struct TrainerInfo;
+struct PlayerProfile;
 struct WiFiList;
 struct Window;
 struct WorldExchangeTrainer;
 struct WorldExchangeTrainerError;
 struct tagDWCWDSData;
 void Heap_Free(void *ptr);
-typedef struct ChatotCry ChatotCry;
 typedef u16 charcode_t;
 void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
-typedef struct SysTaskManager SysTaskManager;
 enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
 typedef struct AffineSpriteListTemplate AffineSpriteListTemplate;
-typedef struct TrainerInfo TrainerInfo;
-typedef struct GTSPlayerData GTSPlayerData;
-typedef struct MessageLoader MessageLoader;
-typedef struct StringTemplate StringTemplate;
 void *GfGfxLoader_GetPlttDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, NNSG2dPaletteData **outPaletteData, enum HeapID heapID);
 enum TradeType {
     TRADE_TYPE_NORMAL = 1,
@@ -89,34 +76,8 @@ enum TradeBackground {
     TRADE_BACKGROUND_NIGHT,
     TRADE_BACKGROUND_WIFI,
 };
-typedef struct {
-    SysTask *unk_00;
-    BOOL unk_04;
-    u16 unk_08[4][16];
-    u16 unk_88[21][16];
-    s16 unk_328;
-    s8 unk_32A;
-    u8 unk_32B;
-} UnkStruct_ov61_0222C3B0;
-typedef struct ApplicationManager ApplicationManager;
-typedef BOOL (*OverlayFunc)(ApplicationManager *appMan, int *state);
-typedef struct ApplicationManagerTemplate {
-    OverlayFunc init;
-    OverlayFunc main;
-    OverlayFunc exit;
-    const FSOverlayID overlayID;
-} ApplicationManagerTemplate;
-struct ApplicationManager {
-    ApplicationManagerTemplate template;
-    int execState;
-    int procState;
-    void *args;
-    void *data;
-    ApplicationManager *parent;
-    ApplicationManager *child;
-};
+typedef BOOL (*OverlayFunc)(OverlayManager *appMan, int *state);
 typedef struct ColoredArrow ColoredArrow;
-typedef struct StringList StringList;
 typedef void (*CursorCallback)(ListMenu *menu, u32 index, u8 onInit);
 typedef void (*PrintCallback)(ListMenu *menu, u32 index, u8 yOffset);
 typedef struct Menu Menu;

@@ -77,7 +77,7 @@ s32 ov70_0223DE28(void *arg0) {
         ov70_0223DE6C(arg0);
     } else if (v0 == 2) {
         YesNoPrompt_Destroy(((GTSApplicationState *)arg0)->unk_11C8);
-        ClearFrameAndWindow2(arg0 + 0x1158, 0);
+        ClearFrameAndWindow2(&((GTSApplicationState *)arg0)->confirmationWindow, 0);
         *((s32 *)&((GTSApplicationState *)arg0)->currentScreenInstruction) = 1;
     }
     return 3;

@@ -18,7 +18,8 @@ free and nothing crashed), stuck-walk (the player stood on one tile for the last
 exit (the frame cap: a battle or a script was still running at END), timeout (any other end).
 Build: --build (default build/port/linux-hgss-cov, meson -Dhgss_cov=true: function coverage, port/game/hg_cov.c; any HG build
 works, without coverage the coverage files stay empty). The tool works at any pin: maps, warps and objects are read from the
-generated tree (build/pokeheartgold: include/constants/maps.h, src/data/map_headers.h, files/fielddata/eventdata/zone_event).
+generated tree (build/pokeheartgold: include/constants/maps.h for the names); the warps and objects come from the player's ROM
+(orig/baserom_hg_us.nds, _ss_ with --game soulsilver: zone event archive a/0/3/2, tools/atlas_gen4.py's parser).
 
 Out dir (resumable: maps already in sweep.tsv are skipped; --redo runs them again):
     sweep.tsv          one line per map: map id, name, verdict, frame, top function, backtrace id, last zone, zones, wall s
@@ -56,33 +57,52 @@ WALK_FROM = 1600   # V-blank: the warp is over by then
 FRAME_RE = re.compile(r'^#(\d+)\s+(?:0x[0-9a-f]+ in )?(\S+) \(.*?\)(?: at (\S+):(\d+))?(?: from (\S+))?$')
 
 
-def read_maps():
-    """{id: (name, code, events json path or None)} from the generated tree"""
+def rom_events(game):
+    """{zone id: {'warps', 'objects', 'bgs', 'coords': [{x, z}]}} read from the player's ROM (orig/baserom_hg_us.nds or _ss_):
+    the zone event archive a/0/3/2 through the ROM's own map header table (the data is not in the tree: only the player's ROM has it)"""
+    import atlas
+    import atlas_gen4
+    from rom_modules import arm9
+    kind = 'ss' if game.startswith('soul') else 'hg'
+    rom_path = os.path.join(REPO, 'orig', f'baserom_{kind}_us.nds')
+    if not os.path.exists(rom_path):
+        sys.exit(f'hg_sweep: {rom_path} is needed (the map sweep reads the zone events from the ROM)')
+    rom = open(rom_path, 'rb').read()
+    g = atlas_gen4.GEN4[kind]
+    mats, ents, scripts = (atlas.arc_path(rom, g[k]) for k in ('matrix', 'events', 'scripts'))
+    image = arm9(rom)
+    off, n = atlas_gen4.header_table(image, 'hg', len(mats), len(ents), len(scripts))
+    out = {}
+    for z in range(n):
+        h = atlas_gen4.parse_header4(image[off + 0x18 * z:off + 0x18 * (z + 1)], 'hg', z)
+        bg, npcs, warps, trigs, _ok = atlas_gen4.parse_events4(ents[h['entities']])
+        out[z] = {'warps': warps, 'objects': npcs, 'bgs': bg, 'coords': trigs}
+    return out
+
+
+def read_maps(game='heartgold'):
+    """{id: (name, code, events dict or None)}: names from the generated tree's maps.h, events from the ROM (rom_events)"""
     maps = {}
     for line in open(os.path.join(TREE, 'include/constants/maps.h')):
         m = re.match(r'#define (MAP_\w+)\s+(\d+)\s*(?://\s*(\w+))?', line)
         if m:
             maps[int(m.group(2))] = [m.group(1), m.group(3) or '', None]
-    by_name = {v[0]: k for k, v in maps.items()}
-    zdir = os.path.join(TREE, 'files/fielddata/eventdata/zone_event')
-    cur = None
-    for line in open(os.path.join(TREE, 'src/data/map_headers.h')):
-        m = re.match(r'\s*\[(MAP_\w+)\]\s*=', line)
-        if m:
-            cur = by_name.get(m.group(1))
-        m = re.search(r'\.eventsBank\s*=\s*NARC_zone_event_(\w+)_bin', line)
-        if m and cur is not None:
-            p = os.path.join(zdir, m.group(1) + '.json')
-            maps[cur][2] = p if os.path.exists(p) else None
+    events = rom_events(game)
+    for k, v in maps.items():
+        v[2] = events.get(k)
     return {k: tuple(v) for k, v in maps.items()}
 
 
 def spawn(events):
-    """a tile to warp to: the first warp event's, else an object's (the tile below it), a BG event's, a coord event's"""
-    try:
-        d = json.load(open(events))
-    except (OSError, TypeError, ValueError):
-        return None
+    """a tile to warp to: the first warp event's, else an object's (the tile below it), a BG event's, a coord event's.
+    events: read_maps' dict (or the path of a zone_event JSON)"""
+    if isinstance(events, dict):
+        d = events
+    else:
+        try:
+            d = json.load(open(events))
+        except (OSError, TypeError, ValueError):
+            return None
     for key, dz in (('warps', 0), ('objects', 1), ('bgs', 1), ('coords', 0)):
         for e in d.get(key) or []:
             if 'x' in e and 'z' in e:
@@ -412,7 +432,7 @@ def main():
     globals()['APPS_TAP'] = a.apps_tap
     globals()['WALK_FROM'] = a.walk_from   # (walk_keys, apps_keys)
     os.makedirs(os.path.join(a.out, 'maps'), exist_ok=True)
-    maps = read_maps()
+    maps = read_maps(a.game)
     if a.summary:
         summarize(a, maps)
         return

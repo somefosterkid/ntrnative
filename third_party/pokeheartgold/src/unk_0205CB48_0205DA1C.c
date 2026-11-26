@@ -1,16 +1,9 @@
 #include "global.h"
-#include "pokemon_types_def.h"
-#include "overlay_80_battle_castle.h"
 
-struct BattleCastle;
-struct Party;
-struct Pokemon;
-BOOL MapObject_SetHeldMovement(Party *party, Pokemon *mon);
-void PlayerAvatar_SetUnk8(BattleCastle *battleCastle, Pokemon *mon);
+#include "unk_02062108.h"
+#include "unk_0205CB48.h"
 
-void sub_0205DA1C(BattleCastle *battleCastle, Party *party, Pokemon *mon);
-
-void sub_0205DA1C(BattleCastle *battleCastle, Party *party, Pokemon *mon) {
-    PlayerAvatar_SetUnk8(battleCastle, mon);
-    MapObject_SetHeldMovement(party, mon);
+void sub_0205DA1C(PlayerAvatar *avatar, LocalMapObject *object, u32 movement) {
+    PlayerAvatar_SetUnk8(avatar, movement);
+    MapObject_SetHeldMovement(object, movement);
 }

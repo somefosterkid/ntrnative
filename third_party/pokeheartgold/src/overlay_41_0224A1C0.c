@@ -6,7 +6,7 @@ struct UnkStruct_ov22_0225A154;
 #include "touch_hitbox_controller.h"
 #include "overlay_41_unk_struct_ov22_0225a154.h"
 
-s32 ov41_0224A1A8();
+s32 ov41_0224A1A8(void *param0);
 
 void ov41_0224A1C0(struct UnkStruct_ov22_0225A154 *arg0);
 
@@ -19,7 +19,7 @@ typedef struct UnkStruct_ov22_02259C58_tag {
 void ov41_0224A1DC(UnkStruct_ov22_02259C58 *param0, int param1);
 
 void ov41_0224A1C0(UnkStruct_ov22_0225A154 *arg0) {
-    ov41_0224A1A8();
+    ov41_0224A1A8(arg0);
     FontOAM_Delete(*((TextOBJ * *)&arg0->unk_10));
     memset(arg0, 0, sizeof(UnkStruct_ov22_0225A154));
 }

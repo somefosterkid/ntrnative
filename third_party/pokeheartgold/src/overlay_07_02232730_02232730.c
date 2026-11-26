@@ -384,7 +384,11 @@ typedef struct SPLEmitterState {
     };
 } SPLEmitterState;
 
+#if defined(SDK_PORT) || defined(NONMATCHING) // as defined in src/application/capsule_menu/main_static.c (tools/pokehg_abi.py)
+u8 CapsuleMenu_GetSealParticleIndex(u32 index);
+#else
 u8 CapsuleMenu_GetSealParticleIndex(u8 index);
+#endif
 
 typedef struct CameraPositionHistory {
     int historySize;

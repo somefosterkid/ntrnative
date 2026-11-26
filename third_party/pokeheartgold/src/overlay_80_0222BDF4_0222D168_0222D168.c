@@ -10,7 +10,7 @@
 u32 FrtCmd_130(FrontierScriptContext *param_1);
 
 u32 FrtCmd_130(FrontierScriptContext *param_1) {
-    FrontierLaunchArgs *pFVar1;
+    FieldFrontierDTO *pFVar1;
     u16 addend;
     GameStats *gameStats;
     FrontierData *frontierData;
@@ -27,7 +27,7 @@ u32 FrtCmd_130(FrontierScriptContext *param_1) {
 u32 FrtCmd_131(FrontierScriptContext *param_1);
 
 u32 FrtCmd_131(FrontierScriptContext *param_1) {
-    FrontierLaunchArgs *pFVar1;
+    FieldFrontierDTO *pFVar1;
     u16 addend;
     GameStats *gameStats;
     FrontierData *frontierData;

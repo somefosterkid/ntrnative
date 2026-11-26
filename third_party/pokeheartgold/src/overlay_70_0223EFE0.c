@@ -58,7 +58,7 @@ s32 ov70_0223F008(GTSApplicationState *arg0) {
     case 12:
     case -2:
         ClearFrameAndWindow2((void *)&arg0->bottomInstructionWindow, 0);
-        if (ov70_0223EDE4((void *)&arg0->depositRequirements.species, *(s32 *)((u8 *)(arg0->speciesMenuState) + 0x20)) != 0) {
+        if (ov70_0223EDE4((void *)&arg0->depositRequirements.species, arg0->speciesMenuState->selectedSpeciesGenderRatio) != 0) {
             arg0->currentScreenInstruction = 0;
         } else {
             arg0->currentScreenInstruction = 7;

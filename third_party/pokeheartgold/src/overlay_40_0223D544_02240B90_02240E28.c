@@ -952,7 +952,11 @@ struct UnkStruct_0202F41C_t {
     UnkStruct_0202F298_sub1 unk_60;
 };
 
-s32 ov40_0222C6C8(UnkStruct_0208C06C *, s32);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov40_0222C6C8(UnkStruct_0208C06C *param0, int param1, BOOL param2);
+#else
+void ov40_0222C6C8(UnkStruct_0208C06C *param0, int param1, BOOL param2);
+#endif
 
 MessageFormat *ov40_0222DAB0(s32);
 
@@ -973,7 +977,7 @@ void ov40_02240E28(UnkStruct_0208C06C *param0, s32 param1, s32 param2) {
     void *temp_r6;
     new_var = &param0->unk_8A4;
     temp_r6 = param0->unk_860;
-    ov40_0222C6C8(param0, 2);
+    ov40_0222C6C8(param0, 2, param2);
     GfGfx_EngineATogglePlanes(4U, 1U);
     InitWindow(new_var);
     AddWindowParameterized(param0->unk_14.unk_10, new_var, 2U, 1U, 0x13U, 0x1EU, 4U, 0xEU, 0x12CU);

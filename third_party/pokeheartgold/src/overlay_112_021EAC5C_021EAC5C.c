@@ -15,13 +15,7 @@ typedef enum FadeType FadeType;
 
 typedef enum FadeMode FadeMode;
 
-void ov112_021E9C10(void *work, int a1);
-
-void ov112_021E9A78(void *work, u8 a1);
-
-void ov112_021EADD0(void *work, int a1);
-
-int ov112_021EAC5C(Ov112PokewalkerApp *work);
+void ov112_021E9C10(Ov112PokewalkerApp *work, int a1);
 
 int ov112_021EAC5C(Ov112PokewalkerApp *work) {
     void *storage = SaveArray_PCStorage_Get(work->saveData);

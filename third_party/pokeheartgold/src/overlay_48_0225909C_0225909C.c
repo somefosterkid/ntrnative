@@ -16,12 +16,15 @@
 #include "screen_fade_internal.h"
 #include "overlay_48_unk_struct_ov69_0225ddc8.h"
 #include "overlay_48_unk_struct_ov69_0225ef54.h"
+#include "field/field_3d_model.h"
+#include "msgdata.h"
+#include "yes_no_prompt.h"
 
 struct BgConfig;
 
 struct G3DPipelineBuffers;
 
-struct MessageLoader;
+struct MsgData;
 
 struct SpriteList;
 
@@ -37,21 +40,6 @@ struct YesNoPrompt;
 
 typedef struct WiFiHistory WiFiHistory;
 
-typedef struct BgConfig BgConfig;
-
-typedef struct Window {
-    BgConfig *bgConfig;
-    u8 bgLayer;
-    u8 tilemapLeft;
-    u8 tilemapTop;
-    u8 width;
-    u8 height;
-    u8 palette;
-    u16 baseTile : 15;
-    u16 colorMode : 1;
-    void *pixels;
-} Window;
-
 enum RotationAxis {
     ROTATION_AXIS_X = 0,
     ROTATION_AXIS_Y,
@@ -59,25 +47,7 @@ enum RotationAxis {
     ROTATION_AXIS_COUNT
 };
 
-typedef struct Easy3DModel {
-    void *data;
-    NNSG3dResMdlSet *set;
-    NNSG3dResMdl *model;
-    NNSG3dResTex *texture;
-} Easy3DModel;
-
-typedef struct Easy3DObject {
-    NNSG3dRenderObj renderObj;
-    VecFx32 position;
-    VecFx32 scale;
-    BOOL visible;
-    u16 rotation[ROTATION_AXIS_COUNT];
-    u8 padding_76[2];
-} Easy3DObject;
-
 typedef struct G3DPipelineBuffers G3DPipelineBuffers;
-
-typedef struct MessageLoader MessageLoader;
 
 typedef void (*UnkCallback)(void);
 
@@ -88,49 +58,7 @@ enum ButtonMode {
     BUTTON_MODE_L_IS_A = 3,
 };
 
-typedef struct System {
-    Callback vBlankIntr;
-    void *vBlankIntrArg;
-    Callback hBlankIntr;
-    void *hBlankIntrArg;
-    UnkCallback unk10;
-    UnkCallback unk14;
-    SysTaskQueue *mainTaskQueue;
-    SysTaskQueue *vblankTaskQueue;
-    SysTaskQueue *vwaitTaskQueue;
-    SysTaskQueue *printTaskQueue;
-    u32 *unk28;
-    u32 vblankCounter;
-    u32 frameCounter;
-    int buttonMode;
-    int heldKeysRaw;
-    int newKeysRaw;
-    int newAndRepeatedKeysRaw;
-    int heldKeys;
-    int newKeys;
-    int newAndRepeatedKeys;
-    int keyRepeatCounter;
-    int keyRepeatContinueDelay;
-    int keyRepeatStartDelay;
-    int simulatedInputs;
-    u16 touchX;
-    u16 touchY;
-    u16 touchNew;
-    u16 touchHeld;
-    u8 touchpadReadAuto;
-    u8 screensFlipped;
-    u8 unk6A;
-    u8 lidClosedPauseDisabled;
-    u8 softResetDisabled;
-    BOOL unk70;
-    u32 *unk74;
-} System;
 
-extern System gSystem;
-
-typedef struct StringTemplate MessageFormat;
-
-typedef struct YesNoTouchMenu YesNoPrompt;
 
 typedef struct {
     s16 unk_00;
@@ -169,15 +97,15 @@ typedef struct {
     VecFx32 unk_00;
     VecFx32 unk_0C;
     VecFx32 unk_18;
-    Easy3DObject unk_24;
-    Easy3DModel unk_9C;
+    Field3dObject unk_24;
+    Field3dModel unk_9C;
 } UnkStruct_ov69_0225D71C;
 
 typedef struct {
     UnkStruct_ov69_0225CA7C_sub1 unk_00;
     VecFx32 unk_B804;
-    Easy3DObject unk_B810[3];
-    Easy3DModel unk_B978[3];
+    Field3dObject unk_B810[3];
+    Field3dModel unk_B978[3];
 } UnkStruct_ov69_0225CA7C;
 
 typedef struct {

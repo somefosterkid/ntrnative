@@ -10,23 +10,11 @@
 void ov112_021ED180(SysTask *arg0, void *arg1);
 
 s32 ov112_021E7CA4(void *, s32, s32);
-s32 ov112_021E9A78(void *, u8);
-s32 ov112_021E9C10(void *, s32);
-s32 ov112_021E9F40(void *, s32);
-u8 ov112_021EA08C(Ov112PokewalkerApp *, s32, s32);
-s32 ov112_021EA688(void *, s32);
-void ov112_021ED2F4(Ov112PokewalkerApp *arg0);
-s32 ov112_021ED1A0(Ov112PokewalkerApp *arg0);
-s32 ov112_021EA5A4(void *, s32);
-s32 ov112_021ED224(Ov112PokewalkerApp *arg0);
-void ov112_021ED25C(void *arg0);
+s32 ov112_021E9C10(Ov112PokewalkerApp *, s32);
 s32 ov112_021E74A8(void *, void *, void *);
-s32 ov112_021E7CC8(void *);
-s32 ov112_021E7D7C(void *);
-s32 ov112_021ED264(Ov112PokewalkerApp *arg0);
-s32 ov112_021E98A4(void *arg0);
+s32 ov112_021E7CC8(Ov112PokewalkerApp *);
 void ov112_021ED180(SysTask *task, void *data);
-void ov112_021ED314(void *arg0);
+void ov112_021ED314(s32 arg0);
 
 void ov112_021ED180(SysTask *task, void *data) {
     Ov112PokewalkerApp *arg1 = data;
@@ -64,9 +52,9 @@ s32 ov112_021ED224(Ov112PokewalkerApp *arg0) {
     return 0x17;
 }
 
-void ov112_021ED25C(void *arg0) {
-    *(s16 *)((u8 *)arg0 + 0x14) = 0;
-    *(s16 *)((u8 *)arg0 + 0x16) = 0;
+void ov112_021ED25C(Ov112PokewalkerApp *arg0) {
+    arg0->unk_14 = 0;
+    arg0->unk_16 = 0;
 }
 
 s32 ov112_021ED264(Ov112PokewalkerApp *arg0) {
@@ -89,7 +77,7 @@ void ov112_021ED2F4(Ov112PokewalkerApp *arg0) {
     arg0->unk_1F2DC = SysTask_CreateOnMainQueue(ov112_021ED180, arg0, 2U);
 }
 
-void ov112_021ED314(void *arg0) {
+void ov112_021ED314(s32 arg0) {
     if ((arg0 != 0) && (IsSEPlaying(0x934U) == 0)) {
         PlaySE(0x934U);
     }

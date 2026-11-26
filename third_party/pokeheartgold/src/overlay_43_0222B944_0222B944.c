@@ -18,6 +18,7 @@
 #include "overlay_41_sprite_resource_collection.h"
 #include "struct_defs/resdat_narc_structs.h"
 #include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 
 typedef struct UnkStruct_ov63_0222BB38_t UnkStruct_ov63_0222BB38;
 
@@ -28,19 +29,6 @@ typedef struct MessageBank MessageBank;
 typedef struct StringTemplateArgHeader StringTemplateArgHeader;
 
 typedef struct StringTemplateArg StringTemplateArg;
-
-typedef struct {
-    s16 unk_00;
-    s16 unk_02;
-    u8 unk_04;
-    u8 unk_05;
-} UnkStruct_ov64_0223221C;
-
-typedef struct {
-    UnkStruct_ov64_0223221C unk_00;
-    Window unk_08;
-    UnkStruct_ov63_0222BB38 *unk_18[8];
-} UnkStruct_ov64_02230074;
 
 struct MessageBankEntry {
     u32 offset;
@@ -66,83 +54,44 @@ struct StringTemplateArg {
     String *string;
 };
 
-void ov43_0222C788(UnkStruct_ov64_02230074 *param0, PalPadGfx *param1, const UnkStruct_ov64_0223221C *param2, u32 param3, u32 param4);
+void ov43_0222C788(PalPadRosterPage *page, PalPadGfx *gfx, const PalPadPanelLayout *layout, u32 baseTile, u32 heapID);
 
-s32 ov43_0222A24C();
+void ov43_0222A24C(BgConfig *bgConfig, Window *window, u8 bgLayer, u8 left, u8 top, u8 width, u8 height, u8 palette, u16 baseTile, u8 colorMode);
 
-extern u16 ov43_0222ED74;
+extern const u16 ov43_0222ED74[3];
 
-extern UnkStruct_ov64_0223221C ov43_0222EE08;
+extern const PalPadPanelLayout ov43_0222EE08[3];
 
-extern s32 ov43_0222EEB0;
+extern const SpriteTemplate ov43_0222EEB0;
 
-extern u16 ov43_0222EEE0;
+extern const s32 ov43_0222EEE0[2][4][2];
 
-void ov43_0222B944(s32 arg0, void *arg1, s32 arg2, enum HeapID arg3);
-
-void ov43_0222B944(s32 arg0, void *arg1, s32 arg2, enum HeapID arg3) {
+void ov43_0222B944(PalPadRoster *roster, PalPadShared *shared, PalPadGfx *gfx, enum HeapID heapID) {
     SpriteTemplate tmpl;
-    s32 sp28;
-    u16 *sp24;
-    s32 sp20;
-    enum HeapID sp1C;
-    s32 sp18;
-    s32 var_r7;
-    u16 *var_r5;
-    s32 var_r4;
-    s32 temp_r0;
-    s32 temp_r0_2;
-    u8 *var_r6;
-    sp18 = arg0;
-    sp28 = 0;
-    var_r4 = sp18;
-    var_r5 = &ov43_0222ED74;
-    var_r6 = (u8 *)&ov43_0222EE08;
-    var_r7 = arg2;
-    sp1C = arg3;
-    var_r4 += 8;
-    do {
-        ov43_0222C788((UnkStruct_ov64_02230074 *)var_r4, (PalPadGfx *)var_r7, (const UnkStruct_ov64_0223221C *)var_r6, (u32)(*var_r5), (u32)sp1C);
-        var_r5 += 1;
-        var_r6 += 6;
-        temp_r0 = sp28 + 1;
-        var_r4 += (s32)sizeof(UnkStruct_ov64_02230074);
-        sp28 = temp_r0;
-    } while (temp_r0 < 3);
-    *((UnkStruct_ov42_02227060 **)(((u8 *)sp18) + 0xB4)) = ov42_02227060(*((SpriteList **)(((u8 *)var_r7) + 4)), 0L, 0x10, sp1C);
-    ov42_02227228(*((UnkStruct_ov42_02227060 **)(((u8 *)sp18) + 0xB4)), 1U, 2, sp1C);
-    ov43_0222A24C(*((s32 *)var_r7), sp18 + 0xB8, 1, 0x15, 21, 9, 2, 0xB, 0x14F, 0);
-    var_r4 = (s32)NewString_ReadMsgData(*((MsgData **)(((u8 *)var_r7) + 0x54)), 7);
-    AddTextPrinterParameterizedWithColor((struct Window *)(sp18 + 0xB8), FONT_UNK_4, (String *)var_r4, 0U, 0U, 0xFFU, 0x10F00U, 0L);
-    String_Delete((String *)var_r4);
-    sp20 = 0;
-    var_r6 = (u8 *)sp18;
-    sp24 = &ov43_0222EEE0;
-    do {
-        ((Ov43App_0222B944 *)var_r6)->unk_E4 = ListMenuItems_New(4U, sp1C);
-        var_r5 = sp24;
-        var_r4 = 0;
-loop_4:
-        ListMenuItems_AppendFromMsgData(((Ov43App_0222B944 *)var_r6)->unk_E4, *((MsgData **)(((u8 *)var_r7) + 0x54)), *((s32 *)var_r5), *((s32 *)(((u8 *)var_r5) + 4)));
+    String *string;
+    int i, j;
 
-        var_r4 += 1;
-        var_r5 += 4;
-        if (var_r4 < 4) {
-            goto loop_4;
+    for (i = 0; i < 3; i++) {
+        ov43_0222C788(&roster->pages[i], gfx, &ov43_0222EE08[i], ov43_0222ED74[i], heapID);
+    }
+    roster->trainerIcons = ov42_02227060(gfx->spriteList, NULL, 0x10, heapID);
+    ov42_02227228(roster->trainerIcons, 1, 2, heapID);
+    ov43_0222A24C(gfx->bgConfig, &roster->returnWindow, 1, 0x15, 21, 9, 2, 0xB, 0x14F, 0);
+    string = NewString_ReadMsgData(gfx->msgData, 7);
+    AddTextPrinterParameterizedWithColor(&roster->returnWindow, FONT_UNK_4, string, 0, 0, 0xFF, 0x10F00, NULL);
+    String_Delete(string);
+    for (i = 0; i < 2; i++) {
+        roster->menuItems[i] = ListMenuItems_New(4, heapID);
+        for (j = 0; j < 4; j++) {
+            ListMenuItems_AppendFromMsgData(roster->menuItems[i], gfx->msgData, ov43_0222EEE0[i][j][0], ov43_0222EEE0[i][j][1]);
         }
-        var_r6 += 4;
-        sp24 += 16;
-        temp_r0_2 = sp20 + 1;
-        sp20 = temp_r0_2;
-    } while (temp_r0_2 < 2);
-    ov43_0222A24C(*((s32 *)var_r7), sp18 + 0xC8, 1, 2, 0x13, 0x1B, 4, 0xB, 0x161, 0xF);
-    *((String **)(((u8 *)sp18) + 0xD8)) = String_New(0x80U, sp1C);
-    tmpl = *(SpriteTemplate *)&ov43_0222EEB0;
-    ((u32 *)&tmpl)[0] = *((u32 *)(((u8 *)var_r7) + 4));
-    var_r7 += 0x88;
-    ((u32 *)&tmpl)[1] = var_r7;
-    tmpl.heapID = sp1C;
-    *((Sprite **)(((u8 *)sp18) + 0xF8)) = Sprite_CreateAffine(&tmpl);
-    Sprite_SetDrawFlag(*((Sprite **)(((u8 *)sp18) + 0xF8)), 0);
-    sp18 += 0xF8;
+    }
+    ov43_0222A24C(gfx->bgConfig, &roster->msgWindow, 1, 2, 0x13, 0x1B, 4, 0xB, 0x161, 0xF);
+    roster->msgText = String_New(0x80, heapID);
+    tmpl = ov43_0222EEB0;
+    tmpl.spriteList = gfx->spriteList;
+    tmpl.header = &gfx->spriteHeader;
+    tmpl.heapID = heapID;
+    roster->deleteEffect = Sprite_CreateAffine(&tmpl);
+    Sprite_SetDrawFlag(roster->deleteEffect, 0);
 }

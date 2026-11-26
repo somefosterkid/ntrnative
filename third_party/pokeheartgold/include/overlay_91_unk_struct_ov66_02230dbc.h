@@ -14,12 +14,9 @@ typedef struct UnkStruct_ov66_02230DBC {
     BOOL unk_1C;
     PlayerProfile *unk_20[4];
     WiFiPlazaSystem *unk_30;
-    u32 unk_34;
-    u8 unk_38;
-    u8 unk_39;
-    u8 pad_3A[2];
 } UnkStruct_ov66_02230DBC;
 
-// sizeof(UnkStruct_ov66_02230DBC) == 0x3c
+// sizeof(UnkStruct_ov66_02230DBC) == 0x34; the launch args embed it by value
+// (UnkStruct_ov115_02260440 / UnkStruct_ov66_02231134 in overlay_91_unk_struct_ov115_02260440.h).
 
 #endif // POKEHEARTGOLD_OVERLAY_91_UNK_STRUCT_OV66_02230DBC_H

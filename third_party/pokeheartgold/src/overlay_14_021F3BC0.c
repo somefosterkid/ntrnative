@@ -6,7 +6,6 @@
 
 void ov14_021F3BC0(UnkStruct_ov14_boxsys *arg0);
 
-s32 sub_02019B1C(void *, s32, s8 *, s8 *);
 
 void ov14_021F3BC0(UnkStruct_ov14_boxsys *arg0) {
     s8 v0[2];

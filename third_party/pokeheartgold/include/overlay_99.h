@@ -32,6 +32,11 @@ typedef struct UnkStruct_0203EFA0 {
     PlayerProfile *profile;
 } UnkStruct_0203EFA0;
 
+void *ov99_021E5B7C(PokeathlonCourseRecordArgs *args, s32 recordIdx, s32 entryIdx);
+u16 ov99_021E5B90(PokeathlonCourseRecordArgs *args, s32 recordIdx);
+s32 ov99_021E5BB4(PokeathlonCourseRecordArgs *args, s32 recordIdx);
+u16 ov99_021E5BD8(PokeathlonCourseRecordArgs *args, s32 recordIdx, s32 entryIdx);
+
 BOOL PokeathlonMedals_Init(OverlayManager *man, int *state);
 BOOL PokeathlonMedals_Main(OverlayManager *man, int *state);
 BOOL PokeathlonMedals_Exit(OverlayManager *man, int *state);

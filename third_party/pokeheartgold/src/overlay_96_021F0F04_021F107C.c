@@ -8,9 +8,8 @@
 
 u8 ov96_021F46B4(void *arg0);
 
-s32 ov96_021E65A4(PokeathlonCourseData *);
 
-s32 ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
+void ov96_021E8228(PokeathlonCourseData *, u32, s32, s32, s32);
 
 s32 ov96_021E8318(PokeathlonCourseData *, s16);
 

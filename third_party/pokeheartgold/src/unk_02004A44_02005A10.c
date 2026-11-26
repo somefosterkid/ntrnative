@@ -81,7 +81,11 @@ enum WaveOutChannel {
     WAVE_OUT_CHANNEL_SECONDARY = 15,
 };
 typedef struct WaveOutParam WaveOutParam;
-void sub_02005AB0(u8 sLotoId, u16 bgmID, int fadeOutFrames, int fadeInFrames, u8 bankState, void *unused2);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void sub_02005AB0(u32 param_1, u32 param_2, u16 param_3, u32 param_4, u8 param_5);
+#else
+void sub_02005AB0(unsigned int sLotoId, unsigned int bgmID, int fadeOutFrames, int fadeInFrames, u8 bankState, void *unused2);
+#endif
 BOOL sub_020056E8(WaveOutParam *param, enum WaveOutChannel channel);
 
 BOOL sub_02005A10(u8 sLotoId, u16 bgmID, int fadeOutFrames, int waitFrames, u8 bankState, void *unused2);
@@ -89,7 +93,11 @@ BOOL sub_02005A10(u8 sLotoId, u16 bgmID, int fadeOutFrames, int waitFrames, u8 b
 BOOL sub_02005A10(u8 sLotoId, u16 bgmID, int fadeOutFrames, int waitFrames, u8 bankState, void *unused2) {
     u8 *subScene = GF_SdatGetAttrPtr(SOUND_SYSTEM_PARAM_SUB_SCENE);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+    sub_02005AB0(sLotoId, bgmID, fadeOutFrames, waitFrames, bankState);
+#else
     sub_02005AB0(sLotoId, bgmID, fadeOutFrames, waitFrames, bankState, unused2);
+#endif
     *subScene = SOUND_SCENE_NONE;
     GF_SndSetState(SOUND_SYSTEM_STATE_FADE_OUT_PLAY);
 

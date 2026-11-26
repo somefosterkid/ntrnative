@@ -3,6 +3,7 @@
 #include "pokeathlon/pokeathlon.h"
 
 #include "error_handling.h"
+#include "sprite.h"
 
 void ov96_021EEA94(s32, s32, s32, s32);
 

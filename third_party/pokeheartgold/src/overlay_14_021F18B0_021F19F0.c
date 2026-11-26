@@ -23,7 +23,6 @@ s32 ov14_021F2A18(struct UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F2F88(u32, void *, s32 *, s32);
 s32 ov14_021F34C8(UnkStruct_ov14_boxsys *, s32, s32);
 s32 ov14_021F39D0(struct UnkStruct_ov14_boxsys *);
-s32 ov14_021F6408(void *, s32);
 
 s32 ov14_021E99A0(UnkStruct_ov14_boxapp *app);
 
@@ -31,14 +30,14 @@ s32 ov14_021EA778(UnkStruct_ov14_boxapp *app);
 
 s32 ov14_021F19F0(UnkStruct_ov14_boxapp *arg0, u8 arg1) {
     u8 sp0[4];
-    void *temp_r1;
+    UnkStruct_ov14_boxsys *temp_r1;
 
     arg0->unk21 = arg1;
     arg0->sys->unk_88C8 = ov14_021E6070(arg0, arg0->unk21, 6, 0);
     ov14_021F6408(arg0, 0);
-    temp_r1 = ((void *)arg0->sys);
-    if (((UnkStruct_ov14_boxsys *)temp_r1)->unk_88C8 == 0) {
-        GridInputHandler_SetNextInput(((UnkStruct_ov14_boxsys *)temp_r1)->unk_2C, (s32) arg0->unk21);
+    temp_r1 = arg0->sys;
+    if (temp_r1->unk_88C8 == 0) {
+        GridInputHandler_SetNextInput(temp_r1->unk_2C, (s32) arg0->unk21);
         GridInputHandler_SetButtonInputMode(arg0->sys->unk_2C, 1);
         if (ov14_021E8648(arg0->sys->unk_2F0) == 1) {
             return 0x82;

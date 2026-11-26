@@ -38,6 +38,7 @@
 #include "field/hblank_system_priv.h"
 #include "save_palpad.h"
 #include "field/overlay_01_021FB878.h"
+#include "overlay_02_field3d_effects.h"
 
 void ov02_0224D43C(u32 param_1, u32 param_2, void *param_3);
 
@@ -848,24 +849,15 @@ enum RotationAxis {
     ROTATION_AXIS_Z,
     ROTATION_AXIS_COUNT
 };
-typedef struct {
-    Field3dObject unk_00;
-    Field3dModel unk_78;
-    Field3DModelAnimation unk_88[4];
-    u32 unk_D8;
-} UnkStruct_ov6_02248140;
-typedef struct UnkStruct_ov6_02248498_t {
-    UnkStruct_ov6_02248140 unk_00[2];
-    NNSFndAllocator unk_1B8;
-    u32 unk_1C8;
-} UnkStruct_ov6_02248498;
 void ov02_0224D144(UnkStruct_ov6_02248140 *param0, NNSFndAllocator *param1);
 void ov02_0224D468(UnkStruct_ov5_021D1BEC *param0, FieldSystem *fieldSystem, void *param2);
 
 void ov02_0224D43C(u32 param_1, u32 param_2, void *param_3) {
-    memset(param_3, 0, 0x1cc);
-    HeapExp_FndInitAllocator((NNSFndAllocator *)((u8 *)param_3 + 0x1b8), HEAP_ID_FIELD1, 0x20);
-    *(u16 *)((u8 *)param_3 + 0x1ca) = 0;
+    UnkStruct_ov6_02248498 *work = param_3;
+
+    memset(work, 0, sizeof(*work));
+    HeapExp_FndInitAllocator(&work->unk_1B8, HEAP_ID_FIELD1, 0x20);
+    work->unk_1CA = 0;
     return;
 }
 

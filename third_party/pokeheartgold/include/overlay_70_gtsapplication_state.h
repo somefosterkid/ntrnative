@@ -7,6 +7,7 @@
 #include "bg_window.h"
 #include "g2d_renderer.h"
 #include "pokemon_summary_args.h"
+#include "pokemon_types_def.h"
 #include "save_layout.h"
 #include "unk_02009D48.h"
 
@@ -51,10 +52,6 @@ struct Pokemon;
 struct WiFiList;
 struct YesNoPrompt;
 
-typedef struct GTSPokemonListingMon {
-    u8 bytes[236];
-} GTSPokemonListingMon;
-
 typedef struct GTSPokemonCriteria {
     s16 species;
     s8 gender;
@@ -70,7 +67,7 @@ typedef struct GTSPokemonRequirements {
 } GTSPokemonRequirements;
 
 typedef struct GTSPokemonListing {
-    GTSPokemonListingMon pokemon;
+    Pokemon pokemon;
     GTSPokemonCriteria criteria;
     GTSPokemonRequirements requirements;
     u8 trainerGender;
@@ -173,6 +170,14 @@ typedef struct GTSSearchPanelTemplate {
     struct Pokedex *pokedex;
     u8 *dexSeenFlags;
 } GTSSearchPanelTemplate;
+
+// one box/party slot icon of the select-Pokemon screen (0x20C bytes on the DS), 30 of them in selectPokemonIconHeapPtr
+typedef struct PokemonIcon {
+    int tileData;
+    int paletteIndex;
+    struct Sprite *sprite;
+    u8 vramOffset[512];
+} PokemonIcon;
 
 typedef struct GTSApplicationState {
     struct GTSPlayerData *playerData;
@@ -291,7 +296,7 @@ typedef struct GTSApplicationState {
     u16 deferredBoxPokemonCount;
     u16 deferredBoxId;
     BOOL fadeBothScreens;
-    void *selectPokemonIconHeapPtr;
+    PokemonIcon *selectPokemonIconHeapPtr;
     void *updateBoxPalettesFunc;
     void *unk_1208;
     s16 avatarPositions[8][2];

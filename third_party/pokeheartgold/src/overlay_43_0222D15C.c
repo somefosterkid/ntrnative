@@ -2,13 +2,11 @@
 
 #include "constants/heap.h"
 
-#include "overlay_43_palpad.h"
+#include "overlay_43_palpad_fns.h"
 #include "unk_02005D10.h"
 
-BOOL ov43_0222D508(PalPadDetails *param0, PalPadShared *param1, PalPadGfx *param2, u32 param3);
 BOOL ov43_0222DCC4(PalPadShared *param0, int param1);
 void ov43_0222A318(PalPadShared *, s8, s8);
-int ov43_0222D47C(PalPadDetails *);
 void ov43_0222D4C4(PalPadDetails *param0, PalPadShared *param1, PalPadGfx *param2, u32 param3);
 void ov43_0222D654(PalPadDetails *, PalPadShared *, PalPadGfx *, u32);
 void ov43_0222D778(PalPadDetails *, PalPadGfx *);
@@ -31,7 +29,7 @@ u32 ov43_0222D15C(PalPadDetails *param_1, PalPadShared *param_2, PalPadGfx *para
         param_2->subState = 2;
         break;
     case 2:
-        uVar1 = ov43_0222D47C(param_1);
+        uVar1 = ov43_0222D47C(param_1, param_2, param_3);
         param_2->subState = uVar1;
         break;
     case 3:

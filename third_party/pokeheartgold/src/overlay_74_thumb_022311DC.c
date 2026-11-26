@@ -1,8 +1,8 @@
 #include "global.h"
 
-s32 ov74_0223105C(void);
+void *ov74_0223105C(void);
 
-s32 ov74_022311DC(void);
+void *ov74_022311DC(void);
 
 typedef struct {
     union {
@@ -50,14 +50,14 @@ u32 ov74_02231260(void);
 u32 ov74_02231264(void);
 u32 ov74_0223127C(u32 param0, u32 param1, void *param2);
 
-s32 ov74_022311DC(void) {
-    return ov74_0223105C() + 0x40;
+void *ov74_022311DC(void) {
+    return (u8 *)ov74_0223105C() + 0x40;
 }
 
-s32 ov74_022311E8(void);
+u8 *ov74_022311E8(void);
 
-s32 ov74_022311E8(void) {
-    return ov74_0223105C() + 0x78;
+u8 *ov74_022311E8(void) {
+    return (u8 *)ov74_0223105C() + 0x78;
 }
 
 UnkStruct_ov97_022335A8 ov74_022311F4(u8 *param0) {

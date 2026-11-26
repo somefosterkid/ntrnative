@@ -4,36 +4,25 @@
 #include "save.h"
 #include "sprite_system.h"
 #include "text.h"
-#include "overlay_112_unk_struct_ov112_021_eb28_c.h"
 #include "overlay_112_pokewalker_app.h"
 struct Ov112PokewalkerApp;
 
-s32 ov112_021EA670(void *, s32);
-
-s32 ov112_021EA7D0(void *);
-
-s32 ov112_021EC338(void *arg0);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov112_021EA7D0(Ov112PokewalkerApp *);
+#else
+s32 ov112_021EA7D0(Ov112PokewalkerApp *);
+#endif
 
 s32 ov112_021EC374(void);
-u8 ov112_021EA08C(struct Ov112PokewalkerApp *, s32, s32);
-s32 ov112_021EC378(Ov112PokewalkerApp *arg0);
-s32 ov112_021EC390(Ov112PokewalkerApp *arg0);
-s32 ov112_021EC3B0(Ov112PokewalkerApp *arg0);
-s32 ov112_021EA17C(Ov112PokewalkerApp *);
-s32 ov112_021EC3C8(Ov112PokewalkerApp *arg0);
 s32 ov112_021EC3F0(void *arg0);
-s32 ov112_021EA19C();
+s32 ov112_021EA19C(Ov112PokewalkerApp *arg0);
 s32 ov112_021EC404(void *arg0);
-s32 ov112_021EC414(Ov112PokewalkerApp *arg0);
-s32 ov112_021EA570();
-s32 ov112_021EC434(void);
-s32 ov112_021EA51C(void *, s32);
-s32 ov112_021EA584(struct Ov112PokewalkerApp *);
-void ov112_021EC440(void *arg0, s32 arg1, s32 arg2, s32 arg3);
+void ov112_021EA570(Ov112PokewalkerApp *arg0);
+s32 ov112_021EC434(Ov112PokewalkerApp *arg0);
 
-s32 ov112_021EC338(void *arg0) {
+s32 ov112_021EC338(Ov112PokewalkerApp *arg0) {
     u8 *new_var;
-    *((s32 *)(((u8 *)arg0) + 0x1F2D0)) = (s32)((*((s32 *)(((u8 *)arg0) + 0x1F2D0))) + 1);
+    arg0->unk_1F2D0 = (s32)((arg0->unk_1F2D0) + 1);
     new_var = (u8 *)arg0;
     if (((s32)(*((s32 *)(new_var + 0x1F2D0)))) > 0xB4) {
         ov112_021EA670(arg0, 8);
@@ -81,7 +70,7 @@ s32 ov112_021EC3F0(void *arg0) {
 }
 
 s32 ov112_021EC404(void *arg0) {
-    ov112_021EA19C();
+    ov112_021EA19C(arg0);
     *(s32 *)((u8 *)arg0 + 4) = 0;
     return 0x22;
 }
@@ -97,14 +86,14 @@ s32 ov112_021EC414(Ov112PokewalkerApp *arg0) {
     return 0x21;
 }
 
-s32 ov112_021EC434(void) {
-    ov112_021EA570();
+s32 ov112_021EC434(Ov112PokewalkerApp *arg0) {
+    ov112_021EA570(arg0);
     return 0x23;
 }
 
-void ov112_021EC440(void *arg0, s32 arg1, s32 arg2, s32 arg3) {
-    ((UnkStruct_ov112_021EB28C *)arg0)->sel = arg1;
+void ov112_021EC440(Ov112PokewalkerApp *arg0, s32 arg1, s32 arg2, s32 arg3) {
+    arg0->unk_1EC50 = arg1;
     ov112_021EA51C(arg0, arg2);
     ov112_021EA584(arg0);
-    *(s32 *)((u8 *)arg0 + 0xC) = arg3;
+    arg0->unk_C = arg3;
 }

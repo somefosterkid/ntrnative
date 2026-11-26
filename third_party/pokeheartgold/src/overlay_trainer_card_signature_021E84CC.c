@@ -156,8 +156,16 @@ u32 GfGfxLoader_LoadCharDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, BgConfig
 void GfGfxLoader_LoadScrnDataFromOpenNarc(NARC *narc, u32 narcMemberIdx, BgConfig *bgConfig, u32 bgLayer, u32 offset, u32 size, BOOL compressed, enum HeapID heapID);
 void GfGfxLoader_GXLoadPalFromOpenNarc(NARC *narc, u32 narcMemberIdx, enum PaletteLoadLocation loadLocation, u32 offset, u32 size, u32 heapID);
 void LoadFontPal1(enum PaletteLoadLocation palLocation, u32 palSlotOffset, enum HeapID heapID);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx1(BgConfig *bgConfig, GFBgLayer bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#else
 void LoadUserFrameGfx1(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 standardWindowType, u32 heapID);
+#endif
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void LoadUserFrameGfx2(BgConfig *bgConfig, GFBgLayer bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#else
 void LoadUserFrameGfx2(BgConfig *bgConfig, u8 bgLayer, u16 tileOffset, u8 palOffset, u8 messageBoxFrame, u32 heapID);
+#endif
 
 void ov52_021E84CC(SignatureApp *signatureApp);
 void ov52_021E8568(SignatureApp *signatureApp);

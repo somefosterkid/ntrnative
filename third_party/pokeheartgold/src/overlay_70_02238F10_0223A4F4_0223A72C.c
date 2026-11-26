@@ -9,9 +9,9 @@
 
 s32 ov70_02245084(void *, String *, s32, s32, s32, s32);
 
-void ov70_0223A72C(MsgData *arg0, u8 *arg1, u16 *arg2, Pokemon *arg3, u8 *arg4);
+void ov70_0223A72C(MsgData *arg0, Window *arg1, u16 *arg2, Pokemon *arg3, Window *arg4);
 
-void ov70_0223A72C(MsgData *msgData, u8 *arg1, u16 *arg2, Pokemon *arg3, u8 *arg4) {
+void ov70_0223A72C(MsgData *msgData, Window *arg1, u16 *arg2, Pokemon *arg3, Window *arg4) {
     String *string;
     Pokemon *mon;
     u16 *src;
@@ -30,9 +30,9 @@ void ov70_0223A72C(MsgData *msgData, u8 *arg1, u16 *arg2, Pokemon *arg3, u8 *arg
     v3 = NewString_ReadMsgData(msgData, 0xB4);
     GetMonData(mon, 0x91, v2);
     ov70_02245084(arg1, string, 0, 0, 0, 0xF0200);
-    ov70_02245084(arg1 + 0x10, v1, 0, 0, 0, 0x10200);
+    ov70_02245084(arg1 + 1, v1, 0, 0, 0, 0x10200);
     ov70_02245084(arg4, v3, 0, 0, 0, 0xF0200);
-    ov70_02245084(arg4 + 0x10, v2, 0, 0, 0, 0x10200);
+    ov70_02245084(arg4 + 1, v2, 0, 0, 0, 0x10200);
     String_Delete(v0);
     String_Delete(v1);
     String_Delete(v3);

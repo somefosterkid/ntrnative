@@ -259,17 +259,17 @@ void ov49_0225A134(UnkStruct_ov101_021D5388 *param0);
 typedef struct UnkStruct_ov70_0225DEE8_t UnkStruct_ov70_0225DEE8;
 
 s32 ov45_0222AC14(s32, u32, u32, s32, s32, s32, s32, s32);
-s32 ov45_0222F314(u8);
+s32 ov45_0222F314(s32);
 u16 ov45_0222F3E8(s32);
 s32 ov49_02259FE8(UnkStruct_ov70_0225DEE8 *);
-s32 ov49_0225EF8C(s32, s32);
+s32 ov49_0225EF8C(struct UnkStruct_ov70_02263344_t *, s32);
 
 void ov49_02262CA8(UnkStruct_ov70_02266AF0 *work, void *param1) {
     UnkStruct_ov101_021D5388 *v0 = param1;
     ov49_0225A134(v0);
 }
 
-s32 ov49_02262CB4(UnkStruct_ov70_02266AF0 *work, UnkStruct_ov70_0225DEE8 *arg1, void *arg2, s32 arg3, s32 arg4) {
+s32 ov49_02262CB4(UnkStruct_ov70_02266AF0 *work, UnkStruct_ov70_0225DEE8 *arg1, void *arg2, struct UnkStruct_ov70_02263344_t * arg3, s32 arg4) {
     s32 v0;
     s32 v1;
     s16 v2;

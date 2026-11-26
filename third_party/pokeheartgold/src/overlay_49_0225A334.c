@@ -1,5 +1,7 @@
 #include "global.h"
 
+#include "overlay_45_wifi_plaza_api.h"
+
 #include "constants/heap.h"
 
 #include "bg_window.h"
@@ -91,9 +93,7 @@ PlayerProfile *PlayerProfile_New(enum HeapID heapID);
 
 u32 ov45_0222A53C(const WiFiPlazaSystem *param0);
 
-const WiFiPlazaProfile *ov45_0222A578(const WiFiPlazaSystem *param0, u32 param1);
 
-WiFiPlazaProfile *ov45_0222A5C0(WiFiPlazaSystem *param0);
 
 void ov45_0222A844(const WiFiPlazaProfile *profile, PlayerProfile *param1, enum HeapID heapID);
 

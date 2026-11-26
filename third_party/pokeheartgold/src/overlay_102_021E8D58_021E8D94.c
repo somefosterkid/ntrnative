@@ -98,29 +98,7 @@ struct ColoredArrow {
     String *string;
 };
 
-typedef int (*EasyChatMainFunc)(EasyChatApp *easyChatApp, int *state);
-
 typedef void (*EasyChatTaskFunc)(EasyChatApp *easyChatApp, int *state);
-
-typedef struct {
-    u8 unk_00;
-    u8 unk_01;
-} UnkStruct_ov20_021D1F34;
-
-typedef struct {
-    u16 unk_00;
-    u16 unk_02;
-    u16 unk_04;
-    u8 unk_06;
-    u8 unk_07;
-    int unk_08;
-} UnkStruct_ov20_021D18BC;
-
-typedef struct {
-    s16 unk_00;
-    s8 unk_02;
-    s8 unk_03;
-} UnkStruct_ov20_021D0F64;
 
 typedef struct {
     BgConfig *unk_00;
@@ -209,73 +187,70 @@ void ov102_021E8D58(void *arg0);
 
 void ov102_021E940C(UnkStruct_ov20_021D2128 *param0, int param1);
 
-s32 ov102_021E7A4C(void *, s32 *);
-
 s32 ov102_021E8D50(void *, s32 *);
 
 s32 ov102_021E8EF8(void *);
 
 s32 ov102_021E8F14(void *);
 
-s32 ov102_021E8F5C(void *, s8, s8);
+void ov102_021E8F5C(void *, s8, s8);
 
 s32 ov102_021E9464(UnkStruct_ov20_021D2128 *);
 
 s32 ov102_021EA258(UnkStruct_ov20_021D2128 *);
 
-extern s32 ov102_021E8D1C;
 
 extern s32 ov102_021E8E84;
 
-void ov102_021E8D94(void *arg0, u32 *arg1);
+void ov102_021E8D94(EasyChatApp *arg0, u32 *arg1);
 
-void ov102_021E8D94(void *arg0, u32 *arg1) {
+void ov102_021E8D94(EasyChatApp *arg0, u32 *arg1) {
     s32 v0;
     u32 v1;
 
     v1 = *arg1;
     switch (v1) {
     case 0:
-        if ((ov102_021E8EF8(arg0) != 0) || (sub_02090D88(*(EasyChatArgs **)arg0) != 0)) {
+        if ((ov102_021E8EF8(arg0) != 0) || (sub_02090D88(arg0->args) != 0)) {
             if (ov102_021E8F14(arg0) != 0) {
-                ov102_021E8F5C(arg0 + 0x70, 1, 0);
-                ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 0x15);
+                ov102_021E8F5C(&arg0->unk_70, 1, 0);
+                ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 0x15);
                 *arg1 = 1;
                 return;
             }
-            ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 0x17);
+            ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 0x17);
             *arg1 = 2;
             return;
         }
         ov102_021E8D50(arg0, &ov102_021E8E84);
         return;
     case 1:
-        v0 = ov102_021EA258(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14));
+        v0 = ov102_021EA258(((UnkStruct_ov20_021D2128 *)arg0->unk_14));
         switch (v0) {
         case 0:
-            ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 0x19);
+            ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 0x19);
             *arg1 = 3;
             return;
         case 1:
-            if (*((s32 *)&((EasyChatApp *)arg0)->type) == 2) {
-                MailMsg_SetTrailingFieldsEmpty(arg0 + 8);
+            if (*((s32 *)&arg0->type) == 2) {
+                MailMsg_SetTrailingFieldsEmpty(&arg0->sentence);
             }
-            sub_02090E04(*(EasyChatArgs **)arg0, arg0 + 0x10, arg0 + 8);
-            ov102_021E7A4C(arg0, &ov102_021E8D1C);
+            sub_02090E04(arg0->args, arg0->words, &arg0->sentence);
+            ov102_021E7A4C(arg0, ov102_021E8D1C);
             *arg1 = 3;
             return;
         }
         break;
     case 2:
-        if ((0xF3 & ((EasyChatApp *)arg0)->pressedKeys) || (System_GetTouchNew() != 0)) {
-            ov102_021E940C(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14), 0x14);
+        if ((0xF3 & arg0->pressedKeys) || (System_GetTouchNew() != 0)) {
+            ov102_021E940C(((UnkStruct_ov20_021D2128 *)arg0->unk_14), 0x14);
             *arg1 = 3;
             return;
         }
     default:
         return;
     case 3:
-        if (ov102_021E9464(((UnkStruct_ov20_021D2128 *)((EasyChatApp *)arg0)->unk_14)) != 0) {
+        if (ov102_021E9464(((UnkStruct_ov20_021D2128 *)arg0->unk_14)) != 0) {
             ov102_021E8D58(arg0);
         }
         break;

@@ -49,7 +49,6 @@ Pokemon *Party_GetMonByIndex(const Party *party, int slot);
 
 u32 GetMonData(Pokemon *mon, int param, void *dest);
 
-s32 ov44_0222E5DC(u8 numSlots, s32 slot);
 
 BattleCastleAppSprite *BattleCastleAppSprite_New(BattleCastleAppSpriteManager *spriteMan, u32 charResourceID, u32 plttResourceID, u32 cellResourceID, u32 animID, s16 x, s16 y, int priority, const u8 *unused);
 
@@ -110,7 +109,6 @@ void LoadItemSelectBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
 void LoadSubScreenBackground(BattleCastleSelfApp *app, enum GFBgLayer bgLayer);
 
-u8 ov81_0224080C(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
 u8 PrintMessage(BattleCastleSelfApp *app, Window *window, int entryID, u32 xOffset, u32 yOffset, u32 renderDelay, u8 fgColor, u8 shadowColor, u8 bgColor, u8 font, enum TextAlignment alignment);
 
@@ -128,11 +126,11 @@ BOOL ov83_02247624(BattleCastleAppSprite *sprite);
 
 void ov83_02241E18(BattleCastleSelfApp *app);
 
-void ov83_022421E0(BattleCastleSelfApp *app, u8 animID);
+void ov83_022421E0(BattleCastleSelfApp *app, s32 animID);
 
 void ov83_022475D4(BattleCastleAppSprite *sprite, u32 animID);
 
-void ov83_02247600(BattleCastleAppSprite *sprite, u8 animID);
+void ov83_02247600(BattleCastleAppSprite *, u8);
 
 BOOL ov83_02240FAC(BattleCastleSelfApp *app, u8 selectedSlot, u8 menuOption) {
     u32 hp, maxHp, monAnimID, barAnimID;

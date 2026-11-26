@@ -1,7 +1,7 @@
 # tools/port_assets.py fnv: each version's rows (version, game code, the rows' signature, FNV-1a 64 of their ROM bytes)
-b_us	IRBO	269b2112f2a9d2e5	e440ecf6d6674e90
-w_us	IRAO	9a385ef96b6faabf	9490e24fa995f2af
-b2_us	IREO	e5b7208b029053fc	34334ecfc730b4d3
-w2_us	IRDO	47a2e54e2dc45c6d	456223f21e262b14
-hg	IPKE	41bf6f0807c7c4ca	c2eb07be70f756fe
-ss	IPGE	94930f4025b888bd	89fbb8323bf53ab0
+b_us	IRBO	8502b9ed3fd2ee68	ea2b31be30aeb596
+w_us	IRAO	c2c90fe4e606a075	afef6a5c65066359
+b2_us	IREO	33d7402eb8600761	bcd970d9a07ddf51
+w2_us	IRDO	8caec7d41bef54b6	b2ab887fd02da45e
+hg	IPKE	5af9e820641d405d	8d875b868daf9da0
+ss	IPGE	4d10bec0be0d0c1e	5821439dc60a815a

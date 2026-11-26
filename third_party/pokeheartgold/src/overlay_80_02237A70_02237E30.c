@@ -391,7 +391,11 @@ enum BattleFrontierStatsIndex sub_0205C218(u8 challengeType);
 int sub_0205C268(u32 statIndex);
 u16 FrontierSave_GetStat(FrontierSave *frontier, enum BattleFrontierStatsIndex statIndex, int hostFriendID);
 u16 sub_02031108(FrontierSave *frontier, enum BattleFrontierStatsIndex statIndex, int hostFriendID, u16 newValue);
+#if defined(SDK_PORT) || defined(NONMATCHING)
+u16 sub_02031228(FrontierSave *frontier, enum BattleFrontierStatsIndex statIndex, int hostFriendID, s16 addValue);
+#else
 u16 sub_02031228(FrontierSave *frontier, enum BattleFrontierStatsIndex statIndex, int hostFriendID, int addValue);
+#endif
 u16 sub_02031248(FrontierSave *frontier, enum BattleFrontierStatsIndex statIndex, int hostFriendID, int subtractValue);
 
 void ov80_02237E30(BattleCastle *battleCastle);

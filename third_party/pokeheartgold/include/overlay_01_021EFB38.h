@@ -30,9 +30,10 @@ VecFx32 ov01_021F074C(fx32 param0, fx32 param1, fx32 param2);
 
 void *ov01_021F0768(enum HeapID arg0);
 
-void ov01_021F0788(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, u8 arg9);
+struct UnkStruct_ov5_021DE6BC;
+void ov01_021F0788(struct UnkStruct_ov5_021DE6BC *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, Window *arg6, s32 arg7, s32 arg8, u8 arg9);
 
-void ov01_021F0868(void *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, s32 arg6, s32 arg7, s32 arg8, u8 arg9);
+void ov01_021F0868(struct UnkStruct_ov5_021DE6BC *arg0, s32 arg1, s32 arg2, s32 arg3, s32 arg4, s32 arg5, Window *arg6, s32 arg7, s32 arg8, u8 arg9);
 
 void ov01_021F0960(Window *param0, s32 param1, s32 param2, s32 param3, s32 param4, u8 param5);
 

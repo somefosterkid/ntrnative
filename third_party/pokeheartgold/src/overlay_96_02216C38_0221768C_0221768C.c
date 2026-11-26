@@ -13,7 +13,11 @@ void ov96_021E6454(void *param_1, u32 param_2);
 
 void ov96_02216C38(Ov96RdSprites *sprites, u8 *param_2, PokeathlonCourseData *param_3);
 
+#if defined(SDK_PORT) || defined(NONMATCHING)
+void ov96_0221966C(struct Ov96DigitWork *param_1, u8 param_2, u16 param_3, s8 *param_4);
+#else
 void ov96_0221966C(struct Ov96DigitWork *param_1, u32 param_2, u32 param_3, s8 *param_4);
+#endif
 
 void ov96_022196E4(void *param_1, s32 param_2);
 

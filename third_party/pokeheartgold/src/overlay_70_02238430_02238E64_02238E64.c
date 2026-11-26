@@ -28,6 +28,8 @@
 #include "pokepic.h"
 #include "sav_system_info.h"
 #include "overlay_73_wifi_battle_tower_app_state.h"
+#include "overlay_55.h"
+#include "gts_player_data.h"
 
 struct AffineSpriteListTemplate;
 
@@ -92,8 +94,6 @@ struct GTSPokemonListingMon;
 struct GTSPokemonRequirements;
 
 struct GTSTradedPokemonLocation;
-
-struct GameRecords;
 
 struct GameTime;
 
@@ -242,7 +242,7 @@ struct StringTemplateArgHeader;
 
 struct SysTask;
 
-struct SysTaskManager;
+struct SysTaskQueue;
 
 struct SysInfo;
 
@@ -377,14 +377,6 @@ typedef struct BallSeal {
 
 typedef u16 charcode_t;
 
-typedef union MailIconData {
-    struct {
-        u16 spriteIndex : 12;
-        u16 palIndex : 4;
-    } asStruct;
-    u16 asValue;
-} MailIconData;
-
 typedef struct SpriteAnimFrame {
     s8 spriteFrame;
     u8 frameDelay;
@@ -397,25 +389,11 @@ void BlendPalette(const u16 *src, u16 *dest, u16 size, u8 fraction, u16 target);
 
 typedef void(PokemonSpriteCallback)(Pokepic *, PokepicDrawParam *);
 
-typedef struct SysTaskManager SysTaskManager;
-
-
 enum TaskState {
     TASK_STATE_ACTIVE = 0,
     TASK_STATE_INACTIVE,
 };
 
-
-struct SysTaskManager {
-    u16 maxTasks;
-    u16 stackPointer;
-    SysTask sentinelTask;
-    SysTask **taskStack;
-    SysTask *tasks;
-    BOOL locked;
-    SysTask *currentTask;
-    SysTask *nextTask;
-};
 
 typedef void (*TransformFunc)(TransformData *, PokemonAnim *);
 
@@ -453,13 +431,6 @@ typedef struct EncodingSeed {
     u16 byteSum;
     u16 modifier;
 } EncodingSeed;
-
-typedef struct GameRecords {
-    u32 recordsU32[71];
-    u16 recordsU16[77];
-    u16 padding;
-    EncodingSeed seed;
-} GameRecords;
 
 typedef struct GlobalTrade {
     u8 storedPokemon[sizeof(Pokemon)];
@@ -516,26 +487,6 @@ typedef struct GameTime {
     s64 firstCompletionTimestamp;
     u32 penaltyInMinutes;
 } GameTime;
-
-typedef struct GTSPlayerData {
-    GlobalTrade *globalTrade;
-    SysInfo *systemData;
-    Party *party;
-    PCBoxes *pcBoxes;
-    Pokedex *pokedex;
-    WiFiList *wiFiList;
-    WiFiHistory *wiFiHistory;
-    PlayerProfile *trainerInfo;
-    SaveData *saveData;
-    Options *options;
-    GameRecords *records;
-    JournalEntry *journalEntry;
-    Bag *bag;
-    int dexMode;
-    int dwcProfileId;
-    int showContestData;
-    BOOL connectToWiFi;
-} GTSPlayerData;
 
 
 
